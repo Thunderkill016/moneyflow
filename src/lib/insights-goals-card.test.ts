@@ -1,58 +1,50 @@
 /**
- * TASK-115 — Featured goal progress card on Insights.
- * Contract: progress UI, link /goals, empty CTA tạo mục tiêu.
+ * THU-41 / #426 — planning stays discoverable without hydrating the full
+ * planning surface into the default dashboard client boundary.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
-import { readDashboardSource } from "./test-support/dashboard-source.ts";
 
 const GOALS_LIB = join(process.cwd(), "src/lib/planning/goals.ts");
 const PAGE = join(process.cwd(), "src/app/dashboard/page.tsx");
-const DASHBOARD_SERVER = join(process.cwd(), "src/server/dashboard.ts");
+const DASHBOARD_CLIENT = join(process.cwd(), "src/components/moneyflow-dashboard.tsx");
+const DASHBOARD_OVERVIEW = join(
+  process.cwd(),
+  "src/components/dashboard/dashboard-overview-sections.tsx",
+);
+const NAV_IA = join(process.cwd(), "src/lib/nav-ia.ts");
 
 function read(path: string) {
   return readFileSync(path, "utf8");
 }
 
-test("insights page loads goals workspace into dashboard", () => {
+test("dashboard keeps goals out of the default client boundary", () => {
   const page = read(PAGE);
-  const server = read(DASHBOARD_SERVER);
+  const client = read(DASHBOARD_CLIENT);
+
   assert.match(page, /getDashboardPageWorkspace/);
-  assert.match(page, /goals=\{goals\}/);
-  assert.match(server, /goals:\s*z\.array\(z\.unknown\(\)\)/);
-  assert.match(server, /goals: bundle\.goals\.map\(mapGoalRow\)/);
+  assert.doesNotMatch(page, /goals=\{goals\}/);
+  assert.doesNotMatch(page, /incomeTemplates=\{incomeTemplates\}/);
+  assert.doesNotMatch(client, /DashboardPlanningColumn/);
+  assert.doesNotMatch(client, /SavingsGoal/);
+  assert.doesNotMatch(client, /RecurringIncomeTemplate/);
 });
 
-test("dashboard uses pickFeaturedGoal and progress bar", () => {
-  const source = readDashboardSource();
-  assert.match(source, /pickFeaturedGoal/);
-  assert.match(source, /goal-dashboard-panel/);
-  assert.match(source, /role="progressbar"/);
-  assert.match(source, /Mục tiêu tiết kiệm/);
+test("planning remains discoverable from the dashboard", () => {
+  const overview = read(DASHBOARD_OVERVIEW);
+  const nav = read(NAV_IA);
+
+  assert.match(overview, /PLANNING_LINKS\.map/);
+  assert.match(overview, /aria-label="Kế hoạch từ Tổng quan"/);
+  assert.match(nav, /href:\s*"\/goals"/);
+  assert.match(nav, /href:\s*"\/budgets"/);
+  assert.match(nav, /href:\s*"\/commitments"/);
+  assert.match(nav, /href:\s*"\/income-templates"/);
 });
 
-test("dashboard links to /goals and empty CTA creates goal", () => {
-  const source = readDashboardSource();
-  assert.ok(
-    source.includes('href="/goals"') || source.includes("PLANNING_EMPTY_GOAL"),
-    "expected /goals link",
-  );
-  assert.ok(
-    source.includes("Tạo mục tiêu") || source.includes("PLANNING_EMPTY_GOAL"),
-    "expected empty CTA",
-  );
-  assert.ok(
-    source.includes("PLANNING_EMPTY_GOAL") ||
-      source.includes("Dành tiền cho một điều bạn muốn đạt được."),
-    "expected empty copy via shared planning empty",
-  );
-  assert.ok(source.includes("PlanningCardEmpty"), "R3: shared planning empty");
-  assert.ok(source.includes("Xem tất cả mục tiêu"), "expected list link when featured");
-});
-
-test("goals lib exports featured selection helpers", () => {
+test("goals domain keeps featured selection helpers for the goals route and other consumers", () => {
   const source = read(GOALS_LIB);
   assert.match(source, /export function pickFeaturedGoal/);
   assert.match(source, /export function goalRemaining/);
