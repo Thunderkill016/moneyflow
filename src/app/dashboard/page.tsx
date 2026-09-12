@@ -16,12 +16,13 @@ export const metadata: Metadata = {
  * complete income-based plan or a next-payday plan with protected cash.
  */
 export default async function DashboardPage() {
+  const viewer = await requireViewer();
   const {
     workspace,
     budgets,
     commitments,
     pendingInboxCount,
-  } = await getDashboardPageWorkspace(await requireViewer());
+  } = await getDashboardPageWorkspace(viewer);
 
   return (
     <MoneyFlowDashboard
