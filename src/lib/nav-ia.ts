@@ -6,7 +6,9 @@
  *
  * Capture is a primary action (sheet / /capture), not a planning route.
  * Inbox, rules, imports, timeline, reports live under More (or Capture sheet).
- * Budgets / commitments / goals stay secondary (Dashboard cards + More → Kế hoạch).
+ * Budgets / commitments / income templates / goals stay secondary through the
+ * compact dashboard planning nav and More → Kế hoạch rather than full dashboard
+ * cards.
  */
 
 import type { IconName } from "@/components/icons";
@@ -116,7 +118,7 @@ export const PLANNING_PATHS = [
   "/goals",
 ] as const;
 
-/** Ngân sách · Định kỳ (chi) · Lương · Mục tiêu — secondary only (Dashboard / More). */
+/** Ngân sách · Định kỳ (chi) · Lương · Mục tiêu — secondary only (dashboard planning nav / More). */
 export const PLANNING_LINKS: SecondaryNavItem[] = [
   {
     label: "Ngân sách",
