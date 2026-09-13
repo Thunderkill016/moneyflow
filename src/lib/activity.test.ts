@@ -155,6 +155,22 @@ test("finance read failure does not turn missing lookup context into fake candid
   assert.deepEqual(item.attentionLabels, []);
 });
 
+test("finance read failure excludes non-authoritative fallback ledger rows", () => {
+  const items = buildActivityItems({
+    transactions: [transaction()],
+    candidates: [candidate()],
+    accounts: [],
+    categories: [],
+    ledgerAvailable: false,
+    candidateReadinessAvailable: false,
+  });
+
+  assert.equal(items.length, 1);
+  assert.equal(items[0]?.type, "inbox_candidate");
+  assert.equal(filterActivityItems(items, "posted").length, 0);
+  assert.equal(countIncomingActivity(items), 1);
+});
+
 test("approved and rejected candidates are not duplicated into the R1 Activity workstream", () => {
   const items = buildActivityItems({
     transactions: [transaction()],
