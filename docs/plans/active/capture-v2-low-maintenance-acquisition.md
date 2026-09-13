@@ -8,45 +8,59 @@
 **Branch:** `plan/capture-v2-spec`
 **Last updated:** 2026-09-14
 
-Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet defines the product contract and boundaries for Capture V2. It does **not** authorize implementation, provider integration, production writes, or merging.
+Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet defines the product contract, hypotheses, benchmark plan and safety boundaries for Capture V2. It does **not** authorize runtime implementation, schema changes, provider integration, production writes, or merging.
 
 ## Outcome
 
-Reduce the number of transaction-entry concepts a user has to understand while expanding the number of safe evidence sources MoneyFlow can accept.
+Reduce the maintenance required to turn real-world financial activity into trustworthy MoneyFlow ledger facts without making the user learn a growing menu of capture technologies.
 
-Capture V2 should expose only three user-facing entry concepts:
+The revised product thesis is:
 
-1. **Ghi nhanh** — the fastest path when the user already knows the amount and wants to record one transaction.
-2. **Ghi thông minh** — one natural-input surface for typed text, pasted text/SMS, keyboard dictation, and later image/screenshot evidence.
-3. **Nhập sao kê** — a bulk path for CSV/Excel first, with text-layer PDF as a compatibility fallback.
+- **Single transaction = Ghi.** Amount-first entry, frequent patterns, typed description, paste, keyboard dictation and future image evidence are candidate modes or adapters inside one single-transaction job. They are not assumed to deserve separate top-level product concepts.
+- **Bulk acquisition = Nhập sao kê.** CSV/Excel remain first-class bulk paths, with text-layer PDF as compatibility fallback.
+- **Source mechanisms remain adapters.** Share Target, OCR, provider sync, notification ingestion and future native integrations may feed the same acquisition contract, but should not automatically become separate navigation concepts.
 
-The product should not present Voice, OCR, Chat, SMS import, Share Target, or bank/provider sync as separate peer features. Those are evidence adapters or transport mechanisms behind the same acquisition contract.
-
-The long-term direction remains:
+The working information-architecture hypothesis is therefore simpler than the first draft of this packet:
 
 ```text
-manual / text / paste / dictation / image / statement / provider
-                              ↓
-                         source evidence
-                              ↓
-                     normalized candidate
-                              ↓
-                 deterministic rules/matching
-                              ↓
-                    review only when needed
-                              ↓
-                            ledger
+Ghi — one transaction
+  ├─ amount-first trusted entry
+  ├─ frequent patterns / favorites
+  ├─ optional counterparty context
+  ├─ describe / type / paste / keyboard dictation
+  └─ future explicit image evidence experiment
+
+Nhập sao kê — many transactions
+  ├─ CSV
+  ├─ Excel
+  └─ text-layer PDF fallback
 ```
 
-Capture V2 is a Stage 1 **Low-maintenance Reality** capability. It must reduce maintenance without weakening correctness, provenance, reversibility, or user authority.
+This IA is a **hypothesis to benchmark**, not a fixed decision. Capture V2 succeeds only if it reduces maintenance while preserving correctness, provenance, reversibility and user authority.
+
+The long-term acquisition architecture remains:
+
+```text
+manual / pattern / text / paste / dictation / image / statement / provider
+                                      ↓
+                                 source evidence
+                                      ↓
+                             normalized candidate
+                                      ↓
+                         deterministic rules/matching
+                                      ↓
+                            review only when needed
+                                      ↓
+                                    ledger
+```
 
 ## Repository reconnaissance
 
 ### Current product direction
 
-`docs/product/PRODUCT_STRATEGY.md` defines the North Star as maintaining a trustworthy understanding of financial life with decreasing effort. Stage 1 requires a neutral acquisition contract with source evidence/provenance, normalized candidates, import/source mapping, duplicate detection, transfer matching, exception-first review, and deterministic rules.
+`docs/product/PRODUCT_STRATEGY.md` defines the North Star as maintaining a trustworthy understanding of financial life with decreasing effort. Stage 1 requires a neutral acquisition contract with source evidence/provenance, normalized candidates, import/source mapping, duplicate detection, transfer matching, exception-first review and deterministic rules.
 
-`docs/product/PRODUCT_METRICS.md` explicitly rejects imported-row volume as a success metric. Relevant measures include manual interventions per 100 observed transactions, maintenance minutes, acquired-versus-retyped share, exception burden, correction rate, and automatic-match precision.
+`docs/product/PRODUCT_METRICS.md` explicitly rejects imported-row volume as a success metric. Relevant measures include manual interventions per 100 observed transactions, maintenance minutes, acquired-versus-retyped share, exception burden, correction rate and automatic-match precision.
 
 ### Current capture surfaces
 
@@ -58,86 +72,165 @@ Current repository behavior already contains most of the required primitives:
 - `/capture/share` — installed-PWA Share Target bridge for text/files into the capture/inbox path.
 - `/capture` — current hub showing `Ghi nhanh`, `Dán text / SMS`, and `Tải sao kê / file`.
 
-The current paste parser already understands Vietnamese-oriented amount syntax such as `45k`, `1.5tr`, grouped VND amounts, dates, kind hints and known merchants. It emits candidates with confidence, uncertain fields, explanations, raw snippet evidence and optional rule matches. It does not write directly to ledger.
+The current paste parser already understands Vietnamese-oriented amount syntax such as `45k`, `1.5tr`, grouped VND amounts, dates, kind hints and known merchant text. It emits candidates with confidence, uncertain fields, explanations, raw snippet evidence and optional rule matches. It does not write directly to ledger.
 
-### PR #596 dependency boundary
+### PR #596 is released truth
 
-PR #596 (`feat: add stable Ghi defaults and immediate correction`) is open and mergeable at the time of this specification. Its contract is important but remains a separate scope:
+PR #596 (`feat: add stable Ghi defaults and immediate correction`) was merged into `main` on 2026-09-14 as commit `f7a5ae0731f48974e3eae4d01c879a1b2a822a4c` and the corresponding production deployment reached `READY`.
+
+Its current product contract is no longer an external dependency:
 
 - stable ledger-backed account/category defaults require a deterministic 2-of-3 majority over recent eligible reviewed same-kind transactions;
 - local quick-add preference remains fallback;
 - immediate post-save correction reuses the existing edit/update mutation;
-- no merchant fuzzy inference, ML/AI, provider work, schema change, or second mutation path.
+- canonical recency follows existing ledger ordering;
+- no merchant fuzzy inference, ML/AI, provider work, schema change or second mutation path was introduced.
 
-Capture V2 must reuse that behavior after it lands. It must not duplicate, fork, or weaken the PR #596 default-selection logic.
+Capture V2 must reuse this behavior as current released truth. It must not duplicate, fork or weaken the #596 default-selection and correction contracts.
+
+### Historical repeat experiment
+
+The repository previously contained an unmerged `Add repeat last transaction` PR. It copied the last successful amount, account, category and note into the next draft, but it was closed because the required inspect → research → decision → contract → bounded implementation process had not been completed. The closure is not evidence that the user job is invalid.
+
+The old implementation is **not** a design authority for Capture V2. In particular, automatically copying amount and note is too broad for a frequent-pattern default. The historical attempt is useful only as evidence that this job has appeared before and should now be evaluated under the current product/trust contracts.
 
 ### Current PWA boundary
 
-The manifest already provides PWA shortcuts for expense, income and transfer, and a `share_target` that accepts text/CSV/TXT/TSV. The Share Target is an ingress mechanism, not a product concept, and is not broadly supported enough to become a required path.
+The manifest already provides PWA shortcuts for expense, income and transfer, and a `share_target` that accepts text/CSV/TXT/TSV. Share Target is an ingress mechanism, not a product identity, and is not broadly supported enough to become a required cross-platform path.
 
 ## Market research
 
 ### Decision question
 
-Which acquisition methods are mature enough, valuable enough for MoneyFlow's digitally banked Vietnamese target user, and sufficiently aligned with the product's trust/maintenance strategy to retain?
+Which patterns measurably reduce transaction-entry maintenance without weakening trust, and which should MoneyFlow benchmark before assigning them permanent information-architecture weight?
 
 ### Sources and evidence
 
 | Source | What it supports | MoneyFlow applicability |
 |---|---|---|
-| YNAB official File-Based Import guide, accessed 2026-09-14: https://support.ynab.com/en_us/file-based-import-a-guide-Bkj4Sszyo | CSV is YNAB's preferred file import format; imports support field mapping and per-account remembered settings; categories are not trusted from bank files because category data is not reliably supplied; manual entry and imported activity can coexist/match. | Strong support for keeping statement import as a core bulk path, remembering mappings, and treating bank file data as evidence rather than category truth. |
-| YNAB official manual-entry guidance, accessed 2026-09-14: https://support.ynab.com/en_us/adding-transactions-without-direct-import-B1kBALVaxx | Mature finance software still keeps manual entry for on-the-go transactions while offering scheduled/file/direct import for lower maintenance. | Supports retaining a very fast one-transaction path instead of trying to automate every transaction source immediately. |
-| MDN `share_target`, accessed 2026-09-14: https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Manifest/Reference/share_target | Installed PWAs can receive shared text/files, but the feature is Limited Availability / not Baseline and incoming data must be validated. | Keep Share Target as optional transport; never make it a required or primary cross-platform input method. |
-| MoneyFlow repository behavior | Deterministic Vietnamese text parsing, candidate confidence, Inbox review, upload preview, rules, quick entry and correction already exist. | The highest-value move is consolidation and reuse, not adding several parallel feature stacks. |
+| YNAB official `Adding Transactions Without Direct Import`, accessed 2026-09-14: https://support.ynab.com/en_us/adding-transactions-without-direct-import-B1kBALVaxx | Mobile transaction entry is accelerated through app-icon long press, category long press, widgets, lock-screen/Home Screen shortcuts, Siri/Spotlight and prefilled transaction fields. | Strong evidence that reducing access cost and reusing known context can matter as much as changing the form itself. |
+| YNAB official `Shortcuts on iOS`, accessed 2026-09-14: https://support.ynab.com/en_us/shortcuts-on-ios-a-guide-Bk_lHa5Aq | Add Transaction shortcuts can prefill amount, payee, category and account; examples target regular transactions such as a morning coffee. | Supports a Frequent Patterns/favorites hypothesis and future OS-level shortcuts, while not requiring MoneyFlow to auto-copy amount by default. |
+| YNAB official `Scheduled Transactions`, accessed 2026-09-14: https://support.ynab.com/scheduled-transactions-a-guide-BygrAIFA9 | Repeating known transactions can be represented explicitly and matched later when imported. | Supports separating truly recurring commitments from ad-hoc frequent patterns rather than making one feature do both jobs. |
+| Actual Budget official `Payees`, accessed 2026-09-14: https://actualbudget.org/docs/transactions/payees/ | Payees are canonical transaction context, may be favorited, can normalize imported names and may carry a default category. | Strong support for evaluating Counterparty/Payee as a durable context primitive rather than leaving merchant text only inside parser output or notes. |
+| Actual Budget official `Rules`, accessed 2026-09-14: https://actualbudget.org/docs/budgeting/rules/ | Actual automatically creates or updates inspectable rules from repeated payee renaming/categorization behavior. | Supports deterministic, user-correctable learning anchored on counterparty context before probabilistic category guessing. |
+| Lunch Money official `Rules`, accessed 2026-09-14: https://support.lunchmoney.app/setup/rules | Payee, category, notes, amount, date and account can drive explicit rules; rules apply to manually added and imported transactions. | Supports one deterministic rules model across manual and imported acquisition rather than separate automation stacks. |
+| Wallet by BudgetBakers official `Using Templates`, updated 2026-03-31: https://support.budgetbakers.com/hc/en-us/articles/7077050225042-Using-Templates | Templates preserve fields such as account, category, amount, type, payee and note for repetitive records. | Supports testing explicit reusable transaction patterns. MoneyFlow should benchmark which fields are safe to prefill instead of copying the whole template contract automatically. |
+| Copilot official `Quick Start Guide` and `Copilot Intelligence for Spending`, accessed 2026-09-14: https://help.copilot.money/en/articles/11157550-quick-start-guide and https://help.copilot.money/en/articles/8182433-copilot-intelligence-for-spending | Copilot waits until at least 30 reviewed transactions before surfacing ML type/category suggestions, and continues learning from user correction. | Supports the principle that probabilistic prediction should require meaningful reviewed history and confidence; it is not justification for zero-history AI defaults in MoneyFlow. |
+| MoMo official `Quản lý chi tiêu`, accessed 2026-09-14: https://www.momo.vn/quan-ly-chi-tieu | Transactions performed through MoMo can be recorded and categorized automatically because MoMo already owns the payment evidence; outside transactions still have a manual Add Transaction flow. | Strong Vietnam-specific evidence that the biggest maintenance reduction comes from acquiring trustworthy source evidence, not from adding a chatbot to a manual form. |
+| MDN `share_target`, accessed 2026-09-14: https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Manifest/Reference/share_target | Installed PWAs can receive shared text/files, but support is Limited Availability and incoming data must be validated. | Keep Share Target as optional transport; never make it a required primary path. |
+| MoneyFlow repository behavior | Deterministic Vietnamese text parsing, candidate confidence, Inbox review, rules, upload preview, quick entry, #596 stable defaults and immediate correction already exist. | The highest-value next step is to exploit existing trust primitives and benchmark fewer interactions, not create parallel feature stacks. |
 
-### Market decision
+### Market interpretation
 
-Retain and prioritize:
+The cross-product pattern is not “AI chat wins transaction entry.” The stronger repeated patterns are:
 
-- fast one-transaction manual capture;
-- natural-language text input;
-- paste of existing text/SMS evidence;
-- CSV/Excel statement import;
-- text-layer PDF only as compatibility fallback;
-- optional Share Target transport where platform support exists;
-- image/screenshot OCR only as a bounded experiment behind the same candidate/review contract;
-- provider/bank sync only as a later adapter after deduplication, transfer matching, provenance, economics and provider risk are ready.
+1. get the user to the entry point quickly;
+2. reuse stable context for repeated transactions;
+3. make payee/counterparty a durable anchor for matching and categorization;
+4. represent explicit repeating transactions separately from ad-hoc frequent behavior;
+5. learn deterministically or only after sufficient reviewed evidence;
+6. acquire source evidence directly when the product legitimately owns or receives it;
+7. preserve correction and user control.
 
-Do not create near-term standalone product surfaces for:
-
-- a dedicated voice recorder/STT feature;
-- a multi-turn chatbot for transaction entry;
-- background SMS inbox reading;
-- a separate OCR product/page;
-- Apple Pay/Google Pay/native payment interception;
-- OCR-heavy receipt line-item accounting;
-- Share Target as a top-level capture method.
+These are external market patterns. They do not prove that the same UI or data model will improve MoneyFlow. MoneyFlow must benchmark the local hypotheses below.
 
 ## Product problem
 
-MoneyFlow currently exposes capture mechanisms according to implementation shape (`Ghi nhanh`, `Dán text / SMS`, `Tải sao kê / file`). As more acquisition mechanisms are added, that model risks turning Capture into a menu of technologies rather than a small set of user jobs.
+MoneyFlow currently exposes capture mechanisms according to implementation shape (`Ghi nhanh`, `Dán text / SMS`, `Tải sao kê / file`). The first draft of Capture V2 risked replacing that technology menu with another fixed menu (`Ghi nhanh`, `Ghi thông minh`, `Nhập sao kê`) before proving that users need two different mental models for a single transaction.
 
-The user job is simpler:
+The more stable user jobs appear to be:
 
-- **I know what happened and want to record one transaction quickly.**
-- **I want to describe/show what happened and let MoneyFlow extract a candidate.**
-- **I want to import many transactions from a source file.**
+- **I need to record or supply evidence for one transaction.**
+- **I need to import many transactions.**
 
-If Voice, OCR, Paste, SMS, Share and AI become separate peer features, MoneyFlow increases conceptual load, duplicates parsing/review semantics, and creates multiple paths that can disagree about financial truth.
+Within the one-transaction job, the best interaction may vary by situation:
+
+- repeated everyday transaction → amount-first + frequent pattern;
+- new transaction with several explicit details → typed description may be faster;
+- bank/wallet text already exists → paste/share may be faster;
+- future image evidence → screenshot/OCR may be useful;
+- future provider/native source → no manual retyping may be required.
+
+Creating a separate top-level feature for every mechanism increases conceptual load and creates multiple paths that can disagree about financial truth.
+
+## Hypotheses to benchmark
+
+None of the following are fixed product decisions until the benchmark evidence supports them.
+
+### H1 — Single transaction should have one user-facing concept: Ghi
+
+**Hypothesis:** users complete single-transaction acquisition faster and with less confusion when amount-first, frequent patterns and assisted text/paste modes live under one `Ghi` concept rather than separate `Ghi nhanh` and `Ghi thông minh` destinations.
+
+**Disconfirming evidence:** users consistently understand and complete tasks faster when assisted capture has a separate destination, or consolidation makes amount-first entry slower/harder to discover.
+
+### H2 — Frequent Patterns are the next highest-value Ghi enhancement
+
+**Hypothesis:** showing a small number of deterministic familiar patterns reduces TTLT and taps for repeated everyday transactions without increasing wrong-default correction.
+
+A pattern is contextual reuse, not automatic truth. The initial pattern should prefer stable structural fields such as:
+
+- transaction kind;
+- account;
+- category;
+- optional canonical counterparty when that foundation exists.
+
+Amount should remain empty by default. Copying a prior amount or note should require an explicit repeat/template action because those fields are more transaction-specific.
+
+**Disconfirming evidence:** pattern selection adds more scanning/choice cost than the #596 stable default, or users frequently correct the chosen pattern.
+
+### H3 — Counterparty/Payee is a valuable foundation for learning and normalization
+
+**Hypothesis:** an optional canonical Counterparty/Payee primitive improves repeated manual entry, imported-name cleanup, deterministic category rules, search and future source matching enough to justify the data-model cost.
+
+Counterparty must be distinguished from raw imported/source description:
+
+```text
+raw source description / merchant text
+                ↓ deterministic/user-confirmed normalization
+canonical counterparty/payee
+                ↓ optional user-owned rule/default
+account/category context
+```
+
+Raw source evidence must remain preserved in provenance. A canonical counterparty is user-owned interpretation, not a replacement for source evidence.
+
+**Disconfirming evidence:** users rarely need merchant/payee identity, merchant text already available in notes/source evidence is sufficient, or introducing another entity creates more cleanup than it saves.
+
+### H4 — Natural description is a Ghi mode, not yet a navigation concept
+
+**Hypothesis:** for one-off transactions with several explicit details, `Mô tả giao dịch` using the existing deterministic parser can beat amount-first entry on TTLT without increasing correction burden.
+
+Typed text, paste and keyboard dictation should feed the same parser/preview contract. Until benchmarked, the UI should not claim that this mode is “smart” or promote it to a permanent peer destination.
+
+**Disconfirming evidence:** description mode is slower, ambiguous, less discoverable or creates materially more corrections than amount-first Ghi.
+
+### H5 — Direct evidence acquisition ultimately reduces more maintenance than richer manual entry
+
+**Hypothesis:** statement/source/provider/native acquisition will drive a larger long-term reduction in maintenance than increasingly sophisticated manual forms, provided provenance, duplicate handling, transfer matching, recovery and provider risk are solved.
+
+MoMo is relevant evidence because automatic capture is strongest where the product already owns transaction evidence. It is not evidence that MoneyFlow should imitate MoMo's AI classification or request invasive permissions without equivalent evidence authority.
 
 ## Product principles for Capture V2
 
-### 1. Three concepts, many adapters
+### 1. Single transaction is one job
 
-The user should learn three capture concepts. Technology-specific adapters remain implementation details.
+Use `Ghi` as the working single-transaction concept. Amount-first, patterns and assisted evidence are modes inside that job unless benchmark evidence proves separate concepts are materially better.
 
-### 2. Amount-first stays the fastest trusted path
+### 2. Amount-first remains the control path
 
-When a user already knows the amount, Ghi nhanh should not force natural-language parsing, OCR, Inbox review or conversation.
+The released #596 flow is the benchmark baseline. When a user already knows the amount, MoneyFlow must not require natural-language parsing, OCR, Inbox review or conversation.
 
-### 3. Natural input is one surface, not a chatbot
+### 3. Frequent patterns reuse context, not accidental values
 
-`Ghi thông minh` is a command/evidence box, not a multi-turn assistant. The default interaction should be one input followed by a compact parse/preview.
+Patterns may preselect stable structural context only when evidence is safe and current. Amount and note are not silently copied from the last transaction.
+
+### 4. Counterparty is context, not truth
+
+A canonical Counterparty/Payee may anchor deterministic learning and normalization, but it cannot override source evidence, transfer semantics or user corrections.
+
+### 5. Natural input is one-shot evidence, not a chatbot
+
+A description mode should be one input followed by compact interpretation/preview. Do not ask sequential questions for fields that can be presented together.
 
 Example:
 
@@ -151,106 +244,206 @@ Possible interpreted preview:
 85.000 ₫ · Chi · hôm qua · VCB? · Ăn uống?
 ```
 
-Only unresolved fields should require user intervention.
+Only unresolved fields should require intervention.
 
-### 4. Dictation is initially an input method, not an audio subsystem
+### 6. Dictation is an input method before it is an audio subsystem
 
-The first voice experiment should use operating-system / keyboard dictation into the same text field. MoneyFlow should not initially own raw audio capture, speech model hosting, transcription storage or a separate STT pipeline.
+The first voice benchmark should use operating-system/keyboard dictation into the same description field. MoneyFlow should not initially own raw audio capture, speech model hosting, transcription storage or a separate STT pipeline.
 
-Dedicated STT is allowed only if real benchmark evidence shows that keyboard dictation is insufficient and a MoneyFlow-owned implementation materially improves Time to Trusted Ledger Transaction.
+### 7. Images produce evidence, not truth
 
-### 5. Images produce evidence, not truth
+A screenshot or receipt may provide amount, date, merchant/counterparty, reference and source clues. OCR output must enter the normalized-candidate path with uncertainty/provenance and must not directly establish ledger truth.
 
-A screenshot or receipt may provide amount, date, merchant/counterparty, reference and source clues. OCR output must enter the normalized-candidate path and preserve uncertainty/provenance. It must not silently determine account, category, transfer semantics, or ledger truth without sufficient evidence.
+### 8. File import remains the bulk throughput path
 
-### 6. File import is the bulk throughput path
+CSV/Excel are first-class. Text-layer PDF is compatibility support. Mapping, duplicate handling, recovery and review cost matter more than the number of accepted file types.
 
-CSV/Excel are first-class. Text-layer PDF is compatibility support, not the preferred format. Import mapping, duplicate handling and review cost matter more than the number of file types accepted.
-
-### 7. No parallel ledger
+### 9. No parallel ledger
 
 Every assisted acquisition method must converge on existing candidate/review/mutation contracts. No adapter may create a hidden second transaction store or bypass the shared ledger mutation path.
 
-### 8. Exception-first review
+### 10. Exception-first review
 
-Review should be proportional to uncertainty. High-confidence deterministic evidence may reduce user work only under an explicit approval contract; weak or ambiguous evidence must remain visible.
+Review should be proportional to uncertainty. High-confidence deterministic evidence may reduce work only under an explicit approved automation contract; weak or ambiguous evidence remains visible.
 
-### 9. Privacy cost is product cost
+### 11. Privacy cost is product cost
 
-Do not request SMS inbox access, background notification access, raw audio storage or broad photo-library access merely to make demos feel automatic. A more invasive source needs measured maintenance reduction large enough to justify its trust cost.
+Do not request SMS inbox access, background notification access, raw audio storage or broad photo-library access merely to make capture look automatic. An invasive source needs measured maintenance reduction large enough to justify the trust cost.
 
-## User-facing information architecture
+## Working information-architecture experiment
 
-### Capture hub
+The first IA benchmark should compare the current Capture hub against this working candidate:
 
-The Capture hub should contain exactly three primary actions:
-
-| Label | Description | Destination concept |
+| Candidate action | Description | User job |
 |---|---|---|
-| **Ghi nhanh** | `Nhập số tiền trước, MoneyFlow dùng lựa chọn an toàn gần đây` | Single trusted manual transaction |
-| **Ghi thông minh** | `Gõ, dán hoặc dùng nhập giọng nói để tạo giao dịch nháp` | Natural-input candidate acquisition |
-| **Nhập sao kê** | `CSV, Excel hoặc PDF sao kê để đưa nhiều giao dịch vào` | Bulk statement acquisition |
+| **Ghi** | `Ghi một khoản — nhập số tiền hoặc dùng cách nhập khác khi cần` | Single transaction |
+| **Nhập sao kê** | `CSV, Excel hoặc PDF sao kê để đưa nhiều giao dịch vào` | Bulk acquisition |
 
-Do not add separate top-level actions named Voice, OCR, Chat, SMS, Share, Camera or AI.
+Inside `Ghi`, the working hierarchy is:
+
+1. amount-first field and released #596 stable defaults;
+2. up to a small number of Frequent Patterns when safe evidence exists;
+3. optional details including Counterparty/Payee when the foundation is approved;
+4. secondary `Mô tả giao dịch` mode for type/paste/keyboard dictation;
+5. future explicit image evidence experiment only after separate approval.
+
+This hierarchy is not authorized implementation. It is the prototype target to compare against current behavior.
 
 ### Backward compatibility
 
-Existing deep links should remain usable during migration:
+Existing routes and ingress links must remain usable during any future migration:
 
-- `/capture/quick` remains Ghi nhanh.
-- `/capture/paste` may redirect or render the Ghi thông minh surface in text/paste mode.
-- `/capture/upload` remains Nhập sao kê.
-- `/capture/share` continues as an ingress bridge and forwards into Ghi thông minh or Nhập sao kê based on evidence type.
+- `/capture/quick` remains the amount-first Ghi path or redirects compatibly to Ghi amount-first mode;
+- `/capture/paste` may render/redirect into Ghi description/paste mode;
+- `/capture/upload` remains Nhập sao kê;
+- `/capture/share` stays an ingress bridge and routes by supplied evidence type;
+- current PWA shortcuts must not break merely because labels/IA change.
 
-Do not break PWA shortcuts or existing shared links as part of an information-architecture cleanup.
+Do not remove existing routes during an IA experiment unless the replacement has explicit compatibility tests and rollback.
 
-## Entry point A — Ghi nhanh
-
-### Job
-
-Record one known transaction with the smallest possible number of actions.
-
-### Required behavior
-
-- Amount gets first focus.
-- Expense/income/transfer remains explicit and uses existing transaction semantics.
-- After PR #596 lands, stable ledger-backed account/category defaults win over local fallback exactly as that PR defines.
-- A first-time or weak-evidence user must not receive an arbitrary taxonomy default.
-- Existing direct single-save behavior remains the trusted path for explicit manual entry.
-- The exact saved row must be immediately correctable through the existing edit/update mutation.
-- Transfer behavior remains neutral to expense/income reporting.
-
-### Non-goals
-
-- No text parser in the amount field.
-- No OCR requirement.
-- No chat.
-- No model-generated category.
-- No amount-derived inference.
-
-## Entry point B — Ghi thông minh
+## Ghi — single transaction contract
 
 ### Job
 
-Turn a short natural description or supplied evidence into one or more reviewable transaction candidates without requiring the user to fill a full form.
+Turn one known transaction or one piece of transaction evidence into a trustworthy ledger fact with the least necessary interaction.
+
+### Amount-first default mode
+
+Required released behavior:
+
+- amount gets first focus;
+- expense/income/transfer remains explicit and uses existing transaction semantics;
+- #596 stable ledger-backed account/category defaults win over local fallback exactly as currently released;
+- a first-time or weak-evidence user receives no arbitrary taxonomy default;
+- direct single-save behavior remains the trusted path for explicit manual entry;
+- the exact saved row is immediately correctable through the existing edit/update mutation;
+- transfer behavior remains neutral to expense/income reporting.
+
+Non-goals:
+
+- no shorthand text parser inside the strict amount field;
+- no amount-derived category inference;
+- no model-generated financial default;
+- no hidden save/autopost.
+
+## Frequent Patterns foundation
+
+### Job
+
+Reduce repeated choices for common everyday transactions without turning a one-off historical transaction into an automatic template.
+
+### Pattern eligibility hypothesis
+
+A future implementation may evaluate patterns from reviewed, active, same-kind ledger history. It must preserve coherent field relationships from the same transaction/pattern and must not independently guess account/category/counterparty values.
+
+Potential pattern identity:
+
+```text
+kind + accountId + categoryId + optional counterpartyId
+```
+
+The initial experiment should limit the first viewport to a small number of patterns and benchmark whether they reduce work relative to #596's single stable default.
+
+### Safety requirements
+
+- transfer rows are not learned as ordinary expense/income patterns;
+- split/ambiguous/review-needed rows do not silently establish a pattern;
+- invalid/deleted account/category/counterparty references are ignored;
+- amount is empty by default after selecting a pattern;
+- note is empty by default after selecting a pattern;
+- no “repeat last” action may post automatically;
+- selecting a pattern never bypasses final Save;
+- user correction must affect future learning only through an explicit deterministic contract;
+- local/browser state must not become a second ledger.
+
+### Explicit repeat/template hypothesis
+
+There may be value in a separate explicit `Dùng lại` or pinned-template action that can copy amount and note by user choice. That is different from implicit Frequent Patterns and should be benchmarked separately.
+
+A recurring rent/subscription belongs to the existing recurring/commitment domain rather than being modeled only as a frequent ad-hoc pattern.
+
+### Benchmark questions
+
+- Does a pattern row reduce median/p75 TTLT for repeated everyday transactions?
+- How often is the selected account/category/counterparty corrected?
+- Does scanning patterns slow down users for novel transactions?
+- How many visible patterns are useful before choice cost outweighs saved taps?
+- Do users want explicit favorites/pinning rather than purely learned ranking?
+
+## Counterparty/Payee foundation
+
+### Product purpose
+
+Create one optional, user-meaningful identity for the person/business/entity involved in a transaction so MoneyFlow can normalize source descriptions and anchor deterministic learning without destroying provenance.
+
+Working terminology in this packet is **Counterparty/Payee** until product language is benchmarked in Vietnamese. The implementation must not choose a permanent user-facing label by developer convenience alone.
+
+### Required conceptual separation
+
+- **Raw source description** — immutable/retained evidence from bank statement, pasted SMS, provider payload or other source where available.
+- **Canonical counterparty/payee** — user-owned normalized identity such as `Highlands Coffee`.
+- **Alias/match rule** — deterministic mapping from source text/pattern to canonical counterparty.
+- **Category/default rule** — optional inspectable user-owned behavior associated with the canonical counterparty or broader rule system.
+
+Example:
+
+```text
+HIGHLANDS COFFEE 0281234 POS
+HIGHLANDS*LANDMARK81
+            ↓ deterministic/user-confirmed aliases
+      Highlands Coffee
+            ↓ optional rule
+         Ăn uống
+```
+
+### Foundation questions before schema work
+
+A schema migration is **not authorized** by this packet. Before implementation, the selected work packet must answer:
+
+- Can the current candidate/provenance model preserve raw description while adding canonical identity cleanly?
+- Does the ledger need a first-class counterparty reference, or can a smaller reversible experiment prove value first?
+- How are aliases merged, renamed and deleted without losing source evidence?
+- How do transfers remain semantically separate from ordinary counterparties?
+- How are imported/payee strings normalized deterministically and explained?
+- How does export/archive/restore preserve the new identity if it becomes durable data?
+- How does tenant isolation/RLS apply if a new table/entity is introduced?
+
+### UX hypothesis
+
+Counterparty should be optional and progressively disclosed in amount-first Ghi. It may become more prominent when:
+
+- a Frequent Pattern includes it;
+- description/paste parsing extracts merchant/counterparty evidence;
+- an import row has a recognizable source description;
+- the user explicitly searches/selects a favorite.
+
+Do not require counterparty for every transaction merely because the data model supports it.
+
+### Deterministic learning hypothesis
+
+If the user repeatedly confirms `Highlands Coffee → Ăn uống`, MoneyFlow may eventually offer an inspectable deterministic rule or default. One correction should not silently create a broad fuzzy rule.
+
+External merchant enrichment, web lookup and LLM normalization are out of scope for the first foundation.
+
+## Description / type / paste / dictation experiment
+
+### Job
+
+Test whether a short natural description can reduce work for one-off transactions with several explicit details.
 
 ### Input modes
 
-Initial supported modes:
+Initial benchmark modes:
 
-1. **Type** — user enters a phrase such as `cafe 45k`, `đổ xăng 185k Techcombank hôm qua`.
-2. **Paste** — user pastes bank SMS, wallet text, transaction note or copied notification content.
-3. **Keyboard dictation** — the device converts speech into the same text field. MoneyFlow treats the result as text, not as a privileged source.
+1. **Type** — `cafe 45k`, `đổ xăng 185k Techcombank hôm qua`.
+2. **Paste** — bank SMS, wallet text, transaction note or copied notification content.
+3. **Keyboard dictation** — the device converts speech into the same text field; MoneyFlow treats the result as ordinary text evidence.
 
 Later bounded experiment:
 
-4. **Image/screenshot** — a user explicitly chooses or shares one image; OCR extracts evidence and produces the same candidate contract.
+4. **Image/screenshot** — user explicitly chooses/shares one image; OCR extracts evidence into the same candidate contract.
 
 ### Interaction model
-
-The surface is not conversational by default.
-
-Primary flow:
 
 ```text
 input
@@ -261,24 +454,22 @@ compact preview
   ↓
 resolve uncertain fields only
   ↓
-Inbox candidate or trusted save path defined by the candidate contract
+Inbox candidate or separately approved trusted-save path
 ```
 
-The system must not ask sequential questions for fields it can present in one compact preview.
+The surface is not conversational by default. The system must not ask sequential questions for fields it can show together in one preview.
 
 ### Reuse requirements
 
-- Reuse `src/lib/inbox/parse-text.ts` as the starting parser owner for typed/pasted/dictated text.
-- Reuse existing candidate confidence, uncertain fields, explanations and raw evidence model where still sufficient.
-- Reuse rule application and rule-evidence persistence.
-- Reuse Inbox candidate creation; do not add a second assisted-capture store.
-- Reuse safe analytics and safe logging patterns without raw financial payloads.
+- reuse `src/lib/inbox/parse-text.ts` as the starting deterministic text parser owner unless a planned refactor establishes a more neutral evidence-parser boundary;
+- reuse existing candidate confidence, uncertain fields, explanations and raw evidence where sufficient;
+- reuse rule application and rule-evidence persistence;
+- reuse Inbox candidate creation; do not add a second assisted-capture store;
+- reuse privacy-safe analytics/logging without raw financial payloads.
 
-### Parser contract
+### Parser boundary
 
-For text-based input, deterministic parsing remains the default before any model-based experiment.
-
-The parser may extract or infer only under explicit deterministic rules:
+The deterministic parser may extract or infer only under explicit rules, including:
 
 - amount;
 - date;
@@ -287,112 +478,107 @@ The parser may extract or infer only under explicit deterministic rules:
 - source hint;
 - rule-backed category where an existing explicit rule applies.
 
-Account selection, category defaults, transfer semantics and other financial fields must follow existing trusted contracts rather than loose language-model completion.
+Account/category/transfer semantics must follow trusted existing contracts rather than loose language-model completion.
 
-### Image/OCR experiment contract
+## Image/OCR experiment boundary
 
-Image support is not part of the initial implementation slice unless separately approved.
+Image support is not part of the first implementation slice unless separately approved.
 
-When experimented with, it must:
+When evaluated, it must:
 
-- accept an explicitly supplied image or Share Target file; no background photo-library scanning;
-- preserve the original source type and parser/OCR version in provenance where the candidate model supports it;
+- accept an explicitly supplied image/share file; no background photo-library scanning;
+- preserve source type and parser/OCR version in provenance where supported;
 - extract candidate evidence such as amount, date, merchant/counterparty, reference and visible provider name;
-- surface uncertain fields;
-- avoid assuming the paying account merely from receipt appearance unless the evidence proves it;
+- surface uncertainty;
+- avoid assuming the paying account from receipt appearance without evidence;
 - avoid automatic categorization from visual content unless an existing deterministic/user-confirmed rule applies;
 - never write directly to ledger solely because OCR confidence is high;
-- include a delete/discard path for the supplied image/evidence according to the product's retention policy.
+- include a delete/discard path according to retention policy.
 
-The first market-relevant image cohort should prioritize Vietnamese digital-payment screenshots / transfer confirmations before deep receipt line-item extraction.
+The first Vietnam-relevant cohort should prioritize digital-payment screenshots / transfer confirmations before receipt line-item extraction.
 
-## Entry point C — Nhập sao kê
+## Nhập sao kê — bulk acquisition contract
 
 ### Job
 
-Bring a large amount of existing financial activity into MoneyFlow with minimal per-row work while preserving mapping, provenance and duplicate safety.
+Bring many existing financial activities into MoneyFlow with minimal amortized per-row work while preserving mapping, provenance, duplicate safety and recovery.
 
 ### Format priority
 
 1. CSV — preferred.
 2. Excel — supported where current parser behavior is trustworthy.
 3. PDF with text layer — compatibility fallback.
-4. Image-only/scanned PDF — not silently treated as equivalent to text-layer PDF; requires a separate OCR contract if ever supported.
+4. Image-only/scanned PDF — requires a separate OCR contract; never silently treated as equivalent to text-layer PDF.
 
 ### Required behavior
 
-- Preview before candidates enter Inbox.
-- Account/source selection or mapping remains explicit enough to preserve provenance.
-- Remember safe import mapping per account/source when the existing persistence model can support it without introducing a second truth.
-- Do not trust bank-supplied categories as MoneyFlow category truth by default.
-- Duplicate handling must account for coexistence with manually entered transactions.
-- Transfer matching remains a separate financial-semantic concern and must not be inferred solely from similar descriptions.
-- Failed/partial imports must be recoverable and repeatable without silently duplicating accepted ledger facts.
+- preview before candidates enter Inbox;
+- account/source selection or mapping remains explicit enough to preserve provenance;
+- remember safe import mapping per account/source only through an approved persistence contract;
+- do not trust bank-supplied categories as MoneyFlow category truth by default;
+- duplicate handling accounts for coexistence with manually entered transactions;
+- transfer matching remains a separate financial-semantic concern;
+- failed/partial imports are recoverable and repeatable without silently duplicating accepted ledger facts.
+
+Counterparty foundation, if later approved, should help normalize imported descriptions while raw imported text remains source evidence.
 
 ## Share Target contract
 
-PWA Share Target remains an optional transport feature.
+PWA Share Target remains optional transport.
 
 It may receive:
 
-- text → Ghi thông minh;
+- text → Ghi description/paste mode;
 - CSV/Excel/text statement file → Nhập sao kê where supported;
-- image → future Ghi thông minh OCR experiment only when that adapter exists.
+- image → future Ghi image-evidence experiment only when that adapter exists.
 
 Requirements:
 
 - validate MIME/type/size and content before parsing;
-- no behavior may depend exclusively on Share Target because browser/platform support is incomplete;
-- the normal in-app chooser must always provide an equivalent manual route;
-- Share Target must not become a fourth Capture menu item.
+- no core behavior may depend exclusively on Share Target because browser/platform support is incomplete;
+- the normal in-app route must provide an equivalent manual path;
+- Share Target must not become a permanent top-level capture concept merely because the platform exposes it.
 
 ## Voice decision
 
-### Keep
+### Keep for benchmark
 
-- keyboard/OS dictation into the Ghi thông minh text box;
-- benchmark it as a user-input mode.
+- keyboard/OS dictation into the Ghi description field;
+- treat resulting text as ordinary text evidence;
+- benchmark discoverability, TTLT and correction.
 
 ### Defer
 
-- microphone button owned by MoneyFlow;
+- MoneyFlow-owned microphone button;
 - audio recording storage;
 - server-side STT;
 - local Whisper/other model deployment;
-- wake words or background listening.
+- wake words/background listening.
 
-### Promotion condition
-
-A dedicated STT implementation may move from Deferred to Experiment only when all are true:
-
-- keyboard dictation has been benchmarked on representative Android/iOS devices;
-- a meaningful user cohort cannot use it reliably or discoverably;
-- an owned STT prototype has lower median Time to Trusted Ledger Transaction or materially higher completion with acceptable correction burden;
-- privacy, consent, retention and model/provider economics are specified;
-- transcript/audio failure cannot silently create ledger truth.
+A dedicated STT implementation may move from Deferred to Experiment only when keyboard dictation has been benchmarked and an owned implementation has a clear measured advantage with acceptable privacy/retention/economics.
 
 ## Chat decision
 
-Do not build a multi-turn transaction-entry chatbot.
+Do not build a multi-turn transaction-entry chatbot as the default interaction.
 
-A chat-like interface is allowed only if future research proves a job that cannot be served by one-shot input + compact resolution. Conversation itself is not success.
+A chat-like interface is allowed only if future research proves a job that cannot be served by amount-first entry or one-shot description + compact resolution. Conversation itself is not success.
 
-## SMS decision
+## SMS / notification decision
 
 Do not request broad background SMS inbox access in the current product stage.
 
 Retain user-controlled evidence paths:
 
-- paste SMS text;
+- paste text;
 - Share Target text where available;
 - statement import;
-- future provider sync under a separate legal/security/economics case.
+- future provider/native acquisition under separate privacy/security/economics authority.
 
-Any native SMS-permission proposal requires its own privacy/platform review and evidence that less-invasive paths fail the target job.
+Notification ingestion is a future native-platform experiment only if MoneyFlow can establish a narrow permission, local-processing/retention model and meaningful maintenance reduction. It is not a PWA requirement.
 
 ## Provider/bank sync decision
 
-Bank/provider sync remains strategically valid but outside Capture V2 implementation scope.
+Bank/provider sync remains strategically valid but outside this packet's implementation authority.
 
 A provider adapter may be piloted only after the Stage 1 acquisition foundations are sufficiently trustworthy:
 
@@ -406,60 +592,47 @@ A provider adapter may be piloted only after the Stage 1 acquisition foundations
 
 Provider sync must become another evidence adapter, not a parallel source of financial truth.
 
-## Acceptance criteria
+## Acceptance criteria for the specification
 
-### Information architecture
+### Current truth
 
-- [ ] Capture hub exposes exactly three primary concepts: Ghi nhanh, Ghi thông minh, Nhập sao kê.
-- [ ] Voice, OCR, SMS, Share and Chat do not appear as peer top-level capture methods.
-- [ ] Existing deep links and PWA shortcuts remain compatible or have explicit redirects.
+- [x] PR #596 is represented as merged/released truth, not a pending dependency.
+- [x] Current Ghi stable-default/correction contracts are preserved as the amount-first baseline.
+- [x] Historical repeat-last work is classified as non-authoritative prior exploration.
 
-### Ghi nhanh
+### Product hypotheses
 
-- [ ] Amount-first behavior remains the fastest single-transaction path.
-- [ ] If PR #596 is merged, Capture V2 reuses its stable-default and correction contracts rather than recreating them.
-- [ ] No arbitrary category fallback is introduced.
-- [ ] Transfers remain financially neutral under existing semantics.
+- [x] `Single transaction = Ghi` is a benchmark hypothesis rather than a fixed IA decision.
+- [x] Frequent Patterns are specified as the next Ghi experiment with amount/note not silently copied.
+- [x] Counterparty/Payee is specified as a foundation hypothesis with raw-source provenance kept separate.
+- [x] Natural description is a Ghi mode hypothesis, not a permanent top-level `Ghi thông minh` concept.
+- [x] OCR, voice, notification/SMS and provider paths remain adapters/experiments under separate authority.
 
-### Ghi thông minh — text/paste
+### Safety
 
-- [ ] Typed and pasted text use one shared parse/preview flow.
-- [ ] Keyboard dictation requires no MoneyFlow audio pipeline; resulting text follows the same parser contract.
-- [ ] Parser uncertainty is visible and unresolved fields can be corrected before truth is committed.
-- [ ] Existing rules may enrich candidates only through the established deterministic rule contract.
-- [ ] Raw text is not sent to a new AI/provider merely because the UI is called `Ghi thông minh`.
-- [ ] Candidate creation continues through Inbox/shared acquisition contracts; no hidden ledger write path is added.
+- [x] No arbitrary category fallback is introduced.
+- [x] Transfers remain financially neutral under existing semantics.
+- [x] No adapter owns a second ledger or hidden mutation path.
+- [x] Raw source evidence is not overwritten by canonical counterparty normalization.
+- [x] Raw financial payloads are excluded from analytics.
 
-### Image/OCR boundary
+### Bulk acquisition
 
-- [ ] Initial Capture V2 can ship without OCR.
-- [ ] Any OCR implementation is a separately approved experiment using the same candidate/provenance/review semantics.
-- [ ] Image evidence cannot silently determine category/account/transfer truth beyond explicit evidence/rules.
+- [x] CSV/Excel remain the primary bulk path.
+- [x] Text-layer PDF remains compatibility fallback.
+- [x] Import preview/provenance/replay/duplicate safety remain explicit requirements.
 
-### Nhập sao kê
+## Required UX states for any implementation
 
-- [ ] CSV remains preferred and mapping is reviewable.
-- [ ] Excel remains supported only under existing tested parser behavior.
-- [ ] Text-layer PDF is clearly a fallback and scanned/image-only PDF is not silently accepted as equivalent.
-- [ ] Imported rows preserve source/provenance and go through preview/review.
-- [ ] Duplicate/replay behavior is tested against manually entered transactions.
-
-### Platform/privacy
-
-- [ ] Share Target is optional and not required for the core product flow.
-- [ ] No new SMS, background notification, microphone, photo-library-wide or provider permission is introduced in the first Capture V2 slice.
-- [ ] Product analytics never include raw transaction text, raw OCR output, receipt image, account number, amount, or other sensitive payload solely for funnel measurement.
-
-## Required UX states
-
-Each entry point must specify and verify:
+Each affected flow must specify and verify:
 
 - initial/empty;
-- loading/analyzing;
-- parse success;
+- loading/analyzing where applicable;
+- parse/pattern success;
 - partial/uncertain result;
 - invalid/no usable evidence;
-- large amount/long merchant/long pasted text;
+- long labels/merchant/counterparty names;
+- large VND amounts;
 - duplicate/suspected duplicate where applicable;
 - offline/network failure where applicable;
 - mutation failure;
@@ -473,19 +646,21 @@ A retry-pass after first-paint or hydration failure counts as a defect finding, 
 
 ## Metrics and benchmark contract
 
-The Capture V2 primary metric is not feature usage. It is maintenance reduction while preserving trust.
+The primary metric is maintenance reduction while preserving trust, not feature usage.
 
 ### Primary benchmark
 
 **Time to Trusted Ledger Transaction (TTLT)**
 
-Measure from the moment the user intentionally starts capture until the transaction is in a state they can reasonably rely on under the relevant contract.
+Measure from intentional capture start until the transaction reaches a state the user can reasonably rely on under the relevant contract.
 
-Suggested timing markers:
+Suggested privacy-safe timing markers:
 
 ```text
 capture_open
+mode_selected (enum only)
 input_start
+pattern_selected (rank/slot only; no financial payload)
 candidate_ready
 review_done
 save_success
@@ -495,9 +670,11 @@ correction_done (if needed)
 ### Supporting metrics
 
 - active seconds per accepted transaction;
-- taps / keystrokes per accepted transaction;
+- taps/keystrokes per accepted transaction;
 - percentage accepted without correction;
-- field correction rate by amount/date/kind/account/category/merchant;
+- wrong-default/pattern correction rate;
+- counterparty correction/normalization rate;
+- field correction rate by field type only;
 - abandonment rate;
 - unresolved rate;
 - manual interventions per 100 observed transactions;
@@ -507,238 +684,301 @@ correction_done (if needed)
 - duplicate/replay correction burden;
 - correction within 60 seconds after save.
 
-Do not log raw financial payload to calculate these metrics.
+Do not log amount, note, raw merchant/counterparty text, raw SMS, raw OCR output, account number, receipt image or other financial payload to calculate these metrics.
 
 ### Benchmark cohorts
 
-Before promoting new acquisition methods, test on a physical phone with at least these task classes:
+Before promoting new single-transaction modes or changing Capture IA, test on a physical phone with at least:
 
-1. repeated everyday transactions where safe defaults exist;
-2. new one-off transactions with several fields;
-3. pasted bank/wallet/SMS evidence;
-4. image/screenshot evidence when OCR is being evaluated;
-5. a real-world statement file containing enough rows to measure amortized import effort.
+1. repeated everyday transactions where #596 stable defaults exist;
+2. repeated transactions where multiple patterns compete;
+3. new one-off transactions with several fields;
+4. pasted bank/wallet/SMS evidence;
+5. first-time/weak-history user;
+6. statement import with enough rows to measure amortized effort;
+7. image evidence only when OCR is active.
 
 Compare at minimum:
 
-- Ghi nhanh;
-- Ghi thông minh typed;
-- Ghi thông minh via keyboard dictation;
-- paste/share when evidence already exists;
+- current released amount-first Ghi (#596 baseline);
+- amount-first + Frequent Patterns prototype;
+- description typed mode;
+- keyboard dictation into description mode;
+- paste/share when text evidence already exists;
 - statement import;
-- OCR only when that experiment is active.
+- OCR only when separately active.
 
 Do not assume the same method must win every cohort.
 
-## Expected method roles
+### Promotion thresholds are not yet fixed
 
-These are hypotheses to test, not product claims:
+Do not invent numeric TTLT or correction thresholds before collecting a baseline. After baseline evidence exists, the implementation packet may define promotion/stop thresholds using observed variance and trust risk.
 
-| Method | Expected best role |
+A new mode should not become a permanent top-level concept merely because it performs well in one cohort.
+
+## Expected method roles — hypotheses only
+
+| Method | Expected best role to test |
 |---|---|
-| Ghi nhanh + stable defaults | repeated single transactions |
-| Ghi thông minh typed | new single transaction with multiple explicit details |
+| Released Ghi + #596 stable default | repeated simple transaction with one stable context |
+| Ghi + Frequent Pattern | repeated transaction where several familiar contexts exist |
+| Explicit favorite/template | intentionally reusable transaction shape; amount/note only by explicit choice |
+| Ghi description typed | novel single transaction with several explicit details |
 | Keyboard dictation | hands-busy / faster natural input where device dictation works |
 | Paste/share text | bank/wallet evidence already present as text |
 | Statement import | bulk/history |
-| Screenshot/receipt OCR | evidence already present as image; experiment only |
-| Provider sync | lowest ongoing maintenance after Stage 1 foundations prove safe |
+| Screenshot/payment OCR | image evidence already exists; experiment only |
+| Provider/native source | lowest ongoing manual acquisition if evidence authority, privacy and economics are acceptable |
 
 ## Architecture fit
 
 ### Shared acquisition contract
 
-Capture V2 should preserve one convergence path:
-
 ```text
-Adapter
-  ↓
-Evidence + provenance
-  ↓
-Normalized candidate
-  ↓
+Adapter / explicit manual mode
+             ↓
+Evidence + provenance when evidence exists
+             ↓
+Normalized candidate or explicit trusted draft
+             ↓
 Deterministic parse/rules/matching
-  ↓
+             ↓
 Confidence + unresolved fields
-  ↓
+             ↓
 Inbox / bounded trusted mutation
-  ↓
+             ↓
 Ledger
 ```
 
-The implementation may reuse or extend current candidate types, but must not create technology-specific financial semantics.
+Do not force explicit manual amount-first entry through Inbox merely for architectural symmetry. The existing trusted manual mutation remains valid. Assisted evidence methods converge through candidate/review contracts unless separately approved otherwise.
 
 ### Ownership boundaries
 
-- `AddTransactionDialog` / shared Ghi components own explicit manual capture behavior.
-- `parse-text.ts` remains the deterministic text parser owner unless a planned refactor establishes a more neutral evidence-parser boundary.
-- Inbox/candidate store remains the assisted acquisition staging owner.
-- Rules remain deterministic and inspectable.
-- Existing transaction hooks/mutations remain the ledger-write owner.
-- Upload parser/mapping remains the bulk statement acquisition owner.
-- Future OCR/STT/provider adapters produce evidence; they do not own ledger semantics.
+- shared Ghi components own explicit single-transaction entry behavior;
+- #596 helper/transaction mutation owners remain authoritative for stable defaults and correction;
+- `parse-text.ts` remains the deterministic text parser owner unless a planned refactor establishes a neutral evidence-parser boundary;
+- Inbox/candidate store remains assisted-acquisition staging owner;
+- Rules remain deterministic and inspectable;
+- upload parser/mapping remains bulk-statement acquisition owner;
+- future Counterparty/Payee persistence requires its own bounded data-owner decision;
+- future OCR/STT/provider/native adapters produce evidence; they do not own ledger semantics.
 
-## Planned implementation slices
+## Planned research / implementation slices
 
-Implementation must be separately authorized. When authorized, prefer the following order.
+Implementation remains separately authorized. The order below is a working sequence, not automatic permission.
 
-### Slice A — IA consolidation and compatibility
+### Slice 0 — Baseline current Ghi
 
-- Update Capture hub to exactly three primary actions.
-- Introduce Ghi thông minh naming/surface without removing old routes abruptly.
-- Preserve deep links and PWA shortcuts.
-- Keep feature behavior otherwise unchanged.
+- measure #596 amount-first TTLT/taps/correction on representative physical phones;
+- include first-time and stable-history cohorts;
+- record privacy-safe baseline evidence.
 
-This slice should be mostly presentation/routing and carries no new financial semantics.
+No product behavior change is required for this slice beyond separately approved measurement instrumentation if needed.
 
-### Slice B — Unified Ghi thông minh text/paste
+### Slice 1 — Frequent Patterns prototype
 
-- Reuse current deterministic parser and preview.
-- Make typed short commands and pasted evidence feel like one flow.
-- Remove duplicated conceptual distinction between “manual note” and “paste SMS”.
-- Add privacy-safe benchmark events required for TTLT.
+- prototype a small number of coherent same-kind patterns;
+- do not copy amount/note by default;
+- preserve Save and current mutation/idempotency behavior;
+- benchmark against released #596 flow before promoting.
 
-### Slice C — Benchmark against Ghi nhanh
+Prefer the smallest reversible implementation capable of proving/disproving H2.
 
-- Run the defined physical-phone benchmark.
-- Record median/p75 TTLT, correction and abandonment by cohort.
-- Decide whether text/dictation materially reduces maintenance.
+### Slice 2 — Counterparty/Payee foundation decision
 
-### Slice D — Image/screenshot OCR experiment
+- inventory current candidate/source merchant fields and export/archive implications;
+- define canonical identity versus raw source text;
+- prototype/search terminology if useful without schema first;
+- decide whether durable schema is justified by observed value;
+- if schema is proposed, create a separate Class 3 packet with RLS, migration, backup/export/restore and rollback evidence.
 
-Only after owner approval and Slice C evidence:
+### Slice 3 — Frequent Patterns + Counterparty integration
 
-- define OCR engine/provider/local-processing decision;
+Only if H2 and H3 survive earlier evaluation:
+
+- allow patterns/favorites to include optional canonical counterparty;
+- add deterministic alias/category rule behavior through the existing rules authority or an explicitly planned extension;
+- benchmark correction and maintenance reduction.
+
+### Slice 4 — Description mode experiment
+
+- reuse current deterministic parser and preview;
+- support type/paste/keyboard dictation inside Ghi;
+- benchmark against amount-first and patterns by cohort;
+- do not promote it to a top-level `Ghi thông minh` destination until evidence supports that IA.
+
+### Slice 5 — IA decision
+
+Use the benchmark evidence to choose among at least:
+
+- current three-item hub;
+- `Ghi` + `Nhập sao kê` primary model;
+- a separate assisted-capture destination if it materially outperforms/conveys a distinct job.
+
+Do not treat the packet's working IA hypothesis as automatic authority.
+
+### Slice 6 — Image/screenshot OCR experiment
+
+Only after owner approval and evidence that image-source demand is meaningful:
+
+- choose OCR engine/provider/local processing;
 - define image retention/deletion;
-- extend Share Target MIME acceptance only when the image adapter exists;
-- test Vietnamese transfer screenshots/receipts;
-- compare TTLT and correction burden against typed/paste/manual.
+- extend Share Target MIME acceptance only when adapter exists;
+- test Vietnamese transfer/payment screenshots first;
+- compare TTLT/correction burden against text/paste/manual.
 
-### Slice E — Statement import hardening
+### Parallel statement hardening
 
-Continue existing statement work independently where possible:
+Statement work may continue independently where ownership does not conflict:
 
 - mapping memory;
 - provenance;
 - replay/idempotency;
 - duplicate handling against manual entries;
-- provider-specific bank export compatibility;
-- exception-first review metrics.
+- provider-specific Vietnam bank-export compatibility;
+- exception-first review metrics;
+- later Counterparty normalization only after foundation approval.
 
 ## Explicitly rejected near-term alternatives
 
-| Alternative | Reason for rejection |
+| Alternative | Reason for rejection/deferment |
 |---|---|
-| Separate Voice page | Duplicates the text parser path and creates audio/privacy/model cost before value is proven. |
-| Multi-turn AI chatbot | More interaction turns for a job that should usually complete in one input + preview. |
-| Background SMS reader | High permission/privacy/platform cost; user-controlled paste/share/import solves much of the job. |
-| Standalone OCR page | Technology-centric IA; images should be one evidence mode inside Ghi thông minh. |
-| OCR line-item bookkeeping | Scope and correction burden exceed the current personal-ledger acquisition job. |
-| Share as fourth capture item | Transport mechanism with incomplete platform support, not a stable user job. |
-| Direct import into ledger | Violates preview/provenance/correction boundaries and increases silent corruption risk. |
-| AI category/merchant guessing in first slice | Adds probabilistic financial semantics before deterministic baseline and evaluation are exhausted. |
-| Immediate broad bank sync | Provider/legal/security/economics complexity before Stage 1 acquisition foundations are proven. |
+| Fixed separate `Ghi thông minh` top-level destination before benchmark | Commits IA before TTLT/discoverability evidence proves a separate mental model. |
+| Separate Voice page | Duplicates description/parser path and creates audio/privacy/model cost before value is proven. |
+| Multi-turn AI chatbot | More turns for a job usually served by amount-first or one-shot input + preview. |
+| Background SMS reader | High permission/privacy/platform cost; user-controlled paste/share/import already covers much of the evidence job. |
+| Standalone OCR page | Technology-centric IA; images are evidence for Ghi, not a user job by themselves. |
+| OCR line-item bookkeeping | Scope/correction burden exceed the current personal-ledger acquisition job. |
+| Share as a primary capture item | Transport mechanism with incomplete platform support. |
+| Blind `repeat last` that copies amount/note | A one-off prior transaction is not sufficient evidence that volatile fields should repeat. |
+| Probabilistic AI category/merchant guessing in first slice | Deterministic reviewed-history baseline and counterparty/rules foundation should be exhausted first. |
+| Immediate broad bank sync | Provider/legal/security/economics complexity before acquisition foundations are proven. |
+| Direct assisted import into ledger without review contract | Violates provenance/correction boundaries and increases silent corruption risk. |
 
 ## Risks and counterexamples
 
 | Risk | Prevention / required evidence |
 |---|---|
-| “Smart” becomes slower than Quick | Benchmark TTLT by cohort; Quick remains separate and amount-first. |
-| Natural-language parser creates false confidence | Preserve uncertain fields/confidence; do not auto-commit ambiguous candidates. |
-| Dictation errors are treated as trusted speech | Dictation is just text input; same parser/review applies. |
-| Receipt OCR picks total/balance/reference incorrectly | Multiple candidate tokens trigger uncertainty/review; do not equate OCR confidence with financial correctness. |
-| Screenshot leaks account/card data | Minimize retention, mask display where possible, never log payload in analytics. |
-| Share Target breaks on unsupported platform | Equivalent in-app route is always available. |
-| Consolidation breaks old links | Route compatibility/redirect tests. |
-| PR #596 changes while Capture V2 is pending | Treat stable-default behavior as external dependency; rebase/review before implementation. |
-| Imported bank category overwrites user taxonomy | Bank category is evidence only unless user-owned mapping/rule explicitly promotes it. |
-| Duplicate manual + imported transaction | Matching/review contract before scaling import breadth. |
-| More adapters increase maintenance instead of reducing it | Stop/pause any adapter whose review/correction cost erases acquisition savings. |
+| Frequent Patterns make Ghi visually busier | Limit prototype count; benchmark novel-transaction scanning cost, not only repeat speed. |
+| One-off history becomes a bad template | Structural pattern thresholds/favorites; amount/note empty unless explicit repeat/template action. |
+| Counterparty creates cleanup debt | Benchmark value, keep optional, deterministic aliases, merge/rename/delete contract before durable rollout. |
+| Canonical payee overwrites bank evidence | Keep raw source description immutable/retained in provenance. |
+| Description mode creates false confidence | Preserve uncertainty and candidate preview; no ambiguous autopost. |
+| Dictation errors are treated as trusted speech | Dictation is only text input; same parser/review contract applies. |
+| Screenshot OCR picks total/balance/reference incorrectly | Multiple plausible values remain unresolved; OCR confidence is not financial correctness. |
+| Share Target breaks on unsupported platform | Equivalent in-app route always exists. |
+| IA consolidation breaks old links | Route compatibility/redirect tests and rollback. |
+| Import/payee normalization changes transfer semantics | Transfer owner stays separate; counterparty rules cannot silently redefine transfers. |
+| More adapters increase maintenance | Stop/pause an adapter when review/correction cost erases acquisition savings. |
 
-## Verification plan for implementation
+## Verification plan for future implementation
 
-No implementation claim is complete without exact evidence appropriate to the slice.
+No implementation claim is complete without exact evidence appropriate to its slice.
 
 ### Unit/domain
 
-- text amount/date/kind parser counterexamples;
-- ambiguous amounts and account-number-vs-amount cases;
-- candidate confidence and uncertain-field behavior;
-- route/option contract for exactly three Capture concepts;
+- #596 stable-default counterexamples remain green;
+- pattern majority/recency/coherent-pair counterexamples;
+- no implicit amount/note copy;
+- invalid/deleted reference handling;
+- counterparty alias/normalization determinism if introduced;
+- raw source evidence preservation;
+- parser amount/date/kind ambiguity;
+- candidate confidence/uncertain fields;
 - backward-compatible deep links;
-- import mapping/replay/duplicate counterexamples where changed.
+- import replay/duplicate behavior where changed.
 
 ### Browser/E2E
 
 - demo and authenticated runtime;
 - empty/populated/error/loading;
-- mobile/desktop at minimum, plus tablet where layout changes materially;
-- Ghi nhanh save + correction;
-- Ghi thông minh typed/paste → preview → Inbox;
-- unsupported/invalid input;
+- mobile/desktop minimum plus tablet where layout changes materially;
+- amount-first Ghi save + immediate correction;
+- pattern selection → amount entry → save;
+- novel transaction remains easy when patterns exist;
+- description typed/paste → preview → Inbox when that slice is active;
+- invalid/unsupported evidence;
 - statement preview → candidate creation;
-- Share Target where browser automation can exercise the real installed-PWA path, otherwise physical-device evidence is required.
+- Share Target only where real platform path can be exercised.
 
 ### Physical device
 
-Required before claiming capture speed improvement:
+Required before claiming capture-speed improvement or IA superiority:
 
 - representative Android phone;
-- iPhone/iOS if the affected capability is claimed cross-platform;
-- real keyboard dictation if comparing voice-like input;
+- iPhone/iOS if cross-platform claim is made;
+- real keyboard dictation for dictation comparison;
 - first-paint interaction, not retry-only success;
-- record TTLT and correction evidence without capturing sensitive financial payload.
+- TTLT/correction evidence without recording sensitive financial payload.
 
 ## Rollout and rollback
 
 ### Rollout
 
-- Ship IA consolidation separately from new parser/OCR/provider semantics where possible.
-- Keep old routes compatible while the new hub wording settles.
-- Feature-gate experimental OCR/provider adapters if they add variable cost, permissions or unproven error behavior.
-- Do not retire a working capture path until its replacement has physical-device and real-use evidence.
+- measure released Ghi before changing IA;
+- ship Frequent Patterns separately from Counterparty schema work where possible;
+- keep old routes compatible during IA experiments;
+- keep description/OCR/provider adapters behind separate bounded authority;
+- do not retire a working capture path until replacement evidence exists.
 
 ### Rollback
 
-- IA changes should revert without data migration.
-- Text parser changes must preserve candidate-store compatibility or include an explicit reversible migration plan.
-- OCR/STT/provider experiments must be disableable without affecting existing ledger facts.
-- No adapter rollout may require rewriting historical ledger records merely to remove the adapter.
+- pattern UI should revert without data migration in its first experiment if possible;
+- Counterparty durable persistence, if approved later, requires explicit reversible migration/archive/export handling;
+- IA changes must revert without losing ledger/source data;
+- OCR/STT/provider experiments must be disableable without changing accepted ledger facts;
+- no adapter rollback may require rewriting historical financial truth.
 
 ## Success criteria
 
-Capture V2 succeeds when:
+Capture V2 succeeds when evidence shows that MoneyFlow users can maintain trustworthy periods with less acquisition work, specifically when:
 
-- users only need to understand three capture concepts;
-- repeated single transactions remain extremely fast;
-- new/textual evidence can be converted into reviewable candidates with less manual form work;
-- bulk statement acquisition reduces amortized maintenance effort;
-- new adapters share one provenance/candidate/review architecture;
-- correction and unresolved rates do not worsen materially;
-- the product needs less user maintenance without hiding uncertainty.
+- repeated single transactions require fewer active seconds/interventions without more corrections;
+- novel single transactions remain fast even when pattern helpers exist;
+- Counterparty/Payee, if adopted, reduces normalization/categorization work more than it creates cleanup work;
+- description/paste/dictation modes earn their place through cohort-specific TTLT evidence;
+- bulk statement import reduces amortized maintenance safely;
+- new adapters converge on one provenance/candidate/review architecture;
+- source acquisition increases the share of digital transactions that do not need retyping;
+- uncertainty remains visible and correction remains easy.
 
-The goal is **not** to maximize the number of ways to enter a transaction. The goal is to minimize the work required to turn real-world financial evidence into trustworthy ledger facts.
+The goal is not to maximize the number of ways to enter a transaction. The goal is to minimize the work required to turn real-world financial evidence into trustworthy ledger facts.
 
 ## Handoff
 
-**From:** planner/researcher  
-**To:** human owner  
+**From:** planner/researcher
+**To:** human owner
 **Current execution state:** `specified`
 
-**Fixed decisions:**
+### Fixed safety boundaries
 
-- Three user-facing capture concepts: Ghi nhanh, Ghi thông minh, Nhập sao kê.
-- Text/paste/dictation converge in one Ghi thông minh surface.
-- Voice recorder/STT, background SMS, standalone chatbot and standalone OCR are not near-term features.
-- Image OCR is an optional later experiment behind the same candidate/review contract.
-- Statement import remains core bulk acquisition.
-- Share Target remains transport only.
-- Provider sync remains a later adapter, not part of this implementation scope.
+These are product/trust constraints, not market hypotheses:
 
-**Unverified claims:**
+- released #596 stable-default and immediate-correction behavior remains authoritative until separately changed;
+- explicit manual Ghi keeps one trusted ledger mutation owner;
+- assisted evidence does not bypass candidate/review/approved automation boundaries;
+- no second ledger;
+- raw source evidence is not replaced by normalized Counterparty/Payee identity;
+- transfers retain existing financial semantics;
+- no raw financial payload in analytics;
+- no dedicated STT, background SMS, standalone OCR, probabilistic category autopost or broad provider sync is authorized by this packet.
 
-- Exact TTLT improvement of Ghi thông minh versus Ghi nhanh has not yet been measured on MoneyFlow.
+### Hypotheses awaiting benchmark
+
+- `Single transaction = Ghi` is a better mental model than separate `Ghi nhanh` and `Ghi thông minh` concepts.
+- Frequent Patterns are the best next manual-capture improvement after #596.
+- Counterparty/Payee is worth a durable foundation and data-model cost.
+- Description/paste/dictation is faster for some cohorts but should remain inside Ghi unless a distinct top-level concept proves necessary.
+- Direct evidence acquisition will eventually reduce more maintenance than increasingly rich manual forms.
+
+### Unverified claims
+
+- TTLT improvement from Frequent Patterns versus released #596 has not been measured.
+- Counterparty/Payee terminology, data model and migration strategy have not been selected.
+- TTLT improvement of description/dictation versus amount-first Ghi has not been measured.
+- The proposed two-primary-job Capture IA has not been tested on physical devices/users.
 - OCR engine/provider choice has not been made.
-- Physical-device cross-platform behavior of the proposed consolidated surface has not been verified.
 
-**Next allowed action:** owner reviews/edits the specification. After explicit implementation authorization, transition to `planned` by assigning Slice A/B file owners, test matrix, rollout/rollback details and the exact branch/issue scope. Do not begin OCR/STT/provider implementation from this packet alone.
+### Next allowed action
+
+Owner may review/edit this specification. After explicit implementation authorization, start with baseline measurement and the smallest reversible Frequent Patterns experiment. Counterparty schema work, description-mode rollout, OCR/STT/provider work and permanent IA changes require their own bounded authority and evidence.
