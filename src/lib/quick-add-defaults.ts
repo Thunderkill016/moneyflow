@@ -24,9 +24,10 @@ export type StableLedgerPresetInput = {
  * then creation timestamp and id as deterministic tie-breakers. This prevents a
  * newly-entered backdated row from becoming more recent than today's activity.
  *
- * Transfers, split expenses and review-needed rows are deliberately excluded:
- * they either have different financial semantics or are not trustworthy enough
- * to train a default. Current account/category options are also authoritative,
+ * Only explicitly reviewed rows can train a default. Missing review metadata is
+ * treated as unknown here rather than silently promoted to trusted evidence.
+ * Transfers and split expenses are also excluded because they carry different
+ * financial semantics. Current account/category options remain authoritative,
  * so archived/deleted references cannot be promoted back into the form.
  */
 export function deriveStableLedgerPreset({
@@ -47,7 +48,7 @@ export function deriveStableLedgerPreset({
       (transaction) =>
         transaction.kind === kind &&
         !transaction.splits?.length &&
-        transaction.reviewStatus !== "needs_review" &&
+        transaction.reviewStatus === "reviewed" &&
         validAccountIds.has(transaction.accountId) &&
         validCategoryIds.has(transaction.categoryId),
     )
