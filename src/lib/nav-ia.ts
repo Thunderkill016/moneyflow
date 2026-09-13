@@ -5,6 +5,8 @@
  *   Tổng quan · Giao dịch · Capture · Tài khoản · More
  *
  * Capture is a primary action (sheet / /capture), not a planning route.
+ * Activity is additive in More during rollout R1; Transactions remains the
+ * primary ledger destination until a separately authorized R2 promotion.
  * Inbox, rules, imports, timeline, reports live under More (or Capture sheet).
  * Budgets / commitments / income templates / goals stay secondary through the
  * compact dashboard planning nav and More → Kế hoạch rather than full dashboard
@@ -151,6 +153,12 @@ export const PLANNING_LINKS: SecondaryNavItem[] = [
  * Lab / power import features live in ADVANCED_NAV_LINKS.
  */
 export const MORE_NAV_LINKS: SecondaryNavItem[] = [
+  {
+    label: "Hoạt động",
+    href: "/activity",
+    icon: "timeline",
+    description: "Giao dịch đã vào sổ và mục đang chờ xử lý",
+  },
   {
     label: "Báo cáo",
     href: "/reports",
