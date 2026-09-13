@@ -111,6 +111,9 @@ Start with [`AGENTS.md`](AGENTS.md) and [`docs/context/README.md`](docs/context/
 | Current task scope/status | explicit owner request + GitHub issue/PR |
 | Implemented product truth | current code, tests and migrations |
 | Product identity and principles | [docs/product/PRINCIPLES.md](docs/product/PRINCIPLES.md) |
+| Long-term product strategy | [docs/product/PRODUCT_STRATEGY.md](docs/product/PRODUCT_STRATEGY.md) |
+| Ecosystem structure/boundaries | [docs/product/ECOSYSTEM_STRATEGY.md](docs/product/ECOSYSTEM_STRATEGY.md) |
+| Product metrics and stage gates | [docs/product/PRODUCT_METRICS.md](docs/product/PRODUCT_METRICS.md) |
 | Released MVP capability reference | `docs/MVP_DEFINITION.md` |
 | Architecture | [ARCHITECTURE.md](ARCHITECTURE.md) |
 | Change classes and gates | [docs/engineering/RISK_PROPORTIONAL_DELIVERY.md](docs/engineering/RISK_PROPORTIONAL_DELIVERY.md) |
@@ -121,7 +124,7 @@ Start with [`AGENTS.md`](AGENTS.md) and [`docs/context/README.md`](docs/context/
 | External reference repositories | `docs/research/MONEYFLOW_REFERENCE_REPO_ATLAS_2026.md` |
 | PR provenance | `docs/research/PR_MEMORY_LOG.md` |
 
-Historical research, completed packets and old issues are evidence, not permission to restart work.
+`PRINCIPLES.md` remains product law. Strategy, ecosystem and metrics documents interpret that law and do not grant implementation permission. Historical research, completed packets and old issues are evidence, not permission to restart work.
 
 ## Change workflow
 
