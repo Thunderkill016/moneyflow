@@ -26,6 +26,7 @@ function transaction({
   accountId = "cash",
   categoryId = "food",
   occurredAt,
+  occurredOn = occurredAt.slice(0, 10),
   reviewStatus = "reviewed",
   splits,
 }: {
@@ -34,6 +35,7 @@ function transaction({
   accountId?: string;
   categoryId?: string;
   occurredAt: string;
+  occurredOn?: string;
   reviewStatus?: Transaction["reviewStatus"];
   splits?: Transaction["splits"];
 }): Transaction {
@@ -46,7 +48,7 @@ function transaction({
     accountId,
     account: accountId,
     amount: 100_000,
-    occurredOn: occurredAt.slice(0, 10),
+    occurredOn,
     occurredAt,
     relativeDate: "",
     reviewStatus,
@@ -131,37 +133,81 @@ test("does not guess from fewer than three eligible rows or a 1/1/1 split", () =
   );
 });
 
-test("orders by occurredAt instead of trusting incoming array order", () => {
+test("follows canonical ledger date ordering before creation time", () => {
   const result = derive([
     transaction({
-      id: "old-bank",
+      id: "backdated-created-latest-1",
       accountId: "bank",
       categoryId: "food",
-      occurredAt: "2026-09-01T09:00:00.000Z",
+      occurredOn: "2026-09-01",
+      occurredAt: "2026-09-20T09:00:00.000Z",
     }),
     transaction({
-      id: "new-card-1",
+      id: "today-card-1",
       accountId: "card",
       categoryId: "travel",
+      occurredOn: "2026-09-14",
       occurredAt: "2026-09-14T09:00:00.000Z",
     }),
     transaction({
-      id: "old-bank-2",
+      id: "backdated-created-latest-2",
       accountId: "bank",
       categoryId: "food",
-      occurredAt: "2026-08-31T09:00:00.000Z",
+      occurredOn: "2026-08-31",
+      occurredAt: "2026-09-21T09:00:00.000Z",
     }),
     transaction({
-      id: "new-card-2",
+      id: "yesterday-card-2",
       accountId: "card",
       categoryId: "travel",
+      occurredOn: "2026-09-13",
       occurredAt: "2026-09-13T09:00:00.000Z",
     }),
     transaction({
-      id: "new-bank-outlier",
+      id: "recent-bank-outlier",
       accountId: "bank",
       categoryId: "food",
+      occurredOn: "2026-09-12",
       occurredAt: "2026-09-12T09:00:00.000Z",
+    }),
+  ]);
+
+  assert.deepEqual(result, {
+    kind: "expense",
+    accountId: "card",
+    categoryId: "travel",
+  });
+});
+
+test("uses creation time and id only as deterministic tie-breakers within a date", () => {
+  const result = derive([
+    transaction({
+      id: "same-day-old",
+      accountId: "bank",
+      categoryId: "food",
+      occurredOn: "2026-09-14",
+      occurredAt: "2026-09-14T07:00:00.000Z",
+    }),
+    transaction({
+      id: "same-day-new-1",
+      accountId: "card",
+      categoryId: "travel",
+      occurredOn: "2026-09-14",
+      occurredAt: "2026-09-14T09:00:00.000Z",
+    }),
+    transaction({
+      id: "previous-day-card",
+      accountId: "card",
+      categoryId: "travel",
+      occurredOn: "2026-09-13",
+      occurredAt: "2026-09-15T12:00:00.000Z",
+    }),
+    transaction({
+      id: "same-day-new-2",
+      accountId: "card",
+      categoryId: "travel",
+      occurredOn: "2026-09-14",
+      occurredAt: "2026-09-14T08:00:00.000Z",
     }),
   ]);
 
