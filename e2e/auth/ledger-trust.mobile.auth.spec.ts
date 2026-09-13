@@ -15,11 +15,11 @@ test.beforeEach(async ({ page }) => {
 test("Home trust stays truthful and usable on a narrow phone in light and dark mode", async ({
   page,
 }) => {
-  // The auth project is normally 390px wide. Grade this new surface at the
-  // repository's narrower phone boundary so the evidence is not accidentally
-  // weaker than the cross-device audit used elsewhere.
+  // Successful login already lands on /dashboard. Keep that first render intact
+  // so the one-RPC assertion grades real post-auth behaviour instead of a test-
+  // induced second navigation. Resize the live responsive surface to the repo's
+  // narrow phone boundary before measuring it.
   await page.setViewportSize({ width: 320, height: 780 });
-  await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
 
   const trustRegion = page.getByRole("region", { name: "Độ tin cậy" });
   await expect(trustRegion).toBeVisible();
