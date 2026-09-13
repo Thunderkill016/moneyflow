@@ -42,7 +42,11 @@ test("SAFE-03: authenticated Inbox count is server-derived and demo storage is i
   assert.match(dashboardServer, /pending_inbox_count/);
   assert.match(
     dashboardServer,
-    /pendingInboxCount: safeInteger|const pendingInboxCount = safeInteger/,
+    /function safeCount\([\s\S]*?safeInteger\(value, errorCode\)[\s\S]*?count < 0/,
+  );
+  assert.match(
+    dashboardServer,
+    /const pendingInboxCount = safeCount\(\s*bundle\.pending_inbox_count/,
   );
   assert.match(inboxServer, /\.eq\("status", "pending"\)/);
   assert.match(inboxServer, /select\("id", \{ count: "exact", head: true \}\)/);
