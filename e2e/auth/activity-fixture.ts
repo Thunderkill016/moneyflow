@@ -206,6 +206,7 @@ function dashboardBundle(transactions: unknown[], candidates: unknown[]) {
 export async function seedActivityScenario(options?: {
   invalidLedger?: boolean;
   candidateOnly?: boolean;
+  invalidReview?: boolean;
 }) {
   const transactions = options?.candidateOnly
     ? []
@@ -217,22 +218,32 @@ export async function seedActivityScenario(options?: {
     : [readyCandidate, attentionCandidate];
   const transactionReviewFeed = options?.invalidLedger
     ? []
-    : [
-        {
-          id: REVIEW_TRANSACTION_ID,
-          user_id: HARNESS_USER.id,
-          review_status: "needs_review",
-          occurred_on: reviewTransaction.occurred_on,
-          created_at: reviewTransaction.created_at,
-        },
-        {
-          id: POSTED_TRANSACTION_ID,
-          user_id: HARNESS_USER.id,
-          review_status: "reviewed",
-          occurred_on: postedTransaction.occurred_on,
-          created_at: postedTransaction.created_at,
-        },
-      ];
+    : options?.invalidReview
+      ? [
+          {
+            id: REVIEW_TRANSACTION_ID,
+            user_id: HARNESS_USER.id,
+            review_status: "invalid-review-state",
+            occurred_on: reviewTransaction.occurred_on,
+            created_at: reviewTransaction.created_at,
+          },
+        ]
+      : [
+          {
+            id: REVIEW_TRANSACTION_ID,
+            user_id: HARNESS_USER.id,
+            review_status: "needs_review",
+            occurred_on: reviewTransaction.occurred_on,
+            created_at: reviewTransaction.created_at,
+          },
+          {
+            id: POSTED_TRANSACTION_ID,
+            user_id: HARNESS_USER.id,
+            review_status: "reviewed",
+            occurred_on: postedTransaction.occurred_on,
+            created_at: postedTransaction.created_at,
+          },
+        ];
 
   const response = await fetch(`${DOUBLE}/__control/seed`, {
     method: "POST",
