@@ -218,14 +218,17 @@ export function ActivityWorkspace({
 
   const detectedCandidates = useMemo(
     () =>
-      annotateCandidates(candidates, ledgerForDetection(workspace.transactions)) as Array<
+      annotateCandidates(
+        candidates,
+        ledgerForDetection(ledgerReady ? workspace.transactions : []),
+      ) as Array<
         ActivityCandidate & {
           fingerprint: string;
           possibleDuplicate: boolean;
           possibleTransfer: boolean;
         }
       >,
-    [candidates, workspace.transactions],
+    [candidates, ledgerReady, workspace.transactions],
   );
 
   const items = useMemo(
@@ -235,6 +238,7 @@ export function ActivityWorkspace({
         candidates: detectedCandidates,
         accounts: workspace.accounts,
         categories: workspace.categories,
+        ledgerAvailable: ledgerReady,
         candidateReadinessAvailable: ledgerReady,
       }),
     [
