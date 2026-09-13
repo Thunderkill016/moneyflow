@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useTransactions } from "@/hooks/use-transactions";
 import { buildAttentionItems } from "@/lib/attention";
 import { captureConsequence } from "@/lib/capture-consequence";
+import type { LedgerTrustSummary } from "@/lib/ledger-trust";
 import { sumBudgetSpent, type BudgetSummary } from "@/lib/planning/budgets";
 import { hydrateCommitmentsWithOccurrences } from "@/lib/planning/commitment-occurrence-store";
 import {
@@ -64,12 +65,14 @@ export function MoneyFlowDashboard({
   viewer,
   workspace,
   initialInboxCount,
+  ledgerTrust,
   budgets,
   commitments,
 }: {
   viewer: ViewerSummary;
   workspace: DashboardWorkspace;
   initialInboxCount: number;
+  ledgerTrust: LedgerTrustSummary | null;
   budgets: BudgetSummary[];
   commitments: RecurringCommitment[];
 }) {
@@ -256,6 +259,7 @@ export function MoneyFlowDashboard({
         <DashboardHeaderSections
           displayName={displayName}
           attentionItems={attentionItems}
+          ledgerTrust={viewer.isDemo ? null : ledgerTrust}
           totals={totals}
           today={workspace.today}
           isEmptyLedger={isEmptyLedger && !workspace.dataError}

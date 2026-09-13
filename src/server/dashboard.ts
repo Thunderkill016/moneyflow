@@ -5,6 +5,7 @@ import {
   DASHBOARD_RECENT_TRANSACTION_LIMIT,
   dashboardTransactionStart,
 } from "@/lib/dashboard-transaction-window";
+import type { LedgerTrustSummary } from "@/lib/ledger-trust";
 import type { BudgetSummary } from "@/lib/planning/budgets";
 import type { RecurringCommitment } from "@/lib/planning/commitments";
 import type { SavingsGoal } from "@/lib/planning/goals";
@@ -43,6 +44,7 @@ export type DashboardPageWorkspace = {
   incomeTemplates: RecurringIncomeTemplate[];
   goals: SavingsGoal[];
   pendingInboxCount: number;
+  ledgerTrust: LedgerTrustSummary | null;
 };
 
 const accountSchema = z
@@ -83,6 +85,25 @@ const incomeOccurrenceSchema = z.object({
   transaction_id: z.string().uuid(),
 });
 
+const ledgerTrustSchema = z.object({
+  trusted_through: z.string().nullable(),
+  base_reconciliation_through: z.string().nullable(),
+  status: z.enum(["trusted", "trusted_limited", "blocked"]),
+  reason: z.enum([
+    "clean_reconciliation_boundary",
+    "known_unresolved_work",
+    "missing_clean_reconciliation",
+    "no_active_accounts",
+  ]),
+  active_account_count: z.union([z.number(), z.string()]),
+  clean_reconciled_account_count: z.union([z.number(), z.string()]),
+  pending_inbox_count: z.union([z.number(), z.string()]),
+  needs_review_transaction_count: z.union([z.number(), z.string()]),
+  unreconciled_account_leg_count: z.union([z.number(), z.string()]),
+  earliest_unresolved_on: z.string().nullable(),
+  coverage_scope: z.literal("known_ledger_state_only"),
+});
+
 const dashboardBundleSchema = z.object({
   transactions: z.array(z.unknown()),
   accounts: z.array(accountSchema),
@@ -95,6 +116,10 @@ const dashboardBundleSchema = z.object({
   income_occurrences: z.array(incomeOccurrenceSchema),
   goals: z.array(z.unknown()),
   pending_inbox_count: z.union([z.number(), z.string()]),
+  // Optional by design: application code can safely deploy before the additive
+  // bundle migration. In that skew state Home keeps the real ledger visible and
+  // simply withholds the trust surface rather than fabricating a value.
+  ledger_trust: ledgerTrustSchema.nullish(),
 });
 
 function emptyDashboard(today: string, message: string): DashboardPageWorkspace {
@@ -112,6 +137,7 @@ function emptyDashboard(today: string, message: string): DashboardPageWorkspace 
     incomeTemplates: [],
     goals: [],
     pendingInboxCount: 0,
+    ledgerTrust: null,
   };
 }
 
@@ -150,6 +176,8 @@ async function getDemoDashboardWorkspace(): Promise<DashboardPageWorkspace> {
     incomeTemplates: incomeWorkspace.templates,
     goals: goalWorkspace.goals,
     pendingInboxCount: 0,
+    // Demo data is browser-local and has no authenticated reconciliation truth.
+    ledgerTrust: null,
   };
 }
 
@@ -158,6 +186,10 @@ async function getDemoDashboardWorkspace(): Promise<DashboardPageWorkspace> {
  * is unavailable or returns an invalid payload. This preserves real ledger
  * data during migration/deployment skew instead of rendering a false empty
  * dashboard. The normal healthy path remains one bounded RPC.
+ *
+ * Trust is deliberately null here: adding a second RPC to the fallback would
+ * weaken the one-call performance contract, while synthesizing trust from the
+ * focused loaders would duplicate the database's authoritative semantics.
  */
 async function getAuthenticatedDashboardFallback(): Promise<DashboardPageWorkspace> {
   const [
@@ -192,6 +224,7 @@ async function getAuthenticatedDashboardFallback(): Promise<DashboardPageWorkspa
     incomeTemplates: incomeWorkspace.templates,
     goals: goalWorkspace.goals,
     pendingInboxCount: pendingInboxCount ?? 0,
+    ledgerTrust: null,
   };
 }
 
@@ -199,6 +232,46 @@ function safeInteger(value: number | string, errorCode: string) {
   const amount = Number(value);
   if (!Number.isSafeInteger(amount)) throw new Error(errorCode);
   return amount;
+}
+
+function safeCount(value: number | string, errorCode: string) {
+  const count = safeInteger(value, errorCode);
+  if (count < 0) throw new Error(errorCode);
+  return count;
+}
+
+function mapLedgerTrust(
+  value: z.infer<typeof ledgerTrustSchema> | null | undefined,
+): LedgerTrustSummary | null {
+  if (!value) return null;
+  return {
+    trustedThrough: value.trusted_through,
+    baseReconciliationThrough: value.base_reconciliation_through,
+    status: value.status,
+    reason: value.reason,
+    activeAccountCount: safeCount(
+      value.active_account_count,
+      "invalid_dashboard_ledger_trust_active_accounts",
+    ),
+    cleanReconciledAccountCount: safeCount(
+      value.clean_reconciled_account_count,
+      "invalid_dashboard_ledger_trust_clean_accounts",
+    ),
+    pendingInboxCount: safeCount(
+      value.pending_inbox_count,
+      "invalid_dashboard_ledger_trust_pending_inbox",
+    ),
+    needsReviewTransactionCount: safeCount(
+      value.needs_review_transaction_count,
+      "invalid_dashboard_ledger_trust_needs_review",
+    ),
+    unreconciledAccountLegCount: safeCount(
+      value.unreconciled_account_leg_count,
+      "invalid_dashboard_ledger_trust_unreconciled_legs",
+    ),
+    earliestUnresolvedOn: value.earliest_unresolved_on,
+    coverageScope: value.coverage_scope,
+  };
 }
 
 function mapAuthenticatedBundle(
@@ -229,13 +302,10 @@ function mapAuthenticatedBundle(
     throw new Error("invalid_dashboard_total_balance");
   }
 
-  const pendingInboxCount = safeInteger(
+  const pendingInboxCount = safeCount(
     bundle.pending_inbox_count,
     "invalid_dashboard_inbox_count",
   );
-  if (pendingInboxCount < 0) {
-    throw new Error("invalid_dashboard_inbox_count");
-  }
 
   return {
     workspace: {
@@ -265,6 +335,7 @@ function mapAuthenticatedBundle(
     }),
     goals: bundle.goals.map(mapGoalRow),
     pendingInboxCount,
+    ledgerTrust: mapLedgerTrust(bundle.ledger_trust),
   };
 }
 

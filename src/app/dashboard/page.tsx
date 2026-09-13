@@ -22,6 +22,7 @@ export default async function DashboardPage() {
     budgets,
     commitments,
     pendingInboxCount,
+    ledgerTrust,
   } = await getDashboardPageWorkspace(viewer);
 
   return (
@@ -33,6 +34,7 @@ export default async function DashboardPage() {
       }}
       workspace={workspace}
       initialInboxCount={pendingInboxCount}
+      ledgerTrust={ledgerTrust}
       budgets={budgets}
       commitments={commitments}
     />
