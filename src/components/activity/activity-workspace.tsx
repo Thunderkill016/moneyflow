@@ -110,6 +110,14 @@ function emptyMessage(filter: ActivityFilter, query: string) {
   };
 }
 
+function SummaryValue({ value }: { value: number | null }) {
+  return (
+    <strong aria-label={value === null ? "Chưa xác định" : String(value)}>
+      {value === null ? "—" : value}
+    </strong>
+  );
+}
+
 function ActivityRow({ item }: { item: ActivityItem }) {
   return (
     <li className={styles.row} data-activity-type={item.type}>
@@ -205,6 +213,9 @@ export function ActivityWorkspace({
     };
   }, [viewer.isDemo]);
 
+  const ledgerReady = workspace.dataError === null;
+  const candidatesReady = candidateState === "ready";
+
   const detectedCandidates = useMemo(
     () =>
       annotateCandidates(candidates, ledgerForDetection(workspace.transactions)) as Array<
@@ -224,9 +235,11 @@ export function ActivityWorkspace({
         candidates: detectedCandidates,
         accounts: workspace.accounts,
         categories: workspace.categories,
+        candidateReadinessAvailable: ledgerReady,
       }),
     [
       detectedCandidates,
+      ledgerReady,
       workspace.accounts,
       workspace.categories,
       workspace.transactions,
@@ -243,6 +256,11 @@ export function ActivityWorkspace({
   const postedCount = items.length - incomingCount;
   const empty = emptyMessage(filter, query);
 
+  const knownAttentionCount =
+    ledgerReady && candidatesReady ? attentionCount : null;
+  const knownIncomingCount = candidatesReady ? incomingCount : null;
+  const knownPostedCount = ledgerReady ? postedCount : null;
+
   return (
     <AppShell
       viewer={viewer}
@@ -251,7 +269,7 @@ export function ActivityWorkspace({
         onChange: setQuery,
         placeholder: "Tìm trong hoạt động",
       }}
-      inboxCount={incomingCount}
+      inboxCount={candidatesReady ? incomingCount : 0}
     >
       <main className={styles.workspace}>
         <header className={styles.header}>
@@ -270,15 +288,15 @@ export function ActivityWorkspace({
         <section className={styles.summary} aria-label="Tóm tắt hoạt động">
           <div className={styles.summaryItem}>
             <span>Cần xử lý</span>
-            <strong>{attentionCount}</strong>
+            <SummaryValue value={knownAttentionCount} />
           </div>
           <div className={styles.summaryItem}>
             <span>Chờ vào sổ</span>
-            <strong>{incomingCount}</strong>
+            <SummaryValue value={knownIncomingCount} />
           </div>
           <div className={styles.summaryItem}>
             <span>Đã vào sổ</span>
-            <strong>{postedCount}</strong>
+            <SummaryValue value={knownPostedCount} />
           </div>
         </section>
 
