@@ -218,7 +218,7 @@ test("uses creation time and id only as deterministic tie-breakers within a date
   });
 });
 
-test("ignores transfers, opposite-kind, split and review-needed rows", () => {
+test("ignores transfers, opposite-kind, split and non-reviewed rows", () => {
   const ignoredNewest = [
     transaction({
       id: "transfer",
@@ -327,7 +327,7 @@ test("ignores rows whose current account or category reference is invalid", () =
   });
 });
 
-test("legacy rows without reviewStatus remain eligible as reviewed", () => {
+test("requires explicit reviewed metadata instead of assuming legacy rows are trusted", () => {
   const rows = [
     transaction({ id: "a", occurredAt: "2026-09-14T09:00:00.000Z" }),
     transaction({ id: "b", occurredAt: "2026-09-13T09:00:00.000Z" }),
@@ -339,9 +339,5 @@ test("legacy rows without reviewStatus remain eligible as reviewed", () => {
     }),
   ].map(({ reviewStatus: _reviewStatus, ...row }) => row as Transaction);
 
-  assert.deepEqual(derive(rows), {
-    kind: "expense",
-    accountId: "cash",
-    categoryId: "food",
-  });
+  assert.equal(derive(rows), null);
 });
