@@ -8,6 +8,10 @@ import { seedLimitedLedgerTrust } from "./ledger-trust-fixture";
 
 test.beforeEach(async ({ page }) => {
   await seedLimitedLedgerTrust();
+  // Playwright recommends setting the viewport before navigation. Do that before
+  // login so the first authenticated /dashboard render is genuinely a 320px
+  // phone render while still preserving the one-RPC assertion.
+  await page.setViewportSize({ width: 320, height: 780 });
   await signIn(page);
   await assertAuthenticatedMode(page);
 });
@@ -17,10 +21,7 @@ test("Home trust stays truthful and usable on a narrow phone in light and dark m
 }) => {
   // Successful login already lands on /dashboard. Keep that first render intact
   // so the one-RPC assertion grades real post-auth behaviour instead of a test-
-  // induced second navigation. Resize the live responsive surface to the repo's
-  // narrow phone boundary before measuring it.
-  await page.setViewportSize({ width: 320, height: 780 });
-
+  // induced second navigation.
   const trustRegion = page.getByRole("region", { name: "Độ tin cậy" });
   await expect(trustRegion).toBeVisible();
   await expect(trustRegion.getByText("Sổ tin cậy đến 19/08/2026")).toBeVisible();
