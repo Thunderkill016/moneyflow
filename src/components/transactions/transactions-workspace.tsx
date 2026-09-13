@@ -166,6 +166,7 @@ export function TransactionsWorkspace({
   const [transferOpen, setTransferOpen] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
   const [editing, setEditing] = useState<Transaction | null>(null);
+  const [recentSaved, setRecentSaved] = useState<Transaction | null>(null);
   const [query, setQuery] = useState(initialQuery);
   const [kind, setKind] = useState<KindFilter>(initialKind);
   const [account, setAccount] = useState(initialAccount);
@@ -197,13 +198,19 @@ export function TransactionsWorkspace({
     }
   }
 
-  function showNotice(message: string, ms = NOTICE_MS) {
+  function showNotice(
+    message: string,
+    ms = NOTICE_MS,
+    preserveRecentSaved = false,
+  ) {
     clearNoticeTimer();
     setPendingUndo(null);
     pendingUndoRef.current = null;
+    if (!preserveRecentSaved) setRecentSaved(null);
     setNotice(message);
     noticeTimerRef.current = window.setTimeout(() => {
       setNotice("");
+      setRecentSaved(null);
       noticeTimerRef.current = null;
     }, ms);
   }
@@ -510,11 +517,14 @@ export function TransactionsWorkspace({
     const result = await addTransaction(input);
     if (result.ok && result.transaction) {
       setDialogOpen(false);
+      setRecentSaved(result.transaction);
       showNotice(
         safeUserNotice(
           `Đã thêm ${result.transaction.note}.`,
           "Đã thêm giao dịch.",
         ),
+        NOTICE_MS,
+        true,
       );
     }
     return result;
@@ -538,6 +548,7 @@ export function TransactionsWorkspace({
 
     setSelectedIds((current) => current.filter((id) => id !== transaction.id));
     clearNoticeTimer();
+    setRecentSaved(null);
     pendingUndoRef.current = transaction;
     setPendingUndo(transaction);
     setNotice(
@@ -618,6 +629,14 @@ export function TransactionsWorkspace({
     setEditing(transaction);
   }
 
+  function editRecentSaved() {
+    if (!recentSaved) return;
+    clearNoticeTimer();
+    setNotice("");
+    setRecentSaved(null);
+    setEditing(recentSaved);
+  }
+
   return (
     <AppShell
       viewer={viewer}
@@ -664,7 +683,13 @@ export function TransactionsWorkspace({
               onClick: () => void handleUndoDelete(),
               disabled: isMutating,
             }
-          : undefined
+          : recentSaved
+            ? {
+                label: "Sửa",
+                onClick: editRecentSaved,
+                disabled: isMutating,
+              }
+            : undefined
       }
     >
       <main
@@ -1310,6 +1335,7 @@ export function TransactionsWorkspace({
         onAdd={handleAdd}
         accounts={workspace.accounts}
         categories={workspace.categories}
+        transactions={transactions}
         disabled={isMutating || Boolean(workspace.dataError)}
       />
       <TransferDialog
