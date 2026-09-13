@@ -1,11 +1,11 @@
 # Financial well-being product strategy
 
-**Status:** evaluating  
-**Execution state:** evaluating  
-**Active role:** evaluator  
-**Permission scope:** branch_write  
-**Owner:** human owner; ChatGPT drafting/evaluation  
-**Issue/PR:** PR #594  
+**Status:** evaluating
+**Execution state:** evaluating
+**Active role:** evaluator
+**Permission scope:** branch_write
+**Owner:** human owner; ChatGPT drafting/evaluation
+**Issue/PR:** PR #594
 **Last updated:** 2026-09-13
 
 ## Outcome
