@@ -13,174 +13,126 @@ Follow `AGENTS.md` and `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet 
 
 ## Outcome
 
-Add an additive `/activity` surface that lets a user understand posted ledger facts, pending Inbox evidence and transaction review work as one chronological maintenance workstream without creating a new ledger truth model or new financial mutation path.
+Add an additive `/activity` surface that presents posted ledger facts, pending Inbox evidence and transaction review work as one chronological maintenance workstream without creating a second financial truth model or a new mutation path.
 
 ## Repository reconnaissance
 
-### Current behavior
+- Baseline: `main@77def2218dfb1a66134bbefe8158c993b960ebf6`.
+- `/transactions` owns posted ledger facts. `transaction_review_feed` becomes `reviewStatus` on those same transactions; `needs_review` is not a separate record type.
+- `/inbox` owns pre-ledger candidates. `loadInboxForClient()` preserves demo localStorage and authenticated local-to-server migration/list behavior.
+- Candidate duplicate/transfer annotation and readiness already live in `src/lib/inbox/detect.ts` and `src/lib/inbox/readiness.ts`; Activity must reuse them rather than fork truth.
+- Authenticated candidate mapping may carry source lifecycle/match/provenance. Current posted transaction feed does not prove source/provider state, so Activity must not fabricate it for ledger rows.
+- Existing `/transactions` and `/inbox` remain mutation owners and rollback surfaces throughout R1.
+- Primary IA remains `Giao dịch` at `/transactions`. After a clean route/browser proof, R1 may add only a secondary Activity affordance; primary promotion is R2 and separately authorized.
 
-- R1 baseline is `main@77def2218dfb1a66134bbefe8158c993b960ebf6`, which includes merged Home ledger-trust PR #591.
-- `/transactions` loads `getFinanceWorkspace()` and owns posted ledger facts. `transaction_review_feed` is mapped onto those facts as `reviewStatus`; `needs_review` is not a separate object.
-- `/inbox` also loads finance context, while `InboxPage` separately calls `loadInboxForClient()` for candidate evidence.
-- Authenticated `loadInboxForClient()` preserves the current local-to-server migration compatibility path before listing server candidates; demo stays localStorage-backed.
-- Candidate rows already carry source/confidence/duplicate/transfer fields. Authenticated mapped candidates may additionally carry source lifecycle, parser/mapping, match and approval provenance.
-- Current primary IA exposes `/transactions` as `Giao dịch`; `/inbox` is an advanced route. #559 names Activity as target program intent but does not authorize broad redesign or legacy retirement.
-- Existing `/transactions` and `/inbox` remain intact during R1 as mutation owners and rollback surfaces.
+Relevant implementation boundaries:
 
-### Relevant repository areas
+| Area | R1 role |
+|---|---|
+| `src/server/finance.ts` | authoritative posted transaction + review read; reuse unchanged |
+| `src/hooks/client-inbox*.ts` | candidate load/migration compatibility; reuse unchanged |
+| `src/lib/inbox/detect.ts` / `readiness.ts` | authoritative candidate detection/readiness; reuse unchanged |
+| `src/lib/activity.ts` | new neutral mixed workstream model |
+| `src/components/activity/*` | new presentation + partial-state ownership |
+| `/transactions`, `/inbox` | existing mutation and recovery owners |
 
-| Area | Role in Activity R1 | Decision |
-|---|---|---|
-| `src/server/finance.ts` | authoritative posted transaction + review read | reuse unchanged |
-| `src/hooks/client-inbox*.ts` | demo/auth candidate loading and migration compatibility | reuse unchanged |
-| `src/lib/inbox/detect.ts` | candidate duplicate/transfer annotation | reuse unchanged |
-| `src/lib/inbox/readiness.ts` | candidate readiness/attention semantics | reuse unchanged |
-| `src/lib/activity.ts` | neutral mixed workstream read/presentation model | new bounded layer |
-| `src/components/activity/*` | Activity presentation and partial-state ownership | new bounded surface |
-| `e2e/auth/*` | strict authenticated browser evidence | extend with independent fixture/specs |
-| `/transactions`, `/inbox` | mutation ownership and rollback | preserve |
-
-### Constraints and counterexamples
-
-- A posted transaction with `needs_review` must appear once, not once as transaction plus once as review item.
-- A pending candidate must never masquerade as a posted ledger fact.
-- Candidate readiness must reuse existing detection/readiness logic; copying that logic would create competing truth.
-- Current posted transaction feed has no provider/source provenance, so Activity must not infer provider health or source completeness for ledger rows.
-- When finance/account/category context fails, missing lookup context must not be reinterpreted as candidate maintenance work.
-- R1 must not add a database Activity RPC merely to make the UI look unified; optimization needs measured fan-out/latency evidence.
+Counterexamples explicitly rejected: duplicate review rows, candidates masquerading as ledger facts, provider/source completeness inferred for posted rows, missing finance lookup context converted into fake candidate attention, or a new DB RPC added without measured need.
 
 ## Research
 
-Accessed 2026-09-13. Focused official product sources were used to answer one decision question: whether a daily finance workflow should expose one attention workstream while preserving explicit transaction/evidence boundaries.
+Focused official research reviewed 2026-09-13:
 
-| Source | What it establishes | Applicability / limit |
+| Source | Useful pattern | MoneyFlow limit |
 |---|---|---|
-| Copilot Money Quick Start | New transactions enter a focused `To Review` queue; confirmed reviews can reduce repeated work later. | Adopt focused attention workflow, not opaque intelligence in R1. |
-| YNAB approving/matching guide | Imported activity requiring action is surfaced together; matching avoids redundant review. | Supports one maintenance mental model; MoneyFlow keeps its own ledger/reconciliation semantics. |
-| Actual Budget importing docs | Stable import identity and transaction similarity are used to avoid duplicate facts. | Reinforces candidate-vs-ledger distinction; no matching changes in R1. |
-| Actual Budget rules docs | Imported activity uses the same processing path and user-owned rules reduce repetitive cleanup. | Supports future automation direction only; rule learning is out of scope. |
+| Copilot Money Quick Start | focused `To Review` daily queue | no opaque suggestions/AI in R1 |
+| YNAB approving/matching | imported attention + matching avoids redundant review | keep MoneyFlow ledger/reconciliation semantics |
+| Actual Budget importing | stable import identity and matching avoid duplicate facts | no new matching semantics in R1 |
+| Actual Budget rules | imported work follows one processing path; user-owned rules reduce cleanup | rule learning remains a later slice |
 
-### Research decision
-
-Activity should unify **attention and presentation**, not merge candidate evidence with posted ledger facts or create a parallel posting model. Source state is shown only when current candidate evidence proves it. No new provider, dependency, matching rule or AI system is adopted.
+Decision: unify **attention and presentation**, not truth models. Source state is displayed only from current candidate evidence.
 
 ## Specification
 
-### MVP model
+### Item model
 
-`ledger_transaction` represents exactly one posted MoneyFlow transaction. `reviewStatus` is an attribute; `needs_review` puts that row in `Cần xử lý` without creating a second Activity item. Existing `/transactions` continues to own edit/delete/review/category correction.
+`ledger_transaction`: one item per posted transaction id. `reviewStatus` is an attribute; `needs_review` puts the item in `Cần xử lý` without duplication. Actions return to `/transactions`.
 
-`inbox_candidate` represents pending source evidence that has not necessarily become a ledger fact. Only pending candidates enter R1. Existing `annotateCandidates()` and `classifyCandidateReadiness()` determine attention state. Existing `/inbox` continues to own approval/match/recovery. If finance lookup context is unavailable, readiness inference is disabled and the candidate remains honestly labeled `Chờ vào sổ`.
+`inbox_candidate`: pending evidence only. Existing annotation/readiness decides whether it is ready or needs attention. Actions return to `/inbox`. When finance/account/category context is unavailable, readiness inference is disabled and the item remains honestly `Chờ vào sổ`.
 
 ### Data flow
 
 ```text
-getFinanceWorkspace()
-  -> posted transactions + review state
-                                \
-                                 -> buildActivityItems() -> filter/search/sort -> Activity UI
-                                /
-loadInboxForClient()
-  -> pending candidates + current source/provenance evidence
+getFinanceWorkspace() -> posted transaction + review state \
+                                                       -> buildActivityItems() -> filter/search/sort -> UI
+loadInboxForClient()  -> pending candidate + provenance /
 
-Activity CTA
-  -> /transactions or /inbox (existing owner)
-  -> existing mutation/recovery contract
-  -> Activity refresh on next load
+Activity action -> existing /transactions or /inbox owner -> existing mutation/recovery contract
 ```
 
-R1 deliberately does not add a DB Activity RPC. Existing reads are composed first so demo compatibility, mutation ownership and partial-failure semantics remain visible and testable.
+R1 deliberately adds no DB Activity RPC or migration. A future optimized read bundle requires measured fan-out/latency evidence.
 
-### Filters and search
+### Filters/search
 
-- `all`: all pending candidate items + posted transaction items.
-- `attention`: candidate `needs_attention` plus posted transactions with `reviewStatus=needs_review`.
-- `incoming`: pending Inbox candidates only.
-- `posted`: posted transaction items only.
-- Search covers normalized user-visible merchant/note/category/account/source text. Raw source snippets and external source IDs are not default search/display material.
+- `Tất cả`: pending candidates + posted transactions.
+- `Cần xử lý`: candidate attention + posted `needs_review` transactions.
+- `Chờ vào sổ`: pending candidates only.
+- `Đã vào sổ`: posted transactions only.
+- Search covers user-visible merchant/note/category/account/source text; raw snippets and external source IDs are not default searchable/displayed fields.
 
 ### UI states
 
-**Loading:** one Activity-level loading surface. Summary values depending on a still-loading source render unknown (`—`), never fake zero.
+- **Loading:** one Activity-level loading surface; dependent counts are `—`, never fake zero.
+- **Populated:** one chronological visual rhythm, but explicit text distinguishes `Chờ vào sổ`, `Cần xử lý`, `Cần xem lại`, `Đã vào sổ`.
+- **Empty:** true empty offers capture/import guidance; attention-empty calmly says nothing needs action.
+- **Candidate failure:** healthy ledger stays visible; incoming/combined counts are unknown.
+- **Finance failure:** candidate evidence may remain visible, posted/combined counts are unknown, readiness inference is disabled, and the surface says financial history is incomplete.
+- **Accessibility/responsive:** semantic list/headings, state not color-only, compact CTA target >=44px, 320px phone + desktop light/dark, no horizontal overflow.
 
-**Populated:** one chronological list, newest by occurrence date, then observed/created time, then stable key. Candidate and ledger rows share rhythm but state is explicit in words: `Chờ vào sổ`, `Cần xử lý`, `Cần xem lại`, `Đã vào sổ`. VND remains integer đồng and transfer meaning is not changed.
+### Rollout
 
-**Empty:** true empty state offers capture/import guidance; an empty attention filter calmly states that nothing currently needs action. Candidate-only and transaction-only states are valid.
+**R1 — current PR:** additive `/activity`, typed model, demo/auth proof, then additive discoverability in More after route proof. `/transactions` remains primary and `/inbox` remains available.
 
-**Partial/error:** candidate failure keeps healthy ledger rows visible and marks combined/incoming counts unknown. Finance failure may keep candidate evidence visible, but posted/combined counts are unknown and candidate readiness inference is disabled. No partial surface may claim a complete financial activity history.
+**R2 — separate authorization:** promote `Hoạt động` into the primary `Giao dịch` position only after broader action-parity evidence; migrate global ledger search intentionally.
 
-**Accessibility/responsive:** semantic heading/list; text conveys state without color dependence; compact row action target >=44px; explicit 320px phone and 1280px desktop proof in light/dark; no horizontal overflow.
+**R3 — separate authorization:** retire duplicated presentation after rollback evidence; consider optimized read RPC only if measured; source-health/rule-learning remain separate slices.
 
-### Rollout order
-
-**R1 — #592 / PR #593:** typed Activity model, additive `/activity`, job filters/search, demo/auth runtime evidence, then an additive discoverability affordance only after route proof. Do not remove or redirect `/transactions` or `/inbox`.
-
-**R2 — separate authorization:** promote `Hoạt động` into the primary `Giao dịch` position only after action parity evidence; intentionally migrate the global ledger-search shortcut; keep compatibility links.
-
-**R3 — separate authorization:** retire duplicated presentation after rollback evidence; consider an optimized Activity read bundle only if measurement justifies it; source health and learned-rule work remain independent slices.
-
-### Non-goals
-
-No provider/bank integration, full source-health monitor, source-completeness claim, new matching/dedup semantics, learned rules, AI categorization, auto-approval, ledger/reconciliation/transfer/trust semantic change, migration, production/provider write or merge authorization.
+Non-goals: provider/bank integration, source-completeness claims, full source-health monitor, new matching/dedup semantics, learned rules/AI/auto-approval, ledger/reconciliation/transfer/trust semantic changes, production/provider writes, merge.
 
 ## Implementation plan
 
-### Architecture fit and implemented changes
+Implemented:
 
-- `src/lib/activity.ts` adds the typed Activity read/presentation model and deterministic filter/search/sort/count helpers.
-- `src/lib/activity.test.ts` proves no duplicate review row, candidate readiness reuse, visible-field search, bounded provenance, chronological ordering and partial-read honesty.
-- `/activity` server route reuses `getFinanceWorkspace()`; no new DB read contract or migration.
-- `ActivityWorkspace` loads candidates through existing `loadInboxForClient()`, annotates them with existing detection logic, composes the workstream and routes actions back to existing owners.
-- Summary counts are knowledge-aware: attention requires both sources; incoming requires candidates; posted requires a healthy finance read.
-- Scoped Activity CSS owns the new presentation; the first CI classifier caught and removed accidental legacy global classes from the loading route.
-- Auth strict fixtures cover mixed work, source lifecycle evidence, candidate failure and malformed-ledger partial failure. Demo Playwright coverage proves the localStorage/sample path separately.
+- typed `src/lib/activity.ts` model with deterministic chronological ordering, filters/search/counts and knowledge-aware partial reads;
+- unit tests for no duplicate review item, candidate readiness reuse, provenance/search boundaries and partial-read honesty;
+- additive `/activity` route using existing `getFinanceWorkspace()` plus existing candidate client loader;
+- scoped Activity presentation/loading CSS; initial legacy global-class debt was caught by CI classifier and removed;
+- demo Playwright proof and strict authenticated desktop/320px phone proof, including candidate-read failure and malformed-ledger failure;
+- after first clean route proof, additive `Hoạt động` entry in `More → Công cụ hàng ngày`; primary `Giao dịch` and advanced `Cần xem` remain unchanged;
+- auth navigation contract proves Activity is discoverable while Transactions/Inbox remain present.
 
-### Verification plan
+Verification plan: policy/project knowledge, lint/typecheck/build/CSS/architecture, unit/static RLS, risk-classified database gate, demo browser, authenticated strict-double browser, cross-device UI audit, CodeQL and Secret history scan. Final acceptance requires all on the same final head and browser-log confirmation that Activity specs executed.
 
-- Unit/domain: Activity model and existing finance/Inbox suites.
-- Static/policy: no-new-UI-debt classifier, project knowledge, CSS ownership, architecture, lint, typecheck, production build.
-- Database: no DB changes; risk classifier may skip DB tests and that skip must be explicit.
-- Browser: demo desktop/mobile plus authenticated 320px phone and 1280px desktop; light/dark; no horizontal overflow; 44px action targets; strict double reports no unserved requests.
-- Final acceptance: exact-head CI, CodeQL and Secret history scan; inspect browser job output to prove the new specs actually executed.
+Rollback: remove `/activity`, Activity model/presentation/tests and the additive More entry. Existing transaction/Inbox routes, writes and DB contracts remain intact.
 
-### Rollback
-
-Remove additive `/activity`, its model/presentation/tests and any additive navigation affordance. Existing `/transactions`, `/inbox`, mutation actions and DB contracts remain unchanged fallback surfaces.
-
-### Permission boundary
-
-- Allowed: branch/PR repository writes for #592 R1.
-- Forbidden: direct `main` write, merge, production migration/data write, provider config/write, R2/R3 retirement.
-- Stop/re-spec if implementation requires new financial semantics, a second posting path, source-completeness inference, or a DB RPC solely to hide unmeasured performance.
-
-### Tasks
+Permission: branch/PR writes for #592 R1 only. No direct `main` write, merge, production migration/data write, provider change, R2 or R3 retirement.
 
 | ID | Task | Status |
 |---|---|---|
-| 592.1 | current-state recon + focused research | done |
-| 592.2 | pure Activity model + tests | done |
+| 592.1 | repository recon + focused research | done |
+| 592.2 | pure Activity model + unit tests | done |
 | 592.3 | additive route/workspace | done |
-| 592.4 | demo/auth browser + responsive/error-state evidence | implemented; exact-head CI pending |
-| 592.5 | additive nav affordance after first route proof | blocked on runtime proof |
-| 592.6 | exact-head evaluation + owner handoff | pending |
-
-### Handoff record
-
-| Date | From | To | State | Evidence | Open risk / next allowed action |
-|---|---|---|---|---|---|
-| 2026-09-13 | researcher | planner | specified | #592, routes/loaders, focused official research | preserve truth-model boundaries |
-| 2026-09-13 | planner | implementer | implementing | packet + `feat/592-activity-workstream` | route/runtime not yet proven |
-| 2026-09-13 | implementer | evaluator | evaluating | draft PR #593; unit/demo/auth specs committed | resolve CI findings; only add discoverability after route proof |
+| 592.4 | demo/auth responsive + partial-error browser evidence | done on pre-nav proof head; final-head rerun pending |
+| 592.5 | additive More affordance, preserving Transactions/Inbox | done; final-head rerun pending |
+| 592.6 | exact-head evaluation + owner handoff | in progress |
 
 ## Evaluation
 
-### Findings so far
+Pre-navigation proof head `e097721394794475cfa0d3f354e1405ac69c75c4` established:
 
-1. Initial Activity loading reused legacy global classes (`dashboard`, `transaction-manager`, `panel`). The CI no-new-debt classifier rejected this. The loading surface now has its own scoped CSS module; subsequent classifier passed.
-2. Partial failure originally risked showing zero counts while candidate coverage was unknown. Summary values now render `—` whenever their required source is unavailable.
-3. A finance failure can erase accounts/categories and could have made every candidate look unresolved. `candidateReadinessAvailable=false` now disables that inference, preserving evidence without manufacturing work.
-4. Project-knowledge CI then identified packet/memory schema mismatches. This revision adds the required canonical headings and companion PR-memory fields; exact-head revalidation remains pending.
+- classifier, policy/project knowledge, static quality, unit/static RLS and production build: green;
+- database gate: correctly skipped because no DB/migration/RLS contract changed;
+- CodeQL #2702 and Secret history scan #2702: green;
+- demo browser: 148/148 passed, including `e2e/activity.spec.ts` on desktop and mobile;
+- authenticated browser: 28 passed / 1 intentional skip, including Activity desktop and all three Activity phone tests (mixed workstream, candidate failure, ledger failure).
 
-### Acceptance state
-
-Runtime/product acceptance is not yet claimed. PR #593 remains draft. Navigation promotion, merge and any production/provider action remain outside current authorization.
+That proof satisfied the R1 condition to add secondary discoverability. A new final head now includes the More affordance and its navigation contract, so **the pre-navigation green run is evidence, not final acceptance**. PR #593 remains draft until the new exact head passes required CI/browser/UI/security gates. No merge or production/provider action is authorized.
