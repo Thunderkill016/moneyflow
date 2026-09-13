@@ -1,7 +1,7 @@
 # #590 — Home ledger trust and next maintenance action
 
-**Status:** evaluating
-**Execution state:** evaluating
+**Status:** review_ready
+**Execution state:** owner_review
 **Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
@@ -53,7 +53,7 @@ Make signed-in Home show a compact, truthful ledger-trust state derived from the
 
 ### Open questions
 
-No implementation question remains open. Final acceptance is blocked only on a fresh exact-head evidence run after the final evidence-record commits.
+No implementation question remains open. Owner merge review and any later production migration/deployment remain separate decisions.
 
 ## Research
 
@@ -74,6 +74,7 @@ No implementation question remains open. Final acceptance is blocked only on a f
 | Copilot Money quick-start review flow | official product support | 2026-09-13 | `To Review` makes maintenance visible on the daily dashboard | AI categorization is out of scope |
 | Money Lover / MISA current product surfaces | official local-market product pages | 2026-09-13 | Vietnamese daily-finance language and quick entry remain familiar expectations | marketing breadth is not evidence to add features |
 | Playwright emulation docs | official test framework docs | 2026-09-13 | viewport should be established before navigation; `emulateMedia({ colorScheme })` grades `prefers-color-scheme` | test-method guidance only, not product semantics |
+| PostgreSQL `CREATE FUNCTION` docs | official database docs | 2026-09-13 | `SECURITY INVOKER` is the default; `CREATE OR REPLACE` retains ownership/permissions while other properties use command values/defaults | review evidence only; repository pgTAP remains the executable security proof |
 
 ### Alternatives considered
 
@@ -114,7 +115,7 @@ MoneyFlow computes a deterministic trusted-through boundary, but Home does not e
 - [x] Limited state chooses at most one existing maintenance destination.
 - [x] Demo mode renders no authoritative trust date.
 - [x] Existing Home attention/planning/ledger behavior is unchanged by source contract.
-- [ ] Final exact-head CI/CodeQL/Secret/browser/UI evidence is green after the final evidence-record commits.
+- [x] Source/runtime acceptance head `f1ee094c852a376ebaf44436409bb3db2e9c25e4` is green across CI/CodeQL/Secret/browser/UI evidence.
 
 ### Required states
 
@@ -198,8 +199,8 @@ The database already owns the trust computation. `get_dashboard_bundle` already 
 | 590.2 | preserve one-call DB bundle while adding trust | 590.1 | migration + pgTAP | done |
 | 590.3 | add typed application mapping and schema-skew fallback | 590.2 contract | unit/static tests | done |
 | 590.4 | render compact Home trust surface | 590.3 | auth browser proof + broad UI audit | done |
-| 590.5 | exact-head evaluation + CI | 590.2–590.4 | CI/CodeQL/secret/database/browser | in_progress |
-| 590.6 | owner review / merge decision | 590.5 | PR | blocked |
+| 590.5 | exact-head evaluation + CI | 590.2–590.4 | CI #3687 / CodeQL #2690 / Secret #2690 / database / browser / UI audit | done |
+| 590.6 | owner review / merge decision | 590.5 | PR #591 | ready |
 
 ## Handoff record
 
@@ -207,7 +208,8 @@ The database already owns the trust computation. `get_dashboard_bundle` already 
 |---|---|---|---|---|---|---|
 | 2026-09-13 | researcher | planner | specified | #590, product research, current code | initial two-RPC idea contradicted performance contract | revise architecture |
 | 2026-09-13 | planner | implementer | implementing | revised #590 + branch `feat/590-home-ledger-trust` | runtime evidence not yet complete | implement bounded slice |
-| 2026-09-13 | implementer | evaluator | evaluating | PR #591, migration, unit/pgTAP/auth-browser coverage; pre-final CI #3681 mostly green | final exact-head after evidence commits still required; no DB latency benchmark | run exact-head gates and inspect browser/UI results |
+| 2026-09-13 | implementer | evaluator | evaluating | PR #591, migration, unit/pgTAP/auth-browser coverage; pre-final CI #3681 mostly green | final exact-head still required; no DB latency benchmark | complete exact-head evaluation |
+| 2026-09-13 | evaluator | owner | review_ready | source/runtime head `f1ee094c852a376ebaf44436409bb3db2e9c25e4`; CI #3687, CodeQL #2690, Secret #2690, DB/browser/UI all green | no DB latency benchmark; production migration not applied | owner review / merge decision |
 
 ### Current permission boundary
 
@@ -228,22 +230,24 @@ The database already owns the trust computation. `get_dashboard_bundle` already 
 5. A second dashboard navigation inside the test would have manufactured a second bundle RPC; tests now observe the first post-login render.
 6. Playwright official guidance recommends setting viewport before navigation; the 320px phone viewport is now established before login/dashboard navigation.
 7. Preserving one network RPC does not prove unchanged DB latency. Existing relevant indexes were reviewed; no speculative index was added and no performance-win claim is made.
+8. Final independent review checked the replacement function against PostgreSQL `CREATE OR REPLACE FUNCTION` semantics: the outer bundle remains invoker-rights, ownership/permissions stay stable, and repository pgTAP continues to prove ACL/search-path/RLS behavior.
 
-### Pre-final evidence
+### Final source/runtime evidence
 
-On `5c82d0360db199256127fe2001cff895de0c446c`, CI #3681 showed green policy, migration identity, project knowledge, unit/static RLS, production build, presentation ownership, deployment/CSS/architecture, lint/typecheck, fresh reset + pgTAP, archive producer/restore and aggregate verify. CodeQL #2684 and Secret history scan #2684 were green. This head was superseded before acceptance to harden the phone test method, so it is evidence of implementation health rather than final acceptance.
+On `f1ee094c852a376ebaf44436409bb3db2e9c25e4`, CI #3687 completed SUCCESS. Policy, migration identity, project knowledge, unit/static RLS, production build, presentation ownership, deployment/CSS/architecture, lint/typecheck, fresh reset + pgTAP, archive producer/restore and aggregate `verify` all passed. Generic browser smoke passed 146/146. Authenticated browser passed 24 tests with one pre-existing unrelated performance-attribution skip; both new ledger-trust tests ran and passed on desktop and 320px phone. Cross-device UI audit passed. CodeQL #2690 and Secret history scan #2690 succeeded. `main` remained at `b7956f7ea7cbd54cda8ed0421362d108cf09c6bd`, so no base drift affected this acceptance run.
 
 ### Acceptance state
 
-Implementation review has no known semantic blocker. Final acceptance remains pending one exact-head run after this documentation/evidence update, including authenticated browser and cross-device UI steps. Owner review remains independent and merge is not authorized.
+Implementation/source review has no known semantic blocker and is ready for owner review. This documentation-only closeout does not alter runtime code; the current PR head must still satisfy its GitHub checks before merge. Merge and production migration/deployment remain separate owner decisions.
 
 ## Delivery record
 
 - Branch: `feat/590-home-ledger-trust`
-- PR: #591 (draft)
-- Final exact-head commit: pending after evidence-record commit chain settles
-- Final CI run: pending
-- CodeQL/Secret final run: pending
-- Production deployment: none authorized
+- PR: #591 (ready for review)
+- Accepted source/runtime head: `f1ee094c852a376ebaf44436409bb3db2e9c25e4`
+- Accepted CI run: #3687 SUCCESS
+- Accepted CodeQL/Secret runs: #2690 / #2690 SUCCESS
+- Production migration: not authorized/applied for `20260913103000_dashboard_bundle_ledger_trust.sql`
+- Production deployment: none authorized by this packet
 - Production flow verified for this bundle change: no
-- Work packet moved to `docs/plans/completed/`: no
+- Work packet moved to `docs/plans/completed/`: no; do that only after merge/closeout
