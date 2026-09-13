@@ -107,13 +107,15 @@ export function CaptureQuickPage({
 
   useEffect(() => {
     if (!notice) return;
+    const returnToCapture = Boolean(recentSaved && !formOpen);
     const timer = window.setTimeout(() => {
       setNotice("");
       setRecentSaved(null);
       recentSavedRef.current = null;
+      if (returnToCapture) router.push("/capture");
     }, 3600);
     return () => window.clearTimeout(timer);
-  }, [notice]);
+  }, [formOpen, notice, recentSaved, router]);
 
   async function handleAdd(input: CreateTransactionInput) {
     const result = await addTransaction(input);
@@ -198,8 +200,8 @@ export function CaptureQuickPage({
   function handleClose() {
     setFormOpen(false);
     if (recentSavedRef.current) {
-      // Keep this route visible briefly so the post-save correction action is
-      // reachable. A manual close still returns to the Capture hub as before.
+      // Preserve the old return-to-Capture behavior, but delay it briefly so
+      // the just-saved transaction can be corrected through the trusted edit path.
       recentSavedRef.current = null;
       return;
     }
