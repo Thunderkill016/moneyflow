@@ -101,6 +101,7 @@ test("pending candidate uses existing readiness and source evidence", () => {
   assert.equal(item?.type, "inbox_candidate");
   if (!item || item.type !== "inbox_candidate") return;
   assert.equal(item.attention, false);
+  assert.equal(item.readinessKnown, true);
   assert.equal(item.stateLabel, "Chờ vào sổ");
   assert.equal(item.sourceLabel, "CSV");
   assert.equal(item.provenanceLabel, null);
@@ -127,6 +128,31 @@ test("candidate attention reuses Inbox readiness reasons", () => {
   assert.equal(item.stateLabel, "Cần xử lý");
   assert.ok(item.attentionLabels.includes("Độ tin thấp"));
   assert.ok(item.attentionLabels.includes("Danh mục chưa xác định"));
+});
+
+test("finance read failure does not turn missing lookup context into fake candidate attention", () => {
+  const items = buildActivityItems({
+    transactions: [],
+    candidates: [
+      candidate({
+        accountId: undefined,
+        account: undefined,
+        categoryId: undefined,
+        category: undefined,
+      }),
+    ],
+    accounts: [],
+    categories: [],
+    candidateReadinessAvailable: false,
+  });
+
+  const item = items[0];
+  assert.equal(item?.type, "inbox_candidate");
+  if (!item || item.type !== "inbox_candidate") return;
+  assert.equal(item.readinessKnown, false);
+  assert.equal(item.attention, false);
+  assert.equal(item.stateLabel, "Chờ vào sổ");
+  assert.deepEqual(item.attentionLabels, []);
 });
 
 test("approved and rejected candidates are not duplicated into the R1 Activity workstream", () => {
