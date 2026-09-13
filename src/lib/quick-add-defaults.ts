@@ -20,6 +20,10 @@ export type StableLedgerPresetInput = {
  * helper requires the same account/category pair to appear in at least two of
  * the three most recent eligible transactions for the requested kind.
  *
+ * "Recent" follows the ledger's canonical ordering: transaction date first,
+ * then creation timestamp and id as deterministic tie-breakers. This prevents a
+ * newly-entered backdated row from becoming more recent than today's activity.
+ *
  * Transfers, split expenses and review-needed rows are deliberately excluded:
  * they either have different financial semantics or are not trustworthy enough
  * to train a default. Current account/category options are also authoritative,
@@ -47,11 +51,12 @@ export function deriveStableLedgerPreset({
         validAccountIds.has(transaction.accountId) &&
         validCategoryIds.has(transaction.categoryId),
     )
-    .sort((a, b) => {
-      const byTimestamp = b.occurredAt.localeCompare(a.occurredAt);
-      if (byTimestamp !== 0) return byTimestamp;
-      return b.id.localeCompare(a.id);
-    })
+    .sort(
+      (a, b) =>
+        b.occurredOn.localeCompare(a.occurredOn) ||
+        b.occurredAt.localeCompare(a.occurredAt) ||
+        b.id.localeCompare(a.id),
+    )
     .slice(0, 3);
 
   if (recent.length < 3) return null;
