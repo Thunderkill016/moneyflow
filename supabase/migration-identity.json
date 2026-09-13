@@ -137,7 +137,7 @@
     },
     {
       "version": "20260802060004",
-      "name": "20260802060004_cover_foreign_key_indexes.sql",
+      "name": "20260802060004_cover_real_foreign_key_paths.sql",
       "hash": "59a8f8c3bdc543453487982fddc3d8fc"
     },
     {
@@ -304,6 +304,11 @@
       "version": "20260911150000",
       "name": "20260911150000_ledger_trusted_through.sql",
       "hash": "63c0ad68eba843b829f23f75577eca26"
+    },
+    {
+      "version": "20260913103000",
+      "name": "20260913103000_dashboard_bundle_ledger_trust.sql",
+      "hash": "a63382617ca68098db8ccae4ef90ea34"
     }
   ]
 }
