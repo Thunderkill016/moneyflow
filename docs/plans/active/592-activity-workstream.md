@@ -1,11 +1,11 @@
 # #592 — Activity 2.0 unified maintenance workstream MVP
 
-**Status:** implementing
-**Execution state:** implementation
-**Active role:** implementer
+**Status:** evaluating
+**Execution state:** evaluation
+**Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
-**Issue/PR:** GitHub #592 / PR pending
+**Issue/PR:** GitHub #592 / PR #593
 **Parent intent:** #559
 **Last updated:** 2026-09-13
 
@@ -24,6 +24,7 @@ Add an additive `/activity` surface that lets a user understand posted ledger fa
 - `needs_review` belongs to a posted transaction; it is not a separate Activity object.
 - Current primary IA exposes `/transactions` as `Giao dịch`; `/inbox` is an advanced route. #559 names `Activity` as the target combined mental model but does not itself authorize runtime work.
 - Legacy `/transactions` and `/inbox` must remain intact during R1 for rollback and behavior comparison.
+- R1 baseline is `main@77def2218dfb1a66134bbefe8158c993b960ebf6`, which already includes merged Home ledger-trust PR #591.
 
 ## Focused research
 
@@ -51,6 +52,7 @@ Research decision: Activity should unify **attention and presentation**, not mer
 
 - Only pending candidates appear in the R1 workstream; approved/rejected candidates stay historical evidence in existing Inbox/import surfaces.
 - Candidate readiness comes from existing `classifyCandidateReadiness()` so the Activity layer does not invent a second readiness contract.
+- If finance/account/category context is unavailable, readiness inference is disabled instead of manufacturing attention from missing lookup context.
 - Existing `/inbox` owns candidate approval/match/recovery.
 - Candidate source label and provenance come from existing candidate evidence only.
 
@@ -88,6 +90,7 @@ Search matches normalized user-visible merchant/note/category/account/source tex
 
 - Activity shows one loading surface until the candidate read resolves.
 - Ledger data is already server-owned but is not rendered as a misleading complete Activity feed while candidate state is unknown.
+- Summary values that depend on a still-loading source render unknown (`—`), not zero.
 
 ### Populated
 
@@ -104,8 +107,8 @@ Search matches normalized user-visible merchant/note/category/account/source tex
 
 ### Partial/error
 
-- Candidate load failure + healthy finance: keep ledger rows visible and show `Nguồn chờ vào sổ chưa tải được`; do not claim the list is complete.
-- Finance `dataError`: show error prominently; candidate rows may be shown only as `Chờ vào sổ`, accompanied by explicit notice that posted activity is unavailable.
+- Candidate load failure + healthy finance: keep ledger rows visible and show `Nguồn chờ vào sổ chưa tải được`; combined/incoming counts are unknown, posted count remains known.
+- Finance `dataError`: show error prominently; candidate rows may be shown only as `Chờ vào sổ`, accompanied by explicit notice that posted activity is unavailable. Candidate readiness inference is disabled because accounts/categories/ledger context is not authoritative.
 - No count or trust/completeness state is fabricated from a failed source.
 
 ### Accessibility/responsive
@@ -123,7 +126,7 @@ Search matches normalized user-visible merchant/note/category/account/source tex
 1. Pure typed Activity model + unit tests.
 2. Additive `/activity` route + client workspace using existing finance and Inbox loaders.
 3. Candidate/transaction row presentation + job filters/search.
-4. Auth/demo browser proof, mobile/desktop/light/dark/error-state proof.
+4. Auth browser proof, mobile/desktop/light/dark/error-state proof.
 5. Only after route proof: add an **additive** Activity affordance; do not remove `/transactions` or `/inbox`.
 
 ### R2 — separate authorization
@@ -156,6 +159,7 @@ Search matches normalized user-visible merchant/note/category/account/source tex
 - A `needs_review` transaction maps to one item and `attention=true`.
 - A normal transaction maps once to `posted` state.
 - Pending candidate maps to one `incoming` item with existing readiness.
+- Finance read failure disables readiness inference rather than treating missing lookups as user work.
 - Approved/rejected candidates do not enter R1 Activity.
 - Mixed chronological ordering is deterministic.
 - Filters do not duplicate items.
@@ -164,10 +168,13 @@ Search matches normalized user-visible merchant/note/category/account/source tex
 
 ### Browser
 
-- Demo Activity renders mixed workstream.
-- Auth strict fixture proves mixed workstream and partial candidate failure.
-- 320px + desktop, light/dark, no overflow, CTA targets.
-- Existing `/transactions` and `/inbox` still work.
+- Auth strict fixture proves two posted transactions, one `needs_review`, one ready candidate and one attention candidate in the same workstream.
+- `Cần xử lý` returns exactly the posted review fact + candidate attention item, with no duplicate transaction row.
+- Candidate source/lifecycle evidence is visible without exposing source ids.
+- Candidate server-action failure keeps healthy ledger visible and dependent counts unknown.
+- Malformed ledger read keeps candidate evidence visible, posted/combined counts unknown and readiness inference disabled.
+- Authenticated 320px phone + 1280px desktop, light/dark, no overflow, CTA targets.
+- Existing `/transactions` and `/inbox` stay untouched and remain rollback surfaces.
 
 ### Static/build
 
@@ -188,8 +195,16 @@ Delete the additive Activity route/model/component and additive nav affordance. 
 | ID | Task | Status |
 |---|---|---|
 | 592.1 | current-state recon + focused research | done |
-| 592.2 | pure Activity model + tests | implementing |
-| 592.3 | additive route/workspace | pending |
-| 592.4 | browser/responsive/error-state evidence | pending |
-| 592.5 | additive nav affordance after proof | pending |
+| 592.2 | pure Activity model + tests | done |
+| 592.3 | additive route/workspace | done |
+| 592.4 | auth browser/responsive/error-state evidence | implemented; CI pending |
+| 592.5 | additive nav affordance after first route proof | blocked on first green runtime proof |
 | 592.6 | exact-head evaluation + owner handoff | pending |
+
+## Handoff record
+
+| Date | From | To | State | Evidence | Open risk / next allowed action |
+|---|---|---|---|---|---|
+| 2026-09-13 | researcher | planner | specified | #592, current routes/loaders, focused official product research | preserve truth-model boundaries |
+| 2026-09-13 | planner | implementer | implementing | work packet + `feat/592-activity-workstream` | route/runtime not yet proven |
+| 2026-09-13 | implementer | evaluator | evaluating | draft PR #593; unit + auth phone/desktop specs committed | run first CI; only then add additive nav affordance if runtime proof is clean |
