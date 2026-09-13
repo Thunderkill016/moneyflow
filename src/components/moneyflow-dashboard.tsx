@@ -36,6 +36,8 @@ import {
   type CreateTransactionInput,
   type CreateTransferInput,
   type Transaction,
+  type UpdateMoneyTransactionInput,
+  type UpdateTransferInput,
 } from "@/lib/sample-data";
 import type { ViewerSummary } from "@/components/user-chip";
 
@@ -49,6 +51,13 @@ const AddTransactionDialog = dynamic(
 const TransferDialog = dynamic(
   () =>
     import("@/components/transfer-dialog").then((mod) => mod.TransferDialog),
+  { ssr: false },
+);
+const EditTransactionDialog = dynamic(
+  () =>
+    import("@/components/edit-transaction-dialog").then(
+      (mod) => mod.EditTransactionDialog,
+    ),
   { ssr: false },
 );
 
@@ -80,6 +89,7 @@ export function MoneyFlowDashboard({
     transactions,
     addTransaction: addTransactionToStore,
     addTransfer,
+    updateTransaction,
     isMutating,
   } = useTransactions({
     initialTransactions: workspace.transactions,
@@ -89,6 +99,8 @@ export function MoneyFlowDashboard({
   });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [editing, setEditing] = useState<Transaction | null>(null);
+  const [recentSaved, setRecentSaved] = useState<Transaction | null>(null);
   const [notice, setNotice] = useState("");
   const [demoInboxCount, setDemoInboxCount] = useState(0);
   const [demoCommitments, setDemoCommitments] = useState<
@@ -134,7 +146,10 @@ export function MoneyFlowDashboard({
 
   useEffect(() => {
     if (!notice) return;
-    const timeout = window.setTimeout(() => setNotice(""), 4200);
+    const timeout = window.setTimeout(() => {
+      setNotice("");
+      setRecentSaved(null);
+    }, 4200);
     return () => window.clearTimeout(timeout);
   }, [notice]);
 
@@ -202,6 +217,7 @@ export function MoneyFlowDashboard({
     if (result.ok && result.transaction) {
       // Same helper as the quick-capture surface, so a save reads identically
       // wherever it happens rather than being richer on one screen than another.
+      setRecentSaved(result.transaction);
       setNotice(
         captureConsequence({
           saved: result.transaction,
@@ -212,10 +228,23 @@ export function MoneyFlowDashboard({
     return result;
   }
 
+  async function handleUpdate(
+    input: UpdateMoneyTransactionInput | UpdateTransferInput,
+  ) {
+    const result = await updateTransaction(input);
+    if (result.ok) {
+      setEditing(null);
+      setRecentSaved(null);
+      setNotice("Đã cập nhật giao dịch.");
+    }
+    return result;
+  }
+
   async function handleTransfer(input: CreateTransferInput) {
     const result = await addTransfer(input);
     if (result.ok) {
       setTransferOpen(false);
+      setRecentSaved(null);
       setNotice("Đã chuyển tiền giữa các tài khoản.");
     }
     return result;
@@ -227,6 +256,7 @@ export function MoneyFlowDashboard({
   const openGhiChi = () => setDialogOpen(true);
   const openTransferFromCapture = () => {
     setDialogOpen(false);
+    setRecentSaved(null);
     setTransferOpen(true);
   };
 
@@ -247,6 +277,19 @@ export function MoneyFlowDashboard({
         icon: "plus",
       }}
       notice={notice}
+      noticeAction={
+        recentSaved
+          ? {
+              label: "Sửa",
+              onClick: () => {
+                setEditing(recentSaved);
+                setRecentSaved(null);
+                setNotice("");
+              },
+              disabled: isMutating,
+            }
+          : undefined
+      }
     >
       <main className={styles.dashboard}>
         {workspace.dataError ? (
@@ -287,6 +330,7 @@ export function MoneyFlowDashboard({
           }
           accounts={workspace.accounts}
           categories={workspace.categories}
+          transactions={transactions}
           disabled={isMutating || actionsDisabled}
         />
       ) : null}
@@ -296,6 +340,17 @@ export function MoneyFlowDashboard({
           accounts={workspace.accounts}
           onClose={() => setTransferOpen(false)}
           onTransfer={handleTransfer}
+        />
+      ) : null}
+      {editing ? (
+        <EditTransactionDialog
+          key={editing.id}
+          transaction={editing}
+          accounts={workspace.accounts}
+          categories={workspace.categories}
+          onClose={() => setEditing(null)}
+          onSave={handleUpdate}
+          disabled={isMutating || actionsDisabled}
         />
       ) : null}
     </AppShell>
