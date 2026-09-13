@@ -60,6 +60,12 @@ export type ActivityBuildInput = {
   accounts: AccountOption[];
   categories: CategoryOption[];
   /**
+   * False when the posted-ledger read is not authoritative. Some upstream
+   * loaders intentionally return safe fallback values alongside dataError;
+   * Activity must never promote those fallback rows into financial facts.
+   */
+  ledgerAvailable?: boolean;
+  /**
    * False when the finance read failed. Candidate rows can still be shown as
    * pending evidence, but Activity must not infer readiness from missing account,
    * category or ledger context and turn an outage into fake maintenance work.
@@ -213,18 +219,15 @@ export function buildActivityItems({
   candidates,
   accounts,
   categories,
-  candidateReadinessAvailable = true,
+  ledgerAvailable = true,
+  candidateReadinessAvailable,
 }: ActivityBuildInput): ActivityItem[] {
-  const transactionItems = transactions.map(buildLedgerItem);
+  const readinessAvailable = candidateReadinessAvailable ?? ledgerAvailable;
+  const transactionItems = ledgerAvailable ? transactions.map(buildLedgerItem) : [];
   const candidateItems = candidates
     .filter((candidate) => candidate.status === "pending")
     .map((candidate) =>
-      buildCandidateItem(
-        candidate,
-        accounts,
-        categories,
-        candidateReadinessAvailable,
-      ),
+      buildCandidateItem(candidate, accounts, categories, readinessAvailable),
     );
 
   return [...transactionItems, ...candidateItems].sort(newestFirst);
