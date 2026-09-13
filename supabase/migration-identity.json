@@ -137,7 +137,7 @@
     },
     {
       "version": "20260802060004",
-      "name": "20260802060004_cover_real_foreign_key_paths.sql",
+      "name": "20260802060004_cover_foreign_key_indexes.sql",
       "hash": "59a8f8c3bdc543453487982fddc3d8fc"
     },
     {
@@ -217,7 +217,7 @@
     },
     {
       "version": "20260821093500",
-      "name": "20260821093500_deleted_source_reimport_precedence.sql",
+      "name": "20260821093500_deleted_reimport_precedence.sql",
       "hash": "aa5671198fd1006b54f352cd95781cd2"
     },
     {
