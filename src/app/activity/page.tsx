@@ -25,6 +25,7 @@ export default async function Page() {
         accounts: workspace.accounts,
         categories: workspace.categories,
         dataError: workspace.dataError,
+        reviewAvailable: workspace.reviewFeatureAvailable === true,
       }}
     />
   );
