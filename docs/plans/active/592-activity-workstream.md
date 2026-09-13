@@ -23,20 +23,21 @@ Add an additive `/activity` surface that presents posted ledger facts, pending I
 - Candidate duplicate/transfer annotation and readiness already live in `src/lib/inbox/detect.ts` and `src/lib/inbox/readiness.ts`; Activity must reuse them rather than fork truth.
 - Authenticated candidate mapping may carry source lifecycle/match/provenance. Current posted transaction feed does not prove source/provider state, so Activity must not fabricate it for ledger rows.
 - Existing `/transactions` and `/inbox` remain mutation owners and rollback surfaces throughout R1.
-- Primary IA remains `Giao dịch` at `/transactions`. After a clean route/browser proof, R1 may add only a secondary Activity affordance; primary promotion is R2 and separately authorized.
+- Primary IA remains `Giao dịch` at `/transactions`. R1 may add only a secondary Activity affordance; primary promotion is R2 and separately authorized.
+- `getFinanceWorkspace()` can return safe demo-shaped fallback values together with `dataError` when the authenticated Supabase client is unavailable. Activity must treat `dataError` as loss of ledger authority and must not present or reason from those fallback rows as user facts.
 
 Relevant implementation boundaries:
 
 | Area | R1 role |
 |---|---|
-| `src/server/finance.ts` | authoritative posted transaction + review read; reuse unchanged |
+| `src/server/finance.ts` | existing finance loader; unchanged in this slice |
 | `src/hooks/client-inbox*.ts` | candidate load/migration compatibility; reuse unchanged |
 | `src/lib/inbox/detect.ts` / `readiness.ts` | authoritative candidate detection/readiness; reuse unchanged |
-| `src/lib/activity.ts` | new neutral mixed workstream model |
-| `src/components/activity/*` | new presentation + partial-state ownership |
+| `src/lib/activity.ts` | new neutral mixed workstream model, fail-closed when ledger is unavailable |
+| `src/components/activity/*` | presentation + partial-state ownership |
 | `/transactions`, `/inbox` | existing mutation and recovery owners |
 
-Counterexamples explicitly rejected: duplicate review rows, candidates masquerading as ledger facts, provider/source completeness inferred for posted rows, missing finance lookup context converted into fake candidate attention, or a new DB RPC added without measured need.
+Counterexamples explicitly rejected: duplicate review rows, candidates masquerading as ledger facts, provider/source completeness inferred for posted rows, missing finance lookup context converted into fake candidate attention, fallback/demo ledger rows shown during authenticated outages, or a new DB RPC added without measured need.
 
 ## Research
 
@@ -55,16 +56,22 @@ Decision: unify **attention and presentation**, not truth models. Source state i
 
 ### Item model
 
-`ledger_transaction`: one item per posted transaction id. `reviewStatus` is an attribute; `needs_review` puts the item in `Cần xử lý` without duplication. Actions return to `/transactions`.
+`ledger_transaction`: one item per authoritative posted transaction id. `reviewStatus` is an attribute; `needs_review` puts the item in `Cần xử lý` without duplication. Actions return to `/transactions`. When the finance read reports `dataError`, Activity includes zero posted items even if the upstream safe fallback object contains transaction-shaped rows.
 
-`inbox_candidate`: pending evidence only. Existing annotation/readiness decides whether it is ready or needs attention. Actions return to `/inbox`. When finance/account/category context is unavailable, readiness inference is disabled and the item remains honestly `Chờ vào sổ`.
+`inbox_candidate`: pending evidence only. Existing annotation/readiness decides whether it is ready or needs attention. Actions return to `/inbox`. When finance/account/category context is unavailable, readiness inference is disabled and the item remains honestly `Chờ vào sổ`. Candidate duplicate/transfer detection also receives no fallback ledger rows in that state.
 
 ### Data flow
 
 ```text
-getFinanceWorkspace() -> posted transaction + review state \
-                                                       -> buildActivityItems() -> filter/search/sort -> UI
-loadInboxForClient()  -> pending candidate + provenance /
+getFinanceWorkspace() -> authoritative posted transaction + review state ----\
+                                                                        -> buildActivityItems() -> filter/search/sort -> UI
+loadInboxForClient()  -> pending candidate + provenance --------------------/
+
+if finance dataError:
+  posted ledger authority = unavailable
+  -> omit transaction fallback rows
+  -> candidate duplicate detection gets an empty ledger
+  -> readiness inference disabled
 
 Activity action -> existing /transactions or /inbox owner -> existing mutation/recovery contract
 ```
@@ -73,10 +80,10 @@ R1 deliberately adds no DB Activity RPC or migration. A future optimized read bu
 
 ### Filters/search
 
-- `Tất cả`: pending candidates + posted transactions.
+- `Tất cả`: pending candidates + authoritative posted transactions.
 - `Cần xử lý`: candidate attention + posted `needs_review` transactions.
 - `Chờ vào sổ`: pending candidates only.
-- `Đã vào sổ`: posted transactions only.
+- `Đã vào sổ`: authoritative posted transactions only.
 - Search covers user-visible merchant/note/category/account/source text; raw snippets and external source IDs are not default searchable/displayed fields.
 
 ### UI states
@@ -85,12 +92,12 @@ R1 deliberately adds no DB Activity RPC or migration. A future optimized read bu
 - **Populated:** one chronological visual rhythm, but explicit text distinguishes `Chờ vào sổ`, `Cần xử lý`, `Cần xem lại`, `Đã vào sổ`.
 - **Empty:** true empty offers capture/import guidance; attention-empty calmly says nothing needs action.
 - **Candidate failure:** healthy ledger stays visible; incoming/combined counts are unknown.
-- **Finance failure:** candidate evidence may remain visible, posted/combined counts are unknown, readiness inference is disabled, and the surface says financial history is incomplete.
+- **Finance failure:** candidate evidence may remain visible; posted rows are omitted; fallback/demo rows cannot affect duplicate detection; posted/combined counts are unknown; readiness inference is disabled; the surface says financial history is incomplete.
 - **Accessibility/responsive:** semantic list/headings, state not color-only, compact CTA target >=44px, 320px phone + desktop light/dark, no horizontal overflow.
 
 ### Rollout
 
-**R1 — current PR:** additive `/activity`, typed model, demo/auth proof, then additive discoverability in More after route proof. `/transactions` remains primary and `/inbox` remains available.
+**R1 — current PR:** additive `/activity`, typed model, demo/auth proof, and additive discoverability in More. `/transactions` remains primary and `/inbox` remains available.
 
 **R2 — separate authorization:** promote `Hoạt động` into the primary `Giao dịch` position only after broader action-parity evidence; migrate global ledger search intentionally.
 
@@ -107,8 +114,9 @@ Implemented:
 - additive `/activity` route using existing `getFinanceWorkspace()` plus existing candidate client loader;
 - scoped Activity presentation/loading CSS; initial legacy global-class debt was caught by CI classifier and removed;
 - demo Playwright proof and strict authenticated desktop/320px phone proof, including candidate-read failure and malformed-ledger failure;
-- after first clean route proof, additive `Hoạt động` entry in `More → Công cụ hàng ngày`; primary `Giao dịch` and advanced `Cần xem` remain unchanged;
-- auth navigation contract proves Activity is discoverable while Transactions/Inbox remain present.
+- additive `Hoạt động` entry in `More → Công cụ hàng ngày`; primary `Giao dịch` and advanced `Cần xem` remain unchanged;
+- auth navigation contract proving Activity discoverability while Transactions/Inbox remain present;
+- evaluator correctness fix: Activity now accepts explicit ledger availability, omits non-authoritative fallback transactions when finance reports an error, excludes those rows from candidate duplicate/transfer detection, disables readiness inference, and has a unit regression proving the fallback ledger cannot appear in `Đã vào sổ`.
 
 Verification plan: policy/project knowledge, lint/typecheck/build/CSS/architecture, unit/static RLS, risk-classified database gate, demo browser, authenticated strict-double browser, cross-device UI audit, CodeQL and Secret history scan. Final acceptance requires all on the same final head and browser-log confirmation that Activity specs executed.
 
@@ -123,7 +131,7 @@ Permission: branch/PR writes for #592 R1 only. No direct `main` write, merge, pr
 | 592.1 | repository recon + focused research | done |
 | 592.2 | pure Activity model + unit tests | done |
 | 592.3 | additive route/workspace | done |
-| 592.4 | demo/auth responsive + partial-error browser evidence | done on pre-nav proof head; final-head rerun pending |
+| 592.4 | demo/auth responsive + partial-error browser evidence | implemented; final-head rerun pending |
 | 592.5 | additive More affordance, preserving Transactions/Inbox | done; final-head rerun pending |
 | 592.6 | exact-head evaluation + owner handoff | in progress |
 
@@ -137,4 +145,6 @@ Pre-navigation proof head `e097721394794475cfa0d3f354e1405ac69c75c4` established
 - demo browser: 148/148 passed, including `e2e/activity.spec.ts` on desktop and mobile;
 - authenticated browser: 28 passed / 1 intentional skip, including Activity desktop and all three Activity phone tests (mixed workstream, candidate failure, ledger failure).
 
-That proof satisfied the R1 condition to add secondary discoverability. A new final head now includes the More affordance and its navigation contract, so **the pre-navigation green run is evidence, not final acceptance**. PR #593 remains draft until the new exact head passes required CI/browser/UI/security gates. No merge or production/provider action is authorized.
+That proof justified R1 secondary discoverability, but it is not final acceptance. Later evaluator review found a correctness gap: the existing finance loader can pair `dataError` with demo-shaped fallback rows, while Activity initially merged `workspace.transactions` regardless of that authority loss. The R1 fix is intentionally local to Activity: `ledgerAvailable=false` removes those rows from the mixed feed and duplicate detection instead of changing global finance fallback semantics. A regression unit locks this fail-closed behavior.
+
+All earlier CI runs are therefore supporting evidence only. Final acceptance must come from one stable post-fix exact head with policy/static/build/unit/browser/cross-device/CodeQL/Secret gates green. PR #593 remains draft until then. No merge or production/provider action is authorized.
