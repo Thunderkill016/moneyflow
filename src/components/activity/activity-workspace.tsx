@@ -30,6 +30,7 @@ type ActivityWorkspaceData = {
   accounts: AccountOption[];
   categories: CategoryOption[];
   dataError: string | null;
+  reviewAvailable: boolean;
 };
 
 type CandidateLoadState = "loading" | "ready" | "error";
@@ -79,11 +80,21 @@ function groupByDate(items: ActivityItem[]) {
   return [...groups.entries()];
 }
 
-function emptyMessage(filter: ActivityFilter, query: string) {
+function emptyMessage(
+  filter: ActivityFilter,
+  query: string,
+  attentionCoverageKnown: boolean,
+) {
   if (query.trim()) {
     return {
       title: "Không tìm thấy hoạt động",
       detail: "Thử từ khóa khác hoặc đổi bộ lọc.",
+    };
+  }
+  if (filter === "attention" && !attentionCoverageKnown) {
+    return {
+      title: "Chưa xác định đầy đủ việc cần xử lý",
+      detail: "Một phần trạng thái review đang không khả dụng. Danh sách này có thể chưa đầy đủ.",
     };
   }
   if (filter === "attention") {
@@ -215,6 +226,8 @@ export function ActivityWorkspace({
 
   const ledgerReady = workspace.dataError === null;
   const candidatesReady = candidateState === "ready";
+  const attentionCoverageKnown =
+    ledgerReady && workspace.reviewAvailable && candidatesReady;
 
   const detectedCandidates = useMemo(
     () =>
@@ -258,10 +271,9 @@ export function ActivityWorkspace({
   const attentionCount = useMemo(() => countActivityAttention(items), [items]);
   const incomingCount = useMemo(() => countIncomingActivity(items), [items]);
   const postedCount = items.length - incomingCount;
-  const empty = emptyMessage(filter, query);
+  const empty = emptyMessage(filter, query, attentionCoverageKnown);
 
-  const knownAttentionCount =
-    ledgerReady && candidatesReady ? attentionCount : null;
+  const knownAttentionCount = attentionCoverageKnown ? attentionCount : null;
   const knownIncomingCount = candidatesReady ? incomingCount : null;
   const knownPostedCount = ledgerReady ? postedCount : null;
 
@@ -309,6 +321,15 @@ export function ActivityWorkspace({
             <AlertTitle>Phần giao dịch đã vào sổ chưa tải được</AlertTitle>
             <AlertDescription>
               {workspace.dataError} Các mục chờ vào sổ bên dưới không đại diện cho toàn bộ hoạt động tài chính.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {ledgerReady && !workspace.reviewAvailable ? (
+          <Alert tone="warning" live="polite">
+            <AlertTitle>Trạng thái cần xem lại chưa tải được</AlertTitle>
+            <AlertDescription>
+              Giao dịch đã vào sổ vẫn được hiển thị, nhưng số “Cần xử lý” và bộ lọc tương ứng có thể chưa đầy đủ.
             </AlertDescription>
           </Alert>
         ) : null}
