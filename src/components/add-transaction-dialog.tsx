@@ -25,6 +25,7 @@ import {
   moneyKindPrefix,
   parseMoneyInput,
 } from "@/lib/money";
+import { deriveStableLedgerPreset } from "@/lib/quick-add-defaults";
 import {
   isRecentCategoryId,
   orderCategoriesByRecent,
@@ -34,12 +35,14 @@ import {
   readQuickAddPrefs,
   writeQuickAddPrefs,
   type QuickAddPreset,
+  type QuickAddPrefs,
 } from "@/lib/quick-add-prefs";
 import {
   categoryMeta,
   type AccountOption,
   type CategoryOption,
   type CreateTransactionInput,
+  type Transaction,
   type TransactionKind,
 } from "@/lib/sample-data";
 import { todayInVietnam } from "@/lib/vietnam-date";
@@ -54,6 +57,7 @@ export function AddTransactionDialog({
   onAdd,
   accounts,
   categories,
+  transactions = [],
   disabled = false,
   embedded = false,
   title = "Ghi chi tiêu",
@@ -66,6 +70,7 @@ export function AddTransactionDialog({
   onAdd: (input: CreateTransactionInput) => Promise<{ ok: boolean; message?: string }>;
   accounts: AccountOption[];
   categories: CategoryOption[];
+  transactions?: Transaction[];
   disabled?: boolean;
   embedded?: boolean;
   title?: string;
@@ -179,6 +184,45 @@ export function AddTransactionDialog({
     );
   }
 
+  function applyDefaultForKind(
+    nextKind: TransactionKind,
+    prefs: Pick<
+      QuickAddPrefs,
+      "accountId" | "categoryId" | "kind" | "recentCategoryIds" | "recentPresets"
+    >,
+  ) {
+    const ledgerPreset = deriveStableLedgerPreset({
+      transactions,
+      kind: nextKind,
+      accounts,
+      categories,
+    });
+    if (ledgerPreset) {
+      setAccountId(ledgerPreset.accountId);
+      setCategoryId(ledgerPreset.categoryId);
+      return;
+    }
+
+    const learnedPreset = validPresetForKind(prefs.recentPresets, nextKind);
+    if (learnedPreset) {
+      setAccountId(learnedPreset.accountId);
+      setCategoryId(learnedPreset.categoryId);
+      return;
+    }
+
+    if (prefs.accountId && accounts.some((item) => item.id === prefs.accountId)) {
+      setAccountId(prefs.accountId);
+    }
+    const forKind = categories.filter((item) => item.kind === nextKind);
+    setCategoryId(
+      pickKnownCategoryForKind(
+        forKind,
+        prefs.recentCategoryIds,
+        prefs.kind === nextKind ? prefs.categoryId || undefined : undefined,
+      ),
+    );
+  }
+
   useEffect(() => {
     if (prefsHydratedRef.current) return;
     prefsHydratedRef.current = true;
@@ -194,20 +238,7 @@ export function AddTransactionDialog({
         setRecentPresets(prefs.recentPresets);
       }
 
-      const learnedPreset = validPresetForKind(prefs.recentPresets, resolvedKind);
-      if (learnedPreset) {
-        setAccountId(learnedPreset.accountId);
-        setCategoryId(learnedPreset.categoryId);
-      } else {
-        if (prefs.accountId) setAccountId(prefs.accountId);
-        const forKind = categories.filter((item) => item.kind === resolvedKind);
-        const knownCategory = pickKnownCategoryForKind(
-          forKind,
-          prefs.recentCategoryIds,
-          prefs.kind === resolvedKind ? prefs.categoryId || undefined : undefined,
-        );
-        setCategoryId(knownCategory);
-      }
+      applyDefaultForKind(resolvedKind, prefs);
       setOccurredOn(todayInVietnam());
     });
     return () => window.cancelAnimationFrame(frame);
@@ -274,16 +305,13 @@ export function AddTransactionDialog({
 
   function changeKind(nextKind: TransactionKind) {
     setKind(nextKind);
-    const learnedPreset = validPresetForKind(recentPresets, nextKind);
-    if (learnedPreset) {
-      setAccountId(learnedPreset.accountId);
-      setCategoryId(learnedPreset.categoryId);
-    } else {
-      const forKind = categories.filter((item) => item.kind === nextKind);
-      setCategoryId(
-        pickKnownCategoryForKind(forKind, recentCategoryIds),
-      );
-    }
+    applyDefaultForKind(nextKind, {
+      kind,
+      accountId: selectedAccountId,
+      categoryId: selectedCategoryId,
+      recentCategoryIds,
+      recentPresets,
+    });
     categoryTouchedRef.current = false;
     setAutoRuleHint(null);
     markInputChanged();
