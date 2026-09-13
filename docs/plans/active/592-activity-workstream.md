@@ -1,7 +1,7 @@
 # #592 — Activity 2.0 unified maintenance workstream MVP
 
-**Status:** evaluating
-**Execution state:** evaluation
+**Status:** review_ready
+**Execution state:** owner_review
 **Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
@@ -50,6 +50,7 @@ Focused official research reviewed 2026-09-13:
 | YNAB approving/matching | imported attention + matching avoids redundant review | keep MoneyFlow ledger/reconciliation semantics |
 | Actual Budget importing | stable import identity and matching avoid duplicate facts | no new matching semantics in R1 |
 | Actual Budget rules | imported work follows one processing path; user-owned rules reduce cleanup | rule learning remains a later slice |
+| Playwright reporters / CI guidance | raw reporter output and CI artifacts can prove which tests actually executed | use as evaluation evidence only; do not equate a generic green job with route-specific proof |
 
 Decision: unify **attention and presentation**, not truth models. Source state is displayed only from current candidate evidence.
 
@@ -121,13 +122,13 @@ Implemented:
 - unit tests for no duplicate review item, candidate readiness reuse, provenance/search boundaries, fallback-ledger exclusion and partial-read honesty;
 - additive `/activity` route using existing `getFinanceWorkspace()` plus existing candidate client loader;
 - scoped Activity presentation/loading CSS; initial legacy global-class debt was caught by CI classifier and removed;
-- demo Playwright proof and strict authenticated desktop/320px phone proof, including candidate-read failure and malformed-ledger failure;
+- demo Playwright proof and strict authenticated desktop/320px phone proof, including candidate-read failure, malformed-ledger failure and unavailable review-state handling;
 - additive `Hoạt động` entry in `More → Công cụ hàng ngày`; primary `Giao dịch` and advanced `Cần xem` remain unchanged;
 - auth navigation contract proving Activity discoverability while Transactions/Inbox remain present;
-- evaluator correctness fix #1: Activity now accepts explicit ledger availability, omits non-authoritative fallback transactions when finance reports an error, excludes those rows from candidate duplicate/transfer detection, disables readiness inference, and has a unit regression proving the fallback ledger cannot appear in `Đã vào sổ`;
-- evaluator correctness fix #2: the route now passes `reviewFeatureAvailable`; Activity marks review-dependent attention coverage unknown when unavailable, shows a warning, avoids a false zero/false empty attention claim, and an authenticated browser fixture uses malformed review data to prove the partial-review path without weakening the strict Supabase double.
+- evaluator correctness fix #1: Activity accepts explicit ledger availability, omits non-authoritative fallback transactions when finance reports an error, excludes those rows from candidate duplicate/transfer detection, disables readiness inference, and has a unit regression proving the fallback ledger cannot appear in `Đã vào sổ`;
+- evaluator correctness fix #2: the route passes `reviewFeatureAvailable`; Activity marks review-dependent attention coverage unknown when unavailable, shows a warning, avoids a false zero/false empty attention claim, and an authenticated browser fixture uses malformed review data to prove the partial-review path without weakening the strict Supabase double.
 
-Verification plan: policy/project knowledge, lint/typecheck/build/CSS/architecture, unit/static RLS, risk-classified database gate, demo browser, authenticated strict-double browser, cross-device UI audit, CodeQL and Secret history scan. Final acceptance requires all on the same final head and browser-log confirmation that Activity specs executed.
+Verification plan: policy/project knowledge, lint/typecheck/build/CSS/architecture, unit/static RLS, risk-classified database gate, demo browser, authenticated strict-double browser, repository-wide cross-device UI regression audit, CodeQL and Secret history scan. Activity-specific responsive evidence comes from the authenticated desktop/320px light/dark specs; the global audit route matrix does not include `/activity` and must not be represented as Activity-specific proof.
 
 Rollback: remove `/activity`, Activity model/presentation/tests and the additive More entry. Existing transaction/Inbox routes, writes and DB contracts remain intact.
 
@@ -140,14 +141,34 @@ Permission: branch/PR writes for #592 R1 only. No direct `main` write, merge, pr
 | 592.1 | repository recon + focused research | done |
 | 592.2 | pure Activity model + unit tests | done |
 | 592.3 | additive route/workspace | done |
-| 592.4 | demo/auth responsive + candidate/ledger/review partial-error evidence | implemented; final-head rerun pending |
-| 592.5 | additive More affordance, preserving Transactions/Inbox | done; final-head rerun pending |
-| 592.6 | exact-head evaluation + owner handoff | in progress |
+| 592.4 | demo/auth responsive + candidate/ledger/review partial-error evidence | done on accepted source/runtime head |
+| 592.5 | additive More affordance, preserving Transactions/Inbox | done on accepted source/runtime head |
+| 592.6 | exact-head evaluation + owner handoff | done; owner review/merge decision pending |
 
 ## Evaluation
 
-Pre-navigation proof head `e097721394794475cfa0d3f354e1405ac69c75c4` established green classifier/policy/static/unit/build/security evidence plus demo 148/148 and authenticated 28 passed / 1 intentional skip, including initial Activity mixed/candidate-failure/ledger-failure specs. That proof justified R1 secondary discoverability but is not final acceptance.
+Pre-navigation proof head `e097721394794475cfa0d3f354e1405ac69c75c4` established green classifier/policy/static/unit/build/security evidence plus demo 148/148 and authenticated 28 passed / 1 intentional skip, including initial Activity mixed/candidate-failure/ledger-failure specs. That proof justified R1 secondary discoverability but was not final acceptance.
 
 Evaluator review later found two honesty gaps in partial reads. First, the existing finance loader can pair `dataError` with demo-shaped fallback rows; Activity initially merged those rows regardless of lost ledger authority. The local R1 fix uses `ledgerAvailable=false` to remove those rows from both the mixed feed and candidate detection, with a unit regression. Second, the ledger can remain healthy while `transaction_review_feed` is unavailable/malformed; finance intentionally exposes that via `reviewFeatureAvailable=false`, but Activity initially ignored it and could report a false `Cần xử lý = 0`. The R1 fix carries the availability flag to Activity, marks attention coverage unknown, displays a warning and adds authenticated browser proof using malformed review data.
 
-All earlier CI runs are supporting evidence only. Final acceptance must come from one stable post-fix exact head with policy/static/build/unit/browser/cross-device/CodeQL/Secret gates green. PR #593 remains draft until then. No merge or production/provider action is authorized.
+Accepted source/runtime head `7907f990d9661c5e6a584d254120cc912fc53452` passed the final runtime evaluation against unchanged `main@77def2218dfb1a66134bbefe8158c993b960ebf6`:
+
+- CI #3717 (run `34758071170`): completed success;
+- policy/project knowledge/migration identity: success;
+- static quality, lint, typecheck, architecture and CSS ownership: success;
+- production build and presentation ownership: success;
+- unit/static-RLS and aggregate verify: success;
+- database job: success with DB tests correctly skipped because R1 changes no database/migration/RLS contract;
+- generic/demo Browser smoke raw log: `148 passed`, including `e2e/activity.spec.ts` on Chromium desktop and mobile;
+- authenticated Browser smoke raw log: `30 passed, 1 skipped`; the skip is the existing #403 FCP attribution spec, unrelated to Activity;
+- authenticated Activity desktop/mobile/nav specs all executed and passed, including mixed workstream/no duplication, candidate failure, review-state failure, ledger failure, More discoverability without replacing Transactions/Inbox, light/dark rendering, >=44px targets and no horizontal overflow;
+- repository-wide Cross-device UI audit: success; it is regression evidence, not route-specific `/activity` evidence because the global audit route matrix does not include Activity;
+- CodeQL #2719: success;
+- Secret history scan #2719: success;
+- no unresolved PR review threads or submitted reviews were present during evaluator handoff.
+
+The commits that close this work packet and bounded PR memory are documentation-only; they do not alter the accepted runtime source above. The resulting PR head must still pass exact-head checks before the draft is marked Ready for review. No merge, production/provider write, production data write or deployment is authorized.
+
+## Handoff
+
+Evaluator → owner: R1 implementation has no remaining known semantic/security blocker. After the documentation-only closeout head passes required exact-head CI/security gates, PR #593 can be marked Ready for review. The next owner decision is merge or further review; R2 primary-nav promotion, R3 retirement, provider changes and production actions remain separate authorization boundaries.
