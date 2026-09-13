@@ -1,8 +1,8 @@
 # #590 — Home ledger trust and next maintenance action
 
-**Status:** implementing
-**Execution state:** implementing
-**Active role:** implementer
+**Status:** evaluating
+**Execution state:** evaluating
+**Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
 **Issue/PR:** GitHub #590 / PR #591
@@ -19,8 +19,8 @@ Make signed-in Home show a compact, truthful ledger-trust state derived from the
 ### Current behavior
 
 - `main@b7956f7ea7cbd54cda8ed0421362d108cf09c6bd` is the #589 dashboard simplification baseline.
-- `/dashboard` currently presents the current financial statement, generic attention items, compact planning navigation, category spend and recent activity.
-- PR #588 added `public.ledger_trust_summary()` and its pgTAP counterexamples. The migration was reconciled to production separately on 2026-09-13.
+- `/dashboard` presents the current financial statement, generic attention items, compact planning navigation, category spend and recent activity.
+- PR #588 added `public.ledger_trust_summary()` and its pgTAP counterexamples. The standalone migration was reconciled to production separately on 2026-09-13; this #590 bundle migration is not authorized for production by this packet.
 - `src/server/dashboard.ts` uses exactly one authenticated Data API call, `get_dashboard_bundle`, and `src/lib/dashboard-performance-contract.test.ts` mechanically forbids a second `.rpc()` or direct `.from()` read.
 - `get_dashboard_bundle` is `STABLE`, `SECURITY INVOKER`, pins an empty search path, bounds its input range and relies on existing RLS-aware reads.
 - `/transactions` already supports `review=needs_review`; `/inbox` and `/accounts` already own the other maintenance destinations.
@@ -35,11 +35,12 @@ Make signed-in Home show a compact, truthful ledger-trust state derived from the
 | `src/server/dashboard.ts` | request-private bundle parsing | extend compatibly |
 | `src/lib/dashboard-performance-contract.test.ts` | guards one-RPC/no-cache boundary | preserve |
 | `src/components/dashboard/dashboard-overview-sections.tsx` | current Home hierarchy | add bounded trust surface |
-| `e2e/audit/responsive.audit.spec.ts` | phone/desktop presentation gate | add affected-surface evidence if needed |
+| `e2e/auth/*` | authenticated ownership and presentation proof | extend with strict synthetic fixture |
+| `e2e/audit/*` | broad cross-device regression gate | keep as independent demo/geometry coverage |
 
 ### Existing tests and constraints
 
-- `ledger_trusted_through.test.sql` already proves missing/dirty reconciliation, pending Inbox, needs-review facts, unreconciled account legs, archived accounts, tenant isolation and clean advancement.
+- `ledger_trusted_through.test.sql` proves missing/dirty reconciliation, pending Inbox, needs-review facts, unreconciled account legs, archived accounts, tenant isolation and clean advancement.
 - `dashboard_read_bundle.test.sql` proves SECURITY INVOKER, empty search path, grants, bounded inputs and tenant-separated bundle data.
 - `dashboard-performance-contract.test.ts` requires exactly one `.rpc()` call and no shared/static private-data cache.
 - Class 3 policy requires database tests, application/static/build evidence, browser evidence for changed flow, UI audit for visual change, CodeQL/secret checks, rollback and owner review.
@@ -52,7 +53,7 @@ Make signed-in Home show a compact, truthful ledger-trust state derived from the
 
 ### Open questions
 
-None blocking implementation. The original two-RPC idea was rejected after current-code reconnaissance and issue #590 was updated before implementation.
+No implementation question remains open. Final acceptance is blocked only on a fresh exact-head evidence run after the final evidence-record commits.
 
 ## Research
 
@@ -60,7 +61,7 @@ None blocking implementation. The original two-RPC idea was rejected after curre
 
 - Decision question: what interaction pattern best reduces repeated maintenance while strengthening trust in a personal-finance ledger?
 - Reference map consulted: historical `docs/research/PRODUCT_COMPETITIVE_MEMORY.md` plus current product principles.
-- Source budget: four focused product sources plus local-market cross-check.
+- Source budget: focused product sources plus local-market and test-method cross-check.
 - Expected decision: whether to add breadth, automation or a small review/trust loop to Home.
 
 ### Sources
@@ -72,6 +73,7 @@ None blocking implementation. The original two-RPC idea was rejected after curre
 | Actual Budget import + rules docs | official open-source product docs | 2026-09-13 | dedupe/matching and explainable user-owned rules reduce repetitive cleanup | no wholesale architecture/UI adoption |
 | Copilot Money quick-start review flow | official product support | 2026-09-13 | `To Review` makes maintenance visible on the daily dashboard | AI categorization is out of scope |
 | Money Lover / MISA current product surfaces | official local-market product pages | 2026-09-13 | Vietnamese daily-finance language and quick entry remain familiar expectations | marketing breadth is not evidence to add features |
+| Playwright emulation docs | official test framework docs | 2026-09-13 | viewport should be established before navigation; `emulateMedia({ colorScheme })` grades `prefers-color-scheme` | test-method guidance only, not product semantics |
 
 ### Alternatives considered
 
@@ -94,7 +96,7 @@ Not applicable. No dependency/provider/service/framework is added.
 
 ### Problem
 
-MoneyFlow now computes a deterministic trusted-through boundary, but Home does not expose it. A user can see balances and monthly activity without knowing whether every active account has a clean reconciliation or whether known unresolved work limits that confidence.
+MoneyFlow computes a deterministic trusted-through boundary, but Home does not expose it. A user can see balances and monthly activity without knowing whether every active account has a clean reconciliation or whether known unresolved work limits that confidence.
 
 ### User stories
 
@@ -104,25 +106,27 @@ MoneyFlow now computes a deterministic trusted-through boundary, but Home does n
 
 ### Acceptance criteria
 
-- [ ] `get_dashboard_bundle` remains the single authenticated dashboard Data API call.
-- [ ] Its additive `ledger_trust` field is exactly the existing tenant-scoped trust result.
-- [ ] Application parsing accepts the old payload shape without `ledger_trust`.
-- [ ] `trusted`, `trusted_limited`, `missing_clean_reconciliation`, and `no_active_accounts` have truthful Vietnamese copy.
-- [ ] `known_ledger_state_only` is reflected in the UI wording; no source-completeness claim.
-- [ ] Limited state chooses at most one existing maintenance destination.
-- [ ] Demo mode renders no authoritative trust date.
-- [ ] Existing Home attention/planning/ledger behavior is unchanged.
+- [x] `get_dashboard_bundle` remains the single authenticated dashboard Data API call in source and strict auth-browser proof.
+- [x] Its additive `ledger_trust` field is the existing tenant-scoped trust result.
+- [x] Application parsing accepts the old payload shape without `ledger_trust`.
+- [x] `trusted`, `trusted_limited`, `missing_clean_reconciliation`, and `no_active_accounts` have deterministic truthful Vietnamese copy.
+- [x] `known_ledger_state_only` is reflected in the UI wording; no source-completeness claim.
+- [x] Limited state chooses at most one existing maintenance destination.
+- [x] Demo mode renders no authoritative trust date.
+- [x] Existing Home attention/planning/ledger behavior is unchanged by source contract.
+- [ ] Final exact-head CI/CodeQL/Secret/browser/UI evidence is green after the final evidence-record commits.
 
 ### Required states
 
-- Loading: existing truthful `/dashboard/loading.tsx`; do not add fabricated trust skeleton values.
+- Loading: existing truthful `/dashboard/loading.tsx`; no fabricated trust skeleton values.
 - Empty: no active account → blocked/no trust date; existing empty-ledger capture remains independent.
 - Populated: trusted date and compact coverage explanation.
 - Validation/error: old bundle/no trust field or parse failure hides the trust surface without hiding ledger data.
 - Recovery/undo: maintenance CTA uses existing `/inbox`, `/transactions?review=needs_review`, or `/accounts`; no new mutation.
-- Long data / large VND: no amount added to the trust surface.
-- Mobile/tablet/desktop: one compact row/surface, no horizontal overflow, CTA >=44px where rendered.
-- Accessibility: semantic heading/text/link; state meaning expressed in words, not color alone.
+- Long data / large VND: no amount is added to the trust surface.
+- Mobile/tablet/desktop: compact surface with no horizontal overflow; authenticated 320px phone and 1280px desktop explicitly grade it, while the existing cross-device audit guards broader layout regression.
+- Accessibility: semantic region/text/link; state meaning expressed in words, not color alone; CTA target is graded at >=44px.
+- Theme: authenticated phone and desktop both grade light and dark via Playwright color-scheme emulation.
 
 ### Financial and security constraints
 
@@ -140,56 +144,61 @@ Provider sync, AI, new rules engine behavior, navigation redesign, planning rede
 
 ### Architecture fit
 
-The database already owns the trust computation. `get_dashboard_bundle` already owns the bounded request-private Home read model. The new migration composes the existing trust function into that existing bundle rather than creating a parallel read path. The server maps the optional payload; the dashboard presentation owns only wording and routing.
+The database already owns the trust computation. `get_dashboard_bundle` already owns the bounded request-private Home read model. Migration `20260913103000_dashboard_bundle_ledger_trust.sql` composes the existing trust function into that bundle rather than creating a parallel read path. The server maps the optional payload; the dashboard presentation owns only wording and routing.
 
-### Planned changes
+### Implemented changes
 
 | File/area | Change | Reason |
 |---|---|---|
 | new migration | `CREATE OR REPLACE get_dashboard_bundle` with additive `ledger_trust` object | preserve one Data API call |
-| migration identity | pin new raw-byte SHA-256 identity | repository migration contract |
-| `dashboard_read_bundle.test.sql` | assert field presence, tenant-specific result and wording boundary | DB/RLS proof |
-| `src/lib/ledger-trust.ts` + test | typed status/reason/action/copy mapping | keep UI logic deterministic/testable |
-| `src/server/dashboard.ts` | optional schema/map field and demo `null` | schema-skew safety |
+| migration identity | pinned new raw-byte SHA-256 identity | repository migration contract |
+| `dashboard_read_bundle.test.sql` | tenant-specific trust result and coverage boundary assertions | DB/RLS proof |
+| `src/lib/ledger-trust.ts` + test | typed status/reason/action/copy mapping | deterministic/testable presentation |
+| `src/server/dashboard.ts` | optional schema/map field, non-negative count guard, demo `null` | schema-skew and truth safety |
 | dashboard page/client/header | thread and render compact trust state | user-visible outcome |
-| CSS module / UI audit | bounded responsive presentation evidence | Class 2 visual layer inside Class 3 slice |
+| strict auth browser fixture/specs | 320px phone + desktop, light/dark, CTA/overflow/one-RPC assertions | affected-surface runtime proof |
+| existing cross-device audit | unchanged broad demo geometry regression gate | independent presentation safety |
 
 ### Data and migration impact
 
 - Schema/migration: additive replacement of existing read-only `get_dashboard_bundle` function body; no table/RLS/data mutation.
 - Backfill: none.
-- Compatibility: `ledger_trust` optional in application parser; old DB keeps Home functional but trust surface absent.
+- Compatibility: `ledger_trust` is optional in application parsing; old DB keeps Home functional but trust surface absent.
 - Rollback: restore previous bundle function in a new migration/revert PR and remove presentation. Never edit already-applied migration history.
 
 ### Risks and counterexamples
 
 | Risk/counterexample | Prevention or test |
 |---|---|
-| second dashboard network call regresses performance | preserve one `.rpc()` source contract |
-| bundle calls trust under wrong identity | pgTAP with two tenants / known distinct states |
+| second dashboard network call regresses fan-out | one `.rpc()` source contract + strict served-request assertion |
+| bundle calls trust under wrong identity | pgTAP with two tenants / distinct states |
 | app deploys before DB migration | optional parser field + hidden trust surface |
-| wording overclaims bank/source completeness | literal `known ledger` wording + unit/source contract |
-| unresolved work has multiple causes | show counts/context but choose at most one CTA; never claim CTA resolves all |
-| trust UI competes with capture | compact secondary surface; AppShell primary capture remains unchanged |
+| wording overclaims bank/source completeness | literal known-ledger wording + unit/browser contract |
+| unresolved work has multiple causes | expose context but choose at most one CTA; never claim CTA resolves all |
+| trust UI competes with capture | compact secondary surface; AppShell primary capture unchanged |
+| auth-only UI gets false-green from demo audit | dedicated authenticated phone/desktop presentation tests |
+| mobile proof resizes after load rather than grading true mobile navigation | set 320px viewport before login/navigation per Playwright guidance |
+| test itself creates a second dashboard RPC | grade first post-login dashboard render; no second `page.goto('/dashboard')` |
+| extra DB work silently becomes a performance claim | preserve one network request but make no latency/LCP claim without benchmark |
 
 ### Verification plan
 
 - Static: knowledge, architecture, migration identity, lint, typecheck, production build.
-- Unit/domain: trust view-model mapping and existing finance suites.
-- Database: fresh reset + pgTAP including dashboard bundle + existing ledger trust suite.
-- Browser flow: authenticated dashboard reads trust field via strict harness; existing capture/ledger flows remain green.
-- Responsive/visual: affected dashboard in phone/desktop light/dark, no overflow, 44px CTA.
-- Production/manual: none in this branch; after owner merge/migration approval, exact deployed commit + DB migration + affected-flow smoke required.
+- Unit/domain: trust view-model mapping, strengthened count guard and existing finance suites.
+- Database: fresh reset + pgTAP including dashboard bundle and existing ledger-trust suite.
+- Browser flow: authenticated dashboard reads trust field through strict synthetic Supabase double; one bundle RPC and zero trust network RPCs.
+- Responsive/visual: explicit authenticated phone 320px and desktop 1280px in light/dark, no overflow, CTA >=44px; existing cross-device audit remains an independent broad regression gate.
+- Production/manual: none in this branch; after owner merge/migration approval, exact deployed commit + DB migration + affected-flow smoke would be required.
 
 ## Tasks
 
 | ID | Task | Dependency | Evidence | Status |
 |---|---|---|---|---|
 | 590.1 | research + current-state reconciliation | none | #590 + this packet | done |
-| 590.2 | preserve one-call DB bundle while adding trust | 590.1 | migration + pgTAP | in_progress |
-| 590.3 | add typed application mapping and schema-skew fallback | 590.2 contract | unit/static tests | todo |
-| 590.4 | render compact Home trust surface | 590.3 | browser/UI audit | todo |
-| 590.5 | exact-head evaluation + CI | 590.2–590.4 | CI/CodeQL/secret/database/browser | todo |
+| 590.2 | preserve one-call DB bundle while adding trust | 590.1 | migration + pgTAP | done |
+| 590.3 | add typed application mapping and schema-skew fallback | 590.2 contract | unit/static tests | done |
+| 590.4 | render compact Home trust surface | 590.3 | auth browser proof + broad UI audit | done |
+| 590.5 | exact-head evaluation + CI | 590.2–590.4 | CI/CodeQL/secret/database/browser | in_progress |
 | 590.6 | owner review / merge decision | 590.5 | PR | blocked |
 
 ## Handoff record
@@ -197,7 +206,8 @@ The database already owns the trust computation. `get_dashboard_bundle` already 
 | Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
 |---|---|---|---|---|---|---|
 | 2026-09-13 | researcher | planner | specified | #590, product research, current code | initial two-RPC idea contradicted performance contract | revise architecture |
-| 2026-09-13 | planner | implementer | implementing | revised #590 + this packet, branch `feat/590-home-ledger-trust` | exact runtime/tests not yet executed | implement bounded slice |
+| 2026-09-13 | planner | implementer | implementing | revised #590 + branch `feat/590-home-ledger-trust` | runtime evidence not yet complete | implement bounded slice |
+| 2026-09-13 | implementer | evaluator | evaluating | PR #591, migration, unit/pgTAP/auth-browser coverage; pre-final CI #3681 mostly green | final exact-head after evidence commits still required; no DB latency benchmark | run exact-head gates and inspect browser/UI results |
 
 ### Current permission boundary
 
@@ -209,14 +219,31 @@ The database already owns the trust computation. `get_dashboard_bundle` already 
 
 ## Evaluation
 
-Pending implementation and exact-head CI.
+### Findings closed during evaluation
+
+1. The initial two-RPC design contradicted the existing dashboard performance boundary; architecture was corrected before implementation.
+2. CI caught diff hygiene and migration-identity maintenance errors; fixes changed metadata/tests only and did not edit applied migration SQL.
+3. The SAFE-03 count contract was stale relative to the stronger `safeCount` implementation; the test now proves integer and non-negative semantics.
+4. Demo-only cross-device audit could not prove an authenticated-only trust surface; dedicated authenticated 320px phone and desktop light/dark tests were added.
+5. A second dashboard navigation inside the test would have manufactured a second bundle RPC; tests now observe the first post-login render.
+6. Playwright official guidance recommends setting viewport before navigation; the 320px phone viewport is now established before login/dashboard navigation.
+7. Preserving one network RPC does not prove unchanged DB latency. Existing relevant indexes were reviewed; no speculative index was added and no performance-win claim is made.
+
+### Pre-final evidence
+
+On `5c82d0360db199256127fe2001cff895de0c446c`, CI #3681 showed green policy, migration identity, project knowledge, unit/static RLS, production build, presentation ownership, deployment/CSS/architecture, lint/typecheck, fresh reset + pgTAP, archive producer/restore and aggregate verify. CodeQL #2684 and Secret history scan #2684 were green. This head was superseded before acceptance to harden the phone test method, so it is evidence of implementation health rather than final acceptance.
+
+### Acceptance state
+
+Implementation review has no known semantic blocker. Final acceptance remains pending one exact-head run after this documentation/evidence update, including authenticated browser and cross-device UI steps. Owner review remains independent and merge is not authorized.
 
 ## Delivery record
 
 - Branch: `feat/590-home-ledger-trust`
-- PR: #591
-- Squash commit: pending
-- CI run: pending
+- PR: #591 (draft)
+- Final exact-head commit: pending after evidence-record commit chain settles
+- Final CI run: pending
+- CodeQL/Secret final run: pending
 - Production deployment: none authorized
-- Production flow verified: no
+- Production flow verified for this bundle change: no
 - Work packet moved to `docs/plans/completed/`: no
