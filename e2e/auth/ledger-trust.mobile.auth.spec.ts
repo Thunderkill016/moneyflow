@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import {
   assertAuthenticatedMode,
   assertNoUnservedRequests,
@@ -54,13 +54,14 @@ test("Home trust stays truthful and usable on a narrow phone in light and dark m
   ).toHaveLength(0);
 });
 
-async function expectMinimumTarget(action: ReturnType<Parameters<typeof test>[0] extends never ? never : never>) {
-  // This declaration is replaced below by the concrete Locator overload. It is
-  // kept out of production code; Playwright owns the browser geometry contract.
-  void action;
+async function expectMinimumTarget(action: Locator) {
+  const box = await action.boundingBox();
+  expect(box?.height ?? 0, "trust maintenance target must be at least 44px").toBeGreaterThanOrEqual(
+    44,
+  );
 }
 
-async function expectNoHorizontalOverflow(page: import("@playwright/test").Page) {
+async function expectNoHorizontalOverflow(page: Page) {
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - window.innerWidth,
   );
