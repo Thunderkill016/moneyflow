@@ -37,6 +37,7 @@ export type ActivityCandidateItem = {
   occurredOn: string;
   observedAt: string;
   attention: boolean;
+  readinessKnown: boolean;
   stateLabel: "Cần xử lý" | "Chờ vào sổ";
   primaryLabel: string;
   secondaryLabel: string;
@@ -58,6 +59,12 @@ export type ActivityBuildInput = {
   candidates: Array<InboxCandidate & Partial<CandidateProvenance>>;
   accounts: AccountOption[];
   categories: CategoryOption[];
+  /**
+   * False when the finance read failed. Candidate rows can still be shown as
+   * pending evidence, but Activity must not infer readiness from missing account,
+   * category or ledger context and turn an outage into fake maintenance work.
+   */
+  candidateReadinessAvailable?: boolean;
 };
 
 function normalizeSearchPart(value: string | null | undefined): string {
@@ -152,11 +159,14 @@ function buildCandidateItem(
   candidate: InboxCandidate & Partial<CandidateProvenance>,
   accounts: AccountOption[],
   categories: CategoryOption[],
+  readinessAvailable: boolean,
 ): ActivityCandidateItem {
-  const readiness = classifyCandidateReadiness(candidate, accounts, categories);
-  const attention = readiness.state === "needs_attention";
+  const readiness = readinessAvailable
+    ? classifyCandidateReadiness(candidate, accounts, categories)
+    : null;
+  const attention = readiness?.state === "needs_attention";
   const reasons: CandidateAttentionReason[] =
-    readiness.state === "needs_attention" ? readiness.reasons : [];
+    readiness?.state === "needs_attention" ? readiness.reasons : [];
   const attentionLabels = reasons.map(attentionReasonLabel);
   const sourceLabel = candidateSourceLabel(candidate);
 
@@ -166,6 +176,7 @@ function buildCandidateItem(
     occurredOn: candidate.occurredOn,
     observedAt: candidate.createdAt,
     attention,
+    readinessKnown: readinessAvailable,
     stateLabel: attention ? "Cần xử lý" : "Chờ vào sổ",
     primaryLabel: candidate.merchant || candidate.note || "Mục chờ vào sổ",
     secondaryLabel: candidateSecondaryLabel(candidate),
@@ -202,11 +213,19 @@ export function buildActivityItems({
   candidates,
   accounts,
   categories,
+  candidateReadinessAvailable = true,
 }: ActivityBuildInput): ActivityItem[] {
   const transactionItems = transactions.map(buildLedgerItem);
   const candidateItems = candidates
     .filter((candidate) => candidate.status === "pending")
-    .map((candidate) => buildCandidateItem(candidate, accounts, categories));
+    .map((candidate) =>
+      buildCandidateItem(
+        candidate,
+        accounts,
+        categories,
+        candidateReadinessAvailable,
+      ),
+    );
 
   return [...transactionItems, ...candidateItems].sort(newestFirst);
 }
