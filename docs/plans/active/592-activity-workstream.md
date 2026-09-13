@@ -116,6 +116,8 @@ Rollback: remove `/activity`, Activity model/presentation/tests and the additive
 
 Permission: branch/PR writes for #592 R1 only. No direct `main` write, merge, production migration/data write, provider change, R2 or R3 retirement.
 
+## Tasks
+
 | ID | Task | Status |
 |---|---|---|
 | 592.1 | repository recon + focused research | done |
