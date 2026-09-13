@@ -1,48 +1,37 @@
+import styles from "./loading.module.css";
+
 export default function Loading() {
   return (
     <main
-      className="dashboard route-loading transactions-workspace"
+      className={styles.workspace}
       aria-label="Đang tải hoạt động"
       aria-busy="true"
     >
-      <section className="transactions-title-row">
-        <div>
-          <div className="loading-line" style={{ width: "110px", height: "12px" }} />
-          <div
-            className="loading-line wide"
-            style={{ width: "180px", height: "30px", marginTop: "10px" }}
-          />
-          <div
-            className="loading-line"
-            style={{ width: "320px", maxWidth: "100%", height: "14px", marginTop: "8px" }}
-          />
+      <section className={styles.header}>
+        <div className={styles.titleCopy}>
+          <div className={styles.line} style={{ width: "110px" }} />
+          <div className={styles.line} style={{ width: "180px", height: "30px" }} />
+          <div className={styles.line} style={{ width: "320px", maxWidth: "100%", height: "14px" }} />
         </div>
       </section>
 
-      <section className="transaction-summary" aria-hidden="true">
+      <section className={styles.summary} aria-hidden="true">
         {Array.from({ length: 3 }, (_, index) => (
-          <div key={index}>
-            <div className="loading-line" style={{ width: "58px", height: "24px" }} />
-            <div className="loading-line" style={{ width: "82px", height: "12px", marginTop: "8px" }} />
+          <div className={styles.summaryItem} key={index}>
+            <div className={styles.line} style={{ width: "58px", height: "24px" }} />
+            <div className={styles.line} style={{ width: "82px" }} />
           </div>
         ))}
       </section>
 
-      <section className="transaction-manager panel" aria-hidden="true">
-        <div className="loading-line wide" style={{ width: "100%", maxWidth: "420px", height: "42px" }} />
-        <div style={{ marginTop: "18px" }}>
-          {Array.from({ length: 5 }, (_, index) => (
-            <div
-              key={index}
-              className="loading-line"
-              style={{
-                width: "100%",
-                height: "68px",
-                marginTop: index === 0 ? 0 : "10px",
-                borderRadius: "12px",
-              }}
-            />
-          ))}
+      <section className={styles.manager} aria-hidden="true">
+        <div className={styles.managerBody}>
+          <div className={styles.line} style={{ width: "100%", maxWidth: "420px", height: "42px" }} />
+          <div className={styles.rows}>
+            {Array.from({ length: 5 }, (_, index) => (
+              <div className={styles.row} key={index} />
+            ))}
+          </div>
         </div>
       </section>
     </main>
