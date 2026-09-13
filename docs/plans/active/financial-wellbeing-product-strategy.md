@@ -5,7 +5,7 @@
 **Active role:** evaluator  
 **Permission scope:** branch_write  
 **Owner:** human owner; ChatGPT drafting/evaluation  
-**Issue/PR:** owner request in chat; PR pending at initial write  
+**Issue/PR:** PR #594  
 **Last updated:** 2026-09-13
 
 ## Outcome
@@ -109,7 +109,7 @@ MoneyFlow has strong product laws and a long-term platform vision, but the strat
 - [x] `PRODUCT_STRATEGY.md` defines North Star, target user, moat, stage gates and feature-elimination rules around Reality → Resilience → Progress → Choice.
 - [x] `ECOSYSTEM_STRATEGY.md` defines how Personal/Core, Acquire, Resilience, Plan, Wealth, Together, Automation, Intelligence, Connect and Mobile share one financial truth model.
 - [x] `PRODUCT_METRICS.md` defines trust, maintenance, resilience, progress, agency, automation/provider economics and stage-gate evidence without creating hidden release criteria.
-- [ ] Root/context authority routing makes the new layer discoverable without replacing `PRINCIPLES.md`.
+- [x] Root/context authority routing makes the new layer discoverable without replacing `PRINCIPLES.md`.
 - [x] No new strategy document authorizes provider, wealth, household, AI, schema or production implementation by itself.
 - [x] External framework applicability and limits are explicit.
 
@@ -148,7 +148,7 @@ This is a product-strategy documentation layer under `docs/product/`. `PRINCIPLE
 | `docs/product/PRODUCT_METRICS.md` | add measurement/stage-gate system | prevent vanity metrics and premature promotion |
 | `README.md` | route strategy docs | discoverability |
 | `docs/context/README.md` | route product-strategy context | warm-context correctness |
-| PR memory | add bounded provenance after PR number exists | knowledge contract |
+| `docs/research/pr-memory/2026/Q3/PR-594.md` | bounded provenance | knowledge contract |
 
 ### Data and migration impact
 
@@ -183,8 +183,8 @@ This is a product-strategy documentation layer under `docs/product/`. `PRINCIPLE
 | T1 | Draft product strategy | current product law + research | `PRODUCT_STRATEGY.md` | done |
 | T2 | Define ecosystem boundaries | T1 | `ECOSYSTEM_STRATEGY.md` | done |
 | T3 | Define metrics/stage gates | T1 | `PRODUCT_METRICS.md` | done |
-| T4 | Add discoverability routing | T1–T3 | README/context diff | doing |
-| T5 | Open draft PR and add PR memory | T4 | PR + memory record | todo |
+| T4 | Add discoverability routing | T1–T3 | README/context diff | done |
+| T5 | Open draft PR and add PR memory | T4 | PR #594 + PR-594 memory | done |
 | T6 | Check exact-head Class 0 CI | T5 | CI statuses | todo |
 
 ## Handoff record
@@ -193,7 +193,7 @@ This is a product-strategy documentation layer under `docs/product/`. `PRINCIPLE
 |---|---|---|---|---|---|---|
 | 2026-09-13 | researcher | planner | specified | current product docs + 3 external frameworks + research PR #6 | market demand and willingness-to-pay remain unproven | draft strategy |
 | 2026-09-13 | planner | implementer | implementing | three-doc architecture and acceptance criteria | none requiring runtime work | write docs/routing |
-| 2026-09-13 | implementer | evaluator | evaluating | strategy/ecosystem/metrics docs on branch | routing, PR memory and exact-head CI pending | finish Class 0 delivery evidence |
+| 2026-09-13 | implementer | evaluator | evaluating | strategy/ecosystem/metrics docs, authority routing, PR #594 and PR memory | exact-head CI pending | inspect diff and required checks; fix any real finding |
 
 ### Current permission boundary
 
@@ -214,7 +214,8 @@ This is a product-strategy documentation layer under `docs/product/`. `PRINCIPLE
 | stage gates + feature elimination | `PRODUCT_STRATEGY.md` and `PRODUCT_METRICS.md` | pass |
 | one ecosystem financial truth | `ECOSYSTEM_STRATEGY.md` | pass |
 | no runtime/provider permission | all three document boundaries | pass |
-| routing/PR/CI | pending | pending |
+| authority routing and PR provenance | README/context + PR-594 memory | pass |
+| exact-head repository checks | pending | pending |
 
 ### Research and adoption evidence
 
@@ -238,7 +239,7 @@ This is a product-strategy documentation layer under `docs/product/`. `PRINCIPLE
 ## Delivery record
 
 - Branch: `docs/financial-wellbeing-product-strategy`
-- PR: pending
+- PR: #594 (draft)
 - Squash commit: pending owner merge
 - CI run: pending
 - Production deployment: not applicable
