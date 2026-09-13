@@ -38,9 +38,7 @@ Nhập sao kê — many transactions
 
 The goal is not to maximize the number of ways to enter a transaction. The goal is to minimize the work required to turn real-world financial evidence into trustworthy ledger facts.
 
-## Research
-
-### Repository truth first
+## Repository reconnaissance
 
 Current repository behavior already contains the required primitives:
 
@@ -71,6 +69,8 @@ Capture V2 must reuse these contracts rather than duplicate or weaken them.
 The repository previously had an unmerged `Add repeat last transaction` PR. It copied the last successful amount, account, category and note into a new draft. It was closed because the required inspect → research → decision → contract → bounded implementation process had not been completed, not because the user job had been disproven.
 
 That old implementation is not authority. In particular, automatically copying amount and note is broader than the current trust model should assume from a single prior transaction.
+
+## Research
 
 ### Market evidence
 
@@ -376,7 +376,7 @@ Statement-import hardening may continue in parallel where ownership does not con
 - [x] Expand market research beyond YNAB/MDN to Actual, Lunch Money, Wallet, Copilot and MoMo official sources.
 - [x] Replace fixed `Ghi nhanh / Ghi thông minh / Nhập sao kê` decision with explicit hypotheses.
 - [x] Specify `Single transaction = Ghi` as the primary IA hypothesis.
-- [x] Add Frequent Patterns hypothesis with amount/note fail-safe behavior.
+- [x] Add Frequent Patterns hypothesis with amount/note not silently copied.
 - [x] Add Counterparty/Payee foundation with source-provenance separation and no schema authorization.
 - [x] Keep description/paste/dictation as a benchmarked Ghi mode rather than fixed top-level concept.
 - [x] Preserve OCR/STT/SMS/provider boundaries as later adapters/experiments.
@@ -455,7 +455,7 @@ On revised head `d5159976bb7bc282e241235e87d35c5eccefd98e`, CI #3750 confirmed:
 - database gate: correctly classified not required;
 - project knowledge: fail only because this packet lacked the repository-required standard headings and PR #597 lacked its own PR-memory record.
 
-This revision adds the required `## Research`, `## Specification`, `## Implementation plan`, `## Tasks`, and `## Evaluation` headings. PR memory is added separately in the same PR. Exact-head CI remains required before review-ready status.
+The later exact-head check on `3ebb5ece820f55a28b016763f1ec2d5a89d9f68f` confirmed the PR-memory record and five standard lifecycle headings were recognized; the only remaining knowledge-contract blocker was the missing top-level `## Repository reconnaissance` heading. This revision adds that heading without changing the product direction. Exact-head CI remains required before review-ready status.
 
 ### Unverified claims
 
