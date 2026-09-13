@@ -5,6 +5,10 @@ import { Button, LinkButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { EXPORT_CSV_LABEL, EXPORT_SETTINGS_HREF } from "@/lib/export-data";
 import { INSIGHTS_LEDGER_EMPTY } from "@/lib/dashboard-planning-empty";
+import {
+  presentLedgerTrust,
+  type LedgerTrustSummary,
+} from "@/lib/ledger-trust";
 import { GHI_CHI_TIEU_LABEL, PLANNING_LINKS } from "@/lib/nav-ia";
 import { REPORTS_MONTH_HREF, REPORTS_MONTH_LINK_LABEL } from "@/lib/reports";
 import { dashboardDrilldownHref } from "@/lib/dashboard-drilldown";
@@ -36,6 +40,7 @@ type ExpenseCategory = {
 export function DashboardHeaderSections({
   displayName,
   attentionItems,
+  ledgerTrust,
   totals,
   today,
   isEmptyLedger,
@@ -44,12 +49,17 @@ export function DashboardHeaderSections({
 }: {
   displayName: string;
   attentionItems: AttentionItem[];
+  ledgerTrust: LedgerTrustSummary | null;
   totals: DashboardTotals;
   today: string;
   isEmptyLedger: boolean;
   dataError?: string | null;
   onAddTransaction: () => void;
 }) {
+  const trustPresentation = ledgerTrust
+    ? presentLedgerTrust(ledgerTrust)
+    : null;
+
   return (
     <>
       {/*
@@ -81,6 +91,29 @@ export function DashboardHeaderSections({
         today={today}
         isEmptyLedger={isEmptyLedger}
       />
+
+      {trustPresentation ? (
+        <section className="attention-strip" aria-labelledby="ledger-trust-label">
+          <p className="attention-strip-label" id="ledger-trust-label">
+            Độ tin cậy
+          </p>
+          <div>
+            <p className={styles.attentionStripEmpty}>
+              <strong>{trustPresentation.headline}</strong>{" "}
+              {trustPresentation.detail}
+            </p>
+            {trustPresentation.action ? (
+              <Link
+                href={trustPresentation.action.href}
+                className="section-link"
+              >
+                {trustPresentation.action.label}
+                <Icon name="arrowRight" aria-hidden="true" />
+              </Link>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       <section className="attention-strip" aria-label="Cần chú ý">
         <p className="attention-strip-label">Cần chú ý</p>
