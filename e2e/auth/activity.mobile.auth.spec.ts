@@ -100,6 +100,30 @@ test("candidate read failure keeps healthy ledger visible and marks combined cou
   await expectNoHorizontalOverflow(page);
 });
 
+test("review-state failure keeps posted facts visible but marks attention coverage unknown", async ({
+  page,
+}) => {
+  await seedActivityScenario({ invalidReview: true });
+  await page.goto("/activity", { waitUntil: "domcontentloaded" });
+
+  await expect(
+    page.getByRole("heading", { name: "Trạng thái cần xem lại chưa tải được" }),
+  ).toBeVisible();
+  await expect(page.getByText("Bữa trưa cần xem lại", { exact: true })).toBeVisible();
+  await expect(page.getByText("Lương đã vào sổ", { exact: true })).toBeVisible();
+  await expect(page.getByText("GRAB *TRIP", { exact: true })).toBeVisible();
+  await expect(summaryValue(page, "Cần xử lý")).toHaveText("—");
+  await expect(summaryValue(page, "Chờ vào sổ")).toHaveText("2");
+  await expect(summaryValue(page, "Đã vào sổ")).toHaveText("2");
+
+  await page.getByRole("button", { name: "Cần xử lý", exact: true }).click();
+  await expect(page.locator("[data-activity-type]")).toHaveCount(1);
+  await expect(page.getByText("GRAB *TRIP", { exact: true })).toBeVisible();
+  await expect(page.getByText("Bữa trưa cần xem lại", { exact: true })).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+  await assertNoUnservedRequests();
+});
+
 test("ledger read failure keeps candidate evidence visible without inventing readiness", async ({
   page,
 }) => {
