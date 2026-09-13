@@ -20,7 +20,10 @@ Use one owner for each question; this router links to depth but is not a competi
 
 | Question | Current authority | Routed detail or evidence |
 |---|---|---|
-| What is MoneyFlow? | `README.md` and `docs/product/PRINCIPLES.md` | `docs/MVP_DEFINITION.md`, product vision and capability research |
+| What is MoneyFlow? | `README.md` and `docs/product/PRINCIPLES.md` | `docs/product/PRODUCT_STRATEGY.md`, `docs/product/MONEYFLOW_PRODUCT_VISION.md`, `docs/MVP_DEFINITION.md` |
+| What long-term outcome is MoneyFlow trying to improve? | `docs/product/PRODUCT_STRATEGY.md` under `PRINCIPLES.md` | `docs/product/ECOSYSTEM_STRATEGY.md`, `docs/product/PRODUCT_METRICS.md`, product research |
+| How may the ecosystem expand? | `docs/product/ECOSYSTEM_STRATEGY.md` under `PRINCIPLES.md` | capability-specific research/specs; strategy alone grants no implementation permission |
+| How are product maturity and stage gates measured? | `docs/product/PRODUCT_METRICS.md` under `PRINCIPLES.md` | real telemetry/user evidence and explicit owner decisions; no hidden release gate |
 | What is implemented now? | current code, tests and migrations | merged PR history and current domain docs |
 | What work is authorized now? | explicit owner task + GitHub issue/PR | relevant work packet/spec when required; packet presence alone grants nothing |
 | How is it built? | `ARCHITECTURE.md` | affected code, tests and migrations |
@@ -35,6 +38,8 @@ Use one owner for each question; this router links to depth but is not a competi
 
 | Task boundary | Load next | Verify against |
 |---|---|---|
+| Product strategy/prioritization | `docs/product/PRINCIPLES.md`, `docs/product/PRODUCT_STRATEGY.md`, relevant issue/work packet | observed user problem, current product truth, stage-gate evidence and explicit owner decision |
+| Ecosystem expansion | `docs/product/ECOSYSTEM_STRATEGY.md`, `docs/product/PRODUCT_METRICS.md`, capability-specific research | one financial truth, lower-layer readiness, ownership/privacy/economics, explicit owner authorization |
 | Product scope/current status | `docs/product/PRINCIPLES.md`, `docs/MVP_DEFINITION.md`, relevant issue/work packet | merged code/tests and explicit owner decisions |
 | Ledger, transactions, transfers, splits | `ARCHITECTURE.md`, transaction domain modules, related migrations/pgTAP | integer VND, transfer neutrality, ownership, idempotency, soft delete |
 | Accounts/reconciliation | account workspaces/actions, relevant migrations/pgTAP | no direct balance overwrite, tenant isolation, auditable adjustments |
@@ -75,6 +80,10 @@ Repository memory is reviewed content, not a dumping ground or hidden state mach
 Put information in the smallest correct layer:
 
 - durable procedure → `AGENTS.md` or engineering policy;
+- durable product law → `docs/product/PRINCIPLES.md`;
+- long-term product strategy → `docs/product/PRODUCT_STRATEGY.md`;
+- ecosystem boundaries → `docs/product/ECOSYSTEM_STRATEGY.md`;
+- product stage gates/measurement → `docs/product/PRODUCT_METRICS.md`;
 - current task status/backlog → GitHub issue/PR;
 - scoped specification/evidence → work packet or feature spec;
 - domain depth → architecture/security/design documentation;
