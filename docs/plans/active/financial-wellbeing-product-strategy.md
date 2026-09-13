@@ -1,8 +1,8 @@
 # Financial well-being product strategy
 
-**Status:** evaluating
-**Execution state:** evaluating
-**Active role:** evaluator
+**Status:** ready_for_review
+**Execution state:** ready_for_review
+**Active role:** human_owner
 **Permission scope:** branch_write
 **Owner:** human owner; ChatGPT drafting/evaluation
 **Issue/PR:** PR #594
@@ -169,12 +169,12 @@ This is a product-strategy documentation layer under `docs/product/`. `PRINCIPLE
 
 ### Verification plan
 
-- Static: `git diff --check` equivalent through reviewed diff.
+- Static: repository diff hygiene gate.
 - Unit/domain: not applicable.
-- Database: not applicable.
-- Browser flow: not applicable.
+- Database: not applicable by Class 0 classification.
+- Browser flow: not applicable by Class 0 classification.
 - Responsive/visual: not applicable.
-- Repository: `npm run check:knowledge`, `npm run test:ci-policy`, exact-head required CI/CodeQL after PR.
+- Repository: project knowledge contract, CI classification/retry contract and required exact-head CodeQL/secret scan.
 
 ## Tasks
 
@@ -185,7 +185,7 @@ This is a product-strategy documentation layer under `docs/product/`. `PRINCIPLE
 | T3 | Define metrics/stage gates | T1 | `PRODUCT_METRICS.md` | done |
 | T4 | Add discoverability routing | T1–T3 | README/context diff | done |
 | T5 | Open draft PR and add PR memory | T4 | PR #594 + PR-594 memory | done |
-| T6 | Check exact-head Class 0 CI | T5 | CI statuses | todo |
+| T6 | Check Class 0 exact-head strategy-content CI | T5 | CI #3727, CodeQL #2728, Secret history scan #2728 on `e5d4beb17bb11b00867b391ead5ed9df8691ac78` | done |
 
 ## Handoff record
 
@@ -193,7 +193,8 @@ This is a product-strategy documentation layer under `docs/product/`. `PRINCIPLE
 |---|---|---|---|---|---|---|
 | 2026-09-13 | researcher | planner | specified | current product docs + 3 external frameworks + research PR #6 | market demand and willingness-to-pay remain unproven | draft strategy |
 | 2026-09-13 | planner | implementer | implementing | three-doc architecture and acceptance criteria | none requiring runtime work | write docs/routing |
-| 2026-09-13 | implementer | evaluator | evaluating | strategy/ecosystem/metrics docs, authority routing, PR #594 and PR memory | exact-head CI pending | inspect diff and required checks; fix any real finding |
+| 2026-09-13 | implementer | evaluator | evaluating | strategy/ecosystem/metrics docs, authority routing, PR #594 and PR memory | exact-head verification | evaluate contracts and scope |
+| 2026-09-13 | evaluator | human_owner | ready_for_review | strategy-content head `e5d4beb17bb11b00867b391ead5ed9df8691ac78`: CI #3727 success, CodeQL #2728 success, Secret history scan #2728 success; docs consistency review | final handoff bookkeeping commit must also retain green exact-head checks before merge; numeric stage thresholds remain intentionally uncommitted | owner reviews PR #594; do not merge automatically |
 
 ### Current permission boundary
 
@@ -215,33 +216,36 @@ This is a product-strategy documentation layer under `docs/product/`. `PRINCIPLE
 | one ecosystem financial truth | `ECOSYSTEM_STRATEGY.md` | pass |
 | no runtime/provider permission | all three document boundaries | pass |
 | authority routing and PR provenance | README/context + PR-594 memory | pass |
-| exact-head repository checks | pending | pending |
+| Class 0 policy contracts | CI #3727 on `e5d4beb17bb11b00867b391ead5ed9df8691ac78` | pass |
+| Code/security repository checks | CodeQL #2728 + Secret history scan #2728 on the same head | pass |
 
 ### Research and adoption evidence
 
-- Selected external sources still support the final strategic framing.
+- CFPB, CFP Board and Financial Health Network sources were re-opened during final evaluation and still support the framing used in the strategy.
 - Source limits remain explicit: they do not prove Vietnam product-market fit, specific user advice or regulated-advice authority.
 - New tool/dependency/pattern: not applicable.
 
 ### Review findings
 
 - Correctness: strategy preserves current ledger/source/product laws and distinguishes strategic outcomes from shipped capability.
+- Authority consistency: `PRINCIPLES.md` remains product law, `MONEYFLOW_PRODUCT_VISION.md` remains compatible long-horizon product shape, and the new docs do not select an executable mission.
 - Security/ownership: no ownership/runtime change; privacy cost is explicitly treated as product cost.
 - UI/UX/accessibility: not applicable.
-- Maintainability/duplication: three docs have separated responsibilities to avoid one giant strategy/metrics/ecosystem file.
-- Scope compliance: docs only; no implementation mission selected.
+- Maintainability/duplication: strategy, ecosystem boundaries and metrics have separated responsibilities rather than creating one mixed current-state document.
+- Scope compliance: exactly seven documentation files changed relative to the stated base; no runtime, migration, provider or CI-policy file changed.
 
 ### Remaining limitations
 
 - Stage thresholds remain intentionally qualitative until MoneyFlow has enough real product telemetry/user evidence to define defensible numeric thresholds.
 - Research PR #6 is supporting evidence only until separately reviewed/merged in the research repository.
+- This handoff-state commit is documentation-only bookkeeping; its own exact-head repository checks must remain green before owner merge.
 
 ## Delivery record
 
 - Branch: `docs/financial-wellbeing-product-strategy`
 - PR: #594 (draft)
 - Squash commit: pending owner merge
-- CI run: pending
+- CI run: strategy-content head `e5d4beb17bb11b00867b391ead5ed9df8691ac78` — CI #3727 (`34760424856`) success; CodeQL #2728 (`34760424822`) success; Secret history scan #2728 (`34760424859`) success
 - Production deployment: not applicable
 - Production flow verified: not applicable
-- Work packet moved to `docs/plans/completed/`: no; keep active through owner review, then archive if accepted
+- Work packet moved to `docs/plans/completed/`: no; archive only after owner acceptance/merge
