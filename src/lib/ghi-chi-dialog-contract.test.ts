@@ -60,8 +60,10 @@ test("R5: Ghi prefers a stable ledger preset before the local fallback", () => {
   assert.match(defaults, /recent\.length < 3/);
   assert.match(defaults, /existing\.count >= 2/);
   assert.match(defaults, /transaction\.kind === kind/);
-  assert.match(defaults, /transaction\.reviewStatus !== "needs_review"/);
+  assert.match(defaults, /transaction\.reviewStatus === "reviewed"/);
   assert.match(defaults, /!transaction\.splits\?\.length/);
+  assert.match(defaults, /b\.occurredOn\.localeCompare\(a\.occurredOn\)/);
+  assert.match(defaults, /b\.occurredAt\.localeCompare\(a\.occurredAt\)/);
 });
 
 test("R4: save-and-add-another keeps a controlled dialog session alive", () => {
