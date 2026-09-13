@@ -1,11 +1,11 @@
 # #590 — Home ledger trust and next maintenance action
 
-**Status:** implementing  
-**Execution state:** implementing  
-**Active role:** implementer  
-**Permission scope:** branch_write  
-**Owner:** Thunderkill016  
-**Issue/PR:** GitHub #590 / PR pending  
+**Status:** implementing
+**Execution state:** implementing
+**Active role:** implementer
+**Permission scope:** branch_write
+**Owner:** Thunderkill016
+**Issue/PR:** GitHub #590 / PR #591
 **Last updated:** 2026-09-13
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet is the bounded execution artifact for #590; #559 remains program intent only.
@@ -214,7 +214,7 @@ Pending implementation and exact-head CI.
 ## Delivery record
 
 - Branch: `feat/590-home-ledger-trust`
-- PR: pending
+- PR: #591
 - Squash commit: pending
 - CI run: pending
 - Production deployment: none authorized
