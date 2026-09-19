@@ -193,8 +193,9 @@ test("the CodeQL and secret-history contexts cannot report not-applicable", () =
 test("security workflows retain the permissions required by their real scans", () => {
   const codeql = readFileSync(".github/workflows/codeql.yml", "utf8");
   assert.match(codeql, /permissions:\n  actions: read\n  contents: read/u);
-  assert.doesNotMatch(codeql, /security-events:/u);
-  assert.match(codeql, /upload: never\n          upload-database: false/u);
+  assert.match(codeql, /packages: read\n  security-events: write/u);
+  assert.doesNotMatch(codeql, /upload: never/u);
+  assert.doesNotMatch(codeql, /upload-database: false/u);
   assert.doesNotMatch(codeql, /skip-queries: true/u);
 
   const secretHistory = readFileSync(".github/workflows/secret-history.yml", "utf8");

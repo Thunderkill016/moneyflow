@@ -10,7 +10,7 @@ MoneyFlow protects financial correctness, tenant ownership and production data w
 
 1. **Risk selects application gates.** File count does not determine risk.
 2. **Required check identities stay stable.** Workflows start and finish even when their application/database/browser work is not applicable.
-3. **Provider capabilities are real constraints.** A green workflow shell is insufficient when the underlying security analysis did not run, and policy must not claim provider storage that the repository plan cannot supply.
+3. **Provider rules are real constraints.** A green workflow shell is insufficient when GitHub requires an uploaded code-scanning analysis.
 4. **Main and manual runs fail safe.** They run the complete regression suite.
 5. **High-risk boundaries remain strict.** Financial semantics, RLS, auth, destructive paths, secrets, deployment and CI/security policy receive deep checks and owner review.
 6. **Evidence matches the layer.** Build does not prove RLS; database tests do not prove responsive UI.
@@ -41,8 +41,7 @@ Not required by application risk:
 
 Repository security exception:
 
-- the CodeQL workflow still performs a real JavaScript/TypeScript analysis for every pull request;
-- this private repository does not have GitHub Code Security, so the action runs with `upload: never` rather than failing after a completed analysis while attempting unavailable provider storage;
+- the CodeQL workflow still performs and uploads a real JavaScript/TypeScript analysis for every pull request because the repository code-scanning rule requires analysis results for the exact head or merge candidate;
 - this exception does not make unrelated application, database or browser gates applicable.
 
 Planning artifact: inline plan or clear PR description unless the documentation changes architecture, product scope or high-risk operating policy.
@@ -124,7 +123,7 @@ Planning artifact: full work packet with state, permissions, risks, verification
 - `ui_audit` — cross-device/cross-browser audit;
 - `codeql` — advisory classification for executable or CI-security surface changes.
 
-The `codeql` classifier output no longer suppresses the required CodeQL analysis. Repository policy requires a real analysis even for a documentation-only PR. Keeping the output is useful for policy tests, diagnostics and any future intentional provider-capability change.
+The `codeql` classifier output no longer suppresses the protected CodeQL analysis. GitHub's repository rule requires an uploaded analysis even for a documentation-only PR. Keeping the output is useful for policy tests, diagnostics and any future intentional repository-rule change.
 
 Classifier safety rules:
 
@@ -149,9 +148,9 @@ This list is the prose half of one fact; `scripts/agent-policy.mjs` holds the ma
 
 For `verify`, `database` and `e2e`, irrelevant heavy work may finish with an explicit not-applicable result while the job succeeds.
 
-`Analyze JavaScript and TypeScript` is different: repository policy requires actual analysis, not merely a successful job name. Therefore `.github/workflows/codeql.yml` always initializes and analyzes on pull requests. A no-op “CodeQL not required” step creates a false-green check. GitHub rejects code-scanning uploads for this private repository because GitHub Code Security is not enabled, so the action deliberately uses `upload: never`; successful completion proves local query execution, not provider alert storage.
+`Analyze JavaScript and TypeScript` is different: the repository code-scanning rule requires actual analysis data, not merely a successful job name. Therefore `.github/workflows/codeql.yml` always initializes, analyzes and uploads results on pull requests. A no-op “CodeQL not required” step creates a false-green check and leaves the pull request permanently unmergeable.
 
-Changing provider-side branch protection, rulesets, repository visibility, paid security features, workflow permissions or `CODEOWNERS` remains an explicit owner operation. If GitHub Code Security is later enabled, restoring SARIF upload should be reviewed in a dedicated governance PR. Risk-proportional CodeQL skipping still requires a separate owner decision.
+Changing provider-side branch protection, rulesets, repository visibility, paid security features, workflow permissions or `CODEOWNERS` remains an explicit owner operation. If the owner later removes the provider code-scanning requirement after reviewing equivalent protections, risk-proportional CodeQL skipping may be reconsidered in a dedicated governance PR.
 
 ## Work-packet decision test
 
@@ -184,4 +183,4 @@ Track:
 - escaped defects by class;
 - time spent repairing CI rather than product behavior.
 
-Rollback for this CodeQL alignment is one focused commit restoring the prior workflow and policy. That rollback recreates the known private-repository upload failure unless GitHub Code Security is enabled first.
+Rollback for this CodeQL alignment is one focused commit restoring conditional analysis, but only after the provider code-scanning rule is intentionally changed. Restoring conditional analysis while the rule remains active recreates the merge deadlock.
