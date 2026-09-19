@@ -5,8 +5,12 @@
  *   Tổng quan · Giao dịch · Capture · Tài khoản · More
  *
  * Capture is a primary action (sheet / /capture), not a planning route.
+ * Activity is additive in More during rollout R1; Transactions remains the
+ * primary ledger destination until a separately authorized R2 promotion.
  * Inbox, rules, imports, timeline, reports live under More (or Capture sheet).
- * Budgets / commitments / goals stay secondary (Dashboard cards + More → Kế hoạch).
+ * Budgets / commitments / income templates / goals stay secondary through the
+ * compact dashboard planning nav and More → Kế hoạch rather than full dashboard
+ * cards.
  */
 
 import type { IconName } from "@/components/icons";
@@ -116,7 +120,7 @@ export const PLANNING_PATHS = [
   "/goals",
 ] as const;
 
-/** Ngân sách · Định kỳ (chi) · Lương · Mục tiêu — secondary only (Dashboard / More). */
+/** Ngân sách · Định kỳ (chi) · Lương · Mục tiêu — secondary only (dashboard planning nav / More). */
 export const PLANNING_LINKS: SecondaryNavItem[] = [
   {
     label: "Ngân sách",
@@ -150,6 +154,12 @@ export const PLANNING_LINKS: SecondaryNavItem[] = [
  */
 export const MORE_NAV_LINKS: SecondaryNavItem[] = [
   {
+    label: "Hoạt động",
+    href: "/activity",
+    icon: "timeline",
+    description: "Giao dịch đã vào sổ và mục đang chờ xử lý",
+  },
+  {
     label: "Báo cáo",
     href: "/reports",
     icon: "chart",
@@ -174,10 +184,10 @@ export const MORE_NAV_LINKS: SecondaryNavItem[] = [
  */
 export const ADVANCED_NAV_LINKS: SecondaryNavItem[] = [
   {
-    label: "Hộp thư",
+    label: "Cần xem",
     href: "/inbox",
     icon: "inbox",
-    description: "Duyệt ứng viên dán/import trước khi vào sổ",
+    description: "Duyệt giao dịch dán/import trước khi vào sổ",
   },
   {
     label: "Timeline đã duyệt",

@@ -3,6 +3,8 @@ export const TURNSTILE_SITE_KEY_ENV = "NEXT_PUBLIC_TURNSTILE_SITE_KEY";
 export const CAPTCHA_TOKEN_FIELD = "captchaToken";
 export const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
 export const TURNSTILE_SCRIPT_URL = `${TURNSTILE_ORIGIN}/turnstile/v0/api.js?render=explicit`;
+// Product-level UX watchdog. This is not a Cloudflare availability SLA.
+export const TURNSTILE_SCRIPT_LOAD_DEADLINE_MS = 15_000;
 
 const MAX_CAPTCHA_TOKEN_LENGTH = 4096;
 

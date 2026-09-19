@@ -88,7 +88,7 @@ for (const entry of baseline) {
   }
   if (now.hash !== entry.hash) {
     failures.push(
-      `migration ${entry.version} (${entry.name}) changed after being recorded. Editing an applied migration cannot change the database that already ran it; add a new migration instead.`,
+      `migration ${entry.version} (${entry.name}) changed after being recorded. expected=${entry.hash} actual=${now.hash}. Editing an applied migration cannot change the database that already ran it; add a new migration instead.`,
     );
   }
 }

@@ -80,6 +80,7 @@ const PREVIEW_LIMIT = 12;
 const CSV_ACCEPT = ".csv,text/csv,application/csv";
 
 type Phase = "idle" | "reading" | "mapped" | "importing" | "done" | "error";
+type MappingEvidence = "preset_applied" | "mapping_reviewed";
 
 function formatBytes(value: number): string {
   if (value < 1024) return `${value} B`;
@@ -156,6 +157,8 @@ export function DirectCsvImportPage({
   const [columnMap, setColumnMap] = useState<CsvColumnMap>(emptyColumnMap());
   const [rememberedColumnMap, setRememberedColumnMap] =
     useState<CsvColumnMap | null>(null);
+  const [mappingEvidence, setMappingEvidence] =
+    useState<MappingEvidence>("mapping_reviewed");
   const [parseResult, setParseResult] = useState<ParseCsvResult | null>(null);
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [expenseCategoryId, setExpenseCategoryId] = useState(
@@ -243,6 +246,7 @@ export function DirectCsvImportPage({
       setError("");
       setResultSummary(null);
       setRecovery(null);
+      setMappingEvidence("mapping_reviewed");
       setFileName(file.name);
       setFileSize(file.size);
 
@@ -313,12 +317,14 @@ export function DirectCsvImportPage({
 
   function updateMapField(role: keyof CsvColumnMap, value: string) {
     const next: CsvColumnMap = { ...columnMap, [role]: indexFromSelect(value) };
+    setMappingEvidence("mapping_reviewed");
     setColumnMap(next);
     if (csvText && fileName) reparseWithMap(csvText, fileName, next);
   }
 
   function applyRememberedColumnMap() {
     if (!rememberedColumnMap || !csvText || !fileName) return;
+    setMappingEvidence("preset_applied");
     reparseWithMap(csvText, fileName, rememberedColumnMap);
     setNotice("Đã dùng mapping đã nhớ. Hãy kiểm tra dry-run trước khi ghi sổ.");
   }
@@ -347,6 +353,7 @@ export function DirectCsvImportPage({
     setHeaders([]);
     setColumnMap(emptyColumnMap());
     setRememberedColumnMap(null);
+    setMappingEvidence("mapping_reviewed");
     setParseResult(null);
     setResultSummary(null);
     setRecovery(null);
@@ -424,6 +431,7 @@ export function DirectCsvImportPage({
       mapConfidence: parseResult.mapConfidence,
       headers: parseResult.headers,
       columnMap: parseResult.columnMap,
+      mappingEvidence,
       allowHeuristicDuplicates: !skipDuplicates,
       rows: acquisitionRows,
     });
@@ -964,6 +972,13 @@ export function DirectCsvImportPage({
           {
             label: "Danh mục mặc định",
             value: `Chi: ${selectedExpense?.name ?? "—"} · Thu: ${selectedIncome?.name ?? "—"}`,
+          },
+          {
+            label: "Mapping",
+            value:
+              mappingEvidence === "preset_applied"
+                ? "Dùng mapping đã nhớ"
+                : "Đã review mapping",
           },
           {
             label: "Quy tắc đã áp dụng",

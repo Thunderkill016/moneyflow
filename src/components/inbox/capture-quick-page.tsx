@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AddTransactionDialog } from "@/components/add-transaction-dialog";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
@@ -27,11 +27,20 @@ import type {
   CreateTransferInput,
   Transaction,
   TransactionKind,
+  UpdateMoneyTransactionInput,
+  UpdateTransferInput,
 } from "@/lib/sample-data";
 import styles from "./capture-quick-page.module.css";
 
 const TransferDialog = dynamic(
   () => import("@/components/transfer-dialog").then((mod) => mod.TransferDialog),
+  { ssr: false },
+);
+const EditTransactionDialog = dynamic(
+  () =>
+    import("@/components/edit-transaction-dialog").then(
+      (mod) => mod.EditTransactionDialog,
+    ),
   { ssr: false },
 );
 
@@ -62,13 +71,22 @@ export function CaptureQuickPage({
 }) {
   const router = useRouter();
   const canTransfer = workspace.accounts.length >= 2;
-  const { transactions, addTransaction, addTransfer, isMutating } = useTransactions({
+  const {
+    transactions,
+    addTransaction,
+    addTransfer,
+    updateTransaction,
+    isMutating,
+  } = useTransactions({
     initialTransactions: workspace.transactions,
     accounts: workspace.accounts,
     categories: workspace.categories,
     isDemo: viewer.isDemo,
   });
   const [notice, setNotice] = useState("");
+  const [recentSaved, setRecentSaved] = useState<Transaction | null>(null);
+  const recentSavedRef = useRef<Transaction | null>(null);
+  const [editing, setEditing] = useState<Transaction | null>(null);
   const [inboxCount, setInboxCount] = useState(0);
   const [formOpen, setFormOpen] = useState(
     initialMode !== "transfer" || !canTransfer,
@@ -89,9 +107,15 @@ export function CaptureQuickPage({
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 3600);
+    const returnToCapture = Boolean(recentSaved && !formOpen);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setRecentSaved(null);
+      recentSavedRef.current = null;
+      if (returnToCapture) router.push("/capture");
+    }, 3600);
     return () => window.clearTimeout(timer);
-  }, [notice]);
+  }, [formOpen, notice, recentSaved, router]);
 
   async function handleAdd(input: CreateTransactionInput) {
     const result = await addTransaction(input);
@@ -133,8 +157,12 @@ export function CaptureQuickPage({
      * used to return four words carrying no information. Say what was recorded and
      * what it now adds up to — the user's own numbers, never guidance.
      */
+    if (result.transaction) {
+      recentSavedRef.current = result.transaction;
+      setRecentSaved(result.transaction);
+    }
     setNotice(
-      result.ok && result.transaction
+      result.transaction
         ? captureConsequence({
             saved: result.transaction,
             transactions: [result.transaction, ...transactions],
@@ -144,11 +172,26 @@ export function CaptureQuickPage({
     return result;
   }
 
+  async function handleUpdate(
+    input: UpdateMoneyTransactionInput | UpdateTransferInput,
+  ) {
+    const result = await updateTransaction(input);
+    if (result.ok) {
+      setEditing(null);
+      setRecentSaved(null);
+      recentSavedRef.current = null;
+      setNotice("Đã cập nhật giao dịch.");
+    }
+    return result;
+  }
+
   async function handleTransfer(input: CreateTransferInput) {
     const result = await addTransfer(input);
     if (result.ok) {
       setTransferOpen(false);
       setFormOpen(true);
+      setRecentSaved(null);
+      recentSavedRef.current = null;
       setNotice("Đã chuyển tiền giữa các tài khoản.");
     }
     return result;
@@ -156,16 +199,39 @@ export function CaptureQuickPage({
 
   function handleClose() {
     setFormOpen(false);
+    if (recentSavedRef.current) {
+      // Preserve the old return-to-Capture behavior, but delay it briefly so
+      // the just-saved transaction can be corrected through the trusted edit path.
+      recentSavedRef.current = null;
+      return;
+    }
     router.push("/capture");
   }
 
   function openTransfer() {
     setFormOpen(false);
+    setRecentSaved(null);
+    recentSavedRef.current = null;
     setTransferOpen(true);
   }
 
   function closeTransfer() {
     setTransferOpen(false);
+    setFormOpen(true);
+  }
+
+  function editRecentSaved() {
+    if (!recentSaved) return;
+    setEditing(recentSaved);
+    setRecentSaved(null);
+    recentSavedRef.current = null;
+    setNotice("");
+  }
+
+  function addAnother() {
+    setRecentSaved(null);
+    recentSavedRef.current = null;
+    setNotice("");
     setFormOpen(true);
   }
 
@@ -186,6 +252,15 @@ export function CaptureQuickPage({
         icon: "inbox",
       }}
       notice={notice}
+      noticeAction={
+        recentSaved
+          ? {
+              label: "Sửa",
+              onClick: editRecentSaved,
+              disabled: isMutating,
+            }
+          : undefined
+      }
     >
       <main className={styles.workspace} data-slot="capture-quick-workspace">
         <section className={styles.titleRow} aria-labelledby="capture-quick-title">
@@ -200,8 +275,8 @@ export function CaptureQuickPage({
             </LinkButton>
             <h1 id="capture-quick-title">Thêm nhanh</h1>
             <p>
-              Nhập số tiền trước. MoneyFlow nhớ tài khoản và danh mục gần nhất;
-              chỉ mở chi tiết khi bạn cần đổi.
+              Nhập số tiền trước. MoneyFlow dùng lựa chọn ổn định từ sổ gần đây;
+              nếu chưa đủ chắc chắn, lựa chọn gần nhất trên thiết bị vẫn là dự phòng.
             </p>
           </div>
           <div className={styles.headingActions}>
@@ -257,6 +332,36 @@ export function CaptureQuickPage({
           />
         ) : null}
 
+        {!workspace.dataError && hasQuickSetup && recentSaved && !formOpen ? (
+          <Alert tone="success" live="polite" className={styles.state}>
+            <AlertTitle>Đã lưu vào sổ</AlertTitle>
+            <AlertDescription>
+              Nếu vừa nhận ra tài khoản, danh mục hay ghi chú chưa đúng, chọn Sửa ngay;
+              hoặc ghi tiếp một khoản khác.
+            </AlertDescription>
+            <div>
+              <Button
+                type="button"
+                intent="secondary"
+                targetSize="important"
+                onClick={editRecentSaved}
+                disabled={isMutating}
+              >
+                Sửa
+              </Button>{" "}
+              <Button
+                type="button"
+                intent="primary"
+                targetSize="important"
+                onClick={addAnother}
+                disabled={isMutating}
+              >
+                Ghi khoản khác
+              </Button>
+            </div>
+          </Alert>
+        ) : null}
+
         {!workspace.dataError && hasQuickSetup ? (
           <AddTransactionDialog
             open={formOpen}
@@ -268,6 +373,7 @@ export function CaptureQuickPage({
             onTransferRequested={canTransfer ? openTransfer : undefined}
             accounts={workspace.accounts}
             categories={workspace.categories}
+            transactions={transactions}
             disabled={isMutating}
           />
         ) : null}
@@ -279,6 +385,17 @@ export function CaptureQuickPage({
         onClose={closeTransfer}
         onTransfer={handleTransfer}
       />
+      {editing ? (
+        <EditTransactionDialog
+          key={editing.id}
+          transaction={editing}
+          accounts={workspace.accounts}
+          categories={workspace.categories}
+          onClose={() => setEditing(null)}
+          onSave={handleUpdate}
+          disabled={isMutating || Boolean(workspace.dataError)}
+        />
+      ) : null}
     </AppShell>
   );
 }

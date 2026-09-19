@@ -7,6 +7,7 @@ import type {
   CreateImportBatchInput,
   ImportBatch,
 } from "./import-batch-store.ts";
+import { persistableSourceExternalId } from "./source-adapter.ts";
 
 export type ImportMatchStatus =
   | "would_create"
@@ -159,12 +160,23 @@ export function candidateProvenanceInsertPatch(
     typeof candidate.appliedRuleId === "string" &&
     Number.isSafeInteger(candidate.appliedRuleVersion) &&
     (candidate.appliedRuleVersion ?? 0) >= 1;
+  const sourceExternalId = persistableSourceExternalId(candidate.sourceExternalId) ?? null;
+  const predecessor = persistableSourceExternalId(
+    candidate.sourcePredecessorExternalId,
+  );
+  const sourcePredecessorExternalId =
+    sourceExternalId && predecessor && predecessor !== sourceExternalId
+      ? predecessor
+      : null;
+  const sourceLifecycleState = sourceExternalId
+    ? candidate.sourceLifecycleState ?? null
+    : null;
+
   return {
     source_row_index: candidate.sourceRowIndex ?? null,
-    source_external_id: candidate.sourceExternalId?.slice(0, 200) ?? null,
-    source_lifecycle_state: candidate.sourceLifecycleState ?? null,
-    source_predecessor_external_id:
-      candidate.sourcePredecessorExternalId?.slice(0, 200) ?? null,
+    source_external_id: sourceExternalId,
+    source_lifecycle_state: sourceLifecycleState,
+    source_predecessor_external_id: sourcePredecessorExternalId,
     parser_version:
       candidate.parserVersion?.slice(0, 80) ??
       parserVersionForSource(candidate.source),

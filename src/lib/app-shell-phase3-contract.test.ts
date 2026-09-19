@@ -12,10 +12,7 @@ const appShellStyles = readFileSync(
   join(root, "src/components/layout/app-shell.module.css"),
   "utf8",
 );
-const sheet = readFileSync(
-  join(root, "src/components/ui/sheet.tsx"),
-  "utf8",
-);
+const sheet = readFileSync(join(root, "src/components/ui/sheet.tsx"), "utf8");
 const layout = readFileSync(join(root, "src/app/layout.tsx"), "utf8");
 const accountsPage = readFileSync(
   join(root, "src/components/accounts/accounts-workspace.tsx"),
@@ -25,18 +22,15 @@ const transactionForm = readFileSync(
   join(root, "src/components/transactions/transaction-form.module.css"),
   "utf8",
 );
-const toast = readFileSync(
-  join(root, "src/components/ui/toast.tsx"),
-  "utf8",
-);
+const toast = readFileSync(join(root, "src/components/ui/toast.tsx"), "utf8");
 
 test("App Shell composes the approved shared owners", () => {
   assert.match(appShell, /import \{ BrandLockup \}/u);
   assert.match(appShell, /@\/components\/ui\/sheet/u);
   assert.match(appShell, /ToastRegion/u);
-  assert.match(appShell, /Button,/u);
-  assert.match(appShell, /IconButton,/u);
-  assert.match(appShell, /LinkButton,/u);
+  assert.match(appShell, /\bButton\b/u);
+  assert.match(appShell, /\bIconButton\b/u);
+  assert.match(appShell, /\bLinkButton\b/u);
   assert.doesNotMatch(appShell, /function Brand\(/u);
   assert.doesNotMatch(appShell, /<dialog/u);
   assert.doesNotMatch(appShell, /function Toast\(/u);
@@ -130,7 +124,10 @@ test("Phase 5 retires the MobileShellContract transaction remainder", () => {
 
 test("signed-in logo guardrail generation stays retired after direct BrandLockup adoption", () => {
   assert.equal(existsSync(join(root, "src/app/ai-uiux-guardrails.css")), false);
-  assert.match(appShell, /<BrandLockup[\s\S]*ariaLabel="MoneyFlow, về Tổng quan"/u);
+  assert.match(
+    appShell,
+    /<BrandLockup[\s\S]*ariaLabel="MoneyFlow, về Tổng quan"/u,
+  );
   assert.doesNotMatch(appShell, /url\("\/icon\.svg"\)/u);
 });
 

@@ -16,6 +16,7 @@ import {
 } from "./candidate-store.ts";
 import type {
   ImportBatch,
+  ImportBatchMappingEvidence,
   ImportBatchSource,
   ImportBatchStatus,
 } from "./import-batch-store.ts";
@@ -89,6 +90,9 @@ export type ImportBatchRow = {
   local_id: string | null;
   created_at: string;
   committed_at: string | null;
+  commit_attempt_count?: number | null;
+  commit_replay_count?: number | null;
+  mapping_evidence?: string | null;
 } & BatchProvenanceRow;
 
 function safePositiveMoney(value: unknown): number {
@@ -97,6 +101,25 @@ function safePositiveMoney(value: unknown): number {
     throw new Error("invalid_amount_minor");
   }
   return amount;
+}
+
+function safeNonNegativeCounter(value: unknown): number {
+  if (value === undefined || value === null) return 0;
+  if (
+    typeof value !== "number" ||
+    !Number.isSafeInteger(value) ||
+    value < 0 ||
+    value > 1_000_000
+  ) {
+    throw new Error("invalid_import_measurement_counter");
+  }
+  return value;
+}
+
+function safeMappingEvidence(value: unknown): ImportBatchMappingEvidence | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (value === "preset_applied" || value === "mapping_reviewed") return value;
+  throw new Error("invalid_import_mapping_evidence");
 }
 
 function asColumnMap(value: unknown): CsvColumnMap {
@@ -154,6 +177,11 @@ export function mapCandidateRow(row: InboxCandidateRow): PersistedInboxCandidate
 }
 
 export function mapBatchRow(row: ImportBatchRow): PersistedImportBatch {
+  const commitAttemptCount = safeNonNegativeCounter(row.commit_attempt_count);
+  const commitReplayCount = safeNonNegativeCounter(row.commit_replay_count);
+  if (commitReplayCount > commitAttemptCount) {
+    throw new Error("invalid_import_measurement_order");
+  }
   const batch: PersistedImportBatch = {
     id: row.id,
     fileName: row.file_name,
@@ -167,6 +195,9 @@ export function mapBatchRow(row: ImportBatchRow): PersistedImportBatch {
     columnMap: asColumnMap(row.column_map),
     createdAt: row.created_at,
     committedAt: row.committed_at ?? undefined,
+    commitAttemptCount,
+    commitReplayCount,
+    mappingEvidence: safeMappingEvidence(row.mapping_evidence),
     ...batchProvenanceFromRow(row),
   };
   if (!isImportBatch(batch)) {
@@ -243,10 +274,6 @@ export function batchToInsertRow(
   };
 }
 
-/**
- * Build insert payloads for one-shot local → server migrate.
- * Remaps non-UUID batch ids; stores original ids in local_id.
- */
 export function buildMigratePayloads(
   batches: ImportBatch[],
   candidates: InboxCandidate[],
@@ -294,12 +321,10 @@ export function buildMigratePayloads(
   return { batchRows, candidateRows, batchIdMap };
 }
 
-/** Deterministic-ish UUID for tests when crypto.randomUUID is unavailable. */
 export function cryptoRandomUuid(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
   }
-  // Fallback for node test environments without global crypto.randomUUID
   const bytes = new Uint8Array(16);
   for (let i = 0; i < 16; i += 1) bytes[i] = Math.floor(Math.random() * 256);
   bytes[6] = (bytes[6]! & 0x0f) | 0x40;
@@ -323,6 +348,8 @@ export function prepareCandidateForServer(
     ...candidate,
     sourceRowIndex: input.sourceRowIndex,
     sourceExternalId: input.sourceExternalId,
+    sourceLifecycleState: input.sourceLifecycleState,
+    sourcePredecessorExternalId: input.sourcePredecessorExternalId,
     parserVersion: input.parserVersion,
     mappingVersion: input.mappingVersion,
   };
@@ -340,9 +367,6 @@ export function prepareBatchForServer(
   };
 }
 
-/**
- * Whether server-side inbox is empty (trigger one-shot local migrate).
- */
 export function shouldMigrateLocal(
   serverCandidateCount: number,
   serverBatchCount: number,

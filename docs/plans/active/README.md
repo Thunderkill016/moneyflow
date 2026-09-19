@@ -1,11 +1,9 @@
-# MoneyFlow — active-plan pointer
+# MoneyFlow — active plan packets
 
-**Status:** retired as executable authority
+**Status:** packet directory, not a queue or authority source
 
-The former hand-maintained Current Work Board is intentionally retired. It no longer owns `NOW`, `NEXT`, commit baselines, current-slice selection, or post-merge projections.
+Files in this directory are scoped work packets for non-trivial tasks. They may describe work that is active, paused, under review or historical-but-not-yet-archived; their presence or ordering does not select executable work.
 
-Executable plan authority lives only in [`docs/plans/PLAN_AUTHORITY.json`](../PLAN_AUTHORITY.json) and is resolved by `npm run plan:resolve`. The manifest names the merged master packet and at most one current executable packet; Git first-parent history proves when an `introducedByPr` becomes active.
+Current task status and backlog live in GitHub Issues/PRs. Execution scope comes from the explicit owner task plus the applicable permission rules in `AGENTS.md` and `docs/engineering/AGENT_OPERATING_MODEL.md`.
 
-Human backlog, priority, status, blockers and follow-up work belong in GitHub Issues and pull requests. Detailed scope/evidence remains in the selected packet under this directory.
-
-Do not add a Markdown authority table back to this file.
+Do not add a NOW/NEXT table, commit-baseline selector, post-merge projection or other parallel project-management state here. When a packet is finished and worth retaining, move it to `docs/plans/completed/`; superseded/abandoned packets belong in `docs/plans/archived/`.

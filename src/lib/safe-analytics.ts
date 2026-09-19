@@ -4,9 +4,12 @@
  * Allowed: counts, rates, source_type enums, timings, booleans.
  * Forbidden: raw statements, paste text, raw_snippet, full notes, file bodies.
  *
- * Sink is a no-op until a real provider is wired — still enforces the contract.
+ * The sink uses the already-installed Vercel Web Analytics client. It receives
+ * only the sanitized scalar payload, and remains inert when no browser analytics
+ * script is present (for example in tests or an intentional local demo).
  */
 
+import { track as vercelTrack } from "@vercel/analytics";
 import {
   looksLikeFinancialRaw,
   RAW_SENSITIVE_KEYS,
@@ -98,8 +101,9 @@ export type TrackResult =
   | { ok: false; reason: "invalid_name" | "raw_rejected" };
 
 /**
- * Track a product event. Never accepts raw statement fields.
- * Currently a no-op sink (no third-party SDK) — safe by default.
+ * Track a product event. Never accepts raw statement fields. The event is sent
+ * only after validation/sanitization and only from a browser where the existing
+ * Web Analytics runtime can receive it.
  */
 export function trackProductEvent(
   name: string,
@@ -129,8 +133,9 @@ export function trackProductEvent(
     return { ok: false, reason: "raw_rejected" };
   }
 
-  // No-op sink. When wiring a provider, pass `safe` only — never `props`.
+  // The provider receives `safe` only — never the caller's original props.
   void redactForLog({ event: name, props: safe });
+  if (typeof window !== "undefined") vercelTrack(name, safe);
   return { ok: true, name, props: safe };
 }
 

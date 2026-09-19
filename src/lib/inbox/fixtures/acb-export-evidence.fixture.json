@@ -1,0 +1,26 @@
+{
+  "fixtureVersion": 1,
+  "provider": "acb",
+  "containsCustomerData": false,
+  "artifact": {
+    "kind": "transaction-history-export",
+    "format": "excel",
+    "evidence": "confirmed"
+  },
+  "layout": {
+    "headers": [],
+    "evidence": "unknown",
+    "bankSpecificAutoMapSupported": false
+  },
+  "transactionReference": {
+    "field": null,
+    "stability": "unknown",
+    "evidence": "unknown"
+  },
+  "syntheticRows": [],
+  "notes": [
+    "First-party ACB material confirms Excel history/statement download in supported flows without establishing .xls versus .xlsx.",
+    "Store-management export evidence is not generalized to every personal-account layout.",
+    "ACB ONE UI history states are not treated as exported-file status fields without stronger evidence."
+  ]
+}

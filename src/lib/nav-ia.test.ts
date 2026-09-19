@@ -116,6 +116,10 @@ test("More nav is daily tools; lab capture lives under Advanced", () => {
 
   const advanced = ADVANCED_NAV_LINKS.map((item) => item.href);
   assert.ok(advanced.includes("/inbox"), "Inbox demoted to Advanced");
+  assert.equal(
+    ADVANCED_NAV_LINKS.find((item) => item.href === "/inbox")?.label,
+    "Cần xem",
+  );
   assert.ok(advanced.includes("/timeline"));
   assert.ok(advanced.includes("/rules"));
   assert.ok(advanced.includes("/imports"));

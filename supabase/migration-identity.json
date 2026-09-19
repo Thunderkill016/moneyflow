@@ -279,6 +279,36 @@
       "version": "20260825090000",
       "name": "20260825090000_direct_csv_rule_atomic_ingestion.sql",
       "hash": "802cf35df8a5f448ca246d9d3940c9c0"
+    },
+    {
+      "version": "20260909090000",
+      "name": "20260909090000_import_batch_atomic_commit.sql",
+      "hash": "f91f4f47199f0bfd5588ddcbee355fe9"
+    },
+    {
+      "version": "20260909120000",
+      "name": "20260909120000_import_batch_measurement.sql",
+      "hash": "b5991121cfa152c9770787e6303fefa9"
+    },
+    {
+      "version": "20260910181500",
+      "name": "20260910181500_function_default_acl_hardening.sql",
+      "hash": "5783ec4e10f3094ef3e7d8bffa955d04"
+    },
+    {
+      "version": "20260910182000",
+      "name": "20260910182000_reconciliation_snapshot_security_invoker.sql",
+      "hash": "95bb1051746055f253b613b00fbc50a7"
+    },
+    {
+      "version": "20260911150000",
+      "name": "20260911150000_ledger_trusted_through.sql",
+      "hash": "63c0ad68eba843b829f23f75577eca26"
+    },
+    {
+      "version": "20260913103000",
+      "name": "20260913103000_dashboard_bundle_ledger_trust.sql",
+      "hash": "a63382617ca68098db8ccae4ef90ea34"
     }
   ]
 }

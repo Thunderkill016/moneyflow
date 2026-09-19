@@ -23,6 +23,17 @@ const sampleRow: ParsedCsvRow = {
   rowIndex: 2,
 };
 
+const evidenceRow: ParsedCsvRow = {
+  ...sampleRow,
+  rowIndex: 8,
+  sourceRowIndex: 8,
+  sourceExternalId: "mf-src-v1|account|bank|acct|posted-1",
+  sourceLifecycleState: "posted",
+  sourcePredecessorExternalId: "mf-src-v1|account|bank|acct|pending-1",
+  parserVersion: "source-adapter@1.0",
+  mappingVersion: 2,
+};
+
 function draft(batchId: string, updatedAt: string) {
   return { batchId, rows: [sampleRow], updatedAt };
 }
@@ -33,11 +44,44 @@ test("isParsedCsvRow accepts valid draft row", () => {
   assert.equal(isParsedCsvRow({ ...sampleRow, amount: 45.5 }), false);
 });
 
+test("isParsedCsvRow preserves coherent source evidence and rejects orphaned lineage", () => {
+  assert.equal(isParsedCsvRow(evidenceRow), true);
+  assert.equal(
+    isParsedCsvRow({
+      ...sampleRow,
+      sourceLifecycleState: "posted",
+    }),
+    false,
+  );
+  assert.equal(
+    isParsedCsvRow({
+      ...sampleRow,
+      sourcePredecessorExternalId: "pending-1",
+    }),
+    false,
+  );
+  assert.equal(
+    isParsedCsvRow({
+      ...sampleRow,
+      sourceExternalId: "same-id",
+      sourcePredecessorExternalId: "same-id",
+    }),
+    false,
+  );
+  assert.equal(
+    isParsedCsvRow({
+      ...sampleRow,
+      sourceExternalId: "x".repeat(201),
+    }),
+    false,
+  );
+});
+
 test("isImportDraft validates shape", () => {
   assert.equal(
     isImportDraft({
       batchId: "imp-1",
-      rows: [sampleRow],
+      rows: [evidenceRow],
       updatedAt: "2026-07-15T10:00:00.000Z",
     }),
     true,
@@ -81,14 +125,18 @@ test("session-only retention removes every persistent draft", () => {
   );
 });
 
-test("previewDraftRows caps at limit", () => {
+test("previewDraftRows caps at limit without dropping row evidence", () => {
   const rows = Array.from({ length: 15 }, (_, i) => ({
-    ...sampleRow,
+    ...evidenceRow,
     rowIndex: i + 2,
+    sourceRowIndex: i + 2,
     merchant: `M${i}`,
   }));
-  assert.equal(previewDraftRows(rows, 10).length, 10);
-  assert.equal(previewDraftRows(rows, 10)[0]?.merchant, "M0");
+  const preview = previewDraftRows(rows, 10);
+  assert.equal(preview.length, 10);
+  assert.equal(preview[0]?.merchant, "M0");
+  assert.equal(preview[0]?.sourceExternalId, evidenceRow.sourceExternalId);
+  assert.equal(preview[0]?.sourceLifecycleState, "posted");
   assert.equal(previewDraftRows(rows, 0).length, 0);
 });
 

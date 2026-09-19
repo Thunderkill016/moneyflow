@@ -27,11 +27,9 @@ function legacyShapeForCurrentArchive(input: JsonObject): unknown {
 
   const inboxCandidates = tables.inboxCandidates.map((row) => {
     if (!isObject(row)) return row;
-    const {
-      source_lifecycle_state: _sourceLifecycleState,
-      source_predecessor_external_id: _sourcePredecessorExternalId,
-      ...legacy
-    } = row;
+    const legacy = { ...row };
+    delete legacy.source_lifecycle_state;
+    delete legacy.source_predecessor_external_id;
     return legacy;
   });
 
@@ -45,10 +43,13 @@ function legacyShapeForCurrentArchive(input: JsonObject): unknown {
   };
 }
 
-function validateCurrentSourceFields(input: JsonObject): readonly ArchiveRejection[] {
+function validateCurrentSourceFields(
+  input: JsonObject,
+): readonly ArchiveRejection[] {
   const errors: ArchiveRejection[] = [];
   const tables = input.tables;
-  if (!isObject(tables) || !Array.isArray(tables.inboxCandidates)) return errors;
+  if (!isObject(tables) || !Array.isArray(tables.inboxCandidates))
+    return errors;
 
   const identityBySourceId = new Map<string, string>();
 
@@ -70,7 +71,10 @@ function validateCurrentSourceFields(input: JsonObject): readonly ArchiveRejecti
       lifecycle !== null &&
       (typeof lifecycle !== "string" || !SOURCE_LIFECYCLE_STATES.has(lifecycle))
     ) {
-      errors.push({ code: "field_not_enum_value", path: `${path}.source_lifecycle_state` });
+      errors.push({
+        code: "field_not_enum_value",
+        path: `${path}.source_lifecycle_state`,
+      });
     }
 
     const predecessor = value.source_predecessor_external_id;

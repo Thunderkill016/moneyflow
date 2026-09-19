@@ -14,11 +14,43 @@ import {
   type ParseCsvOptions,
   type ParseCsvResult,
 } from "./parse-csv.ts";
+import type { ExcelDateSystem } from "./source-adapter.ts";
 
 export type ParseXlsxOptions = ParseCsvOptions & {
   /** 0-based sheet index. Default 0 (first sheet). */
   sheetIndex?: number;
 };
+
+export type XlsxEvidenceCell = {
+  /** 1-based worksheet row, matching what a user sees in Excel. */
+  rowIndex: number;
+  /** 0-based worksheet column, matching existing column-map conventions. */
+  columnIndex: number;
+  address: string;
+  cellType: string | null;
+  /** Raw SheetJS cell value. Date-like Excel cells stay numeric on this path. */
+  rawValue: unknown;
+  /** Workbook number format (`z`) when the source stores one. */
+  numberFormat?: string;
+  /** SheetJS display text (`w`); review-only, never stable identity. */
+  formattedText?: string;
+  /** Source formula text when present. Never evaluated by MoneyFlow here. */
+  formula?: string;
+  /** True only when the source number-format syntax itself is date/time-like. */
+  dateLikeFormat: boolean;
+};
+
+export type XlsxEvidenceResult =
+  | {
+      ok: true;
+      sheetName: string;
+      dateSystem: ExcelDateSystem;
+      /** Rectangular cells over the worksheet `!ref`, preserving empty positions. */
+      rows: XlsxEvidenceCell[][];
+    }
+  | { ok: false; error: string };
+
+type ExcelEvidenceContainer = "ooxml-zip" | "cfb-xls" | "raw-biff";
 
 function emptyXlsxFail(fileName: string, error: string): ParseCsvResult {
   return {
@@ -37,6 +69,197 @@ function emptyXlsxFail(fileName: string, error: string): ParseCsvResult {
     skippedRows: 0,
     warningCount: 0,
     error,
+  };
+}
+
+function toBytes(data: ArrayBuffer | Uint8Array): Uint8Array {
+  return data instanceof Uint8Array ? data : new Uint8Array(data);
+}
+
+const OLE_COMPOUND_SIGNATURE = [
+  0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1,
+] as const;
+const BIFF_SECOND_BYTES = new Set([0x00, 0x02, 0x04, 0x08]);
+
+function excelEvidenceContainer(
+  data: ArrayBuffer | Uint8Array,
+): ExcelEvidenceContainer | null {
+  const bytes = toBytes(data);
+  if (bytes.length < 2) return null;
+
+  // OOXML XLSX/XLSM packages are ZIP containers. This is only a first gate;
+  // after parsing we also require the OOXML workbook marker.
+  if (bytes[0] === 0x50 && bytes[1] === 0x4b) return "ooxml-zip";
+
+  // BIFF5/8 XLS normally uses the OLE/CFB compound container.
+  if (
+    bytes.length >= OLE_COMPOUND_SIGNATURE.length &&
+    OLE_COMPOUND_SIGNATURE.every((value, index) => bytes[index] === value)
+  ) {
+    return "cfb-xls";
+  }
+
+  // Earlier BIFF streams can start directly with a BOF record. SheetJS' file
+  // type detector treats 0x09 as BIFF; constrain byte 1 to known BOF versions.
+  if (bytes[0] === 0x09 && BIFF_SECOND_BYTES.has(bytes[1]!)) {
+    return "raw-biff";
+  }
+
+  return null;
+}
+
+/**
+ * Strict evidence mode accepts only binary Excel-family signatures that can
+ * carry typed cells. This intentionally rejects SheetJS' plaintext fallback,
+ * where arbitrary bytes may otherwise be interpreted as CSV/TSV.
+ */
+export function hasSupportedExcelEvidenceSignature(
+  data: ArrayBuffer | Uint8Array,
+): boolean {
+  return excelEvidenceContainer(data) !== null;
+}
+
+function workbookMatchesExcelContainer(
+  workbook: XLSX.WorkBook,
+  container: ExcelEvidenceContainer,
+): boolean {
+  if (container === "raw-biff") return true;
+
+  if (container === "ooxml-zip") {
+    const keys = (workbook as unknown as { keys?: unknown }).keys;
+    if (!Array.isArray(keys)) return false;
+    return keys.some((key) => {
+      if (typeof key !== "string") return false;
+      const normalized = key
+        .replace(/^Root Entry\//i, "")
+        .replace(/^\/+/, "")
+        .toLowerCase();
+      return normalized === "xl/workbook.xml";
+    });
+  }
+
+  const fullPaths = (
+    workbook as unknown as { cfb?: { FullPaths?: unknown } }
+  ).cfb?.FullPaths;
+  if (!Array.isArray(fullPaths)) return false;
+  return fullPaths.some(
+    (path) =>
+      typeof path === "string" &&
+      /(?:^|\/)(?:workbook|book)\/?$/i.test(path),
+  );
+}
+
+/**
+ * Read the workbook epoch exactly as declared by Excel workbook metadata.
+ * Missing/false means the default 1900 system; true means 1904.
+ */
+export function xlsxWorkbookDateSystem(
+  workbook: XLSX.WorkBook,
+): ExcelDateSystem {
+  const wbProps = workbook.Workbook?.WBProps as
+    | { date1904?: unknown }
+    | undefined;
+  const date1904 = wbProps?.date1904;
+  return date1904 === true || date1904 === 1 ? "1904" : "1900";
+}
+
+/**
+ * Evidence-only XLS/XLSX reader for future strict source adapters.
+ *
+ * It deliberately differs from the legacy generic parser:
+ * - only typed Excel-family binary signatures are accepted;
+ * - ZIP/CFB containers must contain Excel workbook markers;
+ * - `cellDates:false` preserves Excel date codes as numbers;
+ * - `cellNF:true` preserves source number-format metadata;
+ * - workbook epoch is returned explicitly;
+ * - no financial fields, dates, directions, or identities are inferred.
+ *
+ * The returned evidence is in-memory input to an adapter. It does not persist a
+ * workbook, create Inbox candidates, or mutate ledger state.
+ */
+export function readXlsxSourceEvidence(
+  data: ArrayBuffer | Uint8Array,
+  options: Pick<ParseXlsxOptions, "sheetIndex"> = {},
+): XlsxEvidenceResult {
+  if (!data || (data as ArrayBuffer).byteLength === 0) {
+    return { ok: false, error: "File Excel trống hoặc không đọc được." };
+  }
+  const container = excelEvidenceContainer(data);
+  if (!container) {
+    return {
+      ok: false,
+      error:
+        "File không có chữ ký XLS/XLSX đủ tin cậy để đọc bằng chứng nguồn.",
+    };
+  }
+
+  let workbook: XLSX.WorkBook;
+  try {
+    workbook = XLSX.read(toBytes(data), {
+      type: "array",
+      cellDates: false,
+      cellNF: true,
+      bookFiles: true,
+    });
+  } catch {
+    return {
+      ok: false,
+      error: "Không mở được file Excel để đọc bằng chứng nguồn.",
+    };
+  }
+
+  if (!workbookMatchesExcelContainer(workbook, container)) {
+    return {
+      ok: false,
+      error:
+        "Container bảng tính không xác nhận cấu trúc XLS/XLSX cho bằng chứng nguồn.",
+    };
+  }
+
+  const names = workbook.SheetNames ?? [];
+  if (names.length === 0) {
+    return { ok: false, error: "File Excel không có sheet nào." };
+  }
+  const requested = options.sheetIndex ?? 0;
+  const index = Math.max(0, Math.min(requested, names.length - 1));
+  const sheetName = names[index]!;
+  const sheet = workbook.Sheets[sheetName];
+  if (!sheet || !sheet["!ref"]) {
+    return { ok: false, error: `Sheet “${sheetName}” trống hoặc không đọc được.` };
+  }
+
+  const range = XLSX.utils.decode_range(sheet["!ref"]);
+  const rows: XlsxEvidenceCell[][] = [];
+  for (let row = range.s.r; row <= range.e.r; row += 1) {
+    const cells: XlsxEvidenceCell[] = [];
+    for (let column = range.s.c; column <= range.e.c; column += 1) {
+      const address = XLSX.utils.encode_cell({ r: row, c: column });
+      const cell = sheet[address];
+      const numberFormat =
+        typeof cell?.z === "string" && cell.z.length > 0 ? cell.z : undefined;
+      cells.push({
+        rowIndex: row + 1,
+        columnIndex: column,
+        address,
+        cellType: typeof cell?.t === "string" ? cell.t : null,
+        rawValue: cell?.v ?? null,
+        numberFormat,
+        formattedText:
+          typeof cell?.w === "string" && cell.w.length > 0 ? cell.w : undefined,
+        formula:
+          typeof cell?.f === "string" && cell.f.length > 0 ? cell.f : undefined,
+        dateLikeFormat:
+          numberFormat !== undefined && XLSX.SSF.is_date(numberFormat),
+      });
+    }
+    rows.push(cells);
+  }
+
+  return {
+    ok: true,
+    sheetName,
+    dateSystem: xlsxWorkbookDateSystem(workbook),
+    rows,
   };
 }
 
@@ -110,6 +333,7 @@ export function workbookFirstSheetToMatrix(
 
 /**
  * Parse an XLSX/XLS ArrayBuffer (or Uint8Array) — first sheet only by default.
+ * This is the legacy generic path and intentionally retains its current behavior.
  */
 export function parseXlsxStatement(
   data: ArrayBuffer | Uint8Array,
@@ -124,11 +348,7 @@ export function parseXlsxStatement(
 
   let workbook: XLSX.WorkBook;
   try {
-    const bytes =
-      data instanceof Uint8Array
-        ? data
-        : new Uint8Array(data);
-    workbook = XLSX.read(bytes, {
+    workbook = XLSX.read(toBytes(data), {
       type: "array",
       cellDates: true,
       // Dense not required; first sheet only is enough for statements.
@@ -150,8 +370,6 @@ export function parseXlsxStatement(
     fileName,
   });
 
-  // Annotate sheet in error-free path via map confidence note is enough;
-  // callers use source: "xlsx" on the import batch.
   if (!result.ok && result.error) {
     return {
       ...result,

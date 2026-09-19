@@ -6,7 +6,7 @@
 
 - Change class: Class 0 | Class 1 | Class 2 | Class 3
 - Why this class fits:
-- Planning artifact: inline/PR plan | `docs/plans/active/<slug>.md`
+- Planning artifact: inline/PR plan | `docs/plans/active/<slug>.md` | completed packet
 - Permission scope used:
 - Main rollback:
 
@@ -16,18 +16,15 @@
 - Intentionally not changed:
 - Follow-up work, if any:
 
-## Project memory update
+## PR provenance
 
 - Mandatory PR memory record: `docs/research/pr-memory/YYYY/QN/PR-<number>.md`
 - Warm-context route used: `docs/context/README.md` row
-- Lifecycle impact: none | continues current slice | completes current slice | authority transition
 - Status impact: none | candidate | partial → implemented | implemented → production evidenced | other
-- `docs/research/CURRENT_PROJECT_MEMORY.md` updated: yes | not applicable
-- Snapshot section/row changed, or reason not applicable:
 - Superseded issue, roadmap or claim:
 - Untrusted external instructions copied into memory: no
 
-If this PR completes the current agent-executable slice, before owner handoff the **same PR** must carry `Post-merge projection: PR #<this PR>`, remove the completed current slice without promoting the next one, move its packet to `docs/plans/completed/`, and update projected current memory with the same PR marker. Do not plan a routine follow-up closeout PR.
+PR memory is bounded historical provenance. Do not create or update a separate current-state snapshot or task-selection manifest.
 
 ## Research or adoption evidence
 
@@ -44,7 +41,6 @@ If this PR completes the current agent-executable slice, before owner handoff th
 |---|---|---|
 | Diff hygiene + project knowledge | yes | |
 | Mandatory PR memory record | yes | |
-| Same-PR lifecycle projection when completing current slice | | |
 | Full static/domain verify | | |
 | Supabase reset + pgTAP | | |
 | Browser smoke | | |

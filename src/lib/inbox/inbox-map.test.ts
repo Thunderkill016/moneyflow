@@ -4,6 +4,7 @@ import type { InboxCandidate } from "./candidate-store.ts";
 import type { ImportBatch } from "./import-batch-store.ts";
 import {
   buildMigratePayloads,
+  candidateToInsertRow,
   candidatesForMigrate,
   isDemoSampleCandidate,
   isUuid,
@@ -91,7 +92,9 @@ test("mapCandidateRow maps integer money and durable provenance", () => {
     local_id: "cand-x",
     created_at: "2026-07-11T14:22:00.000Z",
     source_row_index: 4,
-    source_external_id: "bank-row-4",
+    source_external_id: "mf-src-v1|institution|bank|posted-4",
+    source_lifecycle_state: "posted",
+    source_predecessor_external_id: "mf-src-v1|institution|bank|pending-4",
     fingerprint_version: 1,
     fingerprint: "fingerprint-4",
     parser_version: "csv_import@2.0",
@@ -108,7 +111,12 @@ test("mapCandidateRow maps integer money and durable provenance", () => {
   assert.equal(mapped.category, "Di chuyển");
   assert.equal(mapped.possibleDuplicate, undefined);
   assert.equal(mapped.sourceRowIndex, 4);
-  assert.equal(mapped.sourceExternalId, "bank-row-4");
+  assert.equal(mapped.sourceExternalId, "mf-src-v1|institution|bank|posted-4");
+  assert.equal(mapped.sourceLifecycleState, "posted");
+  assert.equal(
+    mapped.sourcePredecessorExternalId,
+    "mf-src-v1|institution|bank|pending-4",
+  );
   assert.equal(mapped.parserVersion, "csv_import@2.0");
   assert.equal(mapped.mappingVersion, 2);
   assert.equal(mapped.matchStatus, "duplicate");
@@ -160,11 +168,13 @@ test("buildMigratePayloads remaps ids and adds explicit provenance defaults", ()
   assert.equal(candidateRows[0]?.user_id, "user-1");
   assert.equal(candidateRows[0]?.source_row_index, null);
   assert.equal(candidateRows[0]?.source_external_id, null);
+  assert.equal(candidateRows[0]?.source_lifecycle_state, null);
+  assert.equal(candidateRows[0]?.source_predecessor_external_id, null);
   assert.equal(candidateRows[0]?.parser_version, "paste_text@1.0");
   assert.equal(candidateRows[0]?.mapping_version, 1);
 });
 
-test("prepareCandidateForServer preserves bounded source provenance", () => {
+test("prepareCandidateForServer preserves bounded source lineage into insert payload", () => {
   const prepared = prepareCandidateForServer({
     kind: "expense",
     amount: 12_000,
@@ -174,14 +184,29 @@ test("prepareCandidateForServer preserves bounded source provenance", () => {
     confidence: "high",
     importBatchId: "not-a-uuid",
     sourceRowIndex: 6,
-    sourceExternalId: "statement-row-6",
+    sourceExternalId: "mf-src-v1|account|bank|acct|posted-6",
+    sourceLifecycleState: "posted",
+    sourcePredecessorExternalId: "mf-src-v1|account|bank|acct|pending-6",
     parserVersion: "csv_import@2.0",
     mappingVersion: 2,
   });
   assert.equal(isUuid(prepared.id), true);
   assert.equal(prepared.importBatchId, undefined);
   assert.equal(prepared.sourceRowIndex, 6);
-  assert.equal(prepared.sourceExternalId, "statement-row-6");
+  assert.equal(prepared.sourceExternalId, "mf-src-v1|account|bank|acct|posted-6");
+  assert.equal(prepared.sourceLifecycleState, "posted");
+  assert.equal(
+    prepared.sourcePredecessorExternalId,
+    "mf-src-v1|account|bank|acct|pending-6",
+  );
   assert.equal(prepared.parserVersion, "csv_import@2.0");
   assert.equal(prepared.mappingVersion, 2);
+
+  const row = candidateToInsertRow(prepared, "user-1");
+  assert.equal(row.source_external_id, prepared.sourceExternalId);
+  assert.equal(row.source_lifecycle_state, "posted");
+  assert.equal(
+    row.source_predecessor_external_id,
+    prepared.sourcePredecessorExternalId,
+  );
 });

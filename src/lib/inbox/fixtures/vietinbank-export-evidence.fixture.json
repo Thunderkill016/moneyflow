@@ -1,0 +1,26 @@
+{
+  "fixtureVersion": 1,
+  "provider": "vietinbank",
+  "containsCustomerData": false,
+  "artifact": {
+    "kind": "statement-or-history",
+    "format": "excel",
+    "evidence": "confirmed"
+  },
+  "layout": {
+    "headers": [],
+    "evidence": "unknown",
+    "bankSpecificAutoMapSupported": false
+  },
+  "transactionReference": {
+    "field": null,
+    "stability": "unknown",
+    "evidence": "unknown"
+  },
+  "syntheticRows": [],
+  "notes": [
+    "VietinBank first-party customer-support guidance confirms iPay Web can retrieve Excel detailed transaction data for the account.",
+    "The exact Excel extension, exported headers, field semantics and provider-stable transaction reference remain unverified.",
+    "Posting-date/fee concepts from card material are not promoted to a target export contract."
+  ]
+}

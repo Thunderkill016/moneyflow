@@ -6,7 +6,6 @@ import {
   DashboardHeaderSections,
   DashboardLedgerColumn,
 } from "@/components/dashboard/dashboard-overview-sections";
-import { DashboardPlanningColumn } from "@/components/dashboard/dashboard-planning-sections";
 import styles from "@/components/dashboard/dashboard.module.css";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
@@ -14,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useTransactions } from "@/hooks/use-transactions";
 import { buildAttentionItems } from "@/lib/attention";
 import { captureConsequence } from "@/lib/capture-consequence";
+import type { LedgerTrustSummary } from "@/lib/ledger-trust";
 import { sumBudgetSpent, type BudgetSummary } from "@/lib/planning/budgets";
 import { hydrateCommitmentsWithOccurrences } from "@/lib/planning/commitment-occurrence-store";
 import {
@@ -25,9 +25,6 @@ import {
   reconcileBalanceSnapshot,
   topExpenseCategories,
 } from "@/lib/finance";
-import type { SavingsGoal } from "@/lib/planning/goals";
-import { hydrateIncomeTemplatesWithOccurrences } from "@/lib/planning/income-template-store";
-import type { RecurringIncomeTemplate } from "@/lib/planning/income-templates";
 import {
   countPending,
   readStoredCandidates,
@@ -39,6 +36,8 @@ import {
   type CreateTransactionInput,
   type CreateTransferInput,
   type Transaction,
+  type UpdateMoneyTransactionInput,
+  type UpdateTransferInput,
 } from "@/lib/sample-data";
 import type { ViewerSummary } from "@/components/user-chip";
 
@@ -50,7 +49,15 @@ const AddTransactionDialog = dynamic(
   { ssr: false },
 );
 const TransferDialog = dynamic(
-  () => import("@/components/transfer-dialog").then((mod) => mod.TransferDialog),
+  () =>
+    import("@/components/transfer-dialog").then((mod) => mod.TransferDialog),
+  { ssr: false },
+);
+const EditTransactionDialog = dynamic(
+  () =>
+    import("@/components/edit-transaction-dialog").then(
+      (mod) => mod.EditTransactionDialog,
+    ),
   { ssr: false },
 );
 
@@ -67,23 +74,22 @@ export function MoneyFlowDashboard({
   viewer,
   workspace,
   initialInboxCount,
+  ledgerTrust,
   budgets,
   commitments,
-  incomeTemplates = [],
-  goals,
 }: {
   viewer: ViewerSummary;
   workspace: DashboardWorkspace;
   initialInboxCount: number;
+  ledgerTrust: LedgerTrustSummary | null;
   budgets: BudgetSummary[];
   commitments: RecurringCommitment[];
-  incomeTemplates?: RecurringIncomeTemplate[];
-  goals: SavingsGoal[];
 }) {
   const {
     transactions,
     addTransaction: addTransactionToStore,
     addTransfer,
+    updateTransaction,
     isMutating,
   } = useTransactions({
     initialTransactions: workspace.transactions,
@@ -93,13 +99,12 @@ export function MoneyFlowDashboard({
   });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [editing, setEditing] = useState<Transaction | null>(null);
+  const [recentSaved, setRecentSaved] = useState<Transaction | null>(null);
   const [notice, setNotice] = useState("");
   const [demoInboxCount, setDemoInboxCount] = useState(0);
   const [demoCommitments, setDemoCommitments] = useState<
     RecurringCommitment[] | null
-  >(null);
-  const [demoIncomeTemplates, setDemoIncomeTemplates] = useState<
-    RecurringIncomeTemplate[] | null
   >(null);
 
   useEffect(() => {
@@ -109,12 +114,9 @@ export function MoneyFlowDashboard({
       setDemoCommitments(
         hydrateCommitmentsWithOccurrences(commitments, monthStart),
       );
-      setDemoIncomeTemplates(
-        hydrateIncomeTemplatesWithOccurrences(incomeTemplates, monthStart),
-      );
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [viewer.isDemo, commitments, incomeTemplates, workspace.today]);
+  }, [viewer.isDemo, commitments, workspace.today]);
 
   useEffect(() => {
     if (!viewer.isDemo) return;
@@ -144,16 +146,15 @@ export function MoneyFlowDashboard({
 
   useEffect(() => {
     if (!notice) return;
-    const timeout = window.setTimeout(() => setNotice(""), 4200);
+    const timeout = window.setTimeout(() => {
+      setNotice("");
+      setRecentSaved(null);
+    }, 4200);
     return () => window.clearTimeout(timeout);
   }, [notice]);
 
   const liveCommitments =
     viewer.isDemo && demoCommitments ? demoCommitments : commitments;
-  const liveIncomeTemplates =
-    viewer.isDemo && demoIncomeTemplates
-      ? demoIncomeTemplates
-      : incomeTemplates;
   const inboxCount = viewer.isDemo ? demoInboxCount : initialInboxCount;
 
   const currentBalance = useMemo(
@@ -170,11 +171,7 @@ export function MoneyFlowDashboard({
     () =>
       budgets.map((budget) => {
         const spentDelta =
-          sumBudgetSpent(
-            transactions,
-            budget.categoryId,
-            budget.monthStart,
-          ) -
+          sumBudgetSpent(transactions, budget.categoryId, budget.monthStart) -
           sumBudgetSpent(
             workspace.transactions,
             budget.categoryId,
@@ -220,6 +217,7 @@ export function MoneyFlowDashboard({
     if (result.ok && result.transaction) {
       // Same helper as the quick-capture surface, so a save reads identically
       // wherever it happens rather than being richer on one screen than another.
+      setRecentSaved(result.transaction);
       setNotice(
         captureConsequence({
           saved: result.transaction,
@@ -230,10 +228,23 @@ export function MoneyFlowDashboard({
     return result;
   }
 
+  async function handleUpdate(
+    input: UpdateMoneyTransactionInput | UpdateTransferInput,
+  ) {
+    const result = await updateTransaction(input);
+    if (result.ok) {
+      setEditing(null);
+      setRecentSaved(null);
+      setNotice("Đã cập nhật giao dịch.");
+    }
+    return result;
+  }
+
   async function handleTransfer(input: CreateTransferInput) {
     const result = await addTransfer(input);
     if (result.ok) {
       setTransferOpen(false);
+      setRecentSaved(null);
       setNotice("Đã chuyển tiền giữa các tài khoản.");
     }
     return result;
@@ -245,6 +256,7 @@ export function MoneyFlowDashboard({
   const openGhiChi = () => setDialogOpen(true);
   const openTransferFromCapture = () => {
     setDialogOpen(false);
+    setRecentSaved(null);
     setTransferOpen(true);
   };
 
@@ -265,6 +277,19 @@ export function MoneyFlowDashboard({
         icon: "plus",
       }}
       notice={notice}
+      noticeAction={
+        recentSaved
+          ? {
+              label: "Sửa",
+              onClick: () => {
+                setEditing(recentSaved);
+                setRecentSaved(null);
+                setNotice("");
+              },
+              disabled: isMutating,
+            }
+          : undefined
+      }
     >
       <main className={styles.dashboard}>
         {workspace.dataError ? (
@@ -277,31 +302,22 @@ export function MoneyFlowDashboard({
         <DashboardHeaderSections
           displayName={displayName}
           attentionItems={attentionItems}
+          ledgerTrust={viewer.isDemo ? null : ledgerTrust}
           totals={totals}
           today={workspace.today}
           isEmptyLedger={isEmptyLedger && !workspace.dataError}
+          dataError={workspace.dataError}
           onAddTransaction={openGhiChi}
         />
 
-        <section className="content-grid insights-main-grid">
-          <DashboardLedgerColumn
-            topCategories={topCategories}
-            transactions={transactions}
-            isEmptyLedger={isEmptyLedger}
-            actionsDisabled={actionsDisabled}
-            today={workspace.today}
-            onAddTransaction={openGhiChi}
-          />
-          <DashboardPlanningColumn
-            transactions={transactions}
-            budgets={liveBudgets}
-            commitments={liveCommitments}
-            incomeTemplates={liveIncomeTemplates}
-            goals={goals}
-            today={workspace.today}
-            isEmptyLedger={isEmptyLedger}
-          />
-        </section>
+        <DashboardLedgerColumn
+          topCategories={topCategories}
+          transactions={transactions}
+          isEmptyLedger={isEmptyLedger}
+          actionsDisabled={actionsDisabled}
+          today={workspace.today}
+          onAddTransaction={openGhiChi}
+        />
       </main>
 
       {dialogOpen ? (
@@ -314,6 +330,7 @@ export function MoneyFlowDashboard({
           }
           accounts={workspace.accounts}
           categories={workspace.categories}
+          transactions={transactions}
           disabled={isMutating || actionsDisabled}
         />
       ) : null}
@@ -323,6 +340,17 @@ export function MoneyFlowDashboard({
           accounts={workspace.accounts}
           onClose={() => setTransferOpen(false)}
           onTransfer={handleTransfer}
+        />
+      ) : null}
+      {editing ? (
+        <EditTransactionDialog
+          key={editing.id}
+          transaction={editing}
+          accounts={workspace.accounts}
+          categories={workspace.categories}
+          onClose={() => setEditing(null)}
+          onSave={handleUpdate}
+          disabled={isMutating || actionsDisabled}
         />
       ) : null}
     </AppShell>

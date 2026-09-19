@@ -6,33 +6,16 @@ import test from "node:test";
 import {
   loadProjectKnowledgeContract,
   PROJECT_KNOWLEDGE_CONTRACT_PATH,
-  validateCurrentProjectMemory,
   validateProjectKnowledgeContract,
 } from "./project-knowledge-contract.mjs";
 import {
   validateActivePacketRegistry,
-  validateAuthorityPacketReferences,
+  validateActivePacketReferences,
 } from "./active-packet-registry.mjs";
 
 function validContract() {
   return {
-    schemaVersion: 1,
-    currentProjectMemory: {
-      path: "docs/research/CURRENT_PROJECT_MEMORY.md",
-      requiredHeadings: [
-        "# MoneyFlow — current project memory",
-        "## 12. Superseded-status register",
-      ],
-      requiredReferences: ["docs/context/README.md"],
-      budget: {
-        targetMinLines: 2,
-        targetMaxLines: 8,
-        softMaxLines: 10,
-        softMaxBytes: 512,
-        hardMaxLines: 20,
-        hardMaxBytes: 1024,
-      },
-    },
+    schemaVersion: 2,
     statusAssertions: {
       validationRequiredPerWorkstream: true,
       globalFeatureFreeze: false,
@@ -44,112 +27,8 @@ function validContract() {
   };
 }
 
-function withFixture(contract, memory, run) {
+function withFixture(files, run) {
   const root = mkdtempSync(join(tmpdir(), "moneyflow-knowledge-"));
-  try {
-    const contractPath = join(root, PROJECT_KNOWLEDGE_CONTRACT_PATH);
-    const memoryPath = join(root, contract.currentProjectMemory.path);
-    mkdirSync(join(contractPath, ".."), { recursive: true });
-    mkdirSync(join(memoryPath, ".."), { recursive: true });
-    writeFileSync(contractPath, `${JSON.stringify(contract, null, 2)}\n`);
-    writeFileSync(memoryPath, memory);
-    return run(root);
-  } finally {
-    rmSync(root, { recursive: true, force: true });
-  }
-}
-
-test("accepts a structured contract and valid current-memory shape", () => {
-  const contract = validContract();
-  const memory = [
-    "# MoneyFlow — current project memory",
-    "See docs/context/README.md for routing.",
-    "Reports now include comparison and trend views.",
-    "## 12. Superseded-status register",
-    "The old reports-gap statement is historical only.",
-    "",
-  ].join("\n");
-
-  withFixture(contract, memory, (root) => {
-    const loaded = loadProjectKnowledgeContract(root);
-    assert.deepEqual(loaded.failures, []);
-    const result = validateCurrentProjectMemory(root, loaded.contract);
-    assert.deepEqual(result.failures, []);
-    assert.deepEqual(result.warnings, []);
-  });
-});
-
-test("does not turn superseded prose wording into a machine API", () => {
-  const contract = validContract();
-  const first = [
-    "# MoneyFlow — current project memory",
-    "See docs/context/README.md.",
-    "## 12. Superseded-status register",
-    "Reports lack previous-period comparison or trends.",
-    "",
-  ].join("\n");
-  const paraphrased = first.replace(
-    "Reports lack previous-period comparison or trends.",
-    "Historical claim: report comparison and trend views were once absent.",
-  );
-
-  withFixture(contract, first, (root) => {
-    const baseline = validateCurrentProjectMemory(root, contract);
-    assert.deepEqual(baseline.failures, []);
-  });
-  withFixture(contract, paraphrased, (root) => {
-    const result = validateCurrentProjectMemory(root, contract);
-    assert.deepEqual(result.failures, []);
-  });
-});
-
-test("fails when a required structural heading disappears", () => {
-  const contract = validContract();
-  const memory = "# MoneyFlow — current project memory\nSee docs/context/README.md.\n";
-
-  withFixture(contract, memory, (root) => {
-    const result = validateCurrentProjectMemory(root, contract);
-    assert.ok(
-      result.failures.some((failure) =>
-        failure.includes("## 12. Superseded-status register"),
-      ),
-    );
-  });
-});
-
-test("fails when hard memory budgets are exceeded", () => {
-  const contract = validContract();
-  contract.currentProjectMemory.budget.hardMaxLines = 4;
-  const memory = [
-    "# MoneyFlow — current project memory",
-    "See docs/context/README.md.",
-    "one",
-    "two",
-    "## 12. Superseded-status register",
-    "",
-  ].join("\n");
-
-  withFixture(contract, memory, (root) => {
-    const result = validateCurrentProjectMemory(root, contract);
-    assert.ok(result.failures.some((failure) => failure.includes("hard hot-memory budget")));
-  });
-});
-
-test("rejects malformed or contradictory contract values", () => {
-  const contract = validContract();
-  contract.currentProjectMemory.budget.targetMinLines = 12;
-  contract.currentProjectMemory.budget.targetMaxLines = 8;
-  contract.statusAssertions.globalFeatureFreeze = true;
-  contract.supersededClaimIds.push(contract.supersededClaimIds[0]);
-
-  const failures = validateProjectKnowledgeContract(contract);
-  assert.ok(failures.some((failure) => failure.includes("targetMinLines")));
-  assert.ok(failures.some((failure) => failure.includes("globalFeatureFreeze")));
-  assert.ok(failures.some((failure) => failure.includes("duplicates")));
-});
-
-function withActivePacketFixture(files, run) {
-  const root = mkdtempSync(join(tmpdir(), "moneyflow-active-packets-"));
   try {
     for (const [path, content] of Object.entries(files)) {
       const target = join(root, path);
@@ -162,93 +41,74 @@ function withActivePacketFixture(files, run) {
   }
 }
 
-function authorityFiles(overrides = {}) {
-  return {
-    "docs/plans/PLAN_AUTHORITY.json": `${JSON.stringify(
-      {
-        schemaVersion: 2,
-        master: {
-          path: "docs/plans/active/master.md",
-          introducedByPr: 433,
-          supersedes: [],
-        },
-        current: {
-          path: "docs/plans/active/current.md",
-          introducedByPr: 528,
-        },
-      },
-      null,
-      2,
-    )}\n`,
-    "docs/plans/active/README.md": [
-      "# MoneyFlow — active-plan pointer",
-      "**Status:** retired as executable authority",
-      "",
-    ].join("\n"),
-    "docs/plans/active/master.md": "# Master\n",
-    "docs/plans/active/current.md": "# Current\n",
-    ...overrides,
-  };
-}
-
-test("active packet validation follows manifest authority, not a Markdown table", () => {
-  withActivePacketFixture(authorityFiles(), (root) => {
-    assert.deepEqual(validateActivePacketRegistry(root), []);
-  });
-
-  withActivePacketFixture(
-    authorityFiles({
-      "docs/plans/PLAN_AUTHORITY.json": `${JSON.stringify(
-        {
-          schemaVersion: 2,
-          master: {
-            path: "docs/plans/active/master.md",
-            introducedByPr: 433,
-            supersedes: [],
-          },
-          current: {
-            path: "docs/plans/active/missing.md",
-            introducedByPr: 528,
-          },
-        },
-        null,
-        2,
-      )}\n`,
-    }),
+test("accepts the durable project knowledge contract", () => {
+  const contract = validContract();
+  withFixture(
+    { [PROJECT_KNOWLEDGE_CONTRACT_PATH]: `${JSON.stringify(contract, null, 2)}\n` },
     (root) => {
-      assert.ok(
-        validateActivePacketRegistry(root).some((failure) =>
-          failure.includes("current packet is missing"),
-        ),
-      );
+      const loaded = loadProjectKnowledgeContract(root);
+      assert.deepEqual(loaded.failures, []);
+      assert.deepEqual(loaded.contract, contract);
     },
   );
 });
 
-test("retired board pointer cannot silently regain authority semantics", () => {
-  withActivePacketFixture(
-    authorityFiles({
-      "docs/plans/active/README.md": "# Current Work Board\n| Packet | Role |\n",
-    }),
-    (root) => {
-      assert.ok(
-        validateActivePacketRegistry(root).some((failure) =>
-          failure.includes("retired compatibility pointer"),
-        ),
-      );
-    },
-  );
+test("rejects malformed or contradictory contract values", () => {
+  const contract = validContract();
+  contract.statusAssertions.globalFeatureFreeze = true;
+  contract.supersededClaimIds.push(contract.supersededClaimIds[0]);
+
+  const failures = validateProjectKnowledgeContract(contract);
+  assert.ok(failures.some((failure) => failure.includes("globalFeatureFreeze")));
+  assert.ok(failures.some((failure) => failure.includes("duplicates")));
 });
 
-test("rejects a default authority route to an archived or missing active packet", () => {
-  withActivePacketFixture(
+test("rejects the removed schema rather than silently accepting stale tracking state", () => {
+  const contract = { ...validContract(), schemaVersion: 1, currentProjectMemory: {} };
+  const failures = validateProjectKnowledgeContract(contract);
+  assert.ok(failures.some((failure) => failure.includes("schemaVersion must equal 2")));
+});
+
+test("active packet directory cannot silently regain queue semantics", () => {
+  withFixture(
     {
-      ...authorityFiles(),
-      "README.md": "See docs/plans/active/retired.md.\n",
+      "docs/plans/active/README.md": [
+        "# MoneyFlow — active plan packets",
+        "**Status:** packet directory, not a queue or authority source",
+        "",
+      ].join("\n"),
+    },
+    (root) => assert.deepEqual(validateActivePacketRegistry(root), []),
+  );
+
+  withFixture(
+    {
+      "docs/plans/active/README.md": "# Current Work Board\n| NOW | NEXT |\n",
     },
     (root) => {
-      assert.deepEqual(validateAuthorityPacketReferences(root, ["README.md"]), [
-        "README.md references missing active packet: retired.md",
+      assert.ok(validateActivePacketRegistry(root).length > 0);
+    },
+  );
+});
+
+test("active packet references must resolve without selecting execution authority", () => {
+  withFixture(
+    {
+      "docs/plans/active/README.md": "**Status:** packet directory, not a queue or authority source\n",
+      "docs/plans/active/example.md": "# Example\n",
+      "README.md": "See docs/plans/active/example.md.\n",
+    },
+    (root) => assert.deepEqual(validateActivePacketReferences(root, ["README.md"]), []),
+  );
+
+  withFixture(
+    {
+      "docs/plans/active/README.md": "**Status:** packet directory, not a queue or authority source\n",
+      "README.md": "See docs/plans/active/missing.md.\n",
+    },
+    (root) => {
+      assert.deepEqual(validateActivePacketReferences(root, ["README.md"]), [
+        "README.md references missing active packet: missing.md",
       ]);
     },
   );

@@ -1,0 +1,293 @@
+import {
+  canonicalizeSourceExternalId,
+  type SourceIdentityScope,
+} from "./source-adapter.ts";
+
+export type BankExportProvider = "vietcombank" | "acb" | "vietinbank";
+
+export type BankExportEvidenceLevel =
+  | "confirmed"
+  | "observed-but-unverified"
+  | "unknown";
+
+export type BankExportArtifactFormat =
+  | "excel"
+  | "csv"
+  | "pdf"
+  | "unknown";
+
+export type BankExportReferenceStability =
+  | "source-stable"
+  | "display-only"
+  | "export-local"
+  | "unknown";
+
+export type BankExportEvidence<T> = {
+  value: T | null;
+  evidence: BankExportEvidenceLevel;
+  scope: string;
+};
+
+export type BankExportReferenceEvidence = {
+  value: string;
+  evidence: BankExportEvidenceLevel;
+  stability: BankExportReferenceStability;
+};
+
+export type BankExportCompatibility = {
+  provider: BankExportProvider;
+  displayName: string;
+  statementOrHistoryAvailable: BankExportEvidence<boolean>;
+  artifactFormat: BankExportEvidence<BankExportArtifactFormat>;
+  layoutHeaders: BankExportEvidence<readonly string[]>;
+  dateTimezone: BankExportEvidence<string>;
+  currency: BankExportEvidence<string>;
+  debitCreditDirection: BankExportEvidence<string>;
+  transactionStatus: BankExportEvidence<string>;
+  transactionReference: BankExportEvidence<BankExportReferenceStability>;
+  feeRepresentation: BankExportEvidence<string>;
+  overlapDedupe: BankExportEvidence<string>;
+  bankSpecificAutoMapSupported: boolean;
+  guidance: string;
+  sourceUrls: readonly string[];
+};
+
+export const BANK_EXPORT_PROVIDERS: readonly BankExportProvider[] = [
+  "vietcombank",
+  "acb",
+  "vietinbank",
+];
+
+const COMPATIBILITY: Record<BankExportProvider, BankExportCompatibility> = {
+  vietcombank: {
+    provider: "vietcombank",
+    displayName: "Vietcombank",
+    statementOrHistoryAvailable: {
+      value: true,
+      evidence: "confirmed",
+      scope: "VCB Digibank account transaction-history workflow",
+    },
+    artifactFormat: {
+      value: "excel",
+      evidence: "confirmed",
+      scope: "VCB Digibank history guide says “Xuất excel” after search",
+    },
+    layoutHeaders: {
+      value: null,
+      evidence: "unknown",
+      scope: "No current exported-file header schema was established",
+    },
+    dateTimezone: {
+      value: "Transaction/system dates are visible in first-party UI material; export timezone semantics are unknown",
+      evidence: "observed-but-unverified",
+      scope: "VCB Digibank history UI, not an exported-file contract",
+    },
+    currency: {
+      value: null,
+      evidence: "unknown",
+      scope: "Visible examples include VND but account/export currency semantics were not established",
+    },
+    debitCreditDirection: {
+      value: "UI separates Tiền vào / Tiền ra",
+      evidence: "observed-but-unverified",
+      scope: "VCB Digibank history UI, not exported headers",
+    },
+    transactionStatus: {
+      value: null,
+      evidence: "unknown",
+      scope: "No export lifecycle/status field established",
+    },
+    transactionReference: {
+      value: "display-only",
+      evidence: "observed-but-unverified",
+      scope: "UI displays Số tham chiếu; stability across exports is unproven",
+    },
+    feeRepresentation: {
+      value: null,
+      evidence: "unknown",
+      scope: "No exported fee-row/field contract established",
+    },
+    overlapDedupe: {
+      value: null,
+      evidence: "unknown",
+      scope: "No stable-ID or overlapping-export contract established",
+    },
+    bankSpecificAutoMapSupported: false,
+    guidance:
+      "VCB Digibank có Xuất Excel lịch sử giao dịch, nhưng MoneyFlow chưa xác minh cấu trúc cột hoặc mã giao dịch ổn định. Hãy dùng luồng import chung và kiểm tra mapping/dry-run trước khi ghi sổ.",
+    sourceUrls: [
+      "https://digibankm5.vietcombank.com.vn/get_file/ibomni/html/hdsd-ib/pages/vi/tinh-nang-giao-dich-ngan-hang/tai-khoan/3-lich-su-giao-dich.html",
+      "https://digibankm5.vietcombank.com.vn/get_file/ibomni/html/hdsdib/hdsd.pdf",
+    ],
+  },
+  acb: {
+    provider: "acb",
+    displayName: "ACB",
+    statementOrHistoryAvailable: {
+      value: true,
+      evidence: "confirmed",
+      scope: "ACB ONE standard personal-customer transaction history plus supported store-management flow",
+    },
+    artifactFormat: {
+      value: "excel",
+      evidence: "confirmed",
+      scope: "ACB ONE standard KHCN guide documents “Xuất file excel” for transaction listing; store-management guidance independently documents Excel download",
+    },
+    layoutHeaders: {
+      value: null,
+      evidence: "unknown",
+      scope: "Neither standard KHCN nor store-management evidence establishes the exact exported personal-account header contract",
+    },
+    dateTimezone: {
+      value: null,
+      evidence: "unknown",
+      scope: "Exact exported date/time/timezone contract was not established",
+    },
+    currency: {
+      value: null,
+      evidence: "unknown",
+      scope: "No universal exported currency-field contract established",
+    },
+    debitCreditDirection: {
+      value: null,
+      evidence: "unknown",
+      scope: "No exact exported debit/credit/sign convention established",
+    },
+    transactionStatus: {
+      value: "ACB ONE history UI documents đã thực hiện / chờ xử lý / đặt lịch",
+      evidence: "observed-but-unverified",
+      scope: "UI history states; not proven to be exported statement fields",
+    },
+    transactionReference: {
+      value: "unknown",
+      evidence: "unknown",
+      scope: "Standard KHCN guidance supports filtering/listing by reference, but does not establish a provider-stable exported transaction reference",
+    },
+    feeRepresentation: {
+      value: null,
+      evidence: "unknown",
+      scope: "No exported fee-row/field contract established",
+    },
+    overlapDedupe: {
+      value: null,
+      evidence: "unknown",
+      scope: "No stable-ID or overlapping-export contract established",
+    },
+    bankSpecificAutoMapSupported: false,
+    guidance:
+      "ACB ONE có luồng Xuất file Excel cho liệt kê giao dịch, nhưng cấu trúc cột và mã giao dịch ổn định chưa được xác minh. MoneyFlow chỉ dùng parser/mapping chung và không suy diễn trạng thái hay source ID từ file chưa xác minh.",
+    sourceUrls: [
+      "https://online.acb.com.vn/news/images/hdsd%20acbo%20khcn.pdf",
+      "https://acb.com.vn/giai-phap-quan-ly-cua-hang",
+      "https://acb.com.vn/acbwebsite/files/ACB_HDSD_Quanlycuahang.pdf",
+      "https://acb.com.vn/thu-vien/nhung-cau-hoi-thuong-gap-khi-tao-tai-khoan-ngan-hang-online",
+    ],
+  },
+  vietinbank: {
+    provider: "vietinbank",
+    displayName: "VietinBank",
+    statementOrHistoryAvailable: {
+      value: true,
+      evidence: "confirmed",
+      scope: "VietinBank iPay Web account history/statement and current first-party account/card guidance",
+    },
+    artifactFormat: {
+      value: "excel",
+      evidence: "confirmed",
+      scope: "VietinBank customer-support guidance says iPay Web can retrieve Excel detailed transaction data for the account",
+    },
+    layoutHeaders: {
+      value: null,
+      evidence: "unknown",
+      scope: "No current exported-file header schema established",
+    },
+    dateTimezone: {
+      value: "Current card material distinguishes posting-date concepts",
+      evidence: "observed-but-unverified",
+      scope: "Card statement/history concepts; not a target export contract",
+    },
+    currency: {
+      value: null,
+      evidence: "unknown",
+      scope: "No target export currency-field contract established",
+    },
+    debitCreditDirection: {
+      value: null,
+      evidence: "unknown",
+      scope: "No target export debit/credit/sign convention established",
+    },
+    transactionStatus: {
+      value: null,
+      evidence: "unknown",
+      scope: "No downloadable source-lifecycle/status field established",
+    },
+    transactionReference: {
+      value: "source-stable",
+      evidence: "observed-but-unverified",
+      scope: "Two public eFAST statements for the same account with overlapping 31-03-2026 coverage preserve Transaction number values 1942, 1943 and 1944 with matching row semantics; this is observed overlap evidence, not a provider guarantee",
+    },
+    feeRepresentation: {
+      value: "Public eFAST statements show service-fee and VAT rows as ordinary debits",
+      evidence: "observed-but-unverified",
+      scope: "Observed public eFAST statements; not a guaranteed provider export contract",
+    },
+    overlapDedupe: {
+      value: "Observed overlapping eFAST windows preserve transaction numbers and row semantics; MoneyFlow still requires confirmed identity evidence before persisting sourceExternalId and retains fingerprint duplicate fallback",
+      evidence: "observed-but-unverified",
+      scope: "Same-account public eFAST statements overlapping on 31-03-2026 plus MoneyFlow overlap pgTAP; not a provider guarantee",
+    },
+    bankSpecificAutoMapSupported: false,
+    guidance:
+      "VietinBank iPay Web có thể xuất dữ liệu giao dịch chi tiết dạng Excel. Public overlap evidence cho thấy Transaction number có thể ổn định qua hai kỳ chồng lấn, nhưng bằng chứng vẫn chưa đạt mức provider-confirmed nên MoneyFlow chưa dùng nó làm source ID và chưa bật auto-map. Tiếp tục dùng import chung + review/dedupe fallback.",
+    sourceUrls: [
+      "https://contact.vietinbank.vn/blog/obj_faq_42767083/fld_faqid_63024046/FAQ42",
+      "https://www.vietinbank.vn/assets/cfa87952-5eb4-496d-b780-5b21335ba19f",
+      "https://www.vietinbank.vn/assets/9a43a89d-a5c7-4655-8e28-2871c449359b",
+      "https://www.studocu.vn/vn/document/truong-dai-hoc-ngoai-thuong/ke-toan-tai-chinh/lich-su-giao-dich-tai-khoan-vietinbank-efast-29062026/167509901",
+      "https://www.studocu.vn/vn/document/truong-dai-hoc-ngoai-thuong/ke-toan-tai-chinh/lich-su-giao-dich-tai-khoan-vietinbank-efast-118002939123/167509907",
+    ],
+  },
+};
+
+export function getBankExportCompatibility(
+  provider: BankExportProvider,
+): BankExportCompatibility {
+  return COMPATIBILITY[provider];
+}
+
+export function listBankExportCompatibility(): BankExportCompatibility[] {
+  return BANK_EXPORT_PROVIDERS.map((provider) => COMPATIBILITY[provider]);
+}
+
+/**
+ * A provider reference is not persistence-safe without an evidence-backed
+ * namespace. The helper therefore delegates to the source-adapter identity
+ * contract instead of returning a raw bank reference.
+ */
+export function sourceExternalIdFromProviderReference(
+  reference: BankExportReferenceEvidence | null | undefined,
+  scope: SourceIdentityScope | null | undefined,
+): string | undefined {
+  if (!reference || !scope) return undefined;
+  return canonicalizeSourceExternalId({
+    value: reference.value,
+    evidence: reference.evidence,
+    stability: reference.stability,
+    scope,
+  });
+}
+
+export function canUseBankSpecificAutoMap(
+  provider: BankExportProvider,
+): boolean {
+  const compatibility = getBankExportCompatibility(provider);
+  return (
+    compatibility.bankSpecificAutoMapSupported &&
+    compatibility.artifactFormat.evidence === "confirmed" &&
+    compatibility.artifactFormat.value !== null &&
+    compatibility.artifactFormat.value !== "unknown" &&
+    compatibility.layoutHeaders.evidence === "confirmed" &&
+    Array.isArray(compatibility.layoutHeaders.value) &&
+    compatibility.layoutHeaders.value.length > 0
+  );
+}

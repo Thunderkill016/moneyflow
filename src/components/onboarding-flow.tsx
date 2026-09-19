@@ -35,7 +35,8 @@ import styles from "./onboarding-flow.module.css";
 function subscribeOnboardingStorage(onStoreChange: () => void) {
   if (typeof window === "undefined") return () => {};
   const handler = (event: StorageEvent) => {
-    if (event.key === ONBOARDING_STORAGE_KEY || event.key === null) onStoreChange();
+    if (event.key === ONBOARDING_STORAGE_KEY || event.key === null)
+      onStoreChange();
   };
   window.addEventListener("storage", handler);
   return () => window.removeEventListener("storage", handler);
@@ -43,7 +44,9 @@ function subscribeOnboardingStorage(onStoreChange: () => void) {
 
 function getOnboardingDoneSnapshot() {
   try {
-    return isOnboardingDoneValue(window.localStorage.getItem(ONBOARDING_STORAGE_KEY));
+    return isOnboardingDoneValue(
+      window.localStorage.getItem(ONBOARDING_STORAGE_KEY),
+    );
   } catch {
     return false;
   }
@@ -64,7 +67,9 @@ function finishAndGo(
     trackProductEvent("onboarding_completed", { how });
     router.push(href);
   } catch {
-    onError("Không lưu được tiến trình trên thiết bị này. Thử lại hoặc dùng trình duyệt khác.");
+    onError(
+      "Không lưu được tiến trình trên thiết bị này. Thử lại hoặc dùng trình duyệt khác.",
+    );
   }
 }
 
@@ -73,7 +78,10 @@ export function OnboardingFlow({
   isDemo = true,
 }: {
   /** Active cash wallet from server/demo seed, if any. */
-  initialCash?: Pick<AccountSummary, "id" | "name" | "kind" | "initialBalance" | "isArchived"> | null;
+  initialCash?: Pick<
+    AccountSummary,
+    "id" | "name" | "kind" | "initialBalance" | "isArchived"
+  > | null;
   isDemo?: boolean;
 }) {
   const router = useRouter();
@@ -87,10 +95,14 @@ export function OnboardingFlow({
   const seed = draftFromCashWallet(initialCash);
   const [walletName, setWalletName] = useState(seed.name);
   const [balanceInput, setBalanceInput] = useState(
-    seed.initialBalance > 0 ? formatMoneyInput(String(seed.initialBalance)) : "",
+    seed.initialBalance > 0
+      ? formatMoneyInput(String(seed.initialBalance))
+      : "",
   );
   const [cashId, setCashId] = useState<string | undefined>(initialCash?.id);
-  const [walletConfirmed, setWalletConfirmed] = useState(false);
+  const [walletSaveState, setWalletSaveState] = useState<
+    "idle" | "confirmed" | "fallback"
+  >("idle");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -129,7 +141,7 @@ export function OnboardingFlow({
     try {
       if (isDemo) {
         // Demo / no server write: confirm UI only (seed cash already exists in demo).
-        setWalletConfirmed(true);
+        setWalletSaveState("confirmed");
         setStep(3);
         return;
       }
@@ -138,17 +150,19 @@ export function OnboardingFlow({
       const result = await saveAccountAction(input);
       if (!result.ok) {
         // New users usually already have seed "Tiền mặt" — still allow continue.
-        setError(result.message || "Chưa lưu được ví. Bạn vẫn có thể tiếp tục.");
-        setWalletConfirmed(true);
+        setError(
+          result.message || "Chưa lưu được ví. Bạn vẫn có thể tiếp tục.",
+        );
+        setWalletSaveState("fallback");
         setStep(3);
         return;
       }
       if (result.account?.id) setCashId(result.account.id);
-      setWalletConfirmed(true);
+      setWalletSaveState("confirmed");
       setStep(3);
     } catch {
       setError("Mất kết nối khi lưu ví. Bạn vẫn có thể tiếp tục.");
-      setWalletConfirmed(true);
+      setWalletSaveState("fallback");
       setStep(3);
     } finally {
       setSaving(false);
@@ -157,7 +171,12 @@ export function OnboardingFlow({
 
   function goQuickExpense() {
     setError(null);
-    finishAndGo(router, ONBOARDING_QUICK_EXPENSE_HREF, setError, "quick_expense");
+    finishAndGo(
+      router,
+      ONBOARDING_QUICK_EXPENSE_HREF,
+      setError,
+      "quick_expense",
+    );
   }
 
   function finishToInsights() {
@@ -167,7 +186,11 @@ export function OnboardingFlow({
 
   if (alreadyDone) {
     return (
-      <main className={styles.page} aria-busy="true" aria-label="Đang chuyển hướng">
+      <main
+        className={styles.page}
+        aria-busy="true"
+        aria-label="Đang chuyển hướng"
+      >
         <div className={styles.card}>
           <div className={`${styles.loadingLine} ${styles.wide}`} />
           <div className={styles.loadingLine} />
@@ -202,13 +225,20 @@ export function OnboardingFlow({
           >
             {ONBOARDING_STEPS.map((item) => {
               const state =
-                item.step < step ? styles.isDone : item.step === step ? styles.isActive : "";
+                item.step < step
+                  ? styles.isDone
+                  : item.step === step
+                    ? styles.isActive
+                    : "";
               return (
                 <span key={item.step} className={state}>
                   <span className={styles.progressDot} aria-hidden="true" />
                   <span className={styles.progressStepLabel}>
                     {item.step}/{ONBOARDING_STEP_COUNT}
-                    <span className={styles.progressStepName}> · {item.shortLabel}</span>
+                    <span className={styles.progressStepName}>
+                      {" "}
+                      · {item.shortLabel}
+                    </span>
                   </span>
                 </span>
               );
@@ -217,10 +247,14 @@ export function OnboardingFlow({
         </div>
 
         {step === 1 && (
-          <section className={styles.step} aria-labelledby={`${baseId}-step1-title`}>
+          <section
+            className={styles.step}
+            aria-labelledby={`${baseId}-step1-title`}
+          >
             <h1 id={`${baseId}-step1-title`}>Bạn kiểm soát dữ liệu</h1>
             <p className={styles.lead}>
-              MoneyFlow là sổ thu chi cá nhân — không kết nối ngân hàng, không lấy mật khẩu NH.
+              MoneyFlow là sổ thu chi cá nhân — không kết nối ngân hàng, không
+              lấy mật khẩu NH.
             </p>
             <ul className={styles.promises}>
               {TRUST_PROMISES.map((text) => (
@@ -247,7 +281,10 @@ export function OnboardingFlow({
         )}
 
         {step === 2 && (
-          <section className={styles.step} aria-labelledby={`${baseId}-step2-title`}>
+          <section
+            className={styles.step}
+            aria-labelledby={`${baseId}-step2-title`}
+          >
             <h1 id={`${baseId}-step2-title`}>Xác nhận ví tiền mặt</h1>
             <p className={styles.lead}>
               {cashId
@@ -272,7 +309,10 @@ export function OnboardingFlow({
                   placeholder={DEFAULT_CASH_WALLET_NAME}
                 />
               </label>
-              <label className={styles.field} htmlFor={`${baseId}-wallet-balance`}>
+              <label
+                className={styles.field}
+                htmlFor={`${baseId}-wallet-balance`}
+              >
                 <span>Số dư ban đầu ({DEFAULT_CASH_WALLET_CURRENCY} · ₫)</span>
                 <input
                   id={`${baseId}-wallet-balance`}
@@ -289,8 +329,9 @@ export function OnboardingFlow({
                 />
               </label>
               <p className={styles.currencyHint} role="note">
-                Tiền tệ mặc định: <strong>{DEFAULT_CASH_WALLET_CURRENCY}</strong> (đồng Việt Nam). Đổi
-                loại ví khác sau trong Tài khoản.
+                Tiền tệ mặc định:{" "}
+                <strong>{DEFAULT_CASH_WALLET_CURRENCY}</strong> (đồng Việt Nam).
+                Đổi loại ví khác sau trong Tài khoản.
               </p>
             </div>
 
@@ -317,7 +358,11 @@ export function OnboardingFlow({
                 onClick={() => void confirmWallet()}
                 disabled={saving}
               >
-                {saving ? "Đang lưu…" : cashId ? "Xác nhận ví" : "Tạo ví tiền mặt"}
+                {saving
+                  ? "Đang lưu…"
+                  : cashId
+                    ? "Xác nhận ví"
+                    : "Tạo ví tiền mặt"}
                 {!saving && <Icon name="arrowRight" />}
               </Button>
             </div>
@@ -325,19 +370,29 @@ export function OnboardingFlow({
         )}
 
         {step === 3 && (
-          <section className={styles.step} aria-labelledby={`${baseId}-step3-title`}>
+          <section
+            className={styles.step}
+            aria-labelledby={`${baseId}-step3-title`}
+          >
             <h1 id={`${baseId}-step3-title`}>Ghi chi tiêu đầu tiên?</h1>
             <p className={styles.lead}>
-              Không bắt buộc. Bạn có thể ghi một khoản chi nhanh, hoặc vào Tổng quan ngay.
-              {walletConfirmed ? " Ví tiền mặt đã sẵn sàng." : ""}
+              Không bắt buộc. Bạn có thể ghi một khoản chi nhanh, hoặc vào Tổng
+              quan ngay.
+              {walletSaveState === "confirmed" &&
+                " Ví tiền mặt đã được xác nhận."}
+              {walletSaveState === "fallback" &&
+                " Chưa xác nhận được thay đổi ví; bạn có thể thử lại bên dưới."}
             </p>
 
             <div className={styles.summary} role="status">
               <strong>
-                Ví: {walletName.trim() || DEFAULT_CASH_WALLET_NAME} · {DEFAULT_CASH_WALLET_CURRENCY}
+                Ví: {walletName.trim() || DEFAULT_CASH_WALLET_NAME} ·{" "}
+                {DEFAULT_CASH_WALLET_CURRENCY}
               </strong>
               <span>
-                Paste / tải sao kê là tùy chọn sau — không phải bước bắt buộc lúc mới vào.
+                {walletSaveState === "fallback"
+                  ? "Dữ liệu nhập vẫn còn trên màn hình. Quay lại để thử lưu ví lần nữa."
+                  : "Paste / tải sao kê là tùy chọn sau — không phải bước bắt buộc lúc mới vào."}
               </span>
             </div>
 

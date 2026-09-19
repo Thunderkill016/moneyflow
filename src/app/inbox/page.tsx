@@ -4,8 +4,8 @@ import { requireViewer } from "@/server/auth";
 import { getFinanceWorkspace } from "@/server/finance";
 
 export const metadata: Metadata = {
-  title: "Inbox — Money Flow",
-  description: "Hộp thư tài chính — duyệt giao dịch trước khi vào sổ.",
+  title: "Cần xem — Money Flow",
+  description: "Duyệt giao dịch cần xử lý trước khi ghi vào sổ.",
 };
 
 export default async function Page() {

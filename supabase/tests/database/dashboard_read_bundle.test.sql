@@ -1,5 +1,5 @@
 begin;
-select plan(12);
+select plan(16);
 
 select has_function(
   'public',
@@ -172,6 +172,72 @@ insert into dashboard_test_context values (
   )
 );
 
+-- Make tenant B clean through yesterday while tenant A has older unresolved
+-- work. The bundled trust object must remain scoped to tenant B.
+reset role;
+
+insert into public.account_reconciliations (
+  user_id,
+  account_id,
+  statement_date,
+  statement_balance_minor,
+  status,
+  calculated_balance_minor,
+  pending_account_leg_count,
+  cleared_account_leg_count,
+  reconciled_account_leg_count,
+  completed_at
+) values
+(
+  '00000000-0000-4000-8000-00000000db01',
+  (select id from dashboard_test_context where key = 'b_account'),
+  current_date - 1,
+  0,
+  'completed',
+  0,
+  0,
+  0,
+  0,
+  now()
+),
+(
+  '00000000-0000-4000-8000-00000000db01',
+  (select id from dashboard_test_context where key = 'b_named_account'),
+  current_date - 1,
+  0,
+  'completed',
+  0,
+  0,
+  0,
+  0,
+  now()
+);
+
+insert into public.inbox_candidates (
+  user_id,
+  kind,
+  amount_minor,
+  merchant,
+  occurred_on,
+  source,
+  confidence
+) values (
+  '00000000-0000-4000-8000-00000000da01',
+  'expense',
+  500,
+  'Only A unresolved',
+  current_date - 2,
+  'csv',
+  'high'
+);
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  '00000000-0000-4000-8000-00000000db01',
+  true
+);
+
 select throws_ok(
   $$select public.get_dashboard_bundle(current_date, current_date - 46, 5)$$,
   'P0001',
@@ -199,9 +265,36 @@ select ok(
     'commitments',
     'income_templates',
     'goals',
-    'pending_inbox_count'
+    'pending_inbox_count',
+    'ledger_trust'
   ],
-  'dashboard bundle returns every required section'
+  'dashboard bundle returns every required section including ledger trust'
+);
+
+select is(
+  (select bundle #>> '{ledger_trust,status}' from dashboard_test_result),
+  'trusted'::text,
+  'tenant B bundled trust uses tenant B clean reconciliations'
+);
+
+select is(
+  (select bundle #>> '{ledger_trust,coverage_scope}' from dashboard_test_result),
+  'known_ledger_state_only'::text,
+  'bundled trust preserves the external-source completeness boundary'
+);
+
+select is(
+  (select (bundle #>> '{ledger_trust,active_account_count}')::integer
+   from dashboard_test_result),
+  2,
+  'bundled trust counts only tenant B active accounts'
+);
+
+select is(
+  (select (bundle #>> '{ledger_trust,pending_inbox_count}')::bigint
+   from dashboard_test_result),
+  0::bigint,
+  'tenant A unresolved Inbox work cannot limit tenant B bundled trust'
 );
 
 select ok(
