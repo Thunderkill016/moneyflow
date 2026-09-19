@@ -190,6 +190,15 @@ test("the CodeQL and secret-history contexts cannot report not-applicable", () =
   assert.deepEqual(strict, ["Gitleaks all refs", "Analyze JavaScript and TypeScript"]);
 });
 
+test("security workflows retain the permissions required by their real scans", () => {
+  const codeql = readFileSync(".github/workflows/codeql.yml", "utf8");
+  assert.match(codeql, /permissions:\n  actions: read\n  contents: read/u);
+
+  const secretHistory = readFileSync(".github/workflows/secret-history.yml", "utf8");
+  assert.match(secretHistory, /fetch-depth: 0\n          persist-credentials: true/u);
+  assert.match(secretHistory, /permissions:\n  contents: read/u);
+});
+
 test("local green is explicitly not completion", () => {
   const decision = buildPolicyDecision(["src/lib/week.ts"]);
   assert.equal(decision.completion.localGreenIsCompletion, false);
