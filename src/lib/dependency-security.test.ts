@@ -24,6 +24,8 @@ const MIN_NANOID = "3.3.18"; // nanoid: custom generators can loop indefinitely
 const MIN_BROWSERLIST = "4.28.7"; // GHSA-c83g-rgw3-j3cx + GHSA-73wf-gq98-2v4g
 const MIN_QS = "6.16.0"; // GHSA-x5fp-wj9c-mxmx + GHSA-4mjr-xmp4-gh2g
 const MIN_FAST_URI = "3.1.6"; // 2026-08 fast-uri host-confusion / SSRF advisories
+const MIN_HONO = "4.13.5"; // path traversal, parser exhaustion and URL interpretation advisories
+const MIN_JS_YAML = "4.3.2"; // GHSA-2883-xcg3-v3hh merge-key CPU exhaustion
 const VETTED_NEXT = "16.3.4"; // >= 16.3.3 patched floor for the 2026-08-25 Critical advisories
 const VETTED_SHARP = "0.35.4";
 
@@ -59,7 +61,7 @@ test("untrusted Excel imports use patched SheetJS 0.20.3", () => {
   assert.equal(installed?.resolved, PATCHED_XLSX_SOURCE);
 });
 
-test("framework runtime uses patched Next, PostCSS, Sharp, Browserslist, qs and fast-uri releases", () => {
+test("dependency tree stays above patched security floors", () => {
   const packageJson = readJson("package.json") as {
     dependencies?: Record<string, string>;
     devDependencies?: Record<string, string>;
@@ -70,7 +72,10 @@ test("framework runtime uses patched Next, PostCSS, Sharp, Browserslist, qs and 
   };
 
   assert.equal(packageJson.dependencies?.next, VETTED_NEXT);
-  assert.equal(packageJson.devDependencies?.["eslint-config-next"], VETTED_NEXT);
+  assert.equal(
+    packageJson.devDependencies?.["eslint-config-next"],
+    VETTED_NEXT,
+  );
   /*
    * The postcss override is load-bearing, not tidiness: removing it lets Next
    * resolve a nested vulnerable postcss. It must stay, and it must stay patched.
@@ -104,9 +109,26 @@ test("framework runtime uses patched Next, PostCSS, Sharp, Browserslist, qs and 
     `fast-uri override ${fastUriOverride} is below the patched floor ${MIN_FAST_URI}`,
   );
 
+  const honoOverride = packageJson.overrides?.hono;
+  assert.ok(honoOverride, "the hono override must exist");
+  assert.ok(
+    isAtLeast(honoOverride, MIN_HONO),
+    `hono override ${honoOverride} is below the patched floor ${MIN_HONO}`,
+  );
+
+  const jsYamlOverride = packageJson.overrides?.["js-yaml"];
+  assert.ok(jsYamlOverride, "the js-yaml override must exist");
+  assert.ok(
+    isAtLeast(jsYamlOverride, MIN_JS_YAML),
+    `js-yaml override ${jsYamlOverride} is below the patched floor ${MIN_JS_YAML}`,
+  );
+
   assert.equal(lock.packages?.["node_modules/next"]?.version, VETTED_NEXT);
   assert.ok(
-    isAtLeast(lock.packages?.["node_modules/postcss"]?.version ?? "0.0.0", MIN_POSTCSS),
+    isAtLeast(
+      lock.packages?.["node_modules/postcss"]?.version ?? "0.0.0",
+      MIN_POSTCSS,
+    ),
   );
   assert.equal(lock.packages?.["node_modules/sharp"]?.version, VETTED_SHARP);
 
@@ -146,6 +168,18 @@ test("framework runtime uses patched Next, PostCSS, Sharp, Browserslist, qs and 
       assert.ok(
         isAtLeast(installed.version ?? "0.0.0", MIN_FAST_URI),
         `${path} resolves fast-uri ${installed.version}, below ${MIN_FAST_URI}`,
+      );
+    }
+    if (/(?:^|\/)node_modules\/hono$/.test(path)) {
+      assert.ok(
+        isAtLeast(installed.version ?? "0.0.0", MIN_HONO),
+        `${path} resolves hono ${installed.version}, below ${MIN_HONO}`,
+      );
+    }
+    if (/(?:^|\/)node_modules\/js-yaml$/.test(path)) {
+      assert.ok(
+        isAtLeast(installed.version ?? "0.0.0", MIN_JS_YAML),
+        `${path} resolves js-yaml ${installed.version}, below ${MIN_JS_YAML}`,
       );
     }
   }
