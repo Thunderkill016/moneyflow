@@ -182,12 +182,25 @@ test("provider checks are separate from local commands and never claimed as runn
 });
 
 test("the CodeQL and secret-history contexts cannot report not-applicable", () => {
-  // A no-op green CodeQL job creates a false green and an unmergeable PR; the
-  // secret scan is meaningless if it can opt out.
+  // A no-op green CodeQL job creates a false security claim; the secret scan is
+  // equally meaningless if it can opt out.
   const strict = PROVIDER_CHECK_CONTEXTS.filter((entry) => !entry.mayReportNotApplicable).map(
     (entry) => entry.context,
   );
   assert.deepEqual(strict, ["Gitleaks all refs", "Analyze JavaScript and TypeScript"]);
+});
+
+test("security workflows retain the permissions required by their real scans", () => {
+  const codeql = readFileSync(".github/workflows/codeql.yml", "utf8");
+  assert.match(codeql, /permissions:\n  actions: read\n  contents: read/u);
+  assert.match(codeql, /packages: read\n  security-events: write/u);
+  assert.doesNotMatch(codeql, /upload: never/u);
+  assert.doesNotMatch(codeql, /upload-database: false/u);
+  assert.doesNotMatch(codeql, /skip-queries: true/u);
+
+  const secretHistory = readFileSync(".github/workflows/secret-history.yml", "utf8");
+  assert.match(secretHistory, /fetch-depth: 0\n          persist-credentials: true/u);
+  assert.match(secretHistory, /permissions:\n  contents: read/u);
 });
 
 test("local green is explicitly not completion", () => {
