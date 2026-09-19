@@ -5,7 +5,7 @@
 **Active role:** evaluator  
 **Permission scope:** branch_write  
 **Owner:** repository owner + OpenCode  
-**Issue/PR:** follow-up required-check repair for PR #598  
+**Issue/PR:** [PR #599](https://github.com/Thunderkill016/moneyflow/pull/599), follow-up required-check repair for PR #598
 **Last updated:** 2026-09-19
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. State labels describe evidence and next allowed actions, not percentage complete.
@@ -180,7 +180,7 @@ GitHub workflow files own provider execution permissions; the existing agent-pol
 |---|---|---|---|---|
 | T1 | Document diagnosis, research and permission boundary | Owner authorization | This packet | done |
 | T2 | Add workflow permissions and regression tests | T1 | Focused diff + 191 local policy tests | done |
-| T3 | Create PR memory and run local gates | T2 | Local gates passed; PR memory awaits PR number | in_progress |
+| T3 | Create PR memory and run local gates | T2 | Local gates and `PR-599.md` | done |
 | T4 | Push and obtain exact-head provider evidence | T3 | Required checks | todo |
 | T5 | Owner reviews and merges dedicated repair | T4 | Merge decision | todo |
 
@@ -234,7 +234,7 @@ GitHub workflow files own provider execution permissions; the existing agent-pol
 ## Delivery record
 
 - Branch: `ci/repair-security-checks`
-- PR: pending
+- PR: [#599](https://github.com/Thunderkill016/moneyflow/pull/599)
 - Squash commit: pending owner action
 - CI run: pending; local evidence is 1,334 unit tests, 191 policy tests, production build, 148 demo browser tests, 30 authenticated browser passes with one configured skip, 595 UI-audit passes with 141 configured skips, and Gitleaks over 3,837 commits
 - Production deployment: not applicable
