@@ -1,10 +1,10 @@
 # Repair required security workflows
 
-**Status:** evaluating  
-**Execution state:** evaluating  
-**Active role:** evaluator  
-**Permission scope:** branch_write  
-**Owner:** repository owner + OpenCode  
+**Status:** evaluating
+**Execution state:** evaluating
+**Active role:** evaluator
+**Permission scope:** branch_write
+**Owner:** repository owner + OpenCode
 **Issue/PR:** [PR #599](https://github.com/Thunderkill016/moneyflow/pull/599), follow-up required-check repair for PR #598
 **Last updated:** 2026-09-19
 
@@ -12,14 +12,14 @@ Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. State labels describe eviden
 
 ## Outcome
 
-The existing Gitleaks and CodeQL required checks complete their real security work on private-repository pull requests instead of failing after authentication or provider-metadata access errors. Existing check identities, scan depth and fail-closed behavior remain unchanged.
+The existing Gitleaks and CodeQL required checks complete their real security work on private-repository pull requests instead of failing on unavailable provider features. Existing check identities, scan depth and fail-closed behavior remain unchanged.
 
 ## Repository reconnaissance
 
 ### Current behavior
 
 - `Gitleaks all refs` checks out full history with `persist-credentials: false`, then an explicit `git fetch` fails because the private repository requires authentication.
-- CodeQL scans all 648 JavaScript/TypeScript files and exports SARIF, then its action receives `403 Resource not accessible by integration` while reading the workflow run because the workflow does not grant `actions: read`.
+- CodeQL scans all 648 JavaScript/TypeScript files and exports SARIF. Adding `actions: read` exposed the underlying terminal error: GitHub rejects code-scanning uploads because this private repository does not have GitHub Code Security.
 - Browser tests on PR #598 passed, but evidence upload failed because Actions artifact storage was full. With explicit owner approval, 1,986 API records marked expired (29,058,215,460 bytes) were permanently deleted; both unexpired artifacts were preserved.
 - Scheduled runs on current `main` reproduce the Gitleaks and CodeQL failures, so neither failure was introduced by PR #598.
 
@@ -28,7 +28,7 @@ The existing Gitleaks and CodeQL required checks complete their real security wo
 | Area | Why it matters | Reuse/change/avoid |
 |---|---|---|
 | `.github/workflows/secret-history.yml` | Owns the required all-ref secret scan | Preserve scan command and read-only token; repair fetch authentication |
-| `.github/workflows/codeql.yml` | Owns the required exact-head CodeQL analysis | Add only workflow-run read access |
+| `.github/workflows/codeql.yml` | Owns the required exact-head CodeQL analysis | Run real queries without unavailable provider upload |
 | `scripts/agent-policy.test.mjs` | Guards required security-check contracts offline | Add regression assertions for both required permissions |
 | `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` | Defines Class 3 and stable required checks | Do not change policy or check identities |
 
@@ -54,7 +54,7 @@ The existing Gitleaks and CodeQL required checks complete their real security wo
 
 ### Research scope and source selection
 
-- Decision question: What minimum token access restores authenticated all-ref fetch and CodeQL analysis without weakening either check?
+- Decision question: What minimum configuration restores authenticated all-ref fetch and real CodeQL analysis without claiming unavailable private-repository code scanning?
 - Reference map consulted: not required; primary GitHub documentation and the pinned action documentation directly own this behavior.
 - Source budget: three focused official sources.
 - Expected decision or uncertainty to resolve: credential lifetime, least-privilege workflow permissions and artifact deletion semantics.
@@ -80,12 +80,14 @@ The existing Gitleaks and CodeQL required checks complete their real security wo
 | Persist checkout credential with `contents: read` | Native, minimal and cleaned up by checkout | Credential remains available to later steps in this trusted workflow | Selected |
 | Construct an authenticated remote/header manually | Can limit use to one command | More secret handling and shell complexity | Rejected |
 | Remove the explicit all-ref fetch | Smaller workflow | Relies implicitly on checkout ref layout and weakens the explicit all-ref contract | Rejected |
-| Grant CodeQL `actions: read` | Narrow access matching the failed read endpoint | Adds workflow-run metadata visibility | Selected |
+| Grant CodeQL `actions: read` and retain upload | Resolves metadata access | Upload still fails because private code scanning is unavailable | Rejected after exact-head evidence |
+| Run CodeQL with `upload: never` | Executes the same pinned queries without unavailable storage or billing changes | GitHub cannot retain alerts for review | Selected by owner |
+| Make the repository public or buy Code Security | Restores provider alert storage | Visibility or billing change outside this repair | Rejected by owner |
 | Skip/no-op failed checks | Green shell | Defeats required security evidence | Rejected |
 
 ### Research decision
 
-Use the built-in read-only `GITHUB_TOKEN` through checkout's supported credential persistence for Gitleaks, and add only `actions: read` for CodeQL. Preserve the scans, events, required identities and existing `security-events: write`. No third-party orchestration or broader provider permission is applicable.
+Use the built-in read-only `GITHUB_TOKEN` through checkout's supported credential persistence for Gitleaks. For CodeQL, retain `actions: read` for action metadata, remove unusable `security-events: write`, and set the pinned analyze action to `upload: never` with database upload disabled. Preserve query execution, events and required identities. No third-party orchestration or broader provider permission is applicable.
 
 ### Adoption review
 
@@ -105,7 +107,7 @@ Contributors cannot obtain mergeable exact-head evidence because required securi
 ### Acceptance criteria
 
 - [ ] Gitleaks can authenticate its explicit fetch while retaining only `contents: read`.
-- [ ] CodeQL can read required workflow-run metadata and upload real exact-head analysis.
+- [ ] CodeQL executes real exact-head queries and succeeds without attempting unavailable provider upload.
 - [ ] Offline policy tests fail if either permission is removed.
 - [ ] Required check names, triggers and scan commands remain unchanged.
 - [ ] Exact-head provider runs complete successfully after the repair.
@@ -124,7 +126,7 @@ Contributors cannot obtain mergeable exact-head evidence because required securi
 ### Financial and security constraints
 
 - No product, ledger, schema, RLS or production-data behavior changes.
-- Tokens remain least-privilege: Gitleaks `contents: read`; CodeQL `actions: read`, `contents: read`, `packages: read`, `security-events: write`.
+- Tokens remain least-privilege: Gitleaks `contents: read`; CodeQL `actions: read`, `contents: read` and `packages: read`.
 - No secret value is logged or committed.
 
 ### Out of scope
@@ -144,7 +146,9 @@ GitHub workflow files own provider execution permissions; the existing agent-pol
 | File/area | Change | Reason |
 |---|---|---|
 | `.github/workflows/secret-history.yml` | Persist checkout credentials explicitly | Authenticate the existing private-repository all-ref fetch |
-| `.github/workflows/codeql.yml` | Add `actions: read` | Allow the pinned CodeQL action to read workflow-run metadata |
+| `.github/workflows/codeql.yml` | Add metadata read; disable SARIF/database upload | Run pinned CodeQL queries within available provider capability |
+| `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` | Replace impossible upload claim with real local-analysis contract | Keep policy truthful for the private repository |
+| `scripts/agent-policy.mjs` | Describe the real fail-closed exact-head analysis | Keep machine projection aligned with policy |
 | `scripts/agent-policy.test.mjs` | Assert both permission contracts | Prevent recurrence |
 | This packet and PR memory | Record scope, permission and evidence | Required Class 3 provenance |
 
@@ -161,7 +165,8 @@ GitHub workflow files own provider execution permissions; the existing agent-pol
 |---|---|
 | Gitleaks token gains write access | Keep workflow-level permission at `contents: read` and assert it |
 | Credential is disabled again | Assert explicit `persist-credentials: true` adjacent to full-history checkout |
-| CodeQL receives broader access than needed | Add only `actions: read`; preserve existing explicit permissions |
+| CodeQL receives broader access than needed | Keep only read permissions and remove `security-events: write` |
+| Local CodeQL becomes a no-op | Assert `upload: never`, database upload off and no `skip-queries: true`; preserve init/analyze identity guards |
 | A successful shell replaces a real scan | Preserve action and scan steps plus required-identity tests |
 | Artifact quota remains stale after cleanup | Wait for provider recalculation and require fresh exact-head browser evidence |
 
@@ -172,7 +177,7 @@ GitHub workflow files own provider execution permissions; the existing agent-pol
 - Database: selected by fail-safe CI classification for workflow changes; no database truth changed.
 - Browser flow: selected by fail-safe CI classification; browser commands must pass and artifacts must upload after quota recalculation.
 - Responsive/visual: selected by fail-safe CI classification; no visual behavior changed.
-- Production/manual: exact-head GitHub Gitleaks and CodeQL runs; no deployment.
+- Production/manual: exact-head GitHub Gitleaks and fail-closed local CodeQL runs; no deployment.
 
 ## Tasks
 
@@ -192,6 +197,8 @@ GitHub workflow files own provider execution permissions; the existing agent-pol
 | 2026-09-19 | researcher | planner | specified | PR #598 logs, current-main scheduled failures, official sources | Provider recalculation timing | Define minimum repair and rollback |
 | 2026-09-19 | planner | implementer | planned | This packet and explicit deletion approval | Exact-head provider behavior | Implement tests and workflow changes |
 | 2026-09-20 | implementer | evaluator | evaluating | Workflow diff, regression test, local security/application/browser gates | Database and provider checks require GitHub runners | Create draft PR and verify exact head |
+| 2026-09-20 | evaluator | human_owner | specified | Exact-head scan completed but SARIF upload was rejected; API and official docs confirm private code scanning is disabled | Choose billing/visibility change, local analysis or pause | Select truthful CodeQL model |
+| 2026-09-20 | human_owner | implementer | implementing | Owner selected real local CodeQL analysis without upload | Exact-head behavior still unverified | Align workflow, policy and tests |
 
 ### Current permission boundary
 
@@ -220,7 +227,7 @@ GitHub workflow files own provider execution permissions; the existing agent-pol
 ### Review findings
 
 - Correctness: local workflow contracts and the exact Gitleaks all-ref command pass.
-- Security/ownership: permissions remain read-only except the existing required SARIF upload; no secret or product data was accessed.
+- Security/ownership: permissions are read-only; unavailable SARIF and database uploads are disabled; no secret or product data was accessed.
 - UI/UX/accessibility: not applicable.
 - Maintainability/duplication: the existing policy test suite owns both new assertions; no new test helper or parser was added.
 - Scope compliance: only the two failed workflows, their contract test and required provenance are changed.

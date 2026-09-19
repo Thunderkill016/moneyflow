@@ -280,9 +280,11 @@ export const PROVIDER_CHECK_CONTEXTS = Object.freeze([
   Object.freeze({
     context: "Analyze JavaScript and TypeScript",
     workflow: ".github/workflows/codeql.yml",
-    // Deliberately not "not applicable"-able: the code-scanning rule requires
-    // uploaded analysis data, so a no-op green job leaves the PR unmergeable.
-    proves: "a real uploaded CodeQL analysis for the exact head",
+    // Deliberately not "not applicable"-able: this private repository cannot
+    // use GitHub code scanning without a paid Code Security entitlement, so the
+    // workflow must run the real analysis
+    // locally rather than replace it with a no-op green job.
+    proves: "a real fail-closed CodeQL analysis for the exact head",
     mayReportNotApplicable: false,
   }),
 ]);
