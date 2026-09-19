@@ -1,8 +1,8 @@
 # Repair required security workflows
 
-**Status:** evaluating
-**Execution state:** evaluating
-**Active role:** evaluator
+**Status:** ready for review
+**Execution state:** review_ready
+**Active role:** human owner
 **Permission scope:** branch_write
 **Owner:** repository owner + OpenCode
 **Issue/PR:** [PR #599](https://github.com/Thunderkill016/moneyflow/pull/599), follow-up required-check repair for PR #598
@@ -109,11 +109,11 @@ Contributors cannot obtain mergeable exact-head evidence because required securi
 
 ### Acceptance criteria
 
-- [ ] Gitleaks can authenticate its explicit fetch while retaining only `contents: read`.
-- [ ] CodeQL executes real exact-head queries, uploads SARIF and succeeds through public-repository code scanning.
-- [ ] Offline policy tests fail if either permission is removed.
-- [ ] Required check names, triggers and scan commands remain unchanged.
-- [ ] Exact-head provider runs complete successfully after the repair.
+- [x] Gitleaks can authenticate its explicit fetch while retaining only `contents: read`.
+- [x] CodeQL executes real exact-head queries, uploads SARIF and succeeds through public-repository code scanning.
+- [x] Offline policy tests fail if either permission is removed.
+- [x] Required check names, triggers and scan commands remain unchanged.
+- [x] Exact-head provider runs complete successfully after the repair.
 
 ### Required states
 
@@ -189,7 +189,7 @@ GitHub workflow files own provider execution permissions; the existing agent-pol
 | T1 | Document diagnosis, research and permission boundary | Owner authorization | This packet | done |
 | T2 | Add workflow permissions and regression tests | T1 | Focused diff + 191 local policy tests | done |
 | T3 | Create PR memory and run local gates | T2 | Local gates and `PR-599.md` | done |
-| T4 | Push and obtain exact-head provider evidence | T3 | Required checks | todo |
+| T4 | Push and obtain exact-head provider evidence | T3 | Required checks | done |
 | T5 | Owner reviews and merges dedicated repair | T4 | Merge decision | todo |
 
 ## Handoff record
@@ -204,6 +204,7 @@ GitHub workflow files own provider execution permissions; the existing agent-pol
 | 2026-09-20 | human_owner | implementer | implementing | Owner selected real local CodeQL analysis without upload | Exact-head behavior still unverified | Align workflow, policy and tests |
 | 2026-09-20 | evaluator | human_owner | specified | Official CodeQL terms prohibit the selected automated private-repository use; local-only SARIF was neither retained nor finding-enforced | Choose public visibility, paid Code Security, OSS replacement or pause | Select a licensed security model |
 | 2026-09-20 | human_owner | implementer | implementing | Owner selected public repository visibility; provider read-back reports `public`, secret scanning enabled and push protection enabled | Uploaded exact-head CodeQL still unverified | Restore SARIF upload contract and rerun exact-head checks |
+| 2026-09-20 | evaluator | human_owner | review_ready | Head `e770aee56361bb260cdfee1e5b790bb6fc3f2727`; CodeQL run `35462743313`; Gitleaks run `35462743314`; CI run `35462743409`; provider reports zero CodeQL results across 87 rules and all evidence artifacts uploaded | Final evidence bookkeeping commit still needs exact-head checks | Review PR and decide merge after final head is green |
 
 ### Current permission boundary
 
@@ -220,8 +221,9 @@ GitHub workflow files own provider execution permissions; the existing agent-pol
 | Criterion | Evidence | Result |
 |---|---|---|
 | Minimum workflow permissions | Workflow diff plus 191 passing CI-policy tests | pass |
-| Real exact-head scans | Pending provider runs | pending |
-| Artifact storage cleanup | Provider API reports two retained unexpired artifacts | pass |
+| Real exact-head scans | CodeQL `35462743313` and Gitleaks `35462743314` on `e770aee56361bb260cdfee1e5b790bb6fc3f2727` | pass |
+| Artifact storage cleanup | Provider preserved the two original unexpired artifacts and accepted three new exact-head evidence uploads | pass |
+| Browser and responsive evidence | CI `35462743409`; both browser suites, UI audit, three uploads and aggregate `e2e` passed | pass |
 
 ### Research and adoption evidence
 
@@ -239,9 +241,8 @@ GitHub workflow files own provider execution permissions; the existing agent-pol
 
 ### Remaining limitations
 
-- GitHub may take 6-12 hours to recalculate artifact usage after deletion.
-- The first post-cleanup rerun occurred inside that recalculation window and reproduced only the three artifact quota failures; all browser/UI test commands passed.
-- Local database verification was unavailable because Docker is absent; the fail-safe CI classifier will run it on GitHub.
+- GitHub's storage recalculation completed: the accepted CI run uploaded all three evidence artifacts, and the API reports five unexpired artifacts totaling 44,686,909 bytes.
+- Local database verification was unavailable because Docker is absent; exact-head provider CI completed fresh reset, pgTAP and archive round trips successfully.
 - The first local authenticated browser invocation nested `npx` inside a temporary `npx` environment, causing Lighthouse resolution to fail. The cause was reproduced directly; the complete suite passed with Node 22.23.2/npm 10.9.8 placed on `PATH`, matching setup-node rather than nested execution.
 
 ## Delivery record
@@ -249,7 +250,7 @@ GitHub workflow files own provider execution permissions; the existing agent-pol
 - Branch: `ci/repair-security-checks`
 - PR: [#599](https://github.com/Thunderkill016/moneyflow/pull/599)
 - Squash commit: pending owner action
-- CI run: pending; local evidence is 1,334 unit tests, 191 policy tests, production build, 148 demo browser tests, 30 authenticated browser passes with one configured skip, 595 UI-audit passes with 141 configured skips, and Gitleaks over 3,837 commits
+- CI run: `35462743409` passed on `e770aee56361bb260cdfee1e5b790bb6fc3f2727`; CodeQL `35462743313` and Gitleaks `35462743314` passed. Local evidence is 1,334 unit tests, 191 policy tests, production build, 148 demo browser tests, 30 authenticated browser passes with one configured skip, 595 UI-audit passes with 141 configured skips, and Gitleaks over 3,837 commits.
 - Production deployment: not applicable
 - Production flow verified: not applicable
 - Work packet moved to `docs/plans/completed/`: pending completion
