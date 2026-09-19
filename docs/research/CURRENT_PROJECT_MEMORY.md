@@ -1,8 +1,8 @@
 # MoneyFlow — current project memory
 
-**Status:** #536 is the selected active Class 3 security/runtime/auth slice. PR #540 is Ready for review and carries the repository-side dependency remediation plus a Share Target lifecycle repair; it is not merged or deployed, so production remains on the pre-#540 runtime. Read-only provider/database reconciliation on 2026-09-03 fully classified the current live SECURITY DEFINER warning set and proved the Aug-21–25 production migration/schema gap at contract level. Production database/Auth writes remain owner-gated.
-**Last reconciled:** 2026-09-03
-**Merged main baseline:** `425af4508e547de28fb372eedbcb07ced226d522` (PR #539)
+**Status:** #536 is the selected active Class 3 security/runtime/auth slice. PR #540 merged the repository-side runtime remediation and Share Target lifecycle repair as `10c832aa`; production deployment verification remains open. Draft PR #598 carries follow-up Hono/js-yaml remediation after later advisory disclosures. Read-only provider/database reconciliation on 2026-09-03 classified the live SECURITY DEFINER warning set and proved the Aug-21–25 production schema gap. Production database/Auth writes remain owner-gated.
+**Last reconciled:** 2026-09-19
+**Merged main baseline:** `10c832aaaf27a6bf5406578871708789f4b1b14d` (PR #540)
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs.
 
 ## 1. Current decision
@@ -13,7 +13,7 @@ Merged #432/#433 remains the master product program. PR #538 completed performan
 
 #536 is release-blocking: patch the vulnerable Next.js runtime line, preserve auth/tenant/financial guarantees, reconcile production database migration/schema state with repository contracts, and resolve leaked-password protection before public-beta acceptance through an explicitly authorized reversible provider decision.
 
-PR #540 is the current Ready-for-review repository implementation candidate. It does **not** close #536, change production database functions/grants/migration history, change Supabase Auth configuration, merge itself, or deploy production.
+PR #540 is merged on `main`, but no repository evidence proves the patched tree is deployed. Draft PR #598 is the current follow-up dependency candidate. Neither PR closes #536 or authorizes production database, Supabase Auth or deployment writes.
 
 ## 2. Current runtime and financial truth
 
@@ -51,24 +51,24 @@ PR #538 merged the #527 performance slice. Same-methodology `/dashboard` medians
 
 ## 5. Current capability inventory
 
-| Capability | Current truth |
-|---|---|
-| Core ledger | multiple accounts; income, expense, balanced transfers; edit; recoverable deletion |
-| Accounts | balances, register/history, create/edit/archive/restore, statement reconciliation |
-| Planning | category budgets, recurring commitments/income, savings goals |
-| Understanding | reports, drill-downs, controlled import/export |
-| Acquisition | repository supports batches/candidates/provenance, exact source matching, Direct CSV atomic approval, Share Target and deterministic rules; production DB lacks the later Aug-21–25 contracts |
-| Review | exception-first Ready/Needs-attention grouped review from PR #522 |
-| Ownership | versioned archive/export/validation/restore contract |
-| Runtime modes | explicit demo and authenticated/Supabase-RLS modes |
-| Performance | #527 completed with material dashboard client-cost reduction; field score 39 remains unresolved provenance |
-| Public beta | blocked by active #536 runtime deployment, production DB parity and provider/Auth acceptance |
+| Capability    | Current truth                                                                                                                                                                                 |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Core ledger   | multiple accounts; income, expense, balanced transfers; edit; recoverable deletion                                                                                                            |
+| Accounts      | balances, register/history, create/edit/archive/restore, statement reconciliation                                                                                                             |
+| Planning      | category budgets, recurring commitments/income, savings goals                                                                                                                                 |
+| Understanding | reports, drill-downs, controlled import/export                                                                                                                                                |
+| Acquisition   | repository supports batches/candidates/provenance, exact source matching, Direct CSV atomic approval, Share Target and deterministic rules; production DB lacks the later Aug-21–25 contracts |
+| Review        | exception-first Ready/Needs-attention grouped review from PR #522                                                                                                                             |
+| Ownership     | versioned archive/export/validation/restore contract                                                                                                                                          |
+| Runtime modes | explicit demo and authenticated/Supabase-RLS modes                                                                                                                                            |
+| Performance   | #527 completed with material dashboard client-cost reduction; field score 39 remains unresolved provenance                                                                                    |
+| Public beta   | blocked by active #536 runtime deployment, production DB parity and provider/Auth acceptance                                                                                                  |
 
 ## 6. Security and delivery truth
 
-Merged `main` at `425af450...` still pins Next.js 16.2.11 / `eslint-config-next` 16.2.12 and React / React DOM 19.2.4. Official Next.js security guidance published 2026-08-25 places Next 16.2.11 inside two Critical advisory affected ranges and patches the 16.x line at 16.3.3.
+Merged `main` at `10c832aa...` pins Next.js / `eslint-config-next` 16.3.4 and React / React DOM 19.2.4. Production deployment of that merged tree has not been verified in repository evidence.
 
-Ready-for-review PR #540 proposes:
+Merged PR #540 delivered:
 
 - Next.js 16.3.4 and `eslint-config-next` 16.3.4;
 - React / React DOM unchanged at 19.2.4;
@@ -78,7 +78,7 @@ Ready-for-review PR #540 proposes:
 - `fast-uri` override 3.1.6;
 - permanent dependency guards for patched floors.
 
-A real GitHub-hosted Node 22.23.2 / npm 10.9.8 checkout regenerated the candidate lockfile. The first Next/Sharp refresh exposed a High Browserslist finding; pinning 4.28.8 cleared it. A later fresh audit exposed Moderate `qs` findings at 6.15.3, so #540 pins 6.16.0. The exact candidate also pins `fast-uri` 3.1.6 at the patched 3.x floor for the August 23 host-confusion/SSRF advisory set. Exact `npm ci` and `npm audit --audit-level=low` completed successfully after lock regeneration. This remains branch evidence only: production is not patched until owner merge/deployment.
+A real GitHub-hosted Node 22.23.2 / npm 10.9.8 checkout regenerated the #540 lockfile. Its audit-zero result was point-in-time evidence, not a permanent property. On 2026-09-19 a fresh install reported one High `js-yaml` advisory and three Moderate Hono advisories; draft PR #598 pins patched versions and restores audit-zero with permanent floor tests. Production is not described as patched until deployment is verified.
 
 The patched runtime exposed a Share Target browser regression: the first full browser smoke passed 134/136 cases, with only desktop/mobile variants of `/capture/share` stuck on loading. Root cause was a one-shot ref consumed before `requestAnimationFrame` while development Strict Mode can run effect setup -> cleanup -> setup. Commit `91a93c3e80474f37f52f90405a91190d36b093e4` preserves both required guarantees: cleanup cancels abandoned RAF work, while `ranRef` is consumed only inside a frame that actually executes. Existing Share Playwright assertions remain intact.
 
@@ -120,7 +120,7 @@ The final read-only contract matrix maps each migration to a surviving expected 
 
 The source-identity preflight currently sees 7 Inbox candidates, 6 approved, no source-ID candidates, and zero candidate/candidate or candidate/provenance identity conflicts. This reduces forward-migration risk but does not authorize a write.
 
-Authenticated Direct CSV/source-lineage code already calls several absent RPCs while Vercel production remains on `main@425af450...`. Low-volume telemetry is not proof that the contract is satisfied. The combined migration-history + final-contract evidence strongly supports **forward-applying all 15 migrations in timestamp order**, not marking them applied with `migration repair`.
+The 2026-09-03 evidence showed authenticated Direct CSV/source-lineage code calling several absent RPCs while Vercel production was on `main@425af450...`. Low-volume telemetry is not proof that the contract is satisfied. The combined migration-history + final-contract evidence strongly supports **forward-applying all 15 migrations in timestamp order**, not marking them applied with `migration repair`.
 
 Owner-authorized database handoff must use this sequence:
 
@@ -144,13 +144,15 @@ Leaked-password protection remains disabled. The MoneyFlow Supabase organization
 - #536: selected active release-blocking Class 3 security/runtime/auth slice; owns runtime deployment, production database parity and provider/Auth acceptance.
 - #537: historical draft packet-preparation evidence; superseded as activation vehicle by merged #539.
 - #539: merged selector for #536 at `425af450...`.
-- #540: open Ready-for-review repository remediation PR for #536; performs no production database/provider write and does not itself close #536.
+- #540: merged repository runtime remediation at `10c832aa`; performed no production database/provider write and did not close #536.
+- #598: draft follow-up dependency remediation for later Hono/js-yaml advisories; candidate evidence only.
 - #523: candidate bank-export compatibility slice; unselected.
 - #403: historical performance provenance only.
 
 ## 9. Open pull-request memory
 
 - PR #540 durable record: `docs/research/pr-memory/2026/Q3/PR-540.md`; dependency candidate, Share Target regression repair, exact-head repository evidence, read-only provider classification and production schema-parity handoff, with #536 intentionally left active.
+- PR #598 durable record: `docs/research/pr-memory/2026/Q3/PR-598.md`; follow-up advisory remediation and current local verification, with #536 intentionally left active.
 - PR #537 remains historical draft preparation evidence and is not authority.
 - PR #532/#538 records remain historical #527 implementation/closure provenance rather than current executable work.
 
@@ -165,7 +167,7 @@ Leaked-password protection remains disabled. The MoneyFlow Supabase organization
 
 ## 11. Next allowed action
 
-Finish current-head PR verification after this evidence reconciliation, then hand #540 to the owner for merge/deployment decision. The database reconciliation plan is prepared but remains read-only until the owner explicitly authorizes the bounded production operation.
+Finish exact-head PR #598 verification and hand it to the owner for review. Independently verify whether merged PR #540 is deployed before claiming production runtime remediation. The database reconciliation plan remains read-only until the owner explicitly authorizes the bounded production operation.
 
 Do not merge or deploy on behalf of the owner. Do not mutate Supabase Auth configuration, migration history, database privileges/functions/schema or tenant data without crossing the packet's explicit authorization boundary. Do not claim production patched from branch/CI evidence alone, and do not claim production acquisition/recovery parity until the forward migration and live postconditions are verified.
 
@@ -186,6 +188,6 @@ Do not merge or deploy on behalf of the owner. Do not mutate Supabase Auth confi
 - Supabase Free provides automatic backup/PITR for the planned production migration rollback — false; the handoff requires a private off-repository logical schema and data backup before any authorized write.
 - An earlier zero-audit result means the dependency tree cannot acquire a new advisory later — false; a fresh audit caught later `qs` disclosures and #540 remediated them.
 - An earlier exact-head green run can be reused as merge authority after the branch head changes — false; every changed head needs its own required checks.
-- PR #540 being Ready for review means production is patched — false; owner merge/deployment plus exact production verification remain required.
+- PR #540 being merged means production is patched — false; exact production deployment verification remains required.
 - Production schema drift discovered during #540 means the Critical Next patch should wait for a bundled DB fix — false; the drift predates #540 and blocks #536 closure/public-beta acceptance, while the vulnerable runtime should be patched independently once current-head repository evidence is acceptable.
 - Master #432 alone authorizes provider/security writes — false; the selected packet plus explicit owner approval is required for production database/Auth/provider mutation.

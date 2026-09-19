@@ -1,14 +1,14 @@
 # #536 — Security runtime and authentication hardening
 
 **Status:** selected active Class 3 slice on merged `main`
-**Execution state:** repository implementation is Ready for review in PR #540; production runtime/database/Auth acceptance remains open
+**Execution state:** PR #540 is merged on `main`; draft PR #598 carries follow-up dependency remediation; production runtime/database/Auth acceptance remains open
 **Active role:** evaluator / owner handoff inside repository boundary; owner-controlled production writes remain gated
 **Permission scope:** repository implementation, tests, documentation and read-only provider/database inspection are allowed under merged `PLAN_AUTHORITY.current`; merge/deploy, database/provider mutations and Supabase plan/Auth writes require the explicit owner decisions defined by this packet
 **Owner:** human owner
 **Issue:** #536
-**Current implementation:** PR #540, branch `security/536-runtime-dependency-patch`
-**Merged-main baseline:** `425af4508e547de28fb372eedbcb07ced226d522` (PR #539)
-**Last updated:** 2026-09-03
+**Current implementation:** PR #598, branch `security/536-refresh-advisory-floors`
+**Merged-main baseline:** `10c832aaaf27a6bf5406578871708789f4b1b14d` (PR #540)
+**Last updated:** 2026-09-19
 
 ## Outcome
 
@@ -28,7 +28,7 @@ Required outcome:
 
 PR #538 completed #527 and left `docs/plans/PLAN_AUTHORITY.json.current` as `null`. PR #539 then merged from fresh `main` as `425af4508e547de28fb372eedbcb07ced226d522` and selected this packet as the single current executable slice. #536 is therefore active authority; the earlier selector-candidate state is historical.
 
-Draft PR #537 remains historical planning evidence only. PR #540 is the focused Ready-for-review repository implementation candidate under this active packet. It does not grant itself authority to merge, deploy, mutate production database state or change Supabase plan/Auth configuration.
+Draft PR #537 remains historical planning evidence only. PR #540 merged the first repository remediation as `10c832aa`. Draft PR #598 is a focused follow-up for later Hono/js-yaml advisories. Neither merge status nor a green repository tree authorizes deployment, production database mutation or Supabase plan/Auth changes.
 
 ## Repository reconnaissance
 
@@ -43,7 +43,7 @@ Merged `main` still pins:
 
 The shipped framework therefore remains inside the official affected range for the August 2026 Critical Next.js advisories until the patched PR is owner-merged and production deployment is verified. Existing Dependabot PR #524 targets Next 16.3.1 and is not sufficient for the August release because the patched 16.x floor is 16.3.3.
 
-PR #540 carries the vetted candidate Next 16.3.4 / `eslint-config-next` 16.3.4, keeps React 19.2.4, raises the Sharp override to 0.35.4, pins Browserslist 4.28.8, qs 6.16.0 and fast-uri 3.1.6, and adds dependency-floor guards. Exact-tree audit chronology matters: an initial High Browserslist finding was remediated; a later fresh audit then surfaced Moderate qs findings; the final candidate also pins fast-uri at the patched 3.x floor for the August 23 host-confusion/SSRF advisory set. The regenerated candidate tree reached audit-zero after those changes. Do not treat any earlier zero-audit snapshot as permanently authoritative.
+PR #540 merged vetted Next 16.3.4 / `eslint-config-next` 16.3.4, React 19.2.4, Sharp 0.35.4, Browserslist 4.28.8, qs 6.16.0 and fast-uri 3.1.6 with dependency-floor guards. Exact-tree audit chronology matters: the merged tree reached audit-zero at that point, but later disclosures made Hono 4.13.0 and js-yaml 4.3.1 report one High and three Moderate advisories. Draft PR #598 pins Hono 4.13.8 and js-yaml 4.3.2 and extends the floor guard. Never treat an earlier audit-zero snapshot as permanently authoritative.
 
 ### Supabase baseline
 
@@ -83,7 +83,7 @@ History absence alone is not the authority. A final read-only contract matrix ma
 
 The one migration without a durable schema marker is `20260822094400_source_identity_consistency_preflight`. Its actual data condition currently passes: production has 7 Inbox candidates, 6 approved, no source-ID candidates, and zero approved-candidate identity conflicts or candidate/provenance identity conflicts.
 
-Repository SECURITY DEFINER contracts expect 43 privileged routines after later acquisition migrations; production exposes 36 in the corresponding authenticated-callable class. Authenticated Direct CSV/source-lineage code already calls several absent routines while Vercel production remains on `main@425af450...`.
+Repository SECURITY DEFINER contracts expect 43 privileged routines after later acquisition migrations; production exposes 36 in the corresponding authenticated-callable class. The 2026-09-03 evidence showed authenticated Direct CSV/source-lineage code calling several absent routines while Vercel production was on `main@425af450...`.
 
 The combined migration-history and 15-version contract evidence strongly supports **forward-applying all 15 migrations in timestamp order** after owner authorization, rather than migration-history repair. This drift predates #540. It blocks #536 closure/public-beta acceptance, but it must not be used to keep the known-vulnerable Next runtime unpatched merely to bundle an unrelated database write into #540.
 
@@ -361,12 +361,13 @@ Stop and return to owner/evaluator if:
 - exact-head browser/auth/financial tests fail and the only apparent path is weakening assertions;
 - production deployment is required merely to prove repository correctness.
 
-## Current evaluation state — 2026-09-03
+## Current evaluation state — 2026-09-19
 
-- merged-main authority baseline: `425af4508e547de28fb372eedbcb07ced226d522` (PR #539);
+- merged-main authority baseline: `10c832aaaf27a6bf5406578871708789f4b1b14d` (PR #540);
 - executable authority on merged main: #536 selected and active;
-- production runtime: Next 16.2.11 — still inside official August 2026 Critical advisory affected ranges until #540 is owner-merged/deployed and verified;
-- PR #540: Ready for review; candidate Next 16.3.4, eslint-config-next 16.3.4, React 19.2.4 unchanged, Sharp 0.35.4, Browserslist 4.28.8, qs 6.16.0 and fast-uri 3.1.6;
+- production runtime: deployment of merged `main@10c832aa...` has not been independently verified; do not infer the live Next version from Git;
+- PR #540: merged repository runtime patch; production deployment remains unverified;
+- PR #598: draft follow-up pinning Hono 4.13.8 and js-yaml 4.3.2 after later disclosures; local Node 22 verification is green and provider exact-head checks remain required;
 - candidate dependency audit: exact regenerated tree reached zero findings after evidence-backed remediation;
 - Share Target: runtime patch regression reproduced by browser smoke and repaired; independent review restored RAF cleanup symmetry at `91a93c3...`;
 - exact-head provenance: `90941c2...` passed CI #3255 and #3256, CodeQL #2290 and Secret history scan #2290; current-head checks govern after any later evidence commit;
@@ -376,13 +377,13 @@ Stop and return to owner/evaluator if:
 - production migration history ends at `20260812043219`; repository has 15 later versions through `20260825090000`;
 - final 15-version contract matrix: 14 durable postconditions absent; source-identity preflight passes;
 - prepared database direction: forward-apply all 15 in order after fresh local DB verification, private logical backup, exact dry-run list and explicit owner authorization; no migration-history repair;
-- Vercel production is READY on `main@425af450...`; code calling several missing RPCs is deployed;
+- last read-only Vercel evidence from 2026-09-03 was READY on `main@425af450...`; fresh deployment verification remains required;
 - no production database/provider/Auth/deployment write was performed by #540;
 - #536 remains active until runtime deployment, database parity and provider acceptance are truthful.
 
 ## Handoff
 
-After this evidence-only reconciliation, use the current PR head/check suite as final repository evidence. If green, #540 is ready for the owner's merge/deployment decision; the agent must not merge or deploy it.
+Use PR #598's current head/check suite as final evidence for the follow-up dependency remediation. PR #540 is already merged, but deployment remains an owner-controlled action and requires independent production verification.
 
 The separate production database handoff is fully prepared but **not authorized**. Its next transition requires explicit owner approval for one bounded production operation: fresh local reset/pgTAP and remote preflight/read-back, private schema+data logical backup, exact 15-file dry run, forward `db push`, then immediate migration/contract/tenant/browser/advisor verification. Any deviation before the write is a stop condition.
 
