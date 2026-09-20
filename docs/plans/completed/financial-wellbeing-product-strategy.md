@@ -1,7 +1,7 @@
 # Financial well-being product strategy
 
-**Status:** ready_for_review
-**Execution state:** ready_for_review
+**Status:** completed
+**Execution state:** completed
 **Active role:** human_owner
 **Permission scope:** branch_write
 **Owner:** human owner; ChatGPT drafting/evaluation
@@ -243,9 +243,9 @@ This is a product-strategy documentation layer under `docs/product/`. `PRINCIPLE
 ## Delivery record
 
 - Branch: `docs/financial-wellbeing-product-strategy`
-- PR: #594 (draft)
-- Squash commit: pending owner merge
+- PR: #594 — merged 2026-09-13
+- Squash commit: `a7e45d30`
 - CI run: strategy-content head `e5d4beb17bb11b00867b391ead5ed9df8691ac78` — CI #3727 (`34760424856`) success; CodeQL #2728 (`34760424822`) success; Secret history scan #2728 (`34760424859`) success
 - Production deployment: not applicable
 - Production flow verified: not applicable
-- Work packet moved to `docs/plans/completed/`: no; archive only after owner acceptance/merge
+- Work packet moved to `docs/plans/completed/`: this closeout

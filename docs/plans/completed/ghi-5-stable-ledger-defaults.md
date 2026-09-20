@@ -1,7 +1,7 @@
 # Ghi 5.0 — stable ledger-backed defaults and post-save correction
 
-**Status:** ready_for_review
-**Execution state:** ready_for_review
+**Status:** completed
+**Execution state:** completed
 **Active role:** human_owner
 **Permission scope:** branch_write
 **Owner:** human owner; implementation and evaluation by OpenAI agent
@@ -263,12 +263,12 @@ The stability calculation lives as a pure `src/lib` helper over the neutral tran
 ## Delivery record
 
 - Branch: `feat/595-ghi-stable-defaults`
-- PR: #596
+- PR: #596 — merged 2026-09-13
 - Content head verified: `e1cd796435be0da389c83a839d3639e417867710`
 - CI: #3742 (`34776438370`) success — policy, unit/static RLS, static quality, build, browser, cross-device UI, e2e.
 - CodeQL: #2742 (`34776438357`) success.
 - Secret history scan: #2742 (`34776438354`) success.
-- Squash commit: pending owner merge.
+- Squash commit: `f7a5ae07`.
 - Production deployment: not authorized.
 - Production flow verified: pending owner-approved deploy.
 - Work packet moved to `docs/plans/completed/`: no; keep active through owner review/merge/acceptance.
