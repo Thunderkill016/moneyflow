@@ -324,10 +324,10 @@ Before provider/native/wealth/AI commitments:
 | P0.5 | reorder target architecture around Acquire + Reconcile | PR #433 architecture diff | done |
 | P0.6 | register #432 and hold/reconcile competing work on board | active board | done |
 | P0.7 | satisfy active-packet/AGENTS executable knowledge markers | checker-source review + PR diff | done |
-| P0.8 | exact-head docs/knowledge/CI-policy/diff-hygiene gates | CI #2723 proved policy shard runs and caught trailing whitespace; fixes in progress | in_progress |
-| P0.9 | independent evaluator + any fixes | post-merge wording review + external-source recheck | in_progress |
-| P0.10 | owner merge decision | exact-head green PR #433 required | blocked |
-| P1.0 | Acquisition Foundation reconnaissance/spec | separate bounded Class 3 packet/spec after P0 merge | blocked |
+| P0.8 | exact-head docs/knowledge/CI-policy/diff-hygiene gates | CI green on PR #433 | done |
+| P0.9 | independent evaluator + any fixes | post-merge review on merged PR #433 | done |
+| P0.10 | owner merge decision | PR #433 merged 2026-08-21 | done |
+| P1.0 | Acquisition Foundation reconnaissance/spec | separate bounded Class 3 packet/spec after P0 merge; #576 pilot evaluation is the gating evidence (megaplan G4) | blocked |
 
 Do not pre-create P1–P9 issue backlogs. Promote only the next bounded slice.
 
