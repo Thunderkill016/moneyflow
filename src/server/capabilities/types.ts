@@ -1,7 +1,10 @@
 import { z } from "zod";
 
-import type { CustomRangeInput, FinancialReport, ReportPeriod } from "../../lib/reports.ts";
-import type { AccountOption, CategoryOption, Transaction } from "../../lib/transactions/contracts.ts";
+import type { FinanceWorkspace } from "../finance.ts";
+import type { ReportsWorkspace } from "../reports.ts";
+import type { CustomRangeInput, ReportPeriod } from "../../lib/reports.ts";
+
+export type { FinanceWorkspace, ReportsWorkspace };
 
 export type CapabilityAuthorization = "read" | "write:proposal" | "write:commit";
 
@@ -9,23 +12,6 @@ export type CapabilityContext = {
   viewerId: string;
   today: string;
   now: string;
-};
-
-export type FinanceWorkspace = {
-  transactions: Transaction[];
-  accounts: AccountOption[];
-  categories: CategoryOption[];
-  totalBalance: number;
-  today: string;
-  dataError: string | null;
-  reviewFeatureAvailable?: boolean;
-};
-
-export type ReportsWorkspace = {
-  report: FinancialReport;
-  transactions: Transaction[];
-  dataError: string | null;
-  rangeNotice: unknown;
 };
 
 export type CapabilityDeps = {

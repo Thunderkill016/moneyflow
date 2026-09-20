@@ -1074,7 +1074,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Null until a standalone ledger-trust loader exists; follow-up."
           }
         },
         "required": [
@@ -2570,6 +2571,6 @@
       "version": "1"
     }
   ],
-  "generatedFrom": "src/server/capabilities/registry.ts",
+  "generatedFrom": "src/server/capabilities/manifest.ts",
   "schemaVersion": 1
 }

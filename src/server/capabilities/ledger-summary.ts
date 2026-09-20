@@ -6,7 +6,13 @@ import {
   resolveReportRange,
   type ReportRange,
 } from "../../lib/reports.ts";
-import { buildBasis, explainedAmount, transactionRange, validIsoDate } from "./basis.ts";
+import {
+  buildBasis,
+  buildSnapshotBasis,
+  explainedAmount,
+  transactionRange,
+  validIsoDate,
+} from "./basis.ts";
 import type {
   CapabilityContext,
   CapabilityDeps,
@@ -44,7 +50,9 @@ export const ledgerSummaryOutputSchema = z.object({
   expense: explainedAmountSchema,
   net: explainedAmountSchema,
   accounts: z.array(accountSchema),
-  trust: ledgerTrustSummarySchema.nullable(),
+  trust: ledgerTrustSummarySchema.nullable().describe(
+    "Null until a standalone ledger-trust loader exists; follow-up.",
+  ),
 });
 
 export type LedgerSummaryInput = z.infer<typeof ledgerSummaryInputSchema>;
@@ -117,11 +125,8 @@ export async function run(
     computedAt,
     capabilityVersion,
   });
-  const balanceBasis = buildBasis({
-    formula: "VND account balance snapshot supplied by the finance workspace",
-    range: null,
-    included: workspace.transactions,
-    allTransactions: workspace.transactions,
+  const balanceBasis = buildSnapshotBasis({
+    formula: "sum of active account balances (workspace snapshot); not derived from listed transactions",
     computedAt,
     capabilityVersion,
   });

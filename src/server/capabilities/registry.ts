@@ -5,6 +5,8 @@ import type { CapabilityContext, CapabilityDeps } from "./types.ts";
 
 export const capabilities = capabilityDefinitions;
 
+export { describeCapabilityManifest as describeCapabilities } from "./manifest.ts";
+
 export function getCapability(id: string) {
   return capabilities.find((capability) => capability.id === id);
 }
@@ -45,22 +47,4 @@ export async function runCapability(
   } catch (error) {
     throw new CapabilityError("internal", `Capability ${id} returned invalid output`, { cause: error });
   }
-}
-
-export function describeCapabilities() {
-  return {
-    schemaVersion: 1,
-    generatedFrom: "src/server/capabilities/registry.ts",
-    capabilities: capabilities.map((capability) => ({
-      id: capability.id,
-      version: capability.version,
-      title: capability.title,
-      description: capability.description,
-      authorization: capability.authorization,
-      sideEffects: capability.sideEffects,
-      idempotent: capability.idempotent,
-      inputSchema: capability.input.toJSONSchema(),
-      outputSchema: capability.output.toJSONSchema(),
-    })),
-  };
 }

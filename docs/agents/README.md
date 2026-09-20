@@ -2,7 +2,9 @@
 
 The capability layer is the typed, viewer-scoped read seam over existing server workspace loaders and pure financial calculators. Each capability has a stable dotted identifier, versioned Zod input/output schemas, no side effects, deterministic ordering, and a `basis` describing the rows and exclusions behind financial amounts.
 
-The generated manifest at `docs/agents/capabilities.json` is the machine-readable catalog for future UI, API and MCP transports. It is not hand-edited. Run `npm run capabilities:emit` after changing a capability definition, then `npm run check:capabilities` to verify that the committed manifest is current.
+The generated manifest at `docs/agents/capabilities.json` is the machine-readable catalog for future UI, API and MCP transports. It is generated with `npm run capabilities:emit`, must not be edited manually, and is CI-checked with `npm run check:capabilities`.
+
+The v0 ledger summary returns `trust: null` until a standalone ledger-trust loader exists; follow-up work should connect the capability to the trusted-through domain source.
 
 To add a capability:
 

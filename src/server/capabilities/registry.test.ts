@@ -15,7 +15,7 @@ test("registry ids are unique, sorted and read-only", () => {
 test("registry manifest matches the generated capability document", async () => {
   const manifest = describeCapabilities();
   const golden = JSON.parse(
-    await readFile(new URL("./__golden__/capabilities.json", import.meta.url), "utf8"),
+    await readFile(new URL("../../../docs/agents/capabilities.json", import.meta.url), "utf8"),
   );
   assert.deepEqual(manifest, golden);
 });
@@ -31,7 +31,6 @@ test("registry maps invalid input and output-schema failures to capability error
         context: FIXED_CONTEXT,
         deps: {
           loadFinanceWorkspace: async () => ({
-            ...fixtureDeps,
             transactions: [],
             accounts: [],
             categories: [],

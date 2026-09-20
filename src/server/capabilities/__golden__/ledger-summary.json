@@ -10,17 +10,11 @@
     "amount": 15735000,
     "currency": "VND",
     "basis": {
-      "formula": "VND account balance snapshot supplied by the finance workspace",
+      "formula": "sum of active account balances (workspace snapshot); not derived from listed transactions",
       "range": null,
       "included": {
-        "count": 5,
-        "transactionIds": [
-          "sample-1",
-          "sample-2",
-          "sample-3",
-          "sample-4",
-          "sample-transfer"
-        ]
+        "count": 0,
+        "transactionIds": []
       },
       "excluded": [],
       "trust": null,

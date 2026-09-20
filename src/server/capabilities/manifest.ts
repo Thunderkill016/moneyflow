@@ -13,7 +13,7 @@ export const capabilityDefinitions = [
 export function describeCapabilityManifest() {
   return {
     schemaVersion: 1,
-    generatedFrom: "src/server/capabilities/registry.ts",
+    generatedFrom: "src/server/capabilities/manifest.ts",
     capabilities: capabilityDefinitions.map((capability) => ({
       id: capability.id,
       version: capability.version,

@@ -19,6 +19,11 @@ test("ledger.summary returns explainable VND totals with range exclusions", asyn
   const totalRows = workspace.transactions.length;
 
   assert.equal(output.totalBalance.amount, workspace.totalBalance);
+  assert.deepEqual(output.totalBalance.basis.included, {
+    count: 0,
+    transactionIds: [],
+  });
+  assert.deepEqual(output.totalBalance.basis.excluded, []);
   assert.equal(output.income.amount, 15_000_000);
   assert.equal(output.expense.amount, 391_000);
   assert.equal(output.net.amount, 14_609_000);
@@ -30,6 +35,11 @@ test("ledger.summary returns explainable VND totals with range exclusions", asyn
   assert.equal(
     output.expense.basis.included.count +
       output.expense.basis.excluded.reduce((sum, item) => sum + item.count, 0),
+    totalRows,
+  );
+  assert.equal(
+    output.net.basis.included.count +
+      output.net.basis.excluded.reduce((sum, item) => sum + item.count, 0),
     totalRows,
   );
   assert.equal(

@@ -37,7 +37,6 @@ export function buildBasis({
   computedAt,
   capabilityVersion,
   trust = null,
-  targetKind,
 }: BasisOptions): Basis {
   const includedIds = new Set(included.map((transaction) => transaction.id));
   const excluded = new Map<Basis["excluded"][number]["reason"], number>();
@@ -48,10 +47,6 @@ export function buildBasis({
       addCount(excluded, "outside_range");
     } else if (transaction.kind === "transfer") {
       addCount(excluded, "transfer");
-    } else if (transaction.reviewStatus === "needs_review") {
-      addCount(excluded, "needs_review");
-    } else if (targetKind && transaction.kind !== targetKind) {
-      addCount(excluded, "other_kind");
     } else {
       addCount(excluded, "other_kind");
     }
@@ -68,6 +63,29 @@ export function buildBasis({
     },
     excluded: [...excluded.entries()].map(([reason, count]) => ({ reason, count })),
     trust,
+    computedAt,
+    capabilityVersion,
+  };
+}
+
+export function buildSnapshotBasis({
+  formula,
+  computedAt,
+  capabilityVersion,
+}: {
+  formula: string;
+  computedAt: string;
+  capabilityVersion: string;
+}): Basis {
+  return {
+    formula,
+    range: null,
+    included: {
+      count: 0,
+      transactionIds: [],
+    },
+    excluded: [],
+    trust: null,
     computedAt,
     capabilityVersion,
   };
