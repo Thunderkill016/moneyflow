@@ -141,6 +141,35 @@ export function importRateKey(userId: string): string {
   return `import:${id}`;
 }
 
+/** Soft defaults for capability API reads: ~1 call/s sustained, burst 60/min. */
+export const CAPABILITY_API_LIMIT: RateLimitConfig = {
+  limit: 60,
+  windowMs: 60_000,
+};
+
+/**
+ * Shared process-local limiter for the capability API transport. Authenticated
+ * calls key on the viewer id; unauthenticated probes key on the client key so
+ * token guessing cannot bypass the bucket by omitting credentials.
+ */
+export const capabilityApiLimiter = createRateLimiter(CAPABILITY_API_LIMIT);
+
+export function capabilityApiRateKey(viewerId: string): string {
+  const id =
+    typeof viewerId === "string" && viewerId.length > 0
+      ? viewerId.slice(0, 80)
+      : "unknown";
+  return `capability:${id}`;
+}
+
+export function capabilityAnonRateKey(clientKey: string): string {
+  const key =
+    typeof clientKey === "string" && clientKey.length > 0
+      ? clientKey.slice(0, 80)
+      : "unknown";
+  return `capability-anon:${key}`;
+}
+
 /** Calm Vietnamese notice when the soft guard trips. */
 export function rateLimitUserMessage(retryAfterMs: number): string {
   const sec = Math.max(1, Math.ceil(retryAfterMs / 1000));

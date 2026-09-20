@@ -2,7 +2,9 @@ import "server-only";
 
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { bearerToken } from "@/lib/bearer";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { resolveDisplayName } from "@/lib/profile";
 
@@ -20,7 +22,15 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
 
   const supabase = await createClient();
   if (!supabase) return null;
-  const { data, error } = await supabase.auth.getClaims();
+  /*
+   * A Bearer credential identifies the caller by itself — verify the token it
+   * carried rather than trusting a stored session. Without one, getClaims()
+   * falls back to the cookie session on the same client.
+   */
+  const bearer = bearerToken((await headers()).get("authorization"));
+  const { data, error } = bearer
+    ? await supabase.auth.getClaims(bearer)
+    : await supabase.auth.getClaims();
   if (error || !data?.claims?.sub) return null;
 
   const id = String(data.claims.sub);
