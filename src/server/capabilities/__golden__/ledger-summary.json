@@ -17,7 +17,19 @@
         "transactionIds": []
       },
       "excluded": [],
-      "trust": null,
+      "trust": {
+        "trustedThrough": "2026-07-10",
+        "baseReconciliationThrough": "2026-06-30",
+        "status": "trusted_limited",
+        "reason": "known_unresolved_work",
+        "activeAccountCount": 4,
+        "cleanReconciledAccountCount": 3,
+        "pendingInboxCount": 2,
+        "needsReviewTransactionCount": 1,
+        "unreconciledAccountLegCount": 1,
+        "earliestUnresolvedOn": "2026-07-12",
+        "coverageScope": "known_ledger_state_only"
+      },
       "computedAt": "2026-07-14T12:00:00.000Z",
       "capabilityVersion": "ledger.summary@1"
     }
@@ -48,7 +60,19 @@
           "count": 1
         }
       ],
-      "trust": null,
+      "trust": {
+        "trustedThrough": "2026-07-10",
+        "baseReconciliationThrough": "2026-06-30",
+        "status": "trusted_limited",
+        "reason": "known_unresolved_work",
+        "activeAccountCount": 4,
+        "cleanReconciledAccountCount": 3,
+        "pendingInboxCount": 2,
+        "needsReviewTransactionCount": 1,
+        "unreconciledAccountLegCount": 1,
+        "earliestUnresolvedOn": "2026-07-12",
+        "coverageScope": "known_ledger_state_only"
+      },
       "computedAt": "2026-07-14T12:00:00.000Z",
       "capabilityVersion": "ledger.summary@1"
     }
@@ -81,7 +105,19 @@
           "count": 1
         }
       ],
-      "trust": null,
+      "trust": {
+        "trustedThrough": "2026-07-10",
+        "baseReconciliationThrough": "2026-06-30",
+        "status": "trusted_limited",
+        "reason": "known_unresolved_work",
+        "activeAccountCount": 4,
+        "cleanReconciledAccountCount": 3,
+        "pendingInboxCount": 2,
+        "needsReviewTransactionCount": 1,
+        "unreconciledAccountLegCount": 1,
+        "earliestUnresolvedOn": "2026-07-12",
+        "coverageScope": "known_ledger_state_only"
+      },
       "computedAt": "2026-07-14T12:00:00.000Z",
       "capabilityVersion": "ledger.summary@1"
     }
@@ -111,7 +147,19 @@
           "count": 1
         }
       ],
-      "trust": null,
+      "trust": {
+        "trustedThrough": "2026-07-10",
+        "baseReconciliationThrough": "2026-06-30",
+        "status": "trusted_limited",
+        "reason": "known_unresolved_work",
+        "activeAccountCount": 4,
+        "cleanReconciledAccountCount": 3,
+        "pendingInboxCount": 2,
+        "needsReviewTransactionCount": 1,
+        "unreconciledAccountLegCount": 1,
+        "earliestUnresolvedOn": "2026-07-12",
+        "coverageScope": "known_ledger_state_only"
+      },
       "computedAt": "2026-07-14T12:00:00.000Z",
       "capabilityVersion": "ledger.summary@1"
     }
@@ -138,5 +186,17 @@
       "currencyCode": "USD"
     }
   ],
-  "trust": null
+  "trust": {
+    "trustedThrough": "2026-07-10",
+    "baseReconciliationThrough": "2026-06-30",
+    "status": "trusted_limited",
+    "reason": "known_unresolved_work",
+    "activeAccountCount": 4,
+    "cleanReconciledAccountCount": 3,
+    "pendingInboxCount": 2,
+    "needsReviewTransactionCount": 1,
+    "unreconciledAccountLegCount": 1,
+    "earliestUnresolvedOn": "2026-07-12",
+    "coverageScope": "known_ledger_state_only"
+  }
 }

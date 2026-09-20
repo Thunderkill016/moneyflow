@@ -46,7 +46,7 @@ Use one owner for each question; this router links to depth but is not a competi
 | Budgets/recurring/goals | planning workspaces/actions and capability research | transaction linkage, period semantics, correction behavior |
 | Reports/export | report/export domain modules and tests | transfer exclusion, safe integers, filter parity, formula safety |
 | Import/Inbox/rules | import workspaces, provenance migrations/tests | raw provenance, idempotency, confidence, tenant isolation |
-| Agent capabilities / MCP | `docs/agents/README.md`, `src/server/capabilities/` | typed read contracts, deterministic basis, viewer scope, generated manifest |
+| Agent capabilities / MCP | `docs/agents/README.md`, `src/server/capabilities/`, `src/server/ledger-trust.ts` | typed read contracts, deterministic basis, viewer scope, generated manifest |
 | Auth/provider/security | `docs/configuration.md`, `docs/supabase-setup.md`, `docs/security-rls-check.md` | repository readiness versus provider enforcement; rollback and smoke |
 | UI/mobile/accessibility | `docs/design-system.md`, `docs/UX_PRINCIPLES.md`, `docs/AI_UIUX_WORKFLOW.md` | owning CSS layer, responsive/browser evidence, physical-device claims |
 | Architecture/dependency/tooling | `ARCHITECTURE.md`, `docs/engineering/AI_DELIVERY_WORKFLOW.md`, focused reference maps | license, security, privacy, ownership, operations and rollback |

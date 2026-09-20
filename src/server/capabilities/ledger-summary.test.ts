@@ -3,7 +3,13 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { run } from "./ledger-summary.ts";
-import { FIXED_CONTEXT, fixtureDeps, fixtureWorkspace } from "./capability-test-helpers.test.ts";
+import {
+  FIXED_CONTEXT,
+  demoTransactions,
+  fixtureDeps,
+  fixtureLedgerTrust,
+  fixtureWorkspace,
+} from "./capability-test-helpers.test.ts";
 
 test("ledger.summary returns explainable VND totals with range exclusions", async () => {
   const output = await run(
@@ -51,6 +57,32 @@ test("ledger.summary returns explainable VND totals with range exclusions", asyn
     outside,
   );
   assert.ok(Number.isSafeInteger(output.net.amount));
+});
+
+test("ledger.summary carries the injected ledger-trust summary on output and every basis", async () => {
+  const trust = fixtureLedgerTrust();
+  const output = await run(
+    FIXED_CONTEXT,
+    { period: "month" },
+    fixtureDeps(),
+  );
+
+  assert.deepEqual(output.trust, trust);
+  assert.deepEqual(output.totalBalance.basis.trust, trust);
+  assert.deepEqual(output.income.basis.trust, trust);
+  assert.deepEqual(output.expense.basis.trust, trust);
+  assert.deepEqual(output.net.basis.trust, trust);
+});
+
+test("ledger.summary withholds trust when the loader cannot provide it", async () => {
+  const output = await run(
+    FIXED_CONTEXT,
+    { period: "month" },
+    fixtureDeps(demoTransactions(), null),
+  );
+
+  assert.equal(output.trust, null);
+  assert.equal(output.income.basis.trust, null);
 });
 
 test("ledger.summary rejects invalid custom ranges", async () => {

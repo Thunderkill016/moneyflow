@@ -6,6 +6,7 @@ import {
   resolveReportRange,
   type ReportRange,
 } from "../../lib/reports.ts";
+import type { LedgerTrustSummary } from "../../lib/ledger-trust.ts";
 import {
   buildBasis,
   buildSnapshotBasis,
@@ -51,7 +52,7 @@ export const ledgerSummaryOutputSchema = z.object({
   net: explainedAmountSchema,
   accounts: z.array(accountSchema),
   trust: ledgerTrustSummarySchema.nullable().describe(
-    "Null until a standalone ledger-trust loader exists; follow-up.",
+    "Ledger-trust summary from the database ledger_trust_summary() contract; null for demo viewers or when the contract is unavailable (withheld, never fabricated).",
   ),
 });
 
@@ -61,6 +62,11 @@ export type LedgerSummaryOutput = z.infer<typeof ledgerSummaryOutputSchema>;
 async function defaultLoadFinanceWorkspace(): Promise<FinanceWorkspace> {
   const { getFinanceWorkspace } = await import("../finance.ts");
   return getFinanceWorkspace();
+}
+
+async function defaultLoadLedgerTrust(): Promise<LedgerTrustSummary | null> {
+  const { getLedgerTrust } = await import("../ledger-trust.ts");
+  return getLedgerTrust();
 }
 
 function validateInput(input: LedgerSummaryInput, today: string) {
@@ -87,7 +93,10 @@ export async function run(
   input: LedgerSummaryInput,
   deps: CapabilityDeps = {},
 ): Promise<LedgerSummaryOutput> {
-  const workspace = await (deps.loadFinanceWorkspace ?? defaultLoadFinanceWorkspace)();
+  const [workspace, trust] = await Promise.all([
+    (deps.loadFinanceWorkspace ?? defaultLoadFinanceWorkspace)(),
+    (deps.loadLedgerTrust ?? defaultLoadLedgerTrust)(),
+  ]);
   const range = rangeFor(input, ctx.today);
   const currentRange = {
     from: range.currentStart,
@@ -106,6 +115,7 @@ export async function run(
     allTransactions: workspace.transactions,
     computedAt,
     capabilityVersion,
+    trust,
     targetKind: "income",
   });
   const expenseBasis = buildBasis({
@@ -115,6 +125,7 @@ export async function run(
     allTransactions: workspace.transactions,
     computedAt,
     capabilityVersion,
+    trust,
     targetKind: "expense",
   });
   const netBasis = buildBasis({
@@ -124,11 +135,13 @@ export async function run(
     allTransactions: workspace.transactions,
     computedAt,
     capabilityVersion,
+    trust,
   });
   const balanceBasis = buildSnapshotBasis({
     formula: "sum of active account balances (workspace snapshot); not derived from listed transactions",
     computedAt,
     capabilityVersion,
+    trust,
   });
 
   return {
@@ -142,7 +155,7 @@ export async function run(
       name: account.name,
       currencyCode: account.currencyCode ?? "VND",
     })),
-    trust: null,
+    trust,
   };
 }
 

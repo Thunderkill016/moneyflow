@@ -72,10 +72,12 @@ export function buildSnapshotBasis({
   formula,
   computedAt,
   capabilityVersion,
+  trust = null,
 }: {
   formula: string;
   computedAt: string;
   capabilityVersion: string;
+  trust?: LedgerTrustSummary | null;
 }): Basis {
   return {
     formula,
@@ -85,7 +87,7 @@ export function buildSnapshotBasis({
       transactionIds: [],
     },
     excluded: [],
-    trust: null,
+    trust,
     computedAt,
     capabilityVersion,
   };

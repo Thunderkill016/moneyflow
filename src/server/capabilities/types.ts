@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import type { FinanceWorkspace } from "../finance.ts";
 import type { ReportsWorkspace } from "../reports.ts";
+import type { LedgerTrustSummary } from "../../lib/ledger-trust.ts";
 import type { CustomRangeInput, ReportPeriod } from "../../lib/reports.ts";
 
 export type { FinanceWorkspace, ReportsWorkspace };
@@ -20,6 +21,7 @@ export type CapabilityDeps = {
     period: ReportPeriod,
     custom?: CustomRangeInput,
   ) => Promise<ReportsWorkspace>;
+  loadLedgerTrust?: () => Promise<LedgerTrustSummary | null>;
 };
 
 export type CapabilityDefinition<I, O> = {

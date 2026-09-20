@@ -13,7 +13,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test src/lib/*.test.ts src/lib/*/*.test.ts",
+    "test": "node --experimental-strip-types --test src/lib/*.test.ts src/lib/*/*.test.ts src/server/**/*.test.ts",
     "evidence:bank-export": "node --experimental-strip-types scripts/bank-export-evidence.mts",
     "verify:fast": "npm run check:knowledge && npm run check:architecture && npm run check:capabilities && npm run lint && npm run typecheck && npm test",
     "verify:prepush": "npm run verify:fast && npm run build",
