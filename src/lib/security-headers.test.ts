@@ -144,6 +144,18 @@ test("security headers keep clickjacking, MIME and opener isolation controls", (
   );
   assert.equal(headers.get("X-Permitted-Cross-Domain-Policies"), "none");
   assert.match(headers.get("Content-Security-Policy") ?? "", /default-src/);
+  assert.equal(
+    headers.get("Strict-Transport-Security"),
+    "max-age=63072000; includeSubDomains; preload",
+  );
+});
+
+test("HSTS is absent from development security headers", () => {
+  const headers = new Map(
+    buildSecurityHeaders(false, false).map(({ key, value }) => [key, value]),
+  );
+
+  assert.equal(headers.has("Strict-Transport-Security"), false);
 });
 
 test("Next config applies the shared security header owner to every route", () => {

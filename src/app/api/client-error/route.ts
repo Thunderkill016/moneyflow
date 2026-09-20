@@ -4,6 +4,7 @@ import {
   reportTooLarge,
   sanitizeIncomingReport,
 } from "@/lib/client-error-report";
+import { clientKeyFromHeaders, createRateLimiter } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -23,8 +24,15 @@ export const runtime = "nodejs";
  * re-sanitises everything, and returns 204 in every case — an attacker learns
  * nothing from the response, and a legitimate client never has an error path
  * for its own error reporting.
+ * The limiter is per-instance best-effort protection.
  */
+const limiter = createRateLimiter({ limit: 30, windowMs: 60_000 });
+
 export async function POST(request: Request): Promise<NextResponse> {
+  if (!limiter.allow(clientKeyFromHeaders(request.headers))) {
+    return new NextResponse(null, { status: 204 });
+  }
+
   if (reportTooLarge(request.headers.get("content-length"))) {
     return new NextResponse(null, { status: 204 });
   }

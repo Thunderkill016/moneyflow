@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
 const force = process.argv.includes("--force");
 const isVercelBuild = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
 const isProduction = process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
@@ -7,6 +10,40 @@ if (!isVercelBuild && !force) {
   console.log("Deployment env guard skipped outside Vercel. Use --force to validate explicitly.");
   process.exit(0);
 }
+
+function loadLocalEnv() {
+  const path = join(process.cwd(), ".env.local");
+  if (!existsSync(path)) return;
+
+  let loaded = 0;
+  for (const line of readFileSync(path, "utf8").split(/\r?\n/u)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+
+    const separator = trimmed.indexOf("=");
+    if (separator <= 0) continue;
+
+    const key = trimmed.slice(0, separator).trim();
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/u.test(key) || process.env[key] !== undefined) {
+      continue;
+    }
+
+    let value = trimmed.slice(separator + 1).trim();
+    if (
+      value.length >= 2 &&
+      ((value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'")))
+    ) {
+      value = value.slice(1, -1);
+    }
+    process.env[key] = value;
+    loaded += 1;
+  }
+
+  console.log(`Loaded .env.local (${loaded} variables) for local validation.`);
+}
+
+if (!isVercelBuild && force) loadLocalEnv();
 
 function isMissingOrTemplate(value) {
   const normalized = value?.trim().toLowerCase() ?? "";
