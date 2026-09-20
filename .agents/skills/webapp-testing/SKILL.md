@@ -94,3 +94,30 @@ with sync_playwright() as p:
   - `element_discovery.py` - Discovering buttons, links, and inputs on a page
   - `static_html_automation.py` - Using file:// URLs for local HTML
   - `console_logging.py` - Capturing console logs during automation
+# MoneyFlow-specific notes
+
+## MoneyFlow local runtime security checks
+
+- Use Node 22 and existing dependencies. Configure explicit demo mode per
+  `docs/configuration.md`; no Supabase login is required for demo browser smoke.
+- Test production-only headers with `npm run build` then `npm start`.
+  `npm run dev -- --port 3001` can provide the development comparison.
+  Distinguish a local production build from the deployed production service.
+- For endpoint rate limits, use synthetic data and unique test IP header keys.
+  Always verify an independent key still works and that the original key
+  recovers after the configured window.
+- A telemetry route that always returns 204 needs server-log evidence:
+  count uniquely marked synthetic events to prove overflow was dropped.
+  Status-only evidence cannot distinguish a working limiter from no limiter.
+- HSTS presence on localhost HTTP proves header emission only, not browser
+  HTTPS enforcement or shared rate-limit state across serverless instances.
+- Use `/dashboard` and `/capture/quick` for demo browser regression smoke.
+  Quick capture opens its transaction dialog; avoid Save unless ledger writes
+  are part of the authorized test.
+- Next dev can rewrite the generated block in AGENTS.md. Inspect git status
+  before and after setup, stop the dev server, and remove only setup-generated
+  changes rather than including them in a feature patch.
+
+## Devin Secrets Needed
+
+None for explicit demo mode and anonymous localhost API checks.
