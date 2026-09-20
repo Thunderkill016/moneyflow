@@ -9,7 +9,13 @@ test("registry ids are unique, sorted and read-only", () => {
   const ids = capabilities.map((capability) => capability.id);
   assert.deepEqual(ids, [...ids].sort());
   assert.equal(new Set(ids).size, ids.length);
-  assert.ok(capabilities.every((capability) => capability.authorization === "read"));
+  assert.ok(
+    capabilities.every((capability) =>
+      ["read", "write:proposal", "write:commit"].includes(capability.authorization),
+    ),
+  );
+  const propose = capabilities.find((capability) => capability.id === "candidates.propose");
+  assert.equal(propose?.authorization, "write:proposal");
 });
 
 test("registry manifest matches the generated capability document", async () => {

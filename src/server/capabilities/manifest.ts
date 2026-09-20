@@ -1,10 +1,12 @@
 import { z } from "zod";
 
+import { definition as candidatesPropose } from "./candidates-propose.ts";
 import { definition as ledgerSummary } from "./ledger-summary.ts";
 import { definition as reportsFinancial } from "./reports-financial.ts";
 import { definition as transactionsSearch } from "./transactions-search.ts";
 
 export const capabilityDefinitions = [
+  candidatesPropose,
   ledgerSummary,
   reportsFinancial,
   transactionsSearch,

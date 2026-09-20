@@ -3,6 +3,10 @@ import { z } from "zod";
 import type { FinanceWorkspace } from "../finance.ts";
 import type { ReportsWorkspace } from "../reports.ts";
 import type { LedgerTrustSummary } from "../../lib/ledger-trust.ts";
+import type {
+  InboxDryRunResult,
+  PersistedInboxCandidate,
+} from "../../lib/inbox/provenance.ts";
 import { minorSchema, type Minor } from "../../lib/minor.ts";
 import { todayInVietnam } from "../../lib/vietnam-date.ts";
 import type { CustomRangeInput, ReportPeriod } from "../../lib/reports.ts";
@@ -13,16 +17,24 @@ export type CapabilityAuthorization = "read" | "write:proposal" | "write:commit"
 
 export type CapabilityContext = {
   viewerId: string;
+  /**
+   * OAuth client id carried by the Bearer token (`client_id` claim); null for
+   * first-party cookie/session callers. Write capabilities use it for the
+   * client allowlist and candidate provenance.
+   */
+  clientId: string | null;
   today: string;
   now: string;
 };
 
 export function buildCapabilityContext(
   viewerId: string,
-  now: Date = new Date(),
+  options: { now?: Date; clientId?: string | null } = {},
 ): CapabilityContext {
+  const now = options.now ?? new Date();
   return {
     viewerId,
+    clientId: options.clientId ?? null,
     today: todayInVietnam(now),
     now: now.toISOString(),
   };
@@ -35,6 +47,16 @@ export type CapabilityDeps = {
     custom?: CustomRangeInput,
   ) => Promise<ReportsWorkspace>;
   loadLedgerTrust?: () => Promise<LedgerTrustSummary | null>;
+  /** Latest existing agent candidate for (viewer, namespaced external id). */
+  findAgentCandidate?: (
+    viewerId: string,
+    sourceExternalId: string,
+  ) => Promise<PersistedInboxCandidate | null>;
+  insertAgentCandidate?: (
+    viewerId: string,
+    candidate: PersistedInboxCandidate,
+  ) => Promise<PersistedInboxCandidate>;
+  planInboxCandidate?: (candidateId: string) => Promise<InboxDryRunResult>;
 };
 
 export type CapabilityDefinition<I, O> = {
@@ -43,7 +65,7 @@ export type CapabilityDefinition<I, O> = {
   title: string;
   description: string;
   authorization: CapabilityAuthorization;
-  sideEffects: "none";
+  sideEffects: "none" | "candidate_create";
   idempotent: true;
   input: z.ZodType<I>;
   output: z.ZodType<O>;
@@ -119,15 +141,24 @@ export const explainedAmountSchema = z.object({
 export type CapabilityErrorCode =
   | "invalid_input"
   | "unauthorized"
+  | "forbidden"
   | "not_found"
+  | "rate_limited"
   | "internal";
 
 export class CapabilityError extends Error {
   readonly code: CapabilityErrorCode;
+  /** Present on rate_limited errors so transports can set Retry-After. */
+  readonly retryAfterMs?: number;
 
-  constructor(code: CapabilityErrorCode, message: string, options?: ErrorOptions) {
+  constructor(
+    code: CapabilityErrorCode,
+    message: string,
+    options?: ErrorOptions & { retryAfterMs?: number },
+  ) {
     super(message, options);
     this.name = "CapabilityError";
     this.code = code;
+    this.retryAfterMs = options?.retryAfterMs;
   }
 }

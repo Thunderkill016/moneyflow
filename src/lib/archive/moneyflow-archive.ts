@@ -192,6 +192,7 @@ export const INBOX_CANDIDATE_SOURCES = [
   "manual",
   "notification",
   "email",
+  "agent",
 ] as const;
 export const INBOX_CANDIDATE_STATUSES = ["pending", "approved", "rejected"] as const;
 export const INBOX_CANDIDATE_CONFIDENCES = ["high", "medium", "low"] as const;

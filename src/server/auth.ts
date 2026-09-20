@@ -13,11 +13,16 @@ export type Viewer = {
   email: string | null;
   displayName: string | null;
   isDemo: boolean;
+  /**
+   * OAuth client id from the token's `client_id` claim (third-party grant);
+   * null for first-party cookie/session callers and demo.
+   */
+  clientId: string | null;
 };
 
 export const getViewer = cache(async (): Promise<Viewer | null> => {
   if (!isSupabaseConfigured()) {
-    return { id: "demo-user", email: null, displayName: "Minh Anh", isDemo: true };
+    return { id: "demo-user", email: null, displayName: "Minh Anh", isDemo: true, clientId: null };
   }
 
   const supabase = await createClient();
@@ -41,6 +46,8 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
     email: typeof data.claims.email === "string" ? data.claims.email : null,
     displayName: resolveDisplayName(profile?.full_name, data.claims.user_metadata),
     isDemo: false,
+    clientId:
+      typeof data.claims.client_id === "string" ? data.claims.client_id : null,
   };
 });
 

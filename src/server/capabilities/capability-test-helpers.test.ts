@@ -15,6 +15,7 @@ import type {
 
 export const FIXED_CONTEXT: CapabilityContext = {
   viewerId: "demo-user",
+  clientId: null,
   today: "2026-07-14",
   now: "2026-07-14T12:00:00.000Z",
 };

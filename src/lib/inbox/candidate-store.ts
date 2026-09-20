@@ -12,7 +12,8 @@ export type CandidateSource =
   | "pdf"
   | "manual"
   | "notification"
-  | "email";
+  | "email"
+  | "agent";
 
 export type CandidateConfidence = "high" | "medium" | "low";
 
@@ -81,6 +82,7 @@ export const SOURCE_LABELS: Record<CandidateSource, string> = {
   manual: "manual",
   notification: "thông báo",
   email: "email",
+  agent: "AI agent",
 };
 
 export const CONFIDENCE_LABELS: Record<CandidateConfidence, string> = {
@@ -97,6 +99,7 @@ const SOURCES: CandidateSource[] = [
   "manual",
   "notification",
   "email",
+  "agent",
 ];
 
 const CONFIDENCES: CandidateConfidence[] = ["high", "medium", "low"];

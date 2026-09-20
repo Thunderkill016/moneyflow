@@ -7,6 +7,7 @@
 | `createImportBatchAction` | `importActionLimiter` keyed by `import:{userId}` | 15 / 60s sliding window |
 | `createInboxCandidatesAction` | same limiter + key | shared with batch create |
 | `POST /api/capabilities/[id]` | `capabilityApiLimiter` keyed by `capability:{viewerId}` post-auth, `capability-anon:{clientKey}` pre-auth | 60 / 60s sliding window, 429 + `Retry-After` |
+| Write capabilities (`candidates.propose`) | `capabilityWriteLimiter` keyed by `capability-write:{viewerId}:{clientId}` inside `runCapability` — applies to every transport | 20 / 60s sliding window, on top of transport limits |
 | Ledger `create_*` RPC | **DB idempotency** `(user_id, idempotency_key)` | not rate-limited here |
 | Client upload UI | phase `reading` disables picker; double-submit avoided | not a security boundary |
 

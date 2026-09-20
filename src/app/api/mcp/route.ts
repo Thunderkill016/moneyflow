@@ -102,7 +102,7 @@ async function handle(request: Request): Promise<Response> {
         inputSchema: tool.inputSchema,
         annotations: tool.annotations,
       },
-      (args: unknown) => executeCapabilityTool(viewer.id, tool.capabilityId, args),
+      (args: unknown) => executeCapabilityTool(viewer, tool.capabilityId, args),
     );
   }
 
