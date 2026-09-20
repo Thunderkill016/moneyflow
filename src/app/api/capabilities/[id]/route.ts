@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getViewer } from "@/server/auth";
 import { runCapability } from "@/server/capabilities/registry";
 import { CapabilityError } from "@/server/capabilities/types";
-import { buildCapabilityContext } from "@/server/capabilities/context";
+import { buildCapabilityContext } from "@/server/capabilities/types";
 import {
   capabilityAnonRateKey,
   capabilityApiLimiter,

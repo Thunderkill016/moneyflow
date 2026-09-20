@@ -4,6 +4,7 @@ import type { FinanceWorkspace } from "../finance.ts";
 import type { ReportsWorkspace } from "../reports.ts";
 import type { LedgerTrustSummary } from "../../lib/ledger-trust.ts";
 import { minorSchema, type Minor } from "../../lib/minor.ts";
+import { todayInVietnam } from "../../lib/vietnam-date.ts";
 import type { CustomRangeInput, ReportPeriod } from "../../lib/reports.ts";
 
 export type { FinanceWorkspace, ReportsWorkspace };
@@ -15,6 +16,17 @@ export type CapabilityContext = {
   today: string;
   now: string;
 };
+
+export function buildCapabilityContext(
+  viewerId: string,
+  now: Date = new Date(),
+): CapabilityContext {
+  return {
+    viewerId,
+    today: todayInVietnam(now),
+    now: now.toISOString(),
+  };
+}
 
 export type CapabilityDeps = {
   loadFinanceWorkspace?: () => Promise<FinanceWorkspace>;

@@ -213,10 +213,10 @@ One new HTTP seam in `src/app/api/` delegates everything to the existing registr
 
 | ID | Task | Dependency | Evidence | Status |
 |---|---|---|---|---|
-| T1 | P2a — Bearer seam: token client factory + `viewerFromBearer` + tests | Owner approves packet + D1–D6 | Focused diff, unit tests | todo |
-| T2 | P2a — `POST /api/capabilities/[id]` + throttling + error mapping + tests | T1 | Route contract tests | todo |
-| T3 | P2b — `/api/mcp` stateless endpoint + tools-from-registry + Origin validation | T1 | Contract tests, manifest-driven tool list | todo |
-| T4 | P2b — RFC 9728 protected-resource metadata + `WWW-Authenticate` wiring | T3 | Metadata doc test, 401 header test | todo |
+| T1 | P2a — Bearer seam: token client factory + `viewerFromBearer` + tests | Owner approves packet + D1–D6 | PR #610 — `bearerToken` + token-scoped `createClient` + `getClaims(jwt)` | done |
+| T2 | P2a — `POST /api/capabilities/[id]` + throttling + error mapping + tests | T1 | PR #610 — route + contract tests | done |
+| T3 | P2b — `/api/mcp` stateless endpoint + tools-from-registry + Origin validation | T1 | PR pending — `mcp.ts` tool generation + stateless route | done |
+| T4 | P2b — RFC 9728 protected-resource metadata + `WWW-Authenticate` wiring | T3 | PR pending — `/.well-known/oauth-protected-resource` + challenge | done |
 | T5 | P2c — Supabase OAuth server enablement + `/oauth/consent` + client registration docs | Owner enables beta + approves UI | Consent flow screenshot/video, token carries `client_id` | todo |
 | T6 | Docs (`agents/README`, `rate-limit.md`), PR memory, exact-head verification | T2/T4 minimum | `verify:fast`, CI, curl + MCP smoke | todo |
 
