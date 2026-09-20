@@ -1,0 +1,90 @@
+{
+  "items": [
+    {
+      "id": "sample-1",
+      "kind": "expense",
+      "categoryId": "demo-category-expense-Ăn uống",
+      "category": "Ăn uống",
+      "note": "Cơm trưa",
+      "accountId": "demo-account-mb",
+      "account": "MB Bank",
+      "amount": 63000,
+      "occurredOn": "2026-07-14",
+      "occurredAt": "2026-07-14T05:10:00.000Z",
+      "relativeDate": "Hôm nay"
+    },
+    {
+      "id": "sample-2",
+      "kind": "expense",
+      "categoryId": "demo-category-expense-Di chuyển",
+      "category": "Di chuyển",
+      "note": "Grab đi làm",
+      "accountId": "demo-account-momo",
+      "account": "MoMo",
+      "amount": 42000,
+      "occurredOn": "2026-07-14",
+      "occurredAt": "2026-07-14T01:15:00.000Z",
+      "relativeDate": "Hôm nay"
+    },
+    {
+      "id": "sample-3",
+      "kind": "expense",
+      "categoryId": "demo-category-expense-Mua sắm",
+      "category": "Mua sắm",
+      "note": "Đồ dùng cá nhân",
+      "accountId": "demo-account-mb",
+      "account": "MB Bank",
+      "amount": 286000,
+      "occurredOn": "2026-07-13",
+      "occurredAt": "2026-07-13T11:30:00.000Z",
+      "relativeDate": "Hôm qua"
+    },
+    {
+      "id": "sample-transfer",
+      "kind": "transfer",
+      "categoryId": "",
+      "category": "Chuyển tiền",
+      "note": "Chuyển sang Tiền mặt",
+      "accountId": "demo-account-mb",
+      "account": "MB Bank",
+      "destinationAccountId": "demo-account-cash",
+      "destinationAccount": "Tiền mặt",
+      "amount": 500000,
+      "occurredOn": "2026-07-13",
+      "occurredAt": "2026-07-13T03:00:00.000Z",
+      "relativeDate": "13 thg 7"
+    },
+    {
+      "id": "sample-4",
+      "kind": "income",
+      "categoryId": "demo-category-income-Lương",
+      "category": "Lương",
+      "note": "Lương tháng 7",
+      "accountId": "demo-account-mb",
+      "account": "MB Bank",
+      "amount": 15000000,
+      "occurredOn": "2026-07-10",
+      "occurredAt": "2026-07-10T02:00:00.000Z",
+      "relativeDate": "10 thg 7"
+    }
+  ],
+  "nextCursor": null,
+  "basis": {
+    "formula": "deterministic substring and field filters over the viewer ledger",
+    "range": null,
+    "included": {
+      "count": 5,
+      "transactionIds": [
+        "sample-1",
+        "sample-2",
+        "sample-3",
+        "sample-transfer",
+        "sample-4"
+      ]
+    },
+    "excluded": [],
+    "trust": null,
+    "computedAt": "2026-07-14T12:00:00.000Z",
+    "capabilityVersion": "transactions.search@1"
+  }
+}

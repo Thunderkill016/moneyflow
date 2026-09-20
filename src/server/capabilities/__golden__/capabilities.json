@@ -1,0 +1,2575 @@
+{
+  "schemaVersion": 1,
+  "generatedFrom": "src/server/capabilities/registry.ts",
+  "capabilities": [
+    {
+      "id": "ledger.summary",
+      "version": "1",
+      "title": "Tóm tắt sổ cái / Ledger summary",
+      "description": "Tóm tắt số dư và dòng tiền theo kỳ / Deterministic ledger totals for a selected period.",
+      "authorization": "read",
+      "sideEffects": "none",
+      "idempotent": true,
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string",
+            "enum": [
+              "month",
+              "week",
+              "custom"
+            ]
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "period"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "range": {
+            "type": "object",
+            "properties": {
+              "period": {
+                "type": "string",
+                "enum": [
+                  "week",
+                  "month",
+                  "year",
+                  "custom"
+                ]
+              },
+              "currentStart": {
+                "type": "string"
+              },
+              "currentEnd": {
+                "type": "string"
+              },
+              "previousStart": {
+                "type": "string"
+              },
+              "previousEnd": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "period",
+              "currentStart",
+              "currentEnd",
+              "previousStart",
+              "previousEnd"
+            ],
+            "additionalProperties": false
+          },
+          "totalBalance": {
+            "type": "object",
+            "properties": {
+              "amount": {
+                "type": "number"
+              },
+              "currency": {
+                "type": "string",
+                "const": "VND"
+              },
+              "basis": {
+                "type": "object",
+                "properties": {
+                  "formula": {
+                    "type": "string"
+                  },
+                  "range": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "from": {
+                            "type": "string"
+                          },
+                          "to": {
+                            "type": "string"
+                          },
+                          "timeZone": {
+                            "type": "string",
+                            "const": "Asia/Ho_Chi_Minh"
+                          }
+                        },
+                        "required": [
+                          "from",
+                          "to",
+                          "timeZone"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "included": {
+                    "type": "object",
+                    "properties": {
+                      "count": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "transactionIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "count",
+                      "transactionIds"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "excluded": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string",
+                          "enum": [
+                            "transfer",
+                            "outside_range",
+                            "needs_review",
+                            "other_kind",
+                            "other_currency"
+                          ]
+                        },
+                        "count": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "reason",
+                        "count"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "trust": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "trustedThrough": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "baseReconciliationThrough": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "trusted",
+                              "trusted_limited",
+                              "blocked"
+                            ]
+                          },
+                          "reason": {
+                            "type": "string",
+                            "enum": [
+                              "clean_reconciliation_boundary",
+                              "known_unresolved_work",
+                              "missing_clean_reconciliation",
+                              "no_active_accounts"
+                            ]
+                          },
+                          "activeAccountCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "cleanReconciledAccountCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "pendingInboxCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "needsReviewTransactionCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "unreconciledAccountLegCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "earliestUnresolvedOn": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "coverageScope": {
+                            "type": "string",
+                            "const": "known_ledger_state_only"
+                          }
+                        },
+                        "required": [
+                          "trustedThrough",
+                          "baseReconciliationThrough",
+                          "status",
+                          "reason",
+                          "activeAccountCount",
+                          "cleanReconciledAccountCount",
+                          "pendingInboxCount",
+                          "needsReviewTransactionCount",
+                          "unreconciledAccountLegCount",
+                          "earliestUnresolvedOn",
+                          "coverageScope"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "computedAt": {
+                    "type": "string"
+                  },
+                  "capabilityVersion": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "formula",
+                  "range",
+                  "included",
+                  "excluded",
+                  "trust",
+                  "computedAt",
+                  "capabilityVersion"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "amount",
+              "currency",
+              "basis"
+            ],
+            "additionalProperties": false
+          },
+          "income": {
+            "type": "object",
+            "properties": {
+              "amount": {
+                "type": "number"
+              },
+              "currency": {
+                "type": "string",
+                "const": "VND"
+              },
+              "basis": {
+                "type": "object",
+                "properties": {
+                  "formula": {
+                    "type": "string"
+                  },
+                  "range": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "from": {
+                            "type": "string"
+                          },
+                          "to": {
+                            "type": "string"
+                          },
+                          "timeZone": {
+                            "type": "string",
+                            "const": "Asia/Ho_Chi_Minh"
+                          }
+                        },
+                        "required": [
+                          "from",
+                          "to",
+                          "timeZone"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "included": {
+                    "type": "object",
+                    "properties": {
+                      "count": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "transactionIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "count",
+                      "transactionIds"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "excluded": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string",
+                          "enum": [
+                            "transfer",
+                            "outside_range",
+                            "needs_review",
+                            "other_kind",
+                            "other_currency"
+                          ]
+                        },
+                        "count": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "reason",
+                        "count"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "trust": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "trustedThrough": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "baseReconciliationThrough": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "trusted",
+                              "trusted_limited",
+                              "blocked"
+                            ]
+                          },
+                          "reason": {
+                            "type": "string",
+                            "enum": [
+                              "clean_reconciliation_boundary",
+                              "known_unresolved_work",
+                              "missing_clean_reconciliation",
+                              "no_active_accounts"
+                            ]
+                          },
+                          "activeAccountCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "cleanReconciledAccountCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "pendingInboxCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "needsReviewTransactionCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "unreconciledAccountLegCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "earliestUnresolvedOn": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "coverageScope": {
+                            "type": "string",
+                            "const": "known_ledger_state_only"
+                          }
+                        },
+                        "required": [
+                          "trustedThrough",
+                          "baseReconciliationThrough",
+                          "status",
+                          "reason",
+                          "activeAccountCount",
+                          "cleanReconciledAccountCount",
+                          "pendingInboxCount",
+                          "needsReviewTransactionCount",
+                          "unreconciledAccountLegCount",
+                          "earliestUnresolvedOn",
+                          "coverageScope"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "computedAt": {
+                    "type": "string"
+                  },
+                  "capabilityVersion": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "formula",
+                  "range",
+                  "included",
+                  "excluded",
+                  "trust",
+                  "computedAt",
+                  "capabilityVersion"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "amount",
+              "currency",
+              "basis"
+            ],
+            "additionalProperties": false
+          },
+          "expense": {
+            "type": "object",
+            "properties": {
+              "amount": {
+                "type": "number"
+              },
+              "currency": {
+                "type": "string",
+                "const": "VND"
+              },
+              "basis": {
+                "type": "object",
+                "properties": {
+                  "formula": {
+                    "type": "string"
+                  },
+                  "range": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "from": {
+                            "type": "string"
+                          },
+                          "to": {
+                            "type": "string"
+                          },
+                          "timeZone": {
+                            "type": "string",
+                            "const": "Asia/Ho_Chi_Minh"
+                          }
+                        },
+                        "required": [
+                          "from",
+                          "to",
+                          "timeZone"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "included": {
+                    "type": "object",
+                    "properties": {
+                      "count": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "transactionIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "count",
+                      "transactionIds"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "excluded": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string",
+                          "enum": [
+                            "transfer",
+                            "outside_range",
+                            "needs_review",
+                            "other_kind",
+                            "other_currency"
+                          ]
+                        },
+                        "count": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "reason",
+                        "count"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "trust": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "trustedThrough": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "baseReconciliationThrough": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "trusted",
+                              "trusted_limited",
+                              "blocked"
+                            ]
+                          },
+                          "reason": {
+                            "type": "string",
+                            "enum": [
+                              "clean_reconciliation_boundary",
+                              "known_unresolved_work",
+                              "missing_clean_reconciliation",
+                              "no_active_accounts"
+                            ]
+                          },
+                          "activeAccountCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "cleanReconciledAccountCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "pendingInboxCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "needsReviewTransactionCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "unreconciledAccountLegCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "earliestUnresolvedOn": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "coverageScope": {
+                            "type": "string",
+                            "const": "known_ledger_state_only"
+                          }
+                        },
+                        "required": [
+                          "trustedThrough",
+                          "baseReconciliationThrough",
+                          "status",
+                          "reason",
+                          "activeAccountCount",
+                          "cleanReconciledAccountCount",
+                          "pendingInboxCount",
+                          "needsReviewTransactionCount",
+                          "unreconciledAccountLegCount",
+                          "earliestUnresolvedOn",
+                          "coverageScope"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "computedAt": {
+                    "type": "string"
+                  },
+                  "capabilityVersion": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "formula",
+                  "range",
+                  "included",
+                  "excluded",
+                  "trust",
+                  "computedAt",
+                  "capabilityVersion"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "amount",
+              "currency",
+              "basis"
+            ],
+            "additionalProperties": false
+          },
+          "net": {
+            "type": "object",
+            "properties": {
+              "amount": {
+                "type": "number"
+              },
+              "currency": {
+                "type": "string",
+                "const": "VND"
+              },
+              "basis": {
+                "type": "object",
+                "properties": {
+                  "formula": {
+                    "type": "string"
+                  },
+                  "range": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "from": {
+                            "type": "string"
+                          },
+                          "to": {
+                            "type": "string"
+                          },
+                          "timeZone": {
+                            "type": "string",
+                            "const": "Asia/Ho_Chi_Minh"
+                          }
+                        },
+                        "required": [
+                          "from",
+                          "to",
+                          "timeZone"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "included": {
+                    "type": "object",
+                    "properties": {
+                      "count": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "transactionIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "count",
+                      "transactionIds"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "excluded": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string",
+                          "enum": [
+                            "transfer",
+                            "outside_range",
+                            "needs_review",
+                            "other_kind",
+                            "other_currency"
+                          ]
+                        },
+                        "count": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "reason",
+                        "count"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "trust": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "trustedThrough": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "baseReconciliationThrough": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "trusted",
+                              "trusted_limited",
+                              "blocked"
+                            ]
+                          },
+                          "reason": {
+                            "type": "string",
+                            "enum": [
+                              "clean_reconciliation_boundary",
+                              "known_unresolved_work",
+                              "missing_clean_reconciliation",
+                              "no_active_accounts"
+                            ]
+                          },
+                          "activeAccountCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "cleanReconciledAccountCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "pendingInboxCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "needsReviewTransactionCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "unreconciledAccountLegCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "earliestUnresolvedOn": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "coverageScope": {
+                            "type": "string",
+                            "const": "known_ledger_state_only"
+                          }
+                        },
+                        "required": [
+                          "trustedThrough",
+                          "baseReconciliationThrough",
+                          "status",
+                          "reason",
+                          "activeAccountCount",
+                          "cleanReconciledAccountCount",
+                          "pendingInboxCount",
+                          "needsReviewTransactionCount",
+                          "unreconciledAccountLegCount",
+                          "earliestUnresolvedOn",
+                          "coverageScope"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "computedAt": {
+                    "type": "string"
+                  },
+                  "capabilityVersion": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "formula",
+                  "range",
+                  "included",
+                  "excluded",
+                  "trust",
+                  "computedAt",
+                  "capabilityVersion"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "amount",
+              "currency",
+              "basis"
+            ],
+            "additionalProperties": false
+          },
+          "accounts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "currencyCode": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "currencyCode"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "trust": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "trustedThrough": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "baseReconciliationThrough": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "trusted",
+                      "trusted_limited",
+                      "blocked"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "enum": [
+                      "clean_reconciliation_boundary",
+                      "known_unresolved_work",
+                      "missing_clean_reconciliation",
+                      "no_active_accounts"
+                    ]
+                  },
+                  "activeAccountCount": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "cleanReconciledAccountCount": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "pendingInboxCount": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "needsReviewTransactionCount": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "unreconciledAccountLegCount": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "earliestUnresolvedOn": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "coverageScope": {
+                    "type": "string",
+                    "const": "known_ledger_state_only"
+                  }
+                },
+                "required": [
+                  "trustedThrough",
+                  "baseReconciliationThrough",
+                  "status",
+                  "reason",
+                  "activeAccountCount",
+                  "cleanReconciledAccountCount",
+                  "pendingInboxCount",
+                  "needsReviewTransactionCount",
+                  "unreconciledAccountLegCount",
+                  "earliestUnresolvedOn",
+                  "coverageScope"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "range",
+          "totalBalance",
+          "income",
+          "expense",
+          "net",
+          "accounts",
+          "trust"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "reports.financial",
+      "version": "1",
+      "title": "Báo cáo tài chính / Financial report",
+      "description": "Báo cáo thu chi có căn cứ / Financial reporting with explainable source rows.",
+      "authorization": "read",
+      "sideEffects": "none",
+      "idempotent": true,
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string",
+            "enum": [
+              "month",
+              "week",
+              "custom"
+            ]
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "period"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "range": {
+            "type": "object",
+            "properties": {
+              "period": {
+                "type": "string",
+                "enum": [
+                  "week",
+                  "month",
+                  "year",
+                  "custom"
+                ]
+              },
+              "currentStart": {
+                "type": "string"
+              },
+              "currentEnd": {
+                "type": "string"
+              },
+              "previousStart": {
+                "type": "string"
+              },
+              "previousEnd": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "period",
+              "currentStart",
+              "currentEnd",
+              "previousStart",
+              "previousEnd"
+            ],
+            "additionalProperties": false
+          },
+          "totals": {
+            "type": "object",
+            "properties": {
+              "income": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "number"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "const": "VND"
+                  },
+                  "basis": {
+                    "type": "object",
+                    "properties": {
+                      "formula": {
+                        "type": "string"
+                      },
+                      "range": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "from": {
+                                "type": "string"
+                              },
+                              "to": {
+                                "type": "string"
+                              },
+                              "timeZone": {
+                                "type": "string",
+                                "const": "Asia/Ho_Chi_Minh"
+                              }
+                            },
+                            "required": [
+                              "from",
+                              "to",
+                              "timeZone"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "included": {
+                        "type": "object",
+                        "properties": {
+                          "count": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "transactionIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "count",
+                          "transactionIds"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "excluded": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "reason": {
+                              "type": "string",
+                              "enum": [
+                                "transfer",
+                                "outside_range",
+                                "needs_review",
+                                "other_kind",
+                                "other_currency"
+                              ]
+                            },
+                            "count": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "reason",
+                            "count"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "trust": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "trustedThrough": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "baseReconciliationThrough": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "trusted",
+                                  "trusted_limited",
+                                  "blocked"
+                                ]
+                              },
+                              "reason": {
+                                "type": "string",
+                                "enum": [
+                                  "clean_reconciliation_boundary",
+                                  "known_unresolved_work",
+                                  "missing_clean_reconciliation",
+                                  "no_active_accounts"
+                                ]
+                              },
+                              "activeAccountCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "cleanReconciledAccountCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "pendingInboxCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "needsReviewTransactionCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "unreconciledAccountLegCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "earliestUnresolvedOn": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "coverageScope": {
+                                "type": "string",
+                                "const": "known_ledger_state_only"
+                              }
+                            },
+                            "required": [
+                              "trustedThrough",
+                              "baseReconciliationThrough",
+                              "status",
+                              "reason",
+                              "activeAccountCount",
+                              "cleanReconciledAccountCount",
+                              "pendingInboxCount",
+                              "needsReviewTransactionCount",
+                              "unreconciledAccountLegCount",
+                              "earliestUnresolvedOn",
+                              "coverageScope"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "computedAt": {
+                        "type": "string"
+                      },
+                      "capabilityVersion": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "formula",
+                      "range",
+                      "included",
+                      "excluded",
+                      "trust",
+                      "computedAt",
+                      "capabilityVersion"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "amount",
+                  "currency",
+                  "basis"
+                ],
+                "additionalProperties": false
+              },
+              "expense": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "number"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "const": "VND"
+                  },
+                  "basis": {
+                    "type": "object",
+                    "properties": {
+                      "formula": {
+                        "type": "string"
+                      },
+                      "range": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "from": {
+                                "type": "string"
+                              },
+                              "to": {
+                                "type": "string"
+                              },
+                              "timeZone": {
+                                "type": "string",
+                                "const": "Asia/Ho_Chi_Minh"
+                              }
+                            },
+                            "required": [
+                              "from",
+                              "to",
+                              "timeZone"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "included": {
+                        "type": "object",
+                        "properties": {
+                          "count": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "transactionIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "count",
+                          "transactionIds"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "excluded": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "reason": {
+                              "type": "string",
+                              "enum": [
+                                "transfer",
+                                "outside_range",
+                                "needs_review",
+                                "other_kind",
+                                "other_currency"
+                              ]
+                            },
+                            "count": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "reason",
+                            "count"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "trust": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "trustedThrough": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "baseReconciliationThrough": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "trusted",
+                                  "trusted_limited",
+                                  "blocked"
+                                ]
+                              },
+                              "reason": {
+                                "type": "string",
+                                "enum": [
+                                  "clean_reconciliation_boundary",
+                                  "known_unresolved_work",
+                                  "missing_clean_reconciliation",
+                                  "no_active_accounts"
+                                ]
+                              },
+                              "activeAccountCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "cleanReconciledAccountCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "pendingInboxCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "needsReviewTransactionCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "unreconciledAccountLegCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "earliestUnresolvedOn": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "coverageScope": {
+                                "type": "string",
+                                "const": "known_ledger_state_only"
+                              }
+                            },
+                            "required": [
+                              "trustedThrough",
+                              "baseReconciliationThrough",
+                              "status",
+                              "reason",
+                              "activeAccountCount",
+                              "cleanReconciledAccountCount",
+                              "pendingInboxCount",
+                              "needsReviewTransactionCount",
+                              "unreconciledAccountLegCount",
+                              "earliestUnresolvedOn",
+                              "coverageScope"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "computedAt": {
+                        "type": "string"
+                      },
+                      "capabilityVersion": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "formula",
+                      "range",
+                      "included",
+                      "excluded",
+                      "trust",
+                      "computedAt",
+                      "capabilityVersion"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "amount",
+                  "currency",
+                  "basis"
+                ],
+                "additionalProperties": false
+              },
+              "net": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "number"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "const": "VND"
+                  },
+                  "basis": {
+                    "type": "object",
+                    "properties": {
+                      "formula": {
+                        "type": "string"
+                      },
+                      "range": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "from": {
+                                "type": "string"
+                              },
+                              "to": {
+                                "type": "string"
+                              },
+                              "timeZone": {
+                                "type": "string",
+                                "const": "Asia/Ho_Chi_Minh"
+                              }
+                            },
+                            "required": [
+                              "from",
+                              "to",
+                              "timeZone"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "included": {
+                        "type": "object",
+                        "properties": {
+                          "count": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "transactionIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "count",
+                          "transactionIds"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "excluded": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "reason": {
+                              "type": "string",
+                              "enum": [
+                                "transfer",
+                                "outside_range",
+                                "needs_review",
+                                "other_kind",
+                                "other_currency"
+                              ]
+                            },
+                            "count": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "reason",
+                            "count"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "trust": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "trustedThrough": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "baseReconciliationThrough": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "trusted",
+                                  "trusted_limited",
+                                  "blocked"
+                                ]
+                              },
+                              "reason": {
+                                "type": "string",
+                                "enum": [
+                                  "clean_reconciliation_boundary",
+                                  "known_unresolved_work",
+                                  "missing_clean_reconciliation",
+                                  "no_active_accounts"
+                                ]
+                              },
+                              "activeAccountCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "cleanReconciledAccountCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "pendingInboxCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "needsReviewTransactionCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "unreconciledAccountLegCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "earliestUnresolvedOn": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "coverageScope": {
+                                "type": "string",
+                                "const": "known_ledger_state_only"
+                              }
+                            },
+                            "required": [
+                              "trustedThrough",
+                              "baseReconciliationThrough",
+                              "status",
+                              "reason",
+                              "activeAccountCount",
+                              "cleanReconciledAccountCount",
+                              "pendingInboxCount",
+                              "needsReviewTransactionCount",
+                              "unreconciledAccountLegCount",
+                              "earliestUnresolvedOn",
+                              "coverageScope"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "computedAt": {
+                        "type": "string"
+                      },
+                      "capabilityVersion": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "formula",
+                      "range",
+                      "included",
+                      "excluded",
+                      "trust",
+                      "computedAt",
+                      "capabilityVersion"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "amount",
+                  "currency",
+                  "basis"
+                ],
+                "additionalProperties": false
+              },
+              "transactions": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "income",
+              "expense",
+              "net",
+              "transactions"
+            ],
+            "additionalProperties": false
+          },
+          "previous": {
+            "type": "object",
+            "properties": {
+              "income": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "expense": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "net": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "income",
+              "expense",
+              "net"
+            ],
+            "additionalProperties": false
+          },
+          "expenseChangePercent": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "object",
+                  "properties": {
+                    "amount": {
+                      "type": "number"
+                    },
+                    "currency": {
+                      "type": "string",
+                      "const": "VND"
+                    },
+                    "basis": {
+                      "type": "object",
+                      "properties": {
+                        "formula": {
+                          "type": "string"
+                        },
+                        "range": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "from": {
+                                  "type": "string"
+                                },
+                                "to": {
+                                  "type": "string"
+                                },
+                                "timeZone": {
+                                  "type": "string",
+                                  "const": "Asia/Ho_Chi_Minh"
+                                }
+                              },
+                              "required": [
+                                "from",
+                                "to",
+                                "timeZone"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "included": {
+                          "type": "object",
+                          "properties": {
+                            "count": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "transactionIds": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "count",
+                            "transactionIds"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "excluded": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "reason": {
+                                "type": "string",
+                                "enum": [
+                                  "transfer",
+                                  "outside_range",
+                                  "needs_review",
+                                  "other_kind",
+                                  "other_currency"
+                                ]
+                              },
+                              "count": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              }
+                            },
+                            "required": [
+                              "reason",
+                              "count"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "trust": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "trustedThrough": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "baseReconciliationThrough": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "status": {
+                                  "type": "string",
+                                  "enum": [
+                                    "trusted",
+                                    "trusted_limited",
+                                    "blocked"
+                                  ]
+                                },
+                                "reason": {
+                                  "type": "string",
+                                  "enum": [
+                                    "clean_reconciliation_boundary",
+                                    "known_unresolved_work",
+                                    "missing_clean_reconciliation",
+                                    "no_active_accounts"
+                                  ]
+                                },
+                                "activeAccountCount": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "cleanReconciledAccountCount": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "pendingInboxCount": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "needsReviewTransactionCount": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "unreconciledAccountLegCount": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "earliestUnresolvedOn": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "coverageScope": {
+                                  "type": "string",
+                                  "const": "known_ledger_state_only"
+                                }
+                              },
+                              "required": [
+                                "trustedThrough",
+                                "baseReconciliationThrough",
+                                "status",
+                                "reason",
+                                "activeAccountCount",
+                                "cleanReconciledAccountCount",
+                                "pendingInboxCount",
+                                "needsReviewTransactionCount",
+                                "unreconciledAccountLegCount",
+                                "earliestUnresolvedOn",
+                                "coverageScope"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "computedAt": {
+                          "type": "string"
+                        },
+                        "capabilityVersion": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "formula",
+                        "range",
+                        "included",
+                        "excluded",
+                        "trust",
+                        "computedAt",
+                        "capabilityVersion"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "amount",
+                    "currency",
+                    "basis"
+                  ],
+                  "additionalProperties": false
+                },
+                "share": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "name",
+                "amount",
+                "share"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "accounts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "share": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "name",
+                "amount",
+                "share"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "trend": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "income": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "expense": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "key",
+                "label",
+                "income",
+                "expense"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "range",
+          "totals",
+          "previous",
+          "expenseChangePercent",
+          "categories",
+          "accounts",
+          "trend"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "transactions.search",
+      "version": "1",
+      "title": "Tìm giao dịch / Transaction search",
+      "description": "Tìm giao dịch theo bộ lọc xác định / Deterministic ledger search with stable cursor paging.",
+      "authorization": "read",
+      "sideEffects": "none",
+      "idempotent": true,
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "income",
+              "expense",
+              "transfer"
+            ]
+          },
+          "accountId": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "limit": {
+            "default": 50,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "limit"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "income",
+                    "expense",
+                    "transfer"
+                  ]
+                },
+                "categoryId": {
+                  "type": "string"
+                },
+                "category": {
+                  "type": "string"
+                },
+                "note": {
+                  "type": "string"
+                },
+                "accountId": {
+                  "type": "string"
+                },
+                "account": {
+                  "type": "string"
+                },
+                "destinationAccountId": {
+                  "type": "string"
+                },
+                "destinationAccount": {
+                  "type": "string"
+                },
+                "isRecurringPayment": {
+                  "type": "boolean"
+                },
+                "reviewStatus": {
+                  "type": "string",
+                  "enum": [
+                    "needs_review",
+                    "reviewed"
+                  ]
+                },
+                "splits": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "categoryId": {
+                        "type": "string"
+                      },
+                      "category": {
+                        "type": "string"
+                      },
+                      "amount": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "categoryId",
+                      "category",
+                      "amount"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "amount": {
+                  "type": "number"
+                },
+                "occurredOn": {
+                  "type": "string"
+                },
+                "occurredAt": {
+                  "type": "string"
+                },
+                "relativeDate": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "categoryId",
+                "category",
+                "note",
+                "accountId",
+                "account",
+                "amount",
+                "occurredOn",
+                "occurredAt",
+                "relativeDate"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "basis": {
+            "type": "object",
+            "properties": {
+              "formula": {
+                "type": "string"
+              },
+              "range": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "from": {
+                        "type": "string"
+                      },
+                      "to": {
+                        "type": "string"
+                      },
+                      "timeZone": {
+                        "type": "string",
+                        "const": "Asia/Ho_Chi_Minh"
+                      }
+                    },
+                    "required": [
+                      "from",
+                      "to",
+                      "timeZone"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "included": {
+                "type": "object",
+                "properties": {
+                  "count": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "transactionIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "count",
+                  "transactionIds"
+                ],
+                "additionalProperties": false
+              },
+              "excluded": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "transfer",
+                        "outside_range",
+                        "needs_review",
+                        "other_kind",
+                        "other_currency"
+                      ]
+                    },
+                    "count": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "count"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "trust": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "trustedThrough": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "baseReconciliationThrough": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "trusted",
+                          "trusted_limited",
+                          "blocked"
+                        ]
+                      },
+                      "reason": {
+                        "type": "string",
+                        "enum": [
+                          "clean_reconciliation_boundary",
+                          "known_unresolved_work",
+                          "missing_clean_reconciliation",
+                          "no_active_accounts"
+                        ]
+                      },
+                      "activeAccountCount": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "cleanReconciledAccountCount": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "pendingInboxCount": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "needsReviewTransactionCount": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "unreconciledAccountLegCount": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "earliestUnresolvedOn": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "coverageScope": {
+                        "type": "string",
+                        "const": "known_ledger_state_only"
+                      }
+                    },
+                    "required": [
+                      "trustedThrough",
+                      "baseReconciliationThrough",
+                      "status",
+                      "reason",
+                      "activeAccountCount",
+                      "cleanReconciledAccountCount",
+                      "pendingInboxCount",
+                      "needsReviewTransactionCount",
+                      "unreconciledAccountLegCount",
+                      "earliestUnresolvedOn",
+                      "coverageScope"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "computedAt": {
+                "type": "string"
+              },
+              "capabilityVersion": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "formula",
+              "range",
+              "included",
+              "excluded",
+              "trust",
+              "computedAt",
+              "capabilityVersion"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "basis"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ]
+}
