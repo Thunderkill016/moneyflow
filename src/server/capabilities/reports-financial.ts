@@ -6,6 +6,7 @@ import {
   resolveReportRange,
   type FinancialReport,
 } from "../../lib/reports.ts";
+import { minorSchema, minor } from "../../lib/minor.ts";
 import { buildBasis, explainedAmount, transactionRange, validIsoDate } from "./basis.ts";
 import type {
   CapabilityContext,
@@ -45,18 +46,18 @@ const reportOutputSchema = z.object({
     transactions: z.number().int(),
   }),
   previous: z.object({
-    income: z.number().int(),
-    expense: z.number().int(),
-    net: z.number().int(),
+    income: minorSchema,
+    expense: minorSchema,
+    net: minorSchema,
   }),
   expenseChangePercent: z.number().int().nullable(),
   categories: z.array(explainedCategorySchema),
-  accounts: z.array(z.object({ name: z.string(), amount: z.number().int(), share: z.number().int() })),
+  accounts: z.array(z.object({ name: z.string(), amount: minorSchema, share: z.number().int() })),
   trend: z.array(z.object({
     key: z.string(),
     label: z.string(),
-    income: z.number().int(),
-    expense: z.number().int(),
+    income: minorSchema,
+    expense: minorSchema,
   })),
 });
 
@@ -122,6 +123,20 @@ function explainedReport(
       expense: explainedAmount(report.totals.expense, basis("sum(expense.amount) within the current report range", expense, "expense")),
       net: explainedAmount(report.totals.net, basis("income total minus expense total within the current report range", [...income, ...expense])),
     },
+    previous: {
+      income: minor(report.previous.income),
+      expense: minor(report.previous.expense),
+      net: minor(report.previous.net),
+    },
+    accounts: report.accounts.map((account) => ({
+      ...account,
+      amount: minor(account.amount),
+    })),
+    trend: report.trend.map((point) => ({
+      ...point,
+      income: minor(point.income),
+      expense: minor(point.expense),
+    })),
     categories: report.categories.map((category) => {
       const categoryTransactions = expense.filter((transaction) =>
         transaction.category === category.name ||

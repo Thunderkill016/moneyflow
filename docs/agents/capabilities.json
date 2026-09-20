@@ -60,7 +60,9 @@
             "additionalProperties": false,
             "properties": {
               "amount": {
-                "type": "number"
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
               },
               "basis": {
                 "additionalProperties": false,
@@ -281,7 +283,9 @@
             "additionalProperties": false,
             "properties": {
               "amount": {
-                "type": "number"
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
               },
               "basis": {
                 "additionalProperties": false,
@@ -502,7 +506,9 @@
             "additionalProperties": false,
             "properties": {
               "amount": {
-                "type": "number"
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
               },
               "basis": {
                 "additionalProperties": false,
@@ -757,7 +763,9 @@
             "additionalProperties": false,
             "properties": {
               "amount": {
-                "type": "number"
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
               },
               "basis": {
                 "additionalProperties": false,
@@ -1161,7 +1169,9 @@
                   "additionalProperties": false,
                   "properties": {
                     "amount": {
-                      "type": "number"
+                      "maximum": 9007199254740991,
+                      "minimum": -9007199254740991,
+                      "type": "integer"
                     },
                     "basis": {
                       "additionalProperties": false,
@@ -1475,7 +1485,9 @@
                 "additionalProperties": false,
                 "properties": {
                   "amount": {
-                    "type": "number"
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
                   },
                   "basis": {
                     "additionalProperties": false,
@@ -1696,7 +1708,9 @@
                 "additionalProperties": false,
                 "properties": {
                   "amount": {
-                    "type": "number"
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
                   },
                   "basis": {
                     "additionalProperties": false,
@@ -1917,7 +1931,9 @@
                 "additionalProperties": false,
                 "properties": {
                   "amount": {
-                    "type": "number"
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
                   },
                   "basis": {
                     "additionalProperties": false,
@@ -2460,7 +2476,9 @@
                   "type": "string"
                 },
                 "amount": {
-                  "type": "number"
+                  "maximum": 9007199254740991,
+                  "minimum": -9007199254740991,
+                  "type": "integer"
                 },
                 "category": {
                   "type": "string"
@@ -2512,7 +2530,9 @@
                     "additionalProperties": false,
                     "properties": {
                       "amount": {
-                        "type": "number"
+                        "maximum": 9007199254740991,
+                        "minimum": -9007199254740991,
+                        "type": "integer"
                       },
                       "category": {
                         "type": "string"

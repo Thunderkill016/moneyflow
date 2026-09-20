@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { Transaction } from "../../lib/transactions/contracts.ts";
+import { minorSchema, minor } from "../../lib/minor.ts";
 import { buildBasis, validIsoDate } from "./basis.ts";
 import type {
   CapabilityContext,
@@ -38,10 +39,10 @@ const transactionSchema = z.object({
     z.object({
       categoryId: z.string(),
       category: z.string(),
-      amount: z.number().refine(Number.isSafeInteger),
+      amount: minorSchema,
     }),
   ).optional(),
-  amount: z.number().refine(Number.isSafeInteger),
+  amount: minorSchema,
   occurredOn: z.string(),
   occurredAt: z.string(),
   relativeDate: z.string(),
@@ -87,6 +88,17 @@ function withoutPendingKey(transaction: Transaction): Omit<Transaction, "pending
   const clean = { ...transaction };
   delete clean.pendingKey;
   return clean;
+}
+
+function toSearchItem(transaction: Transaction): TransactionsSearchOutput["items"][number] {
+  const { splits, ...rest } = withoutPendingKey(transaction);
+  return {
+    ...rest,
+    ...(splits
+      ? { splits: splits.map((line) => ({ ...line, amount: minor(line.amount) })) }
+      : {}),
+    amount: minor(rest.amount),
+  };
 }
 
 export async function run(
@@ -137,7 +149,7 @@ export async function run(
   });
 
   return {
-    items: page.map(withoutPendingKey),
+    items: page.map(toSearchItem),
     nextCursor: last && startIndex + page.length < matching.length ? encodeCursor(last) : null,
     basis,
   };

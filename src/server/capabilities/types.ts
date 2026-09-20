@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { FinanceWorkspace } from "../finance.ts";
 import type { ReportsWorkspace } from "../reports.ts";
 import type { LedgerTrustSummary } from "../../lib/ledger-trust.ts";
+import { minorSchema, type Minor } from "../../lib/minor.ts";
 import type { CustomRangeInput, ReportPeriod } from "../../lib/reports.ts";
 
 export type { FinanceWorkspace, ReportsWorkspace };
@@ -92,13 +93,13 @@ export const basisSchema = z.object({
 
 export type Basis = z.infer<typeof basisSchema>;
 export type ExplainedAmount = {
-  amount: number;
+  amount: Minor;
   currency: "VND";
   basis: Basis;
 };
 
 export const explainedAmountSchema = z.object({
-  amount: z.number().refine(Number.isSafeInteger, "amount must be a safe integer"),
+  amount: minorSchema,
   currency: z.literal("VND"),
   basis: basisSchema,
 });
