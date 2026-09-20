@@ -14,6 +14,7 @@ export type RateLimitConfig = {
   limit: number;
   /** Sliding window length in milliseconds. */
   windowMs: number;
+  maxKeys?: number;
 };
 
 export type RateLimitOk = {
@@ -34,6 +35,7 @@ export type RateLimitResult = RateLimitOk | RateLimitDenied;
 
 export type RateLimiter = {
   /** Record one attempt; returns whether it is allowed. */
+  allow: (key: string, now?: number) => boolean;
   check: (key: string, now?: number) => RateLimitResult;
   /** Peek without recording a hit. */
   peek: (key: string, now?: number) => RateLimitResult;
@@ -57,7 +59,14 @@ function prune(timestamps: number[], now: number, windowMs: number): number[] {
 export function createRateLimiter(config: RateLimitConfig): RateLimiter {
   const limit = Math.max(1, Math.floor(config.limit));
   const windowMs = Math.max(1, Math.floor(config.windowMs));
+  const maxKeys = Math.max(1, Math.floor(config.maxKeys ?? 10_000));
   const hits = new Map<string, number[]>();
+
+  function ensureCapacity(safeKey: string): void {
+    if (hits.has(safeKey) || hits.size < maxKeys) return;
+    const firstKey = hits.keys().next().value;
+    if (firstKey !== undefined) hits.delete(firstKey);
+  }
 
   function evaluate(key: string, now: number, record: boolean): RateLimitResult {
     const safeKey = typeof key === "string" && key.length > 0 ? key.slice(0, 200) : "anon";
@@ -66,25 +75,33 @@ export function createRateLimiter(config: RateLimitConfig): RateLimiter {
     if (pruned.length >= limit) {
       const oldest = pruned[0] ?? now;
       const retryAfterMs = Math.max(1, oldest + windowMs - now);
+      ensureCapacity(safeKey);
       hits.set(safeKey, pruned);
       return { ok: false, remaining: 0, limit, retryAfterMs };
     }
 
     if (record) {
       pruned.push(now);
+      ensureCapacity(safeKey);
       hits.set(safeKey, pruned);
       return { ok: true, remaining: Math.max(0, limit - pruned.length), limit };
     }
 
+    ensureCapacity(safeKey);
     hits.set(safeKey, pruned);
     return { ok: true, remaining: Math.max(0, limit - pruned.length), limit };
   }
 
+  function check(key: string, now = Date.now()): RateLimitResult {
+    return evaluate(key, now, true);
+  }
+
   return {
     config: { limit, windowMs },
-    check(key: string, now = Date.now()) {
-      return evaluate(key, now, true);
+    allow(key: string, now = Date.now()) {
+      return check(key, now).ok;
     },
+    check,
     peek(key: string, now = Date.now()) {
       return evaluate(key, now, false);
     },
@@ -96,6 +113,14 @@ export function createRateLimiter(config: RateLimitConfig): RateLimiter {
       hits.delete(key);
     },
   };
+}
+
+export function clientKeyFromHeaders(headers: Headers): string {
+  const forwarded = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  if (forwarded) return forwarded;
+
+  const realIp = headers.get("x-real-ip")?.trim();
+  return realIp || "unknown";
 }
 
 /** Soft defaults: ~1 import action every 4s on average, burst 15 / minute. */
