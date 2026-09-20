@@ -1,5 +1,6 @@
 import type { Transaction } from "../../lib/transactions/contracts.ts";
 import type { LedgerTrustSummary } from "../../lib/ledger-trust.ts";
+import { minor } from "../../lib/minor.ts";
 import type { Basis, ExplainedAmount } from "./types.ts";
 
 export type CapabilityRange = {
@@ -97,8 +98,7 @@ export function explainedAmount(
   amount: number,
   basis: Basis,
 ): ExplainedAmount {
-  if (!Number.isSafeInteger(amount)) throw new Error("unsafe_capability_amount");
-  return { amount, currency: "VND", basis };
+  return { amount: minor(amount), currency: "VND", basis };
 }
 
 export function transactionRange(
