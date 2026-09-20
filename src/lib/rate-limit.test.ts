@@ -1,10 +1,62 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  clientKeyFromHeaders,
   createRateLimiter,
   importRateKey,
   rateLimitUserMessage,
 } from "./rate-limit.ts";
+
+test("allows the limit then blocks the next request in a window", () => {
+  const limiter = createRateLimiter({ limit: 2, windowMs: 1_000 });
+
+  assert.equal(limiter.allow("client", 100), true);
+  assert.equal(limiter.allow("client", 200), true);
+  assert.equal(limiter.allow("client", 300), false);
+});
+
+test("restores allowance after the fixed window expires", () => {
+  const limiter = createRateLimiter({ limit: 1, windowMs: 1_000 });
+
+  assert.equal(limiter.allow("client", 100), true);
+  assert.equal(limiter.allow("client", 1_099), false);
+  assert.equal(limiter.allow("client", 1_100), true);
+});
+
+test("tracks keys independently", () => {
+  const limiter = createRateLimiter({ limit: 1, windowMs: 1_000 });
+
+  assert.equal(limiter.allow("first", 100), true);
+  assert.equal(limiter.allow("first", 200), false);
+  assert.equal(limiter.allow("second", 200), true);
+});
+
+test("evicts the oldest inserted key when maxKeys is reached", () => {
+  const limiter = createRateLimiter({
+    limit: 1,
+    windowMs: 1_000,
+    maxKeys: 2,
+  });
+
+  assert.equal(limiter.allow("first", 100), true);
+  assert.equal(limiter.allow("second", 100), true);
+  assert.equal(limiter.allow("third", 100), true);
+  assert.equal(limiter.allow("first", 100), true);
+});
+
+test("parses forwarded client headers", () => {
+  assert.equal(
+    clientKeyFromHeaders(
+      new Headers({ "x-forwarded-for": " 203.0.113.1, 198.51.100.2" }),
+    ),
+    "203.0.113.1",
+  );
+  assert.equal(
+    clientKeyFromHeaders(new Headers({ "x-real-ip": " 192.0.2.1 " })),
+    "192.0.2.1",
+  );
+  assert.equal(clientKeyFromHeaders(new Headers()), "unknown");
+});
 
 test("allows up to limit hits inside the window", () => {
   const limiter = createRateLimiter({ limit: 3, windowMs: 10_000 });

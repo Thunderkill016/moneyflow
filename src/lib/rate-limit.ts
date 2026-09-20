@@ -1,19 +1,15 @@
 /**
- * Soft in-process rate limit (TASK-121).
+ * Soft in-process rate limit.
  *
- * Guards upload/import server actions against accidental double-submit floods
- * and casual abuse. Process-local only — not shared across serverless
- * instances. See docs/rate-limit.md for the edge middleware plan.
- *
- * Ledger writes already use DB idempotency keys; this layer is for import
- * batch / candidate create paths that are not idempotent by design.
+ * Guards public endpoints and server actions against accidental double-submit
+ * floods and casual abuse. Process-local only — not shared across serverless
+ * instances.
  */
 
 export type RateLimitConfig = {
-  /** Max accepted events inside the sliding window. */
   limit: number;
-  /** Sliding window length in milliseconds. */
   windowMs: number;
+  maxKeys?: number;
 };
 
 export type RateLimitOk = {
@@ -33,69 +29,109 @@ export type RateLimitDenied = {
 export type RateLimitResult = RateLimitOk | RateLimitDenied;
 
 export type RateLimiter = {
-  /** Record one attempt; returns whether it is allowed. */
+  allow(key: string, now?: number): boolean;
   check: (key: string, now?: number) => RateLimitResult;
-  /** Peek without recording a hit. */
   peek: (key: string, now?: number) => RateLimitResult;
-  /** Clear one key or the entire map (tests). */
   reset: (key?: string) => void;
-  readonly config: Readonly<RateLimitConfig>;
+  readonly config: Readonly<Required<RateLimitConfig>>;
 };
 
-function prune(timestamps: number[], now: number, windowMs: number): number[] {
-  const cutoff = now - windowMs;
-  // Timestamps are append-only chronological; find first still in window.
-  let i = 0;
-  while (i < timestamps.length && timestamps[i]! <= cutoff) i += 1;
-  return i === 0 ? timestamps : timestamps.slice(i);
+type Entry = {
+  count: number;
+  resetAt: number;
+};
+
+function normalizedKey(key: string): string {
+  return typeof key === "string" && key.length > 0 ? key.slice(0, 200) : "anon";
 }
 
 /**
- * Create a sliding-window limiter keyed by opaque strings (e.g. `import:userId`).
+ * Create a process-local fixed-window limiter keyed by opaque strings.
  * Injectable `now` keeps unit tests deterministic.
  */
 export function createRateLimiter(config: RateLimitConfig): RateLimiter {
   const limit = Math.max(1, Math.floor(config.limit));
   const windowMs = Math.max(1, Math.floor(config.windowMs));
-  const hits = new Map<string, number[]>();
+  const maxKeys = Math.max(1, Math.floor(config.maxKeys ?? 10_000));
+  const entries = new Map<string, Entry>();
 
-  function evaluate(key: string, now: number, record: boolean): RateLimitResult {
-    const safeKey = typeof key === "string" && key.length > 0 ? key.slice(0, 200) : "anon";
-    const pruned = prune(hits.get(safeKey) ?? [], now, windowMs);
+  function evictExpired(now: number): void {
+    for (const [key, entry] of entries) {
+      if (entry.resetAt <= now) entries.delete(key);
+    }
+  }
 
-    if (pruned.length >= limit) {
-      const oldest = pruned[0] ?? now;
-      const retryAfterMs = Math.max(1, oldest + windowMs - now);
-      hits.set(safeKey, pruned);
-      return { ok: false, remaining: 0, limit, retryAfterMs };
+  function evictOldestIfFull(key: string): void {
+    if (entries.has(key) || entries.size < maxKeys) return;
+    const oldest = entries.keys().next().value;
+    if (oldest !== undefined) entries.delete(oldest);
+  }
+
+  function consume(key: string, now: number): Entry {
+    evictExpired(now);
+    const safeKey = normalizedKey(key);
+    const current = entries.get(safeKey);
+    if (current && now < current.resetAt) {
+      current.count += 1;
+      return current;
     }
 
-    if (record) {
-      pruned.push(now);
-      hits.set(safeKey, pruned);
-      return { ok: true, remaining: Math.max(0, limit - pruned.length), limit };
-    }
+    evictOldestIfFull(safeKey);
+    const entry = { count: 1, resetAt: now + windowMs };
+    entries.set(safeKey, entry);
+    return entry;
+  }
 
-    hits.set(safeKey, pruned);
-    return { ok: true, remaining: Math.max(0, limit - pruned.length), limit };
+  function resultFromEntry(entry: Entry, now: number): RateLimitResult {
+    if (entry.count > limit) {
+      return {
+        ok: false,
+        remaining: 0,
+        limit,
+        retryAfterMs: Math.max(1, entry.resetAt - now),
+      };
+    }
+    return { ok: true, remaining: limit - entry.count, limit };
   }
 
   return {
-    config: { limit, windowMs },
+    config: { limit, windowMs, maxKeys },
+    allow(key: string, now = Date.now()) {
+      return consume(key, now).count <= limit;
+    },
     check(key: string, now = Date.now()) {
-      return evaluate(key, now, true);
+      return resultFromEntry(consume(key, now), now);
     },
     peek(key: string, now = Date.now()) {
-      return evaluate(key, now, false);
+      evictExpired(now);
+      const entry = entries.get(normalizedKey(key));
+      if (!entry) return { ok: true, remaining: limit, limit };
+      if (entry.count >= limit) {
+        return {
+          ok: false,
+          remaining: 0,
+          limit,
+          retryAfterMs: Math.max(1, entry.resetAt - now),
+        };
+      }
+      return resultFromEntry(entry, now);
     },
     reset(key?: string) {
       if (key === undefined) {
-        hits.clear();
+        entries.clear();
         return;
       }
-      hits.delete(key);
+      entries.delete(normalizedKey(key));
     },
   };
+}
+
+export function clientKeyFromHeaders(headers: Headers): string {
+  const forwarded = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  if (forwarded) return forwarded;
+
+  const realIp = headers.get("x-real-ip")?.trim();
+  return realIp || "unknown";
 }
 
 /** Soft defaults: ~1 import action every 4s on average, burst 15 / minute. */
