@@ -4,6 +4,8 @@ import test from "node:test";
 import {
   analyticsPropsContainRaw,
   buildParserFeedbackMeta,
+  buildQuickCaptureCorrectionMeta,
+  buildQuickCaptureSaveMeta,
   sanitizeAnalyticsProps,
   trackProductEvent,
 } from "./safe-analytics.ts";
@@ -88,4 +90,101 @@ test("buildParserFeedbackMeta only when opt-in; never raw", () => {
   assert.equal(meta!.warning_count, 2);
   assert.equal(meta!.map_confidence, "medium");
   assert.equal(analyticsPropsContainRaw(meta!), false);
+});
+
+test("quick capture save metadata describes pattern use without financial values", () => {
+  assert.deepEqual(
+    buildQuickCaptureSaveMeta({
+      elapsedMs: 12_345.4,
+      patternCount: 2,
+      selectedPatternRank: 2,
+      outcome: "success",
+    }),
+    {
+      elapsed_ms: 12_345,
+      pattern_count: 2,
+      completion_mode: "pattern_selected",
+      selected_pattern_rank: 2,
+      save_outcome: "success",
+    },
+  );
+  assert.deepEqual(
+    buildQuickCaptureSaveMeta({
+      elapsedMs: 50,
+      patternCount: 1,
+      selectedPatternRank: null,
+      outcome: "failure",
+    }),
+    {
+      elapsed_ms: 50,
+      pattern_count: 1,
+      completion_mode: "manual_with_patterns",
+      selected_pattern_rank: null,
+      save_outcome: "failure",
+    },
+  );
+  assert.deepEqual(
+    buildQuickCaptureSaveMeta({
+      elapsedMs: 50,
+      patternCount: 0,
+      selectedPatternRank: null,
+      outcome: "success",
+    }),
+    {
+      elapsed_ms: 50,
+      pattern_count: 0,
+      completion_mode: "no_pattern_available",
+      selected_pattern_rank: null,
+      save_outcome: "success",
+    },
+  );
+});
+
+test("quick capture metadata rejects invalid cardinality and bounds timings", () => {
+  assert.equal(
+    buildQuickCaptureSaveMeta({
+      elapsedMs: -1,
+      patternCount: 0,
+      selectedPatternRank: null,
+      outcome: "success",
+    }),
+    null,
+  );
+  assert.equal(
+    buildQuickCaptureSaveMeta({
+      elapsedMs: 10,
+      patternCount: 1,
+      selectedPatternRank: 2,
+      outcome: "success",
+    }),
+    null,
+  );
+  assert.equal(
+    buildQuickCaptureSaveMeta({
+      elapsedMs: 10,
+      patternCount: 3,
+      selectedPatternRank: null,
+      outcome: "success",
+    }),
+    null,
+  );
+  assert.equal(
+    buildQuickCaptureSaveMeta({
+      elapsedMs: 31 * 60 * 1_000,
+      patternCount: 0,
+      selectedPatternRank: null,
+      outcome: "success",
+    })?.elapsed_ms,
+    30 * 60 * 1_000,
+  );
+});
+
+test("quick capture correction metadata uses bounded timing buckets", () => {
+  assert.deepEqual(buildQuickCaptureCorrectionMeta(4_999), {
+    elapsed_bucket: "within_5_seconds",
+  });
+  assert.deepEqual(buildQuickCaptureCorrectionMeta(5_000), {
+    elapsed_bucket: "within_5_seconds",
+  });
+  assert.equal(buildQuickCaptureCorrectionMeta(5_001), null);
 });
