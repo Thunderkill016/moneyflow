@@ -25,11 +25,23 @@ test("every capability becomes one spec-legal MCP tool", () => {
   for (const tool of tools) {
     assert.match(tool.name, /^[a-zA-Z0-9_-]{1,64}$/);
     assert.equal(tool.name, mcpToolName(tool.capabilityId));
-    assert.equal(tool.annotations.readOnlyHint, true);
     assert.equal(tool.annotations.destructiveHint, false);
     assert.ok(tool.description.length > 0);
     assert.ok(tool.inputSchema);
   }
+});
+
+test("write capabilities advertise mutating annotations, reads stay read-only", () => {
+  const tools = capabilityTools();
+  const byName = new Map(tools.map((tool) => [tool.name, tool]));
+
+  assert.equal(byName.get("ledger_summary")?.annotations.readOnlyHint, true);
+  const propose = byName.get("candidates_propose");
+  assert.ok(propose);
+  assert.equal(propose.annotations.readOnlyHint, false);
+  assert.equal(propose.annotations.idempotentHint, true);
+  assert.equal(propose.annotations.destructiveHint, false);
+  assert.equal(propose.annotations.openWorldHint, false);
 });
 
 test("dotted capability ids map to underscored tool names", () => {
@@ -44,15 +56,21 @@ test("dotted capability ids map to underscored tool names", () => {
  * capability suites themselves.
  */
 test("tool execution maps malformed args to an isError result", async () => {
-  const result = await executeCapabilityTool("viewer-1", "ledger.summary", {
-    period: "not-a-period",
-  });
+  const result = await executeCapabilityTool(
+    { id: "viewer-1", clientId: null },
+    "ledger.summary",
+    { period: "not-a-period" },
+  );
   assert.equal(result.isError, true);
   assert.match(result.content[0].text, /capability_error:invalid_input/);
 });
 
 test("tool execution maps unknown capability to isError", async () => {
-  const result = await executeCapabilityTool("viewer-1", "nope.missing", {});
+  const result = await executeCapabilityTool(
+    { id: "viewer-1", clientId: null },
+    "nope.missing",
+    {},
+  );
   assert.equal(result.isError, true);
   assert.match(result.content[0].text, /capability_error:not_found/);
 });

@@ -1,4 +1,9 @@
 import { capabilityDefinitions } from "./manifest.ts";
+import {
+  capabilityWriteLimiter,
+  capabilityWriteRateKey,
+} from "../../lib/rate-limit.ts";
+import { isWriteClientAllowed } from "./write-policy.ts";
 import { CapabilityError } from "./types.ts";
 
 import type { CapabilityContext, CapabilityDeps } from "./types.ts";
@@ -29,6 +34,29 @@ export async function runCapability(
   const context =
     options.context ??
     await (await import("./context.ts")).createCapabilityContext();
+
+  /*
+   * Write gate (617 spec): applies to every transport uniformly. Third-party
+   * OAuth clients need an explicit allowlist entry; first-party callers pass.
+   * Write calls carry their own tighter limiter on top of transport limits.
+   */
+  if (capability.authorization !== "read") {
+    if (!isWriteClientAllowed(context.clientId)) {
+      throw new CapabilityError(
+        "forbidden",
+        `Capability ${id} is not allowed for this client`,
+      );
+    }
+    const write = capabilityWriteLimiter.check(
+      capabilityWriteRateKey(context.viewerId, context.clientId),
+    );
+    if (!write.ok) {
+      throw new CapabilityError("rate_limited", `Capability ${id} rate limited`, {
+        retryAfterMs: write.retryAfterMs,
+      });
+    }
+  }
+
   let output;
   try {
     const run = capability.run as (

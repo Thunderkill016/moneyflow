@@ -24,8 +24,8 @@ export function capabilityTools() {
     inputSchema: capability.input,
     annotations: {
       title: capability.title,
-      readOnlyHint: true,
-      idempotentHint: true,
+      readOnlyHint: capability.authorization === "read",
+      idempotentHint: capability.idempotent,
       destructiveHint: false,
       openWorldHint: false,
     },
@@ -45,13 +45,13 @@ type ToolResult = {
  * through the request-scoped auth seam (RLS), not through args.
  */
 export async function executeCapabilityTool(
-  viewerId: string,
+  viewer: { id: string; clientId: string | null },
   capabilityId: string,
   args: unknown,
 ): Promise<ToolResult> {
   try {
     const output = await runCapability(capabilityId, args, {
-      context: buildCapabilityContext(viewerId),
+      context: buildCapabilityContext(viewer.id, { clientId: viewer.clientId }),
     });
     return {
       content: [{ type: "text", text: JSON.stringify(output, null, 2) }],

@@ -79,7 +79,7 @@ export async function POST(
 
   try {
     const output = await runCapability(id, input, {
-      context: buildCapabilityContext(viewer.id),
+      context: buildCapabilityContext(viewer.id, { clientId: viewer.clientId }),
     });
     return NextResponse.json(output, { headers: NO_STORE });
   } catch (error) {
@@ -91,7 +91,11 @@ export async function POST(
     if (error instanceof CapabilityError) {
       if (error.code === "invalid_input") return jsonError(400, "invalid_input");
       if (error.code === "unauthorized") return jsonError(401, "unauthorized", BEARER_CHALLENGE);
+      if (error.code === "forbidden") return jsonError(403, "forbidden");
       if (error.code === "not_found") return jsonError(404, "not_found");
+      if (error.code === "rate_limited") {
+        return throttled(error.retryAfterMs ?? 60_000);
+      }
     }
     return jsonError(500, "internal");
   }

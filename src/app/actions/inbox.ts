@@ -15,6 +15,7 @@ import { isImportBatch } from "@/lib/inbox/import-batch-store";
 import {
   batchToInsertRow,
   candidateToInsertRow,
+  INBOX_CANDIDATE_COLUMNS,
   isUuid,
   mapBatchRow,
   mapCandidateRow,
@@ -52,8 +53,7 @@ export type InboxActionResult =
     }
   | { ok: false; message: string };
 
-const CANDIDATE_COLUMNS =
-  "id,kind,amount_minor,merchant,note,occurred_on,source,confidence,status,possible_duplicate,category_id,category_name,account_id,account_name,raw_snippet,import_batch_id,local_id,created_at,source_row_index,source_external_id,source_lifecycle_state,source_predecessor_external_id,fingerprint_version,fingerprint,parser_version,mapping_version,match_status,match_reason,match_confidence,possible_transfer,transfer_pair_id,approved_transaction_id,approved_at";
+const CANDIDATE_COLUMNS = INBOX_CANDIDATE_COLUMNS;
 
 const BATCH_COLUMNS =
   "id,file_name,source,status,row_count,warning_count,skipped_rows,map_confidence,headers,column_map,local_id,created_at,committed_at,parser_version,mapping_version";
@@ -67,6 +67,7 @@ const sourceSchema = z.enum([
   "manual",
   "notification",
   "email",
+  "agent",
 ]);
 const confidenceSchema = z.enum(["high", "medium", "low"]);
 const statusSchema = z.enum(["pending", "approved", "rejected"]);

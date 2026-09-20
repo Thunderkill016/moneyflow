@@ -24,7 +24,7 @@ test("capability API route authenticates through the shared viewer seam", () => 
   assert.match(route, /viewer\.isDemo/);
   assert.match(route, /www-authenticate/);
   assert.match(route, /runCapability\(id, input/);
-  assert.match(route, /buildCapabilityContext\(viewer\.id\)/);
+  assert.match(route, /buildCapabilityContext\(viewer\.id, \{ clientId: viewer\.clientId \}\)/);
   assert.doesNotMatch(route, /requireViewer|serviceRole|SERVICE_ROLE_KEY/);
 });
 
@@ -32,6 +32,7 @@ test("capability API route maps errors to codes, never payload detail", () => {
   assert.match(route, /invalid_json/);
   assert.match(route, /invalid_input/);
   assert.match(route, /not_found/);
+  assert.match(route, /forbidden/);
   assert.match(route, /rate_limited/);
   assert.match(route, /retry-after/);
   assert.match(route, /cache-control": "no-store/);
@@ -42,6 +43,7 @@ test("Bearer credential flows through the single auth seam", () => {
   assert.match(supabaseServer, /global: \{ headers: \{ Authorization: `Bearer \$\{token\}` \} \}/);
   assert.match(supabaseServer, /persistSession: false/);
   assert.match(auth, /supabase\.auth\.getClaims\(bearer\)/);
+  assert.match(auth, /claims\.client_id/);
   assert.doesNotMatch(supabaseServer, /serviceRole|SERVICE_ROLE_KEY/);
 });
 

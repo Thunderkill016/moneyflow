@@ -1,6 +1,8 @@
 # MoneyFlow capability layer
 
-The capability layer is the typed, viewer-scoped read seam over existing server workspace loaders and pure financial calculators. Each capability has a stable dotted identifier, versioned Zod input/output schemas, no side effects, deterministic ordering, and a `basis` describing the rows and exclusions behind financial amounts.
+The capability layer is the typed, viewer-scoped seam over existing server workspace loaders, pure financial calculators and — for write proposals — the Inbox candidate path. Each capability has a stable dotted identifier, versioned Zod input/output schemas, deterministic ordering, and a `basis` describing the rows and exclusions behind financial amounts.
+
+`candidates.propose` is the first write capability: an authenticated caller proposes a transaction as an Inbox **candidate** (`source: "agent"`), never a posted ledger row — approval stays human and in-app. Write capabilities carry `authorization: "write:proposal"`, run under a per-viewer+client write limiter (`capabilityWriteLimiter`, 20/60s), and third-party OAuth clients must be allowlisted via `CAPABILITY_WRITE_CLIENT_IDS` (first-party sessions always pass; Supabase OAuth has no custom scopes). Idempotent replay is keyed by `idempotencyKey`, persisted namespaced inside `source_external_id` as `agent|<client>|key` — the same `|` convention other source observations use, so dedup, lifecycle and archive contracts are unchanged. MCP tool annotations derive from each capability (`readOnlyHint` false for writes).
 
 The generated manifest at `docs/agents/capabilities.json` is the machine-readable catalog for future UI, API and MCP transports. It is generated with `npm run capabilities:emit`, must not be edited manually, and is CI-checked with `npm run check:capabilities`.
 

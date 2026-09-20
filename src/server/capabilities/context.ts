@@ -7,5 +7,5 @@ export async function createCapabilityContext(
   now: Date = new Date(),
 ): Promise<CapabilityContext> {
   const viewer = await requireViewer();
-  return buildCapabilityContext(viewer.id, now);
+  return buildCapabilityContext(viewer.id, { now, clientId: viewer.clientId });
 }

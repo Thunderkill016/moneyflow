@@ -170,6 +170,33 @@ export function capabilityAnonRateKey(clientKey: string): string {
   return `capability-anon:${key}`;
 }
 
+/**
+ * Tighter budget for write capabilities (candidate proposals): agent bursts
+ * must not flood the Inbox. Keys per viewer + OAuth client so one abusive
+ * client cannot exhaust the viewer's allowance for other clients.
+ */
+export const CAPABILITY_WRITE_LIMIT: RateLimitConfig = {
+  limit: 20,
+  windowMs: 60_000,
+};
+
+export const capabilityWriteLimiter = createRateLimiter(CAPABILITY_WRITE_LIMIT);
+
+export function capabilityWriteRateKey(
+  viewerId: string,
+  clientId: string | null,
+): string {
+  const id =
+    typeof viewerId === "string" && viewerId.length > 0
+      ? viewerId.slice(0, 80)
+      : "unknown";
+  const client =
+    typeof clientId === "string" && clientId.length > 0
+      ? clientId.slice(0, 80)
+      : "first-party";
+  return `capability-write:${id}:${client}`;
+}
+
 /** Calm Vietnamese notice when the soft guard trips. */
 export function rateLimitUserMessage(retryAfterMs: number): string {
   const sec = Math.max(1, Math.ceil(retryAfterMs / 1000));

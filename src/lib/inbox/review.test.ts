@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { AccountOption, CategoryOption } from "../sample-data.ts";
 import type { InboxCandidate } from "./candidate-store.ts";
+import type { PersistedInboxCandidate } from "./provenance.ts";
 import {
   applyBulkCategory,
   buildConfirmedReviewRuleSeed,
@@ -99,6 +100,27 @@ test("buildExplainLines covers parser, rule, source, raw", () => {
   assert.ok(lines.some((line) => line.text.includes("paste_text")));
   assert.ok(lines.some((line) => line.kind === "raw" && line.text.includes("HIGHLANDS")));
   assert.ok(lines.some((line) => /45\.000/.test(line.text)));
+});
+
+test("buildExplainLines names the proposing client for agent candidates", () => {
+  const proposed: PersistedInboxCandidate = {
+    ...expense,
+    source: "agent",
+    sourceExternalId: "agent|client-abc|3f6b6b6c-0c5f-4d3e-9a2a-2f0d2b7a1f01",
+  };
+  const source = buildExplainLines(proposed).find((line) => line.kind === "source");
+  assert.ok(source);
+  assert.ok(source!.text.includes("đề xuất bởi client-abc"));
+
+  const firstParty: PersistedInboxCandidate = {
+    ...expense,
+    source: "agent",
+    sourceExternalId: "agent|first-party|3f6b6b6c-0c5f-4d3e-9a2a-2f0d2b7a1f01",
+  };
+  const fallback = buildExplainLines(firstParty).find((line) => line.kind === "source");
+  assert.ok(fallback);
+  assert.ok(fallback!.text.includes("AI agent"));
+  assert.ok(!fallback!.text.includes("first-party"));
 });
 
 test("buildExplainLines masks STK-like digits in raw line", () => {
