@@ -35,7 +35,7 @@ test("consent actions approve/deny through the oauth namespace without redirects
 });
 
 test("local Supabase config enables the OAuth server for the consent path", () => {
-  assert.match(configToml, /\[auth\.oauth_server\]/);
+  assert.match(configToml, /\[auth\.oauth_server\]\n# Enable OAuth server functionality\nenabled = true/);
   assert.match(configToml, /authorization_url_path = "\/oauth\/consent"/);
   assert.match(configToml, /allow_dynamic_registration = false/);
 });
