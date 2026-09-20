@@ -12,6 +12,8 @@ The v0 ledger summary populates `trust` through `src/server/ledger-trust.ts`, th
 
 `POST /api/capabilities/[id]` executes a capability for the authenticated viewer. Authentication is the same seam as the UI: `Authorization: Bearer <supabase access token>` or a session cookie resolves through `getViewer()`, and all loaders keep running under that identity's RLS — there is no service-role or second data path. Responses are `no-store`; failures are `400 invalid_input`/`invalid_json`, `401` + `WWW-Authenticate: Bearer` (including demo viewers, which are never an authenticated identity), `404` unknown capability, `429` + `Retry-After` per-viewer limited, `500` otherwise. The request body is the capability's Zod-validated input object (`{}` is valid where every field is optional).
 
+`POST /api/mcp` serves the same registry as a Model Context Protocol endpoint (Streamable HTTP, stateless — `sessionIdGenerator: undefined`, JSON responses). Each capability is registered as one tool named with underscores (`ledger.summary` → `ledger_summary`), so the tool catalog is always the registry. `GET/POST/DELETE` are all exported per the transport spec; `Origin` is validated against the request host (DNS-rebinding guard, 403); unauthenticated calls get `401` + `WWW-Authenticate` pointing at `/.well-known/oauth-protected-resource` (RFC 9728), which advertises Supabase Auth (`<project>.supabase.co/auth/v1`) as the authorization server.
+
 To add a capability:
 
 1. Add its schemas, metadata and injectable `run(ctx, input, deps)` function under `src/server/capabilities/`.
