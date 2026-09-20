@@ -1,4 +1,5 @@
 import { buildFinancialReport, resolveReportRange } from "../../../src/lib/reports.ts";
+import type { LedgerTrustSummary } from "../../../src/lib/ledger-trust.ts";
 import {
   demoAccounts,
   demoCategories,
@@ -54,8 +55,25 @@ export function fixtureWorkspace(
   };
 }
 
+export function fixtureLedgerTrust(): LedgerTrustSummary {
+  return {
+    trustedThrough: "2026-07-10",
+    baseReconciliationThrough: "2026-06-30",
+    status: "trusted_limited",
+    reason: "known_unresolved_work",
+    activeAccountCount: 4,
+    cleanReconciledAccountCount: 3,
+    pendingInboxCount: 2,
+    needsReviewTransactionCount: 1,
+    unreconciledAccountLegCount: 1,
+    earliestUnresolvedOn: "2026-07-12",
+    coverageScope: "known_ledger_state_only",
+  };
+}
+
 export function fixtureDeps(
   transactions = demoTransactions(),
+  ledgerTrust: LedgerTrustSummary | null = fixtureLedgerTrust(),
 ): CapabilityDeps {
   const workspace = fixtureWorkspace(transactions);
   return {
@@ -69,5 +87,6 @@ export function fixtureDeps(
         rangeNotice: null,
       };
     },
+    loadLedgerTrust: async () => ledgerTrust,
   };
 }

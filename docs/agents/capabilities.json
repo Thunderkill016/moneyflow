@@ -1075,7 +1075,7 @@
                 "type": "null"
               }
             ],
-            "description": "Null until a standalone ledger-trust loader exists; follow-up."
+            "description": "Ledger-trust summary from the database ledger_trust_summary() contract; null for demo viewers or when the contract is unavailable (withheld, never fabricated)."
           }
         },
         "required": [

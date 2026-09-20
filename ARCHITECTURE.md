@@ -109,7 +109,7 @@ Demo storage is not a fallback for authenticated failures. Production contracts 
 
 `scripts/check-architecture.mjs` enforces only proven import boundaries. Add a new rule after an actual risky dependency has been identified and the intended replacement boundary exists; do not grow the checker as a speculative style guide.
 
-The capability layer is a typed seam over existing server workspace loaders and pure financial calculators. Read capabilities are deterministic, viewer-scoped and attach a `basis` to financial amounts so future UI, API and MCP transports consume the same ledger truth. `docs/agents/capabilities.json` is generated from the registry and must remain synchronized; this slice adds no transport, mutation owner or schema.
+The capability layer is a typed seam over existing server workspace loaders and pure financial calculators. Read capabilities are deterministic, viewer-scoped and attach a `basis` to financial amounts so future UI, API and MCP transports consume the same ledger truth. `src/server/ledger-trust.ts` exposes the database `ledger_trust_summary()` contract outside the bundled dashboard RPC so non-page consumers share one trust contract. `docs/agents/capabilities.json` is generated from the registry and must remain synchronized; this slice adds no transport, mutation owner or schema.
 
 ## Domain boundaries
 
