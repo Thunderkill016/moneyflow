@@ -15,12 +15,12 @@ test("allows the limit then blocks the next request in a window", () => {
   assert.equal(limiter.allow("client", 300), false);
 });
 
-test("restores allowance after the fixed window expires", () => {
+test("restores allowance after the oldest hit leaves the sliding window", () => {
   const limiter = createRateLimiter({ limit: 1, windowMs: 1_000 });
 
   assert.equal(limiter.allow("client", 100), true);
   assert.equal(limiter.allow("client", 1_099), false);
-  assert.equal(limiter.allow("client", 1_100), true);
+  assert.equal(limiter.allow("client", 1_101), true);
 });
 
 test("tracks keys independently", () => {
