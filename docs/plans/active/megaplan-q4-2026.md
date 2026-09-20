@@ -51,13 +51,13 @@ Sequencing contract: five tracks, five owner gates (G1–G5), no track self-auth
 | 0.1 | Đóng issue #608 (P2 done), link squash commits | minutes |
 | 0.2 | Archive `docs/plans/active/p2-capability-transports.md` → `completed/` + cập nhật Delivery record (squash shas, CI, prod-verified note) | S |
 | 0.3 | Reconcile #432 P0.8–P0.10 (stale từ 8/21 — verify done/still-open) | S |
-| 0.4 | Owner: revert Supabase Site URL → prod domain sau deploy | owner, minutes |
-| 0.5 | Owner: đăng ký production OAuth client + smoke prod `/oauth/consent` (Inspector hoặc client thật) | owner, ~30min |
+| 0.4 | Owner: revert Supabase Site URL → prod domain sau deploy | owner, minutes — done (`https://mfvn.vercel.app`; legacy `www.moneyflow.app` serves a stale ~3-week-old build — removal/redirect noted as cleanup) |
+| 0.5 | Owner: prod OAuth smoke — reuse existing `mcp-inspector` client (redirect URI is client-side localhost, works against prod) | owner, ~10min — done 2026-09-20: Inspector → `https://mfvn.vercel.app/api/mcp` → authorize → prod consent → approve → token → tools served real data |
 
 ### Track A — Capability/agent layer (P3 của capability program)
 | # | Việc | Phụ thuộc | Class |
 |---|---|---|---|
-| A1 | Prod OAuth verification trên deployed domain — sau Track 0.4/0.5, xác nhận flow trên prod URL | deploy + 0.4/0.5 | ops |
+| A1 | Prod OAuth verification trên deployed domain — sau Track 0.4/0.5, xác nhận flow trên prod URL | deploy + 0.4/0.5 | ops — done 2026-09-20 on `mfvn.vercel.app` |
 | A2 | **Connected-apps UX**: trang settings "Ứng dụng đã kết nối" — `listGrants()` hiển thị client + scopes + granted_at, `revokeGrant()` cho revoke. Đây là mảng trust còn thiếu: user approve nhưng không thấy/revoke được | — | 2 |
 | A3 | Capability coverage expansion theo nhu cầu product: `accounts.list`, `budgets.status`, `goals.status`, `activity.candidates` — mỗi cái giờ là schema + injectable deps + golden + manifest regen (giá rẻ); chỉ thêm khi product surface cần, không add speculatively | — | 1 mỗi cái |
 | A4 | **Write-capability spec research** (packet Class 3, docs-only): idempotency keys, provenance (`source: agent`, `oauth_client_id` claim), confirm-in-app vs auto-post modes, scope granularity (`write:transactions` vs `read`), reversal/undo semantics, audit trail, throttle chặt hơn, MCP `readOnlyHint=false` annotations, owner-only feature flag, staged rollout. **Không code** — chỉ spec | owner authorize (G2) | 3 |
