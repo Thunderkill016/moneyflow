@@ -1,7 +1,7 @@
 # P2 — authenticated capability transports (Bearer API + MCP)
 
-**Status:** specified
-**Execution state:** specified
+**Status:** completed
+**Execution state:** completed
 **Active role:** human_owner
 **Permission scope:** branch_write (packet/spec only — implementation needs explicit owner go-ahead)
 **Owner:** repository owner
@@ -215,10 +215,10 @@ One new HTTP seam in `src/app/api/` delegates everything to the existing registr
 |---|---|---|---|---|
 | T1 | P2a — Bearer seam: token client factory + `viewerFromBearer` + tests | Owner approves packet + D1–D6 | PR #610 — `bearerToken` + token-scoped `createClient` + `getClaims(jwt)` | done |
 | T2 | P2a — `POST /api/capabilities/[id]` + throttling + error mapping + tests | T1 | PR #610 — route + contract tests | done |
-| T3 | P2b — `/api/mcp` stateless endpoint + tools-from-registry + Origin validation | T1 | PR pending — `mcp.ts` tool generation + stateless route | done |
-| T4 | P2b — RFC 9728 protected-resource metadata + `WWW-Authenticate` wiring | T3 | PR pending — `/.well-known/oauth-protected-resource` + challenge | done |
-| T5 | P2c — Supabase OAuth server enablement + `/oauth/consent` + client registration docs | Owner enables beta + approves UI | PR pending — `/oauth/consent` page + approve/deny actions + `[auth.oauth_server]` config; owner enabled the beta | done |
-| T6 | Docs (`agents/README`, `rate-limit.md`), PR memory, exact-head verification | T2/T4 minimum | `verify:fast`, CI, curl + MCP smoke | todo |
+| T3 | P2b — `/api/mcp` stateless endpoint + tools-from-registry + Origin validation | T1 | PR #613 — `mcp.ts` tool generation + stateless route | done |
+| T4 | P2b — RFC 9728 protected-resource metadata + `WWW-Authenticate` wiring | T3 | PR #613 — `/.well-known/oauth-protected-resource` + challenge | done |
+| T5 | P2c — Supabase OAuth server enablement + `/oauth/consent` + client registration docs | Owner enables beta + approves UI | PR #612 — `/oauth/consent` page + approve/deny actions + `[auth.oauth_server]` config; owner enabled the beta | done |
+| T6 | Docs (`agents/README`, `rate-limit.md`), PR memory, exact-head verification | T2/T4 minimum | `verify:fast`, CI green on all three PRs, live MCP Inspector smoke (authorize → consent → token → `/api/mcp` 200 → `ledger_summary` real data) | done |
 
 Stages land as separate PRs (P2a, P2b, P2c) — each independently reviewable and revertible.
 
@@ -263,13 +263,13 @@ Pending owner review.
 
 ## Delivery record
 
-- Branch: `devin/p2-transports-packet`
-- PR: pending
-- Squash commit: pending owner action
-- CI run: pending
-- Production deployment: not applicable
-- Production flow verified: not applicable
-- Work packet moved to `docs/plans/completed/`: pending completion
+- Branches: `devin/p2-transports-packet` (#609), `devin/p2a-bearer-api` (#610), `devin/p2b-mcp-endpoint` (#613, supersedes auto-closed #611), `devin/p2c-oauth-consent` (#612)
+- PRs: #609 (packet) → #610 (P2a) → #613 (P2b) → #612 (P2c), all merged
+- Squash commits: `1a0baf64` (#609), `f73e7119` (#610), `be6247fc` (#613), `d3fbad3d` (#612)
+- CI run: green on all PRs (13/13-class check sets; #612 also ran Cross-device UI audit for the consent UI)
+- Production deployment: merged to main; Vercel auto-deploy
+- Production flow verified: local OAuth smoke against the live Supabase project passed end-to-end (2026-09-20); deployed-domain verification pending owner Site URL revert + prod client registration
+- Work packet moved to `docs/plans/completed/`: this move
 
 ---
 
