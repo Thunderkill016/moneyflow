@@ -190,13 +190,10 @@ test("local owners reserve stable space for guided evidence and Dashboard money"
   const landingSource = read("src/components/landing-page.tsx");
   const statement = read("src/components/dashboard/statement.module.css");
   assert.match(landingCss, /\.hero\b/);
-  assert.match(
-    landingCss,
-    /min-height:\s*min\(760px,\s*calc\(100svh - 72px\)\)/,
-  );
-  assert.match(landingCss, /\.storyFigure\b/);
-  assert.match(landingCss, /\.storyFigure img[\s\S]*width:\s*100%/);
-  assert.match(landingCss, /\.storyFigure img[\s\S]*height:\s*auto/);
+  assert.match(landingCss, /\.bentoGrid\b/);
+  assert.match(landingCss, /\.tabPanel\b/);
+  assert.match(landingCss, /\.tabPanel img[\s\S]*width:\s*100%/);
+  assert.match(landingCss, /\.tabPanel img[\s\S]*height:\s*auto/);
   assert.match(landingSource, /width=\{step\.width\}/);
   assert.match(landingSource, /height=\{step\.height\}/);
   assert.match(statement, /\.figure\s*\{[\s\S]*font-family:\s*var\(--mf-font-money\)/);

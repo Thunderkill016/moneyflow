@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoneyFlow Redesign — Territory A: Kỷ Hà Đương Đại (Architectural Precision Ledger)</title>
+  <style>
+    /* ==========================================================================
+       TERRITORY A: KỶ HÀ ĐƯƠNG ĐẠI (ARCHITECTURAL PRECISION LEDGER)
+       Swiss Grid, Dieter Rams Restraint, Monospace Numbers, Hairline Borders
+       ========================================================================== */
+    :root {
+      --bg-canvas: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-subtle: #f1f5f9;
+      --bg-active: #e2e8f0;
+      
+      --text-main: #0f172a;
+      --text-muted: #475467;
+      --text-soft: #64748b;
+      
+      --border-hairline: 1px solid #e2e8f0;
+      --border-strong: 1px solid #94a3b8;
+      --border-focus: 2px solid #0f172a;
+      
+      --radius-xs: 2px;
+      --radius-sm: 4px;
+      
+      --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+      
+      --color-income: #059669;
+      --color-income-subtle: #ecfdf5;
+      --color-expense: #dc2626;
+      --color-expense-subtle: #fef2f2;
+      --color-transfer: #4f46e5;
+      --color-transfer-subtle: #eef2ff;
+      --color-warning: #d97706;
+      --color-warning-subtle: #fffbeb;
+      --color-brand: #0f172a;
+    }
+
+    [data-theme="dark"] {
+      --bg-canvas: #090d16;
+      --bg-surface: #111827;
+      --bg-subtle: #1e293b;
+      --bg-active: #334155;
+      
+      --text-main: #f8fafc;
+      --text-muted: #cbd5e1;
+      --text-soft: #94a3b8;
+      
+      --border-hairline: 1px solid #1e293b;
+      --border-strong: 1px solid #475467;
+      --border-focus: 2px solid #f8fafc;
+      
+      --color-income: #34d399;
+      --color-income-subtle: #064e3b;
+      --color-expense: #f87171;
+      --color-expense-subtle: #7f1d1d;
+      --color-transfer: #818cf8;
+      --color-transfer-subtle: #312e81;
+      --color-warning: #fbbf24;
+      --color-warning-subtle: #78350f;
+      --color-brand: #f8fafc;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      background: #0b0f19;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Prototype Header Bar */
+    .proto-bar {
+      background: #0f172a;
+      border-bottom: 1px solid #1e293b;
+      padding: 10px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      z-index: 100;
+    }
+    .proto-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #f8fafc;
+    }
+    .proto-badge {
+      background: #1e293b;
+      border: 1px solid #334155;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #38bdf8;
+    }
+    .proto-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .proto-btn {
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #334155;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .proto-btn:hover { background: #334155; }
+    .proto-btn.active {
+      background: #38bdf8;
+      color: #0f172a;
+      border-color: #38bdf8;
+      font-weight: 700;
+    }
+
+    /* Screen Selector Navigation */
+    .screen-nav {
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+      padding: 6px 20px;
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+    }
+    .screen-tab {
+      background: transparent;
+      color: #94a3b8;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .screen-tab:hover { color: #f8fafc; background: rgba(255,255,255,0.05); }
+    .screen-tab.active {
+      color: #f8fafc;
+      background: #0f172a;
+      border: 1px solid #38bdf8;
+      font-weight: 600;
+    }
+
+    /* Stage Area */
+    .stage {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 24px;
+      background: #020617;
+      overflow-y: auto;
+    }
+
+    /* Device Containers */
+    .device-frame {
+      background: var(--bg-canvas);
+      color: var(--text-main);
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .device-desktop {
+      width: 1440px;
+      min-height: 900px;
+      border-radius: 4px;
+      border: 1px solid #334155;
+      display: flex;
+    }
+    .device-mobile {
+      width: 390px;
+      min-height: 844px;
+      border-radius: 44px;
+      border: 10px solid #1e293b;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Common Typography & Layout Classes for Territory A */
+    .tA-mono { font-family: var(--font-mono); font-feature-settings: "tnum" 1, "zero" 1; }
+    .tA-caps { text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; font-weight: 600; color: var(--text-soft); }
+    .tA-hairline-b { border-bottom: var(--border-hairline); }
+    .tA-hairline-t { border-top: var(--border-hairline); }
+    .tA-hairline-r { border-right: var(--border-hairline); }
+    .tA-hairline-l { border-left: var(--border-hairline); }
+    
+    /* Desktop Shell */
+    .d-sidebar {
+      width: 240px;
+      background: var(--bg-surface);
+      border-right: var(--border-hairline);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .d-brand {
+      padding: 20px;
+      border-bottom: var(--border-hairline);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .d-brand-logo {
+      width: 28px;
+      height: 28px;
+      background: var(--color-brand);
+      color: var(--bg-surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      border-radius: var(--radius-xs);
+      font-size: 14px;
+      font-family: var(--font-mono);
+    }
+    .d-nav-group { padding: 16px 12px; }
+    .d-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-bottom: 2px;
+    }
+    .d-nav-item:hover { background: var(--bg-subtle); color: var(--text-main); }
+    .d-nav-item.active {
+      background: var(--bg-subtle);
+      color: var(--text-main);
+      font-weight: 700;
+      border-left: 3px solid var(--color-brand);
+    }
+    .d-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-canvas);
+      overflow-x: hidden;
+    }
+    .d-topbar {
+      height: 56px;
+      background: var(--bg-surface);
+      border-bottom: var(--border-hairline);
+      padding: 0 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .d-content {
+      padding: 28px;
+      flex: 1;
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    /* Buttons */
+    .btn-tA {
+      background: var(--color-brand);
+      color: var(--bg-surface);
+      border: 1px solid var(--color-brand);
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: opacity 0.15s ease;
+    }
+    .btn-tA:hover { opacity: 0.9; }
+    .btn-tA-outline {
+      background: transparent;
+      color: var(--text-main);
+      border: var(--border-hairline);
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+    .btn-tA-outline:hover { background: var(--bg-subtle); }
+
+    /* Card Panels */
+    .card-tA {
+      background: var(--bg-surface);
+      border: var(--border-hairline);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    /* Attention Box */
+    .attention-box {
+      border: 1px solid #f59e0b;
+      background: #fffbeb;
+      color: #92400e;
+      padding: 14px 18px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    [data-theme="dark"] .attention-box {
+      background: #451a03;
+      border-color: #d97706;
+      color: #fde68a;
+    }
+
+    /* Grid Layouts */
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+
+    /* Table Styles */
+    .table-tA {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .table-tA th {
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: var(--border-hairline);
+      color: var(--text-soft);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+      background: var(--bg-subtle);
+    }
+    .table-tA td {
+      padding: 12px 14px;
+      border-bottom: var(--border-hairline);
+      color: var(--text-main);
+    }
+    .table-tA tr:hover td {
+      background: var(--bg-subtle);
+      cursor: pointer;
+    }
+
+    /* Amount Colors */
+    .amt-income { color: var(--color-income); font-weight: 600; }
+    .amt-expense { color: var(--color-expense); font-weight: 600; }
+    .amt-transfer { color: var(--color-transfer); font-weight: 600; }
+
+    /* Badges */
+    .badge-tA {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: var(--radius-xs);
+      font-size: 11px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      border: 1px solid var(--border-hairline);
+    }
+    .badge-income { background: var(--color-income-subtle); color: var(--color-income); border-color: var(--color-income); }
+    .badge-expense { background: var(--color-expense-subtle); color: var(--color-expense); border-color: var(--color-expense); }
+    .badge-transfer { background: var(--color-transfer-subtle); color: var(--color-transfer); border-color: var(--color-transfer); }
+    .badge-warning { background: var(--color-warning-subtle); color: var(--color-warning); border-color: var(--color-warning); }
+
+    /* Mobile Specific */
+    .m-topbar {
+      height: 48px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: var(--border-hairline);
+      background: var(--bg-surface);
+    }
+    .m-scrollable {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      padding-bottom: 84px; /* Space for bottom bar */
+    }
+    .m-bottombar {
+      height: 64px;
+      background: var(--bg-surface);
+      border-top: var(--border-hairline);
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      z-index: 50;
+      padding-bottom: env(safe-area-inset-bottom, 8px);
+    }
+    .m-nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      font-size: 10px;
+      color: var(--text-soft);
+      min-width: 44px;
+      min-height: 44px;
+      cursor: pointer;
+    }
+    .m-nav-item.active { color: var(--color-brand); font-weight: 700; }
+    .m-fab {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      background: var(--color-brand);
+      color: var(--bg-surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Modal / Drawer */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+    .modal-card {
+      background: var(--bg-surface);
+      border: var(--border-hairline);
+      border-radius: var(--radius-sm);
+      width: 90%;
+      max-width: 460px;
+      padding: 24px;
+    }
+  </style>
+</head>
+<body data-theme="light">
+
+  <!-- Top Prototype Control Bar -->
+  <div class="proto-bar">
+    <div class="proto-title">
+      <span>MONEYFLOW DESIGN EXPLORATION</span>
+      <span class="proto-badge">Territory A: Kỷ Hà Đương Đại</span>
+    </div>
+    <div class="proto-controls">
+      <button class="proto-btn active" id="btn-desktop" onclick="setDevice('desktop')">🖥️ Desktop (1440px)</button>
+      <button class="proto-btn" id="btn-mobile" onclick="setDevice('mobile')">📱 Mobile (390px)</button>
+      <button class="proto-btn" onclick="toggleTheme()">🌓 Dark/Light</button>
+      <button class="proto-btn" onclick="togglePrivacy()">🔒 Ẩn số dư</button>
+    </div>
+  </div>
+
+  <!-- Screen Switcher Navigation -->
+  <div class="screen-nav">
+    <button class="screen-tab active" onclick="setScreen('today')">1. Today / Dashboard</button>
+    <button class="screen-tab" onclick="setScreen('activity')">2. Activity / Transactions</button>
+    <button class="screen-tab" onclick="setScreen('accounts')">3. Accounts & Reconciliation</button>
+    <button class="screen-tab" onclick="setScreen('plan')">4. Plan (Budgets/Commitments/Goals)</button>
+    <button class="screen-tab" onclick="setScreen('capture')">5. Capture (Fast Entry)</button>
+    <button class="screen-tab" onclick="setScreen('settings')">6. Settings & Data Governance</button>
+  </div>
+
+  <!-- Main Showcase Stage -->
+  <div class="stage">
+    
+    <!-- DESKTOP CONTAINER -->
+    <div class="device-frame device-desktop" id="device-desktop">
+      
+      <!-- Desktop Sidebar -->
+      <aside class="d-sidebar">
+        <div class="d-brand">
+          <div class="d-brand-logo">MF</div>
+          <div>
+            <div style="font-weight: 700; font-size: 14px; letter-spacing: -0.02em;">MoneyFlow</div>
+            <div class="tA-caps" style="font-size: 10px;">Ledger v3 · Precision</div>
+          </div>
+        </div>
+        <div class="d-nav-group">
+          <div class="tA-caps" style="margin-bottom: 8px; padding-left: 12px;">Sổ chính</div>
+          <div class="d-nav-item active" onclick="setScreen('today')">📊 Tổng quan (Today)</div>
+          <div class="d-nav-item" onclick="setScreen('activity')">📋 Sổ giao dịch</div>
+          <div class="d-nav-item" onclick="setScreen('accounts')">🏦 Tài khoản & Đối soát</div>
+        </div>
+        <div class="d-nav-group">
+          <div class="tA-caps" style="margin-bottom: 8px; padding-left: 12px;">Kế hoạch & Nâng cao</div>
+          <div class="d-nav-item" onclick="setScreen('plan')">🎯 Kế hoạch ngân sách</div>
+          <div class="d-nav-item" onclick="openCaptureModal()">⚡ Ghi nhanh (Capture)</div>
+          <div class="d-nav-item" onclick="setScreen('settings')">⚙️ Cài đặt & Dữ liệu</div>
+        </div>
+        <div style="margin-top: auto; padding: 16px; border-top: var(--border-hairline); font-size: 12px; color: var(--text-soft);">
+          <div style="font-weight: 600; color: var(--text-main);">Nguyễn Minh Khang</div>
+          <div class="tA-mono" style="font-size: 11px;">khang.nguyen@example.com</div>
+        </div>
+      </aside>
+
+      <!-- Desktop Main Viewport -->
+      <main class="d-main">
+        <header class="d-topbar">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span class="tA-caps">Kỳ kế toán:</span>
+            <span class="tA-mono" style="font-weight: 600; font-size: 13px;">Tháng 09/2026</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <button class="btn-tA-outline" onclick="togglePrivacy()">🔒 Chế độ riêng tư</button>
+            <button class="btn-tA" onclick="openCaptureModal()">+ Ghi chi tiêu</button>
+          </div>
+        </header>
+
+        <div class="d-content" id="desktop-content">
+          <!-- Dynamic screen injected here -->
+        </div>
+      </main>
+
+    </div>
+
+    <!-- MOBILE CONTAINER -->
+    <div class="device-frame device-mobile" id="device-mobile" style="display: none;">
+      <div class="m-topbar">
+        <div style="font-weight: 800; font-size: 15px; letter-spacing: -0.02em;">MoneyFlow</div>
+        <div style="display: flex; gap: 8px;">
+          <button class="badge-tA" onclick="togglePrivacy()">🔒</button>
+          <button class="badge-tA" onclick="toggleTheme()">🌓</button>
+        </div>
+      </div>
+
+      <div class="m-scrollable" id="mobile-content">
+        <!-- Dynamic mobile content injected here -->
+      </div>
+
+      <nav class="m-bottombar">
+        <div class="m-nav-item active" onclick="setScreen('today')">
+          <span>📊</span>
+          <span>Today</span>
+        </div>
+        <div class="m-nav-item" onclick="setScreen('activity')">
+          <span>📋</span>
+          <span>Sổ GD</span>
+        </div>
+        <div class="m-fab" onclick="openCaptureModal()">+</div>
+        <div class="m-nav-item" onclick="setScreen('accounts')">
+          <span>🏦</span>
+          <span>Ví & Sổ</span>
+        </div>
+        <div class="m-nav-item" onclick="setScreen('plan')">
+          <span>🎯</span>
+          <span>Kế hoạch</span>
+        </div>
+      </nav>
+    </div>
+
+  </div>
+
+  <!-- Interactive Capture Modal -->
+  <div class="modal-overlay" id="capture-modal">
+    <div class="modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-size: 16px; font-weight: 700;">Ghi nhận giao dịch nhanh</h3>
+        <button class="btn-tA-outline" style="padding: 4px 8px;" onclick="closeCaptureModal()">✕</button>
+      </div>
+      <div style="margin-bottom: 14px;">
+        <label class="tA-caps" style="display: block; margin-bottom: 4px;">Số tiền (VND)</label>
+        <input type="text" class="tA-mono" value="65.000 ₫" style="width: 100%; font-size: 24px; font-weight: 700; padding: 10px; border: var(--border-hairline); border-radius: var(--radius-sm); background: var(--bg-subtle); color: var(--text-main);" />
+      </div>
+      <div style="display: flex; gap: 8px; margin-bottom: 14px;">
+        <button class="btn-tA" style="flex: 1;">− Chi tiêu</button>
+        <button class="btn-tA-outline" style="flex: 1;">+ Thu nhập</button>
+        <button class="btn-tA-outline" style="flex: 1;">↔ Chuyển khoản</button>
+      </div>
+      <div style="margin-bottom: 14px;">
+        <label class="tA-caps" style="display: block; margin-bottom: 4px;">Danh mục</label>
+        <select style="width: 100%; padding: 8px; border: var(--border-hairline); border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--text-main);">
+          <option>Ăn uống & Nhu yếu</option>
+          <option>Đi lại & Giao thông</option>
+          <option>Nhà cửa & Cố định</option>
+          <option>Mua sắm cá nhân</option>
+        </select>
+      </div>
+      <div style="margin-bottom: 18px;">
+        <label class="tA-caps" style="display: block; margin-bottom: 4px;">Tài khoản nguồn</label>
+        <select style="width: 100%; padding: 8px; border: var(--border-hairline); border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--text-main);">
+          <option>Techcombank Inspire Pay (32.450.000 ₫)</option>
+          <option>Ví MoMo (1.840.000 ₫)</option>
+          <option>Ví Tiền mặt (1.250.000 ₫)</option>
+        </select>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn-tA" style="flex: 1;" onclick="closeCaptureModal()">Lưu vào sổ (Enter)</button>
+        <button class="btn-tA-outline" onclick="closeCaptureModal()">Hủy</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* CANONICAL DATASET */
+    const DATA = {
+      standing: {
+        total: "114.040.000 ₫",
+        income: "+ 46.500.000 ₫",
+        expense: "− 15.280.000 ₫",
+        savings: "+ 31.220.000 ₫",
+        rate: "67.1%"
+      },
+      attention: [
+        {
+          id: "att-1",
+          type: "warning",
+          title: "Chênh lệch đối soát tài khoản",
+          desc: "Techcombank Inspire Pay đang lệch +400.000 ₫ so với sao kê thực tế (Napas QR lúc 22:15 chưa vào sổ).",
+          action: "Đối soát ngay",
+          targetScreen: "accounts"
+        },
+        {
+          id: "att-2",
+          type: "info",
+          title: "1 giao dịch trong Hộp thư chờ duyệt",
+          desc: "Tin nhắn biến động Circle K Nguyễn Văn Cừ (240.000 ₫) cần xác nhận.",
+          action: "Duyệt giao dịch",
+          targetScreen: "activity"
+        }
+      ],
+      accounts: [
+        { name: "Techcombank Inspire Pay", no: "1903••••882", bal: "32.450.000 ₫", state: "LỆCH +400.000 ₫", alert: true },
+        { name: "VPBank Prime SuperSave", no: "088••••912", bal: "78.500.000 ₫", state: "KHỚP 100%", alert: false },
+        { name: "Ví Điện Tử MoMo", no: "0903••••678", bal: "1.840.000 ₫", state: "KHỚP 100%", alert: false },
+        { name: "Ví Tiền Mặt Sinh Hoạt", no: "CASH", bal: "1.250.000 ₫", state: "KHỚP 100%", alert: false }
+      ],
+      transactions: [
+        { date: "10/09 12:30", desc: "Circle K Nguyễn Văn Cừ", cat: "Ăn uống & Nhu yếu", acc: "Ví MoMo", amt: "− 240.000 ₫", kind: "expense", status: "Chờ duyệt", prov: "Dán văn bản (Paste)" },
+        { date: "10/09 08:15", desc: "Highlands Coffee Hàm Nghi", cat: "Ăn uống / Cà phê", acc: "Ví MoMo", amt: "− 55.000 ₫", kind: "expense", status: "Đã ghi nhận", prov: "Ghi nhanh" },
+        { date: "09/09 19:40", desc: "WinMart+ Landmark 3", cat: "Ăn uống & Nhu yếu", acc: "Techcombank Pay", amt: "− 348.000 ₫", kind: "expense", status: "Đã đối soát", prov: "Sao kê CSV" },
+        { date: "09/09 14:10", desc: "GrabCar di chuyển Q1 ↔ Q7", cat: "Đi lại & Giao thông", acc: "Techcombank Pay", amt: "− 142.000 ₫", kind: "expense", status: "Đã ghi nhận", prov: "Thủ công" },
+        { date: "08/09 21:00", desc: "Rút tiền mặt ATM Landmark", cat: "Chuyển khoản nội bộ", acc: "Techcombank ↔ Tiền mặt", amt: "↔ 2.000.000 ₫", kind: "transfer", status: "Đã khớp", prov: "Transfer" },
+        { date: "05/09 09:00", desc: "Lương Tháng 09/2026 — FPT", cat: "Thu nhập / Lương", acc: "Techcombank Pay", amt: "+ 45.000.000 ₫", kind: "income", status: "Đã đối soát", prov: "Sao kê CSV" },
+        { date: "01/09 10:00", desc: "Tiền thuê căn hộ Vinhomes", cat: "Nhà cửa & Cố định", acc: "Techcombank Pay", amt: "− 11.500.000 ₫", kind: "expense", status: "Đã đối soát", prov: "Cam kết định kỳ" }
+      ]
+    };
+
+    let currentScreen = 'today';
+    let isPrivacy = false;
+    let recNapasCleared = false;
+
+    function toggleRecNapas() {
+      recNapasCleared = !recNapasCleared;
+      renderScreen();
+    }
+
+    function setDevice(device) {
+      document.getElementById('btn-desktop').classList.toggle('active', device === 'desktop');
+      document.getElementById('btn-mobile').classList.toggle('active', device === 'mobile');
+      document.getElementById('device-desktop').style.display = device === 'desktop' ? 'flex' : 'none';
+      document.getElementById('device-mobile').style.display = device === 'mobile' ? 'flex' : 'none';
+      renderScreen();
+    }
+
+    function toggleTheme() {
+      const current = document.body.getAttribute('data-theme');
+      document.body.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+    }
+
+    function togglePrivacy() {
+      isPrivacy = !isPrivacy;
+      renderScreen();
+    }
+
+    function mask(val) {
+      return isPrivacy ? "•••••• ₫" : val;
+    }
+
+    function setScreen(screen) {
+      currentScreen = screen;
+      document.querySelectorAll('.screen-tab').forEach((tab, idx) => {
+        tab.classList.toggle('active', ['today', 'activity', 'accounts', 'plan', 'capture', 'settings'][idx] === screen);
+      });
+      renderScreen();
+    }
+
+    function openCaptureModal() { document.getElementById('capture-modal').style.display = 'flex'; }
+    function closeCaptureModal() { document.getElementById('capture-modal').style.display = 'none'; }
+
+    function renderScreen() {
+      const d = document.getElementById('desktop-content');
+      const m = document.getElementById('mobile-content');
+
+      if (currentScreen === 'today') {
+        renderToday(d, m);
+      } else if (currentScreen === 'activity') {
+        renderActivity(d, m);
+      } else if (currentScreen === 'accounts') {
+        renderAccounts(d, m);
+      } else if (currentScreen === 'plan') {
+        renderPlan(d, m);
+      } else if (currentScreen === 'capture') {
+        renderCaptureScreen(d, m);
+      } else if (currentScreen === 'settings') {
+        renderSettings(d, m);
+      }
+    }
+
+    /* SCREEN 1: TODAY / DASHBOARD */
+    function renderToday(d, m) {
+      // Desktop
+      d.innerHTML = `
+        <!-- Attention Banner -->
+        <div class="attention-box">
+          <div>
+            <div style="font-weight: 700; font-size: 14px;">⚠️ ${DATA.attention[0].title}</div>
+            <div style="font-size: 12px; margin-top: 2px;">${DATA.attention[0].desc}</div>
+          </div>
+          <button class="btn-tA" onclick="setScreen('accounts')">${DATA.attention[0].action}</button>
+        </div>
+
+        <!-- Standing Cards -->
+        <div class="grid-3">
+          <div class="card-tA">
+            <div class="tA-caps">Tổng tài sản khả dụng</div>
+            <div class="tA-mono" style="font-size: 28px; font-weight: 800; margin: 8px 0;">${mask(DATA.standing.total)}</div>
+            <div style="font-size: 12px; color: var(--text-soft);">Cập nhật tức thời qua 4 tài khoản</div>
+          </div>
+          <div class="card-tA">
+            <div class="tA-caps">Dòng tiền tháng 09/2026</div>
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 8px;">
+              <span class="tA-caps">Tiền vào (+)</span>
+              <span class="tA-mono amt-income" style="font-size: 16px;">${mask(DATA.standing.income)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 6px;">
+              <span class="tA-caps">Tiền ra (−)</span>
+              <span class="tA-mono amt-expense" style="font-size: 16px;">${mask(DATA.standing.expense)}</span>
+            </div>
+          </div>
+          <div class="card-tA">
+            <div class="tA-caps">Thặng dư ròng tiết kiệm</div>
+            <div class="tA-mono amt-income" style="font-size: 28px; font-weight: 800; margin: 8px 0;">${mask(DATA.standing.savings)}</div>
+            <div style="font-size: 12px; color: var(--text-soft);">Tỷ lệ tiết kiệm đạt <strong>${DATA.standing.rate}</strong></div>
+          </div>
+        </div>
+
+        <!-- 2 Column: Accounts vs Recent Activity -->
+        <div class="grid-2">
+          <div class="card-tA">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <span class="tA-caps">Danh sách ví & tài khoản (4)</span>
+              <button class="btn-tA-outline" style="font-size: 11px; padding: 4px 8px;" onclick="setScreen('accounts')">Quản lý</button>
+            </div>
+            ${DATA.accounts.map(acc => `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: var(--border-hairline);">
+                <div>
+                  <div style="font-weight: 600; font-size: 13px;">${acc.name}</div>
+                  <div class="tA-mono" style="font-size: 11px; color: var(--text-soft);">${acc.no}</div>
+                </div>
+                <div style="text-align: right;">
+                  <div class="tA-mono" style="font-weight: 700; font-size: 14px;">${mask(acc.bal)}</div>
+                  <span class="badge-tA ${acc.alert ? 'badge-warning' : 'badge-income'}">${acc.state}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="card-tA">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <span class="tA-caps">Giao dịch gần đây</span>
+              <button class="btn-tA-outline" style="font-size: 11px; padding: 4px 8px;" onclick="setScreen('activity')">Xem toàn bộ</button>
+            </div>
+            ${DATA.transactions.slice(0, 5).map(tx => `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: var(--border-hairline);">
+                <div>
+                  <div style="font-weight: 600; font-size: 13px;">${tx.desc}</div>
+                  <div style="font-size: 11px; color: var(--text-soft);">${tx.date} · ${tx.cat}</div>
+                </div>
+                <div style="text-align: right;">
+                  <div class="tA-mono ${tx.kind === 'income' ? 'amt-income' : tx.kind === 'expense' ? 'amt-expense' : 'amt-transfer'}">${mask(tx.amt)}</div>
+                  <span class="badge-tA">${tx.status}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+
+      // Mobile
+      m.innerHTML = `
+        <div style="margin-bottom: 16px;">
+          <div class="tA-caps">Tổng tài sản khả dụng</div>
+          <div class="tA-mono" style="font-size: 26px; font-weight: 800; margin: 4px 0;">${mask(DATA.standing.total)}</div>
+          <div style="display: flex; gap: 8px; margin-top: 8px;">
+            <div class="badge-tA badge-income">Thu: ${mask(DATA.standing.income)}</div>
+            <div class="badge-tA badge-expense">Chi: ${mask(DATA.standing.expense)}</div>
+          </div>
+        </div>
+
+        <div class="attention-box" style="padding: 12px; margin-bottom: 16px;">
+          <div>
+            <div style="font-weight: 700; font-size: 12px;">⚠️ ${DATA.attention[0].title}</div>
+            <div style="font-size: 11px; margin-top: 2px;">Techcombank lệch +400k</div>
+          </div>
+          <button class="btn-tA" style="padding: 4px 8px; font-size: 11px;" onclick="setScreen('accounts')">Sửa</button>
+        </div>
+
+        <div class="card-tA" style="padding: 14px; margin-bottom: 16px;">
+          <div class="tA-caps" style="margin-bottom: 10px;">Tài khoản</div>
+          ${DATA.accounts.map(acc => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: var(--border-hairline);">
+              <div>
+                <div style="font-weight: 600; font-size: 12px;">${acc.name}</div>
+                <div class="tA-mono" style="font-size: 10px; color: var(--text-soft);">${acc.no}</div>
+              </div>
+              <div style="text-align: right;">
+                <div class="tA-mono" style="font-weight: 700; font-size: 12px;">${mask(acc.bal)}</div>
+                <span class="badge-tA ${acc.alert ? 'badge-warning' : 'badge-income'}" style="font-size: 9px;">${acc.state}</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+
+        <div class="card-tA" style="padding: 14px;">
+          <div class="tA-caps" style="margin-bottom: 10px;">Giao dịch mới</div>
+          ${DATA.transactions.slice(0, 4).map(tx => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: var(--border-hairline);">
+              <div>
+                <div style="font-weight: 600; font-size: 12px;">${tx.desc}</div>
+                <div style="font-size: 10px; color: var(--text-soft);">${tx.date}</div>
+              </div>
+              <div class="tA-mono ${tx.kind === 'income' ? 'amt-income' : tx.kind === 'expense' ? 'amt-expense' : 'amt-transfer'}" style="font-size: 12px;">
+                ${mask(tx.amt)}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    /* SCREEN 2: ACTIVITY / TRANSACTIONS */
+    function renderActivity(d, m) {
+      d.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <div>
+            <h2 style="font-size: 20px; font-weight: 800; letter-spacing: -0.02em;">Sổ Đăng Ký Giao Dịch</h2>
+            <div style="font-size: 13px; color: var(--text-soft);">Hiển thị toàn bộ dòng tiền vào/ra theo chuẩn đối soát kế toán</div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" placeholder="Tìm theo tên, danh mục..." style="padding: 8px 12px; font-size: 13px; border: var(--border-hairline); border-radius: var(--radius-sm); width: 260px; background: var(--bg-surface); color: var(--text-main);" />
+            <button class="btn-tA-outline">Lọc tài khoản</button>
+            <button class="btn-tA-outline">Xuất CSV</button>
+          </div>
+        </div>
+
+        <div class="card-tA" style="padding: 0; overflow: hidden;">
+          <table class="table-tA">
+            <thead>
+              <tr>
+                <th>Thời gian</th>
+                <th>Mô tả / Đơn vị thụ hưởng</th>
+                <th>Danh mục</th>
+                <th>Tài khoản</th>
+                <th>Nguồn xuất xứ</th>
+                <th>Trạng thái</th>
+                <th style="text-align: right;">Số tiền (VND)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${DATA.transactions.map(tx => `
+                <tr onclick="alert('Chi tiết giao dịch: ${tx.desc}\\nSố tiền: ${tx.amt}\\nXuất xứ: ${tx.prov}')">
+                  <td class="tA-mono" style="font-size: 12px;">${tx.date}</td>
+                  <td style="font-weight: 600;">${tx.desc}</td>
+                  <td><span class="badge-tA">${tx.cat}</span></td>
+                  <td>${tx.acc}</td>
+                  <td style="color: var(--text-soft); font-size: 12px;">${tx.prov}</td>
+                  <td><span class="badge-tA ${tx.status === 'Chờ duyệt' ? 'badge-warning' : 'badge-income'}">${tx.status}</span></td>
+                  <td class="tA-mono ${tx.kind === 'income' ? 'amt-income' : tx.kind === 'expense' ? 'amt-expense' : 'amt-transfer'}" style="text-align: right; font-size: 14px;">
+                    ${mask(tx.amt)}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      m.innerHTML = `
+        <div style="margin-bottom: 14px;">
+          <h3 style="font-size: 18px; font-weight: 800;">Sổ Giao Dịch</h3>
+          <div style="font-size: 11px; color: var(--text-soft);">Tháng 09/2026 · ${DATA.transactions.length} bản ghi</div>
+        </div>
+        ${DATA.transactions.map(tx => `
+          <div class="card-tA" style="padding: 12px; margin-bottom: 8px;" onclick="alert('${tx.desc}\\n${tx.prov}')">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+              <div>
+                <div style="font-weight: 700; font-size: 13px;">${tx.desc}</div>
+                <div style="font-size: 11px; color: var(--text-soft);">${tx.acc} · ${tx.date}</div>
+              </div>
+              <div class="tA-mono ${tx.kind === 'income' ? 'amt-income' : tx.kind === 'expense' ? 'amt-expense' : 'amt-transfer'}" style="font-weight: 800; font-size: 13px;">
+                ${mask(tx.amt)}
+              </div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="badge-tA" style="font-size: 10px;">${tx.cat}</span>
+              <span class="badge-tA ${tx.status === 'Chờ duyệt' ? 'badge-warning' : 'badge-income'}" style="font-size: 9px;">${tx.status}</span>
+            </div>
+          </div>
+        `).join('')}
+      `;
+    }
+
+    /* SCREEN 3: ACCOUNTS & RECONCILIATION */
+    function renderAccounts(d, m) {
+      const clearedBal = recNapasCleared ? "32.850.000 ₫" : "32.450.000 ₫";
+      const diffBal = recNapasCleared ? "0 ₫" : "+ 400.000 ₫";
+      const isBalanced = recNapasCleared;
+
+      d.innerHTML = `
+        <div style="margin-bottom: 20px;">
+          <h2 style="font-size: 20px; font-weight: 800; letter-spacing: -0.02em;">Tài Khoản & Đối Soát Sổ Sách (Reconciliation)</h2>
+          <div style="font-size: 13px; color: var(--text-soft);">Đối chiếu từng khoản thu chi với sao kê ngân hàng. Hoàn tất đối soát yêu cầu chênh lệch bằng 0 ₫ tuyệt đối.</div>
+        </div>
+
+        <!-- Active Reconciliation Session Box -->
+        <div class="card-tA" style="border: 1px solid ${isBalanced ? 'var(--color-income)' : '#f59e0b'}; background: ${isBalanced ? 'rgba(5,150,105,0.03)' : 'rgba(245,158,11,0.03)'}; margin-bottom: 20px; padding: 18px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="tA-caps" style="color: ${isBalanced ? 'var(--color-income)' : '#d97706'}; font-weight: 700;">Phiên Đối Soát Đang Mở · Techcombank Inspire Pay (1903••••882)</span>
+                <span class="badge-tA ${isBalanced ? 'badge-income' : 'badge-warning'}">${isBalanced ? 'ĐÃ CÂN BẰNG (0 ₫)' : 'CÒN LỆCH +400.000 ₫'}</span>
+              </div>
+              <div style="font-size: 12px; color: var(--text-soft); margin-top: 4px;">
+                <strong>Nguyên tắc:</strong> Đối soát không thay đổi số dư hoặc tự tạo khoản chênh lệch. Tiếp tục đối chiếu giao dịch, không tự bù chênh lệch.
+              </div>
+            </div>
+            <div>
+              ${isBalanced
+                ? `<button class="btn-tA" style="background: var(--color-income); border-color: var(--color-income);" onclick="alert('Đã chốt phiên đối soát: Chênh lệch 0 ₫. Sổ khớp 100%.')">✓ Hoàn tất đối soát (0 ₫)</button>`
+                : `<button class="btn-tA" disabled style="opacity: 0.45; cursor: not-allowed; background: #64748b; border-color: #64748b;" title="Chênh lệch phải bằng 0 ₫ để hoàn tất đối soát">Hoàn tất đối soát (Chưa cân bằng)</button>`
+              }
+            </div>
+          </div>
+
+          <!-- 3 Figures Comparison -->
+          <div class="grid-3" style="margin-bottom: 16px;">
+            <div style="padding: 12px; background: var(--bg-surface); border: var(--border-hairline); border-radius: var(--radius-sm);">
+              <div class="tA-caps">1. Số dư sao kê ngân hàng</div>
+              <div class="tA-mono" style="font-size: 20px; font-weight: 800; margin-top: 4px;">32.850.000 ₫</div>
+              <div style="font-size: 11px; color: var(--text-soft);">Khóa ngày 10/09/2026</div>
+            </div>
+            <div style="padding: 12px; background: var(--bg-surface); border: var(--border-hairline); border-radius: var(--radius-sm);">
+              <div class="tA-caps">2. Số dư đã khớp trên sổ</div>
+              <div class="tA-mono" style="font-size: 20px; font-weight: 800; margin-top: 4px; color: ${isBalanced ? 'var(--color-income)' : 'var(--text-main)'};">${clearedBal}</div>
+              <div style="font-size: 11px; color: var(--text-soft);">${isBalanced ? 'Đã khớp 6/6 giao dịch' : 'Đã khớp 5/6 giao dịch'}</div>
+            </div>
+            <div style="padding: 12px; background: var(--bg-surface); border: 1px solid ${isBalanced ? 'var(--color-income)' : '#f59e0b'}; border-radius: var(--radius-sm);">
+              <div class="tA-caps" style="color: ${isBalanced ? 'var(--color-income)' : '#d97706'};">3. Chênh lệch còn lại (Difference)</div>
+              <div class="tA-mono" style="font-size: 20px; font-weight: 800; margin-top: 4px; color: ${isBalanced ? 'var(--color-income)' : 'var(--color-warning)'};">${diffBal}</div>
+              <div style="font-size: 11px; color: ${isBalanced ? 'var(--color-income)' : 'var(--color-warning)'}; font-weight: 600;">${isBalanced ? 'Khớp hoàn toàn — Đủ điều kiện chốt sổ' : 'Cần đối chiếu tiếp, nút hoàn tất bị khóa'}</div>
+            </div>
+          </div>
+
+          <!-- Reconciliation Transactions Table -->
+          <div style="background: var(--bg-surface); border: var(--border-hairline); border-radius: var(--radius-sm); overflow: hidden;">
+            <div style="padding: 10px 14px; background: var(--bg-subtle); border-bottom: var(--border-hairline); display: flex; justify-content: space-between; align-items: center;">
+              <span class="tA-caps" style="font-weight: 700;">Giao dịch trong kỳ đối soát (6 mục)</span>
+              <span style="font-size: 11px; color: var(--text-soft);">Bấm vào nút để đánh dấu khớp từng giao dịch</span>
+            </div>
+            <table class="table-tA" style="font-size: 12px;">
+              <thead>
+                <tr>
+                  <th>Ngày</th>
+                  <th>Nội dung giao dịch</th>
+                  <th>Xuất xứ</th>
+                  <th>Số tiền</th>
+                  <th>Trạng thái khớp</th>
+                  <th style="text-align: right;">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="tA-mono">09/09</td>
+                  <td style="font-weight: 600;">WinMart+ Landmark 3</td>
+                  <td>Sao kê CSV</td>
+                  <td class="tA-mono amt-expense">− 348.000 ₫</td>
+                  <td><span class="badge-tA badge-income">Đã khớp</span></td>
+                  <td style="text-align: right;"><span style="color: var(--text-soft); font-size: 11px;">Đã khóa</span></td>
+                </tr>
+                <tr>
+                  <td class="tA-mono">09/09</td>
+                  <td style="font-weight: 600;">GrabCar di chuyển Q1 ↔ Q7</td>
+                  <td>Thủ công</td>
+                  <td class="tA-mono amt-expense">− 142.000 ₫</td>
+                  <td><span class="badge-tA badge-income">Đã khớp</span></td>
+                  <td style="text-align: right;"><span style="color: var(--text-soft); font-size: 11px;">Đã khóa</span></td>
+                </tr>
+                <tr>
+                  <td class="tA-mono">08/09</td>
+                  <td style="font-weight: 600;">Rút tiền mặt ATM Landmark</td>
+                  <td>Thủ công</td>
+                  <td class="tA-mono amt-transfer">↔ 2.000.000 ₫</td>
+                  <td><span class="badge-tA badge-income">Đã khớp</span></td>
+                  <td style="text-align: right;"><span style="color: var(--text-soft); font-size: 11px;">Đã khóa</span></td>
+                </tr>
+                <tr>
+                  <td class="tA-mono">05/09</td>
+                  <td style="font-weight: 600;">Lương Tháng 09/2026 — FPT Software</td>
+                  <td>Sao kê CSV</td>
+                  <td class="tA-mono amt-income">+ 45.000.000 ₫</td>
+                  <td><span class="badge-tA badge-income">Đã khớp</span></td>
+                  <td style="text-align: right;"><span style="color: var(--text-soft); font-size: 11px;">Đã khóa</span></td>
+                </tr>
+                <tr>
+                  <td class="tA-mono">01/09</td>
+                  <td style="font-weight: 600;">Tiền thuê căn hộ Vinhomes Central Park</td>
+                  <td>Thủ công</td>
+                  <td class="tA-mono amt-expense">− 11.500.000 ₫</td>
+                  <td><span class="badge-tA badge-income">Đã khớp</span></td>
+                  <td style="text-align: right;"><span style="color: var(--text-soft); font-size: 11px;">Đã khóa</span></td>
+                </tr>
+                <tr style="background: ${isBalanced ? 'transparent' : 'rgba(245,158,11,0.08)'};">
+                  <td class="tA-mono">10/09</td>
+                  <td style="font-weight: 700;">Thanh toán QR Napas nhận tiền (Khoản gây lệch)</td>
+                  <td>Dán văn bản (Paste)</td>
+                  <td class="tA-mono amt-income" style="font-weight: 800;">+ 400.000 ₫</td>
+                  <td>
+                    ${isBalanced 
+                      ? `<span class="badge-tA badge-income">Đã khớp</span>` 
+                      : `<span class="badge-tA badge-warning">Chưa khớp (Pending)</span>`
+                    }
+                  </td>
+                  <td style="text-align: right;">
+                    <button class="btn-tA" style="padding: 4px 10px; font-size: 11px; ${isBalanced ? 'background: transparent; color: var(--text-main); border: var(--border-hairline);' : ''}" onclick="toggleRecNapas()">
+                      ${isBalanced ? 'Hủy khớp mục này' : '✓ Khớp giao dịch (+400k)'}
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 4 Accounts Overview Grid -->
+        <div class="tA-caps" style="margin-bottom: 10px;">Tất cả tài khoản (4)</div>
+        <div class="grid-2">
+          ${DATA.accounts.map(acc => {
+            const isTcb = acc.name.includes("Techcombank");
+            const st = isTcb ? (isBalanced ? "KHỚP 100%" : "LỆCH +400.000 ₫") : acc.state;
+            const al = isTcb ? !isBalanced : acc.alert;
+            return `
+              <div class="card-tA" style="${al ? 'border-color: #f59e0b;' : ''}">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                  <div>
+                    <h3 style="font-size: 15px; font-weight: 700;">${acc.name}</h3>
+                    <div class="tA-mono" style="font-size: 12px; color: var(--text-soft);">${acc.no}</div>
+                  </div>
+                  <span class="badge-tA ${al ? 'badge-warning' : 'badge-income'}">${st}</span>
+                </div>
+                <div style="padding: 12px; background: var(--bg-subtle); border-radius: var(--radius-sm); margin-bottom: 12px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+                    <span class="tA-caps">Số dư sổ:</span>
+                    <span class="tA-mono" style="font-weight: 700;">${isTcb && isBalanced ? '32.850.000 ₫' : mask(acc.bal)}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                    <span class="tA-caps">Số dư sao kê:</span>
+                    <span class="tA-mono">${isTcb ? mask('32.850.000 ₫') : mask(acc.bal)}</span>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button class="btn-tA-outline" style="flex: 1; font-size: 12px;">Xem sao kê</button>
+                  <button class="btn-tA" style="flex: 1; font-size: 12px;" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">Đối soát sổ</button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+
+      m.innerHTML = `
+        <div style="margin-bottom: 14px;">
+          <h3 style="font-size: 18px; font-weight: 800;">Đối Soát Sổ Sách</h3>
+          <div style="font-size: 11px; color: var(--text-soft);">Hoàn tất đối soát yêu cầu chênh lệch = 0 ₫</div>
+        </div>
+
+        <div class="card-tA" style="padding: 12px; margin-bottom: 14px; border: 1px solid ${isBalanced ? 'var(--color-income)' : '#f59e0b'};">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-weight: 700; font-size: 12px;">Techcombank Pay</span>
+            <span class="badge-tA ${isBalanced ? 'badge-income' : 'badge-warning'}" style="font-size: 10px;">${diffBal}</span>
+          </div>
+          <div style="font-size: 11px; margin-bottom: 8px; color: var(--text-soft);">
+            Sao kê: <strong>32.85M</strong> · Đã khớp: <strong>${clearedBal}</strong>
+          </div>
+          <div style="font-size: 10px; color: var(--text-soft); margin-bottom: 10px;">
+            Không tự bù chênh lệch. Đối chiếu giao dịch để đưa chênh lệch về 0 ₫.
+          </div>
+
+          <div style="padding: 8px; background: var(--bg-subtle); border-radius: 4px; margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-weight: 600; font-size: 11px;">Napas QR nhận tiền</div>
+                <div class="tA-mono amt-income" style="font-size: 12px; font-weight: 700;">+ 400.000 ₫</div>
+              </div>
+              <button class="btn-tA" style="padding: 4px 8px; font-size: 11px;" onclick="toggleRecNapas()">
+                ${isBalanced ? 'Hủy khớp' : 'Khớp'}
+              </button>
+            </div>
+          </div>
+
+          ${isBalanced 
+            ? `<button class="btn-tA" style="width: 100%; min-height: 44px; background: var(--color-income); border-color: var(--color-income);" onclick="alert('Đã hoàn tất đối soát!')">✓ Hoàn tất đối soát (0 ₫)</button>`
+            : `<button class="btn-tA" disabled style="width: 100%; min-height: 44px; opacity: 0.45; cursor: not-allowed; background: #64748b; border-color: #64748b;" title="Chênh lệch phải bằng 0 ₫">Hoàn tất (Còn lệch +400k)</button>`
+          }
+        </div>
+
+        <div class="tA-caps" style="margin-bottom: 8px;">Tài khoản khác</div>
+        ${DATA.accounts.filter(a => !a.name.includes("Techcombank")).map(acc => `
+          <div class="card-tA" style="padding: 12px; margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 700; font-size: 12px;">${acc.name}</span>
+              <span class="badge-tA badge-income" style="font-size: 9px;">${acc.state}</span>
+            </div>
+            <div class="tA-mono" style="font-size: 15px; font-weight: 800; margin-top: 4px;">${mask(acc.bal)}</div>
+          </div>
+        `).join('')}
+      `;
+    }
+
+    /* SCREEN 4: PLAN */
+    function renderPlan(d, m) {
+      d.innerHTML = `
+        <div style="margin-bottom: 20px;">
+          <h2 style="font-size: 20px; font-weight: 800; letter-spacing: -0.02em;">Kế Hoạch & Cam Kết Tài Chính</h2>
+          <div style="font-size: 13px; color: var(--text-soft);">Tách bạch 4 đối tượng độc lập: Hạn mức ngân sách, Cam kết cố định, Mục tiêu tiết kiệm và Lương định kỳ</div>
+        </div>
+
+        <div class="grid-2">
+          <!-- Budgets Card -->
+          <div class="card-tA">
+            <div class="tA-caps" style="margin-bottom: 12px;">1. Hạn Mức Ngân Sách Tháng 09</div>
+            <div style="margin-bottom: 14px;">
+              <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
+                <span style="font-weight: 600;">Ăn uống & Nhu yếu</span>
+                <span class="tA-mono">2.850.000 ₫ / 4.500.000 ₫ (63.3%)</span>
+              </div>
+              <div style="height: 6px; background: var(--bg-subtle); border-radius: var(--radius-xs); overflow: hidden;">
+                <div style="width: 63.3%; height: 100%; background: var(--color-income);"></div>
+              </div>
+            </div>
+            <div style="margin-bottom: 14px;">
+              <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
+                <span style="font-weight: 600; color: var(--color-warning);">Mua sắm cá nhân (Gần chạm trần)</span>
+                <span class="tA-mono amt-expense">1.950.000 ₫ / 2.000.000 ₫ (97.5%)</span>
+              </div>
+              <div style="height: 6px; background: var(--bg-subtle); border-radius: var(--radius-xs); overflow: hidden;">
+                <div style="width: 97.5%; height: 100%; background: var(--color-warning);"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Commitments Card -->
+          <div class="card-tA">
+            <div class="tA-caps" style="margin-bottom: 12px;">2. Cam Kết Cố Định & Hóa Đơn Sắp Tới</div>
+            <div style="padding: 8px 0; border-bottom: var(--border-hairline); display: flex; justify-content: space-between;">
+              <span>Tiền thuê căn hộ Vinhomes</span>
+              <span class="tA-mono badge-income">Đã chi 11.500.000 ₫ (01/09)</span>
+            </div>
+            <div style="padding: 8px 0; border-bottom: var(--border-hairline); display: flex; justify-content: space-between;">
+              <span>Điện EVN (Hạn ngày 20)</span>
+              <span class="tA-mono amt-expense">− 850.000 ₫</span>
+            </div>
+            <div style="padding: 8px 0; display: flex; justify-content: space-between;">
+              <span>Internet FPT (Hạn ngày 25)</span>
+              <span class="tA-mono amt-expense">− 330.000 ₫</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Goals Card -->
+        <div class="card-tA">
+          <div class="tA-caps" style="margin-bottom: 12px;">3. Mục Tiêu Tiết Kiệm Dài Hạn</div>
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+            <span style="font-weight: 700; font-size: 15px;">Quỹ dự phòng khẩn cấp 6 tháng</span>
+            <span class="tA-mono" style="font-size: 16px; font-weight: 700;">78.500.000 ₫ / 120.000.000 ₫ (65.4%)</span>
+          </div>
+          <div style="height: 8px; background: var(--bg-subtle); border-radius: var(--radius-xs); overflow: hidden; margin-bottom: 8px;">
+            <div style="width: 65.4%; height: 100%; background: var(--color-brand);"></div>
+          </div>
+          <div style="font-size: 12px; color: var(--text-soft);">
+            Nhịp tích lũy khuyến nghị: <strong>205.000 ₫ mỗi ngày</strong> để về đích trước 31/03/2027.
+          </div>
+        </div>
+      `;
+
+      m.innerHTML = `
+        <div style="margin-bottom: 14px;">
+          <h3 style="font-size: 18px; font-weight: 800;">Kế Hoạch Tháng 09</h3>
+        </div>
+        <div class="card-tA" style="padding: 12px; margin-bottom: 12px;">
+          <div class="tA-caps" style="margin-bottom: 8px;">Ngân sách</div>
+          <div style="margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 2px;">
+              <span>Ăn uống</span>
+              <span class="tA-mono">2.85M / 4.5M</span>
+            </div>
+            <div style="height: 4px; background: var(--bg-subtle);"><div style="width: 63%; height: 100%; background: var(--color-income);"></div></div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 2px;">
+              <span style="color: var(--color-warning);">Mua sắm (97.5%)</span>
+              <span class="tA-mono amt-expense">1.95M / 2.0M</span>
+            </div>
+            <div style="height: 4px; background: var(--bg-subtle);"><div style="width: 97.5%; height: 100%; background: var(--color-warning);"></div></div>
+          </div>
+        </div>
+
+        <div class="card-tA" style="padding: 12px;">
+          <div class="tA-caps" style="margin-bottom: 8px;">Quỹ Khẩn Cấp (65.4%)</div>
+          <div class="tA-mono" style="font-size: 14px; font-weight: 700; margin-bottom: 4px;">78.500.000 ₫ / 120M</div>
+          <div style="font-size: 11px; color: var(--text-soft);">Cần thêm: 41.500.000 ₫</div>
+        </div>
+      `;
+    }
+
+    /* SCREEN 5: CAPTURE */
+    function renderCaptureScreen(d, m) {
+      d.innerHTML = `
+        <div style="max-width: 600px; margin: 0 auto;">
+          <div class="card-tA">
+            <h2 style="font-size: 18px; font-weight: 800; margin-bottom: 16px;">Trung Tâm Thu Nhận Giao Dịch (Capture Hub)</h2>
+            <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+              <button class="btn-tA" style="flex: 1;">Ghi tay nhanh</button>
+              <button class="btn-tA-outline" style="flex: 1;">Dán văn bản (Paste)</button>
+              <button class="btn-tA-outline" style="flex: 1;">Nhập file CSV/XLSX</button>
+            </div>
+            <div style="margin-bottom: 16px;">
+              <label class="tA-caps" style="display: block; margin-bottom: 6px;">Số tiền giao dịch</label>
+              <input type="text" class="tA-mono" value="0 ₫" style="width: 100%; font-size: 28px; font-weight: 800; padding: 12px; border: var(--border-hairline); border-radius: var(--radius-sm); background: var(--bg-subtle); color: var(--text-main);" />
+            </div>
+            <button class="btn-tA" style="width: 100%; padding: 12px;">Lưu Giao Dịch Vào Sổ</button>
+          </div>
+        </div>
+      `;
+      m.innerHTML = `
+        <div class="card-tA" style="padding: 16px;">
+          <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 12px;">Thu Nhận Nhanh</h3>
+          <input type="text" class="tA-mono" value="0 ₫" style="width: 100%; font-size: 24px; font-weight: 800; padding: 10px; border: var(--border-hairline); margin-bottom: 12px; background: var(--bg-subtle);" />
+          <button class="btn-tA" style="width: 100%; min-height: 44px;">Ghi nhận (44px target)</button>
+        </div>
+      `;
+    }
+
+    /* SCREEN 6: SETTINGS */
+    function renderSettings(d, m) {
+      d.innerHTML = `
+        <div style="max-width: 800px;">
+          <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 16px;">Cài Đặt & Quản Trị Dữ Liệu</h2>
+          
+          <div class="card-tA" style="margin-bottom: 16px;">
+            <div class="tA-caps" style="margin-bottom: 12px;">Giao diện & Hiển thị</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: var(--border-hairline);">
+              <div>
+                <div style="font-weight: 600;">Chế độ giao diện</div>
+                <div style="font-size: 12px; color: var(--text-soft);">Chuyển đổi Sáng / Tối / Theo hệ thống</div>
+              </div>
+              <button class="btn-tA-outline" onclick="toggleTheme()">Chuyển chế độ</button>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
+              <div>
+                <div style="font-weight: 600;">Ẩn số dư nơi công cộng</div>
+                <div style="font-size: 12px; color: var(--text-soft);">Bảo vệ thông tin tài sản cá nhân</div>
+              </div>
+              <button class="btn-tA-outline" onclick="togglePrivacy()">Bật/Tắt ẩn số</button>
+            </div>
+          </div>
+
+          <!-- Numeric Typography Comparison Panel -->
+          <div class="card-tA" style="margin-bottom: 16px;">
+            <div class="tA-caps" style="margin-bottom: 12px;">Thẩm Định Kiểu Chữ Số Tài Chính (Numeric Typography Evaluation)</div>
+            <div style="font-size: 12px; color: var(--text-soft); margin-bottom: 12px;">
+              So sánh giữa Proportional Sans Tabular (Inter tnum) và Monospace (JetBrains Mono). Mono rộng hơn ~20%, thẳng hàng cột tốt hơn nhưng dễ tràn viền trên di động.
+            </div>
+            <table class="table-tA" style="font-size: 12px;">
+              <thead>
+                <tr>
+                  <th>Giá trị tiền mẫu</th>
+                  <th>Inter (tabular-nums)</th>
+                  <th>JetBrains Mono</th>
+                  <th>Nhận xét kỹ thuật</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>850.000 ₫</td>
+                  <td style="font-feature-settings: 'tnum' 1; font-weight: 700;">850.000 ₫</td>
+                  <td class="tA-mono" style="font-weight: 700;">850.000 ₫</td>
+                  <td style="font-size: 11px; color: var(--text-soft);">Cả hai hiển thị gọn gàng</td>
+                </tr>
+                <tr>
+                  <td>12.450.000 ₫</td>
+                  <td style="font-feature-settings: 'tnum' 1; font-weight: 700;">12.450.000 ₫</td>
+                  <td class="tA-mono" style="font-weight: 700;">12.450.000 ₫</td>
+                  <td style="font-size: 11px; color: var(--text-soft);">Mono rộng hơn ~18px</td>
+                </tr>
+                <tr>
+                  <td>114.040.000 ₫</td>
+                  <td style="font-feature-settings: 'tnum' 1; font-weight: 700;">114.040.000 ₫</td>
+                  <td class="tA-mono" style="font-weight: 700;">114.040.000 ₫</td>
+                  <td style="font-size: 11px; color: var(--text-soft);">Mono thẳng hàng cột tuyệt đối</td>
+                </tr>
+                <tr>
+                  <td>− 32.850.000 ₫</td>
+                  <td style="font-feature-settings: 'tnum' 1; font-weight: 700; color: var(--color-expense);">− 32.850.000 ₫</td>
+                  <td class="tA-mono amt-expense" style="font-weight: 700;">− 32.850.000 ₫</td>
+                  <td style="font-size: 11px; color: var(--text-soft);">Dấu trừ mono chiếm nguyên 1 slot</td>
+                </tr>
+                <tr>
+                  <td>+ 120.000.000 ₫</td>
+                  <td style="font-feature-settings: 'tnum' 1; font-weight: 700; color: var(--color-income);">+ 120.000.000 ₫</td>
+                  <td class="tA-mono amt-income" style="font-weight: 700;">+ 120.000.000 ₫</td>
+                  <td style="font-size: 11px; color: var(--text-soft);">Mono cần tối thiểu 130px trên thẻ</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card-tA">
+            <div class="tA-caps" style="margin-bottom: 12px;">Toàn quyền dữ liệu (Data Portability)</div>
+            <div style="font-size: 12px; color: var(--text-soft); margin-bottom: 12px;">Hỗ trợ chuẩn định dạng mở chính thống của MoneyFlow: JSON và CSV.</div>
+            <div style="display: flex; gap: 10px;">
+              <button class="btn-tA-outline" onclick="alert('Đã xuất toàn bộ sổ ra moneyflow-backup.json')">Xuất file JSON</button>
+              <button class="btn-tA-outline" onclick="alert('Đã xuất giao dịch ra transactions-2026.csv')">Xuất file CSV</button>
+            </div>
+          </div>
+        </div>
+      `;
+      m.innerHTML = `
+        <div style="margin-bottom: 14px;">
+          <h3 style="font-size: 18px; font-weight: 800;">Cài Đặt</h3>
+        </div>
+        <div class="card-tA" style="padding: 12px; margin-bottom: 12px;">
+          <div style="padding: 8px 0; border-bottom: var(--border-hairline); display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 13px;">Giao diện tối</span>
+            <button class="btn-tA-outline" style="min-height: 44px;" onclick="toggleTheme()">Đổi</button>
+          </div>
+          <div style="padding: 8px 0; border-bottom: var(--border-hairline); display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 13px;">Ẩn số dư</span>
+            <button class="btn-tA-outline" style="min-height: 44px;" onclick="togglePrivacy()">Ẩn</button>
+          </div>
+          <div style="padding: 8px 0; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 13px;">Xuất CSV/JSON</span>
+            <button class="btn-tA-outline" style="min-height: 44px;" onclick="alert('Xuất dữ liệu thành công')">Xuất</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Query parameters support for headless screenshot capture
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('screen')) {
+      currentScreen = urlParams.get('screen');
+      document.querySelectorAll('.screen-tab').forEach((tab, idx) => {
+        tab.classList.toggle('active', ['today', 'activity', 'accounts', 'plan', 'capture', 'settings'][idx] === currentScreen);
+      });
+    }
+    if (urlParams.has('device')) {
+      setDevice(urlParams.get('device'));
+    }
+    if (urlParams.get('standalone') === 'true') {
+      const pbar = document.querySelector('.proto-bar');
+      const snav = document.querySelector('.screen-nav');
+      const stg = document.querySelector('.stage');
+      if (pbar) pbar.style.display = 'none';
+      if (snav) snav.style.display = 'none';
+      if (stg) {
+        stg.style.padding = '0';
+        stg.style.background = 'transparent';
+      }
+      if (urlParams.get('device') === 'mobile') {
+        const mob = document.getElementById('device-mobile');
+        if (mob) {
+          mob.style.border = 'none';
+          mob.style.borderRadius = '0';
+          mob.style.boxShadow = 'none';
+        }
+      } else {
+        const dsk = document.getElementById('device-desktop');
+        if (dsk) {
+          dsk.style.border = 'none';
+          dsk.style.borderRadius = '0';
+          dsk.style.boxShadow = 'none';
+        }
+      }
+    }
+
+    // Initial Render
+    renderScreen();
+  </script>
+</body>
+</html>

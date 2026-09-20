@@ -1,0 +1,366 @@
+{
+  "user": {
+    "name": "Nguyễn Minh Khang",
+    "email": "khang.nguyen@example.com",
+    "tier": "Personal Pro",
+    "currency": "VND",
+    "period": "Tháng 09/2026"
+  },
+  "standing": {
+    "totalNetWorth": 114040000,
+    "liquidAssets": 114040000,
+    "currencyCode": "VND",
+    "formattedTotal": "114.040.000 ₫",
+    "monthlyIncome": 46500000,
+    "monthlyExpense": 15280000,
+    "monthlyNetSavings": 31220000,
+    "savingsRate": 67.1,
+    "comparisonVsLastMonth": {
+      "incomeDiff": 1500000,
+      "expenseDiff": -840000,
+      "direction": "positive"
+    }
+  },
+  "accounts": [
+    {
+      "id": "acc-tcb-01",
+      "name": "Techcombank Inspire Pay",
+      "type": "checking",
+      "accountNumberMasked": "1903••••882",
+      "institution": "Techcombank",
+      "ledgerBalance": 32450000,
+      "statementBalance": 32850000,
+      "clearedBalance": 32450000,
+      "difference": 400000,
+      "reconciliationState": "discrepancy",
+      "discrepancyNote": "Chênh lệch +400.000 ₫: Còn 1 khoản thu trên sao kê chưa đối chiếu vào sổ MoneyFlow",
+      "isPrimary": true,
+      "lastReconciledAt": "2026-09-01T00:00:00Z"
+    },
+    {
+      "id": "acc-vpb-02",
+      "name": "VPBank Prime SuperSave",
+      "type": "savings",
+      "accountNumberMasked": "088••••912",
+      "institution": "VPBank",
+      "ledgerBalance": 78500000,
+      "statementBalance": 78500000,
+      "clearedBalance": 78500000,
+      "difference": 0,
+      "reconciliationState": "matched",
+      "isPrimary": false,
+      "lastReconciledAt": "2026-09-08T18:00:00Z"
+    },
+    {
+      "id": "acc-momo-03",
+      "name": "Ví Điện Tử MoMo",
+      "type": "wallet",
+      "accountNumberMasked": "0903••••678",
+      "institution": "MoMo",
+      "ledgerBalance": 1840000,
+      "statementBalance": 1840000,
+      "clearedBalance": 1840000,
+      "difference": 0,
+      "reconciliationState": "matched",
+      "isPrimary": false,
+      "lastReconciledAt": "2026-09-09T23:30:00Z"
+    },
+    {
+      "id": "acc-cash-04",
+      "name": "Ví Tiền Mặt Sinh Hoạt",
+      "type": "cash",
+      "accountNumberMasked": "CASH",
+      "institution": "Vật lý",
+      "ledgerBalance": 1250000,
+      "statementBalance": 1250000,
+      "clearedBalance": 1250000,
+      "difference": 0,
+      "reconciliationState": "matched",
+      "isPrimary": false,
+      "lastReconciledAt": "2026-09-08T21:00:00Z"
+    }
+  ],
+  "attentionStates": [
+    {
+      "id": "att-01",
+      "severity": "warning",
+      "title": "Chênh lệch đối soát: Techcombank Inspire Pay (+400.000 ₫)",
+      "description": "Số dư sao kê 32.850.000 ₫ · Đã khớp 32.450.000 ₫ · Chênh lệch +400.000 ₫. Cần đối chiếu thêm, không tự bù chênh lệch.",
+      "actionLabel": "Mở đối soát",
+      "actionHref": "/accounts/acc-tcb-01/reconcile"
+    },
+    {
+      "id": "att-02",
+      "severity": "info",
+      "title": "1 ứng viên Hộp thư cần xem xét",
+      "description": "Nội dung dán văn bản Circle K Nguyễn Văn Cừ (240.000 ₫) đang chờ duyệt vào sổ.",
+      "actionLabel": "Xem Hộp thư",
+      "actionHref": "/inbox"
+    },
+    {
+      "id": "att-03",
+      "severity": "attention",
+      "title": "Ngân sách Mua sắm cá nhân chạm 97.5%",
+      "description": "Đã chi 1.950.000 ₫ / 2.000.000 ₫. Hạn mức khả dụng còn lại: 50.000 ₫.",
+      "actionLabel": "Xem ngân sách",
+      "actionHref": "/budgets"
+    }
+  ],
+  "reconciliationSession": {
+    "accountId": "acc-tcb-01",
+    "accountName": "Techcombank Inspire Pay",
+    "statementDate": "2026-09-10",
+    "statementBalance": 32850000,
+    "clearedBalance": 32450000,
+    "difference": 400000,
+    "status": "open",
+    "rule": "Đối soát không thay đổi số dư hoặc tự tạo khoản chênh lệch. Chỉ hoàn tất khi chênh lệch = 0 ₫.",
+    "entries": [
+      {
+        "id": "rec-01",
+        "date": "2026-09-09",
+        "description": "WinMart+ Landmark 3",
+        "amount": -348000,
+        "state": "cleared",
+        "provenance": "csv"
+      },
+      {
+        "id": "rec-02",
+        "date": "2026-09-09",
+        "description": "GrabCar di chuyển Q1 ↔ Q7",
+        "amount": -142000,
+        "state": "cleared",
+        "provenance": "manual"
+      },
+      {
+        "id": "rec-03",
+        "date": "2026-09-08",
+        "description": "Rút tiền mặt ATM Landmark",
+        "amount": -2000000,
+        "state": "cleared",
+        "provenance": "manual"
+      },
+      {
+        "id": "rec-04",
+        "date": "2026-09-05",
+        "description": "Lương Tháng 09/2026 — FPT Software",
+        "amount": 45000000,
+        "state": "cleared",
+        "provenance": "csv"
+      },
+      {
+        "id": "rec-05",
+        "date": "2026-09-01",
+        "description": "Tiền thuê căn hộ Vinhomes Central Park",
+        "amount": -11500000,
+        "state": "cleared",
+        "provenance": "manual"
+      },
+      {
+        "id": "rec-06",
+        "date": "2026-09-10",
+        "description": "Thanh toán QR Napas nhận tiền (chưa đánh dấu)",
+        "amount": 400000,
+        "state": "pending",
+        "provenance": "paste"
+      }
+    ]
+  },
+  "recentTransactions": [
+    {
+      "id": "tx-101",
+      "date": "2026-09-10",
+      "time": "12:30",
+      "description": "Circle K Nguyễn Văn Cừ",
+      "category": "Ăn uống & Nhu yếu",
+      "accountId": "acc-momo-03",
+      "accountName": "Ví MoMo",
+      "amount": 240000,
+      "kind": "expense",
+      "status": "pending_inbox",
+      "provenance": "paste",
+      "note": "Mua bữa trưa + đồ uống tiện lợi"
+    },
+    {
+      "id": "tx-102",
+      "date": "2026-09-10",
+      "time": "08:15",
+      "description": "Highlands Coffee Hàm Nghi",
+      "category": "Ăn uống / Cà phê",
+      "accountId": "acc-momo-03",
+      "accountName": "Ví MoMo",
+      "amount": 55000,
+      "kind": "expense",
+      "status": "confirmed",
+      "provenance": "manual",
+      "note": "Cà phê phin sữa đá"
+    },
+    {
+      "id": "tx-103",
+      "date": "2026-09-09",
+      "time": "19:40",
+      "description": "WinMart+ Landmark 3",
+      "category": "Ăn uống & Nhu yếu",
+      "accountId": "acc-tcb-01",
+      "accountName": "Techcombank Inspire Pay",
+      "amount": 348000,
+      "kind": "expense",
+      "status": "cleared",
+      "provenance": "csv",
+      "note": "Thực phẩm tươi và rau củ cuối tuần"
+    },
+    {
+      "id": "tx-104",
+      "date": "2026-09-09",
+      "time": "14:10",
+      "description": "GrabCar di chuyển Q1 ↔ Q7",
+      "category": "Đi lại & Giao thông",
+      "accountId": "acc-tcb-01",
+      "accountName": "Techcombank Inspire Pay",
+      "amount": 142000,
+      "kind": "expense",
+      "status": "confirmed",
+      "provenance": "manual",
+      "note": "Gặp khách hàng thảo luận dự án"
+    },
+    {
+      "id": "tx-105",
+      "date": "2026-09-08",
+      "time": "21:00",
+      "description": "Rút tiền mặt ATM Landmark",
+      "category": "Chuyển khoản nội bộ",
+      "accountId": "acc-tcb-01",
+      "targetAccountId": "acc-cash-04",
+      "accountName": "Techcombank ↔ Tiền mặt",
+      "amount": 2000000,
+      "kind": "transfer",
+      "status": "cleared",
+      "provenance": "manual",
+      "note": "Rút tiền mặt tiêu dùng lặt vặt"
+    },
+    {
+      "id": "tx-106",
+      "date": "2026-09-05",
+      "time": "09:00",
+      "description": "Lương Tháng 09/2026 — FPT Software",
+      "category": "Thu nhập / Lương chính",
+      "accountId": "acc-tcb-01",
+      "accountName": "Techcombank Inspire Pay",
+      "amount": 45000000,
+      "kind": "income",
+      "status": "cleared",
+      "provenance": "csv",
+      "note": "Chi trả lương kỳ 1"
+    },
+    {
+      "id": "tx-107",
+      "date": "2026-09-01",
+      "time": "10:00",
+      "description": "Tiền thuê căn hộ Vinhomes Central Park",
+      "category": "Nhà cửa & Cố định",
+      "accountId": "acc-tcb-01",
+      "accountName": "Techcombank Inspire Pay",
+      "amount": 11500000,
+      "kind": "expense",
+      "status": "cleared",
+      "provenance": "manual",
+      "note": "Thanh toán tiền nhà định kỳ tháng 9"
+    }
+  ],
+  "planning": {
+    "budgets": [
+      {
+        "id": "bgt-01",
+        "category": "Ăn uống & Nhu yếu",
+        "limit": 4500000,
+        "spent": 2850000,
+        "remaining": 1650000,
+        "percentage": 63.3,
+        "status": "normal"
+      },
+      {
+        "id": "bgt-02",
+        "category": "Mua sắm cá nhân",
+        "limit": 2000000,
+        "spent": 1950000,
+        "remaining": 50000,
+        "percentage": 97.5,
+        "status": "warning"
+      },
+      {
+        "id": "bgt-03",
+        "category": "Đi lại & Giao thông",
+        "limit": 1500000,
+        "spent": 680000,
+        "remaining": 820000,
+        "percentage": 45.3,
+        "status": "normal"
+      }
+    ],
+    "commitments": [
+      {
+        "id": "cmt-01",
+        "name": "Tiền thuê căn hộ",
+        "amount": 11500000,
+        "dueDate": "01 hàng tháng",
+        "status": "paid_this_month",
+        "paidDate": "2026-09-01"
+      },
+      {
+        "id": "cmt-02",
+        "name": "Hóa đơn tiền điện EVN",
+        "amount": 850000,
+        "dueDate": "20 hàng tháng",
+        "status": "upcoming",
+        "daysRemaining": 10
+      },
+      {
+        "id": "cmt-03",
+        "name": "Internet FPT Telecom",
+        "amount": 330000,
+        "dueDate": "25 hàng tháng",
+        "status": "upcoming",
+        "daysRemaining": 15
+      },
+      {
+        "id": "cmt-04",
+        "name": "Gói Spotify Family",
+        "amount": 99000,
+        "dueDate": "28 hàng tháng",
+        "status": "upcoming",
+        "daysRemaining": 18
+      }
+    ],
+    "goals": [
+      {
+        "id": "gol-01",
+        "title": "Quỹ khẩn cấp 6 tháng chi tiêu",
+        "target": 120000000,
+        "allocated": 78500000,
+        "remaining": 41500000,
+        "percentage": 65.4,
+        "targetDate": "2027-03-31",
+        "paceRecommendationDaily": 205000
+      }
+    ],
+    "incomeTemplates": [
+      {
+        "id": "inc-01",
+        "name": "Lương công nghệ FPT",
+        "amount": 45000000,
+        "schedule": "Ngày 05 hàng tháng",
+        "targetAccountId": "acc-tcb-01"
+      }
+    ]
+  },
+  "settings": {
+    "theme": "system",
+    "density": "standard",
+    "privacyMode": false,
+    "dailyReminderTime": "21:00",
+    "backupLastCreated": "2026-09-08 23:45",
+    "categoriesCount": 18,
+    "activeRulesCount": 7,
+    "exportFormats": ["csv", "json"]
+  }
+}

@@ -162,17 +162,18 @@ test("installed and social assets use the fresh-blue identity", () => {
 });
 
 test("landing first viewport has a primary action and guided workflow entry", () => {
-  assert.match(landing, /Từ lúc ghi đến lúc hiểu tiền của mình\./u);
-  assert.match(landing, /ba câu hỏi rõ ràng/u);
-  assert.match(landing, /Tạo sổ của bạn/u);
+  assert.match(landing, /Biết tiền của bạn đang ở đâu\./u);
+  assert.match(landing, /Sổ tài chính cá nhân của bạn/u);
+  assert.match(landing, /Dùng thử MoneyFlow/u);
   assert.doesNotMatch(landing, /Bắt đầu miễn phí/u);
   assert.match(landing, /href="\/register" className=\{styles\.primaryCta\}/u);
   assert.match(
     landing,
-    /href="#cach-hoat-dong" className=\{styles\.secondaryCta\}/u,
+    /href="\/login" className=\{styles\.secondaryCta\}/u,
   );
-  assert.match(landing, /styles\.storySection/u);
-  assert.match(landing, /styles\.storyBand/u);
+  assert.match(landing, /styles\.productHeroSection/u);
+  assert.match(landing, /styles\.productWindow/u);
+  assert.match(landing, /styles\.bentoGrid/u);
   assert.doesNotMatch(landing, /styles\.proofStage/u);
   assert.doesNotMatch(landing, /import \{ Button \}/u);
 });

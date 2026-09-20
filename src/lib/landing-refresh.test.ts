@@ -44,22 +44,16 @@ test("retired public generations cannot become a second visual authority", () =>
 test("landing keeps a real conversion path and guided product evidence", () => {
   assert.match(landingPage, /href="\/register"/);
   assert.match(landingPage, /href="\/login"/);
-  assert.match(landingPage, /href="#cach-hoat-dong"/);
+  assert.match(landingPage, /href="#kham-pha"/);
   assert.doesNotMatch(landingPage, /Thử demo không cần tài khoản/);
   assert.doesNotMatch(landingPage, /href="\/dashboard"/);
   assert.match(landingPage, /Giao diện thật từ môi trường kiểm thử/);
   assert.match(landingPage, /Chuyển nội bộ không bị tính thành chi tiêu/);
-  assert.match(landingPage, /Bạn vừa ghi gì\?/);
-  assert.match(landingPage, /Số dư nào thay đổi\?/);
-  assert.match(landingPage, /Con số đến từ đâu\?/);
-  assert.match(landingPage, /Mở lại đúng khoản đứng sau số tổng/);
+  assert.match(landingPage, /Tiền của bạn nên dễ hiểu hơn/);
 });
 
 test("landing is responsive, public-light and motion accessible", () => {
-  assert.match(
-    landingStyles,
-    /min-height:\s*min\(760px,\s*calc\(100svh - 72px\)\)/,
-  );
+  assert.match(landingStyles, /\.hero\s*\{/);
   assert.match(landingStyles, /@media \(max-width: 980px\)/);
   assert.match(landingStyles, /@media \(max-width: 680px\)/);
   assert.match(landingStyles, /@media \(max-width: 360px\)/);

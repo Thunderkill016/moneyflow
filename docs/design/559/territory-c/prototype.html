@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoneyFlow Redesign — Territory C: Bản Ghi Bản Lĩnh (Editorial Craft Ledger)</title>
+  <style>
+    /* ==========================================================================
+       TERRITORY C: BẢN GHI BẢN LĨNH (EDITORIAL CRAFT LEDGER)
+       Editorial Typography, Warm Ivory Paper, Double Rules, Espresso Ink
+       ========================================================================== */
+    :root {
+      --bg-canvas: #faf7f2;
+      --bg-surface: #ffffff;
+      --bg-subtle: #f5f2eb;
+      --bg-ink-dark: #1c1917;
+      
+      --text-main: #1c1917;
+      --text-muted: #57534e;
+      --text-soft: #78716c;
+      
+      --border-rule: 1px solid #e7e5e4;
+      --border-strong: 1px solid #d6d3d1;
+      --rule-double: 3px double #a8a29e;
+      --rule-dotted: 1px dotted #d6d3d1;
+      
+      --shadow-subtle: 0 1px 3px rgba(28, 25, 23, 0.05);
+      
+      --radius-sm: 4px;
+      --radius-md: 6px;
+      
+      --font-serif: "Newsreader", "Merriweather", "Lora", Georgia, "Times New Roman", serif;
+      --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      
+      --color-brand: #1c1917;
+      --color-accent-bronze: #78350f;
+      --color-accent-gold: #b45309;
+      
+      --color-income: #15803d;
+      --color-income-soft: #f0fdf4;
+      --color-expense: #b91c1c;
+      --color-expense-soft: #fef2f2;
+      --color-transfer: #b45309;
+      --color-transfer-soft: #fefce8;
+      --color-warning: #c2410c;
+      --color-warning-soft: #fff7ed;
+    }
+
+    [data-theme="dark"] {
+      --bg-canvas: #191816;
+      --bg-surface: #23211e;
+      --bg-subtle: #2d2a26;
+      --bg-ink-dark: #f5f5f4;
+      
+      --text-main: #f5f5f4;
+      --text-muted: #d6d3d1;
+      --text-soft: #a8a29e;
+      
+      --border-rule: 1px solid #3d3835;
+      --border-strong: 1px solid #57534e;
+      --rule-double: 3px double #78716c;
+      
+      --color-brand: #f5f5f4;
+      --color-accent-bronze: #d97706;
+      
+      --color-income: #4ade80;
+      --color-income-soft: #052e16;
+      --color-expense: #f87171;
+      --color-expense-soft: #450a0a;
+      --color-transfer: #fbbf24;
+      --color-transfer-soft: #422006;
+      --color-warning: #fb923c;
+      --color-warning-soft: #431407;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      background: #0d0c0b;
+      color: #e7e5e4;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Prototype Control Bar */
+    .proto-bar {
+      background: #1c1917;
+      border-bottom: 1px solid #292524;
+      padding: 10px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      z-index: 100;
+    }
+    .proto-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-serif);
+      font-size: 15px;
+      font-weight: 700;
+      color: #fafaf9;
+    }
+    .proto-badge {
+      background: #292524;
+      border: 1px solid #44403c;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: var(--font-sans);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: #fbbf24;
+    }
+    .proto-controls { display: flex; align-items: center; gap: 8px; }
+    .proto-btn {
+      background: #292524;
+      color: #fafaf9;
+      border: 1px solid #44403c;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+    .proto-btn:hover { background: #44403c; }
+    .proto-btn.active {
+      background: #b45309;
+      color: #ffffff;
+      border-color: #b45309;
+      font-weight: 700;
+    }
+
+    /* Screen Selector Navigation */
+    .screen-nav {
+      background: #292524;
+      border-bottom: 1px solid #44403c;
+      padding: 6px 20px;
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+    }
+    .screen-tab {
+      background: transparent;
+      color: #a8a29e;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .screen-tab:hover { color: #fafaf9; background: rgba(255,255,255,0.05); }
+    .screen-tab.active {
+      color: #fafaf9;
+      background: #1c1917;
+      border: 1px solid #b45309;
+      font-weight: 600;
+    }
+
+    /* Stage */
+    .stage {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 24px;
+      background: #080707;
+      overflow-y: auto;
+    }
+
+    /* Device Containers */
+    .device-frame {
+      background: var(--bg-canvas);
+      color: var(--text-main);
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6);
+      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .device-desktop {
+      width: 1440px;
+      min-height: 900px;
+      border-radius: 6px;
+      border: 1px solid #44403c;
+      display: flex;
+    }
+    .device-mobile {
+      width: 390px;
+      min-height: 844px;
+      border-radius: 44px;
+      border: 12px solid #292524;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Typography Utilities for Territory C */
+    .tC-serif { font-family: var(--font-serif); }
+    .tC-italic { font-style: italic; }
+    .tC-double-rule { border-bottom: var(--rule-double); }
+    .tC-rule-b { border-bottom: var(--border-rule); }
+    .tC-rule-t { border-top: var(--border-rule); }
+    .tC-rule-r { border-right: var(--border-rule); }
+    .tC-rule-l { border-left: var(--border-rule); }
+
+    /* Desktop Sidebar */
+    .d-sidebar {
+      width: 250px;
+      background: var(--bg-surface);
+      border-right: var(--border-rule);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      padding: 24px 16px;
+    }
+    .d-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: var(--border-rule);
+    }
+    .d-brand-logo {
+      width: 32px;
+      height: 32px;
+      background: var(--color-brand);
+      color: var(--bg-canvas);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-serif);
+      font-weight: 700;
+      font-size: 16px;
+      border-radius: 2px;
+    }
+    .d-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: 13.5px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-bottom: 3px;
+      transition: all 0.15s ease;
+    }
+    .d-nav-item:hover { background: var(--bg-subtle); color: var(--text-main); }
+    .d-nav-item.active {
+      background: var(--bg-subtle);
+      color: var(--text-main);
+      font-weight: 700;
+      border-left: 3px solid var(--color-accent-bronze);
+    }
+    .d-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-canvas);
+    }
+    .d-topbar {
+      height: 60px;
+      background: var(--bg-surface);
+      border-bottom: var(--border-rule);
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .d-content {
+      padding: 32px;
+      flex: 1;
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    /* Cards */
+    .card-tC {
+      background: var(--bg-surface);
+      border: var(--border-rule);
+      border-radius: var(--radius-sm);
+      padding: 24px;
+      box-shadow: var(--shadow-subtle);
+      margin-bottom: 24px;
+    }
+
+    /* Buttons */
+    .btn-tC {
+      background: var(--color-brand);
+      color: var(--bg-canvas);
+      border: 1px solid var(--color-brand);
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-tC-outline {
+      background: transparent;
+      color: var(--text-main);
+      border: var(--border-strong);
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+    .btn-tC-outline:hover { background: var(--bg-subtle); }
+
+    /* Attention Box */
+    .attention-box-tC {
+      background: var(--color-warning-soft);
+      border-left: 4px solid var(--color-warning);
+      border-top: var(--border-rule);
+      border-right: var(--border-rule);
+      border-bottom: var(--border-rule);
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      border-radius: 2px;
+    }
+
+    /* Grid */
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+
+    /* Table */
+    .table-tC {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+    .table-tC th {
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: var(--border-strong);
+      color: var(--text-soft);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+      background: var(--bg-subtle);
+    }
+    .table-tC td {
+      padding: 12px 14px;
+      border-bottom: var(--border-rule);
+      color: var(--text-main);
+    }
+    .table-tC tr:hover td { background: var(--bg-subtle); cursor: pointer; }
+
+    /* Mobile */
+    .m-topbar {
+      height: 50px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: var(--border-rule);
+      background: var(--bg-surface);
+    }
+    .m-scrollable {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px;
+      padding-bottom: 88px;
+    }
+    .m-bottombar {
+      height: 64px;
+      background: var(--bg-surface);
+      border-top: var(--border-rule);
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      z-index: 50;
+    }
+    .m-nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      font-size: 11px;
+      color: var(--text-soft);
+      min-width: 44px;
+      min-height: 44px;
+      cursor: pointer;
+    }
+    .m-nav-item.active { color: var(--color-accent-bronze); font-weight: 700; }
+    .m-fab-tC {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      background: var(--color-brand);
+      color: var(--bg-canvas);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(28, 25, 23, 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+    .modal-card-tC {
+      background: var(--bg-surface);
+      border: var(--border-strong);
+      border-radius: var(--radius-sm);
+      width: 90%;
+      max-width: 460px;
+      padding: 26px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body data-theme="light">
+
+  <div class="proto-bar">
+    <div class="proto-title">
+      <span>MONEYFLOW DESIGN EXPLORATION</span>
+      <span class="proto-badge">Territory C: Bản Ghi Bản Lĩnh</span>
+    </div>
+    <div class="proto-controls">
+      <button class="proto-btn active" id="btn-desktop" onclick="setDevice('desktop')">🖥️ Desktop (1440px)</button>
+      <button class="proto-btn" id="btn-mobile" onclick="setDevice('mobile')">📱 Mobile (390px)</button>
+      <button class="proto-btn" onclick="toggleTheme()">🌓 Dark/Light</button>
+      <button class="proto-btn" onclick="togglePrivacy()">🔒 Ẩn số dư</button>
+    </div>
+  </div>
+
+  <div class="screen-nav">
+    <button class="screen-tab active" onclick="setScreen('today')">1. Today / Dashboard</button>
+    <button class="screen-tab" onclick="setScreen('activity')">2. Activity / Transactions</button>
+    <button class="screen-tab" onclick="setScreen('accounts')">3. Accounts & Reconciliation</button>
+    <button class="screen-tab" onclick="setScreen('plan')">4. Plan (Budgets/Commitments/Goals)</button>
+    <button class="screen-tab" onclick="setScreen('capture')">5. Capture (Fast Entry)</button>
+    <button class="screen-tab" onclick="setScreen('settings')">6. Settings & Data Governance</button>
+  </div>
+
+  <div class="stage">
+    
+    <!-- DESKTOP FRAME -->
+    <div class="device-frame device-desktop" id="device-desktop">
+      <aside class="d-sidebar">
+        <div class="d-brand">
+          <div class="d-brand-logo">MF</div>
+          <div>
+            <div class="tC-serif" style="font-weight: 700; font-size: 17px; letter-spacing: -0.01em;">MoneyFlow</div>
+            <div style="font-size: 11px; color: var(--text-soft); font-style: italic;">Editorial Craft Ledger</div>
+          </div>
+        </div>
+        <div style="margin-bottom: 24px;">
+          <div class="d-nav-item active" onclick="setScreen('today')">📊 Sổ cái Today</div>
+          <div class="d-nav-item" onclick="setScreen('activity')">📋 Nhật ký giao dịch</div>
+          <div class="d-nav-item" onclick="setScreen('accounts')">🏦 Tài khoản & Đối chiếu</div>
+          <div class="d-nav-item" onclick="setScreen('plan')">🎯 Kế hoạch & Hạn mức</div>
+          <div class="d-nav-item" onclick="openCaptureModal()">⚡ Ghi nhận chứng từ</div>
+          <div class="d-nav-item" onclick="setScreen('settings')">⚙️ Lưu trữ & Cài đặt</div>
+        </div>
+        <div style="margin-top: auto; padding: 14px; border-top: var(--border-rule); font-size: 12px; color: var(--text-soft);">
+          <div class="tC-serif" style="font-weight: 700; font-size: 14px; color: var(--text-main);">Nguyễn Minh Khang</div>
+          <div style="font-size: 11px;">khang.nguyen@example.com</div>
+        </div>
+      </aside>
+
+      <main class="d-main">
+        <header class="d-topbar">
+          <div style="display: flex; align-items: baseline; gap: 10px;">
+            <span class="tC-serif tC-italic" style="font-size: 14px; color: var(--text-soft);">Kỳ tài chính:</span>
+            <span class="tC-serif" style="font-weight: 700; font-size: 16px;">Tháng Chín, Năm 2026</span>
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <button class="btn-tC-outline" onclick="togglePrivacy()">🔒 Chế độ riêng tư</button>
+            <button class="btn-tC" onclick="openCaptureModal()">+ Ghi chứng từ chi</button>
+          </div>
+        </header>
+
+        <div class="d-content" id="desktop-content"></div>
+      </main>
+    </div>
+
+    <!-- MOBILE FRAME -->
+    <div class="device-frame device-mobile" id="device-mobile" style="display: none;">
+      <div class="m-topbar">
+        <div class="tC-serif" style="font-weight: 700; font-size: 16px;">MoneyFlow</div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-tC-outline" style="padding: 2px 6px; font-size: 11px;" onclick="togglePrivacy()">🔒</button>
+          <button class="btn-tC-outline" style="padding: 2px 6px; font-size: 11px;" onclick="toggleTheme()">🌓</button>
+        </div>
+      </div>
+
+      <div class="m-scrollable" id="mobile-content"></div>
+
+      <nav class="m-bottombar">
+        <div class="m-nav-item active" onclick="setScreen('today')">
+          <span>📊</span>
+          <span>Today</span>
+        </div>
+        <div class="m-nav-item" onclick="setScreen('activity')">
+          <span>📋</span>
+          <span>Nhật ký</span>
+        </div>
+        <div class="m-fab-tC" onclick="openCaptureModal()">+</div>
+        <div class="m-nav-item" onclick="setScreen('accounts')">
+          <span>🏦</span>
+          <span>Đối chiếu</span>
+        </div>
+        <div class="m-nav-item" onclick="setScreen('plan')">
+          <span>🎯</span>
+          <span>Kế hoạch</span>
+        </div>
+      </nav>
+    </div>
+
+  </div>
+
+  <!-- Capture Modal -->
+  <div class="modal-overlay" id="capture-modal">
+    <div class="modal-card-tC">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; padding-bottom: 8px; border-bottom: var(--border-rule);">
+        <h3 class="tC-serif" style="font-size: 18px; font-weight: 700;">Chứng từ Ghi nhận Chi tiêu</h3>
+        <button class="btn-tC-outline" style="padding: 2px 6px;" onclick="closeCaptureModal()">✕</button>
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label class="tC-serif tC-italic" style="display: block; font-size: 12px; color: var(--text-soft); margin-bottom: 4px;">Số tiền giao dịch (VND)</label>
+        <input type="text" value="65.000 ₫" class="tC-serif" style="font-size: 28px; font-weight: 700; width: 100%; padding: 8px 12px; border: var(--border-strong); background: var(--bg-subtle); color: var(--text-main);" />
+      </div>
+      <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+        <button class="btn-tC" style="flex: 1;">− Khoản chi</button>
+        <button class="btn-tC-outline" style="flex: 1;">+ Khoản thu</button>
+      </div>
+      <button class="btn-tC" style="width: 100%; padding: 10px; justify-content: center;" onclick="closeCaptureModal()">Ký & Nhập vào Sổ Cái</button>
+    </div>
+  </div>
+
+  <script>
+    const DATA = {
+      standing: {
+        total: "114.040.000 ₫",
+        income: "+ 46.500.000 ₫",
+        expense: "− 15.280.000 ₫",
+        savings: "+ 31.220.000 ₫",
+        rate: "67.1%"
+      },
+      attention: [
+        {
+          id: "att-1",
+          title: "Sai lệch Đối chiếu: Techcombank Inspire Pay (+400.000 ₫)",
+          desc: "Phát hiện 1 chứng từ điện tử Napas QR lúc 22:15 hôm qua chưa vào sổ.",
+          action: "Đối chiếu ngay"
+        }
+      ],
+      accounts: [
+        { name: "Techcombank Inspire Pay", no: "1903••••882", bal: "32.450.000 ₫", state: "LỆCH +400K", alert: true },
+        { name: "VPBank Prime SuperSave", no: "088••••912", bal: "78.500.000 ₫", state: "CÂN BẰNG", alert: false },
+        { name: "Ví MoMo e-Wallet", no: "0903••••678", bal: "1.840.000 ₫", state: "CÂN BẰNG", alert: false },
+        { name: "Ví Tiền Mặt Sinh Hoạt", no: "CASH", bal: "1.250.000 ₫", state: "CÂN BẰNG", alert: false }
+      ],
+      transactions: [
+        { date: "10/09 12:30", desc: "Circle K Nguyễn Văn Cừ", cat: "Nhu yếu phẩm", acc: "Ví MoMo", amt: "− 240.000 ₫", kind: "expense", status: "Chờ thẩm định" },
+        { date: "10/09 08:15", desc: "Highlands Coffee Hàm Nghi", cat: "Ăn uống", acc: "Ví MoMo", amt: "− 55.000 ₫", kind: "expense", status: "Đã vào sổ" },
+        { date: "09/09 19:40", desc: "WinMart+ Landmark 3", cat: "Nhu yếu phẩm", acc: "Techcombank", amt: "− 348.000 ₫", kind: "expense", status: "Đã đối chiếu" },
+        { date: "05/09 09:00", desc: "Lương Kỳ I Tháng 09/2026 — FPT", cat: "Thu nhập", acc: "Techcombank", amt: "+ 45.000.000 ₫", kind: "income", status: "Đã đối chiếu" }
+      ]
+    };
+
+    let currentScreen = 'today';
+    let isPrivacy = false;
+    let recNapasCleared = false;
+
+    function toggleRecNapas() {
+      recNapasCleared = !recNapasCleared;
+      renderScreen();
+    }
+
+    function setDevice(d) {
+      document.getElementById('btn-desktop').classList.toggle('active', d === 'desktop');
+      document.getElementById('btn-mobile').classList.toggle('active', d === 'mobile');
+      document.getElementById('device-desktop').style.display = d === 'desktop' ? 'flex' : 'none';
+      document.getElementById('device-mobile').style.display = d === 'mobile' ? 'flex' : 'none';
+      renderScreen();
+    }
+
+    function toggleTheme() {
+      const c = document.body.getAttribute('data-theme');
+      document.body.setAttribute('data-theme', c === 'dark' ? 'light' : 'dark');
+    }
+
+    function togglePrivacy() {
+      isPrivacy = !isPrivacy;
+      renderScreen();
+    }
+
+    function mask(v) { return isPrivacy ? "•••••• ₫" : v; }
+
+    function setScreen(s) {
+      currentScreen = s;
+      document.querySelectorAll('.screen-tab').forEach((t, i) => {
+        t.classList.toggle('active', ['today', 'activity', 'accounts', 'plan', 'capture', 'settings'][i] === s);
+      });
+      renderScreen();
+    }
+
+    function openCaptureModal() { document.getElementById('capture-modal').style.display = 'flex'; }
+    function closeCaptureModal() { document.getElementById('capture-modal').style.display = 'none'; }
+
+    function renderScreen() {
+      const d = document.getElementById('desktop-content');
+      const m = document.getElementById('mobile-content');
+
+      if (currentScreen === 'today') {
+        renderToday(d, m);
+      } else if (currentScreen === 'activity') {
+        renderActivity(d, m);
+      } else if (currentScreen === 'accounts') {
+        renderAccounts(d, m);
+      } else if (currentScreen === 'plan') {
+        renderPlan(d, m);
+      } else if (currentScreen === 'capture') {
+        renderCaptureScreen(d, m);
+      } else if (currentScreen === 'settings') {
+        renderSettings(d, m);
+      }
+    }
+
+    function renderToday(d, m) {
+      d.innerHTML = `
+        <div class="attention-box-tC">
+          <div>
+            <div class="tC-serif" style="font-weight: 700; font-size: 15px; color: var(--color-warning);">⚠️ ${DATA.attention[0].title}</div>
+            <div style="font-size: 13px; margin-top: 3px; color: var(--text-muted);">${DATA.attention[0].desc}</div>
+          </div>
+          <button class="btn-tC" onclick="setScreen('accounts')">${DATA.attention[0].action}</button>
+        </div>
+
+        <!-- Master Standing Ledger Card -->
+        <div class="card-tC">
+          <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 12px;" class="tC-double-rule">
+            <div>
+              <div class="tC-serif tC-italic" style="font-size: 13px; color: var(--text-soft);">Bản Cân Đối Tài Sản Ròng Khả Dụng</div>
+              <div class="tC-serif" style="font-size: 36px; font-weight: 700; letter-spacing: -0.01em; margin-top: 4px;">${mask(DATA.standing.total)}</div>
+            </div>
+            <div style="text-align: right;">
+              <div class="tC-serif" style="font-size: 18px; font-weight: 700; color: var(--color-income);">Thặng dư: ${mask(DATA.standing.savings)}</div>
+              <div style="font-size: 12px; color: var(--text-soft);">Tỷ lệ bảo toàn vốn: <strong>${DATA.standing.rate}</strong></div>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-around; padding-top: 16px; font-size: 13px;">
+            <div>
+              <span class="tC-serif tC-italic" style="color: var(--text-soft);">Tổng luân chuyển thu (+): </span>
+              <strong class="tC-serif" style="color: var(--color-income); font-size: 15px;">${mask(DATA.standing.income)}</strong>
+            </div>
+            <div style="border-left: var(--border-rule); padding-left: 20px;">
+              <span class="tC-serif tC-italic" style="color: var(--text-soft);">Tổng chi phí kỳ này (−): </span>
+              <strong class="tC-serif" style="color: var(--color-expense); font-size: 15px;">${mask(DATA.standing.expense)}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card-tC">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; padding-bottom: 8px; border-bottom: var(--border-rule);">
+              <h3 class="tC-serif" style="font-size: 16px; font-weight: 700;">Hệ Thống Tài Khoản Đang Mở (4)</h3>
+              <button class="btn-tC-outline" style="font-size: 11px; padding: 2px 8px;" onclick="setScreen('accounts')">Đối chiếu</button>
+            </div>
+            ${DATA.accounts.map(acc => `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: var(--border-rule);">
+                <div>
+                  <div class="tC-serif" style="font-weight: 700; font-size: 14px;">${acc.name}</div>
+                  <div style="font-size: 11px; color: var(--text-soft);">${acc.no}</div>
+                </div>
+                <div style="text-align: right;">
+                  <div class="tC-serif" style="font-weight: 700; font-size: 15px;">${mask(acc.bal)}</div>
+                  <span style="font-size: 10px; font-weight: 700; color: ${acc.alert ? 'var(--color-warning)' : 'var(--color-income)'};">${acc.state}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="card-tC">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; padding-bottom: 8px; border-bottom: var(--border-rule);">
+              <h3 class="tC-serif" style="font-size: 16px; font-weight: 700;">Nhật Ký Chứng Từ Mới</h3>
+              <button class="btn-tC-outline" style="font-size: 11px; padding: 2px 8px;" onclick="setScreen('activity')">Toàn bộ</button>
+            </div>
+            ${DATA.transactions.map(tx => `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: var(--border-rule);">
+                <div>
+                  <div style="font-weight: 600; font-size: 13.5px;">${tx.desc}</div>
+                  <div style="font-size: 11px; color: var(--text-soft); font-style: italic;">${tx.date} · ${tx.cat}</div>
+                </div>
+                <div style="text-align: right;">
+                  <div class="tC-serif" style="font-weight: 700; font-size: 14px; color: ${tx.kind === 'income' ? 'var(--color-income)' : 'var(--color-expense)'};">
+                    ${mask(tx.amt)}
+                  </div>
+                  <span style="font-size: 10px; color: var(--text-soft);">${tx.status}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+
+      m.innerHTML = `
+        <div class="card-tC" style="padding: 16px; margin-bottom: 16px;">
+          <div class="tC-serif tC-italic" style="font-size: 12px; color: var(--text-soft);">TỔNG TÀI SẢN KHẢ DỤNG</div>
+          <div class="tC-serif tC-double-rule" style="font-size: 28px; font-weight: 700; margin: 6px 0 10px 0; padding-bottom: 6px;">
+            ${mask(DATA.standing.total)}
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px;">
+            <span style="color: var(--color-income);">Thu: ${mask(DATA.standing.income)}</span>
+            <span style="color: var(--color-expense);">Chi: ${mask(DATA.standing.expense)}</span>
+          </div>
+        </div>
+
+        <div class="attention-box-tC" style="padding: 12px; margin-bottom: 16px;">
+          <div>
+            <div class="tC-serif" style="font-weight: 700; font-size: 12px; color: var(--color-warning);">⚠️ Techcombank lệch +400k</div>
+            <div style="font-size: 10px;">Cần đối chiếu sao kê Napas</div>
+          </div>
+          <button class="btn-tC" style="padding: 4px 8px; font-size: 10px;" onclick="setScreen('accounts')">Sửa</button>
+        </div>
+
+        <div class="card-tC" style="padding: 14px;">
+          <div class="tC-serif" style="font-weight: 700; font-size: 13px; margin-bottom: 8px;">TÀI KHOẢN (4)</div>
+          ${DATA.accounts.map(acc => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: var(--border-rule);">
+              <span class="tC-serif" style="font-size: 13px; font-weight: 600;">${acc.name}</span>
+              <span class="tC-serif" style="font-weight: 700; font-size: 13px;">${mask(acc.bal)}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function renderActivity(d, m) {
+      d.innerHTML = `
+        <div class="card-tC" style="padding: 0; overflow: hidden;">
+          <div style="padding: 20px; border-bottom: var(--border-rule);">
+            <h2 class="tC-serif" style="font-size: 20px; font-weight: 700;">Nhật Ký Chứng Từ Tài Chính</h2>
+            <div style="font-size: 13px; color: var(--text-soft); font-style: italic;">Sổ kế toán lưu trữ mọi giao dịch đã được xác nhận theo trình tự thời gian</div>
+          </div>
+          <table class="table-tC">
+            <thead>
+              <tr>
+                <th>Ngày ghi sổ</th>
+                <th>Khoản mục chứng từ</th>
+                <th>Phân loại</th>
+                <th>Tài khoản</th>
+                <th>Trạng thái</th>
+                <th style="text-align: right;">Ghi có / Ghi nợ (VND)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${DATA.transactions.map(tx => `
+                <tr onclick="alert('Chứng từ: ${tx.desc}\\nSố tiền: ${tx.amt}')">
+                  <td class="tC-serif" style="font-size: 12.5px;">${tx.date}</td>
+                  <td style="font-weight: 600;">${tx.desc}</td>
+                  <td style="font-style: italic;">${tx.cat}</td>
+                  <td>${tx.acc}</td>
+                  <td><span style="font-size: 11px;">${tx.status}</span></td>
+                  <td class="tC-serif" style="text-align: right; font-weight: 700; font-size: 14px; color: ${tx.kind === 'income' ? 'var(--color-income)' : 'var(--color-expense)'};">
+                    ${mask(tx.amt)}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      m.innerHTML = `
+        <div class="tC-serif" style="font-size: 18px; font-weight: 700; margin-bottom: 14px;">Nhật Ký Giao Dịch</div>
+        ${DATA.transactions.map(tx => `
+          <div class="card-tC" style="padding: 12px; margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between;">
+              <span style="font-weight: 600; font-size: 13.5px;">${tx.desc}</span>
+              <span class="tC-serif" style="font-weight: 700; color: ${tx.kind === 'income' ? 'var(--color-income)' : 'var(--color-expense)'};">${mask(tx.amt)}</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-soft); font-style: italic; margin-top: 2px;">${tx.cat} · ${tx.acc}</div>
+          </div>
+        `).join('')}
+      `;
+    }
+
+    function renderAccounts(d, m) {
+      const clearedBal = recNapasCleared ? "32.850.000 ₫" : "32.450.000 ₫";
+      const diffBal = recNapasCleared ? "0 ₫" : "+ 400.000 ₫";
+      const isBalanced = recNapasCleared;
+
+      d.innerHTML = `
+        <div style="margin-bottom: 20px;">
+          <h2 class="tC-serif" style="font-size: 22px; font-weight: 700;">Bản Đối Chiếu Sổ Sách & Sao Kê (Editorial Audit)</h2>
+          <div style="font-size: 13px; color: var(--text-muted); font-style: italic;">Rà soát từng khoản thu chi đối chiếu sao kê ngân hàng. Hoàn tất yêu cầu chênh lệch bằng 0 ₫ tuyệt đối.</div>
+        </div>
+
+        <div class="card-tC" style="border-top: 3px solid ${isBalanced ? 'var(--color-income)' : 'var(--color-warning)'}; margin-bottom: 20px; padding: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+            <div>
+              <div class="tC-serif" style="font-weight: 700; font-size: 16px; color: ${isBalanced ? 'var(--color-income)' : 'var(--color-warning)'};">
+                Hồ Sơ Đối Soát · Techcombank Inspire Pay (1903••••882)
+              </div>
+              <div style="font-size: 12px; color: var(--text-soft); font-style: italic; margin-top: 4px;">
+                Nguyên tắc: Đối soát không thay đổi số dư hoặc tự tạo khoản chênh lệch. Tiếp tục đối chiếu giao dịch, không tự bù chênh lệch.
+              </div>
+            </div>
+            <div>
+              ${isBalanced
+                ? `<button class="btn-tC" style="background: var(--color-income); border-color: var(--color-income);" onclick="alert('Đã hoàn tất đối chiếu 0 ₫')">✓ Hoàn tất đối soát (0 ₫)</button>`
+                : `<button class="btn-tC" disabled style="opacity: 0.45; cursor: not-allowed; background: #78716c; border-color: #78716c;" title="Chênh lệch phải bằng 0 ₫ để hoàn tất">Hoàn tất (Chưa cân bằng)</button>`
+              }
+            </div>
+          </div>
+
+          <div class="grid-3" style="margin-bottom: 18px;">
+            <div style="padding: 14px; background: var(--bg-subtle); border-radius: var(--radius-sm);">
+              <div style="font-size: 11px; font-style: italic; color: var(--text-soft);">1. Số dư sao kê ngân hàng</div>
+              <div class="tC-serif" style="font-size: 22px; font-weight: 700; margin-top: 4px;">32.850.000 ₫</div>
+            </div>
+            <div style="padding: 14px; background: var(--bg-subtle); border-radius: var(--radius-sm);">
+              <div style="font-size: 11px; font-style: italic; color: var(--text-soft);">2. Số dư đã khớp trên sổ</div>
+              <div class="tC-serif" style="font-size: 22px; font-weight: 700; margin-top: 4px; color: ${isBalanced ? 'var(--color-income)' : 'var(--text-main)'};">${clearedBal}</div>
+            </div>
+            <div style="padding: 14px; background: ${isBalanced ? '#f0fdf4' : '#fff7ed'}; border-radius: var(--radius-sm);">
+              <div style="font-size: 11px; font-style: italic; color: ${isBalanced ? 'var(--color-income)' : '#9a3412'};">3. Chênh lệch còn lại (Difference)</div>
+              <div class="tC-serif" style="font-size: 22px; font-weight: 700; margin-top: 4px; color: ${isBalanced ? 'var(--color-income)' : 'var(--color-warning)'};">${diffBal}</div>
+            </div>
+          </div>
+
+          <!-- Pending Item Row -->
+          <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); padding: 14px; border-radius: var(--radius-sm); margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div class="tC-serif" style="font-weight: 700; font-size: 14px;">Giao dịch chưa đối chiếu: Thanh toán QR Napas nhận tiền</div>
+                <div style="font-size: 12px; color: var(--text-soft); font-style: italic;">Xuất xứ: Dán văn bản (Paste) · 10/09/2026 · +400.000 ₫</div>
+              </div>
+              <button class="btn-tC" style="padding: 6px 14px; font-size: 12px; ${isBalanced ? 'background: transparent; color: var(--text-main);' : ''}" onclick="toggleRecNapas()">
+                ${isBalanced ? 'Hủy khớp mục này' : '✓ Khớp giao dịch (+400k)'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tC-serif" style="font-size: 15px; font-weight: 700; margin-bottom: 12px;">Sổ Cái Các Tài Khoản (4)</div>
+        <div class="grid-2">
+          ${DATA.accounts.map(acc => {
+            const isTcb = acc.name.includes("Techcombank");
+            const st = isTcb ? (isBalanced ? "ĐÃ KHỚP" : "LỆCH +400.000 ₫") : acc.state;
+            const al = isTcb ? !isBalanced : acc.alert;
+            return `
+              <div class="card-tC">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px;">
+                  <h3 class="tC-serif" style="font-size: 16px; font-weight: 700;">${acc.name}</h3>
+                  <span style="font-size: 11px; font-weight: 700; color: ${al ? 'var(--color-warning)' : 'var(--color-income)'};">${st}</span>
+                </div>
+                <div class="tC-serif tC-double-rule" style="font-size: 26px; font-weight: 700; padding-bottom: 8px; margin-bottom: 14px;">
+                  ${isTcb && isBalanced ? '32.850.000 ₫' : mask(acc.bal)}
+                </div>
+                <button class="btn-tC-outline" style="width: 100%;">Trích lục sao kê chi tiết</button>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+      m.innerHTML = `
+        <div class="tC-serif" style="font-size: 18px; font-weight: 700; margin-bottom: 14px;">Đối Chiếu Tài Khoản</div>
+        <div class="card-tC" style="padding: 14px; margin-bottom: 14px; border-top: 3px solid ${isBalanced ? 'var(--color-income)' : 'var(--color-warning)'};">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span class="tC-serif" style="font-weight: 700; font-size: 13px;">Techcombank Pay</span>
+            <span style="font-size: 11px; font-weight: 700; color: ${isBalanced ? 'var(--color-income)' : 'var(--color-warning)'};">${diffBal}</span>
+          </div>
+          <div style="font-size: 11px; color: var(--text-soft); font-style: italic; margin-bottom: 8px;">
+            Sao kê: 32.85M · Đã khớp: ${clearedBal}
+          </div>
+          <div style="font-size: 10px; color: var(--text-soft); margin-bottom: 10px;">
+            Không tự bù chênh lệch. Đối chiếu giao dịch để đưa chênh lệch về 0 ₫.
+          </div>
+          <div style="background: var(--bg-subtle); padding: 8px; border-radius: 4px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11px; font-weight: 700;">Napas QR (+400k)</span>
+            <button class="btn-tC" style="padding: 4px 8px; font-size: 11px;" onclick="toggleRecNapas()">
+              ${isBalanced ? 'Hủy' : 'Khớp'}
+            </button>
+          </div>
+          ${isBalanced
+            ? `<button class="btn-tC" style="width: 100%; min-height: 44px; background: var(--color-income); border-color: var(--color-income); justify-content: center;" onclick="alert('Đã hoàn tất đối soát')">✓ Hoàn tất đối soát (0 ₫)</button>`
+            : `<button class="btn-tC" disabled style="width: 100%; min-height: 44px; opacity: 0.45; cursor: not-allowed; background: #78716c; border-color: #78716c; justify-content: center;">Hoàn tất (Chưa cân bằng)</button>`
+          }
+        </div>
+
+        <div style="font-size: 12px; font-weight: 700; margin-bottom: 8px;">Tài khoản khác</div>
+        ${DATA.accounts.filter(a => !a.name.includes("Techcombank")).map(acc => `
+          <div class="card-tC" style="padding: 12px; margin-bottom: 8px;">
+            <div style="font-size: 11px; color: var(--text-soft); font-style: italic;">${acc.name}</div>
+            <div class="tC-serif" style="font-size: 18px; font-weight: 700; margin: 4px 0;">${mask(acc.bal)}</div>
+          </div>
+        `).join('')}
+      `;
+    }
+
+    function renderPlan(d, m) {
+      d.innerHTML = `
+        <div class="card-tC">
+          <h2 class="tC-serif" style="font-size: 20px; font-weight: 700; margin-bottom: 16px;">Kế Hoạch & Hạn Mức Thẩm Định</h2>
+          <div style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: var(--border-rule);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span class="tC-serif" style="font-weight: 700;">Ăn uống & Nhu yếu phẩm</span>
+              <span class="tC-serif">2.850.000 ₫ / 4.500.000 ₫ (63.3%)</span>
+            </div>
+            <div style="height: 6px; background: var(--bg-subtle); border-radius: 1px;"><div style="width: 63.3%; height: 100%; background: var(--color-income);"></div></div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: var(--color-warning);">
+              <span class="tC-serif" style="font-weight: 700;">Mua sắm cá nhân (Gần chạm trần)</span>
+              <span class="tC-serif">1.950.000 ₫ / 2.000.000 ₫ (97.5%)</span>
+            </div>
+            <div style="height: 6px; background: var(--bg-subtle); border-radius: 1px;"><div style="width: 97.5%; height: 100%; background: var(--color-warning);"></div></div>
+          </div>
+        </div>
+      `;
+      m.innerHTML = `
+        <div class="card-tC" style="padding: 16px;">
+          <h3 class="tC-serif" style="font-size: 16px; font-weight: 700; margin-bottom: 10px;">Hạn Mức Ngân Sách</h3>
+          <div class="tC-serif" style="font-size: 13px;">Ăn uống: 63%</div>
+          <div class="tC-serif" style="font-size: 13px; color: var(--color-warning); margin-top: 6px;">Mua sắm: 97.5% (Cảnh báo)</div>
+        </div>
+      `;
+    }
+
+    function renderCaptureScreen(d, m) {
+      d.innerHTML = `
+        <div class="card-tC" style="max-width: 500px; margin: 0 auto;">
+          <h2 class="tC-serif" style="font-size: 20px; font-weight: 700; margin-bottom: 16px; text-align: center;">Ghi Nhận Giao Dịch Vào Sổ</h2>
+          <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+            <button class="btn-tC" style="flex: 1; font-size: 12px; justify-content: center;">Ghi tay nhanh</button>
+            <button class="btn-tC-outline" style="flex: 1; font-size: 12px; justify-content: center;">Dán văn bản (Paste)</button>
+            <button class="btn-tC-outline" style="flex: 1; font-size: 12px; justify-content: center;">Nhập CSV/XLSX</button>
+          </div>
+          <input type="text" value="0 ₫" class="tC-serif" style="font-size: 32px; font-weight: 700; text-align: center; width: 100%; border: var(--border-strong); padding: 12px; margin-bottom: 18px; background: var(--bg-subtle);" />
+          <button class="btn-tC" style="width: 100%; padding: 12px; justify-content: center;">Lưu Bản Ghi Vào Sổ Cái</button>
+        </div>
+      `;
+      m.innerHTML = `
+        <div class="card-tC" style="padding: 16px; text-align: center;">
+          <h3 class="tC-serif" style="font-size: 16px; font-weight: 700; margin-bottom: 12px;">Ghi Sổ Nhanh</h3>
+          <input type="text" value="0 ₫" class="tC-serif" style="font-size: 26px; font-weight: 700; text-align: center; width: 100%; margin-bottom: 14px;" />
+          <button class="btn-tC" style="width: 100%; min-height: 44px; justify-content: center;">Ghi Sổ (44px target)</button>
+        </div>
+      `;
+    }
+
+    function renderSettings(d, m) {
+      d.innerHTML = `
+        <div class="card-tC" style="max-width: 700px;">
+          <h2 class="tC-serif" style="font-size: 20px; font-weight: 700; margin-bottom: 16px;">Văn Phòng Lưu Trữ & Cài Đặt</h2>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: var(--border-rule);">
+            <div>
+              <div style="font-weight: 700;">Giao diện Đọc</div>
+              <div style="font-size: 12px; color: var(--text-soft); font-style: italic;">Chuyển đổi giao diện trang giấy Sáng / Tối</div>
+            </div>
+            <button class="btn-tC-outline" onclick="toggleTheme()">Đổi giao diện</button>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: var(--border-rule);">
+            <div>
+              <div style="font-weight: 700;">Ẩn số dư tài sản</div>
+              <div style="font-size: 12px; color: var(--text-soft); font-style: italic;">Bảo vệ tính riêng tư nơi công cộng</div>
+            </div>
+            <button class="btn-tC-outline" onclick="togglePrivacy()">Bật/Tắt ẩn số</button>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0;">
+            <div>
+              <div style="font-weight: 700;">Toàn quyền dữ liệu (Data Portability)</div>
+              <div style="font-size: 12px; color: var(--text-soft); font-style: italic;">Xuất dữ liệu mở dạng CSV hoặc sao lưu JSON</div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-tC-outline" onclick="alert('Đã xuất file JSON')">Xuất JSON</button>
+              <button class="btn-tC-outline" onclick="alert('Đã xuất file CSV')">Xuất CSV</button>
+            </div>
+          </div>
+        </div>
+      `;
+      m.innerHTML = `
+        <div class="card-tC" style="padding: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <span class="tC-serif" style="font-weight: 700;">Giao diện</span>
+            <button class="btn-tC-outline" style="min-height: 44px;" onclick="toggleTheme()">Đổi</button>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="tC-serif" style="font-weight: 700;">Xuất CSV/JSON</span>
+            <button class="btn-tC-outline" style="min-height: 44px;" onclick="alert('Đã xuất')">Xuất</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Query parameters support for headless screenshot capture
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('screen')) {
+      currentScreen = urlParams.get('screen');
+      document.querySelectorAll('.screen-tab').forEach((tab, idx) => {
+        tab.classList.toggle('active', ['today', 'activity', 'accounts', 'plan', 'capture', 'settings'][idx] === currentScreen);
+      });
+    }
+    if (urlParams.has('device')) {
+      setDevice(urlParams.get('device'));
+    }
+    if (urlParams.get('standalone') === 'true') {
+      const pbar = document.querySelector('.proto-bar');
+      const snav = document.querySelector('.screen-nav');
+      const stg = document.querySelector('.stage');
+      if (pbar) pbar.style.display = 'none';
+      if (snav) snav.style.display = 'none';
+      if (stg) {
+        stg.style.padding = '0';
+        stg.style.background = 'transparent';
+      }
+      if (urlParams.get('device') === 'mobile') {
+        const mob = document.getElementById('device-mobile');
+        if (mob) {
+          mob.style.border = 'none';
+          mob.style.borderRadius = '0';
+          mob.style.boxShadow = 'none';
+        }
+      } else {
+        const dsk = document.getElementById('device-desktop');
+        if (dsk) {
+          dsk.style.border = 'none';
+          dsk.style.borderRadius = '0';
+          dsk.style.boxShadow = 'none';
+        }
+      }
+    }
+
+    renderScreen();
+  </script>
+</body>
+</html>
