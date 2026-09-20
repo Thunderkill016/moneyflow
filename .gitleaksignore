@@ -5,6 +5,7 @@
 b41b33d9a5d698b62fcbc0fa522647d058d75c14:supabase/tests/database/transaction_amount_safety.test.sql:generic-api-key:69
 3d96cd0b5a1d5f93326901c00e00d553bfbd11de:supabase/tests/database/transaction_amount_safety.test.sql:generic-api-key:69
 ad87e0f3bba42795eb73d2921071a471b58f0831:src/server/capabilities/candidates-propose.test.ts:generic-api-key:21
+a662cc60e33d83413bfda9f2192124fa6f83c70f:src/server/capabilities/candidates-propose.test.ts:generic-api-key:21
 
 # Browser-safe Supabase publishable keys formerly stored in deployment config.
 cd17a4b18f0de972a46e1e16f4cec0ded63f7e6d:vercel.json:generic-api-key:7
