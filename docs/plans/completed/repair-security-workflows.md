@@ -1,7 +1,7 @@
 # Repair required security workflows
 
-**Status:** ready for review
-**Execution state:** review_ready
+**Status:** completed
+**Execution state:** completed
 **Active role:** human owner
 **Permission scope:** branch_write
 **Owner:** repository owner + OpenCode
@@ -248,9 +248,9 @@ GitHub workflow files own provider execution permissions; the existing agent-pol
 ## Delivery record
 
 - Branch: `ci/repair-security-checks`
-- PR: [#599](https://github.com/Thunderkill016/moneyflow/pull/599)
-- Squash commit: pending owner action
+- PR: [#599](https://github.com/Thunderkill016/moneyflow/pull/599) — merged 2026-09-19
+- Squash commit: `bfbb1787`
 - CI run: `35462743409` passed on `e770aee56361bb260cdfee1e5b790bb6fc3f2727`; CodeQL `35462743313` and Gitleaks `35462743314` passed. Local evidence is 1,334 unit tests, 191 policy tests, production build, 148 demo browser tests, 30 authenticated browser passes with one configured skip, 595 UI-audit passes with 141 configured skips, and Gitleaks over 3,837 commits.
 - Production deployment: not applicable
 - Production flow verified: not applicable
-- Work packet moved to `docs/plans/completed/`: pending completion
+- Work packet moved to `docs/plans/completed/`: this closeout

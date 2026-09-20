@@ -67,17 +67,17 @@ Sequencing contract: five tracks, five owner gates (G1–G5), no track self-auth
 | # | Việc | Ai làm |
 |---|---|---|
 | B1 | #174 provider controls: Turnstile prod keys/config, auth rate limits, email provider settings — **owner ops** + agent verify bằng read-only evidence | owner + agent |
-| B2 | `repair-security-workflows` review → merge/descope | owner review |
+| B2 | `repair-security-workflows` — PR #599 merged 19/9 (`bfbb1787`); packet archived | done |
 | B3 | `rrb-08` physical-device proof — owner quan sát trên điện thoại thật (đang blocked) | owner |
 | B4 | Public-beta readiness assessment — honest go/no-go tổng hợp B1–B3 + trust evidence | agent draft, owner decide |
 
 ### Track C — Product experience (owner-review packets)
 | # | Việc | Quyết định cần |
 |---|---|---|
-| C1 | #590 home ledger trust + next maintenance action | owner: merge / iterate / close |
-| C2 | #592 Activity 2.0 unified maintenance + #602 (open exact transaction — slice của nó) | owner: merge / iterate / close |
-| C3 | `ghi-5-stable-ledger-defaults` — capture defaults + post-save correction | owner review |
-| C4 | `financial-wellbeing-product-strategy` — positioning, input cho P5 Connected Planning (#432) | owner review |
+| C1 | #590 home ledger trust — PR #591 merged 13/9 (`77def221`); packet archived. Follow-up: "production flow verified: no" — trust surface chưa verify trên prod | done — follow-up noted |
+| C2 | #592 Activity 2.0 — PR #593 merged 13/9 (`20c4ae88`); packet archived. Follow-ups: #602 open exact transaction, R2 nav promotion/R3 retirement cần auth riêng | done — #602 còn mở |
+| C3 | `ghi-5-stable-ledger-defaults` — PR #596 merged 13/9 (`f7a5ae07`); packet archived. Follow-up: PR #597 Capture V2 spec vẫn open | done — #597 còn mở |
+| C4 | `financial-wellbeing-product-strategy` — PR #594 merged 13/9 (`a7e45d30`); packet archived. Làm input cho P5 khi tới | done |
 | C5 | #559 redesign — territory decision vẫn mở; exploration recoverable từ `818b213f` (local reflog). **Đề xuất park rõ ràng** hoặc owner chọn territory | owner decide |
 
 ### Track D — Acquisition foundation (master program #432 P1/P2)
@@ -93,7 +93,7 @@ Sequencing contract: five tracks, five owner gates (G1–G5), no track self-auth
 
 #### Tháng 10 — Consolidate & unblock owner reviews
 - Track 0 toàn bộ (tuần 1)
-- **G1**: owner review 5 packet pending (C1–C4 + B2) → merge/iterate/close từng cái
+- **G1**: owner review 5 packet pending — resolved 2026-09-20: cả 5 đã merge từ 13–19/9, packets archived to `completed/`; residual follow-ups tracked as #602, #597, R2/R3 auth boundaries
 - A1 prod verification sau deploy
 - **G2**: owner authorize A4 spec → agent viết write-capability packet (docs-only)
 - B1 owner ops bắt đầu
@@ -114,7 +114,7 @@ Sequencing contract: five tracks, five owner gates (G1–G5), no track self-auth
 ### Owner decision gates (tóm tắt)
 | Gate | Khi | Quyết định |
 |---|---|---|
-| G1 | T10 | Review/close 5 pending packets |
+| G1 | T10 | Review/close 5 pending packets — done 2026-09-20 |
 | G2 | T10 | Authorize write-cap spec research |
 | G3 | T11 | Public-beta go/no-go |
 | G4 | T11 | #576 pilot → P1 spec authorize |
