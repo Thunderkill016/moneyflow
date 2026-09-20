@@ -16,6 +16,13 @@ import { EmptyState } from "@/components/ui/empty-state";
 import type { ViewerSummary } from "@/components/user-chip";
 import { useTransactions } from "@/hooks/use-transactions";
 import { captureConsequence } from "@/lib/capture-consequence";
+import { deriveFrequentLedgerPatterns } from "@/lib/quick-add-defaults";
+import {
+  buildQuickCaptureCorrectionMeta,
+  buildQuickCaptureSaveMeta,
+  trackProductEvent,
+  type QuickCapturePatternRank,
+} from "@/lib/safe-analytics";
 import {
   addCandidatesForClient,
   getPendingCountForClient,
@@ -94,6 +101,16 @@ export function CaptureQuickPage({
   const [transferOpen, setTransferOpen] = useState(
     initialMode === "transfer" && canTransfer,
   );
+  const captureStartedAtRef = useRef<number | null>(null);
+  const lastSavedAtRef = useRef<number | null>(null);
+  const selectedPatternRankRef = useRef<QuickCapturePatternRank | null>(null);
+  const hasQuickSetup =
+    workspace.accounts.length > 0 && workspace.categories.length > 0;
+  const frequentPatternCount = deriveFrequentLedgerPatterns({
+    transactions,
+    accounts: workspace.accounts,
+    categories: workspace.categories,
+  }).length;
 
   useEffect(() => {
     let cancelled = false;
@@ -106,20 +123,37 @@ export function CaptureQuickPage({
   }, [viewer.isDemo]);
 
   useEffect(() => {
+    if (!formOpen || !hasQuickSetup || captureStartedAtRef.current !== null) return;
+    captureStartedAtRef.current = performance.now();
+  }, [formOpen, hasQuickSetup]);
+
+  useEffect(() => {
     if (!notice) return;
     const returnToCapture = Boolean(recentSaved && !formOpen);
     const timer = window.setTimeout(() => {
       setNotice("");
       setRecentSaved(null);
       recentSavedRef.current = null;
+      lastSavedAtRef.current = null;
       if (returnToCapture) router.push("/capture");
     }, 3600);
     return () => window.clearTimeout(timer);
   }, [formOpen, notice, recentSaved, router]);
 
   async function handleAdd(input: CreateTransactionInput) {
+    const startedAt = captureStartedAtRef.current ?? performance.now();
     const result = await addTransaction(input);
+    const completedAt = performance.now();
+    const measurement = buildQuickCaptureSaveMeta({
+      elapsedMs: completedAt - startedAt,
+      patternCount: frequentPatternCount,
+      selectedPatternRank: selectedPatternRankRef.current,
+      outcome: result.ok ? "success" : "failure",
+    });
+    if (measurement) trackProductEvent("quick_capture_save", measurement);
     if (!result.ok) return result;
+
+    selectedPatternRankRef.current = null;
 
     const account = workspace.accounts.find(
       (item) => item.id === input.accountId,
@@ -151,6 +185,9 @@ export function CaptureQuickPage({
     } catch {
       // Candidate mirroring is optional; the ledger save already succeeded.
     }
+
+    lastSavedAtRef.current = performance.now();
+    captureStartedAtRef.current = performance.now();
 
     /*
      * The moment after a save is the highest-attention moment in the app, and it
@@ -205,6 +242,8 @@ export function CaptureQuickPage({
       recentSavedRef.current = null;
       return;
     }
+    captureStartedAtRef.current = null;
+    selectedPatternRankRef.current = null;
     router.push("/capture");
   }
 
@@ -212,6 +251,9 @@ export function CaptureQuickPage({
     setFormOpen(false);
     setRecentSaved(null);
     recentSavedRef.current = null;
+    captureStartedAtRef.current = null;
+    lastSavedAtRef.current = null;
+    selectedPatternRankRef.current = null;
     setTransferOpen(true);
   }
 
@@ -222,6 +264,15 @@ export function CaptureQuickPage({
 
   function editRecentSaved() {
     if (!recentSaved) return;
+    if (lastSavedAtRef.current !== null) {
+      const measurement = buildQuickCaptureCorrectionMeta(
+        performance.now() - lastSavedAtRef.current,
+      );
+      if (measurement) {
+        trackProductEvent("quick_capture_correction_opened", measurement);
+      }
+    }
+    lastSavedAtRef.current = null;
     setEditing(recentSaved);
     setRecentSaved(null);
     recentSavedRef.current = null;
@@ -232,11 +283,12 @@ export function CaptureQuickPage({
     setRecentSaved(null);
     recentSavedRef.current = null;
     setNotice("");
+    captureStartedAtRef.current = performance.now();
+    lastSavedAtRef.current = null;
+    selectedPatternRankRef.current = null;
     setFormOpen(true);
   }
 
-  const hasQuickSetup =
-    workspace.accounts.length > 0 && workspace.categories.length > 0;
   const initialKind =
     initialMode === "expense" || initialMode === "income"
       ? initialMode
@@ -371,6 +423,9 @@ export function CaptureQuickPage({
             onClose={handleClose}
             onAdd={handleAdd}
             onTransferRequested={canTransfer ? openTransfer : undefined}
+            onFrequentPatternSelectionChange={(rank) => {
+              selectedPatternRankRef.current = rank;
+            }}
             accounts={workspace.accounts}
             categories={workspace.categories}
             transactions={transactions}

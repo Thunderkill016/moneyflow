@@ -8,6 +8,11 @@ const AFTER_EXPENSE_BALANCE_LABEL = "Bạn đang có 349.000 ₫";
 const KEEP_OPEN_NOTE = "E2E keep-open first";
 const CLOSE_AFTER_SAVE_NOTE = "E2E close after save";
 
+type AnalyticsCall = [
+  string,
+  { name?: string; data?: Record<string, unknown> }?,
+];
+
 async function stabilizeQuickExpense(
   amount: Locator,
   note: Locator,
@@ -50,6 +55,17 @@ async function openCaptureDetails(scope: Locator, slot: string) {
 test.describe("Expense path (thu chi)", () => {
   test.beforeEach(async ({ context }) => {
     await context.addInitScript(() => {
+      const analyticsWindow = window as typeof window & {
+        __mfAnalyticsEvents: unknown[][];
+      };
+      analyticsWindow.__mfAnalyticsEvents = [];
+      Object.defineProperty(analyticsWindow, "va", {
+        configurable: false,
+        writable: false,
+        value: (...params: unknown[]) => {
+          analyticsWindow.__mfAnalyticsEvents.push(params);
+        },
+      });
       try {
         if (
           window.localStorage.getItem("__mf_e2e_expense_seeded") === "1"
@@ -467,6 +483,48 @@ test.describe("Expense path (thu chi)", () => {
     await expect(dialog.locator('[data-slot="capture-fast-defaults"]')).toContainText(
       "Tiền mặt",
     );
+
+    await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
+    await expect(page.getByText("Đã lưu vào sổ")).toBeVisible();
+    const analyticsCalls = await page.evaluate(
+      () =>
+        (
+          window as typeof window & { __mfAnalyticsEvents: AnalyticsCall[] }
+        ).__mfAnalyticsEvents,
+    );
+    const saveEvent = analyticsCalls.find(
+      (call) => call[1]?.name === "quick_capture_save",
+    )?.[1];
+    expect(saveEvent, JSON.stringify(analyticsCalls)).toBeDefined();
+    expect(saveEvent?.data).toMatchObject({
+      pattern_count: 2,
+      completion_mode: "pattern_selected",
+      selected_pattern_rank: 2,
+      save_outcome: "success",
+    });
+    expect(Object.keys(saveEvent?.data ?? {})).not.toEqual(
+      expect.arrayContaining([
+        "amount",
+        "account_id",
+        "category_id",
+        "note",
+        "occurred_on",
+      ]),
+    );
+
+    await page.getByRole("button", { name: "Sửa", exact: true }).last().click();
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const calls = (
+            window as typeof window & { __mfAnalyticsEvents: AnalyticsCall[] }
+          ).__mfAnalyticsEvents;
+          return calls.find(
+            (call) => call[1]?.name === "quick_capture_correction_opened",
+          )?.[1]?.data?.elapsed_bucket;
+        }),
+      )
+      .toBe("within_5_seconds");
 
     await page.goto("/dashboard");
     const isMobile = (page.viewportSize()?.width ?? 1_000) <= 760;

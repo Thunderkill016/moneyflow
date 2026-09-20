@@ -104,8 +104,14 @@ test("R5: frequent patterns are an explicit quick-route-only experiment", () => 
   assert.match(dialog, /data-slot="capture-frequent-patterns"/);
   assert.match(dialog, /Chỉ đổi loại, tài khoản và danh mục/);
   assert.match(quick, /showFrequentPatterns/);
+  assert.match(quick, /quick_capture_save/);
+  assert.match(quick, /quick_capture_correction_opened/);
+  assert.match(quick, /onFrequentPatternSelectionChange/);
+  assert.match(dialog, /onFrequentPatternSelectionChange\?\.\(null\)/);
   assert.doesNotMatch(dashboard, /showFrequentPatterns/);
   assert.doesNotMatch(ledger, /showFrequentPatterns/);
+  assert.doesNotMatch(dashboard, /quick_capture_save/);
+  assert.doesNotMatch(ledger, /quick_capture_save/);
   assert.match(defaults, /FREQUENT_PATTERN_WINDOW = 12/);
   assert.match(defaults, /FREQUENT_PATTERN_MINIMUM_SUPPORT = 2/);
   assert.match(defaults, /FREQUENT_PATTERN_LIMIT = 2/);

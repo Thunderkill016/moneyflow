@@ -68,6 +68,7 @@ export function AddTransactionDialog({
   eyebrow = "Nhập nhanh",
   initialKind,
   onTransferRequested,
+  onFrequentPatternSelectionChange,
   showFrequentPatterns = false,
 }: {
   open: boolean;
@@ -82,6 +83,7 @@ export function AddTransactionDialog({
   eyebrow?: string;
   initialKind?: TransactionKind;
   onTransferRequested?: () => void;
+  onFrequentPatternSelectionChange?: (rank: 1 | 2 | null) => void;
   showFrequentPatterns?: boolean;
 }) {
   const formId = useId();
@@ -312,6 +314,7 @@ export function AddTransactionDialog({
     setCategoryId(nextCategoryId);
     categoryTouchedRef.current = true;
     setAutoRuleHint(null);
+    onFrequentPatternSelectionChange?.(null);
     markInputChanged();
     window.requestAnimationFrame(() => focusAmount(false));
   }
@@ -327,17 +330,19 @@ export function AddTransactionDialog({
     });
     categoryTouchedRef.current = false;
     setAutoRuleHint(null);
+    onFrequentPatternSelectionChange?.(null);
     markInputChanged();
     window.requestAnimationFrame(() => focusAmount(false));
   }
 
-  function chooseFrequentPattern(pattern: FrequentLedgerPattern) {
+  function chooseFrequentPattern(pattern: FrequentLedgerPattern, rank: 1 | 2) {
     setKind(pattern.kind);
     setAccountId(pattern.accountId);
     setCategoryId(pattern.categoryId);
     categoryTouchedRef.current = true;
     setAutoRuleHint(null);
     markInputChanged();
+    onFrequentPatternSelectionChange?.(rank);
     window.requestAnimationFrame(() => focusAmount(false));
   }
 
@@ -600,7 +605,7 @@ export function AddTransactionDialog({
             <span>Chỉ đổi loại, tài khoản và danh mục</span>
           </div>
           <div className={fastStyles.frequentPatternGrid}>
-            {frequentPatterns.map((pattern) => {
+            {frequentPatterns.map((pattern, index) => {
               const patternAccount = accounts.find(
                 (account) => account.id === pattern.accountId,
               );
@@ -619,7 +624,9 @@ export function AddTransactionDialog({
                   targetSize="important"
                   key={`${pattern.kind}-${pattern.accountId}-${pattern.categoryId}`}
                   className={fastStyles.frequentPattern}
-                  onClick={() => chooseFrequentPattern(pattern)}
+                  onClick={() =>
+                    chooseFrequentPattern(pattern, (index + 1) as 1 | 2)
+                  }
                   aria-pressed={selected}
                   aria-label={`Dùng mẫu ${pattern.kind === "expense" ? "chi" : "thu"}, ${patternCategory.name}, ${patternAccount.name}`}
                 >
@@ -703,6 +710,7 @@ export function AddTransactionDialog({
                 disabled={submitting}
                 onChange={(event) => {
                   setAccountId(event.target.value);
+                  onFrequentPatternSelectionChange?.(null);
                   markInputChanged();
                 }}
               >

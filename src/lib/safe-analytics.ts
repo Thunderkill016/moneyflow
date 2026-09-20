@@ -33,10 +33,71 @@ export type ProductEventName =
   | "candidate_rejected"
   | "export_downloaded"
   | "onboarding_completed"
+  | "quick_capture_correction_opened"
+  | "quick_capture_save"
   | "route_error"
   | "share_received";
 
 const MAX_STRING_PROP = 64;
+const MAX_QUICK_CAPTURE_ELAPSED_MS = 30 * 60 * 1_000;
+const IMMEDIATE_CORRECTION_WINDOW_MS = 5 * 1_000;
+
+export type QuickCapturePatternCount = 0 | 1 | 2;
+export type QuickCapturePatternRank = 1 | 2;
+
+function validPatternCount(value: number): value is QuickCapturePatternCount {
+  return value === 0 || value === 1 || value === 2;
+}
+
+/** Build aggregate-only metadata for the quick-capture experiment. */
+export function buildQuickCaptureSaveMeta(input: {
+  elapsedMs: number;
+  patternCount: number;
+  selectedPatternRank: number | null;
+  outcome: "success" | "failure";
+}): SafeAnalyticsProps | null {
+  if (!Number.isFinite(input.elapsedMs) || input.elapsedMs < 0) return null;
+  if (!validPatternCount(input.patternCount)) return null;
+  if (
+    input.selectedPatternRank !== null &&
+    (input.selectedPatternRank < 1 ||
+      input.selectedPatternRank > input.patternCount ||
+      !Number.isInteger(input.selectedPatternRank))
+  ) {
+    return null;
+  }
+
+  return {
+    elapsed_ms: Math.min(
+      Math.round(input.elapsedMs),
+      MAX_QUICK_CAPTURE_ELAPSED_MS,
+    ),
+    pattern_count: input.patternCount,
+    completion_mode:
+      input.selectedPatternRank !== null
+        ? "pattern_selected"
+        : input.patternCount > 0
+          ? "manual_with_patterns"
+          : "no_pattern_available",
+    selected_pattern_rank: input.selectedPatternRank,
+    save_outcome: input.outcome,
+  };
+}
+
+/** Match the bounded correction action shown immediately after a successful save. */
+export function buildQuickCaptureCorrectionMeta(
+  elapsedMs: number,
+): SafeAnalyticsProps | null {
+  if (
+    !Number.isFinite(elapsedMs) ||
+    elapsedMs < 0 ||
+    elapsedMs > IMMEDIATE_CORRECTION_WINDOW_MS
+  ) {
+    return null;
+  }
+
+  return { elapsed_bucket: "within_5_seconds" };
+}
 
 function normalizeKey(key: string): string {
   return key.replace(/[^a-zA-Z0-9_]/g, "").toLowerCase();
