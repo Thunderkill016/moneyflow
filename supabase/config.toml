@@ -184,6 +184,17 @@ minimum_password_length = 6
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
 password_requirements = ""
 
+# OAuth 2.1 / OIDC identity-provider capabilities (beta). Lets third-party
+# clients and MCP agents authenticate as MoneyFlow users via authorization
+# code + PKCE; issued tokens are standard Supabase JWTs so RLS keeps
+# enforcing tenant isolation. The consent screen is the app's own page at
+# /oauth/consent. Clients are registered manually — dynamic registration
+# stays off.
+[auth.oauth_server]
+enabled = true
+authorization_url_path = "/oauth/consent"
+allow_dynamic_registration = false
+
 # Configure passkey sign-ins.
 # [auth.passkey]
 # enabled = false

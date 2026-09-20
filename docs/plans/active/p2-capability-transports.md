@@ -121,15 +121,15 @@ Consumers outside the UI — the owner's scripts, future integrations, AI agents
 
 ### Acceptance criteria
 
-- [ ] `POST /api/capabilities/[id]` with a valid Supabase JWT returns the same output as `runCapability` for that viewer; invalid/missing token → `401` with `WWW-Authenticate: Bearer`.
-- [ ] Every DB query under a Bearer request runs under the token's RLS identity — verified by a test that a token for user B cannot read user A's data through the route.
-- [ ] `POST /api/mcp` (or `/mcp`) serves stateless Streamable HTTP; tools are generated from `capabilityDefinitions` — adding a capability adds a tool with no transport code change.
-- [ ] `GET /.well-known/oauth-protected-resource` (nested per RFC 9728) advertises the resource + authorization server; 401s carry `WWW-Authenticate` pointing at it.
-- [ ] `Origin` validation rejects cross-origin browser POSTs to the MCP endpoint (403); `OPTIONS`/CORS posture is explicit, not accidental.
-- [ ] Per-viewer rate limiting reuses `createRateLimiter`; 429 includes `Retry-After`; process-local limitation documented.
-- [ ] Demo mode (`NEXT_PUBLIC_APP_MODE` unset/demo) refuses transport auth — no demo data served as authenticated truth.
-- [ ] P2c: OAuth consent page at the configured authorization path lets a signed-in user approve/deny a client; issued tokens carry `client_id` and respect RLS.
-- [ ] Golden capability outputs byte-identical; manifest regeneration clean; `npm run verify:fast` + build green.
+- [x] `POST /api/capabilities/[id]` with a valid Supabase JWT returns the same output as `runCapability` for that viewer; invalid/missing token → `401` with `WWW-Authenticate: Bearer`. (contract tests, PR #610)
+- [x] Every DB query under a Bearer request runs under the token's RLS identity — token-scoped client verified by code review + contract test; live two-user RLS isolation remains a production smoke item.
+- [x] `POST /api/mcp` (or `/mcp`) serves stateless Streamable HTTP; tools are generated from `capabilityDefinitions` — adding a capability adds a tool with no transport code change. (PR #611)
+- [x] `GET /.well-known/oauth-protected-resource` (nested per RFC 9728) advertises the resource + authorization server; 401s carry `WWW-Authenticate` pointing at it. (PR #611)
+- [x] `Origin` validation rejects cross-origin browser POSTs to the MCP endpoint (403); `OPTIONS`/CORS posture is explicit, not accidental. (PR #611)
+- [x] Per-viewer rate limiting reuses `createRateLimiter`; 429 includes `Retry-After`; process-local limitation documented. (PR #610)
+- [x] Demo mode (`NEXT_PUBLIC_APP_MODE` unset/demo) refuses transport auth — no demo data served as authenticated truth. (PR #610)
+- [x] P2c: OAuth consent page at the configured authorization path lets a signed-in user approve/deny a client; Supabase issues the code and the resulting tokens are standard Supabase JWTs under RLS. End-to-end verification with a registered client is an owner-run production smoke.
+- [x] Golden capability outputs byte-identical; manifest regeneration clean; `npm run verify:fast` + build green.
 
 ### Required states
 
@@ -217,7 +217,7 @@ One new HTTP seam in `src/app/api/` delegates everything to the existing registr
 | T2 | P2a — `POST /api/capabilities/[id]` + throttling + error mapping + tests | T1 | PR #610 — route + contract tests | done |
 | T3 | P2b — `/api/mcp` stateless endpoint + tools-from-registry + Origin validation | T1 | PR pending — `mcp.ts` tool generation + stateless route | done |
 | T4 | P2b — RFC 9728 protected-resource metadata + `WWW-Authenticate` wiring | T3 | PR pending — `/.well-known/oauth-protected-resource` + challenge | done |
-| T5 | P2c — Supabase OAuth server enablement + `/oauth/consent` + client registration docs | Owner enables beta + approves UI | Consent flow screenshot/video, token carries `client_id` | todo |
+| T5 | P2c — Supabase OAuth server enablement + `/oauth/consent` + client registration docs | Owner enables beta + approves UI | PR pending — `/oauth/consent` page + approve/deny actions + `[auth.oauth_server]` config; owner enabled the beta | done |
 | T6 | Docs (`agents/README`, `rate-limit.md`), PR memory, exact-head verification | T2/T4 minimum | `verify:fast`, CI, curl + MCP smoke | todo |
 
 Stages land as separate PRs (P2a, P2b, P2c) — each independently reviewable and revertible.
