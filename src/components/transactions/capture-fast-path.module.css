@@ -65,6 +65,81 @@
   box-shadow: none;
 }
 
+.frequentPatterns {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.frequentPatternsHeading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: var(--mf-text-muted);
+  font: var(--text-caption);
+}
+
+.frequentPatternsHeading strong {
+  color: var(--mf-text);
+  font-weight: 750;
+}
+
+.frequentPatternsHeading span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.frequentPatternGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.frequentPattern {
+  display: grid;
+  min-width: 0;
+  min-height: var(--space-12);
+  align-content: center;
+  gap: 1px;
+  border: 1px solid var(--mf-border);
+  border-radius: var(--radius-lg);
+  background: var(--mf-surface);
+  padding: var(--space-2) var(--space-3);
+  color: var(--mf-text-muted);
+  text-align: left;
+  cursor: pointer;
+}
+
+.frequentPattern:hover {
+  border-color: var(--mf-border-strong);
+}
+
+.frequentPattern[aria-pressed="true"] {
+  border-color: var(--mf-brand);
+  background: var(--mf-brand-subtle);
+}
+
+.frequentPattern strong,
+.frequentPattern span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.frequentPattern strong {
+  color: var(--mf-text);
+  font: var(--text-body-md);
+  font-weight: 700;
+}
+
+.frequentPattern span {
+  font: var(--text-caption);
+}
+
 .fastDefaults {
   display: grid;
   gap: var(--space-2);
@@ -303,6 +378,7 @@
 
 @media (forced-colors: active) {
   .currentChoice,
+  .frequentPattern,
   .categoryChip,
   .moreSummary,
   .morePanel {

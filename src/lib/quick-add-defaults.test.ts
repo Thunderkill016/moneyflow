@@ -6,7 +6,10 @@ import type {
   Transaction,
   TransactionKind,
 } from "./transactions/contracts.ts";
-import { deriveStableLedgerPreset } from "./quick-add-defaults.ts";
+import {
+  deriveFrequentLedgerPatterns,
+  deriveStableLedgerPreset,
+} from "./quick-add-defaults.ts";
 
 const accounts: AccountOption[] = [
   { id: "cash", name: "Tiền mặt" },
@@ -340,4 +343,171 @@ test("requires explicit reviewed metadata instead of assuming legacy rows are tr
   ].map(({ reviewStatus: _reviewStatus, ...row }) => row as Transaction);
 
   assert.equal(derive(rows), null);
+});
+
+test("ranks up to two repeated exact capture patterns by frequency then recency", () => {
+  const rows = [
+    transaction({
+      id: "cash-food-new",
+      accountId: "cash",
+      categoryId: "food",
+      occurredAt: "2026-09-20T09:00:00.000Z",
+    }),
+    transaction({
+      id: "salary-new",
+      kind: "income",
+      accountId: "bank",
+      categoryId: "salary",
+      occurredAt: "2026-09-19T09:00:00.000Z",
+    }),
+    transaction({
+      id: "bank-travel-new",
+      accountId: "bank",
+      categoryId: "travel",
+      occurredAt: "2026-09-18T09:00:00.000Z",
+    }),
+    transaction({
+      id: "cash-food-old",
+      accountId: "cash",
+      categoryId: "food",
+      occurredAt: "2026-09-17T09:00:00.000Z",
+    }),
+    transaction({
+      id: "salary-old",
+      kind: "income",
+      accountId: "bank",
+      categoryId: "salary",
+      occurredAt: "2026-09-16T09:00:00.000Z",
+    }),
+    transaction({
+      id: "bank-travel-middle",
+      accountId: "bank",
+      categoryId: "travel",
+      occurredAt: "2026-09-15T09:00:00.000Z",
+    }),
+    transaction({
+      id: "bank-travel-old",
+      accountId: "bank",
+      categoryId: "travel",
+      occurredAt: "2026-09-14T09:00:00.000Z",
+    }),
+  ];
+
+  assert.deepEqual(
+    deriveFrequentLedgerPatterns({ transactions: rows, accounts, categories }),
+    [
+      {
+        kind: "expense",
+        accountId: "bank",
+        categoryId: "travel",
+        count: 3,
+      },
+      {
+        kind: "expense",
+        accountId: "cash",
+        categoryId: "food",
+        count: 2,
+      },
+    ],
+  );
+});
+
+test("frequent patterns reject unsupported, uncertain and invalid references", () => {
+  const rows = [
+    transaction({ id: "supported-1", occurredAt: "2026-09-20T09:00:00.000Z" }),
+    transaction({ id: "supported-2", occurredAt: "2026-09-19T09:00:00.000Z" }),
+    transaction({
+      id: "uncertain-1",
+      accountId: "bank",
+      categoryId: "travel",
+      occurredAt: "2026-09-18T09:00:00.000Z",
+      reviewStatus: "needs_review",
+    }),
+    transaction({
+      id: "uncertain-2",
+      accountId: "bank",
+      categoryId: "travel",
+      occurredAt: "2026-09-17T09:00:00.000Z",
+      reviewStatus: "needs_review",
+    }),
+    transaction({
+      id: "split-1",
+      accountId: "card",
+      categoryId: "travel",
+      occurredAt: "2026-09-16T09:00:00.000Z",
+      splits: [
+        { categoryId: "travel", category: "Đi lại", amount: 50_000 },
+        { categoryId: "food", category: "Ăn uống", amount: 50_000 },
+      ],
+    }),
+    transaction({
+      id: "split-2",
+      accountId: "card",
+      categoryId: "travel",
+      occurredAt: "2026-09-15T09:00:00.000Z",
+      splits: [
+        { categoryId: "travel", category: "Đi lại", amount: 50_000 },
+        { categoryId: "food", category: "Ăn uống", amount: 50_000 },
+      ],
+    }),
+    transaction({
+      id: "gone-1",
+      accountId: "gone",
+      occurredAt: "2026-09-14T09:00:00.000Z",
+    }),
+    transaction({
+      id: "gone-2",
+      accountId: "gone",
+      occurredAt: "2026-09-13T09:00:00.000Z",
+    }),
+    transaction({
+      id: "single",
+      accountId: "card",
+      categoryId: "travel",
+      occurredAt: "2026-09-12T09:00:00.000Z",
+    }),
+  ];
+
+  assert.deepEqual(
+    deriveFrequentLedgerPatterns({ transactions: rows, accounts, categories }),
+    [
+      {
+        kind: "expense",
+        accountId: "cash",
+        categoryId: "food",
+        count: 2,
+      },
+    ],
+  );
+});
+
+test("frequent patterns use only the twelve most recent eligible rows", () => {
+  const rows = Array.from({ length: 12 }, (_, index) =>
+    transaction({
+      id: `recent-${index}`,
+      accountId: index === 0 ? "cash" : "bank",
+      categoryId: index === 0 ? "food" : "travel",
+      occurredAt: `2026-09-${String(20 - index).padStart(2, "0")}T09:00:00.000Z`,
+    }),
+  );
+  rows.push(
+    transaction({
+      id: "old-cash-food",
+      accountId: "cash",
+      categoryId: "food",
+      occurredAt: "2026-09-01T09:00:00.000Z",
+    }),
+  );
+
+  assert.deepEqual(
+    deriveFrequentLedgerPatterns({ transactions: rows, accounts, categories }),
+    [
+      {
+        kind: "expense",
+        accountId: "bank",
+        categoryId: "travel",
+        count: 11,
+      },
+    ],
+  );
 });

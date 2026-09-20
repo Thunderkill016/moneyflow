@@ -25,6 +25,7 @@ test.describe("connectivity awareness", () => {
     await expect(notice, "nothing to say while connected").toBeHidden();
 
     await context.setOffline(true);
+    await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(false);
     await page.evaluate(() => window.dispatchEvent(new Event("offline")));
     await expect(notice).toBeVisible();
 
@@ -45,6 +46,7 @@ test.describe("connectivity awareness", () => {
   }) => {
     await page.goto("/dashboard", { waitUntil: "networkidle" });
     await context.setOffline(true);
+    await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(false);
     await page.evaluate(() => window.dispatchEvent(new Event("offline")));
 
     const notice = page.getByText(/Đang mất kết nối/u);

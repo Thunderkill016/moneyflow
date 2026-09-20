@@ -92,6 +92,25 @@ test("R5: primary Ghi hosts pass live ledger history into the shared dialog", ()
   }
 });
 
+test("R5: frequent patterns are an explicit quick-route-only experiment", () => {
+  const dialog = read("src/components/add-transaction-dialog.tsx");
+  const quick = read("src/components/inbox/capture-quick-page.tsx");
+  const dashboard = read("src/components/moneyflow-dashboard.tsx");
+  const ledger = read("src/components/transactions/transactions-workspace.tsx");
+  const defaults = read("src/lib/quick-add-defaults.ts");
+
+  assert.match(dialog, /showFrequentPatterns = false/);
+  assert.match(dialog, /deriveFrequentLedgerPatterns/);
+  assert.match(dialog, /data-slot="capture-frequent-patterns"/);
+  assert.match(dialog, /Chỉ đổi loại, tài khoản và danh mục/);
+  assert.match(quick, /showFrequentPatterns/);
+  assert.doesNotMatch(dashboard, /showFrequentPatterns/);
+  assert.doesNotMatch(ledger, /showFrequentPatterns/);
+  assert.match(defaults, /FREQUENT_PATTERN_WINDOW = 12/);
+  assert.match(defaults, /FREQUENT_PATTERN_MINIMUM_SUPPORT = 2/);
+  assert.match(defaults, /FREQUENT_PATTERN_LIMIT = 2/);
+});
+
 test("R5: a successful single save can open the existing edit mutation", () => {
   const dashboard = read("src/components/moneyflow-dashboard.tsx");
   const ledger = read("src/components/transactions/transactions-workspace.tsx");

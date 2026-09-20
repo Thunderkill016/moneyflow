@@ -374,6 +374,7 @@ export function CaptureQuickPage({
             accounts={workspace.accounts}
             categories={workspace.categories}
             transactions={transactions}
+            showFrequentPatterns
             disabled={isMutating}
           />
         ) : null}

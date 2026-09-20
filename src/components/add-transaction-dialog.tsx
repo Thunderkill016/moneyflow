@@ -25,7 +25,11 @@ import {
   moneyKindPrefix,
   parseMoneyInput,
 } from "@/lib/money";
-import { deriveStableLedgerPreset } from "@/lib/quick-add-defaults";
+import {
+  deriveFrequentLedgerPatterns,
+  deriveStableLedgerPreset,
+  type FrequentLedgerPattern,
+} from "@/lib/quick-add-defaults";
 import {
   isRecentCategoryId,
   orderCategoriesByRecent,
@@ -64,6 +68,7 @@ export function AddTransactionDialog({
   eyebrow = "Nhập nhanh",
   initialKind,
   onTransferRequested,
+  showFrequentPatterns = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -77,6 +82,7 @@ export function AddTransactionDialog({
   eyebrow?: string;
   initialKind?: TransactionKind;
   onTransferRequested?: () => void;
+  showFrequentPatterns?: boolean;
 }) {
   const formId = useId();
   const amountInputRef = useRef<HTMLInputElement>(null);
@@ -126,6 +132,13 @@ export function AddTransactionDialog({
         .filter((item) => item.id !== selectedCategoryId)
         .slice(0, 2),
     [availableCategories, selectedCategoryId],
+  );
+  const frequentPatterns = useMemo(
+    () =>
+      showFrequentPatterns
+        ? deriveFrequentLedgerPatterns({ transactions, accounts, categories })
+        : [],
+    [accounts, categories, showFrequentPatterns, transactions],
   );
   const hasRecentForKind = availableCategories.some((item) =>
     isRecentCategoryId(item.id, recentCategoryIds),
@@ -313,6 +326,16 @@ export function AddTransactionDialog({
       recentPresets,
     });
     categoryTouchedRef.current = false;
+    setAutoRuleHint(null);
+    markInputChanged();
+    window.requestAnimationFrame(() => focusAmount(false));
+  }
+
+  function chooseFrequentPattern(pattern: FrequentLedgerPattern) {
+    setKind(pattern.kind);
+    setAccountId(pattern.accountId);
+    setCategoryId(pattern.categoryId);
+    categoryTouchedRef.current = true;
     setAutoRuleHint(null);
     markInputChanged();
     window.requestAnimationFrame(() => focusAmount(false));
@@ -565,6 +588,51 @@ export function AddTransactionDialog({
           </Button>
         ) : null}
       </div>
+
+      {frequentPatterns.length ? (
+        <section
+          className={fastStyles.frequentPatterns}
+          aria-labelledby={`${formId}-frequent-patterns`}
+          data-slot="capture-frequent-patterns"
+        >
+          <div className={fastStyles.frequentPatternsHeading}>
+            <strong id={`${formId}-frequent-patterns`}>Thường dùng</strong>
+            <span>Chỉ đổi loại, tài khoản và danh mục</span>
+          </div>
+          <div className={fastStyles.frequentPatternGrid}>
+            {frequentPatterns.map((pattern) => {
+              const patternAccount = accounts.find(
+                (account) => account.id === pattern.accountId,
+              );
+              const patternCategory = categories.find(
+                (category) => category.id === pattern.categoryId,
+              );
+              const selected =
+                kind === pattern.kind &&
+                selectedAccountId === pattern.accountId &&
+                selectedCategoryId === pattern.categoryId;
+              if (!patternAccount || !patternCategory) return null;
+              return (
+                <Button
+                  type="button"
+                  unstyled
+                  targetSize="important"
+                  key={`${pattern.kind}-${pattern.accountId}-${pattern.categoryId}`}
+                  className={fastStyles.frequentPattern}
+                  onClick={() => chooseFrequentPattern(pattern)}
+                  aria-pressed={selected}
+                  aria-label={`Dùng mẫu ${pattern.kind === "expense" ? "chi" : "thu"}, ${patternCategory.name}, ${patternAccount.name}`}
+                >
+                  <strong>{patternCategory.name}</strong>
+                  <span>
+                    {pattern.kind === "expense" ? "Chi" : "Thu"} · {patternAccount.name}
+                  </span>
+                </Button>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
 
       {error && !error.startsWith("Nhập số tiền") ? (
         <Alert tone="error" live="assertive" className={styles.formAlert}>
