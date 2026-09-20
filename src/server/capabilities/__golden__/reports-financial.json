@@ -1,0 +1,317 @@
+{
+  "range": {
+    "period": "month",
+    "currentStart": "2026-07-01",
+    "currentEnd": "2026-07-14",
+    "previousStart": "2026-06-17",
+    "previousEnd": "2026-06-30"
+  },
+  "totals": {
+    "income": {
+      "amount": 15000000,
+      "currency": "VND",
+      "basis": {
+        "formula": "sum(income.amount) within the current report range",
+        "range": {
+          "from": "2026-07-01",
+          "to": "2026-07-14",
+          "timeZone": "Asia/Ho_Chi_Minh"
+        },
+        "included": {
+          "count": 1,
+          "transactionIds": [
+            "sample-4"
+          ]
+        },
+        "excluded": [
+          {
+            "reason": "other_kind",
+            "count": 3
+          },
+          {
+            "reason": "transfer",
+            "count": 1
+          }
+        ],
+        "trust": null,
+        "computedAt": "2026-07-14T12:00:00.000Z",
+        "capabilityVersion": "reports.financial@1"
+      }
+    },
+    "expense": {
+      "amount": 391000,
+      "currency": "VND",
+      "basis": {
+        "formula": "sum(expense.amount) within the current report range",
+        "range": {
+          "from": "2026-07-01",
+          "to": "2026-07-14",
+          "timeZone": "Asia/Ho_Chi_Minh"
+        },
+        "included": {
+          "count": 3,
+          "transactionIds": [
+            "sample-1",
+            "sample-2",
+            "sample-3"
+          ]
+        },
+        "excluded": [
+          {
+            "reason": "other_kind",
+            "count": 1
+          },
+          {
+            "reason": "transfer",
+            "count": 1
+          }
+        ],
+        "trust": null,
+        "computedAt": "2026-07-14T12:00:00.000Z",
+        "capabilityVersion": "reports.financial@1"
+      }
+    },
+    "net": {
+      "amount": 14609000,
+      "currency": "VND",
+      "basis": {
+        "formula": "income total minus expense total within the current report range",
+        "range": {
+          "from": "2026-07-01",
+          "to": "2026-07-14",
+          "timeZone": "Asia/Ho_Chi_Minh"
+        },
+        "included": {
+          "count": 4,
+          "transactionIds": [
+            "sample-4",
+            "sample-1",
+            "sample-2",
+            "sample-3"
+          ]
+        },
+        "excluded": [
+          {
+            "reason": "transfer",
+            "count": 1
+          }
+        ],
+        "trust": null,
+        "computedAt": "2026-07-14T12:00:00.000Z",
+        "capabilityVersion": "reports.financial@1"
+      }
+    },
+    "transactions": 5
+  },
+  "previous": {
+    "income": 0,
+    "expense": 0,
+    "net": 0
+  },
+  "expenseChangePercent": null,
+  "categories": [
+    {
+      "name": "Mua sắm",
+      "amount": {
+        "amount": 286000,
+        "currency": "VND",
+        "basis": {
+          "formula": "sum(expense category \"Mua sắm\")",
+          "range": {
+            "from": "2026-07-01",
+            "to": "2026-07-14",
+            "timeZone": "Asia/Ho_Chi_Minh"
+          },
+          "included": {
+            "count": 1,
+            "transactionIds": [
+              "sample-3"
+            ]
+          },
+          "excluded": [
+            {
+              "reason": "other_kind",
+              "count": 3
+            },
+            {
+              "reason": "transfer",
+              "count": 1
+            }
+          ],
+          "trust": null,
+          "computedAt": "2026-07-14T12:00:00.000Z",
+          "capabilityVersion": "reports.financial@1"
+        }
+      },
+      "share": 73
+    },
+    {
+      "name": "Ăn uống",
+      "amount": {
+        "amount": 63000,
+        "currency": "VND",
+        "basis": {
+          "formula": "sum(expense category \"Ăn uống\")",
+          "range": {
+            "from": "2026-07-01",
+            "to": "2026-07-14",
+            "timeZone": "Asia/Ho_Chi_Minh"
+          },
+          "included": {
+            "count": 1,
+            "transactionIds": [
+              "sample-1"
+            ]
+          },
+          "excluded": [
+            {
+              "reason": "other_kind",
+              "count": 3
+            },
+            {
+              "reason": "transfer",
+              "count": 1
+            }
+          ],
+          "trust": null,
+          "computedAt": "2026-07-14T12:00:00.000Z",
+          "capabilityVersion": "reports.financial@1"
+        }
+      },
+      "share": 16
+    },
+    {
+      "name": "Di chuyển",
+      "amount": {
+        "amount": 42000,
+        "currency": "VND",
+        "basis": {
+          "formula": "sum(expense category \"Di chuyển\")",
+          "range": {
+            "from": "2026-07-01",
+            "to": "2026-07-14",
+            "timeZone": "Asia/Ho_Chi_Minh"
+          },
+          "included": {
+            "count": 1,
+            "transactionIds": [
+              "sample-2"
+            ]
+          },
+          "excluded": [
+            {
+              "reason": "other_kind",
+              "count": 3
+            },
+            {
+              "reason": "transfer",
+              "count": 1
+            }
+          ],
+          "trust": null,
+          "computedAt": "2026-07-14T12:00:00.000Z",
+          "capabilityVersion": "reports.financial@1"
+        }
+      },
+      "share": 11
+    }
+  ],
+  "accounts": [
+    {
+      "name": "MB Bank",
+      "amount": 349000,
+      "share": 89
+    },
+    {
+      "name": "MoMo",
+      "amount": 42000,
+      "share": 11
+    }
+  ],
+  "trend": [
+    {
+      "key": "2026-07-01",
+      "label": "1/7",
+      "income": 0,
+      "expense": 0
+    },
+    {
+      "key": "2026-07-02",
+      "label": "2/7",
+      "income": 0,
+      "expense": 0
+    },
+    {
+      "key": "2026-07-03",
+      "label": "3/7",
+      "income": 0,
+      "expense": 0
+    },
+    {
+      "key": "2026-07-04",
+      "label": "4/7",
+      "income": 0,
+      "expense": 0
+    },
+    {
+      "key": "2026-07-05",
+      "label": "5/7",
+      "income": 0,
+      "expense": 0
+    },
+    {
+      "key": "2026-07-06",
+      "label": "6/7",
+      "income": 0,
+      "expense": 0
+    },
+    {
+      "key": "2026-07-07",
+      "label": "7/7",
+      "income": 0,
+      "expense": 0
+    },
+    {
+      "key": "2026-07-08",
+      "label": "8/7",
+      "income": 0,
+      "expense": 0
+    },
+    {
+      "key": "2026-07-09",
+      "label": "9/7",
+      "income": 0,
+      "expense": 0
+    },
+    {
+      "key": "2026-07-10",
+      "label": "10/7",
+      "income": 15000000,
+      "expense": 0
+    },
+    {
+      "key": "2026-07-11",
+      "label": "11/7",
+      "income": 0,
+      "expense": 0
+    },
+    {
+      "key": "2026-07-12",
+      "label": "12/7",
+      "income": 0,
+      "expense": 0
+    },
+    {
+      "key": "2026-07-13",
+      "label": "13/7",
+      "income": 0,
+      "expense": 286000
+    },
+    {
+      "key": "2026-07-14",
+      "label": "14/7",
+      "income": 0,
+      "expense": 105000
+    }
+  ]
+}

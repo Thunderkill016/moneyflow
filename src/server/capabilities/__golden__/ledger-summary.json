@@ -1,0 +1,142 @@
+{
+  "range": {
+    "period": "month",
+    "currentStart": "2026-07-01",
+    "currentEnd": "2026-07-14",
+    "previousStart": "2026-06-17",
+    "previousEnd": "2026-06-30"
+  },
+  "totalBalance": {
+    "amount": 15735000,
+    "currency": "VND",
+    "basis": {
+      "formula": "sum of active account balances (workspace snapshot); not derived from listed transactions",
+      "range": null,
+      "included": {
+        "count": 0,
+        "transactionIds": []
+      },
+      "excluded": [],
+      "trust": null,
+      "computedAt": "2026-07-14T12:00:00.000Z",
+      "capabilityVersion": "ledger.summary@1"
+    }
+  },
+  "income": {
+    "amount": 15000000,
+    "currency": "VND",
+    "basis": {
+      "formula": "sum(income.amount) within the current report range",
+      "range": {
+        "from": "2026-07-01",
+        "to": "2026-07-14",
+        "timeZone": "Asia/Ho_Chi_Minh"
+      },
+      "included": {
+        "count": 1,
+        "transactionIds": [
+          "sample-4"
+        ]
+      },
+      "excluded": [
+        {
+          "reason": "other_kind",
+          "count": 3
+        },
+        {
+          "reason": "transfer",
+          "count": 1
+        }
+      ],
+      "trust": null,
+      "computedAt": "2026-07-14T12:00:00.000Z",
+      "capabilityVersion": "ledger.summary@1"
+    }
+  },
+  "expense": {
+    "amount": 391000,
+    "currency": "VND",
+    "basis": {
+      "formula": "sum(expense.amount) within the current report range",
+      "range": {
+        "from": "2026-07-01",
+        "to": "2026-07-14",
+        "timeZone": "Asia/Ho_Chi_Minh"
+      },
+      "included": {
+        "count": 3,
+        "transactionIds": [
+          "sample-1",
+          "sample-2",
+          "sample-3"
+        ]
+      },
+      "excluded": [
+        {
+          "reason": "other_kind",
+          "count": 1
+        },
+        {
+          "reason": "transfer",
+          "count": 1
+        }
+      ],
+      "trust": null,
+      "computedAt": "2026-07-14T12:00:00.000Z",
+      "capabilityVersion": "ledger.summary@1"
+    }
+  },
+  "net": {
+    "amount": 14609000,
+    "currency": "VND",
+    "basis": {
+      "formula": "income total minus expense total within the current report range",
+      "range": {
+        "from": "2026-07-01",
+        "to": "2026-07-14",
+        "timeZone": "Asia/Ho_Chi_Minh"
+      },
+      "included": {
+        "count": 4,
+        "transactionIds": [
+          "sample-4",
+          "sample-1",
+          "sample-2",
+          "sample-3"
+        ]
+      },
+      "excluded": [
+        {
+          "reason": "transfer",
+          "count": 1
+        }
+      ],
+      "trust": null,
+      "computedAt": "2026-07-14T12:00:00.000Z",
+      "capabilityVersion": "ledger.summary@1"
+    }
+  },
+  "accounts": [
+    {
+      "id": "demo-account-mb",
+      "name": "MB Bank",
+      "currencyCode": "VND"
+    },
+    {
+      "id": "demo-account-cash",
+      "name": "Tiền mặt",
+      "currencyCode": "VND"
+    },
+    {
+      "id": "demo-account-momo",
+      "name": "MoMo",
+      "currencyCode": "VND"
+    },
+    {
+      "id": "demo-account-usd",
+      "name": "USD du lịch",
+      "currencyCode": "USD"
+    }
+  ],
+  "trust": null
+}

@@ -83,6 +83,7 @@ Demo storage is not a fallback for authenticated failures. Production contracts 
 | `src/components/` | Reusable UI, dialogs, shells and feature presentation |
 | `src/hooks/` | Shared client orchestration around runtime adapters and mutations |
 | `src/server/` | Server-only viewer-aware workspace loaders and persistence mapping |
+| `src/server/capabilities/` | Typed, viewer-scoped read capabilities and explainable financial outputs for future UI/agent transports |
 | `src/lib/` | Financial domain rules, contracts, formatting, validation and pure calculations |
 | `src/lib/transactions/contracts.ts` | Stable transaction, account/category option and mutation-input contracts shared by authenticated and demo runtimes |
 | `src/lib/transactions/category-presentation.ts` | Category labels, icons and colors used by presentation surfaces |
@@ -107,6 +108,8 @@ Demo storage is not a fallback for authenticated failures. Production contracts 
 8. A large file is not automatically an architecture defect. Split only when responsibilities change independently, pure logic needs isolated tests, another surface needs reuse or repeated fixes cross ownership boundaries.
 
 `scripts/check-architecture.mjs` enforces only proven import boundaries. Add a new rule after an actual risky dependency has been identified and the intended replacement boundary exists; do not grow the checker as a speculative style guide.
+
+The capability layer is a typed seam over existing server workspace loaders and pure financial calculators. Read capabilities are deterministic, viewer-scoped and attach a `basis` to financial amounts so future UI, API and MCP transports consume the same ledger truth. `docs/agents/capabilities.json` is generated from the registry and must remain synchronized; this slice adds no transport, mutation owner or schema.
 
 ## Domain boundaries
 
