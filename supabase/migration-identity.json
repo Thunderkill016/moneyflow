@@ -314,6 +314,11 @@
       "version": "20260920120000",
       "name": "20260920120000_agent_candidate_proposals.sql",
       "hash": "f960a6a932ed7410a841f73e4649fcec"
+    },
+    {
+      "version": "20260921120000",
+      "name": "20260921120000_backup_reminder_state.sql",
+      "hash": "84b4c458d7b1995cb387f76c41bf07f1"
     }
   ]
 }
