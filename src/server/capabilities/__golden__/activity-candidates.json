@@ -1,0 +1,33 @@
+{
+  "pendingCount": 1,
+  "candidates": [
+    {
+      "id": "cand-1",
+      "kind": "expense",
+      "amount": {
+        "amount": 45000,
+        "currency": "VND",
+        "basis": {
+          "formula": "inbox_candidates rows with status = pending; server ordering (occurred_on desc, created_at desc) preserved",
+          "range": null,
+          "included": {
+            "count": 0,
+            "transactionIds": []
+          },
+          "excluded": [],
+          "trust": null,
+          "computedAt": "2026-07-14T12:00:00.000Z",
+          "capabilityVersion": "activity.candidates@1"
+        }
+      },
+      "merchant": "Highlands Coffee",
+      "note": "Cafe sáng",
+      "occurredOn": "2026-07-14",
+      "source": "agent",
+      "confidence": "medium",
+      "status": "pending",
+      "possibleDuplicate": false,
+      "createdAt": "2026-07-14T12:00:00.000Z"
+    }
+  ]
+}

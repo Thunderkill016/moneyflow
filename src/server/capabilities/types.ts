@@ -1,6 +1,10 @@
 import { z } from "zod";
 
+import type { AccountsWorkspace } from "../accounts.ts";
+import type { BudgetsWorkspace } from "../budgets.ts";
 import type { FinanceWorkspace } from "../finance.ts";
+import type { GoalsWorkspace } from "../goals.ts";
+import type { InboxListResult } from "../inbox.ts";
 import type { ReportsWorkspace } from "../reports.ts";
 import type { LedgerTrustSummary } from "../../lib/ledger-trust.ts";
 import type {
@@ -11,7 +15,14 @@ import { minorSchema, type Minor } from "../../lib/minor.ts";
 import { todayInVietnam } from "../../lib/vietnam-date.ts";
 import type { CustomRangeInput, ReportPeriod } from "../../lib/reports.ts";
 
-export type { FinanceWorkspace, ReportsWorkspace };
+export type {
+  AccountsWorkspace,
+  BudgetsWorkspace,
+  FinanceWorkspace,
+  GoalsWorkspace,
+  InboxListResult,
+  ReportsWorkspace,
+};
 
 export type CapabilityAuthorization = "read" | "write:proposal" | "write:commit";
 
@@ -57,6 +68,10 @@ export type CapabilityDeps = {
     candidate: PersistedInboxCandidate,
   ) => Promise<PersistedInboxCandidate>;
   planInboxCandidate?: (candidateId: string) => Promise<InboxDryRunResult>;
+  loadAccountsWorkspace?: () => Promise<AccountsWorkspace>;
+  loadBudgetsWorkspace?: (month?: string | null) => Promise<BudgetsWorkspace>;
+  loadGoalsWorkspace?: () => Promise<GoalsWorkspace>;
+  listInbox?: () => Promise<InboxListResult>;
 };
 
 export type CapabilityDefinition<I, O> = {

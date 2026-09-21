@@ -1,0 +1,121 @@
+{
+  "accounts": [
+    {
+      "id": "acc-mb",
+      "name": "MB Bank",
+      "kind": "bank",
+      "currencyCode": "VND",
+      "isArchived": false,
+      "initialBalance": {
+        "amount": 1000000,
+        "currency": "VND",
+        "basis": {
+          "formula": "account_balances workspace snapshot; not derived from listed transactions",
+          "range": null,
+          "included": {
+            "count": 0,
+            "transactionIds": []
+          },
+          "excluded": [],
+          "trust": null,
+          "computedAt": "2026-07-14T12:00:00.000Z",
+          "capabilityVersion": "accounts.list@1"
+        }
+      },
+      "balance": {
+        "amount": 15454000,
+        "currency": "VND",
+        "basis": {
+          "formula": "account_balances workspace snapshot; not derived from listed transactions",
+          "range": null,
+          "included": {
+            "count": 0,
+            "transactionIds": []
+          },
+          "excluded": [],
+          "trust": null,
+          "computedAt": "2026-07-14T12:00:00.000Z",
+          "capabilityVersion": "accounts.list@1"
+        }
+      }
+    },
+    {
+      "id": "acc-cash",
+      "name": "Tiền mặt",
+      "kind": "cash",
+      "currencyCode": "VND",
+      "isArchived": false,
+      "initialBalance": {
+        "amount": 0,
+        "currency": "VND",
+        "basis": {
+          "formula": "account_balances workspace snapshot; not derived from listed transactions",
+          "range": null,
+          "included": {
+            "count": 0,
+            "transactionIds": []
+          },
+          "excluded": [],
+          "trust": null,
+          "computedAt": "2026-07-14T12:00:00.000Z",
+          "capabilityVersion": "accounts.list@1"
+        }
+      },
+      "balance": {
+        "amount": 239000,
+        "currency": "VND",
+        "basis": {
+          "formula": "account_balances workspace snapshot; not derived from listed transactions",
+          "range": null,
+          "included": {
+            "count": 0,
+            "transactionIds": []
+          },
+          "excluded": [],
+          "trust": null,
+          "computedAt": "2026-07-14T12:00:00.000Z",
+          "capabilityVersion": "accounts.list@1"
+        }
+      }
+    },
+    {
+      "id": "acc-old",
+      "name": "Ví cũ",
+      "kind": "e_wallet",
+      "currencyCode": "VND",
+      "isArchived": true,
+      "initialBalance": {
+        "amount": 0,
+        "currency": "VND",
+        "basis": {
+          "formula": "account_balances workspace snapshot; not derived from listed transactions",
+          "range": null,
+          "included": {
+            "count": 0,
+            "transactionIds": []
+          },
+          "excluded": [],
+          "trust": null,
+          "computedAt": "2026-07-14T12:00:00.000Z",
+          "capabilityVersion": "accounts.list@1"
+        }
+      },
+      "balance": {
+        "amount": 0,
+        "currency": "VND",
+        "basis": {
+          "formula": "account_balances workspace snapshot; not derived from listed transactions",
+          "range": null,
+          "included": {
+            "count": 0,
+            "transactionIds": []
+          },
+          "excluded": [],
+          "trust": null,
+          "computedAt": "2026-07-14T12:00:00.000Z",
+          "capabilityVersion": "accounts.list@1"
+        }
+      }
+    }
+  ]
+}
