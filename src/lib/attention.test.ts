@@ -68,3 +68,27 @@ test("buildAttentionItems includes inbox count calmly", () => {
   assert.match(items[0]!.label, /3/);
   assert.match(items[0]!.label, /cần xem/i);
 });
+
+test("buildAttentionItems surfaces unreviewed ledger rows", () => {
+  const items = buildAttentionItems({
+    budgets: [],
+    commitments: [],
+    needsReviewCount: 2,
+    today: "2026-07-15",
+  });
+  const chip = items.find((i) => i.id === "needs-review");
+  assert.ok(chip, "expected a needs-review chip");
+  assert.equal(chip.href, "/transactions?review=needs_review");
+  assert.match(chip.label, /2/);
+  assert.match(chip.label, /cần kiểm tra/i);
+});
+
+test("buildAttentionItems stays quiet when nothing needs review", () => {
+  const items = buildAttentionItems({
+    budgets: [],
+    commitments: [],
+    needsReviewCount: 0,
+    today: "2026-07-15",
+  });
+  assert.ok(!items.some((i) => i.id === "needs-review"));
+});

@@ -22,10 +22,17 @@ export function buildAttentionItems(input: {
   budgets: BudgetSummary[];
   commitments: RecurringCommitment[];
   inboxCount?: number;
+  needsReviewCount?: number;
   today: string;
 }): AttentionItem[] {
   const items: AttentionItem[] = [];
-  const { budgets, commitments, inboxCount = 0, today } = input;
+  const {
+    budgets,
+    commitments,
+    inboxCount = 0,
+    needsReviewCount = 0,
+    today,
+  } = input;
 
   for (const budget of budgets) {
     const level = budgetThreshold(budget);
@@ -64,6 +71,15 @@ export function buildAttentionItems(input: {
       id: "inbox",
       label: `${inboxCount} mục cần xem trước khi ghi sổ`,
       href: "/inbox",
+      tone: "neutral",
+    });
+  }
+
+  if (needsReviewCount > 0) {
+    items.push({
+      id: "needs-review",
+      label: `${needsReviewCount} giao dịch cần kiểm tra`,
+      href: "/transactions?review=needs_review",
       tone: "neutral",
     });
   }
