@@ -67,6 +67,12 @@ const SETTINGS_LINKS: SettingsLink[] = [
     icon: "spark",
   },
   {
+    href: "/security",
+    title: "Bảo mật",
+    description: "Cách MoneyFlow và nền tảng bảo vệ dữ liệu của bạn.",
+    icon: "lock",
+  },
+  {
     href: "/settings/delete-account",
     title: "Xóa tài khoản",
     description: "Xóa vĩnh viễn tài khoản máy chủ rồi dọn dữ liệu trên thiết bị.",

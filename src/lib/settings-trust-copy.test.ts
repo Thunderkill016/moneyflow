@@ -36,6 +36,7 @@ test("settings hub states ownership boundaries without branding Inbox as the pro
   assert.match(source, /href: "\/settings\/privacy"/);
   assert.match(source, /href: "\/settings\/export"/);
   assert.match(source, /href: "\/settings\/delete-account"/);
+  assert.match(source, /href: "\/security"/);
   assert.match(source, /chưa phải bản sao lưu đầy đủ/i);
   assert.doesNotMatch(source, /Universal Financial Inbox|Đưa dữ liệu vào Inbox/);
 });
