@@ -92,27 +92,17 @@ select is(
   'owner backup write surfaces in the bundle as a date'
 );
 
--- Tenant B cannot write tenant A's row: RLS makes it a silent no-op, which the
--- returning count exposes.
+-- Tenant B cannot write tenant A's row: RLS makes it a silent no-op. Write a
+-- deliberately wrong timestamp, then prove A's real value survives.
 select set_config(
   'request.jwt.claim.sub',
   '00000000-0000-4000-8000-00000000bb01',
   true
 );
 
-select is(
-  (
-    with attempt as (
-      update public.profiles
-      set last_backup_at = now()
-      where id = '00000000-0000-4000-8000-00000000ba01'
-      returning 1
-    )
-    select count(*)::int from attempt
-  ),
-  0::int,
-  'authenticated caller cannot rewrite another tenant backup timestamp'
-);
+update public.profiles
+set last_backup_at = '2000-01-01'::timestamptz
+where id = '00000000-0000-4000-8000-00000000ba01';
 
 -- And tenant B's own bundle still reports its own state, not A's.
 delete from backup_test_bundle;
@@ -129,6 +119,23 @@ select is(
   (select bundle #>> '{backup_state,created_at}' from backup_test_bundle),
   current_date::text,
   'tenant B bundle reports its own created_at'
+);
+
+-- Back as A: the cross-tenant write really was a no-op, not just invisible.
+select set_config(
+  'request.jwt.claim.sub',
+  '00000000-0000-4000-8000-00000000ba01',
+  true
+);
+
+select is(
+  (
+    select last_backup_at::date::text
+    from public.profiles
+    where id = '00000000-0000-4000-8000-00000000ba01'
+  ),
+  current_date::text,
+  'tenant B attempted overwrite left tenant A timestamp untouched'
 );
 
 select * from finish();
