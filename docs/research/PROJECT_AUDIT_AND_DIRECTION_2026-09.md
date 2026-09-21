@@ -41,14 +41,14 @@ The pattern is the same one every memo since 2026-08 has named — **the foundat
 
 | Weakness | Evidence | Since |
 |---|---|---|
-| **Zero real-user evidence** | No closed-beta cohort; no 7-day return, TTLT, or capture→post measurements on humans; Vercel Analytics mounted but no product event analysis exists | project start |
-| **Owner gates parked** | `docs/operations/beta-owner-action-pack.md` (~70 min of owner console + phone time) still open; `rrb-08` blocked on real-phone observation; `#576` T5 needs one real sanitized bank export; Supabase Site URL still `localhost:3000` per megaplan | Aug 2026 |
+| **Evidence is automated-only** | No human TTLT or capture→post measurement; by owner decision there will be no beta cohort — so the harness, CI and owner self-use are the only evidence tiers, and docs must stop treating "beta" as a pending gate | project start |
+| **Beta-era gates still listed as open** | `docs/operations/beta-owner-action-pack.md`, `rrb-08`, `#576` T5, `public-beta-trust.md` all frame work around a beta that will not happen — they need re-scoping to solo/self-use or archiving; Supabase Site URL `localhost:3000` per megaplan is a real config item regardless | Aug 2026 |
 | **Acquisition is manual-assisted while both VN incumbents auto-acquire** | §2.2 — Money Lover (MB/TPBank linking, multi-receipt scan) and MISA (bank linking + voice + chat + scan) | widening |
 | **Agent-layer "first mover" claim expired** | §2.1 — Copilot MCP beta (May 2026), Monarch AI Assistant, YNAB Siri/Shortcuts, 3+ community Actual MCP servers with 50–74 tools | May 2026 |
 | **Packet backlog is a fog** | 15 active packets; 5 in `owner_review`/`ready_for_review` for weeks; `PRODUCT_COMPETITIVE_MEMORY §4.4` contradicts shipped code | ongoing |
 | **Only 2 open issues** | #559 (full redesign — very large, Phase 0 postmortem not started) and #174 (provider console controls) — the backlog surface no longer reflects what the team believes is next | — |
 
-Reading: September's upgrade sequence was well executed and coherent, but it optimised surfaces whose value is unproven with any user. The next block of work should convert the foundation into evidence, or into the one capability gap that the VN market punishes hardest — not into a third round of polish.
+Reading: September's upgrade sequence was well executed and coherent, but it optimised surfaces whose value is unproven with any user. The next block of work should go into the one capability gap that the VN market punishes hardest (acquisition) or the one free-stack advantage nobody in VN gives away (voice capture) — not into a third round of polish.
 
 ---
 
@@ -109,30 +109,26 @@ Global premium apps remain US-bank-sync + English; VN open banking still contrac
 
 ## 4. Direction options for the owner
 
-Each is a *block* of work, not one PR. They are not mutually exclusive, but they compete for the same owner and agent time. Ordering below is the recommendation.
+**Owner constraints, restated 2026-09-21 (binding for every option below):** MoneyFlow is a **solo-developer product built entirely on free resources**. There is **no closed-beta / user-cohort gate** — the owner has explicitly declined it. Direction is chosen on repo truth, market evidence and free-stack fit, and measured with the tooling that already exists (Capture benchmark harness, CI, owner self-use). Any option that needs paid infrastructure, a bank contract, a recruited user cohort, or sustained operator time is out.
 
-### Option A — Evidence block (recommended first; mostly owner time)
+Each option is a *block* of work, not one PR.
 
-Turn the foundation into measurements. No new product surface.
+### Option A — Evidence block — **declined by owner**
 
-1. Owner action pack (~70 min): provider console exports, Supabase Site URL revert, physical-phone RRB-08 pass, one sanitized real bank export for #576 T5.
-2. Closed beta of 5–10 real Vietnamese users for 14 days on production. Collect only what `PRINCIPLES.md §Product health metrics` already names: D7 return, capture→post median, % non-manual transactions, correction rate. Add the 3–4 product events to Vercel Analytics that make those computable (docs-only decision first; Class 1 to implement).
-3. One human Capture V2 benchmark run per user on their own phone (the harness exists; the driver gives a 1.0s / 1.8s machine floor to compare against).
-
-Exit: a dated evidence record that says which of Options B–D the users actually pull for. Cost to the agent is low; the block is blocked on the owner, which is exactly why it has not happened.
+Retained for the record only: owner action pack, closed beta of real users, per-user benchmark runs. The owner has ruled out beta testing; the only evidence tiers in scope are automated measurement and owner self-use. Do not re-propose.
 
 ### Option B — Acquisition foundation, first adapter (lifts the #635 "no new areas" fence for one item)
 
 `PRINCIPLES.md` makes auto-acquisition the strategic default; #635 deferred it tactically. The market evidence in §2.2 says this is the gap VN users will judge first. Proposed bounded first slice, Class 3:
 
 - **SePay Bank Hub webhook adapter** → `ingest_*` RPC → candidate with provenance (`source: sepay`, payload hash, signature verified) → Inbox. No auto-post; the existing approval path stays the only way into the ledger. Money-in covers most banks; money-out is limited to 3 banks — the packet must state that honestly in UI copy.
-- Alternative first adapter if SePay onboarding is too heavy for a personal account: **e-mail forwarding** address per user (Monarch precedent) → existing `parse-text.ts`. Lower coverage, zero third-party dependency.
+- Alternative first adapter if SePay onboarding is too heavy for a personal account: **e-mail forwarding** address per user (Monarch precedent) → existing `parse-text.ts`. Lower coverage; inbound mail needs a free relay (e.g. Cloudflare Email Routing → Worker → MoneyFlow endpoint) — to be verified as $0 in the packet.
 
-Why now rather than later: the pipeline was built for this and has been idle; a single adapter is the smallest possible proof that "digital transactions don't need retyping" is true in MoneyFlow, and it gives Option A something to measure (% non-manual).
+Free-stack check: SePay Free plan + Vercel serverless endpoint + existing Supabase RPC = $0 at owner scale; the third-party dependency and its plan limits are the risk, and the packet must state them in UI copy. Why now: the pipeline was built for this and has been idle; one adapter is the smallest proof that "digital transactions don't need retyping" is true in MoneyFlow, and `% non-manual transactions` becomes computable from the owner's own ledger.
 
 ### Option C — Capture V2 slice: voice as a Ghi mode (upgrade-only compliant)
 
-Benchmark floor exists; MISA proves demand and charges for it. Web Speech API is free and on-device on most phones. Ship dictation as a mode of the existing `/capture/quick` (H3), feeding the same parser as paste — not a new surface. Class 2. Measure with the harness (TTLT dictation vs amount-first). Good second slice once Option A has a cohort to measure with.
+Benchmark floor exists; MISA proves demand and charges for it. Web Speech API is free and on-device on most phones. Ship dictation as a mode of the existing `/capture/quick` (H3), feeding the same parser as paste — not a new surface. Class 2. Measure with the harness (TTLT dictation vs amount-first — scripted floor plus owner self-use on a real phone). Zero dependencies, zero cost; the strongest free-stack fit of the four.
 
 ### Option D — Agent governance sharpening (only on product pull)
 
@@ -167,4 +163,4 @@ Since presence is no longer unique, make the governance visible: `capability_inv
 - SePay: sepay.vn; developer.sepay.vn bankhub IPN + webhook creation docs (event types, bank limits, HMAC, retry schedule).
 - Circular 64/2024/TT-NHNN: tapchinganhang.gov.vn; luatvietnam.vn (effective 2025-03-01; third-party contract requirement).
 
-**Limits:** competitor claims are marketing/release-note evidence, not hands-on tests; SePay personal-account eligibility and free-tier limits must be re-verified at signup time; no claim is made about real-user behaviour — that absence is the point of Option A. This memo authorizes no implementation.
+**Limits:** competitor claims are marketing/release-note evidence, not hands-on tests; SePay personal-account eligibility and free-tier limits must be re-verified at signup time; no claim is made about real-user behaviour, and by owner decision none will be sought through a beta cohort — evidence tiers are automated measurement and owner self-use. This memo authorizes no implementation.
