@@ -113,6 +113,8 @@ Global premium apps remain US-bank-sync + English; VN open banking still contrac
 
 Each option is a *block* of work, not one PR.
 
+> **Owner decision 2026-09-21:** none of B, C or D. Continue **upgrade-in-place of the surfaces the web already ships** (the #635 direction stands unchanged). Options B–D stay on record as evidence, not as a queue.
+
 ### Option A — Evidence block — **declined by owner**
 
 Retained for the record only: owner action pack, closed beta of real users, per-user benchmark runs. The owner has ruled out beta testing; the only evidence tiers in scope are automated measurement and owner self-use. Do not re-propose.
