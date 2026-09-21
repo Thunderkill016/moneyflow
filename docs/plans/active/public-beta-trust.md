@@ -192,7 +192,11 @@ Drafted by the agent from merged evidence; the go/no-go itself (PBT-AC15) and ev
 
 - Production identity is directly readable: `GET https://mfvn.vercel.app/api/health` returns `commit` = current `main` HEAD (`efcc625f` at assessment time), and the live OAuth consent flow proves authenticated mode on the canonical origin `mfvn.vercel.app` (in `OWNED_HOSTS`). This satisfies the deployment-identity half of RRB-09; the Supabase project/settings half stays folded into RRB-04.
 - RRB-05 is resolved in code: `src/lib/support-contact.ts` records the owner decision (2026-08-27) to publish the operator's own mailbox, `OWNED_HOSTS` excludes `moneyflow.app` (a different operator's product), and `support-contact.test.ts` fails the build if an unowned-domain address reappears. What remains is the owner's formal disposition in this packet — the evidence layer already passes.
-- The legacy domain `www.moneyflow.app` still serves a ~3-week-old build of this app. It is not ours and not beta-relevant, but the stale deployment should be removed/redirected in Vercel to avoid confused users.
+- `www.moneyflow.app` serves a different operator's product — "Money Flow" (English expense tracker, Abstract Software LLC per the audit; verified live 2026-09-21: different title/copy, no `/api/health`). It was never our deployment, so there is nothing in our Vercel to remove. The earlier draft line claiming it served a stale build of this app was wrong.
+
+#### Owner execution path
+
+`docs/operations/beta-owner-action-pack.md` consolidates every owner-side gate below into ordered, executable steps (tool links, console checklists, draft dispositions, legal-review brief). It is the recommended single sitting for the owner.
 
 #### Remaining gates, by who can move them
 
