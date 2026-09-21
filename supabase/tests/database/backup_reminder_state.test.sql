@@ -51,7 +51,7 @@ insert into auth.users (
 create temporary table backup_test_bundle (
   bundle jsonb not null
 ) on commit drop;
-grant select, insert on backup_test_bundle to authenticated;
+grant select, insert, delete on backup_test_bundle to authenticated;
 
 set local role authenticated;
 select set_config(
