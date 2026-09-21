@@ -7,9 +7,13 @@ import {
 } from "../../../src/lib/demo/transaction-fixtures.ts";
 import type { Transaction } from "../../../src/lib/transactions/contracts.ts";
 import type {
+  AccountsWorkspace,
+  BudgetsWorkspace,
   CapabilityContext,
   CapabilityDeps,
   FinanceWorkspace,
+  GoalsWorkspace,
+  InboxListResult,
   ReportsWorkspace,
 } from "./types.ts";
 
@@ -69,6 +73,137 @@ export function fixtureLedgerTrust(): LedgerTrustSummary {
     unreconciledAccountLegCount: 1,
     earliestUnresolvedOn: "2026-07-12",
     coverageScope: "known_ledger_state_only",
+  };
+}
+
+export function fixtureAccountsWorkspace(): AccountsWorkspace {
+  return {
+    accounts: [
+      {
+        id: "acc-mb",
+        name: "MB Bank",
+        kind: "bank",
+        currencyCode: "VND",
+        initialBalance: 1_000_000,
+        balance: 15_454_000,
+        isArchived: false,
+      },
+      {
+        id: "acc-cash",
+        name: "Tiền mặt",
+        kind: "cash",
+        currencyCode: "VND",
+        initialBalance: 0,
+        balance: 239_000,
+        isArchived: false,
+      },
+      {
+        id: "acc-old",
+        name: "Ví cũ",
+        kind: "e_wallet",
+        currencyCode: "VND",
+        initialBalance: 0,
+        balance: 0,
+        isArchived: true,
+      },
+    ],
+    dataError: null,
+  };
+}
+
+export function fixtureBudgetsWorkspace(): BudgetsWorkspace {
+  return {
+    budgets: [
+      {
+        id: "bud-food",
+        categoryId: "cat-food",
+        categoryName: "Ăn uống",
+        categoryIcon: null,
+        categoryColor: null,
+        monthStart: "2026-07-01",
+        limit: 4_000_000,
+        spent: 2_760_000,
+      },
+    ],
+    previousBudgets: [],
+    categories: [],
+    monthStart: "2026-07-01",
+    monthEnd: "2026-07-31",
+    previousMonthStart: "2026-06-01",
+    nextMonthStart: "2026-08-01",
+    canGoNext: false,
+    adjustment: null,
+    monthIncome: 12_000_000,
+    monthCommitments: [],
+    dataError: null,
+  };
+}
+
+export function fixtureGoalsWorkspace(): GoalsWorkspace {
+  return {
+    goals: [
+      {
+        id: "goal-emergency",
+        name: "Quỹ khẩn cấp",
+        target: 6_000_000,
+        allocated: 2_400_000,
+        deadline: "2026-09-30",
+        isArchived: false,
+      },
+      {
+        id: "goal-done",
+        name: "Mục tiêu cũ",
+        target: 1_000_000,
+        allocated: 1_000_000,
+        deadline: null,
+        isArchived: true,
+      },
+    ],
+    today: FIXED_CONTEXT.today,
+    allocatedTotal: 3_400_000,
+    plannedDaily: 20_000,
+    reserve: {
+      balance: 15_693_000,
+      protectedForBills: 2_000_000,
+      spendableAfterBills: 13_693_000,
+      reservedForGoals: 3_400_000,
+      unreserved: 10_293_000,
+    },
+    dataError: null,
+  };
+}
+
+export function fixtureInboxList(): InboxListResult {
+  return {
+    ok: true,
+    batches: [],
+    candidates: [
+      {
+        id: "cand-1",
+        kind: "expense",
+        amount: 45_000,
+        merchant: "Highlands Coffee",
+        note: "Cafe sáng",
+        occurredOn: "2026-07-14",
+        source: "agent",
+        confidence: "medium",
+        status: "pending",
+        possibleDuplicate: false,
+        createdAt: "2026-07-14T12:00:00.000Z",
+      },
+      {
+        id: "cand-2",
+        kind: "income",
+        amount: 25_000_000,
+        merchant: "LUONG CT",
+        note: "",
+        occurredOn: "2026-07-12",
+        source: "csv",
+        confidence: "high",
+        status: "approved",
+        createdAt: "2026-07-12T03:00:00.000Z",
+      },
+    ],
   };
 }
 

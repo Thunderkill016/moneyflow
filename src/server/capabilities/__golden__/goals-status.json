@@ -1,0 +1,226 @@
+{
+  "goals": [
+    {
+      "id": "goal-emergency",
+      "name": "Quỹ khẩn cấp",
+      "target": {
+        "amount": 6000000,
+        "currency": "VND",
+        "basis": {
+          "formula": "savings_goals + reserve workspace snapshot; remaining = target − allocated",
+          "range": null,
+          "included": {
+            "count": 0,
+            "transactionIds": []
+          },
+          "excluded": [],
+          "trust": null,
+          "computedAt": "2026-07-14T12:00:00.000Z",
+          "capabilityVersion": "goals.status@1"
+        }
+      },
+      "allocated": {
+        "amount": 2400000,
+        "currency": "VND",
+        "basis": {
+          "formula": "savings_goals + reserve workspace snapshot; remaining = target − allocated",
+          "range": null,
+          "included": {
+            "count": 0,
+            "transactionIds": []
+          },
+          "excluded": [],
+          "trust": null,
+          "computedAt": "2026-07-14T12:00:00.000Z",
+          "capabilityVersion": "goals.status@1"
+        }
+      },
+      "remaining": {
+        "amount": 3600000,
+        "currency": "VND",
+        "basis": {
+          "formula": "savings_goals + reserve workspace snapshot; remaining = target − allocated",
+          "range": null,
+          "included": {
+            "count": 0,
+            "transactionIds": []
+          },
+          "excluded": [],
+          "trust": null,
+          "computedAt": "2026-07-14T12:00:00.000Z",
+          "capabilityVersion": "goals.status@1"
+        }
+      },
+      "deadline": "2026-09-30",
+      "isArchived": false
+    },
+    {
+      "id": "goal-done",
+      "name": "Mục tiêu cũ",
+      "target": {
+        "amount": 1000000,
+        "currency": "VND",
+        "basis": {
+          "formula": "savings_goals + reserve workspace snapshot; remaining = target − allocated",
+          "range": null,
+          "included": {
+            "count": 0,
+            "transactionIds": []
+          },
+          "excluded": [],
+          "trust": null,
+          "computedAt": "2026-07-14T12:00:00.000Z",
+          "capabilityVersion": "goals.status@1"
+        }
+      },
+      "allocated": {
+        "amount": 1000000,
+        "currency": "VND",
+        "basis": {
+          "formula": "savings_goals + reserve workspace snapshot; remaining = target − allocated",
+          "range": null,
+          "included": {
+            "count": 0,
+            "transactionIds": []
+          },
+          "excluded": [],
+          "trust": null,
+          "computedAt": "2026-07-14T12:00:00.000Z",
+          "capabilityVersion": "goals.status@1"
+        }
+      },
+      "remaining": {
+        "amount": 0,
+        "currency": "VND",
+        "basis": {
+          "formula": "savings_goals + reserve workspace snapshot; remaining = target − allocated",
+          "range": null,
+          "included": {
+            "count": 0,
+            "transactionIds": []
+          },
+          "excluded": [],
+          "trust": null,
+          "computedAt": "2026-07-14T12:00:00.000Z",
+          "capabilityVersion": "goals.status@1"
+        }
+      },
+      "deadline": null,
+      "isArchived": true
+    }
+  ],
+  "allocatedTotal": {
+    "amount": 3400000,
+    "currency": "VND",
+    "basis": {
+      "formula": "savings_goals + reserve workspace snapshot; remaining = target − allocated",
+      "range": null,
+      "included": {
+        "count": 0,
+        "transactionIds": []
+      },
+      "excluded": [],
+      "trust": null,
+      "computedAt": "2026-07-14T12:00:00.000Z",
+      "capabilityVersion": "goals.status@1"
+    }
+  },
+  "plannedDaily": {
+    "amount": 20000,
+    "currency": "VND",
+    "basis": {
+      "formula": "savings_goals + reserve workspace snapshot; remaining = target − allocated",
+      "range": null,
+      "included": {
+        "count": 0,
+        "transactionIds": []
+      },
+      "excluded": [],
+      "trust": null,
+      "computedAt": "2026-07-14T12:00:00.000Z",
+      "capabilityVersion": "goals.status@1"
+    }
+  },
+  "reserve": {
+    "balance": {
+      "amount": 15693000,
+      "currency": "VND",
+      "basis": {
+        "formula": "savings_goals + reserve workspace snapshot; remaining = target − allocated",
+        "range": null,
+        "included": {
+          "count": 0,
+          "transactionIds": []
+        },
+        "excluded": [],
+        "trust": null,
+        "computedAt": "2026-07-14T12:00:00.000Z",
+        "capabilityVersion": "goals.status@1"
+      }
+    },
+    "protectedForBills": {
+      "amount": 2000000,
+      "currency": "VND",
+      "basis": {
+        "formula": "savings_goals + reserve workspace snapshot; remaining = target − allocated",
+        "range": null,
+        "included": {
+          "count": 0,
+          "transactionIds": []
+        },
+        "excluded": [],
+        "trust": null,
+        "computedAt": "2026-07-14T12:00:00.000Z",
+        "capabilityVersion": "goals.status@1"
+      }
+    },
+    "spendableAfterBills": {
+      "amount": 13693000,
+      "currency": "VND",
+      "basis": {
+        "formula": "savings_goals + reserve workspace snapshot; remaining = target − allocated",
+        "range": null,
+        "included": {
+          "count": 0,
+          "transactionIds": []
+        },
+        "excluded": [],
+        "trust": null,
+        "computedAt": "2026-07-14T12:00:00.000Z",
+        "capabilityVersion": "goals.status@1"
+      }
+    },
+    "reservedForGoals": {
+      "amount": 3400000,
+      "currency": "VND",
+      "basis": {
+        "formula": "savings_goals + reserve workspace snapshot; remaining = target − allocated",
+        "range": null,
+        "included": {
+          "count": 0,
+          "transactionIds": []
+        },
+        "excluded": [],
+        "trust": null,
+        "computedAt": "2026-07-14T12:00:00.000Z",
+        "capabilityVersion": "goals.status@1"
+      }
+    },
+    "unreserved": {
+      "amount": 10293000,
+      "currency": "VND",
+      "basis": {
+        "formula": "savings_goals + reserve workspace snapshot; remaining = target − allocated",
+        "range": null,
+        "included": {
+          "count": 0,
+          "transactionIds": []
+        },
+        "excluded": [],
+        "trust": null,
+        "computedAt": "2026-07-14T12:00:00.000Z",
+        "capabilityVersion": "goals.status@1"
+      }
+    }
+  }
+}
