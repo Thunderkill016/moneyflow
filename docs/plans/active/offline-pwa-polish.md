@@ -5,7 +5,7 @@
 **Active role:** implementer
 **Permission scope:** branch_write
 **Owner:** agent pending owner review (Class 3)
-**Issue/PR:** pending
+**Issue/PR:** #648
 **Last updated:** 2026-09-21
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. State labels describe evidence and next allowed actions, not percentage complete.
