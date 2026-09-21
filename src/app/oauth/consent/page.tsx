@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BrandLockup } from "@/components/brand/brand-lockup";
+import { OAUTH_SCOPE_LABELS } from "@/lib/connected-apps";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/server/auth";
 import {
@@ -26,12 +27,7 @@ export const metadata: Metadata = {
  * token that reads the user's own MoneyFlow data through the capability
  * API — and where the browser goes next.
  */
-const SCOPE_LABELS: Record<string, string> = {
-  openid: "Xác nhận danh tính của bạn",
-  profile: "Tên hiển thị",
-  email: "Địa chỉ email",
-  phone: "Số điện thoại",
-};
+const SCOPE_LABELS = OAUTH_SCOPE_LABELS;
 
 function shell(children: React.ReactNode) {
   return (
