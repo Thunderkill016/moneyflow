@@ -181,3 +181,37 @@ RRB-01 is PASS at the authenticated browser/runtime-composition layer. RRB-07 is
 Execute the RRB-08 physical-device packet when a real phone and selected release-candidate origin are available. The repository-side checklist/evidence contract is already merged via #399, but physical-device readiness must not be claimed from CI, emulation or simulators.
 
 Other blockers resume only when their required boundary becomes available: owner/provider read access for RRB-04/RRB-09, verified operator contact decision for RRB-05, competent legal review for RRB-06, an authorized hosted target for RRB-02, or owner authorization/limitation decision for RRB-03. Do not manufacture a new feature or redesign as substitute work.
+
+### B4 readiness assessment — 2026-09-21 (megaplan G3)
+
+Drafted by the agent from merged evidence; the go/no-go itself (PBT-AC15) and every provider/legal/limitation disposition remain owner-only. This assessment reconciles what the merged record actually shows — the blocker list is shorter than the stale status lines suggested.
+
+**Verdict: NO-GO for public beta today. NO-GO for closed beta until the remaining P1 entry gates pass — but two of them now have merged evidence awaiting owner disposition.**
+
+#### Evidence since the last status update
+
+- Production identity is directly readable: `GET https://mfvn.vercel.app/api/health` returns `commit` = current `main` HEAD (`efcc625f` at assessment time), and the live OAuth consent flow proves authenticated mode on the canonical origin `mfvn.vercel.app` (in `OWNED_HOSTS`). This satisfies the deployment-identity half of RRB-09; the Supabase project/settings half stays folded into RRB-04.
+- RRB-05 is resolved in code: `src/lib/support-contact.ts` records the owner decision (2026-08-27) to publish the operator's own mailbox, `OWNED_HOSTS` excludes `moneyflow.app` (a different operator's product), and `support-contact.test.ts` fails the build if an unowned-domain address reappears. What remains is the owner's formal disposition in this packet — the evidence layer already passes.
+- The legacy domain `www.moneyflow.app` still serves a ~3-week-old build of this app. It is not ours and not beta-relevant, but the stale deployment should be removed/redirected in Vercel to avoid confused users.
+
+#### Remaining gates, by who can move them
+
+| Gate | Blocker | Owner action needed |
+|---|---|---|
+| RRB-08 (P1) | physical-device smoke | run the merged #399 runbook on a real phone against `mfvn.vercel.app`; record device/browser/mode/pass-fail |
+| RRB-04 / #174 (P1) | provider security read-back | Supabase dashboard: hosted Auth config export + verify password length, Site URL/redirect allowlist, rate limits, account-enumeration. Vercel: Firewall config read-back. #40 leaked-password is already an accepted Free-plan limitation |
+| RRB-09 (P1) | production/provider identity | deployment half now evidenced above; Supabase project identity rides with RRB-04 |
+| RRB-06 (P1) | Vietnam personal-data legal review | owner/legal: Law 91/2025/QH15 + Decree 356/2025/NĐ-CP in force since 2026-01-01 — notices, retention, data-subject handling |
+| RRB-02 / RRB-03 (P2) | hosted restore proof; destructive recent-auth edges | owner decision each: authorize a bounded proof or record an explicit accepted limitation |
+| Closed-beta support/stop protocol | RRB-05 fix supplies the contact; the stop/incident protocol still needs an explicit owner record | owner records it |
+| PBT-AC15 | final go/no-go | owner, after the above |
+
+#### Recommended order for the owner
+
+1. Phone smoke (RRB-08) — cheapest, runbook ready.
+2. One provider-console session (RRB-04 + RRB-09 remainder): export hosted Auth config, verify items, record Firewall state.
+3. Record dispositions: RRB-05 formal close, RRB-02/03 accept-or-prove, closed-beta support/stop protocol.
+4. Legal review (RRB-06).
+5. Controlled closed-beta cohort, then PBT-AC15.
+
+No agent action can substitute for any row above; each needs either the owner's hands, console access the connected tools lack, or an explicit owner/legal decision.

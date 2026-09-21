@@ -70,7 +70,7 @@ Sequencing contract: five tracks, five owner gates (G1–G5), no track self-auth
 | B1 | #174 provider controls: Turnstile prod keys/config, auth rate limits, email provider settings — **owner ops** + agent verify bằng read-only evidence | owner + agent |
 | B2 | `repair-security-workflows` — PR #599 merged 19/9 (`bfbb1787`); packet archived | done |
 | B3 | `rrb-08` physical-device proof — owner quan sát trên điện thoại thật (đang blocked) | owner |
-| B4 | Public-beta readiness assessment — honest go/no-go tổng hợp B1–B3 + trust evidence | agent draft, owner decide |
+| B4 | Public-beta readiness assessment — drafted 2026-09-21 trong `public-beta-trust.md` (B4 section): NO-GO hiện tại; RRB-05 có merged evidence chờ disposition; RRB-09 deployment-half đã đọc được qua `/api/health`; còn lại là owner/provider/legal gates | drafted — owner decide |
 
 ### Track C — Product experience (owner-review packets)
 | # | Việc | Quyết định cần |
