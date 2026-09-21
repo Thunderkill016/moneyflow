@@ -229,4 +229,9 @@ may mark this complete, and physical-device readiness must not be inferred from
 CI or browser emulation.
 
 If the owner wants the gap closed rather than accepted, the smallest additions
-are an iOS/Safari observation and the unstated fields above.
+are an iOS/Safari observation and the unstated fields above. A self-contained
+evidence form ships with the app at `/rrb-08.html` (`public/rrb-08.html`):
+open it on the phone under test — it auto-fills device/OS/browser/network and
+the deployed commit via `/api/health`, walks checkpoints T1–T6 and emits the
+evidence template above ready to paste into #398. It collects nothing and
+sends nothing off-device.
