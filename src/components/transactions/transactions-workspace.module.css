@@ -132,6 +132,42 @@
   overflow-wrap: anywhere;
 }
 
+/*
+ * The review queue chip sits on its own toolbar row: a quiet outline toggle
+ * that doubles as the queue count. Pressed state gets the inset ring so the
+ * active filter reads without relying on color alone.
+ */
+.reviewChip {
+  grid-column: 1;
+  justify-self: start;
+  align-self: center;
+}
+
+.reviewChipCount {
+  font-variant-numeric: tabular-nums;
+}
+
+.reviewChipActive {
+  box-shadow: inset 0 0 0 1.5px var(--mf-brand-text);
+  color: var(--mf-brand-text);
+}
+
+/* One-tap ranges inside the secondary filters — one full-width row above the
+   manual date/amount inputs. Same segmented vocabulary as the kind filter, on
+   its own class: the mobile rules that reshape .kindFilter into a two-up grid
+   would otherwise misplace this row inside .rangeFilters. */
+.datePresets {
+  grid-column: 1 / -1;
+  align-self: start;
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+  border: 1px solid var(--mf-border);
+  border-radius: 12px;
+  background: var(--mf-surface-muted);
+  padding: 4px;
+}
+
 .manager {
   min-width: 0;
   overflow: hidden;

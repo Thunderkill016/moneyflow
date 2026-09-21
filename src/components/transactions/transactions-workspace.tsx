@@ -10,6 +10,11 @@ import { Button, IconButton, LinkButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { type ViewerSummary } from "@/components/user-chip";
 import { useTransactions } from "@/hooks/use-transactions";
+import {
+  activeDatePreset,
+  datePresetRange,
+  type DatePreset,
+} from "@/lib/date-presets";
 import { formatMoney } from "@/lib/money";
 import {
   categoryMeta,
@@ -82,6 +87,13 @@ const EditTransactionDialog = dynamic(
 
 const DELETE_UNDO_MS = 8000;
 const NOTICE_MS = 3500;
+
+const DATE_PRESETS: DatePreset[] = ["week", "month", "lastMonth"];
+const DATE_PRESET_LABELS: Record<DatePreset, string> = {
+  week: "Tuần này",
+  month: "Tháng này",
+  lastMonth: "Tháng trước",
+};
 
 type KindFilter = TransactionFilterKind;
 export type TransactionsWorkspaceVariant = "ledger" | "timeline";
@@ -421,6 +433,32 @@ export function TransactionsWorkspace({
       .reduce((sum, item) => sum + item.amount, 0);
     return { income, expense, net: income - expense };
   }, [filtered]);
+
+  /**
+   * Ledger-wide queue depth, not the filtered count: the number stays honest
+   * even while the needs_review filter itself is active, matching the figure
+   * the dashboard's attention chip reports.
+   */
+  const needsReviewCount = useMemo(
+    () =>
+      transactions.filter(
+        (item) => getTransactionReviewStatus(item) === "needs_review",
+      ).length,
+    [transactions],
+  );
+
+  const activePreset = activeDatePreset(fromDate, toDate, workspace.today);
+
+  function applyDatePreset(preset: DatePreset) {
+    if (activePreset === preset) {
+      setFromDate("");
+      setToDate("");
+      return;
+    }
+    const range = datePresetRange(preset, workspace.today);
+    setFromDate(range.from);
+    setToDate(range.to);
+  }
 
   const grouped = useMemo<DayGroup[]>(() => {
     const groups: DayGroup[] = [];
@@ -875,6 +913,33 @@ export function TransactionsWorkspace({
             </div>
 
             {/*
+              A queue chip, not a fifth kind segment: review is a different axis
+              and combines with kind (an expense can also need review), so it
+              stays a standalone toggle on its own toolbar row.
+            */}
+            {reviewFeatureAvailable ? (
+              <Button
+                type="button"
+                intent="secondary"
+                targetSize="important"
+                className={`${styles.reviewChip}${
+                  review === "needs_review"
+                    ? ` ${styles.reviewChipActive}`
+                    : ""
+                }`}
+                onClick={() =>
+                  setReview(review === "needs_review" ? "all" : "needs_review")
+                }
+                aria-pressed={review === "needs_review"}
+              >
+                Cần kiểm tra ·{" "}
+                <strong className={styles.reviewChipCount}>
+                  {needsReviewCount}
+                </strong>
+              </Button>
+            ) : null}
+
+            {/*
               Secondary filters stay fully available but stop consuming the screen
               before a single record is visible. On a phone the unopened toolbar was
               777px tall — nearly two screens of controls ahead of the ledger.
@@ -958,6 +1023,34 @@ export function TransactionsWorkspace({
                   className={styles.rangeFilters}
                   aria-label="Lọc theo thời gian và số tiền"
                 >
+                  {/*
+                    One-tap ranges — typing two dates on a phone is the slowest
+                    part of this panel. Chips derive from the server-resolved
+                    today; tapping the active preset clears the range again.
+                  */}
+                  <div
+                    className={styles.datePresets}
+                    role="group"
+                    aria-label="Khoảng ngày nhanh"
+                  >
+                    {DATE_PRESETS.map((preset) => (
+                      <Button
+                        type="button"
+                        unstyled
+                        targetSize="important"
+                        key={preset}
+                        className={`${styles.kindButton}${
+                          activePreset === preset
+                            ? ` ${styles.kindButtonActive}`
+                            : ""
+                        }`}
+                        onClick={() => applyDatePreset(preset)}
+                        aria-pressed={activePreset === preset}
+                      >
+                        {DATE_PRESET_LABELS[preset]}
+                      </Button>
+                    ))}
+                  </div>
                   <label className={styles.field}>
                     <span>Từ ngày</span>
                     <input
