@@ -76,8 +76,8 @@ Sequencing contract: five tracks, five owner gates (G1–G5), no track self-auth
 | # | Việc | Quyết định cần |
 |---|---|---|
 | C1 | #590 home ledger trust — PR #591 merged 13/9 (`77def221`); packet archived. Follow-up: "production flow verified: no" — trust surface chưa verify trên prod | done — follow-up noted |
-| C2 | #592 Activity 2.0 — PR #593 merged 13/9 (`20c4ae88`); packet archived. Follow-ups: #602 open exact transaction, R2 nav promotion/R3 retirement cần auth riêng | done — #602 còn mở |
-| C3 | `ghi-5-stable-ledger-defaults` — PR #596 merged 13/9 (`f7a5ae07`); packet archived. Follow-up: PR #597 Capture V2 spec vẫn open | done — #597 còn mở |
+| C2 | #592 Activity 2.0 — PR #593 merged 13/9 (`20c4ae88`); packet archived. Follow-ups: #602 deep-links merged 21/9 (`07b6fafb`), R2 nav promotion/R3 retirement cần auth riêng | done |
+| C3 | `ghi-5-stable-ledger-defaults` — PR #596 merged 13/9 (`f7a5ae07`); packet archived. Follow-up: PR #597 Capture V2 spec merged 21/9 (`ac95d63a`) | done |
 | C4 | `financial-wellbeing-product-strategy` — PR #594 merged 13/9 (`a7e45d30`); packet archived. Làm input cho P5 khi tới | done |
 | C5 | #559 redesign — territory decision vẫn mở; exploration recoverable từ `818b213f` (local reflog). **Đề xuất park rõ ràng** hoặc owner chọn territory | owner decide |
 
@@ -94,7 +94,7 @@ Sequencing contract: five tracks, five owner gates (G1–G5), no track self-auth
 
 #### Tháng 10 — Consolidate & unblock owner reviews
 - Track 0 toàn bộ (tuần 1)
-- **G1**: owner review 5 packet pending — resolved 2026-09-20: cả 5 đã merge từ 13–19/9, packets archived to `completed/`; residual follow-ups tracked as #602, #597, R2/R3 auth boundaries
+- **G1**: owner review 5 packet pending — resolved 2026-09-20: cả 5 đã merge từ 13–19/9, packets archived to `completed/`; residual follow-ups: #602 merged #628, #597 merged `ac95d63a`; còn R2/R3 auth boundaries
 - A1 prod verification sau deploy
 - **G2**: owner authorize A4 spec → agent viết write-capability packet (docs-only)
 - B1 owner ops bắt đầu
