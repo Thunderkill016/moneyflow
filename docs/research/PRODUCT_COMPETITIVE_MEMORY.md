@@ -735,6 +735,16 @@ Retain detailed teardowns, state design, accessibility and anti-copy principles.
 
 Calm Ledger, Signal Ledger and other named directions are historical experiments unless the owner explicitly selects one again. Product roadmap decisions must remain concept-neutral.
 
+### 13.5 This snapshot (2026-08-02) — claims superseded by `PROJECT_AUDIT_AND_DIRECTION_2026-09.md`
+
+Retain §4–§7 as dated evidence. As of `main@0086db53` (2026-09-21) the following are no longer current:
+
+- §4.4 "Account reconciliation is the largest missing product capability" and §6 row "Reconciliation: **No — next**" — reconciliation shipped (`src/lib/reconciliation.ts`, `/accounts/[accountId]/reconcile`, four migrations, import-evidence linkage).
+- §6 row "User rules: authenticated persistence deferred" — `inbox_rules` persistence and the `/rules` UI exist.
+- §4.1 omits the capability layer — 8 viewer-scoped capabilities over REST + MCP with OAuth 2.1 consent and invocation audit are shipped.
+- §7 lacks 2026 agent-surface moves — Copilot Money MCP beta and approval-gated Money Assistant, Monarch AI Assistant and transaction activity log, YNAB Siri/Shortcuts, community Actual MCP servers. "First agent-ready PFM" is no longer a defensible claim; "best-governed" is.
+- §4.3 "Partial or unproven" rows remain accurate — no real-user evidence has been added since this snapshot.
+
 ## 14. Source register
 
 ### 14.1 MoneyFlow internal sources
