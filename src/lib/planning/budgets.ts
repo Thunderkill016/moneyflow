@@ -224,6 +224,39 @@ export function budgetStatusLabel(
   return `Còn ${format(Math.max(0, remaining))}`;
 }
 
+/**
+ * Percent of the viewed month already elapsed on the server-resolved date.
+ *
+ * Returns null when `today` falls outside [monthStart, monthEnd] — pace only
+ * means something for the month in progress; a past month is simply done and
+ * a future month has not started, and printing 100%/0% for either would dress
+ * a tautology up as information.
+ */
+export function monthElapsedPercent(monthStart: string, today: string): number | null {
+  const monthEnd = budgetMonthEnd(monthStart);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(today) || today < monthStart || today > monthEnd) {
+    return null;
+  }
+  const daysInMonth = Number(monthEnd.slice(8, 10));
+  const elapsed = Number(today.slice(8, 10));
+  return Math.max(1, Math.min(100, Math.round((elapsed / daysInMonth) * 100)));
+}
+
+/**
+ * Factual pace line for a budget card — usage next to elapsed time, same
+ * sentence, no verdict. Null when the viewed month is not in progress, so the
+ * card stays quiet instead of comparing a finished month against itself.
+ */
+export function budgetPaceLine(
+  budget: Pick<BudgetSummary, "spent" | "limit">,
+  monthStart: string,
+  today: string,
+): string | null {
+  const elapsed = monthElapsedPercent(monthStart, today);
+  if (elapsed === null) return null;
+  return `Đã dùng ${budgetProgress(budget)}% hạn mức · tháng đã qua ${elapsed}%`;
+}
+
 /** CSS-friendly bar fill for threshold (pair with `budgetStatusLabel`). */
 export function budgetBarColor(level: BudgetThreshold): string {
   switch (level) {

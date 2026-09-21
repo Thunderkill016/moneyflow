@@ -27,6 +27,12 @@ export type BudgetsWorkspace = {
   canGoNext: boolean;
   adjustment: BudgetMonthAdjustment;
   /**
+   * Server-resolved Vietnam date. The pace line on each budget card compares
+   * usage with the share of the month already elapsed — it must come from the
+   * server so a client clock in another timezone cannot skew "tháng đã qua".
+   */
+  today: string;
+  /**
    * Income actually recorded in the selected month, in integer đồng.
    *
    * Recorded, not expected: recurring income templates are assumptions, and the
@@ -113,6 +119,7 @@ function workspaceMetadata(resolution: BudgetMonthResolution) {
     nextMonthStart: resolution.nextMonthStart,
     canGoNext: resolution.canGoNext,
     adjustment: resolution.adjustment,
+    today: todayInVietnam(),
   };
 }
 

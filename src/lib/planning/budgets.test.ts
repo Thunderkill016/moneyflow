@@ -4,7 +4,9 @@ import {
   budgetBarColor,
   budgetMonthEnd,
   budgetMonthKey,
+  budgetPaceLine,
   budgetProgress,
+  monthElapsedPercent,
   budgetRemaining,
   budgetsToCarryForward,
   budgetStatusLabel,
@@ -328,4 +330,32 @@ test("carry-forward rejects a malformed target month before writing anything", (
       }),
     /invalid_budget_month_start/u,
   );
+});
+
+test("monthElapsedPercent reports the calendar share of the month", () => {
+  // September has 30 days; day 15 elapsed = 50%.
+  assert.equal(monthElapsedPercent("2026-09-01", "2026-09-15"), 50);
+  assert.equal(monthElapsedPercent("2026-09-01", "2026-09-01"), 3);
+  // February leap year: 2028-02 has 29 days.
+  assert.equal(monthElapsedPercent("2028-02-01", "2028-02-29"), 100);
+});
+
+test("monthElapsedPercent stays silent outside the selected month", () => {
+  assert.equal(monthElapsedPercent("2026-09-01", "2026-08-31"), null);
+  assert.equal(monthElapsedPercent("2026-09-01", "2026-10-01"), null);
+});
+
+test("budgetPaceLine pairs usage with elapsed time, never a verdict", () => {
+  const budget = { spent: 1_800_000, limit: 4_000_000 };
+  // 45% of limit used while 50% of the month has elapsed — descriptive only.
+  assert.equal(
+    budgetPaceLine(budget, "2026-09-01", "2026-09-15"),
+    "Đã dùng 45% hạn mức · tháng đã qua 50%",
+  );
+});
+
+test("budgetPaceLine is null when the viewed month is not the current one", () => {
+  const budget = { spent: 1_800_000, limit: 4_000_000 };
+  assert.equal(budgetPaceLine(budget, "2026-08-01", "2026-09-15"), null);
+  assert.equal(budgetPaceLine(budget, "2026-10-01", "2026-09-15"), null);
 });
