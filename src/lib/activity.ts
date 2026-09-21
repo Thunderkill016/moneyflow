@@ -47,7 +47,7 @@ export type ActivityCandidateItem = {
   amount: number;
   amountKind: InboxCandidate["kind"];
   searchText: string;
-  href: "/inbox";
+  href: string;
   actionLabel: "Xử lý" | "Mở Cần xem";
   candidate: InboxCandidate & Partial<CandidateProvenance>;
 };
@@ -155,7 +155,9 @@ function buildLedgerItem(transaction: Transaction): ActivityLedgerItem {
       transaction.destinationAccount,
       attention ? "cần xem lại" : "đã vào sổ",
     ),
-    href: attention ? "/transactions?review=needs_review" : "/transactions",
+    href: attention
+      ? `/transactions?review=needs_review&open=${encodeURIComponent(transaction.id)}`
+      : `/transactions?open=${encodeURIComponent(transaction.id)}`,
     actionLabel: attention ? "Xem lại" : "Mở giao dịch",
     transaction,
   };
@@ -200,7 +202,7 @@ function buildCandidateItem(
       attention ? "cần xử lý" : "chờ vào sổ",
       ...attentionLabels,
     ),
-    href: "/inbox",
+    href: `/inbox?candidate=${encodeURIComponent(candidate.id)}`,
     actionLabel: attention ? "Xử lý" : "Mở Cần xem",
     candidate,
   };

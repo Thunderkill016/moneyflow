@@ -257,3 +257,15 @@ test("applyBulkCategory and markCandidatesStatus", () => {
   assert.equal(rejected[0]?.status, "rejected");
   assert.equal(rejected[1]?.status, "pending");
 });
+
+test("findPendingCandidateTarget resolves only pending rows", async () => {
+  const { findPendingCandidateTarget } = await import("./review.ts");
+  const pending = { id: "cand-1", status: "pending" as const };
+  const approved = { id: "cand-2", status: "approved" as const };
+  const list = [pending, approved];
+
+  assert.equal(findPendingCandidateTarget(list, "cand-1")?.id, "cand-1");
+  assert.equal(findPendingCandidateTarget(list, "cand-2"), null);
+  assert.equal(findPendingCandidateTarget(list, "missing"), null);
+  assert.equal(findPendingCandidateTarget(list, undefined), null);
+});

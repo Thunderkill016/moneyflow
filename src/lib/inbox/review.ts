@@ -421,6 +421,20 @@ export function applyBulkCategory(
   });
 }
 
+/**
+ * Resolves a `?candidate=<id>` deep link. Only pending rows resolve —
+ * approved, rejected, stale or foreign ids fail closed to null.
+ */
+export function findPendingCandidateTarget<T extends { id: string; status: string }>(
+  list: T[],
+  id: string | undefined | null,
+): T | null {
+  if (!id) return null;
+  return (
+    list.find((item) => item.id === id && item.status === "pending") ?? null
+  );
+}
+
 export function markCandidatesStatus(
   list: InboxCandidate[],
   ids: string[],
