@@ -7,6 +7,7 @@ import {
   MCP_SERVER_NAME,
   MCP_SERVER_VERSION,
 } from "@/server/capabilities/mcp";
+import { logInvocationRejection } from "@/server/capabilities/invocation-log";
 import {
   capabilityAnonRateKey,
   capabilityApiLimiter,
@@ -66,12 +67,16 @@ function forbiddenOrigin(request: Request): boolean {
 }
 
 async function handle(request: Request): Promise<Response> {
-  if (forbiddenOrigin(request)) return jsonError(403, "forbidden_origin");
+  if (forbiddenOrigin(request)) {
+    logInvocationRejection({ transport: "mcp", errorCode: "forbidden_origin" });
+    return jsonError(403, "forbidden_origin");
+  }
 
   const preAuth = capabilityApiLimiter.check(
     capabilityAnonRateKey(clientKeyFromHeaders(request.headers)),
   );
   if (!preAuth.ok) {
+    logInvocationRejection({ transport: "mcp", errorCode: "rate_limited" });
     return jsonError(429, "rate_limited", {
       "retry-after": String(Math.max(1, Math.ceil(preAuth.retryAfterMs / 1000))),
     });
@@ -79,11 +84,17 @@ async function handle(request: Request): Promise<Response> {
 
   const viewer = await getViewer();
   if (!viewer || viewer.isDemo) {
+    logInvocationRejection({ transport: "mcp", errorCode: "unauthorized" });
     return jsonError(401, "unauthorized", bearerChallenge(request));
   }
 
   const postAuth = capabilityApiLimiter.check(capabilityApiRateKey(viewer.id));
   if (!postAuth.ok) {
+    logInvocationRejection({
+      viewerId: viewer.id,
+      transport: "mcp",
+      errorCode: "rate_limited",
+    });
     return jsonError(429, "rate_limited", {
       "retry-after": String(Math.max(1, Math.ceil(postAuth.retryAfterMs / 1000))),
     });
