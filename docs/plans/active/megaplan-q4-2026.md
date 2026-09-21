@@ -62,7 +62,7 @@ Sequencing contract: five tracks, five owner gates (G1–G5), no track self-auth
 | A3 | Capability coverage expansion theo nhu cầu product: `accounts.list`, `budgets.status`, `goals.status`, `activity.candidates` — mỗi cái giờ là schema + injectable deps + golden + manifest regen (giá rẻ); chỉ thêm khi product surface cần, không add speculatively | done — PR #622 merged `70b738f2` | 1 mỗi cái |
 | A4 | **Write-capability spec research** — ✅ spec authored + merged (PR #618): `docs/plans/active/617-write-capability-spec.md`. Decision: agent writes enter as **candidates** (`source: "agent"`, idempotency via `sourceExternalId`, human approve in Inbox); direct-ledger auto-post deferred + separately gated | done |
 | A4b | **Write-capability implementation** (G5 authorized 2026-09-20): `candidates.propose` — `source: "agent"` enum, composite `agent\|<client>\|key` external id (no new column → archive/restore unchanged), write gate (allowlist `CAPABILITY_WRITE_CLIENT_IDS` + 20/60s per viewer+client limiter), per-capability MCP annotations, Inbox "đề xuất bởi `<client>`" | done — PR #619 merged `a662cc60`; deploy note: set `CAPABILITY_WRITE_CLIENT_IDS` in Vercel env to admit third-party write clients | 3 |
-| A5 | Invocation/audit log: D5 chỉ là structured log tối thiểu — quyết định có surface vào Activity feed không (gắn với C2/#592), và có cần bảng `capability_invocations` không | C2 | spec |
+| A5 | Invocation/audit log: ✅ spec authored (issue #624): Activity feed KHÔNG surface invocations (financial workstream ≠ audit); `capability_invocations` table deferred có trigger rõ; P-A = hoàn thiện D5 structured log cả hai transport | spec merged→done | spec |
 
 ### Track B — Public-beta gates (parent: `public-beta-trust`, issue #174)
 | # | Việc | Ai làm |
