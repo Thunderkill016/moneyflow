@@ -16,12 +16,14 @@ export type BulkApplyPayload = {
   selectedIds: string[];
   includeLowConfidence: boolean;
   categoryId: string;
+  accountId: string;
 };
 
 const ACTION_LABELS: Record<BulkReviewAction, string> = {
   approve: "Duyệt vào sổ",
   reject: "Từ chối ứng viên",
   category: "Gán danh mục",
+  account: "Gán tài khoản",
 };
 
 export function InboxBulkBar({
@@ -43,6 +45,7 @@ export function InboxBulkBar({
 }) {
   const [action, setAction] = useState<BulkReviewAction>("approve");
   const [categoryId, setCategoryId] = useState("");
+  const [accountId, setAccountId] = useState("");
   const [applying, setApplying] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
 
@@ -72,6 +75,10 @@ export function InboxBulkBar({
     ? categoryId
     : allCategories[0]?.id ?? "";
   const selectedCategory = allCategories.find((item) => item.id === selectedCategoryId);
+  const selectedAccountId = accounts.some((item) => item.id === accountId)
+    ? accountId
+    : accounts[0]?.id ?? "";
+  const selectedAccount = accounts.find((item) => item.id === selectedAccountId);
   const isBusy = busy || applying;
 
   if (count === 0) return null;
@@ -79,7 +86,8 @@ export function InboxBulkBar({
   const canReview =
     !isBusy &&
     (action !== "approve" || readyIds.length > 0) &&
-    (action !== "category" || Boolean(selectedCategoryId));
+    (action !== "category" || Boolean(selectedCategoryId)) &&
+    (action !== "account" || Boolean(selectedAccountId));
 
   async function handleConfirm() {
     setApplying(true);
@@ -89,6 +97,7 @@ export function InboxBulkBar({
         selectedIds: action === "approve" ? readyIds : [...selectedIds],
         includeLowConfidence: false,
         categoryId: selectedCategoryId,
+        accountId: selectedAccountId,
       });
       setReviewOpen(false);
     } finally {
@@ -101,7 +110,9 @@ export function InboxBulkBar({
       ? `${readyIds.length} ứng viên Sẵn sàng sẽ tạo giao dịch thật sau xác nhận này. ${attentionCount ? `${attentionCount} ứng viên Cần xem lại sẽ giữ nguyên trạng thái chờ duyệt.` : "Không có ứng viên Cần xem lại trong lựa chọn."}`
       : action === "reject"
         ? "Các ứng viên được chọn sẽ rời hàng chờ. Không có giao dịch nào được tạo hoặc xóa."
-        : "Chỉ ứng viên cùng loại thu hoặc chi với danh mục được chọn mới được cập nhật; chưa có giao dịch nào được tạo.";
+        : action === "account"
+          ? "Mọi ứng viên đang chờ trong lựa chọn sẽ mang tài khoản được chọn — với ứng viên chuyển khoản đó là tài khoản chi ra; chưa có giao dịch nào được tạo."
+          : "Chỉ ứng viên cùng loại thu hoặc chi với danh mục được chọn mới được cập nhật; chưa có giao dịch nào được tạo.";
 
   return (
     <>
@@ -123,6 +134,7 @@ export function InboxBulkBar({
                 ["approve", "Duyệt vào sổ"],
                 ["reject", "Từ chối"],
                 ["category", "Gán danh mục"],
+                ["account", "Gán tài khoản"],
               ] as const
             ).map(([value, label]) => (
               <label key={value} className={styles.radio}>
@@ -172,6 +184,27 @@ export function InboxBulkBar({
             </SelectField>
           ) : null}
 
+          {action === "account" ? (
+            <SelectField
+              label="Tài khoản"
+              value={selectedAccountId}
+              onChange={(event) => setAccountId(event.target.value)}
+              disabled={isBusy || accounts.length === 0}
+              targetSize="important"
+              rootClassName={styles.category}
+            >
+              {accounts.length === 0 ? (
+                <option value="">Chưa có tài khoản</option>
+              ) : (
+                accounts.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))
+              )}
+            </SelectField>
+          ) : null}
+
           <div className={styles.buttons}>
             <Button
               type="button"
@@ -213,6 +246,9 @@ export function InboxBulkBar({
             : []),
           ...(action === "category"
             ? [{ label: "Danh mục", value: selectedCategory?.name ?? "Chưa chọn" }]
+            : []),
+          ...(action === "account"
+            ? [{ label: "Tài khoản", value: selectedAccount?.name ?? "Chưa chọn" }]
             : []),
         ]}
         consequence={consequence}

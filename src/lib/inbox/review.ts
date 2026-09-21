@@ -28,7 +28,7 @@ export type ExplainLine = {
   text: string;
 };
 
-export type BulkReviewAction = "approve" | "reject" | "category";
+export type BulkReviewAction = "approve" | "reject" | "category" | "account";
 
 export type CandidateReviewDraft = {
   candidateId: string;
@@ -417,6 +417,29 @@ export function applyBulkCategory(
       ...item,
       categoryId: category.id,
       category: category.name,
+    };
+  });
+}
+
+/**
+ * Bulk account assignment — the account a statement batch belongs to.
+ * Applies to pending candidates of every kind; for transfers the candidate
+ * account is the source leg (the account the money left), which is exactly
+ * the account a bank export describes. Only candidates' fields change —
+ * no ledger write happens here.
+ */
+export function applyBulkAccount(
+  list: InboxCandidate[],
+  selectedIds: string[],
+  account: AccountOption,
+): InboxCandidate[] {
+  const idSet = new Set(selectedIds);
+  return list.map((item) => {
+    if (!idSet.has(item.id) || item.status !== "pending") return item;
+    return {
+      ...item,
+      accountId: account.id,
+      account: account.name,
     };
   });
 }
