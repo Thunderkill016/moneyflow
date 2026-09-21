@@ -5,6 +5,7 @@ import {
   DASHBOARD_RECENT_TRANSACTION_LIMIT,
   dashboardTransactionStart,
 } from "@/lib/dashboard-transaction-window";
+import type { AccountBalanceRow } from "@/lib/dashboard-accounts";
 import type { LedgerTrustSummary } from "@/lib/ledger-trust";
 import type { BudgetSummary } from "@/lib/planning/budgets";
 import type { RecurringCommitment } from "@/lib/planning/commitments";
@@ -30,6 +31,10 @@ import {
   getDashboardFinanceWorkspace,
   mapTransactionFeedRow,
 } from "@/server/finance";
+import {
+  demoAccountRows,
+  getAccountsWorkspace,
+} from "@/server/accounts";
 import { getGoalsWorkspace, mapGoalRow } from "@/server/goals";
 import { getPendingInboxCountFromServer } from "@/server/inbox";
 import {
@@ -40,6 +45,8 @@ import { ledgerTrustSchema, mapLedgerTrust } from "@/server/ledger-trust";
 
 export type DashboardPageWorkspace = {
   workspace: FinanceWorkspace;
+  /** Per-account balances for the statement strip; empty when unavailable. */
+  accountBalances: AccountBalanceRow[];
   budgets: BudgetSummary[];
   commitments: RecurringCommitment[];
   incomeTemplates: RecurringIncomeTemplate[];
@@ -114,6 +121,7 @@ function emptyDashboard(today: string, message: string): DashboardPageWorkspace 
       today,
       dataError: message,
     },
+    accountBalances: [],
     budgets: [],
     commitments: [],
     incomeTemplates: [],
@@ -153,6 +161,14 @@ async function getDemoDashboardWorkspace(): Promise<DashboardPageWorkspace> {
         goalWorkspace.dataError,
       ]),
     },
+    accountBalances: demoAccountRows
+      .filter((account) => !account.isArchived)
+      .map((account) => ({
+        id: account.id,
+        name: account.name,
+        balance: account.balance,
+        currencyCode: account.currencyCode,
+      })),
     budgets: budgetWorkspace.budgets,
     commitments: commitmentWorkspace.commitments,
     incomeTemplates: incomeWorkspace.templates,
@@ -181,6 +197,7 @@ async function getAuthenticatedDashboardFallback(): Promise<DashboardPageWorkspa
     incomeWorkspace,
     goalWorkspace,
     pendingInboxCount,
+    accountsWorkspace,
   ] = await Promise.all([
     getDashboardFinanceWorkspace(),
     getBudgetsWorkspace(),
@@ -188,6 +205,7 @@ async function getAuthenticatedDashboardFallback(): Promise<DashboardPageWorkspa
     getIncomeTemplatesWorkspace(),
     getGoalsWorkspace(),
     getPendingInboxCountFromServer(),
+    getAccountsWorkspace(),
   ]);
 
   return {
@@ -201,6 +219,14 @@ async function getAuthenticatedDashboardFallback(): Promise<DashboardPageWorkspa
         goalWorkspace.dataError,
       ]),
     },
+    accountBalances: accountsWorkspace.accounts
+      .filter((account) => !account.isArchived)
+      .map((account) => ({
+        id: account.id,
+        name: account.name,
+        balance: account.balance,
+        currencyCode: account.currencyCode,
+      })),
     budgets: budgetWorkspace.budgets,
     commitments: commitmentWorkspace.commitments,
     incomeTemplates: incomeWorkspace.templates,
@@ -250,6 +276,29 @@ function mapAuthenticatedBundle(
     throw new Error("invalid_dashboard_total_balance");
   }
 
+  const balanceByAccount = new Map(
+    bundle.balances.map((row) => [row.account_id, row]),
+  );
+  // Only emit accounts the balances array actually covers: an account missing
+  // from the RPC's balance projection gets no fabricated zero.
+  const accountBalances: AccountBalanceRow[] = bundle.accounts.flatMap(
+    (account) => {
+      const row = balanceByAccount.get(account.id);
+      if (!row) return [];
+      return [
+        {
+          id: account.id,
+          name: account.name,
+          balance: safeInteger(
+            row.balance_minor,
+            "invalid_dashboard_balance",
+          ),
+          currencyCode: row.currency_code,
+        },
+      ];
+    },
+  );
+
   const pendingInboxCount = safeCount(
     bundle.pending_inbox_count,
     "invalid_dashboard_inbox_count",
@@ -264,6 +313,7 @@ function mapAuthenticatedBundle(
       today,
       dataError: null,
     },
+    accountBalances,
     budgets: bundle.budgets.map(mapBudgetRow),
     commitments: bundle.commitments.map((row) => {
       const parsed = z.object({ id: z.string().uuid() }).parse(row);

@@ -19,6 +19,7 @@ export default async function DashboardPage() {
   const viewer = await requireViewer();
   const {
     workspace,
+    accountBalances,
     budgets,
     commitments,
     pendingInboxCount,
@@ -33,6 +34,7 @@ export default async function DashboardPage() {
         isDemo: viewer.isDemo,
       }}
       workspace={workspace}
+      accountBalances={accountBalances}
       initialInboxCount={pendingInboxCount}
       ledgerTrust={ledgerTrust}
       budgets={budgets}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MoneyValue } from "@/components/money-value";
+import type { AccountBalanceRow } from "@/lib/dashboard-accounts";
 import { dashboardDrilldownHref } from "@/lib/dashboard-drilldown";
 import { dashboardPeriodLabel } from "@/lib/dashboard-period";
 import { formatMoney } from "@/lib/money";
@@ -25,19 +26,30 @@ export function flowShares(income: number, expense: number) {
   return { income: 100, expense: spent };
 }
 
+/**
+ * The strip answers "tiền nằm ví nào" at first glance without crowding the
+ * standing figure: at most this many rows render inline, the rest stay one tap
+ * away on /accounts.
+ */
+const STATEMENT_ACCOUNT_LIMIT = 4;
+
 export function DashboardStatement({
   totals,
+  accountBalances = [],
   today,
   isEmptyLedger,
   action,
 }: {
   totals: StatementTotals;
+  accountBalances?: AccountBalanceRow[];
   today: string;
   isEmptyLedger: boolean;
   action?: React.ReactNode;
 }) {
   const shares = flowShares(totals.income, totals.expense);
   const period = dashboardPeriodLabel(today);
+  const visibleAccounts = accountBalances.slice(0, STATEMENT_ACCOUNT_LIMIT);
+  const hiddenAccountCount = accountBalances.length - visibleAccounts.length;
 
   return (
     <section className={styles.statement} aria-labelledby="mf-standing-label">
@@ -58,6 +70,32 @@ export function DashboardStatement({
         </div>
         {action ? <div className={styles.action}>{action}</div> : null}
       </div>
+
+      {visibleAccounts.length ? (
+        <div className={styles.accounts}>
+          <ul className={styles.accountList} aria-label="Số dư từng ví">
+            {visibleAccounts.map((account) => (
+              <li className={styles.accountItem} key={account.id}>
+                <span className={styles.accountName}>{account.name}</span>
+                <MoneyValue
+                  amount={account.balance}
+                  currencyCode={account.currencyCode}
+                  label={`Số dư ${account.name}`}
+                  align="end"
+                  className={styles.accountValue}
+                />
+              </li>
+            ))}
+            {hiddenAccountCount > 0 ? (
+              <li className={styles.accountItem}>
+                <Link className={styles.accountsLink} href="/accounts">
+                  Xem tất cả {accountBalances.length} ví
+                </Link>
+              </li>
+            ) : null}
+          </ul>
+        </div>
+      ) : null}
 
       <div className={styles.flow}>
         <div className={styles.flowHead}>

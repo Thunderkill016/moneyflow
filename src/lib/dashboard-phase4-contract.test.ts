@@ -82,6 +82,16 @@ test("dashboard module owns one responsive and forced-colors contract", () => {
   assert.doesNotMatch(dashboardCss, /:has\s*\(/);
 });
 
+test("statement shows per-account balances in each account's own currency", () => {
+  assert.match(statement, /accountBalances/);
+  assert.match(statement, /STATEMENT_ACCOUNT_LIMIT/);
+  assert.match(statement, /amount=\{account\.balance\}/);
+  assert.match(statement, /currencyCode=\{account\.currencyCode\}/);
+  assert.match(statement, /href="\/accounts"/);
+  // The strip displays server rows only; it never re-derives or mixes the total.
+  assert.doesNotMatch(statement, /accountBalances\.reduce|\.reduce\(/);
+});
+
 test("withdrawn safe-to-spend advice is absent from active Dashboard JSX", () => {
   assert.doesNotMatch(dashboard, /safe-card-hero|safe[- ]to[- ]spend/i);
   assert.doesNotMatch(overview, /safe-card-hero|safe[- ]to[- ]spend/i);

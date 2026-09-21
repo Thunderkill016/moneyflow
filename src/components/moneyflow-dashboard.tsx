@@ -13,6 +13,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useTransactions } from "@/hooks/use-transactions";
 import { buildAttentionItems } from "@/lib/attention";
 import { captureConsequence } from "@/lib/capture-consequence";
+import {
+  reconcileAccountBalances,
+  type AccountBalanceRow,
+} from "@/lib/dashboard-accounts";
 import type { LedgerTrustSummary } from "@/lib/ledger-trust";
 import { getTransactionReviewStatus } from "@/lib/transaction-review";
 import { sumBudgetSpent, type BudgetSummary } from "@/lib/planning/budgets";
@@ -74,6 +78,7 @@ type DashboardWorkspace = {
 export function MoneyFlowDashboard({
   viewer,
   workspace,
+  accountBalances,
   initialInboxCount,
   ledgerTrust,
   budgets,
@@ -81,6 +86,7 @@ export function MoneyFlowDashboard({
 }: {
   viewer: ViewerSummary;
   workspace: DashboardWorkspace;
+  accountBalances: AccountBalanceRow[];
   initialInboxCount: number;
   ledgerTrust: LedgerTrustSummary | null;
   budgets: BudgetSummary[];
@@ -166,6 +172,16 @@ export function MoneyFlowDashboard({
         transactions,
       ),
     [transactions, workspace.totalBalance, workspace.transactions],
+  );
+
+  const liveAccountBalances = useMemo(
+    () =>
+      reconcileAccountBalances(
+        accountBalances,
+        workspace.transactions,
+        transactions,
+      ),
+    [accountBalances, transactions, workspace.transactions],
   );
 
   const liveBudgets = useMemo(
@@ -314,6 +330,7 @@ export function MoneyFlowDashboard({
           attentionItems={attentionItems}
           ledgerTrust={viewer.isDemo ? null : ledgerTrust}
           totals={totals}
+          accountBalances={liveAccountBalances}
           today={workspace.today}
           isEmptyLedger={isEmptyLedger && !workspace.dataError}
           dataError={workspace.dataError}
