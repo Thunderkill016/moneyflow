@@ -190,6 +190,7 @@ export function AccountsWorkspace({
     setBusyId(null);
 
     if (!result.ok) {
+      if (archived) setArchiveTarget(null);
       setNotice(result.message);
       return;
     }
@@ -274,9 +275,15 @@ export function AccountsWorkspace({
             >
               <Icon name="arrows" /> Chuyển tiền
             </Button>
+            {dataError || demoLedgerPending || canOpenTransfer ? null : (
+              <small className={styles.actionHint}>
+                Cần ít nhất hai tài khoản đang hoạt động cùng loại tiền để chuyển.
+              </small>
+            )}
           </div>
         </header>
 
+        {dataError ? null : (
         <section
           data-slot="accounts-summary"
           className={styles.summary}
@@ -332,6 +339,7 @@ export function AccountsWorkspace({
               : "Tổng này chỉ gồm tài khoản đang hoạt động. Tài khoản đã lưu trữ vẫn giữ lịch sử và số dư trong nhóm riêng bên dưới."}
           </p>
         </section>
+        )}
 
         <section className={styles.section} aria-labelledby="active-accounts-title">
           <div className={styles.sectionHeading}>
@@ -437,18 +445,31 @@ export function AccountsWorkspace({
           ) : (
             <EmptyState
               icon={<Icon name="wallet" />}
-              title="Chưa có tài khoản hoạt động"
-              description="Thêm một tài khoản để bắt đầu ghi giao dịch. Tài khoản đã lưu trữ vẫn nằm trong nhóm bên dưới."
+              title={
+                dataError
+                  ? "Không tải được tài khoản"
+                  : "Chưa có tài khoản hoạt động"
+              }
+              description={
+                dataError
+                  ? "Dữ liệu của bạn vẫn được bảo vệ. Thử tải lại trang hoặc quay lại Tổng quan."
+                  : "Thêm một tài khoản để bắt đầu ghi giao dịch. Tài khoản đã lưu trữ vẫn nằm trong nhóm bên dưới."
+              }
               primaryAction={
-                <Button
-                  type="button"
-                  intent="primary"
-                  targetSize="important"
-                  onClick={() => openAccount(null)}
-                  disabled={Boolean(dataError)}
-                >
-                  <Icon name="plus" /> Thêm tài khoản
-                </Button>
+                dataError ? (
+                  <LinkButton href="/dashboard" intent="secondary" targetSize="important">
+                    Về Tổng quan
+                  </LinkButton>
+                ) : (
+                  <Button
+                    type="button"
+                    intent="primary"
+                    targetSize="important"
+                    onClick={() => openAccount(null)}
+                  >
+                    <Icon name="plus" /> Thêm tài khoản
+                  </Button>
+                )
               }
               className={styles.empty}
             />
@@ -559,6 +580,7 @@ export function AccountsWorkspace({
       />
       <AccountArchiveDialog
         account={archiveTarget}
+        isLastActive={activeAccounts.length === 1}
         open={Boolean(archiveTarget)}
         submitting={Boolean(archiveTarget && busyId === archiveTarget.id)}
         onClose={() => setArchiveTarget(null)}
