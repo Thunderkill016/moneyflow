@@ -47,16 +47,20 @@ Product surface on `main` today:
 
 ### Where MoneyFlow trails (real gaps)
 
-| Gap | Who has it | Why it matters in VN | Free path available? |
+Gaps split two ways under the owner's "upgrade existing, no new feature areas" direction: **upgrade-in-place** (the machinery exists, deepen it) vs **deferred new areas** (real gaps, but new feature surfaces — parked until evidence demands).
+
+| Gap | Who has it | Type | Free path available? |
 |---|---|---|---|
-| Bank/payment auto-acquisition | MoMo (own ecosystem), Money Lover (limited banks), SePay-powered bots | ~90M VietQR mobile accounts; retyping digital txns fights the market | **Yes** — statement import (done), bank notification email→import, SePay webhook free tier (50 tx/mo), Web Share Target, notification/SMS via companion later |
-| Debt/loan tracking | Money Lover, MISA | "Cho vay/đi vay/trả góp" is a daily VN money reality | Schema + UI work only — no external dependency |
-| Household sharing | Monarch, MISA, Money Lover | Family money management is common | RLS-scoped shared views — real work, defer until retention proves |
-| Capture speed proof | all top apps optimize this | Daily habit is the retention engine | Capture V2 hypotheses (Frequent Patterns, dictation, share target) already specced — needs benchmark |
-| Native app feel | all incumbents | VN is mobile-first | PWA is already manifest-equipped; install prompt + offline shell are free work |
-| Rules/automation on import | Firefly (strong), MISA AI | Reduces maintenance | `inbox_rules` persistence exists; surfacing rule management UI is bounded work |
-| Reports depth | Monarch, Firefly | "Tiền đi đâu" is the core question | Deterministic domain modules exist; depth is UI work |
-| Multi-currency | Firefly, Money Lover | Secondary for VND-first users | Defer — complexity vs value is poor |
+| Capture speed proof | all top apps optimize this | **upgrade Ghi** | Capture V2 hypotheses already specced (Frequent Patterns, dictation, share target as modes of one Ghi) — needs benchmark |
+| Real bank-export tolerance | import exists; #576 found preamble-row limits | **upgrade import** | bounded parser work on existing pipeline |
+| Rules/automation visibility | Firefly (strong), MISA AI | **upgrade Inbox** | `inbox_rules` persistence exists; management UI is the missing half |
+| Reconciliation depth | YNAB, Actual | **upgrade** | domain + paths exist; workflow UX is the work |
+| Reports depth | Monarch, Firefly | **upgrade** | deterministic modules exist; drill-down/ranges/trends are presentation work |
+| Native app feel | all incumbents | **upgrade PWA** | manifest exists; install prompt + offline shell are free work |
+| Bank/payment auto-acquisition | MoMo, Money Lover, SePay bots | **deferred new area** | statement import covers part today; email/webhook/SMS adapters are new sources — revisit after closed-beta evidence |
+| Debt/loan tracking | Money Lover, MISA | **deferred new area** | daily VN reality but a new surface — parked |
+| Household sharing | Monarch, MISA | **deferred new area** | real work; defer until retention proves |
+| Multi-currency | Firefly, Money Lover | **deferred new area** | poor complexity/value for VND-first |
 
 ### What MoneyFlow should NOT chase
 
@@ -67,13 +71,15 @@ Product surface on `main` today:
 
 ## 4. Strategic thesis
 
-> **Win the "trusted ledger + agent-ready" niche that every incumbent has ignored, using free acquisition paths unique to Vietnam — instead of fighting feature-breadth wars against funded US products or free local giants.**
+> **Win on depth, not breadth: take each surface MoneyFlow already ships to top-product quality, and keep the agent-ready moat sharpening — instead of adding new feature categories to chase funded incumbents.**
 
-Three compounding lanes:
+Owner direction 2026-09-21: **upgrade what exists; no new feature areas now.** This matches issue #172's finding (technical foundation stronger than daily-use evidence) and the competitive memory's "competitive depth" frame — MoneyFlow's gap vs top products is not missing categories, it is unproven/unpolished depth inside the ones it has.
 
-1. **Trust depth** — MoneyFlow's ledger rigor is already top-tier. Close the remaining trust loops (reconciliation UX polish, review workflows) rather than adding breadth.
-2. **Free VN acquisition** — the megaplan's Track D. The free paths nobody has fully exploited: statement import (done), bank-notification email→candidate adapter (the proven Telegram-bot pattern — Gmail filter + Apps Script costs nothing), SePay webhook free tier, Web Share Target, and later notification/SMS capture. Each lands as a *candidate with provenance* — the architecture already supports them all through one pipeline.
-3. **Agent surface as the moat** — the capability layer is genuinely ahead: consented, typed, audited, provenance-preserving. This is a lane where a solo product can be *best-in-world*, not just parity, because incumbents cannot retrofit consent+provenance semantics cheaply. Cheap expansions by product pull only (A3 pattern); possible wins: MCP Apps interactive panels, more capabilities as surfaces need them, `capability_invocations` table when a real client exists.
+Three compounding lanes, all inside existing surfaces:
+
+1. **Trust depth** — MoneyFlow's ledger rigor is already top-tier. Close the remaining trust loops *inside existing features*: reconciliation UX polish, Inbox review speed, rule management on the existing `inbox_rules` persistence.
+2. **Acquisition depth** — make the *existing* capture/import path excellent before any new source: Ghi flow per Capture V2 hypotheses (Frequent Patterns, dictation, paste — modes of the same Ghi, not new features), real bank-export tolerance on the existing import pipeline (#576 preamble finding), share-target/keyboard polish.
+3. **Agent surface as the moat** — the capability layer is genuinely ahead: consented, typed, audited, provenance-preserving. Incumbents cannot retrofit consent+provenance cheaply. Expand by product pull only (A3 rule); possible upgrades: MCP Apps panels, `capability_invocations` table when a real client exists.
 
 ## 5. Free-stack leverage map
 
@@ -84,27 +90,30 @@ Three compounding lanes:
 | Anti-bot | Cloudflare Turnstile | free |
 | Parsing | SheetJS CE (already vendored), generic matrix parser | $0 |
 | Agent transport | MCP SDK (open), existing OAuth 2.1 consent | $0 |
-| VN bank events | SePay webhook free tier (50 tx/mo), bank email→Gmail Apps Script→import | $0 |
+| VN bank events (deferred area) | SePay webhook free tier (50 tx/mo), bank email→Gmail Apps Script→import | $0 — noted for the deferred-acquisition revisit |
 | Capture | Web Share Target API, keyboard dictation, paste | $0 |
 | Mobile | PWA manifest (exists) + install prompt | $0 |
 | Design | existing design system; skills (`frontend-design`, `apple-design`) | $0 |
 
 Nothing on the roadmap requires paid infrastructure at closed-beta scale.
 
-## 6. Proposed sequencing (informs megaplan; each step still needs its own packet/authorization)
+## 6. Proposed sequencing — upgrade existing surfaces only
 
-| Order | Item | Lane | Why now | Status |
+Every item below deepens a surface that already ships. Nothing adds a new feature category. Each still needs its own packet/authorization per `AGENTS.md`.
+
+| Order | Item | Upgrades what exists | Why now | Status |
 |---|---|---|---|---|
-| 1 | Closed-beta minimum (owner action pack) | trust | unblocks real-user evidence | owner ~40 min |
-| 2 | Capture V2 benchmark harness (TTLT measurement for H1–H5) | acquisition | the merged spec needs evidence before implementation; harness design is docs+tooling, not product change | agent-doable spec |
-| 3 | #576 pilot evaluation protocol | acquisition | define measurement (rows parsed, correct mapping, TTLT vs manual) so a real export file becomes turnkey | agent-doable; still needs owner's real file for the run |
-| 4 | Debt tracking bounded spec | parity | the largest VN-baseline feature gap; pure schema+UI, no external dependency | needs owner authorization (new financial surface) |
-| 5 | Email/webhook acquisition adapter spec | acquisition | free path to auto-acquisition without bank contracts; lands as candidates w/ provenance | needs Class 3 spec + owner auth |
-| 6 | PWA install + offline polish | parity | free mobile-presence win | bounded Class 2 |
-| 7 | Rules-management UI on `inbox_rules` | acquisition | persistence exists; UI is the missing half | bounded Class 2 |
-| 8 | MCP Apps / capability expansion | moat | only by demonstrated product pull (A3 rule) | opportunistic |
+| 1 | Closed-beta minimum (owner action pack) | release readiness | unblocks real-user evidence for everything below | owner ~40 min |
+| 2 | Capture V2 benchmark harness — TTLT measurement for H1–H5 | **Ghi / capture flow** | the merged spec is a hypothesis set; the harness turns "is Ghi good enough" into measurement before any UI change | agent-doable spec/tooling |
+| 3 | #576 pilot evaluation protocol | **existing import pipeline** | defines measurement (rows parsed, mapping accuracy, TTLT vs manual) so a real export file becomes turnkey; preamble-row finding already identified | agent-doable; needs owner's real file to run |
+| 4 | Rules-management UI on existing `inbox_rules` | **Inbox + import rules** | persistence already merged; the missing half is surfacing manage/edit — pure upgrade of existing machinery | bounded Class 2 |
+| 5 | Reconciliation workflow polish | **existing reconciliation paths** | the largest trust-depth gap named by the competitive audit; domain layer exists, UX depth is the work | bounded Class 2 |
+| 6 | Reports depth — drill-down, custom ranges, category trends | **existing weekly/monthly/yearly reports** | "tiền đi đâu" is the core user question; deterministic domain modules already compute the numbers — the work is presentation depth | bounded Class 2 |
+| 7 | PWA install + offline polish | **existing manifest + responsive UI** | free mobile-presence win on what already ships | bounded Class 2 |
+| 8 | Capture V2 implementation slice (whichever hypothesis the benchmark supports) | **Ghi flow** | only after item 2 produces evidence | gated by benchmark |
+| 9 | Capability expansion / MCP Apps | **existing capability layer** | only by demonstrated product pull (A3 rule) | opportunistic |
 
-Explicit non-goals unchanged: bank sync contracts, AI advice, household sharing, multi-currency, investment tracking — each parked until user evidence or owner authorization says otherwise.
+**Deliberately deferred — new feature areas, not upgrades** (revisit only if closed-beta evidence demands): debt/loan tracking, household sharing, multi-currency, email/webhook acquisition adapters, investment/net-worth breadth, bank sync contracts, AI advice.
 
 ## 7. Metrics that would prove the thesis
 
