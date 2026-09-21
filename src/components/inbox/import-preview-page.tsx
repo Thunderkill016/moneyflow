@@ -14,6 +14,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SelectField } from "@/components/ui/select-field";
 import type { ViewerSummary } from "@/components/user-chip";
 import {
   addCandidatesForClient,
@@ -35,6 +36,7 @@ import {
   removeImportDraft,
 } from "@/lib/inbox/import-draft-store";
 import { toCsvCandidateInputs, type ParsedCsvRow } from "@/lib/inbox/parse-csv";
+import type { AccountOption } from "@/lib/sample-data";
 import { trackProductEvent } from "@/lib/safe-analytics";
 import styles from "./import-preview-page.module.css";
 
@@ -61,9 +63,11 @@ function amountColumnLabel(batch: ImportBatch): string {
 export function ImportPreviewPage({
   viewer,
   batchId,
+  accounts,
 }: {
   viewer: ViewerSummary;
   batchId: string;
+  accounts: AccountOption[];
 }) {
   const router = useRouter();
   const [state, setState] = useState<LoadState>({ phase: "loading" });
@@ -74,6 +78,7 @@ export function ImportPreviewPage({
   const [actionError, setActionError] = useState("");
   const [commitReview, setCommitReview] = useState(false);
   const [cancelReview, setCancelReview] = useState(false);
+  const [accountId, setAccountId] = useState("");
 
   const reload = useCallback(async () => {
     setActionError("");
@@ -154,6 +159,7 @@ export function ImportPreviewPage({
       ? Math.round(state.batch.mapConfidence * 100)
       : 0;
   const busy = committing || cancelling;
+  const selectedAccount = accounts.find((item) => item.id === accountId);
 
   async function commitToInbox() {
     if (state.phase !== "ready" || busy) return;
@@ -166,7 +172,11 @@ export function ImportPreviewPage({
           : state.batch.source === "pdf"
             ? ("pdf" as const)
             : ("csv" as const);
-      const inputs = toCsvCandidateInputs(state.rows, state.batch.id, source);
+      const inputs = toCsvCandidateInputs(state.rows, state.batch.id, source, {
+        account: selectedAccount
+          ? { id: selectedAccount.id, name: selectedAccount.name }
+          : undefined,
+      });
       const addResult = await addCandidatesForClient(viewer.isDemo, inputs);
       if (!addResult.ok) {
         setActionError(addResult.message);
@@ -422,6 +432,28 @@ export function ImportPreviewPage({
                 </Alert>
               ) : null}
 
+              <SelectField
+                label="Sao kê này thuộc tài khoản"
+                value={accountId}
+                onChange={(event) => setAccountId(event.target.value)}
+                disabled={busy}
+                targetSize="important"
+              >
+                <option value="">Chọn sau trong Inbox</option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                    {account.currencyCode && account.currencyCode !== "VND"
+                      ? ` (${account.currencyCode})`
+                      : ""}
+                  </option>
+                ))}
+              </SelectField>
+              <p className={styles.hint}>
+                Chọn đúng ví thì mọi ứng viên của batch này mang sẵn tài khoản
+                — bỏ qua bước gán từng dòng trong Inbox.
+              </p>
+
               <div className={styles.actions}>
                 <Button
                   type="button"
@@ -460,6 +492,10 @@ export function ImportPreviewPage({
                 { label: "File", value: state.batch.fileName },
                 { label: "Ứng viên", value: `${state.rows.length} mục` },
                 { label: "Cảnh báo", value: `${state.batch.warningCount} dòng` },
+                {
+                  label: "Tài khoản",
+                  value: selectedAccount?.name ?? "Chọn trong Inbox",
+                },
                 { label: "Sổ giao dịch", value: "Chưa thay đổi" },
               ]
             : []
