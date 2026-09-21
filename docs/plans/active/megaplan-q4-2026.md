@@ -79,7 +79,7 @@ Sequencing contract: five tracks, five owner gates (G1–G5), no track self-auth
 | C2 | #592 Activity 2.0 — PR #593 merged 13/9 (`20c4ae88`); packet archived. Follow-ups: #602 deep-links merged 21/9 (`07b6fafb`), R2 nav promotion/R3 retirement cần auth riêng | done |
 | C3 | `ghi-5-stable-ledger-defaults` — PR #596 merged 13/9 (`f7a5ae07`); packet archived. Follow-up: PR #597 Capture V2 spec merged 21/9 (`ac95d63a`) | done |
 | C4 | `financial-wellbeing-product-strategy` — PR #594 merged 13/9 (`a7e45d30`); packet archived. Làm input cho P5 khi tới | done |
-| C5 | #559 redesign — territory decision vẫn mở; exploration recoverable từ `818b213f` (local reflog). **Đề xuất park rõ ràng** hoặc owner chọn territory | owner decide |
+| C5 | #559 redesign — parked 21/9; exploration preserved on remote branch `archive/559-territory-exploration` (checkpoint `818b213f`). Resume = owner picks territory A/B/C + bounded packet; Phase 0 postmortem mandatory trước khi runtime | parked |
 
 ### Track D — Acquisition foundation (master program #432 P1/P2)
 | # | Việc | Phụ thuộc |
