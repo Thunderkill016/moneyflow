@@ -6,6 +6,8 @@ The capability layer is the typed, viewer-scoped seam over existing server works
 
 Read coverage spans the workspace surfaces an agent needs to answer "số này từ đâu?": `ledger.summary` and `reports.financial` for aggregates, `transactions.search` for row-level evidence, `accounts.list`, `budgets.status` and `goals.status` for the planning snapshots the UI itself reads (including the goals reserve picture, withheld as `null` rather than guessed), and `activity.candidates` for the pending Inbox queue. Every snapshot capability reuses its existing `src/server` workspace loader — the same queries, RLS and error behavior as the routes — so `dataError` becomes a loud `internal` failure, never an empty-looking success.
 
+Every execution also emits one `capability_invocation` JSON log line — `capabilityId`, `viewerId`, `clientId`, `transport`, `status`, `errorCode`, `durationMs` — for abuse forensics (spec: `docs/plans/active/624-capability-invocation-audit.md`). Arguments, outputs and token material are never logged; requests rejected before execution (401/403/429) log a `status: "rejected"` record at the route.
+
 The generated manifest at `docs/agents/capabilities.json` is the machine-readable catalog for future UI, API and MCP transports. It is generated with `npm run capabilities:emit`, must not be edited manually, and is CI-checked with `npm run check:capabilities`.
 
 Money amounts in capability outputs are `Minor`-branded safe-integer đồng (`src/lib/minor.ts`): construction validates `Number.isSafeInteger` and the emitted JSON Schema declares integer ±2^53-1 bounds, so a float, unsafe or mixed-unit value can never satisfy the contract.

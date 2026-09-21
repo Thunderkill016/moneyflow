@@ -52,6 +52,7 @@ export async function executeCapabilityTool(
   try {
     const output = await runCapability(capabilityId, args, {
       context: buildCapabilityContext(viewer.id, { clientId: viewer.clientId }),
+      transport: "mcp",
     });
     return {
       content: [{ type: "text", text: JSON.stringify(output, null, 2) }],

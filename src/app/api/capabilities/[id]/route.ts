@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/server/auth";
 import { runCapability } from "@/server/capabilities/registry";
+import { logInvocationRejection } from "@/server/capabilities/invocation-log";
 import { CapabilityError } from "@/server/capabilities/types";
 import { buildCapabilityContext } from "@/server/capabilities/types";
 import {
@@ -60,15 +61,35 @@ export async function POST(
   const preAuth = capabilityApiLimiter.check(
     capabilityAnonRateKey(clientKeyFromHeaders(request.headers)),
   );
-  if (!preAuth.ok) return throttled(preAuth.retryAfterMs);
+  if (!preAuth.ok) {
+    logInvocationRejection({
+      capabilityId: id,
+      transport: "api",
+      errorCode: "rate_limited",
+    });
+    return throttled(preAuth.retryAfterMs);
+  }
 
   const viewer = await getViewer();
   if (!viewer || viewer.isDemo) {
+    logInvocationRejection({
+      capabilityId: id,
+      transport: "api",
+      errorCode: "unauthorized",
+    });
     return jsonError(401, "unauthorized", BEARER_CHALLENGE);
   }
 
   const postAuth = capabilityApiLimiter.check(capabilityApiRateKey(viewer.id));
-  if (!postAuth.ok) return throttled(postAuth.retryAfterMs);
+  if (!postAuth.ok) {
+    logInvocationRejection({
+      capabilityId: id,
+      viewerId: viewer.id,
+      transport: "api",
+      errorCode: "rate_limited",
+    });
+    return throttled(postAuth.retryAfterMs);
+  }
 
   let input: unknown = {};
   try {
@@ -80,6 +101,7 @@ export async function POST(
   try {
     const output = await runCapability(id, input, {
       context: buildCapabilityContext(viewer.id, { clientId: viewer.clientId }),
+      transport: "api",
     });
     return NextResponse.json(output, { headers: NO_STORE });
   } catch (error) {
