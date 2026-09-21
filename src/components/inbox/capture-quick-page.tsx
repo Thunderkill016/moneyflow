@@ -361,14 +361,18 @@ export function CaptureQuickPage({
           <EmptyState
             icon={<Icon name="wallet" />}
             title="Chưa sẵn sàng thêm giao dịch"
-            description="Bạn cần ít nhất một tài khoản và danh mục trước khi thêm nhanh."
+            description={
+              workspace.accounts.length
+                ? "Bạn cần ít nhất một danh mục trước khi thêm nhanh."
+                : "Bạn cần ít nhất một tài khoản và danh mục trước khi thêm nhanh."
+            }
             primaryAction={
               <LinkButton
-                href="/accounts"
+                href={workspace.accounts.length ? "/categories" : "/accounts"}
                 intent="primary"
                 targetSize="important"
               >
-                Quản lý tài khoản
+                {workspace.accounts.length ? "Quản lý danh mục" : "Quản lý tài khoản"}
               </LinkButton>
             }
             secondaryAction={

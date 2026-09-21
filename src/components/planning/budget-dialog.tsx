@@ -116,6 +116,14 @@ export function BudgetDialog({
       }
     >
       <form id={formId} className={styles.form} onSubmit={handleSubmit} noValidate>
+        {budget && !categories.length ? (
+          <Alert tone="warning">
+            <AlertDescription>
+              Danh mục của hạn mức này đã được lưu trữ. Khôi phục danh mục để sửa
+              hạn mức, hoặc xóa hạn mức này.
+            </AlertDescription>
+          </Alert>
+        ) : null}
         <div className={styles.formGrid}>
           <SelectField
             label="Danh mục"

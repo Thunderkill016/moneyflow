@@ -267,6 +267,7 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
       : await deleteBudgetAction(reviewBudget.id);
     setBusyId(null);
     if (!result.ok) {
+      setReviewBudget(null);
       setNotice(result.message);
       return;
     }
@@ -337,6 +338,7 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
           )}
         </section>
 
+        {workspace.dataError ? null : (
         <PlanningSummary label="Tổng quan ngân sách">
           <PlanningSummaryItem
             label="Tổng hạn mức"
@@ -373,6 +375,13 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
             />
           </PlanningSummaryItem>
         </PlanningSummary>
+        )}
+
+        {!workspace.dataError && !availableCategories.length && budgets.length ? (
+          <p className={planningStyles.context}>
+            Mọi danh mục chi tiêu đã có hạn mức — tạo danh mục mới để đặt thêm ngân sách.
+          </p>
+        ) : null}
 
         <PlanningSection
           title="Theo danh mục"
@@ -506,10 +515,26 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
           ) : (
             <EmptyState
               icon={<Icon name="target" />}
-              title={`Chưa có ngân sách cho ${monthLabel}`}
-              description="Tháng này chưa có hạn mức theo danh mục. Thêm hạn mức không ảnh hưởng các tháng khác."
+              title={
+                workspace.dataError
+                  ? "Không tải được ngân sách"
+                  : availableCategories.length
+                    ? `Chưa có ngân sách cho ${monthLabel}`
+                    : "Chưa có danh mục chi tiêu để đặt hạn mức"
+              }
+              description={
+                workspace.dataError
+                  ? "Dữ liệu của bạn vẫn được bảo vệ. Thử tải lại trang hoặc quay lại Tổng quan."
+                  : availableCategories.length
+                    ? "Tháng này chưa có hạn mức theo danh mục. Thêm hạn mức không ảnh hưởng các tháng khác."
+                    : "Ngân sách đặt theo danh mục chi tiêu. Tạo một danh mục trước, rồi quay lại đặt hạn mức cho tháng này."
+              }
               primaryAction={
-                !workspace.dataError && availableCategories.length ? (
+                workspace.dataError ? (
+                  <LinkButton href="/dashboard" intent="secondary" targetSize="important">
+                    Về Tổng quan
+                  </LinkButton>
+                ) : availableCategories.length ? (
                   <Button
                     type="button"
                     intent="primary"
@@ -518,7 +543,11 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
                   >
                     <Icon name="plus" /> Tạo ngân sách đầu tiên
                   </Button>
-                ) : undefined
+                ) : (
+                  <LinkButton href="/categories" intent="primary" targetSize="important">
+                    <Icon name="plus" /> Tạo danh mục
+                  </LinkButton>
+                )
               }
             />
           )}

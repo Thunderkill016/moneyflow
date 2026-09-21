@@ -205,6 +205,7 @@ export function ReportsPage({
           </Alert>
         ) : null}
 
+        {workspace.dataError ? null : (
         <SecondarySummary label="Tổng quan kỳ báo cáo" slot="report-metrics">
           <SecondarySummaryItem
             label="Tiền vào"
@@ -270,6 +271,7 @@ export function ReportsPage({
             meta="Chi tiêu cùng số ngày"
           />
         </SecondarySummary>
+        )}
 
         {report.totals.transactions ? (
           <div className={styles.grid}>
@@ -375,7 +377,7 @@ export function ReportsPage({
               ) : (
                 <div className={styles.subEmpty}>
                   <Icon name="chart" />
-                  <p>Chưa có giao dịch nào trong kỳ này.</p>
+                  <p>Chưa có khoản thu hoặc chi trong kỳ này.</p>
                 </div>
               )}
             </SecondarySection>
@@ -529,16 +531,30 @@ export function ReportsPage({
         ) : (
           <EmptyState
             icon={<Icon name="chart" />}
-            title="Chưa có dữ liệu trong kỳ"
-            description="Thêm giao dịch hoặc chọn kỳ dài hơn để MoneyFlow tạo báo cáo."
+            title={
+              workspace.dataError
+                ? "Không tải được báo cáo"
+                : "Chưa có dữ liệu trong kỳ"
+            }
+            description={
+              workspace.dataError
+                ? "Dữ liệu của bạn vẫn được bảo vệ. Thử tải lại trang hoặc quay lại Tổng quan."
+                : "Thêm giao dịch hoặc chọn kỳ dài hơn để MoneyFlow tạo báo cáo."
+            }
             primaryAction={
-              <LinkButton href="/transactions" intent="primary" targetSize="important">
-                <Icon name="plus" />
-                Thêm giao dịch
-              </LinkButton>
+              workspace.dataError ? (
+                <LinkButton href="/dashboard" intent="secondary" targetSize="important">
+                  Về Tổng quan
+                </LinkButton>
+              ) : (
+                <LinkButton href="/transactions" intent="primary" targetSize="important">
+                  <Icon name="plus" />
+                  Thêm giao dịch
+                </LinkButton>
+              )
             }
             secondaryAction={
-              period !== "year" ? (
+              !workspace.dataError && period !== "year" ? (
                 <LinkButton
                   href={reportPeriodHref("year")}
                   intent="secondary"
