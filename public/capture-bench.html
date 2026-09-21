@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Capture V2 — benchmark TTLT</title>
+<style>
+  :root {
+    --bg: #f7f6f2;
+    --card: #ffffff;
+    --ink: #1f1d1a;
+    --muted: #6b675f;
+    --line: #e3dfd6;
+    --accent: #0f6b4f;
+    --warn-bg: #fdf3ec;
+    --warn-line: #e8c4a8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.5;
+    padding: 16px;
+  }
+  main { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 1.25rem; margin: 0 0 4px; }
+  h2 { font-size: 1rem; margin: 0 0 8px; }
+  .sub { color: var(--muted); font-size: 0.85rem; margin: 0 0 16px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .warn { background: var(--warn-bg); border-color: var(--warn-line); }
+  .warn ul { margin: 6px 0 0; padding-left: 20px; }
+  .field { margin-bottom: 10px; }
+  .field label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 2px; }
+  .field input, .field textarea, .field select {
+    width: 100%; font: inherit; padding: 8px 10px;
+    border: 1px solid var(--line); border-radius: 8px;
+    background: #fff; color: var(--ink);
+  }
+  .task { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 10px; }
+  .task:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+  .task-title { font-weight: 600; margin-bottom: 2px; }
+  .task-desc { color: var(--muted); font-size: 0.85rem; margin: 0 0 8px; }
+  .task-result { font-size: 0.85rem; margin-top: 6px; }
+  .task-result.done { color: var(--accent); }
+  .task-active .task-title { color: var(--accent); }
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1; }
+  button {
+    font: inherit; min-height: 44px; padding: 10px 18px;
+    border-radius: 10px; border: 0; background: var(--accent);
+    color: #fff; font-weight: 600; cursor: pointer; width: 100%;
+  }
+  button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  button.small { width: auto; min-height: 36px; padding: 6px 12px; font-size: 0.85rem; }
+  pre {
+    white-space: pre-wrap; word-break: break-word;
+    background: #f1efe9; border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px; font-size: 0.8rem; margin: 0 0 10px;
+  }
+  code { background: #f1efe9; border-radius: 4px; padding: 0 4px; }
+  .hidden { display: none; }
+  .ok { color: var(--accent); font-size: 0.85rem; }
+  .timer { font-size: 1.4rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Capture V2 — benchmark TTLT</h1>
+  <p class="sub">Đo Time to Trusted Ledger Transaction của các mode ghi hiện có. Không gửi dữ liệu đi đâu — mọi thứ ở trong trang này. Chạy ở <strong>demo mode</strong> để timer tự dừng khi transaction/candidate được ghi vào localStorage.</p>
+
+  <section class="card warn">
+    <h2>Lưu ý trước khi đo</h2>
+    <ul>
+      <li>Dùng <strong>demo mode</strong> (data trong localStorage) — timer tự phát hiện khi record mới xuất hiện.</li>
+      <li>Authenticated mode vẫn đo được nhưng phải bấm <strong>Xong</strong> thủ công sau khi lưu.</li>
+      <li>TTLT đo được gồm cả độ trễ đổi tab (~1–3s) — so sánh tương đối giữa các mode là hợp lệ, số tuyệt đối chỉ là chỉ báo.</li>
+      <li>Không nhập dữ liệu tài chính thật — mọi task đều là số liệu giả.</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>Phiên đo (tự điền — kiểm tra lại)</h2>
+    <div class="field"><label>Date/time</label><input id="f-date"></div>
+    <div class="field"><label>Release candidate / commit</label><input id="f-commit"></div>
+    <div class="field"><label>Origin</label><input id="f-origin"></div>
+    <div class="field"><label>Mode</label>
+      <select id="f-mode">
+        <option value="demo">demo</option>
+        <option value="authenticated">authenticated (manual stop)</option>
+      </select>
+    </div>
+    <div class="field"><label>Cohort</label>
+      <select id="f-cohort">
+        <option value="demo-fixtures">demo fixtures (stable history)</option>
+        <option value="fresh-profile">fresh profile / first-time</option>
+        <option value="other">khác — ghi trong notes</option>
+      </select>
+    </div>
+    <div class="field"><label>Device + OS + browser</label><input id="f-device"></div>
+    <div class="field"><label>Network context</label><input id="f-network"></div>
+  </section>
+
+  <section class="card">
+    <h2>Tasks — bấm "Bắt đầu", chuyển sang tab app, thực hiện, quay lại</h2>
+    <div id="tasks"></div>
+    <div class="field" id="live-field" style="display:none">
+      <div class="timer" id="timer">0.0s</div>
+      <div class="row">
+        <button class="ghost small" id="manual-done">Xong (manual stop)</button>
+        <button class="ghost small" id="skip-task">Bỏ qua</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card hidden" id="followup">
+    <h2>Sau khi lưu — task <span id="fu-id"></span></h2>
+    <div class="field"><label>Số lần chạm/phím (ước lượng, để trống nếu không đếm)</label><input id="fu-taps" inputmode="numeric"></div>
+    <div class="field"><label>Sửa lại sau khi lưu trong ~60s?</label>
+      <select id="fu-corrected">
+        <option value="no">Không</option>
+        <option value="yes">Có — tự sửa</option>
+        <option value="auto">Tự phát hiện (harness thấy write lại)</option>
+      </select>
+    </div>
+    <div class="field"><label>Ghi chú</label><input id="fu-note"></div>
+    <button id="fu-next">Task tiếp theo</button>
+  </section>
+
+  <section class="card">
+    <h2>Biên bản — dán vào evidence khi xong</h2>
+    <button id="gen">Tạo biên bản</button>
+  </section>
+
+  <section class="card hidden" id="out">
+    <pre id="report"></pre>
+    <button class="ghost" id="copy">Sao chép</button>
+    <p class="ok hidden" id="copied">Đã sao chép.</p>
+  </section>
+</main>
+
+<script>
+// Demo-mode storage keys the app writes (src/lib/transaction-store.ts etc.).
+const TX_KEY = "moneyflow-demo-transactions-v1";
+const CANDIDATE_KEY = "moneyflow-inbox-candidates-v1";
+const CORRECTION_WINDOW_MS = 60000;
+
+const TASKS = [
+  {
+    id: "A1", group: "amount-first", route: "/capture/quick",
+    title: "Chi tiêu đơn giản",
+    desc: "Ghi chi 45.000₫ — cà phê sáng, ví tiền mặt. Dùng amount-first form.",
+    expect: { kind: "expense", amount: 45000 },
+  },
+  {
+    id: "A2", group: "amount-first", route: "/capture/quick",
+    title: "Thu nhập",
+    desc: "Ghi thu 15.000.000₫ — lương, vào tài khoản ngân hàng.",
+    expect: { kind: "income", amount: 15000000 },
+  },
+  {
+    id: "A3", group: "amount-first", route: "/capture/quick",
+    title: "Chuyển nội bộ",
+    desc: "Chuyển 500.000₫ từ tiền mặt sang ví MoMo. Phải là transfer — không tính thu/chi.",
+    expect: { kind: "transfer", amount: 500000 },
+  },
+  {
+    id: "A4", group: "amount-first", route: "/capture/quick",
+    title: "Chi tiêu lặp lại",
+    desc: "Ghi chi 45.000₫ — cà phê sáng, giống A1. Quan sát #596 stable defaults có gợi ý đúng account/category không.",
+    expect: { kind: "expense", amount: 45000 },
+  },
+  {
+    id: "D1", group: "description", route: "/capture/paste",
+    title: "Mô tả tự nhiên",
+    desc: "Dán/nhập text: \"cafe 45k\". Đi hết preview → candidate → approve nếu được.",
+    expect: { kind: "expense", amount: 45000 },
+  },
+  {
+    id: "D2", group: "description", route: "/capture/paste",
+    title: "Text có ngày",
+    desc: "Dán/nhập text: \"đổ xăng 185k hôm qua\". Đi hết preview → candidate → approve nếu được.",
+    expect: { kind: "expense", amount: 185000 },
+  },
+  {
+    id: "D3", group: "description", route: "/capture/paste",
+    title: "Dán SMS ngân hàng (giả)",
+    desc: "Dán text giả: \"TK xxxx1234 GD -250.000VND 21/09/2026 TTTM GRAB. SDU 1.500.000VND\". Đi hết pipeline.",
+    expect: { kind: "expense", amount: 250000 },
+  },
+];
+
+const results = {};
+let active = null; // {task, t0, txBefore:Set, txBaseline:Map, candBefore:Set, timerInt}
+let correctionWatch = null; // {resultId, until, baseline:Map} — watches post-save rewrites
+const tasksEl = document.getElementById("tasks");
+const liveField = document.getElementById("live-field");
+const timerEl = document.getElementById("timer");
+
+TASKS.forEach((t) => {
+  const div = document.createElement("div");
+  div.className = "task";
+  div.id = "task-" + t.id;
+  div.innerHTML = `
+    <p class="task-title">${t.id} — ${t.title} <code>${t.route}</code></p>
+    <p class="task-desc">${t.desc}</p>
+    <button class="small" data-start="${t.id}">Bắt đầu</button>
+    <p class="task-result" id="res-${t.id}"></p>`;
+  tasksEl.appendChild(div);
+});
+
+function readIds(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch { return []; }
+}
+
+function findNew(arr, beforeSet) {
+  return arr.filter((r) => r && typeof r.id === "string" && !beforeSet.has(r.id));
+}
+
+function matchExpect(t, rec) {
+  if (!t.expect) return "?";
+  const kindOk = rec.kind === t.expect.kind;
+  const amtOk = t.expect.amount === undefined || rec.amount === t.expect.amount;
+  return kindOk && amtOk ? "đúng" : "khác-kỳ-vọng";
+}
+
+function stopActive(reason) {
+  if (!active) return;
+  clearInterval(active.timerInt);
+  active.stoppedAt = performance.now();
+  liveField.style.display = "none";
+  const r = results[active.task.id];
+  r.ms = Math.round(active.stoppedAt - active.t0);
+  r.stopReason = reason;
+  showFollowup(active.task.id);
+  active = null;
+}
+
+function showFollowup(id) {
+  document.getElementById("fu-id").textContent = id;
+  document.getElementById("fu-taps").value = "";
+  document.getElementById("fu-note").value = "";
+  document.getElementById("fu-corrected").value = results[id].autoCorrected ? "auto" : "no";
+  document.getElementById("followup").classList.remove("hidden");
+  document.getElementById("followup").scrollIntoView({ behavior: "smooth" });
+}
+
+document.getElementById("fu-next").addEventListener("click", () => {
+  const r = results[document.getElementById("fu-id").textContent];
+  r.taps = document.getElementById("fu-taps").value.trim();
+  r.corrected = document.getElementById("fu-corrected").value;
+  r.note = document.getElementById("fu-note").value.trim();
+  renderResult(r);
+  document.getElementById("followup").classList.add("hidden");
+});
+
+document.getElementById("manual-done").addEventListener("click", () => stopActive("manual"));
+document.getElementById("skip-task").addEventListener("click", () => {
+  if (!active) return;
+  results[active.task.id] = { id: active.task.id, skipped: true };
+  clearInterval(active.timerInt);
+  liveField.style.display = "none";
+  renderResult(results[active.task.id]);
+  active = null;
+});
+
+document.querySelectorAll("[data-start]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    if (active) return;
+    const task = TASKS.find((t) => t.id === btn.dataset.start);
+    active = {
+      task,
+      t0: performance.now(),
+      txBefore: new Set(readIds(TX_KEY).map((r) => r.id)),
+      candBefore: new Set(readIds(CANDIDATE_KEY).map((r) => r.id)),
+    };
+    results[task.id] = { id: task.id, group: task.group, route: task.route };
+    document.getElementById("task-" + task.id).classList.add("task-active");
+    document.getElementById("res-" + task.id).textContent = "đang đo… mở " + task.route + " ở tab app";
+    liveField.style.display = "block";
+    active.timerInt = setInterval(() => {
+      timerEl.textContent = ((performance.now() - active.t0) / 1000).toFixed(1) + "s";
+    }, 100);
+  });
+});
+
+// Detect demo-mode writes from the app tab (storage events fire only in *other* tabs).
+window.addEventListener("storage", (e) => {
+  const now = performance.now();
+  // Post-save correction watch: a rewrite of the just-created record inside the
+  // window means the user fixed something after saving.
+  if (e.key === TX_KEY && correctionWatch && now < correctionWatch.until) {
+    for (const rec of readIds(TX_KEY)) {
+      const base = correctionWatch.baseline.get(rec.id);
+      if (base && base !== JSON.stringify(rec)) {
+        const r = results[correctionWatch.resultId];
+        if (r) r.autoCorrected = true;
+      }
+    }
+  }
+  if (!active) return;
+  const r = results[active.task.id];
+  if (e.key === CANDIDATE_KEY && r.candidateMs === undefined) {
+    const news = findNew(readIds(CANDIDATE_KEY), active.candBefore);
+    if (news.length) {
+      r.candidateMs = Math.round(now - active.t0);
+      r.candidateCount = news.length;
+    }
+  }
+  if (e.key === TX_KEY) {
+    const arr = readIds(TX_KEY);
+    const news = findNew(arr, active.txBefore);
+    if (news.length && r.ledgerMs === undefined) {
+      r.ledgerMs = Math.round(now - active.t0);
+      r.match = matchExpect(active.task, news[news.length - 1]);
+      correctionWatch = {
+        resultId: active.task.id,
+        until: now + CORRECTION_WINDOW_MS,
+        baseline: new Map(arr.map((rec) => [rec.id, JSON.stringify(rec)])),
+      };
+      stopActive("storage");
+    }
+  }
+});
+
+function renderResult(r) {
+  const el = document.getElementById("res-" + r.id);
+  el.classList.add("done");
+  document.getElementById("task-" + r.id).classList.remove("task-active");
+  if (r.skipped) { el.textContent = "— bỏ qua"; return; }
+  const parts = [(r.ms / 1000).toFixed(1) + "s"];
+  if (r.candidateMs !== undefined) parts.push("candidate@" + (r.candidateMs / 1000).toFixed(1) + "s");
+  if (r.ledgerMs !== undefined) parts.push("ledger@" + (r.ledgerMs / 1000).toFixed(1) + "s");
+  if (r.match) parts.push(r.match);
+  if (r.taps) parts.push(r.taps + " taps");
+  if (r.corrected === "yes" || r.corrected === "auto" || r.autoCorrected) parts.push("sửa lại");
+  if (r.note) parts.push(r.note);
+  el.textContent = parts.join(" · ");
+}
+
+// ---- session facts ----
+document.getElementById("f-date").value = new Date().toISOString();
+document.getElementById("f-origin").value = location.origin;
+const ua = navigator.userAgent;
+document.getElementById("f-device").value = ua;
+if (navigator.connection) {
+  const c = navigator.connection;
+  document.getElementById("f-network").value =
+    [c.effectiveType, c.downlink ? c.downlink + "Mb" : "", c.rtt ? c.rtt + "ms" : ""]
+      .filter(Boolean).join(" / ");
+}
+fetch("/api/health")
+  .then((r) => (r.ok ? r.json() : null))
+  .then((j) => {
+    if (j && j.commit) {
+      document.getElementById("f-commit").value =
+        j.commit + (j.build ? " (build " + j.build + ")" : "");
+    } else {
+      document.getElementById("f-commit").placeholder = "không đọc được — nhập tay";
+    }
+  })
+  .catch(() => {
+    document.getElementById("f-commit").placeholder = "không đọc được — nhập tay";
+  });
+
+// ---- report ----
+document.getElementById("gen").addEventListener("click", () => {
+  const lines = [];
+  lines.push("CAPTURE V2 BENCHMARK — TTLT");
+  lines.push("Date/time: " + document.getElementById("f-date").value);
+  lines.push("Release candidate / commit if known: " + document.getElementById("f-commit").value);
+  lines.push("Origin: " + document.getElementById("f-origin").value);
+  lines.push("Mode: " + document.getElementById("f-mode").value);
+  lines.push("Cohort: " + document.getElementById("f-cohort").value);
+  lines.push("Device/OS/browser: " + document.getElementById("f-device").value);
+  lines.push("Network context: " + document.getElementById("f-network").value);
+  lines.push("");
+  lines.push("Per-task results:");
+  for (const t of TASKS) {
+    const r = results[t.id];
+    if (!r) { lines.push(t.id + " | " + t.route + " | chưa chạy"); continue; }
+    if (r.skipped) { lines.push(t.id + " | " + t.route + " | SKIPPED"); continue; }
+    const cols = [
+      t.id,
+      t.route,
+      "total " + (r.ms / 1000).toFixed(1) + "s",
+      r.candidateMs !== undefined ? "candidate " + (r.candidateMs / 1000).toFixed(1) + "s" : "-",
+      r.ledgerMs !== undefined ? "ledger " + (r.ledgerMs / 1000).toFixed(1) + "s" : "-",
+      r.match || "-",
+      "stop:" + r.stopReason,
+      r.taps ? "taps:" + r.taps : "-",
+      "corrected:" + (r.corrected || (r.autoCorrected ? "auto" : "-")),
+      r.note ? "note:" + r.note : "",
+    ];
+    lines.push(cols.filter((c) => c !== "" && c !== "-").join(" | "));
+  }
+  lines.push("");
+  for (const g of ["amount-first", "description"]) {
+    const ms = TASKS.filter((t) => t.group === g)
+      .map((t) => results[t.id])
+      .filter((r) => r && r.ms && !r.skipped)
+      .map((r) => r.ms)
+      .sort((a, b) => a - b);
+    if (ms.length) {
+      const med = ms[Math.floor(ms.length / 2)];
+      lines.push("Median total — " + g + ": " + (med / 1000).toFixed(1) + "s (n=" + ms.length + ")");
+    }
+  }
+  lines.push("");
+  lines.push("Caveat: TTLT gồm độ trễ đổi tab (~1–3s). So sánh tương đối giữa mode là hợp lệ.");
+  document.getElementById("report").textContent = lines.join("\n");
+  document.getElementById("out").classList.remove("hidden");
+});
+
+document.getElementById("copy").addEventListener("click", () => {
+  navigator.clipboard
+    .writeText(document.getElementById("report").textContent)
+    .then(() => document.getElementById("copied").classList.remove("hidden"))
+    .catch(() => {
+      const range = document.createRange();
+      range.selectNodeContents(document.getElementById("report"));
+      const sel = getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    });
+});
+</script>
+</body>
+</html>
