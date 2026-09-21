@@ -358,6 +358,42 @@
   background: var(--mf-canvas);
 }
 
+/*
+ * Six-month expense shape inside one category row — one bar per calendar
+ * month, oldest first. Bars share the row's own max so they read as a shape,
+ * never as amounts comparable across categories.
+ */
+.categoryTrend {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 1.375rem;
+}
+
+.categoryTrend i {
+  flex: 1 1 0;
+  max-width: 1.125rem;
+  border-radius: 2px 2px 0 0;
+  background: color-mix(in srgb, var(--mf-expense) 55%, var(--mf-surface));
+}
+
+.categoryTrend i.trendEmpty {
+  height: 2px;
+  border-radius: 999px;
+  background: var(--mf-border);
+}
+
+@media (forced-colors: active) {
+  .categoryTrend i {
+    background: CanvasText;
+    forced-color-adjust: none;
+  }
+
+  .categoryTrend i.trendEmpty {
+    background: GrayText;
+  }
+}
+
 .categoryTrack i {
   display: block;
   height: 100%;

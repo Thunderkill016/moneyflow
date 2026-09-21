@@ -382,7 +382,12 @@ export function ReportsPage({
 
             <SecondarySection
               title="Chi theo danh mục"
-              description={<p>Những nơi tiền của bạn đi nhiều nhất · {periodTitle}.</p>}
+              description={
+                <p>
+                  Những nơi tiền của bạn đi nhiều nhất · {periodTitle}. Vệt nhỏ
+                  dưới mỗi danh mục là chi theo tháng, 6 tháng gần nhất.
+                </p>
+              }
               contained
               slot="report-categories"
             >
@@ -392,6 +397,10 @@ export function ReportsPage({
                     const meta =
                       categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
                     const href = reportCategoryDrilldownHref(report.range, item.name);
+                    const categoryTrendMax = Math.max(
+                      1,
+                      ...item.trend.map((month) => month.amount),
+                    );
                     return (
                       <article className={styles.category} key={item.name}>
                         <span className={styles.categoryIcon} aria-hidden="true">
@@ -416,6 +425,26 @@ export function ReportsPage({
                             aria-hidden="true"
                           >
                             <i style={{ width: `${item.share}%` }} />
+                          </span>
+                          <span
+                            className={styles.categoryTrend}
+                            role="img"
+                            aria-label={`${item.name} 6 tháng gần nhất: ${item.trend
+                              .map((month) => `${month.label} ${formatMoney(month.amount)}`)
+                              .join(", ")}`}
+                          >
+                            {item.trend.map((month) => (
+                              <i
+                                key={month.key}
+                                className={month.amount ? undefined : styles.trendEmpty}
+                                title={`${month.label}: ${formatMoney(month.amount)}`}
+                                style={{
+                                  height: month.amount
+                                    ? `${Math.max(15, (month.amount / categoryTrendMax) * 100)}%`
+                                    : undefined,
+                                }}
+                              />
+                            ))}
                           </span>
                         </div>
                         <div className={styles.categoryAmount}>

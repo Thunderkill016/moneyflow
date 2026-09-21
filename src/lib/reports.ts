@@ -21,6 +21,15 @@ export const CUSTOM_RANGE_MAX_DAYS = 1_096;
  */
 export const TREND_DAILY_MAX_DAYS = 62;
 
+/**
+ * Calendar months shown in a category's mini trend strip.
+ *
+ * Six is the shortest window that answers "is this category rising?" — three
+ * months cannot distinguish a trend from a bump, and a full year would ask the
+ * report page to load twice what the year preset already costs.
+ */
+export const CATEGORY_TREND_MONTHS = 6;
+
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** R7 — month view is the default reports landing (JTBD: tháng này tiền đi đâu). */
@@ -42,7 +51,12 @@ export type FinancialReport = {
   totals: { income: number; expense: number; net: number; transactions: number };
   previous: { income: number; expense: number; net: number };
   expenseChangePercent: number | null;
-  categories: { name: string; amount: number; share: number }[];
+  categories: {
+    name: string;
+    amount: number;
+    share: number;
+    trend: CategoryTrendMonth[];
+  }[];
   /**
    * Expense grouped by the account it left from, largest first.
    *
@@ -55,6 +69,13 @@ export type FinancialReport = {
   accounts: { name: string; amount: number; share: number }[];
   trend: { key: string; label: string; income: number; expense: number }[];
 };
+
+/**
+ * Monthly expense shape for one category — six calendar months ending at the
+ * viewed month's own. The last month is usually partial (the month is still
+ * running); the bars carry real recorded data either way, never a projection.
+ */
+export type CategoryTrendMonth = { key: string; label: string; amount: number };
 
 const DAY_MS = 86_400_000;
 
@@ -226,6 +247,48 @@ export function reportRange(today: string, period: ReportPeriod): ReportRange {
   };
 }
 
+/**
+ * Six calendar months ending at the month containing `currentEnd`, oldest
+ * first. Keys are `YYYY-MM` so a transaction joins by `occurredOn.slice(0, 7)`.
+ */
+function categoryTrendMonths(currentEnd: string): { key: string; label: string }[] {
+  const months: { key: string; label: string }[] = [];
+  let cursor = `${currentEnd.slice(0, 7)}-01`;
+  for (let index = CATEGORY_TREND_MONTHS - 1; index >= 0; index -= 1) {
+    const key = cursor.slice(0, 7);
+    months[index] = { key, label: `Thg ${Number(key.slice(5, 7))}` };
+    const previous = parseDate(cursor);
+    previous.setUTCMonth(previous.getUTCMonth() - 1);
+    cursor = dateString(previous);
+  }
+  return months;
+}
+
+/**
+ * First day of the earliest trend month — the lower bound the loader must
+ * reach so the strips never silently truncate history it was asked to show.
+ */
+export function categoryTrendWindowStart(currentEnd: string): string {
+  return `${categoryTrendMonths(currentEnd)[0].key}-01`;
+}
+
+/**
+ * The (category, amount) lines one expense row contributes — the same
+ * split-distribution rule the period totals use. Keeping one implementation
+ * is what stops the trend strip and the share column from disagreeing.
+ */
+function expenseCategoryLines(item: Transaction): { name: string; amount: number }[] {
+  if (item.splits && item.splits.length >= 2) {
+    return item.splits
+      .filter(
+        (line) =>
+          Boolean(line.category) && Number.isSafeInteger(line.amount) && line.amount > 0,
+      )
+      .map((line) => ({ name: line.category as string, amount: line.amount }));
+  }
+  return [{ name: item.category, amount: item.amount }];
+}
+
 function safeAdd(total: number, amount: number) {
   const next = total + amount;
   if (!Number.isSafeInteger(next)) throw new Error("unsafe_report_total");
@@ -285,17 +348,39 @@ export function buildFinancialReport(transactions: Transaction[], range: ReportR
   const categoryTotals = new Map<string, number>();
   for (const item of current) {
     if (item.kind !== "expense") continue;
-    if (item.splits && item.splits.length >= 2) {
-      for (const line of item.splits) {
-        if (!line.category || !Number.isSafeInteger(line.amount) || line.amount <= 0) continue;
-        categoryTotals.set(line.category, safeAdd(categoryTotals.get(line.category) ?? 0, line.amount));
-      }
-      continue;
+    for (const line of expenseCategoryLines(item)) {
+      categoryTotals.set(line.name, safeAdd(categoryTotals.get(line.name) ?? 0, line.amount));
     }
-    categoryTotals.set(item.category, safeAdd(categoryTotals.get(item.category) ?? 0, item.amount));
+  }
+  /*
+   * Per-category monthly shape over the shared trend window. One pass over all
+   * loaded rows (not just the viewed window — the strip reaches further back);
+   * rows outside the six months are skipped by key, so a long custom range or
+   * the year preset cannot leak extra columns into the strip.
+   */
+  const trendMonths = categoryTrendMonths(range.currentEnd);
+  const trendMonthKeys = new Set(trendMonths.map((month) => month.key));
+  const trendTotals = new Map<string, Map<string, number>>();
+  for (const item of transactions) {
+    if (item.kind !== "expense") continue;
+    const monthKey = item.occurredOn.slice(0, 7);
+    if (!trendMonthKeys.has(monthKey)) continue;
+    for (const line of expenseCategoryLines(item)) {
+      const perMonth = trendTotals.get(line.name) ?? new Map<string, number>();
+      perMonth.set(monthKey, safeAdd(perMonth.get(monthKey) ?? 0, line.amount));
+      trendTotals.set(line.name, perMonth);
+    }
   }
   const categories = [...categoryTotals.entries()]
-    .map(([name, amount]) => ({ name, amount, share: expense ? Math.round((amount / expense) * 100) : 0 }))
+    .map(([name, amount]) => ({
+      name,
+      amount,
+      share: expense ? Math.round((amount / expense) * 100) : 0,
+      trend: trendMonths.map((month) => ({
+        ...month,
+        amount: trendTotals.get(name)?.get(month.key) ?? 0,
+      })),
+    }))
     .sort((a, b) => b.amount - a.amount);
   /*
    * One pass over the same expense rows, taking each row whole. Transfers are
