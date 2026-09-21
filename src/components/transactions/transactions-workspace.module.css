@@ -84,7 +84,9 @@
    the eye reads a single object with a header band. */
 .summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* auto-fit so the strip stays balanced whether the review queue cell is
+     present (five items) or the feature flag keeps it hidden (four). */
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   overflow: hidden;
   border: 1px solid var(--mf-border);
   border-bottom: 0;
@@ -130,6 +132,57 @@
   font-weight: 700;
   line-height: 1.2;
   overflow-wrap: anywhere;
+}
+
+/*
+ * The review cell is a button: tapping it toggles the needs_review filter, so
+ * the figure is both a status and its own drill-down. Resets keep it looking
+ * like its static siblings; hover/active borrow the segmented-control ground.
+ */
+.summaryReview {
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.summaryReview:hover {
+  background: var(--mf-surface-muted);
+}
+
+.summaryReview:focus-visible {
+  outline: 2px solid var(--mf-focus, currentColor);
+  outline-offset: -2px;
+}
+
+.summaryReviewActive {
+  background: var(--mf-surface-muted);
+  box-shadow: inset 0 0 0 1px var(--mf-border);
+}
+
+.summaryReviewActive .summaryCount {
+  color: var(--mf-brand-text);
+}
+
+/* One-tap ranges inside the secondary filters — one full-width row above the
+   manual date/amount inputs. Same segmented vocabulary as the kind filter, on
+   its own class: the mobile rules that reshape .kindFilter into a two-up grid
+   would otherwise misplace this row inside .rangeFilters. */
+.datePresets {
+  grid-column: 1 / -1;
+  align-self: start;
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+  border: 1px solid var(--mf-border);
+  border-radius: 12px;
+  background: var(--mf-surface-muted);
+  padding: 4px;
 }
 
 .manager {
@@ -704,6 +757,13 @@
   }
 
   .summaryItem:nth-child(odd) {
+    border-left: 0;
+  }
+
+  /* Five cells in a two-column grid leave the review cell alone on the last
+     row; spanning it full-width keeps the strip a deliberate band. */
+  .summaryReview {
+    grid-column: 1 / -1;
     border-left: 0;
   }
 
