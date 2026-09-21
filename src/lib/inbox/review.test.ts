@@ -4,6 +4,7 @@ import type { AccountOption, CategoryOption } from "../sample-data.ts";
 import type { InboxCandidate } from "./candidate-store.ts";
 import type { PersistedInboxCandidate } from "./provenance.ts";
 import {
+  applyBulkAccount,
   applyBulkCategory,
   buildConfirmedReviewRuleSeed,
   buildExplainLines,
@@ -256,6 +257,33 @@ test("applyBulkCategory and markCandidatesStatus", () => {
   const rejected = markCandidatesStatus([expense, high], ["cand-1"], "rejected");
   assert.equal(rejected[0]?.status, "rejected");
   assert.equal(rejected[1]?.status, "pending");
+});
+
+test("applyBulkAccount assigns the account to selected pending candidates of any kind", () => {
+  const transfer: InboxCandidate = {
+    ...expense,
+    id: "cand-t",
+    kind: "transfer",
+    accountId: undefined,
+    account: undefined,
+  };
+  const alreadyDone: InboxCandidate = { ...expense, id: "cand-done", status: "approved" };
+  const next = applyBulkAccount(
+    [expense, transfer, high, alreadyDone],
+    ["cand-1", "cand-t", "cand-done"],
+    { id: "acc-bank", name: "Vietcombank" },
+  );
+
+  // Money candidates take the account directly.
+  assert.equal(next[0]?.accountId, "acc-bank");
+  assert.equal(next[0]?.account, "Vietcombank");
+  // Transfer candidates take it as the source leg (the account the statement belongs to).
+  assert.equal(next[1]?.accountId, "acc-bank");
+  // Unselected rows stay untouched.
+  assert.equal(next[2]?.accountId, expense.accountId);
+  // Non-pending rows never change — bulk assignment must not rewrite reviewed state.
+  assert.equal(next[3]?.accountId, expense.accountId);
+  assert.equal(next[3]?.account, expense.account);
 });
 
 test("findPendingCandidateTarget resolves only pending rows", async () => {

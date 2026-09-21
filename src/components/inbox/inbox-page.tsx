@@ -58,6 +58,7 @@ import {
   partitionPendingCandidates,
 } from "@/lib/inbox/readiness";
 import {
+  applyBulkAccount,
   applyBulkCategory,
   buildLedgerPost,
   draftFromCandidate,
@@ -532,6 +533,24 @@ export function InboxPage({
         if (!(await persist(next, payload.selectedIds))) return;
         setSelectedIds([]);
         setNotice(`Đã từ chối ${payload.selectedIds.length} ứng viên.`);
+        return;
+      }
+
+      if (payload.action === "account") {
+        const account = workspace.accounts.find(
+          (item) => item.id === payload.accountId,
+        );
+        if (!account) {
+          setNotice("Chưa chọn được tài khoản.");
+          return;
+        }
+        const next = applyBulkAccount(
+          candidatesRef.current,
+          payload.selectedIds,
+          account,
+        );
+        if (!(await persist(next, payload.selectedIds))) return;
+        setNotice(`Đã gán tài khoản “${account.name}” cho các ứng viên đã chọn.`);
         return;
       }
 
