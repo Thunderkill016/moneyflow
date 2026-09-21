@@ -7,9 +7,14 @@ export default function Loading() {
     >
       <div className="loading-line wide" />
       <div className="loading-line" />
-      <div className="panel privacy-loading" style={{ marginTop: 16 }}>
-        <div className="loading-line wide" />
-        <div className="loading-line" />
+      <div className="privacy-skeleton-block">
+        {Array.from({ length: 2 }, (_, index) => (
+          <div className="privacy-skeleton-card" key={index}>
+            <span className="loading-line privacy-skel-title" />
+            <span className="loading-line privacy-skel-body" />
+            <span className="loading-line privacy-skel-body" />
+          </div>
+        ))}
       </div>
     </main>
   );
