@@ -25,6 +25,7 @@ import {
   monthStartFromDate,
   type RecurringCommitment,
 } from "@/lib/planning/commitments";
+import { monthStatementDetail } from "@/lib/dashboard-month";
 import {
   calculateDashboardSummary,
   reconcileBalanceSnapshot,
@@ -218,6 +219,11 @@ export function MoneyFlowDashboard({
     [transactions, workspace.today],
   );
 
+  const monthDetail = useMemo(
+    () => monthStatementDetail(transactions, workspace.today),
+    [transactions, workspace.today],
+  );
+
   const needsReviewCount = useMemo(
     () =>
       transactions.filter(
@@ -331,6 +337,7 @@ export function MoneyFlowDashboard({
           ledgerTrust={viewer.isDemo ? null : ledgerTrust}
           totals={totals}
           accountBalances={liveAccountBalances}
+          monthDetail={monthDetail}
           today={workspace.today}
           isEmptyLedger={isEmptyLedger && !workspace.dataError}
           dataError={workspace.dataError}

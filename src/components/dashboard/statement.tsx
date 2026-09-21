@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MoneyValue } from "@/components/money-value";
 import type { AccountBalanceRow } from "@/lib/dashboard-accounts";
+import type { MonthStatementDetail } from "@/lib/dashboard-month";
 import { dashboardDrilldownHref } from "@/lib/dashboard-drilldown";
 import { dashboardPeriodLabel } from "@/lib/dashboard-period";
 import { formatMoney } from "@/lib/money";
@@ -33,15 +34,24 @@ export function flowShares(income: number, expense: number) {
  */
 const STATEMENT_ACCOUNT_LIMIT = 4;
 
+/*
+ * A zero-height bar is a recorded day with nothing spent — it stays flat on the
+ * baseline. Anything above zero needs this minimum so a 200 ₫ coffee next to a
+ * 20.000.000 ₫ day is still a visible mark rather than a rounding error.
+ */
+const SHAPE_MIN_PERCENT = 8;
+
 export function DashboardStatement({
   totals,
   accountBalances = [],
+  monthDetail,
   today,
   isEmptyLedger,
   action,
 }: {
   totals: StatementTotals;
   accountBalances?: AccountBalanceRow[];
+  monthDetail?: MonthStatementDetail;
   today: string;
   isEmptyLedger: boolean;
   action?: React.ReactNode;
@@ -50,6 +60,9 @@ export function DashboardStatement({
   const period = dashboardPeriodLabel(today);
   const visibleAccounts = accountBalances.slice(0, STATEMENT_ACCOUNT_LIMIT);
   const hiddenAccountCount = accountBalances.length - visibleAccounts.length;
+  const shapeMax = monthDetail
+    ? Math.max(0, ...monthDetail.shape.map((day) => day.expense))
+    : 0;
 
   return (
     <section className={styles.statement} aria-labelledby="mf-standing-label">
@@ -182,6 +195,51 @@ export function DashboardStatement({
                 />
               </li>
             </ul>
+
+            {/*
+              Month shape + prior-window compare, lifted from the reports
+              computation so both surfaces read the same ledger the same way.
+              The strip renders only when something was actually spent — an
+              income-only month has no rhythm to show, and a flat row of bars
+              would read as a broken chart rather than an honest empty state.
+            */}
+            {monthDetail && shapeMax > 0 ? (
+              <div
+                className={styles.shape}
+                role="img"
+                aria-label={`Nhịp chi từng ngày ${period.toLowerCase()}, cao nhất ${formatMoney(
+                  shapeMax,
+                )} một ngày`}
+              >
+                {monthDetail.shape.map((day) => (
+                  <i
+                    key={day.date}
+                    className={styles.shapeBar}
+                    style={{
+                      blockSize:
+                        day.expense > 0
+                          ? `${Math.max(
+                              Math.round((day.expense / shapeMax) * 100),
+                              SHAPE_MIN_PERCENT,
+                            )}%`
+                          : "0%",
+                    }}
+                    title={`${day.date}: ${formatMoney(day.expense)}`}
+                  />
+                ))}
+              </div>
+            ) : null}
+            {monthDetail && monthDetail.prior.transactions > 0 ? (
+              <p className={styles.compare}>
+                Kỳ trước cùng {monthDetail.shape.length} ngày: chi{" "}
+                <MoneyValue
+                  amount={monthDetail.prior.expense}
+                  label={`Chi kỳ trước cùng ${monthDetail.shape.length} ngày`}
+                  align="start"
+                  className={styles.compareValue}
+                />
+              </p>
+            ) : null}
           </>
         )}
       </div>

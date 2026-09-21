@@ -278,6 +278,49 @@
   font-size: 14px;
 }
 
+/*
+ * Month shape — the spending-rhythm strip.
+ *
+ * Bars rise from a hairline baseline like marks in a ledger margin: one thin
+ * mark per elapsed day, expense only. It sits under the legend rather than
+ * beside the figures so the flow block keeps reading top-to-bottom. Height is
+ * deliberately small — this is a rhythm cue, not a second chart.
+ */
+.shape {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 26px;
+  margin: 16px 0 0;
+  border-bottom: 1px solid var(--mf-border);
+}
+
+.shapeBar {
+  flex: 1 1 0;
+  min-width: 0;
+  border-radius: 2px 2px 0 0;
+  background: var(--mf-expense);
+}
+
+/*
+ * Prior-window compare — one factual caption line. Muted text, money in money
+ * type; it states the figure and stops there, never a verdict.
+ */
+.compare {
+  margin: 10px 0 0;
+  color: var(--mf-text-muted);
+  font-size: 13px;
+}
+
+.compareValue {
+  color: var(--mf-text);
+  font-family: var(--mf-font-money);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: var(--mf-money-track-sm);
+  white-space: nowrap;
+}
+
 @media (max-width: 640px) {
   .standing {
     align-items: stretch;
@@ -324,6 +367,14 @@
   }
 
   .trackExpense {
+    background: Highlight;
+  }
+
+  .shape {
+    border-bottom-color: CanvasText;
+  }
+
+  .shapeBar {
     background: Highlight;
   }
 
