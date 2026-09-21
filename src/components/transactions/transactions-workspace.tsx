@@ -871,26 +871,6 @@ export function TransactionsWorkspace({
               label="Còn lại"
             />
           </div>
-          {reviewFeatureAvailable ? (
-            <button
-              type="button"
-              className={`${styles.summaryItem} ${styles.summaryReview}${
-                review === "needs_review"
-                  ? ` ${styles.summaryReviewActive}`
-                  : ""
-              }`}
-              onClick={() =>
-                setReview(review === "needs_review" ? "all" : "needs_review")
-              }
-              aria-pressed={review === "needs_review"}
-              aria-label={`${needsReviewCount} giao dịch cần kiểm tra — lọc danh sách`}
-            >
-              <p>Cần kiểm tra</p>
-              <strong className={styles.summaryCount}>
-                {needsReviewCount}
-              </strong>
-            </button>
-          ) : null}
         </section>
 
         <section className={styles.manager} aria-label="Danh sách giao dịch">
@@ -931,6 +911,33 @@ export function TransactionsWorkspace({
                 ),
               )}
             </div>
+
+            {/*
+              A queue chip, not a fifth kind segment: review is a different axis
+              and combines with kind (an expense can also need review), so it
+              stays a standalone toggle on its own toolbar row.
+            */}
+            {reviewFeatureAvailable ? (
+              <Button
+                type="button"
+                intent="secondary"
+                targetSize="important"
+                className={`${styles.reviewChip}${
+                  review === "needs_review"
+                    ? ` ${styles.reviewChipActive}`
+                    : ""
+                }`}
+                onClick={() =>
+                  setReview(review === "needs_review" ? "all" : "needs_review")
+                }
+                aria-pressed={review === "needs_review"}
+              >
+                Cần kiểm tra ·{" "}
+                <strong className={styles.reviewChipCount}>
+                  {needsReviewCount}
+                </strong>
+              </Button>
+            ) : null}
 
             {/*
               Secondary filters stay fully available but stop consuming the screen

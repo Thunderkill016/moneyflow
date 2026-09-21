@@ -84,9 +84,7 @@
    the eye reads a single object with a header band. */
 .summary {
   display: grid;
-  /* auto-fit so the strip stays balanced whether the review queue cell is
-     present (five items) or the feature flag keeps it hidden (four). */
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   overflow: hidden;
   border: 1px solid var(--mf-border);
   border-bottom: 0;
@@ -135,37 +133,22 @@
 }
 
 /*
- * The review cell is a button: tapping it toggles the needs_review filter, so
- * the figure is both a status and its own drill-down. Resets keep it looking
- * like its static siblings; hover/active borrow the segmented-control ground.
+ * The review queue chip sits on its own toolbar row: a quiet outline toggle
+ * that doubles as the queue count. Pressed state gets the inset ring so the
+ * active filter reads without relying on color alone.
  */
-.summaryReview {
-  border-top: 0;
-  border-right: 0;
-  border-bottom: 0;
-  border-radius: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: start;
-  cursor: pointer;
+.reviewChip {
+  grid-column: 1;
+  justify-self: start;
+  align-self: center;
 }
 
-.summaryReview:hover {
-  background: var(--mf-surface-muted);
+.reviewChipCount {
+  font-variant-numeric: tabular-nums;
 }
 
-.summaryReview:focus-visible {
-  outline: 2px solid var(--mf-focus, currentColor);
-  outline-offset: -2px;
-}
-
-.summaryReviewActive {
-  background: var(--mf-surface-muted);
-  box-shadow: inset 0 0 0 1px var(--mf-border);
-}
-
-.summaryReviewActive .summaryCount {
+.reviewChipActive {
+  box-shadow: inset 0 0 0 1.5px var(--mf-brand-text);
   color: var(--mf-brand-text);
 }
 
@@ -757,13 +740,6 @@
   }
 
   .summaryItem:nth-child(odd) {
-    border-left: 0;
-  }
-
-  /* Five cells in a two-column grid leave the review cell alone on the last
-     row; spanning it full-width keeps the strip a deliberate band. */
-  .summaryReview {
-    grid-column: 1 / -1;
     border-left: 0;
   }
 
