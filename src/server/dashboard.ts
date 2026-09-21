@@ -5,6 +5,7 @@ import {
   DASHBOARD_RECENT_TRANSACTION_LIMIT,
   dashboardTransactionStart,
 } from "@/lib/dashboard-transaction-window";
+import type { BackupReminderState } from "@/lib/attention";
 import type { AccountBalanceRow } from "@/lib/dashboard-accounts";
 import type { LedgerTrustSummary } from "@/lib/ledger-trust";
 import type { BudgetSummary } from "@/lib/planning/budgets";
@@ -47,6 +48,11 @@ export type DashboardPageWorkspace = {
   workspace: FinanceWorkspace;
   /** Per-account balances for the statement strip; empty when unavailable. */
   accountBalances: AccountBalanceRow[];
+  /**
+   * Backup recency for the reminder chip; null in demo, on error paths and
+   * during deploy skew (older bundle without `backup_state`).
+   */
+  backupState: BackupReminderState;
   budgets: BudgetSummary[];
   commitments: RecurringCommitment[];
   incomeTemplates: RecurringIncomeTemplate[];
@@ -109,6 +115,14 @@ const dashboardBundleSchema = z.object({
   // bundle migration. In that skew state Home keeps the real ledger visible and
   // simply withholds the trust surface rather than fabricating a value.
   ledger_trust: ledgerTrustSchema.nullish(),
+  // Same skew contract as ledger_trust: emitted as `::date` strings by the
+  // bundle, absent before the backup-reminder migration lands.
+  backup_state: z
+    .object({
+      last_backup_at: z.string().nullable(),
+      created_at: z.string(),
+    })
+    .nullish(),
 });
 
 function emptyDashboard(today: string, message: string): DashboardPageWorkspace {
@@ -122,6 +136,7 @@ function emptyDashboard(today: string, message: string): DashboardPageWorkspace 
       dataError: message,
     },
     accountBalances: [],
+    backupState: null,
     budgets: [],
     commitments: [],
     incomeTemplates: [],
@@ -176,6 +191,8 @@ async function getDemoDashboardWorkspace(): Promise<DashboardPageWorkspace> {
     pendingInboxCount: 0,
     // Demo data is browser-local and has no authenticated reconciliation truth.
     ledgerTrust: null,
+    // Demo has no backup feature, so the reminder has nothing honest to say.
+    backupState: null,
   };
 }
 
@@ -233,6 +250,9 @@ async function getAuthenticatedDashboardFallback(): Promise<DashboardPageWorkspa
     goals: goalWorkspace.goals,
     pendingInboxCount: pendingInboxCount ?? 0,
     ledgerTrust: null,
+    // Same withhold-over-fabricate rule as ledgerTrust: the fallback runs when
+    // the bundle is unavailable, so backup state is simply unknown here.
+    backupState: null,
   };
 }
 
@@ -334,6 +354,12 @@ function mapAuthenticatedBundle(
     goals: bundle.goals.map(mapGoalRow),
     pendingInboxCount,
     ledgerTrust: mapLedgerTrust(bundle.ledger_trust),
+    backupState: bundle.backup_state
+      ? {
+          lastBackupAt: bundle.backup_state.last_backup_at,
+          accountCreatedAt: bundle.backup_state.created_at,
+        }
+      : null,
   };
 }
 

@@ -18,12 +18,44 @@ export type AttentionItem = {
   tone: "warning" | "info" | "neutral";
 };
 
+/**
+ * Days without a fresh archive before Home nudges toward `/settings/backup`.
+ * Thirty is calm rather than naggy: the chip reappears monthly at most, and a
+ * brand-new account (baseline `accountCreatedAt`) gets the same grace.
+ */
+export const BACKUP_REMINDER_DAYS = 30;
+
+/**
+ * What the workspace knows about backup recency. `null` means the state is
+ * unavailable — demo mode, error paths and pre-migration deploys — in which
+ * case the strip must stay silent rather than invent a reminder.
+ */
+export type BackupReminderState = {
+  lastBackupAt: string | null;
+  accountCreatedAt: string;
+} | null;
+
+const DAY_MS = 86_400_000;
+
+function daysBetweenIso(from: string, to: string) {
+  return Math.round(
+    (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS,
+  );
+}
+
 export function buildAttentionItems(input: {
   budgets: BudgetSummary[];
   commitments: RecurringCommitment[];
   inboxCount?: number;
   needsReviewCount?: number;
   today: string;
+  /**
+   * Null/absent means the state is unknown (demo, deploy skew) — no chip,
+   * because a reminder must not be invented. `lastBackupAt` null with a real
+   * `accountCreatedAt` means "never backed up": the account's own age decides
+   * whether the reader has had time to learn backups exist.
+   */
+  backup?: BackupReminderState;
 }): AttentionItem[] {
   const items: AttentionItem[] = [];
   const {
@@ -32,6 +64,7 @@ export function buildAttentionItems(input: {
     inboxCount = 0,
     needsReviewCount = 0,
     today,
+    backup = null,
   } = input;
 
   for (const budget of budgets) {
@@ -82,6 +115,25 @@ export function buildAttentionItems(input: {
       href: "/transactions?review=needs_review",
       tone: "neutral",
     });
+  }
+
+  if (backup) {
+    const daysSinceBaseline = daysBetweenIso(
+      backup.lastBackupAt ?? backup.accountCreatedAt,
+      today,
+    );
+    if (daysSinceBaseline > BACKUP_REMINDER_DAYS) {
+      items.push({
+        id: "backup-reminder",
+        // A missing backup states the fact plainly; an aging one carries the
+        // day count. Never print the account's age as if it were backup age.
+        label: backup.lastBackupAt
+          ? `Bản sao lưu gần nhất đã ${daysSinceBaseline} ngày trước`
+          : "Chưa có bản sao lưu nào",
+        href: "/settings/backup",
+        tone: "info",
+      });
+    }
   }
 
   return items.slice(0, 4);

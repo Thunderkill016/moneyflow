@@ -92,3 +92,73 @@ test("buildAttentionItems stays quiet when nothing needs review", () => {
   });
   assert.ok(!items.some((i) => i.id === "needs-review"));
 });
+
+test("buildAttentionItems stays silent when backup state is unavailable", () => {
+  // Demo and deploy-skew both surface backup:null — never invent a reminder.
+  const items = buildAttentionItems({
+    budgets: [],
+    commitments: [],
+    today: "2026-09-21",
+    backup: null,
+  });
+  assert.ok(!items.some((i) => i.id === "backup-reminder"));
+});
+
+test("buildAttentionItems stays quiet for a fresh backup or fresh account", () => {
+  const fresh = buildAttentionItems({
+    budgets: [],
+    commitments: [],
+    today: "2026-09-21",
+    backup: { lastBackupAt: "2026-09-01", accountCreatedAt: "2026-01-01" },
+  });
+  assert.ok(!fresh.some((i) => i.id === "backup-reminder"));
+
+  const young = buildAttentionItems({
+    budgets: [],
+    commitments: [],
+    today: "2026-09-21",
+    backup: { lastBackupAt: null, accountCreatedAt: "2026-09-01" },
+  });
+  assert.ok(!young.some((i) => i.id === "backup-reminder"));
+});
+
+test("buildAttentionItems reminds when the newest backup is stale", () => {
+  const items = buildAttentionItems({
+    budgets: [],
+    commitments: [],
+    today: "2026-09-21",
+    backup: { lastBackupAt: "2026-08-01", accountCreatedAt: "2026-01-01" },
+  });
+  const chip = items.find((i) => i.id === "backup-reminder");
+  assert.ok(chip, "expected a backup reminder chip");
+  assert.equal(chip.href, "/settings/backup");
+  assert.match(chip.label, /51 ngày/);
+});
+
+test("buildAttentionItems names a missing backup without dressing account age as backup age", () => {
+  const items = buildAttentionItems({
+    budgets: [],
+    commitments: [],
+    today: "2026-09-21",
+    backup: { lastBackupAt: null, accountCreatedAt: "2026-01-01" },
+  });
+  const chip = items.find((i) => i.id === "backup-reminder");
+  assert.ok(chip, "expected a backup reminder chip");
+  assert.equal(chip.label, "Chưa có bản sao lưu nào");
+});
+
+test("backup reminder yields to budget and bill chips inside the strip cap", () => {
+  const items = buildAttentionItems({
+    budgets: [
+      baseBudget({ id: "a", spent: 1_200_000 }),
+      baseBudget({ id: "b", spent: 1_200_000, categoryName: "Mua sắm" }),
+      baseBudget({ id: "c", spent: 1_200_000, categoryName: "Di chuyển" }),
+      baseBudget({ id: "d", spent: 1_200_000, categoryName: "Nhà ở" }),
+    ],
+    commitments: [],
+    today: "2026-09-21",
+    backup: { lastBackupAt: "2026-08-01", accountCreatedAt: "2026-01-01" },
+  });
+  assert.equal(items.length, 4);
+  assert.ok(!items.some((i) => i.id === "backup-reminder"));
+});

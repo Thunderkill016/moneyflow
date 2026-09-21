@@ -1,5 +1,5 @@
 begin;
-select plan(16);
+select plan(17);
 
 select has_function(
   'public',
@@ -238,8 +238,13 @@ select set_config(
   true
 );
 
+select lives_ok(
+  $$select public.get_dashboard_bundle(current_date, current_date - 62, 5)$$,
+  'dashboard bundle accepts the month-to-date comparison edge (61+ days back)'
+);
+
 select throws_ok(
-  $$select public.get_dashboard_bundle(current_date, current_date - 46, 5)$$,
+  $$select public.get_dashboard_bundle(current_date, current_date - 63, 5)$$,
   'P0001',
   'invalid_dashboard_transaction_range',
   'dashboard bundle rejects an unbounded history range'

@@ -205,7 +205,7 @@ select ok(
 );
 select ok(
   position(
-    'p_transaction_start < p_today - 45'
+    'p_transaction_start < p_today - 62'
     in pg_get_functiondef(
       'public.get_dashboard_bundle(date,date,integer)'::regprocedure
     )
