@@ -163,6 +163,22 @@ test("all four Planning pages use the shared shell and UI empty state", () => {
   assert.match(commitments, /Không có khoản chưa thanh toán/);
   assert.match(commitments, /Chưa có khoản đã thanh toán/);
 
+  const goals = read(GOALS);
+  assert.match(
+    goals,
+    /fundableIntoGoals/,
+    "goals must cap the allocation dialog by the contract-tested reserve boundary, not just the goal remainder",
+  );
+
+  const goalDialogs = read(
+    join(root, "src/components/planning/goal-dialogs.tsx"),
+  );
+  assert.match(
+    goalDialogs,
+    /sau khi trừ hoá đơn chưa trả/,
+    "allocation dialog must explain when the reserve cap is tighter than the goal remainder",
+  );
+
   const categories = read(CATEGORIES);
   assert.match(categories, /EmptyState/);
   assert.match(categories, /PAGE_EMPTY_CATEGORY/);

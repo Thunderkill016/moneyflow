@@ -3,12 +3,13 @@
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import {
+  fundableIntoGoals,
   reserveExplanation,
   reservePictureFromTotals,
 } from "@/lib/planning/reserve";
 import { adjustGoalAction, archiveGoalAction, saveGoalAction } from "@/app/actions/goals";
 import { Icon } from "@/components/icons";
-import { AppShell } from "@/components/layout/app-shell";
+import { AppShell, type NoticeAction } from "@/components/layout/app-shell";
 import { MoneyValue } from "@/components/money-value";
 import {
   PlanningHeader,
@@ -89,14 +90,23 @@ export function GoalsPage({
   const [reviewGoal, setReviewGoal] = useState<SavingsGoal | null>(null);
   const [dialogVersion, setDialogVersion] = useState(0);
   const [notice, setNotice] = useState("");
+  const [noticeAction, setNoticeAction] = useState<NoticeAction | undefined>();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 4200);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setNoticeAction(undefined);
+    }, 4200);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  function notify(message: string, action?: NoticeAction) {
+    setNotice(message);
+    setNoticeAction(action);
+  }
 
   const active = useMemo(() => goals.filter((goal) => !goal.isArchived), [goals]);
   const archived = useMemo(() => goals.filter((goal) => goal.isArchived), [goals]);
@@ -131,7 +141,7 @@ export function GoalsPage({
           : [...current, next],
       );
       setGoalDialogOpen(false);
-      setNotice(existing ? "Đã cập nhật mục tiêu demo." : "Đã thêm mục tiêu demo.");
+      notify(existing ? "Đã cập nhật mục tiêu demo." : "Đã thêm mục tiêu demo.");
       return { ok: true };
     }
 
@@ -143,7 +153,7 @@ export function GoalsPage({
           : [...current, result.goal!],
       );
       setGoalDialogOpen(false);
-      setNotice("Đã lưu mục tiêu.");
+      notify("Đã lưu mục tiêu.");
     }
     return result;
   }
@@ -165,7 +175,7 @@ export function GoalsPage({
         ),
       );
       setAllocationOpen(false);
-      setNotice(successMessage);
+      notify(successMessage);
       return { ok: true };
     }
 
@@ -177,14 +187,21 @@ export function GoalsPage({
         ),
       );
       setAllocationOpen(false);
-      setNotice(successMessage);
+      notify(successMessage);
     }
     return result;
   }
 
   function requestArchive(goal: SavingsGoal) {
     if (!goal.isArchived && goal.allocated > 0) {
-      setNotice("Hãy giảm số đã đánh dấu về 0 trước khi lưu trữ mục tiêu.");
+      notify("Hãy giảm số đã đánh dấu về 0 trước khi lưu trữ mục tiêu.", {
+        label: "Giảm số đánh dấu",
+        onClick: () => {
+          setNotice("");
+          setNoticeAction(undefined);
+          openAllocation(goal, "release");
+        },
+      });
       return;
     }
     setReviewGoal(goal);
@@ -198,7 +215,7 @@ export function GoalsPage({
       : await archiveGoalAction(reviewGoal.id, !reviewGoal.isArchived);
     setBusyId(null);
     if (!result.ok) {
-      setNotice(result.message);
+      notify(result.message);
       return;
     }
     setGoals((current) =>
@@ -206,7 +223,7 @@ export function GoalsPage({
         goal.id === reviewGoal.id ? { ...goal, isArchived: !goal.isArchived } : goal,
       ),
     );
-    setNotice(reviewGoal.isArchived ? "Đã khôi phục mục tiêu." : "Đã lưu trữ mục tiêu.");
+    notify(reviewGoal.isArchived ? "Đã khôi phục mục tiêu." : "Đã lưu trữ mục tiêu.");
     setReviewGoal(null);
   }
 
@@ -220,6 +237,7 @@ export function GoalsPage({
       }}
       showPrimaryActionOnMobile
       notice={notice}
+      noticeAction={noticeAction}
     >
       <PlanningWorkspace>
         <PlanningHeader
@@ -424,6 +442,7 @@ export function GoalsPage({
         open={allocationOpen}
         goal={allocationGoal}
         mode={allocationMode}
+        fundable={reserve ? fundableIntoGoals(reserve) : null}
         onClose={() => setAllocationOpen(false)}
         onSubmit={adjust}
       />
