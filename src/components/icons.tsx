@@ -13,6 +13,7 @@ import {
   ChevronUp,
   ClipboardPaste,
   CreditCard,
+  Download,
   Flag,
   Home,
   HeartPulse,
@@ -79,7 +80,8 @@ export type IconName =
   | "more"
   | "paste"
   | "upload"
-  | "table";
+  | "table"
+  | "download";
 
 const icons: Record<IconName, LucideIcon> = {
   home: Home,
@@ -120,6 +122,7 @@ const icons: Record<IconName, LucideIcon> = {
   paste: ClipboardPaste,
   upload: Upload,
   table: Table2,
+  download: Download,
 };
 
 export function Icon({ name, ...props }: LucideProps & { name: IconName }) {

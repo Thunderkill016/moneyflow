@@ -59,6 +59,82 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+/**
+ * Offline read (X1): the last rendered `/dashboard` navigation response is kept
+ * in a versioned cache so a reopened ledger still shows its last truth while
+ * offline. The cache is wiped from the client on every sign-out/login/deletion
+ * boundary — financial HTML must never outlive its session.
+ *
+ * Bounded on purpose: only same-origin GET navigations to `/dashboard` are
+ * stored. Everything else passes through untouched, and an offline navigation
+ * to an uncached page gets a calm notice — never dashboard HTML served under a
+ * foreign URL.
+ */
+const OFFLINE_CACHE = "moneyflow-offline-v1";
+const OFFLINE_PAGE_KEY = "/dashboard";
+
+function offlineNoticeHtml(hasCachedDashboard) {
+  const tail = hasCachedDashboard
+    ? 'Tổng quan lần cuối đã lưu vẫn xem được. <a href="/dashboard" style="color:#0EA5E9;font-weight:600">Mở tổng quan đã lưu</a>'
+    : "Kết nối lại để tiếp tục.";
+  return (
+    '<!doctype html><html lang="vi"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+    "<title>Ngoại tuyến — MoneyFlow</title></head>" +
+    '<body style="margin:0;font-family:system-ui,-apple-system,sans-serif;background:#F8FAFC;color:#0F172A;display:grid;place-items:center;min-height:100vh;padding:24px;box-sizing:border-box">' +
+    '<main style="max-width:26rem;text-align:center">' +
+    '<h1 style="font-size:1.25rem;font-weight:650;margin:0 0 .5rem">Bạn đang ngoại tuyến</h1>' +
+    '<p style="color:#475569;font-size:.9375rem;line-height:1.6;margin:0">' +
+    tail +
+    "</p></main></body></html>"
+  );
+}
+
+function offlineNotice(hasCachedDashboard) {
+  return new Response(offlineNoticeHtml(hasCachedDashboard), {
+    status: 200,
+    headers: { "Content-Type": "text/html; charset=utf-8" },
+  });
+}
+
+async function handleNavigation(request, url) {
+  if (url.pathname === OFFLINE_PAGE_KEY) {
+    try {
+      const response = await fetch(request);
+      if (response.ok) {
+        const cache = await caches.open(OFFLINE_CACHE);
+        await cache.put(OFFLINE_PAGE_KEY, response.clone());
+      }
+      return response;
+    } catch {
+      const cached = await caches.match(OFFLINE_PAGE_KEY);
+      return cached ?? offlineNotice(false);
+    }
+  }
+
+  try {
+    return await fetch(request);
+  } catch {
+    const cached = await caches.match(OFFLINE_PAGE_KEY);
+    return offlineNotice(Boolean(cached));
+  }
+}
+
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  if (request.method !== "GET" || request.mode !== "navigate") return;
+
+  let url;
+  try {
+    url = new URL(request.url);
+  } catch {
+    return;
+  }
+  if (url.origin !== self.location.origin) return;
+
+  event.respondWith(handleNavigation(request, url));
+});
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const rawUrl =

@@ -9,6 +9,7 @@ import { BrandLockup } from "@/components/brand/brand-lockup";
 import { Icon, type IconName } from "@/components/icons";
 import { useConnectionState } from "@/hooks/use-connection-state";
 import { connectionNotice as connectionNoticeFor } from "@/lib/connectivity";
+import { registerAppServiceWorker } from "@/lib/pwa";
 import {
   UserChip,
   viewerInitial,
@@ -196,6 +197,12 @@ export function AppShell({
     }
     action.onClick?.();
   }
+
+  useEffect(() => {
+    // Every product page registers the shared service worker — the offline
+    // dashboard cache exists whether or not the reader ever enables push.
+    void registerAppServiceWorker();
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
