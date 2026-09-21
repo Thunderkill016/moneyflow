@@ -37,6 +37,12 @@ const SETTINGS_LINKS: SettingsLink[] = [
     icon: "lock",
   },
   {
+    href: "/settings/apps",
+    title: "Ứng dụng đã kết nối",
+    description: "Xem và thu hồi quyền truy cập của ứng dụng bạn đã cho phép.",
+    icon: "bank",
+  },
+  {
     href: "/settings/notifications",
     title: "Thông báo cam kết",
     description: "Opt-in nhắc khoản đến hạn mà không hiện số tiền nhạy cảm.",
