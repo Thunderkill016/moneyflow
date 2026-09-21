@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AddTransactionDialog } from "@/components/add-transaction-dialog";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
@@ -16,6 +16,13 @@ import { EmptyState } from "@/components/ui/empty-state";
 import type { ViewerSummary } from "@/components/user-chip";
 import { useTransactions } from "@/hooks/use-transactions";
 import { captureConsequence } from "@/lib/capture-consequence";
+import { deriveFrequentLedgerPatterns } from "@/lib/quick-add-defaults";
+import {
+  buildQuickCaptureCorrectionMeta,
+  buildQuickCaptureSaveMeta,
+  trackProductEvent,
+  type QuickCapturePatternRank,
+} from "@/lib/safe-analytics";
 import {
   addCandidatesForClient,
   getPendingCountForClient,
@@ -27,11 +34,20 @@ import type {
   CreateTransferInput,
   Transaction,
   TransactionKind,
+  UpdateMoneyTransactionInput,
+  UpdateTransferInput,
 } from "@/lib/sample-data";
 import styles from "./capture-quick-page.module.css";
 
 const TransferDialog = dynamic(
   () => import("@/components/transfer-dialog").then((mod) => mod.TransferDialog),
+  { ssr: false },
+);
+const EditTransactionDialog = dynamic(
+  () =>
+    import("@/components/edit-transaction-dialog").then(
+      (mod) => mod.EditTransactionDialog,
+    ),
   { ssr: false },
 );
 
@@ -62,13 +78,22 @@ export function CaptureQuickPage({
 }) {
   const router = useRouter();
   const canTransfer = workspace.accounts.length >= 2;
-  const { transactions, addTransaction, addTransfer, isMutating } = useTransactions({
+  const {
+    transactions,
+    addTransaction,
+    addTransfer,
+    updateTransaction,
+    isMutating,
+  } = useTransactions({
     initialTransactions: workspace.transactions,
     accounts: workspace.accounts,
     categories: workspace.categories,
     isDemo: viewer.isDemo,
   });
   const [notice, setNotice] = useState("");
+  const [recentSaved, setRecentSaved] = useState<Transaction | null>(null);
+  const recentSavedRef = useRef<Transaction | null>(null);
+  const [editing, setEditing] = useState<Transaction | null>(null);
   const [inboxCount, setInboxCount] = useState(0);
   const [formOpen, setFormOpen] = useState(
     initialMode !== "transfer" || !canTransfer,
@@ -76,6 +101,16 @@ export function CaptureQuickPage({
   const [transferOpen, setTransferOpen] = useState(
     initialMode === "transfer" && canTransfer,
   );
+  const captureStartedAtRef = useRef<number | null>(null);
+  const lastSavedAtRef = useRef<number | null>(null);
+  const selectedPatternRankRef = useRef<QuickCapturePatternRank | null>(null);
+  const hasQuickSetup =
+    workspace.accounts.length > 0 && workspace.categories.length > 0;
+  const frequentPatternCount = deriveFrequentLedgerPatterns({
+    transactions,
+    accounts: workspace.accounts,
+    categories: workspace.categories,
+  }).length;
 
   useEffect(() => {
     let cancelled = false;
@@ -88,14 +123,37 @@ export function CaptureQuickPage({
   }, [viewer.isDemo]);
 
   useEffect(() => {
+    if (!formOpen || !hasQuickSetup || captureStartedAtRef.current !== null) return;
+    captureStartedAtRef.current = performance.now();
+  }, [formOpen, hasQuickSetup]);
+
+  useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 3600);
+    const returnToCapture = Boolean(recentSaved && !formOpen);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setRecentSaved(null);
+      recentSavedRef.current = null;
+      lastSavedAtRef.current = null;
+      if (returnToCapture) router.push("/capture");
+    }, 3600);
     return () => window.clearTimeout(timer);
-  }, [notice]);
+  }, [formOpen, notice, recentSaved, router]);
 
   async function handleAdd(input: CreateTransactionInput) {
+    const startedAt = captureStartedAtRef.current ?? performance.now();
     const result = await addTransaction(input);
+    const completedAt = performance.now();
+    const measurement = buildQuickCaptureSaveMeta({
+      elapsedMs: completedAt - startedAt,
+      patternCount: frequentPatternCount,
+      selectedPatternRank: selectedPatternRankRef.current,
+      outcome: result.ok ? "success" : "failure",
+    });
+    if (measurement) trackProductEvent("quick_capture_save", measurement);
     if (!result.ok) return result;
+
+    selectedPatternRankRef.current = null;
 
     const account = workspace.accounts.find(
       (item) => item.id === input.accountId,
@@ -128,13 +186,20 @@ export function CaptureQuickPage({
       // Candidate mirroring is optional; the ledger save already succeeded.
     }
 
+    lastSavedAtRef.current = performance.now();
+    captureStartedAtRef.current = performance.now();
+
     /*
      * The moment after a save is the highest-attention moment in the app, and it
      * used to return four words carrying no information. Say what was recorded and
      * what it now adds up to — the user's own numbers, never guidance.
      */
+    if (result.transaction) {
+      recentSavedRef.current = result.transaction;
+      setRecentSaved(result.transaction);
+    }
     setNotice(
-      result.ok && result.transaction
+      result.transaction
         ? captureConsequence({
             saved: result.transaction,
             transactions: [result.transaction, ...transactions],
@@ -144,11 +209,26 @@ export function CaptureQuickPage({
     return result;
   }
 
+  async function handleUpdate(
+    input: UpdateMoneyTransactionInput | UpdateTransferInput,
+  ) {
+    const result = await updateTransaction(input);
+    if (result.ok) {
+      setEditing(null);
+      setRecentSaved(null);
+      recentSavedRef.current = null;
+      setNotice("Đã cập nhật giao dịch.");
+    }
+    return result;
+  }
+
   async function handleTransfer(input: CreateTransferInput) {
     const result = await addTransfer(input);
     if (result.ok) {
       setTransferOpen(false);
       setFormOpen(true);
+      setRecentSaved(null);
+      recentSavedRef.current = null;
       setNotice("Đã chuyển tiền giữa các tài khoản.");
     }
     return result;
@@ -156,11 +236,24 @@ export function CaptureQuickPage({
 
   function handleClose() {
     setFormOpen(false);
+    if (recentSavedRef.current) {
+      // Preserve the old return-to-Capture behavior, but delay it briefly so
+      // the just-saved transaction can be corrected through the trusted edit path.
+      recentSavedRef.current = null;
+      return;
+    }
+    captureStartedAtRef.current = null;
+    selectedPatternRankRef.current = null;
     router.push("/capture");
   }
 
   function openTransfer() {
     setFormOpen(false);
+    setRecentSaved(null);
+    recentSavedRef.current = null;
+    captureStartedAtRef.current = null;
+    lastSavedAtRef.current = null;
+    selectedPatternRankRef.current = null;
     setTransferOpen(true);
   }
 
@@ -169,8 +262,33 @@ export function CaptureQuickPage({
     setFormOpen(true);
   }
 
-  const hasQuickSetup =
-    workspace.accounts.length > 0 && workspace.categories.length > 0;
+  function editRecentSaved() {
+    if (!recentSaved) return;
+    if (lastSavedAtRef.current !== null) {
+      const measurement = buildQuickCaptureCorrectionMeta(
+        performance.now() - lastSavedAtRef.current,
+      );
+      if (measurement) {
+        trackProductEvent("quick_capture_correction_opened", measurement);
+      }
+    }
+    lastSavedAtRef.current = null;
+    setEditing(recentSaved);
+    setRecentSaved(null);
+    recentSavedRef.current = null;
+    setNotice("");
+  }
+
+  function addAnother() {
+    setRecentSaved(null);
+    recentSavedRef.current = null;
+    setNotice("");
+    captureStartedAtRef.current = performance.now();
+    lastSavedAtRef.current = null;
+    selectedPatternRankRef.current = null;
+    setFormOpen(true);
+  }
+
   const initialKind =
     initialMode === "expense" || initialMode === "income"
       ? initialMode
@@ -186,6 +304,15 @@ export function CaptureQuickPage({
         icon: "inbox",
       }}
       notice={notice}
+      noticeAction={
+        recentSaved
+          ? {
+              label: "Sửa",
+              onClick: editRecentSaved,
+              disabled: isMutating,
+            }
+          : undefined
+      }
     >
       <main className={styles.workspace} data-slot="capture-quick-workspace">
         <section className={styles.titleRow} aria-labelledby="capture-quick-title">
@@ -200,8 +327,8 @@ export function CaptureQuickPage({
             </LinkButton>
             <h1 id="capture-quick-title">Thêm nhanh</h1>
             <p>
-              Nhập số tiền trước. MoneyFlow nhớ tài khoản và danh mục gần nhất;
-              chỉ mở chi tiết khi bạn cần đổi.
+              Nhập số tiền trước. MoneyFlow dùng lựa chọn ổn định từ sổ gần đây;
+              nếu chưa đủ chắc chắn, lựa chọn gần nhất trên thiết bị vẫn là dự phòng.
             </p>
           </div>
           <div className={styles.headingActions}>
@@ -257,6 +384,36 @@ export function CaptureQuickPage({
           />
         ) : null}
 
+        {!workspace.dataError && hasQuickSetup && recentSaved && !formOpen ? (
+          <Alert tone="success" live="polite" className={styles.state}>
+            <AlertTitle>Đã lưu vào sổ</AlertTitle>
+            <AlertDescription>
+              Nếu vừa nhận ra tài khoản, danh mục hay ghi chú chưa đúng, chọn Sửa ngay;
+              hoặc ghi tiếp một khoản khác.
+            </AlertDescription>
+            <div>
+              <Button
+                type="button"
+                intent="secondary"
+                targetSize="important"
+                onClick={editRecentSaved}
+                disabled={isMutating}
+              >
+                Sửa
+              </Button>{" "}
+              <Button
+                type="button"
+                intent="primary"
+                targetSize="important"
+                onClick={addAnother}
+                disabled={isMutating}
+              >
+                Ghi khoản khác
+              </Button>
+            </div>
+          </Alert>
+        ) : null}
+
         {!workspace.dataError && hasQuickSetup ? (
           <AddTransactionDialog
             open={formOpen}
@@ -266,8 +423,13 @@ export function CaptureQuickPage({
             onClose={handleClose}
             onAdd={handleAdd}
             onTransferRequested={canTransfer ? openTransfer : undefined}
+            onFrequentPatternSelectionChange={(rank) => {
+              selectedPatternRankRef.current = rank;
+            }}
             accounts={workspace.accounts}
             categories={workspace.categories}
+            transactions={transactions}
+            showFrequentPatterns
             disabled={isMutating}
           />
         ) : null}
@@ -279,6 +441,17 @@ export function CaptureQuickPage({
         onClose={closeTransfer}
         onTransfer={handleTransfer}
       />
+      {editing ? (
+        <EditTransactionDialog
+          key={editing.id}
+          transaction={editing}
+          accounts={workspace.accounts}
+          categories={workspace.categories}
+          onClose={() => setEditing(null)}
+          onSave={handleUpdate}
+          disabled={isMutating || Boolean(workspace.dataError)}
+        />
+      ) : null}
     </AppShell>
   );
 }

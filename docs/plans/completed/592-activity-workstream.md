@@ -1,7 +1,7 @@
 # #592 — Activity 2.0 unified maintenance workstream MVP
 
-**Status:** review_ready
-**Execution state:** owner_review
+**Status:** completed
+**Execution state:** completed
 **Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
@@ -143,7 +143,7 @@ Permission: branch/PR writes for #592 R1 only. No direct `main` write, merge, pr
 | 592.3 | additive route/workspace | done |
 | 592.4 | demo/auth responsive + candidate/ledger/review partial-error evidence | done on accepted source/runtime head |
 | 592.5 | additive More affordance, preserving Transactions/Inbox | done on accepted source/runtime head |
-| 592.6 | exact-head evaluation + owner handoff | done; owner review/merge decision pending |
+| 592.6 | exact-head evaluation + owner handoff | done — PR #593 merged 2026-09-13, squash `20c4ae88` |
 
 ## Evaluation
 

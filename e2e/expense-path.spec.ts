@@ -8,6 +8,11 @@ const AFTER_EXPENSE_BALANCE_LABEL = "Bạn đang có 349.000 ₫";
 const KEEP_OPEN_NOTE = "E2E keep-open first";
 const CLOSE_AFTER_SAVE_NOTE = "E2E close after save";
 
+type AnalyticsCall = [
+  string,
+  { name?: string; data?: Record<string, unknown> }?,
+];
+
 async function stabilizeQuickExpense(
   amount: Locator,
   note: Locator,
@@ -50,6 +55,17 @@ async function openCaptureDetails(scope: Locator, slot: string) {
 test.describe("Expense path (thu chi)", () => {
   test.beforeEach(async ({ context }) => {
     await context.addInitScript(() => {
+      const analyticsWindow = window as typeof window & {
+        __mfAnalyticsEvents: unknown[][];
+      };
+      analyticsWindow.__mfAnalyticsEvents = [];
+      Object.defineProperty(analyticsWindow, "va", {
+        configurable: false,
+        writable: false,
+        value: (...params: unknown[]) => {
+          analyticsWindow.__mfAnalyticsEvents.push(params);
+        },
+      });
       try {
         if (
           window.localStorage.getItem("__mf_e2e_expense_seeded") === "1"
@@ -367,6 +383,164 @@ test.describe("Expense path (thu chi)", () => {
         { timeout: 15_000 },
       )
       .toBe(1);
+  });
+
+  test("quick capture offers repeated ledger contexts without guessing entered details", async ({
+    page,
+  }) => {
+    await page.goto("/dashboard");
+    await page.evaluate(() => {
+      const base = {
+        note: "Reviewed capture context",
+        amount: 100_000,
+        relativeDate: "Gần đây",
+        reviewStatus: "reviewed",
+      };
+      window.localStorage.setItem(
+        "moneyflow-demo-transactions-v1",
+        JSON.stringify([
+          {
+            ...base,
+            id: "travel-3",
+            kind: "expense",
+            categoryId: "demo-category-expense-Di chuyển",
+            category: "Di chuyển",
+            accountId: "demo-account-mb",
+            account: "MB Bank",
+            occurredOn: "2026-09-20",
+            occurredAt: "2026-09-20T09:00:00.000Z",
+          },
+          {
+            ...base,
+            id: "food-2",
+            kind: "expense",
+            categoryId: "demo-category-expense-Ăn uống",
+            category: "Ăn uống",
+            accountId: "demo-account-cash",
+            account: "Tiền mặt",
+            occurredOn: "2026-09-19",
+            occurredAt: "2026-09-19T09:00:00.000Z",
+          },
+          {
+            ...base,
+            id: "travel-2",
+            kind: "expense",
+            categoryId: "demo-category-expense-Di chuyển",
+            category: "Di chuyển",
+            accountId: "demo-account-mb",
+            account: "MB Bank",
+            occurredOn: "2026-09-18",
+            occurredAt: "2026-09-18T09:00:00.000Z",
+          },
+          {
+            ...base,
+            id: "food-1",
+            kind: "expense",
+            categoryId: "demo-category-expense-Ăn uống",
+            category: "Ăn uống",
+            accountId: "demo-account-cash",
+            account: "Tiền mặt",
+            occurredOn: "2026-09-17",
+            occurredAt: "2026-09-17T09:00:00.000Z",
+          },
+          {
+            ...base,
+            id: "travel-1",
+            kind: "expense",
+            categoryId: "demo-category-expense-Di chuyển",
+            category: "Di chuyển",
+            accountId: "demo-account-mb",
+            account: "MB Bank",
+            occurredOn: "2026-09-16",
+            occurredAt: "2026-09-16T09:00:00.000Z",
+          },
+        ]),
+      );
+    });
+
+    await page.goto("/capture/quick");
+    const dialog = page.getByRole("dialog", { name: "Ghi giao dịch" });
+    const patterns = dialog.locator('[data-slot="capture-frequent-patterns"]');
+    await expect(patterns).toBeVisible();
+    await expect(patterns.getByRole("button")).toHaveCount(2);
+
+    const amount = dialog.getByLabel(/Số tiền chi/i);
+    await amount.fill("125000");
+    await openCaptureDetails(dialog, "capture-optional-details");
+    const note = dialog.getByPlaceholder("Ví dụ: Cơm trưa");
+    await note.fill("Không được mẫu ghi đè");
+
+    await patterns
+      .getByRole("button", {
+        name: "Dùng mẫu chi, Ăn uống, Tiền mặt",
+      })
+      .click();
+    await expect(amount).toHaveValue("125.000");
+    await expect(note).toHaveValue("Không được mẫu ghi đè");
+    await expect(dialog.locator('[data-slot="capture-fast-defaults"]')).toContainText(
+      "Ăn uống",
+    );
+    await expect(dialog.locator('[data-slot="capture-fast-defaults"]')).toContainText(
+      "Tiền mặt",
+    );
+
+    await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
+    await expect(page.getByText("Đã lưu vào sổ")).toBeVisible();
+    const analyticsCalls = await page.evaluate(
+      () =>
+        (
+          window as typeof window & { __mfAnalyticsEvents: AnalyticsCall[] }
+        ).__mfAnalyticsEvents,
+    );
+    const saveEvent = analyticsCalls.find(
+      (call) => call[1]?.name === "quick_capture_save",
+    )?.[1];
+    expect(saveEvent, JSON.stringify(analyticsCalls)).toBeDefined();
+    expect(saveEvent?.data).toMatchObject({
+      pattern_count: 2,
+      completion_mode: "pattern_selected",
+      selected_pattern_rank: 2,
+      save_outcome: "success",
+    });
+    expect(Object.keys(saveEvent?.data ?? {})).not.toEqual(
+      expect.arrayContaining([
+        "amount",
+        "account_id",
+        "category_id",
+        "note",
+        "occurred_on",
+      ]),
+    );
+
+    await page.getByRole("button", { name: "Sửa", exact: true }).last().click();
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const calls = (
+            window as typeof window & { __mfAnalyticsEvents: AnalyticsCall[] }
+          ).__mfAnalyticsEvents;
+          return calls.find(
+            (call) => call[1]?.name === "quick_capture_correction_opened",
+          )?.[1]?.data?.elapsed_bucket;
+        }),
+      )
+      .toBe("within_5_seconds");
+
+    await page.goto("/dashboard");
+    const isMobile = (page.viewportSize()?.width ?? 1_000) <= 760;
+    const openButton = isMobile
+      ? page
+          .getByRole("navigation", { name: "Điều hướng di động" })
+          .getByRole("button", { name: "Ghi chi tiêu" })
+      : page
+          .locator("header")
+          .getByRole("button", { name: "Ghi chi tiêu" });
+    await openButton.click();
+    await expect(
+      page
+        .getByRole("dialog", { name: "Ghi khoản chi" })
+        .locator('[data-slot="capture-frequent-patterns"]'),
+    ).toHaveCount(0);
   });
 
   test("direct capture modes select income and reuse the trusted transfer flow", async ({

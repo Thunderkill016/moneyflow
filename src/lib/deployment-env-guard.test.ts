@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import test from "node:test";
 
-const script = "scripts/check-deployment-env.mjs";
+const script = resolve("scripts/check-deployment-env.mjs");
 
 function runGuard(overrides: Record<string, string | undefined>) {
+  const cwd = mkdtempSync(join(tmpdir(), "moneyflow-deployment-env-"));
   const env: NodeJS.ProcessEnv = {
     PATH: process.env.PATH,
     HOME: process.env.HOME,
@@ -21,10 +25,39 @@ function runGuard(overrides: Record<string, string | undefined>) {
     if (value === undefined) delete env[name];
   }
 
-  return spawnSync(process.execPath, [script, "--force"], {
+  const result = spawnSync(process.execPath, [script, "--force"], {
+    cwd,
     env,
     encoding: "utf8",
   });
+  rmSync(cwd, { recursive: true, force: true });
+  return result;
+}
+
+function runGuardInTempEnv(
+  contents: string,
+  overrides: Record<string, string | undefined> = {},
+) {
+  const cwd = mkdtempSync(join(tmpdir(), "moneyflow-deployment-env-"));
+  writeFileSync(join(cwd, ".env.local"), contents);
+
+  const env: NodeJS.ProcessEnv = {
+    PATH: process.env.PATH,
+    HOME: process.env.HOME,
+    NODE_ENV: "test",
+    ...overrides,
+  };
+  for (const [name, value] of Object.entries(env)) {
+    if (value === undefined) delete env[name];
+  }
+
+  const result = spawnSync(process.execPath, [script, "--force"], {
+    cwd,
+    env,
+    encoding: "utf8",
+  });
+  rmSync(cwd, { recursive: true, force: true });
+  return result;
 }
 
 test("explicit local authenticated configuration passes without an invented fallback", () => {
@@ -84,4 +117,22 @@ test("the canonical hostname cannot also be a legacy hostname", () => {
   });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /must not contain the configured site hostname/);
+});
+
+test("forced local validation loads values from .env.local", () => {
+  const result = runGuardInTempEnv(
+    "NEXT_PUBLIC_APP_MODE=demo\nNEXT_PUBLIC_SITE_URL=http://localhost:3000\n",
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Loaded \.env\.local \(2 variables\) for local validation\./);
+});
+
+test("process environment values take precedence over .env.local", () => {
+  const result = runGuardInTempEnv(
+    "NEXT_PUBLIC_APP_MODE=authenticated\nNEXT_PUBLIC_SITE_URL=http://localhost:3000\n",
+    { NEXT_PUBLIC_APP_MODE: "demo" },
+  );
+
+  assert.equal(result.status, 0, result.stderr);
 });

@@ -1,0 +1,75 @@
+{
+  "monthStart": "2026-07-01",
+  "monthEnd": "2026-07-31",
+  "monthIncome": {
+    "amount": 12000000,
+    "currency": "VND",
+    "basis": {
+      "formula": "budget_progress workspace snapshot for the selected month; remaining = limit − spent",
+      "range": null,
+      "included": {
+        "count": 0,
+        "transactionIds": []
+      },
+      "excluded": [],
+      "trust": null,
+      "computedAt": "2026-07-14T12:00:00.000Z",
+      "capabilityVersion": "budgets.status@1"
+    }
+  },
+  "budgets": [
+    {
+      "id": "bud-food",
+      "categoryId": "cat-food",
+      "categoryName": "Ăn uống",
+      "limit": {
+        "amount": 4000000,
+        "currency": "VND",
+        "basis": {
+          "formula": "budget_progress workspace snapshot for the selected month; remaining = limit − spent",
+          "range": null,
+          "included": {
+            "count": 0,
+            "transactionIds": []
+          },
+          "excluded": [],
+          "trust": null,
+          "computedAt": "2026-07-14T12:00:00.000Z",
+          "capabilityVersion": "budgets.status@1"
+        }
+      },
+      "spent": {
+        "amount": 2760000,
+        "currency": "VND",
+        "basis": {
+          "formula": "budget_progress workspace snapshot for the selected month; remaining = limit − spent",
+          "range": null,
+          "included": {
+            "count": 0,
+            "transactionIds": []
+          },
+          "excluded": [],
+          "trust": null,
+          "computedAt": "2026-07-14T12:00:00.000Z",
+          "capabilityVersion": "budgets.status@1"
+        }
+      },
+      "remaining": {
+        "amount": 1240000,
+        "currency": "VND",
+        "basis": {
+          "formula": "budget_progress workspace snapshot for the selected month; remaining = limit − spent",
+          "range": null,
+          "included": {
+            "count": 0,
+            "transactionIds": []
+          },
+          "excluded": [],
+          "trust": null,
+          "computedAt": "2026-07-14T12:00:00.000Z",
+          "capabilityVersion": "budgets.status@1"
+        }
+      }
+    }
+  ]
+}

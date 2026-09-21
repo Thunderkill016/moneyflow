@@ -344,6 +344,26 @@
   text-align: end;
 }
 
+.appGrant {
+  display: block;
+}
+
+.appGrantHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.appGrantHead .activityLabel {
+  color: var(--mf-text);
+  font-weight: 650;
+}
+
+.appGrant .resultGrid {
+  margin-top: 0.5rem;
+}
+
 .dangerPanel {
   border-color: color-mix(in srgb, var(--mf-expense) 42%, var(--mf-border));
   background: color-mix(in srgb, var(--mf-expense) 5%, var(--mf-surface));

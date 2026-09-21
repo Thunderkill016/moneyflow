@@ -34,6 +34,7 @@ export default async function Page({
     to?: string;
     min?: string;
     max?: string;
+    open?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -67,6 +68,7 @@ export default async function Page({
       initialToDate={normalizeTransactionDateParam(params.to)}
       initialMinAmount={normalizeTransactionAmountInput(params.min)}
       initialMaxAmount={normalizeTransactionAmountInput(params.max)}
+      initialOpenId={params.open?.slice(0, 100)}
     />
   );
 }

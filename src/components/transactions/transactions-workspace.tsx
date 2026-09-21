@@ -43,7 +43,12 @@ import {
   evaluateBulkCategorySelection,
   getTransactionReviewStatus,
 } from "@/lib/transaction-review";
+import {
+  TRANSACTION_OPEN_MISSING_NOTICE,
+  resolveTransactionOpenTarget,
+} from "@/lib/transactions/open-target";
 import { transferRowSubtitle } from "@/lib/transfers";
+import { clearQueryParam } from "@/lib/url-params";
 import styles from "./transactions-workspace.module.css";
 
 const AddTransactionDialog = dynamic(
@@ -104,6 +109,8 @@ type TransactionsWorkspaceProps = {
   initialToDate?: string;
   initialMinAmount?: string;
   initialMaxAmount?: string;
+  /** `?open=<id>` deep link — resolved once against owner-scoped rows. */
+  initialOpenId?: string;
 };
 
 type DayGroup = {
@@ -140,6 +147,7 @@ export function TransactionsWorkspace({
   initialToDate = "",
   initialMinAmount = "",
   initialMaxAmount = "",
+  initialOpenId,
 }: TransactionsWorkspaceProps) {
   const isTimeline = variant === "timeline";
   const reviewFeatureAvailable =
@@ -166,6 +174,8 @@ export function TransactionsWorkspace({
   const [transferOpen, setTransferOpen] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
   const [editing, setEditing] = useState<Transaction | null>(null);
+  const openConsumedRef = useRef(false);
+  const [recentSaved, setRecentSaved] = useState<Transaction | null>(null);
   const [query, setQuery] = useState(initialQuery);
   const [kind, setKind] = useState<KindFilter>(initialKind);
   const [account, setAccount] = useState(initialAccount);
@@ -186,6 +196,31 @@ export function TransactionsWorkspace({
   const [pendingUndo, setPendingUndo] = useState<Transaction | null>(null);
   const noticeTimerRef = useRef<number | null>(null);
   const pendingUndoRef = useRef<Transaction | null>(null);
+
+  /*
+   * Deep link (?open=<id>): resolve once against the owner-scoped rows, then
+   * strip the param so a refresh does not reopen a consumed target. Split and
+   * recurring rows land on the same notice their row action shows; stale or
+   * foreign ids land on the missing notice — never on the wrong dialog. In
+   * demo mode the ledger swaps to device storage after mount, so resolution
+   * waits for that settled list before judging an id missing.
+   */
+  const mountTransactionsRef = useRef(transactions);
+  const ledgerSettled = !viewer.isDemo || transactions !== mountTransactionsRef.current;
+  useEffect(() => {
+    if (!initialOpenId || !ledgerSettled || openConsumedRef.current) return;
+    clearQueryParam("open");
+    const timer = window.setTimeout(() => {
+      if (openConsumedRef.current) return;
+      openConsumedRef.current = true;
+      const resolution = resolveTransactionOpenTarget(initialOpenId, transactions);
+      if (resolution.type === "edit") setEditing(resolution.transaction);
+      else if (resolution.type === "notice") showNotice(resolution.message);
+      else showNotice(TRANSACTION_OPEN_MISSING_NOTICE);
+    }, 0);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deep-link resolution fires once against the settled list
+  }, [initialOpenId, transactions, ledgerSettled]);
   const expenseCategoryCount = workspace.categories.filter(
     (item) => item.kind === "expense",
   ).length;
@@ -197,13 +232,19 @@ export function TransactionsWorkspace({
     }
   }
 
-  function showNotice(message: string, ms = NOTICE_MS) {
+  function showNotice(
+    message: string,
+    ms = NOTICE_MS,
+    preserveRecentSaved = false,
+  ) {
     clearNoticeTimer();
     setPendingUndo(null);
     pendingUndoRef.current = null;
+    if (!preserveRecentSaved) setRecentSaved(null);
     setNotice(message);
     noticeTimerRef.current = window.setTimeout(() => {
       setNotice("");
+      setRecentSaved(null);
       noticeTimerRef.current = null;
     }, ms);
   }
@@ -510,11 +551,14 @@ export function TransactionsWorkspace({
     const result = await addTransaction(input);
     if (result.ok && result.transaction) {
       setDialogOpen(false);
+      setRecentSaved(result.transaction);
       showNotice(
         safeUserNotice(
           `Đã thêm ${result.transaction.note}.`,
           "Đã thêm giao dịch.",
         ),
+        NOTICE_MS,
+        true,
       );
     }
     return result;
@@ -538,6 +582,7 @@ export function TransactionsWorkspace({
 
     setSelectedIds((current) => current.filter((id) => id !== transaction.id));
     clearNoticeTimer();
+    setRecentSaved(null);
     pendingUndoRef.current = transaction;
     setPendingUndo(transaction);
     setNotice(
@@ -618,6 +663,14 @@ export function TransactionsWorkspace({
     setEditing(transaction);
   }
 
+  function editRecentSaved() {
+    if (!recentSaved) return;
+    clearNoticeTimer();
+    setNotice("");
+    setRecentSaved(null);
+    setEditing(recentSaved);
+  }
+
   return (
     <AppShell
       viewer={viewer}
@@ -664,7 +717,13 @@ export function TransactionsWorkspace({
               onClick: () => void handleUndoDelete(),
               disabled: isMutating,
             }
-          : undefined
+          : recentSaved
+            ? {
+                label: "Sửa",
+                onClick: editRecentSaved,
+                disabled: isMutating,
+              }
+            : undefined
       }
     >
       <main
@@ -1310,6 +1369,7 @@ export function TransactionsWorkspace({
         onAdd={handleAdd}
         accounts={workspace.accounts}
         categories={workspace.categories}
+        transactions={transactions}
         disabled={isMutating || Boolean(workspace.dataError)}
       />
       <TransferDialog

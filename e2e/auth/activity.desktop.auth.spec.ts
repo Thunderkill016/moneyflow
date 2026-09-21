@@ -29,7 +29,10 @@ test("Activity renders the unified workstream on desktop in light and dark mode"
   await expect(page.locator('[data-activity-type="ledger_transaction"]')).toHaveCount(0);
 
   const firstCandidateAction = page.getByRole("link", { name: /Mở Cần xem|Xử lý/u }).first();
-  await expect(firstCandidateAction).toHaveAttribute("href", "/inbox");
+  await expect(firstCandidateAction).toHaveAttribute(
+    "href",
+    "/inbox?candidate=40000000-0000-4000-8000-000000000001",
+  );
   const actionBox = await firstCandidateAction.boundingBox();
   expect(actionBox?.height ?? 0).toBeGreaterThanOrEqual(44);
 

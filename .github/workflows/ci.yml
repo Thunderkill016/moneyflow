@@ -150,6 +150,8 @@ jobs:
         run: npm run check:css-ownership
       - name: Architecture boundary contract
         run: npm run check:architecture
+      - name: Capability manifest contract
+        run: npm run check:capabilities
       - name: Lint
         run: npm run lint
       - name: Typecheck

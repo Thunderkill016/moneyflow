@@ -1,7 +1,7 @@
 # #590 — Home ledger trust and next maintenance action
 
-**Status:** review_ready
-**Execution state:** owner_review
+**Status:** completed
+**Execution state:** completed
 **Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
@@ -243,11 +243,12 @@ Implementation/source review has no known semantic blocker and is ready for owne
 ## Delivery record
 
 - Branch: `feat/590-home-ledger-trust`
-- PR: #591 (ready for review)
+- PR: #591 — merged 2026-09-13
+- Squash commit: `77def221`
 - Accepted source/runtime head: `f1ee094c852a376ebaf44436409bb3db2e9c25e4`
 - Accepted CI run: #3687 SUCCESS
 - Accepted CodeQL/Secret runs: #2690 / #2690 SUCCESS
 - Production migration: not authorized/applied for `20260913103000_dashboard_bundle_ledger_trust.sql`
 - Production deployment: none authorized by this packet
 - Production flow verified for this bundle change: no
-- Work packet moved to `docs/plans/completed/`: no; do that only after merge/closeout
+- Work packet moved to `docs/plans/completed/`: this closeout

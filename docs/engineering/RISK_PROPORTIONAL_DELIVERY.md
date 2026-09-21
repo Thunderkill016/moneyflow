@@ -39,7 +39,7 @@ Not required by application risk:
 - Supabase reset and pgTAP;
 - browser smoke or responsive audit.
 
-Repository-rule exception:
+Repository security exception:
 
 - the CodeQL workflow still performs and uploads a real JavaScript/TypeScript analysis for every pull request because the repository code-scanning rule requires analysis results for the exact head or merge candidate;
 - this exception does not make unrelated application, database or browser gates applicable.
@@ -148,9 +148,9 @@ This list is the prose half of one fact; `scripts/agent-policy.mjs` holds the ma
 
 For `verify`, `database` and `e2e`, irrelevant heavy work may finish with an explicit not-applicable result while the job succeeds.
 
-`Analyze JavaScript and TypeScript` is different: the repository code-scanning rule requires actual analysis data, not merely a successful job name. Therefore `.github/workflows/codeql.yml` always initializes and analyzes on pull requests. A no-op “CodeQL not required” step creates a false-green check and leaves the pull request permanently unmergeable.
+`Analyze JavaScript and TypeScript` is different: the repository code-scanning rule requires actual analysis data, not merely a successful job name. Therefore `.github/workflows/codeql.yml` always initializes, analyzes and uploads results on pull requests. A no-op “CodeQL not required” step creates a false-green check and leaves the pull request permanently unmergeable.
 
-Changing provider-side branch protection, rulesets, workflow permissions or `CODEOWNERS` remains an explicit owner operation. If the owner later removes the provider code-scanning requirement after reviewing equivalent protections, risk-proportional CodeQL skipping may be reconsidered in a dedicated governance PR.
+Changing provider-side branch protection, rulesets, repository visibility, paid security features, workflow permissions or `CODEOWNERS` remains an explicit owner operation. If the owner later removes the provider code-scanning requirement after reviewing equivalent protections, risk-proportional CodeQL skipping may be reconsidered in a dedicated governance PR.
 
 ## Work-packet decision test
 

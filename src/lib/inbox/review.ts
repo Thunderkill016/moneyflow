@@ -12,12 +12,14 @@ import type {
   CreateTransferInput,
   TransactionKind,
 } from "../sample-data.ts";
+import { agentClientFromExternalId } from "./agent-proposal.ts";
 import {
   CONFIDENCE_LABELS,
   SOURCE_LABELS,
   type CandidateConfidence,
   type InboxCandidate,
 } from "./candidate-store.ts";
+import type { CandidateProvenance } from "./provenance.ts";
 
 export type ExplainLineKind = "parser" | "rule" | "source" | "raw" | "audit";
 
@@ -63,6 +65,7 @@ const PARSER_BY_SOURCE: Record<InboxCandidate["source"], string> = {
   manual: "manual_entry@1.0",
   notification: "notification@1.0",
   email: "email@1.0",
+  agent: "capability@1.0",
 };
 
 /** Confidence levels allowed for bulk approve without opt-in. */
@@ -94,7 +97,9 @@ export function partitionBulkApprove(
   return { eligible, skippedLow };
 }
 
-export function buildExplainLines(candidate: InboxCandidate): ExplainLine[] {
+export function buildExplainLines(
+  candidate: InboxCandidate & CandidateProvenance,
+): ExplainLine[] {
   const lines: ExplainLine[] = [];
   const parser = PARSER_BY_SOURCE[candidate.source] ?? "unknown@0";
   lines.push({ kind: "parser", text: `Parser: ${parser}` });
@@ -140,13 +145,20 @@ export function buildExplainLines(candidate: InboxCandidate): ExplainLine[] {
     });
   }
 
+  const agentClient =
+    candidate.source === "agent"
+      ? agentClientFromExternalId(candidate.sourceExternalId)
+      : null;
+  const sourceLabel = agentClient
+    ? `đề xuất bởi ${agentClient}`
+    : SOURCE_LABELS[candidate.source];
   const batch =
     candidate.importBatchId != null && candidate.importBatchId.length > 0
       ? ` · batch ${candidate.importBatchId}`
       : "";
   lines.push({
     kind: "source",
-    text: `Nguồn: ${SOURCE_LABELS[candidate.source]}${batch}`,
+    text: `Nguồn: ${sourceLabel}${batch}`,
   });
 
   if (candidate.fingerprint) {
@@ -407,6 +419,20 @@ export function applyBulkCategory(
       category: category.name,
     };
   });
+}
+
+/**
+ * Resolves a `?candidate=<id>` deep link. Only pending rows resolve —
+ * approved, rejected, stale or foreign ids fail closed to null.
+ */
+export function findPendingCandidateTarget<T extends { id: string; status: string }>(
+  list: T[],
+  id: string | undefined | null,
+): T | null {
+  if (!id) return null;
+  return (
+    list.find((item) => item.id === id && item.status === "pending") ?? null
+  );
 }
 
 export function markCandidatesStatus(

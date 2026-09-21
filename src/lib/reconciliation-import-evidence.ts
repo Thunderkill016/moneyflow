@@ -21,6 +21,7 @@ const SOURCE_LABELS: Record<CandidateSource, string> = {
   manual: "Nhập tay",
   notification: "Thông báo",
   email: "Email",
+  agent: "AI agent",
 };
 
 export function emptyReconciliationImportEvidence(

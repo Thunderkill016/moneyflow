@@ -26,6 +26,11 @@ import {
   parseMoneyInput,
 } from "@/lib/money";
 import {
+  deriveFrequentLedgerPatterns,
+  deriveStableLedgerPreset,
+  type FrequentLedgerPattern,
+} from "@/lib/quick-add-defaults";
+import {
   isRecentCategoryId,
   orderCategoriesByRecent,
   pickKnownCategoryForKind,
@@ -34,12 +39,14 @@ import {
   readQuickAddPrefs,
   writeQuickAddPrefs,
   type QuickAddPreset,
+  type QuickAddPrefs,
 } from "@/lib/quick-add-prefs";
 import {
   categoryMeta,
   type AccountOption,
   type CategoryOption,
   type CreateTransactionInput,
+  type Transaction,
   type TransactionKind,
 } from "@/lib/sample-data";
 import { todayInVietnam } from "@/lib/vietnam-date";
@@ -54,24 +61,30 @@ export function AddTransactionDialog({
   onAdd,
   accounts,
   categories,
+  transactions = [],
   disabled = false,
   embedded = false,
   title = "Ghi chi tiêu",
   eyebrow = "Nhập nhanh",
   initialKind,
   onTransferRequested,
+  onFrequentPatternSelectionChange,
+  showFrequentPatterns = false,
 }: {
   open: boolean;
   onClose: () => void;
   onAdd: (input: CreateTransactionInput) => Promise<{ ok: boolean; message?: string }>;
   accounts: AccountOption[];
   categories: CategoryOption[];
+  transactions?: Transaction[];
   disabled?: boolean;
   embedded?: boolean;
   title?: string;
   eyebrow?: string;
   initialKind?: TransactionKind;
   onTransferRequested?: () => void;
+  onFrequentPatternSelectionChange?: (rank: 1 | 2 | null) => void;
+  showFrequentPatterns?: boolean;
 }) {
   const formId = useId();
   const amountInputRef = useRef<HTMLInputElement>(null);
@@ -121,6 +134,13 @@ export function AddTransactionDialog({
         .filter((item) => item.id !== selectedCategoryId)
         .slice(0, 2),
     [availableCategories, selectedCategoryId],
+  );
+  const frequentPatterns = useMemo(
+    () =>
+      showFrequentPatterns
+        ? deriveFrequentLedgerPatterns({ transactions, accounts, categories })
+        : [],
+    [accounts, categories, showFrequentPatterns, transactions],
   );
   const hasRecentForKind = availableCategories.some((item) =>
     isRecentCategoryId(item.id, recentCategoryIds),
@@ -179,6 +199,45 @@ export function AddTransactionDialog({
     );
   }
 
+  function applyDefaultForKind(
+    nextKind: TransactionKind,
+    prefs: Pick<
+      QuickAddPrefs,
+      "accountId" | "categoryId" | "kind" | "recentCategoryIds" | "recentPresets"
+    >,
+  ) {
+    const ledgerPreset = deriveStableLedgerPreset({
+      transactions,
+      kind: nextKind,
+      accounts,
+      categories,
+    });
+    if (ledgerPreset) {
+      setAccountId(ledgerPreset.accountId);
+      setCategoryId(ledgerPreset.categoryId);
+      return;
+    }
+
+    const learnedPreset = validPresetForKind(prefs.recentPresets, nextKind);
+    if (learnedPreset) {
+      setAccountId(learnedPreset.accountId);
+      setCategoryId(learnedPreset.categoryId);
+      return;
+    }
+
+    if (prefs.accountId && accounts.some((item) => item.id === prefs.accountId)) {
+      setAccountId(prefs.accountId);
+    }
+    const forKind = categories.filter((item) => item.kind === nextKind);
+    setCategoryId(
+      pickKnownCategoryForKind(
+        forKind,
+        prefs.recentCategoryIds,
+        prefs.kind === nextKind ? prefs.categoryId || undefined : undefined,
+      ),
+    );
+  }
+
   useEffect(() => {
     if (prefsHydratedRef.current) return;
     prefsHydratedRef.current = true;
@@ -194,20 +253,7 @@ export function AddTransactionDialog({
         setRecentPresets(prefs.recentPresets);
       }
 
-      const learnedPreset = validPresetForKind(prefs.recentPresets, resolvedKind);
-      if (learnedPreset) {
-        setAccountId(learnedPreset.accountId);
-        setCategoryId(learnedPreset.categoryId);
-      } else {
-        if (prefs.accountId) setAccountId(prefs.accountId);
-        const forKind = categories.filter((item) => item.kind === resolvedKind);
-        const knownCategory = pickKnownCategoryForKind(
-          forKind,
-          prefs.recentCategoryIds,
-          prefs.kind === resolvedKind ? prefs.categoryId || undefined : undefined,
-        );
-        setCategoryId(knownCategory);
-      }
+      applyDefaultForKind(resolvedKind, prefs);
       setOccurredOn(todayInVietnam());
     });
     return () => window.cancelAnimationFrame(frame);
@@ -268,25 +314,35 @@ export function AddTransactionDialog({
     setCategoryId(nextCategoryId);
     categoryTouchedRef.current = true;
     setAutoRuleHint(null);
+    onFrequentPatternSelectionChange?.(null);
     markInputChanged();
     window.requestAnimationFrame(() => focusAmount(false));
   }
 
   function changeKind(nextKind: TransactionKind) {
     setKind(nextKind);
-    const learnedPreset = validPresetForKind(recentPresets, nextKind);
-    if (learnedPreset) {
-      setAccountId(learnedPreset.accountId);
-      setCategoryId(learnedPreset.categoryId);
-    } else {
-      const forKind = categories.filter((item) => item.kind === nextKind);
-      setCategoryId(
-        pickKnownCategoryForKind(forKind, recentCategoryIds),
-      );
-    }
+    applyDefaultForKind(nextKind, {
+      kind,
+      accountId: selectedAccountId,
+      categoryId: selectedCategoryId,
+      recentCategoryIds,
+      recentPresets,
+    });
     categoryTouchedRef.current = false;
     setAutoRuleHint(null);
+    onFrequentPatternSelectionChange?.(null);
     markInputChanged();
+    window.requestAnimationFrame(() => focusAmount(false));
+  }
+
+  function chooseFrequentPattern(pattern: FrequentLedgerPattern, rank: 1 | 2) {
+    setKind(pattern.kind);
+    setAccountId(pattern.accountId);
+    setCategoryId(pattern.categoryId);
+    categoryTouchedRef.current = true;
+    setAutoRuleHint(null);
+    markInputChanged();
+    onFrequentPatternSelectionChange?.(rank);
     window.requestAnimationFrame(() => focusAmount(false));
   }
 
@@ -538,6 +594,53 @@ export function AddTransactionDialog({
         ) : null}
       </div>
 
+      {frequentPatterns.length ? (
+        <section
+          className={fastStyles.frequentPatterns}
+          aria-labelledby={`${formId}-frequent-patterns`}
+          data-slot="capture-frequent-patterns"
+        >
+          <div className={fastStyles.frequentPatternsHeading}>
+            <strong id={`${formId}-frequent-patterns`}>Thường dùng</strong>
+            <span>Chỉ đổi loại, tài khoản và danh mục</span>
+          </div>
+          <div className={fastStyles.frequentPatternGrid}>
+            {frequentPatterns.map((pattern, index) => {
+              const patternAccount = accounts.find(
+                (account) => account.id === pattern.accountId,
+              );
+              const patternCategory = categories.find(
+                (category) => category.id === pattern.categoryId,
+              );
+              const selected =
+                kind === pattern.kind &&
+                selectedAccountId === pattern.accountId &&
+                selectedCategoryId === pattern.categoryId;
+              if (!patternAccount || !patternCategory) return null;
+              return (
+                <Button
+                  type="button"
+                  unstyled
+                  targetSize="important"
+                  key={`${pattern.kind}-${pattern.accountId}-${pattern.categoryId}`}
+                  className={fastStyles.frequentPattern}
+                  onClick={() =>
+                    chooseFrequentPattern(pattern, (index + 1) as 1 | 2)
+                  }
+                  aria-pressed={selected}
+                  aria-label={`Dùng mẫu ${pattern.kind === "expense" ? "chi" : "thu"}, ${patternCategory.name}, ${patternAccount.name}`}
+                >
+                  <strong>{patternCategory.name}</strong>
+                  <span>
+                    {pattern.kind === "expense" ? "Chi" : "Thu"} · {patternAccount.name}
+                  </span>
+                </Button>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
       {error && !error.startsWith("Nhập số tiền") ? (
         <Alert tone="error" live="assertive" className={styles.formAlert}>
           <AlertDescription>{error}</AlertDescription>
@@ -607,6 +710,7 @@ export function AddTransactionDialog({
                 disabled={submitting}
                 onChange={(event) => {
                   setAccountId(event.target.value);
+                  onFrequentPatternSelectionChange?.(null);
                   markInputChanged();
                 }}
               >

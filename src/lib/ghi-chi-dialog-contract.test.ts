@@ -1,6 +1,6 @@
 /**
- * R4 — Ghi chi dialog UX: amount autofocus, learned/recent categories,
- * save-and-add-another polish. Source contracts (no browser).
+ * Ghi capture UX contracts: amount autofocus, deterministic learned defaults,
+ * recent categories, save-and-add-another polish and immediate correction.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -43,6 +43,29 @@ test("R4: quick capture learns coherent presets and keeps recent category orderi
   assert.match(src, /hay dùng trước/);
 });
 
+test("R5: Ghi prefers a stable ledger preset before the local fallback", () => {
+  const src = read("src/components/add-transaction-dialog.tsx");
+  const defaults = read("src/lib/quick-add-defaults.ts");
+  assert.match(src, /deriveStableLedgerPreset/);
+  assert.match(src, /transactions\?: Transaction\[\]/);
+  assert.match(src, /transactions = \[\]/);
+  assert.match(src, /const ledgerPreset = deriveStableLedgerPreset/);
+  assert.match(src, /if \(ledgerPreset\) \{/);
+  assert.match(src, /const learnedPreset = validPresetForKind/);
+  assert.ok(
+    src.indexOf("if (ledgerPreset)") <
+      src.indexOf("const learnedPreset = validPresetForKind"),
+    "ledger evidence must be considered before the browser-local preset",
+  );
+  assert.match(defaults, /recent\.length < 3/);
+  assert.match(defaults, /existing\.count >= 2/);
+  assert.match(defaults, /transaction\.kind === kind/);
+  assert.match(defaults, /transaction\.reviewStatus === "reviewed"/);
+  assert.match(defaults, /!transaction\.splits\?\.length/);
+  assert.match(defaults, /b\.occurredOn\.localeCompare\(a\.occurredOn\)/);
+  assert.match(defaults, /b\.occurredAt\.localeCompare\(a\.occurredAt\)/);
+});
+
 test("R4: save-and-add-another keeps a controlled dialog session alive", () => {
   const src = read("src/components/add-transaction-dialog.tsx");
   assert.match(src, /Lưu xong thêm tiếp/);
@@ -58,6 +81,57 @@ test("R4: save-and-add-another keeps a controlled dialog session alive", () => {
   assert.match(src, /KEEP_OPEN_SUCCESS|Đã lưu · nhập khoản tiếp/);
   assert.match(src, /<Alert tone="success" live="polite"/);
   assert.match(src, /Giữ form mở/);
+});
+
+test("R5: primary Ghi hosts pass live ledger history into the shared dialog", () => {
+  const dashboard = read("src/components/moneyflow-dashboard.tsx");
+  const ledger = read("src/components/transactions/transactions-workspace.tsx");
+  const quick = read("src/components/inbox/capture-quick-page.tsx");
+  for (const src of [dashboard, ledger, quick]) {
+    assert.match(src, /transactions=\{transactions\}/);
+  }
+});
+
+test("R5: frequent patterns are an explicit quick-route-only experiment", () => {
+  const dialog = read("src/components/add-transaction-dialog.tsx");
+  const quick = read("src/components/inbox/capture-quick-page.tsx");
+  const dashboard = read("src/components/moneyflow-dashboard.tsx");
+  const ledger = read("src/components/transactions/transactions-workspace.tsx");
+  const defaults = read("src/lib/quick-add-defaults.ts");
+
+  assert.match(dialog, /showFrequentPatterns = false/);
+  assert.match(dialog, /deriveFrequentLedgerPatterns/);
+  assert.match(dialog, /data-slot="capture-frequent-patterns"/);
+  assert.match(dialog, /Chỉ đổi loại, tài khoản và danh mục/);
+  assert.match(quick, /showFrequentPatterns/);
+  assert.match(quick, /quick_capture_save/);
+  assert.match(quick, /quick_capture_correction_opened/);
+  assert.match(quick, /onFrequentPatternSelectionChange/);
+  assert.match(dialog, /onFrequentPatternSelectionChange\?\.\(null\)/);
+  assert.doesNotMatch(dashboard, /showFrequentPatterns/);
+  assert.doesNotMatch(ledger, /showFrequentPatterns/);
+  assert.doesNotMatch(dashboard, /quick_capture_save/);
+  assert.doesNotMatch(ledger, /quick_capture_save/);
+  assert.match(defaults, /FREQUENT_PATTERN_WINDOW = 12/);
+  assert.match(defaults, /FREQUENT_PATTERN_MINIMUM_SUPPORT = 2/);
+  assert.match(defaults, /FREQUENT_PATTERN_LIMIT = 2/);
+});
+
+test("R5: a successful single save can open the existing edit mutation", () => {
+  const dashboard = read("src/components/moneyflow-dashboard.tsx");
+  const ledger = read("src/components/transactions/transactions-workspace.tsx");
+  const quick = read("src/components/inbox/capture-quick-page.tsx");
+
+  for (const src of [dashboard, ledger, quick]) {
+    assert.match(src, /recentSaved/);
+    assert.match(src, /label: "Sửa"/);
+    assert.match(src, /EditTransactionDialog/);
+    assert.match(src, /updateTransaction/);
+  }
+
+  assert.match(ledger, /pendingUndo[\s\S]*label: "Hoàn tác"[\s\S]*recentSaved/);
+  assert.match(quick, /Đã lưu vào sổ/);
+  assert.match(quick, /Ghi khoản khác/);
 });
 
 test("R4: default dialog copy resolves to concise thu chi titles", () => {

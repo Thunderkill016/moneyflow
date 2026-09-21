@@ -14,14 +14,21 @@ import {
   type SharePayload,
   type SharedFilePayload,
 } from "@/lib/inbox/share-payload";
+import { clientKeyFromHeaders, createRateLimiter } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
+
+const limiter = createRateLimiter({ limit: 20, windowMs: 60_000 });
 
 /**
  * Web Share Target POST bridge (rewritten from POST /capture/share).
  * Reads multipart form → HTML that stashes payload in sessionStorage → GET /capture/share.
  */
 export async function POST(request: Request) {
+  if (!limiter.allow(clientKeyFromHeaders(request.headers))) {
+    return rateLimitedResponse();
+  }
+
   if (declaredShareRequestTooLarge(request.headers.get("content-length"))) {
     return payloadTooLargeResponse();
   }
@@ -89,6 +96,17 @@ function unsupportedMediaTypeResponse() {
     status: 415,
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
+function rateLimitedResponse() {
+  return new NextResponse("Bạn đang chia sẻ quá nhanh. Vui lòng thử lại sau ít phút.", {
+    status: 429,
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Retry-After": "60",
       "Cache-Control": "no-store",
     },
   });

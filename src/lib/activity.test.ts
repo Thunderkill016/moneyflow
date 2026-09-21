@@ -285,3 +285,41 @@ test("candidate provenance label stays bounded to known lifecycle evidence", () 
   assert.equal(item.provenanceLabel, "Nguồn báo mục này đã được gỡ");
   assert.doesNotMatch(item.searchText, /do-not-render-this-id/u);
 });
+
+test("activity actions deep-link to the exact transaction or pending candidate", () => {
+  const posted = transaction({ id: "tx-posted" });
+  const needsReview = transaction({ id: "tx-review", reviewStatus: "needs_review" });
+  const pending = candidate({ id: "cand-9" });
+  const approved = candidate({ id: "cand-done", status: "approved" });
+
+  const items = buildActivityItems({
+    transactions: [posted, needsReview],
+    candidates: [pending, approved],
+    accounts,
+    categories,
+  });
+
+  const postedItem = items.find(
+    (item) => item.type === "ledger_transaction" && item.transaction.id === "tx-posted",
+  );
+  assert.equal(postedItem?.href, "/transactions?open=tx-posted");
+
+  const reviewItem = items.find(
+    (item) => item.type === "ledger_transaction" && item.transaction.id === "tx-review",
+  );
+  assert.equal(
+    reviewItem?.href,
+    "/transactions?review=needs_review&open=tx-review",
+  );
+
+  const candidateItem = items.find((item) => item.type === "inbox_candidate");
+  assert.equal(candidateItem?.href, "/inbox?candidate=cand-9");
+
+  // Approved candidates never appear in the workstream at all.
+  assert.ok(
+    !items.some(
+      (item) =>
+        item.type === "inbox_candidate" && item.candidate.id === "cand-done",
+    ),
+  );
+});

@@ -61,6 +61,7 @@ import {
   applyBulkCategory,
   buildLedgerPost,
   draftFromCandidate,
+  findPendingCandidateTarget,
   markCandidatesStatus,
 } from "@/lib/inbox/review";
 import { safeUserNotice } from "@/lib/safe-log";
@@ -73,6 +74,7 @@ import {
   readStoredTransactions,
   writeStoredTransactions,
 } from "@/lib/transaction-store";
+import { clearQueryParam } from "@/lib/url-params";
 import styles from "./inbox-page.module.css";
 
 type LoadState = "loading" | "ready" | "error";
@@ -102,9 +104,12 @@ function confidenceTone(confidence: InboxCandidate["confidence"]) {
 export function InboxPage({
   viewer,
   workspace,
+  initialCandidateId,
 }: {
   viewer: ViewerSummary;
   workspace: InboxWorkspace;
+  /** `?candidate=<id>` deep link — resolves only while the row is pending. */
+  initialCandidateId?: string;
 }) {
   const router = useRouter();
   const { addTransaction, addTransfer, isMutating } = useTransactions({
@@ -120,10 +125,31 @@ export function InboxPage({
   const [notice, setNotice] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [reviewId, setReviewId] = useState<string | null>(null);
+  const [reviewId, setReviewId] = useState<string | null>(
+    initialCandidateId ?? null,
+  );
   const [bulkBusy, setBulkBusy] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const candidatesRef = useRef<InboxCandidate[]>(candidates);
+  const candidateTargetHandledRef = useRef(false);
+
+  /*
+   * Deep link (?candidate=<id>): reviewId starts as the target id so the panel
+   * opens as soon as the pending row loads. Once a load succeeds, an id that
+   * resolves to nothing pending is cleared and gets one honest notice instead
+   * of a silently dead link.
+   */
+  const resolveCandidateTarget = useCallback(
+    (list: InboxCandidate[]) => {
+      if (!initialCandidateId || candidateTargetHandledRef.current) return;
+      candidateTargetHandledRef.current = true;
+      if (!findPendingCandidateTarget(list, initialCandidateId)) {
+        setReviewId(null);
+        setNotice("Ứng viên không còn chờ xử lý.");
+      }
+    },
+    [initialCandidateId],
+  );
 
   useEffect(() => {
     candidatesRef.current = candidates;
@@ -145,11 +171,13 @@ export function InboxPage({
       candidatesRef.current = result.candidates;
       setErrorMessage("");
       setLoadState("ready");
+      resolveCandidateTarget(result.candidates);
     },
-    [viewer.isDemo],
+    [viewer.isDemo, resolveCandidateTarget],
   );
 
   useEffect(() => {
+    if (initialCandidateId) clearQueryParam("candidate");
     let cancelled = false;
     void (async () => {
       const result = await loadInboxForClient(viewer.isDemo);
@@ -162,11 +190,12 @@ export function InboxPage({
       setCandidates(result.candidates);
       candidatesRef.current = result.candidates;
       setLoadState("ready");
+      resolveCandidateTarget(result.candidates);
     })();
     return () => {
       cancelled = true;
     };
-  }, [viewer.isDemo]);
+  }, [viewer.isDemo, initialCandidateId, resolveCandidateTarget]);
 
   useEffect(() => {
     if (!notice) return;
@@ -197,6 +226,7 @@ export function InboxPage({
   }, [detected]);
 
   const pendingCount = useMemo(() => countPending(detected), [detected]);
+
   const readiness = useMemo(
     () =>
       partitionPendingCandidates(
