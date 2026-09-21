@@ -666,6 +666,7 @@ export function toCsvCandidateInputs(
   rows: ParsedCsvRow[],
   importBatchId: string,
   source: ImportCandidateSource = "csv",
+  options?: { account?: { id: string; name: string } },
 ): CreateCandidateWithProvenanceInput[] {
   return rows.map((item) => ({
     kind: item.kind,
@@ -677,6 +678,8 @@ export function toCsvCandidateInputs(
     confidence: item.confidence,
     status: "pending" as const,
     rawSnippet: item.rawSnippet,
+    accountId: options?.account?.id,
+    account: options?.account?.name,
     importBatchId,
     sourceRowIndex: item.sourceRowIndex ?? item.rowIndex,
     sourceExternalId: item.sourceExternalId,
