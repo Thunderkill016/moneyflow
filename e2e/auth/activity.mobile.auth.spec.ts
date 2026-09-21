@@ -62,7 +62,10 @@ test("Activity merges pending evidence and posted review work without duplicatio
   await expect(page.getByText("Highlands Coffee", { exact: true })).toHaveCount(0);
 
   const reviewAction = page.getByRole("link", { name: "Xem lại" });
-  await expect(reviewAction).toHaveAttribute("href", "/transactions?review=needs_review");
+  await expect(reviewAction).toHaveAttribute(
+    "href",
+    "/transactions?review=needs_review&open=30000000-0000-4000-8000-000000000001",
+  );
   await expectMinimumTarget(reviewAction);
   await expectNoHorizontalOverflow(page);
 

@@ -8,7 +8,12 @@ export const metadata: Metadata = {
   description: "Duyệt giao dịch cần xử lý trước khi ghi vào sổ.",
 };
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ candidate?: string }>;
+}) {
+  const params = await searchParams;
   const viewer = await requireViewer();
   const workspace = await getFinanceWorkspace();
 
@@ -19,6 +24,7 @@ export default async function Page() {
         displayName: viewer.displayName,
         isDemo: viewer.isDemo,
       }}
+      initialCandidateId={params.candidate?.slice(0, 100)}
       workspace={{
         transactions: workspace.transactions,
         accounts: workspace.accounts,
