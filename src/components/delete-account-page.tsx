@@ -26,6 +26,7 @@ import {
   SERVER_DELETE_READY_VI,
 } from "@/lib/delete-account";
 import { getPendingCountForClient } from "@/hooks/client-inbox";
+import { clearOfflineCache } from "@/lib/pwa";
 import styles from "./settings/settings-surfaces.module.css";
 
 export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
@@ -85,6 +86,7 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
     try {
       if (viewer.isDemo) {
         const { failedKeys } = clearLocalMoneyFlowStores();
+        await clearOfflineCache();
         if (failedKeys.length > 0) {
           setError(
             `Không xóa hết dữ liệu cục bộ (${failedKeys.length} khóa còn lại). Kiểm tra quyền trình duyệt rồi thử lại.`,
@@ -132,6 +134,7 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
       }
 
       const { failedKeys } = clearLocalMoneyFlowStores();
+      await clearOfflineCache();
       const params = new URLSearchParams({ deleted: "1" });
       params.set("serverCleanup", result.cleanupVerified ? "verified" : "unverified");
       params.set("localCleanup", failedKeys.length === 0 ? "complete" : "partial");

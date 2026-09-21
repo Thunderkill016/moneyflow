@@ -67,6 +67,12 @@ const SETTINGS_LINKS: SettingsLink[] = [
     icon: "spark",
   },
   {
+    href: "/settings/install",
+    title: "Cài đặt ứng dụng",
+    description: "Mở từ màn hình chính và đọc lại tổng quan khi ngoại tuyến.",
+    icon: "download",
+  },
+  {
     href: "/security",
     title: "Bảo mật",
     description: "Cách MoneyFlow và nền tảng bảo vệ dữ liệu của bạn.",
