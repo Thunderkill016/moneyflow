@@ -132,6 +132,7 @@ export function fixtureBudgetsWorkspace(): BudgetsWorkspace {
     previousMonthStart: "2026-06-01",
     nextMonthStart: "2026-08-01",
     canGoNext: false,
+    today: "2026-07-15",
     adjustment: null,
     monthIncome: 12_000_000,
     monthCommitments: [],

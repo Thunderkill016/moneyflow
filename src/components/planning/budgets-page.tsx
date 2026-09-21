@@ -28,6 +28,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { type ViewerSummary } from "@/components/user-chip";
 import { formatMoney } from "@/lib/money";
 import {
+  budgetPaceLine,
   budgetProgress,
   budgetRemaining,
   budgetStatusLabel,
@@ -65,6 +66,7 @@ type BudgetPageWorkspace = {
   nextMonthStart: string;
   canGoNext: boolean;
   adjustment: BudgetMonthAdjustment;
+  today: string;
   dataError: string | null;
 };
 
@@ -397,6 +399,11 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
               {budgets.map((budget) => {
                 const progress = budgetProgress(budget);
                 const remaining = budgetRemaining(budget);
+                const pace = budgetPaceLine(
+                  budget,
+                  workspace.monthStart,
+                  workspace.today,
+                );
                 const level = budgetThreshold(budget);
                 const tone = budgetToneToCard(level);
                 const statusText = budgetStatusLabel(budget);
@@ -462,6 +469,8 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
                         style={{ width: `${Math.min(100, progress)}%` }}
                       />
                     </div>
+
+                    {pace ? <p className={planningStyles.context}>{pace}</p> : null}
 
                     <div className={planningStyles.actions} data-slot="planning-card-actions">
                       <LinkButton
