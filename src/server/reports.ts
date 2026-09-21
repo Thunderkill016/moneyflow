@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   buildFinancialReport,
+  categoryTrendWindowStart,
   resolveReportRange,
   type CustomRangeInput,
   type FinancialReport,
@@ -37,11 +38,20 @@ export async function getReportsWorkspace(
   const today = todayInVietnam();
   const range = resolveReportRange(today, period, custom);
   const rangeNotice = describeReportRangeAdjustment(period, custom, today);
+  /*
+   * The category strips reach six months back, further than the comparison
+   * window for week/month presets. Load from whichever bound is earlier so the
+   * strips show real history instead of silently truncating at previousStart.
+   */
+  const loadStart =
+    range.previousStart < categoryTrendWindowStart(range.currentEnd)
+      ? range.previousStart
+      : categoryTrendWindowStart(range.currentEnd);
   const viewer = await requireViewer();
   if (viewer.isDemo) {
     const transactions = sampleTransactionsFor(today).filter(
       (item) =>
-        item.occurredOn >= range.previousStart &&
+        item.occurredOn >= loadStart &&
         item.occurredOn <= range.currentEnd,
     );
     return {
@@ -65,7 +75,7 @@ export async function getReportsWorkspace(
       .from("transaction_feed")
       .select(feedColumns)
       .eq("user_id", viewer.id)
-      .gte("occurred_on", range.previousStart)
+      .gte("occurred_on", loadStart)
       .lte("occurred_on", range.currentEnd)
       .order("occurred_on", { ascending: false })
       .order("created_at", { ascending: false })

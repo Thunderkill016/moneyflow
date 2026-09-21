@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildFinancialReport,
+  categoryTrendWindowStart,
   customReportRange,
   CUSTOM_RANGE_MAX_DAYS,
   formatReportPeriodTitle,
@@ -41,7 +42,10 @@ test("excludes transfers from income and expense totals", () => {
   assert.deepEqual(report.totals, { income: 500_000, expense: 100_000, net: 400_000, transactions: 3 });
   assert.equal(report.previous.expense, 50_000);
   assert.equal(report.expenseChangePercent, 100);
-  assert.deepEqual(report.categories, [{ name: "Ăn uống", amount: 100_000, share: 100 }]);
+  assert.deepEqual(
+    report.categories.map(({ name, amount, share }) => ({ name, amount, share })),
+    [{ name: "Ăn uống", amount: 100_000, share: 100 }],
+  );
 });
 
 test("CSV escapes spreadsheet formulas and preserves integer amounts", () => {
@@ -286,4 +290,76 @@ test("income does not appear in the account breakdown", () => {
 test("an empty range reports no accounts rather than a zero row", () => {
   const report = buildFinancialReport([], ACCOUNT_RANGE);
   assert.deepEqual(report.accounts, []);
+});
+
+test("category trends span six calendar months ending at the viewed month", () => {
+  const range = reportRange("2026-09-21", "month");
+  const report = buildFinancialReport(
+    [transaction({ occurredOn: "2026-09-10", amount: 100_000 })],
+    range,
+  );
+  const trend = report.categories[0].trend;
+  assert.deepEqual(
+    trend.map((item) => item.key),
+    ["2026-04", "2026-05", "2026-06", "2026-07", "2026-08", "2026-09"],
+  );
+  assert.deepEqual(
+    trend.map((item) => item.label),
+    ["Thg 4", "Thg 5", "Thg 6", "Thg 7", "Thg 8", "Thg 9"],
+  );
+  assert.deepEqual(
+    trend.map((item) => item.amount),
+    [0, 0, 0, 0, 0, 100_000],
+  );
+});
+
+test("category trends accumulate monthly totals and distribute splits", () => {
+  const range = reportRange("2026-09-21", "month");
+  const report = buildFinancialReport(
+    [
+      transaction({ occurredOn: "2026-08-05", amount: 60_000 }),
+      transaction({ occurredOn: "2026-08-20", amount: 40_000 }),
+      // A split row distributes its lines to categories, exactly like the
+      // current-period category totals do — the two must never disagree.
+      transaction({
+        occurredOn: "2026-09-02",
+        amount: 200_000,
+        splits: [
+          { categoryId: "food", category: "Ăn uống", amount: 120_000 },
+          { categoryId: "transport", category: "Di chuyển", amount: 80_000 },
+        ],
+      }),
+    ],
+    range,
+  );
+  const food = report.categories.find((item) => item.name === "Ăn uống")!;
+  assert.equal(food.trend.find((m) => m.key === "2026-07")!.amount, 0);
+  assert.equal(food.trend.find((m) => m.key === "2026-08")!.amount, 100_000);
+  assert.equal(food.trend.find((m) => m.key === "2026-09")!.amount, 120_000);
+  // The split partner appears as its own category with its own trend.
+  const transport = report.categories.find((item) => item.name === "Di chuyển")!;
+  assert.equal(transport.trend.find((m) => m.key === "2026-08")!.amount, 0);
+  assert.equal(transport.trend.find((m) => m.key === "2026-09")!.amount, 80_000);
+});
+
+test("category trends ignore rows outside the six-month window", () => {
+  const range = reportRange("2026-09-21", "month");
+  const report = buildFinancialReport(
+    [
+      transaction({ occurredOn: "2026-09-10", amount: 100_000 }),
+      transaction({ occurredOn: "2026-03-31", amount: 999_000 }), // month 7 back
+    ],
+    range,
+  );
+  const trend = report.categories[0].trend;
+  assert.equal(trend.length, 6);
+  assert.equal(trend.reduce((sum, m) => sum + m.amount, 0), 100_000);
+});
+
+test("categoryTrendWindowStart gives the load bound for the trend window", () => {
+  assert.equal(categoryTrendWindowStart("2026-09-21"), "2026-04-01");
+  // Year boundary: ending January 2027 reaches back to August 2026.
+  assert.equal(categoryTrendWindowStart("2027-01-05"), "2026-08-01");
+  // Leap February is just a month like any other.
+  assert.equal(categoryTrendWindowStart("2028-02-29"), "2027-09-01");
 });

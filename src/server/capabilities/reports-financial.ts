@@ -36,6 +36,13 @@ const explainedCategorySchema = z.object({
   name: z.string(),
   amount: explainedAmountSchema,
   share: z.number().int(),
+  trend: z.array(
+    z.object({
+      key: z.string(),
+      label: z.string(),
+      amount: minorSchema,
+    }),
+  ),
 });
 const reportOutputSchema = z.object({
   range: reportRangeSchema,
@@ -148,6 +155,10 @@ function explainedReport(
           category.amount,
           basis(`sum(expense category "${category.name}")`, categoryTransactions, "expense"),
         ),
+        trend: category.trend.map((month) => ({
+          ...month,
+          amount: minor(month.amount),
+        })),
       };
     }),
   };
