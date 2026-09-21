@@ -13,6 +13,7 @@ import { GHI_CHI_TIEU_LABEL, PLANNING_LINKS } from "@/lib/nav-ia";
 import { REPORTS_MONTH_HREF, REPORTS_MONTH_LINK_LABEL } from "@/lib/reports";
 import { dashboardDrilldownHref } from "@/lib/dashboard-drilldown";
 import type { AccountBalanceRow } from "@/lib/dashboard-accounts";
+import type { MonthStatementDetail } from "@/lib/dashboard-month";
 import { categoryMeta, type Transaction } from "@/lib/sample-data";
 import { transferRowSubtitle } from "@/lib/transfers";
 import styles from "./dashboard.module.css";
@@ -44,6 +45,7 @@ export function DashboardHeaderSections({
   ledgerTrust,
   totals,
   accountBalances,
+  monthDetail,
   today,
   isEmptyLedger,
   dataError,
@@ -54,6 +56,7 @@ export function DashboardHeaderSections({
   ledgerTrust: LedgerTrustSummary | null;
   totals: DashboardTotals;
   accountBalances: AccountBalanceRow[];
+  monthDetail?: MonthStatementDetail;
   today: string;
   isEmptyLedger: boolean;
   dataError?: string | null;
@@ -92,6 +95,7 @@ export function DashboardHeaderSections({
       <DashboardStatement
         totals={totals}
         accountBalances={accountBalances}
+        monthDetail={monthDetail}
         today={today}
         isEmptyLedger={isEmptyLedger}
       />

@@ -19,6 +19,14 @@ const statement = readFileSync(
   "src/components/dashboard/statement.tsx",
   "utf8",
 );
+const dashboardMonth = readFileSync(
+  "src/lib/dashboard-month.ts",
+  "utf8",
+);
+const transactionWindow = readFileSync(
+  "src/lib/dashboard-transaction-window.ts",
+  "utf8",
+);
 const dashboardCss = readFileSync(
   "src/components/dashboard/dashboard.module.css",
   "utf8",
@@ -90,6 +98,31 @@ test("statement shows per-account balances in each account's own currency", () =
   assert.match(statement, /href="\/accounts"/);
   // The strip displays server rows only; it never re-derives or mixes the total.
   assert.doesNotMatch(statement, /accountBalances\.reduce|\.reduce\(/);
+});
+
+test("statement month shape and prior compare lift the reports computation", () => {
+  // The domain helper borrows `reportRange`/`buildFinancialReport` instead of
+  // re-deriving buckets or sums, so the statement can never drift from /reports.
+  assert.match(dashboardMonth, /reportRange\(today, "month"\)/);
+  assert.match(dashboardMonth, /buildFinancialReport\(transactions, range\)/);
+  assert.match(dashboardMonth, /report\.trend\.map/);
+  assert.match(dashboardMonth, /report\.previous\.expense/);
+  assert.doesNotMatch(dashboardMonth, /kind === "income"/);
+  // The loader window reaches the monthly comparison's previous start so the
+  // compare line has real rows behind it on every day of the month.
+  assert.match(
+    transactionWindow,
+    /reportRange\(today, "month"\)\.previousStart/,
+  );
+  // Presentation: an accessible strip plus a factual compare line that stays
+  // silent when no prior-month rows exist.
+  assert.match(statement, /monthDetail/);
+  assert.match(statement, /styles\.shape\b/);
+  assert.match(statement, /styles\.compare\b/);
+  assert.match(statement, /role="img"/);
+  assert.match(statement, /monthDetail\.prior\.transactions > 0/);
+  assert.match(overview, /monthDetail=\{monthDetail\}/);
+  assert.match(dashboard, /monthStatementDetail\(transactions, workspace\.today\)/);
 });
 
 test("withdrawn safe-to-spend advice is absent from active Dashboard JSX", () => {

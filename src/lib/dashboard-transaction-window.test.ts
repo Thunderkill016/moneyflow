@@ -19,11 +19,13 @@ const transactionsPage = readFileSync(
   "utf8",
 );
 
-test("dashboard starts at month boundary when it is earlier than weekly comparison", () => {
-  assert.equal(dashboardTransactionStart("2026-07-26"), "2026-07-01");
+test("dashboard starts at the previous month's comparison window when it is earliest", () => {
+  // 26 elapsed days compare against 2026-06-05..2026-06-30, so June 5 must load.
+  assert.equal(dashboardTransactionStart("2026-07-26"), "2026-06-05");
 });
 
 test("dashboard includes previous weekly comparison across a month boundary", () => {
+  // Weekly compare reaches 2026-07-20, monthly compare only 2026-07-30.
   assert.equal(dashboardTransactionStart("2026-08-02"), "2026-07-20");
 });
 
