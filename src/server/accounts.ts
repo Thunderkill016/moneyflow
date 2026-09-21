@@ -39,7 +39,7 @@ export function mapAccountRow(value: unknown, balanceValue?: unknown): AccountSu
   };
 }
 
-const demoAccountRows: AccountSummary[] = [
+export const demoAccountRows: AccountSummary[] = [
   { id: "demo-account-mb", name: "MB Bank", kind: "bank", currencyCode: "VND", initialBalance: 1_126_000, balance: 15_454_000, isArchived: false },
   { id: "demo-account-cash", name: "Tiền mặt", kind: "cash", currencyCode: "VND", initialBalance: 0, balance: 239_000, isArchived: false },
   { id: "demo-account-momo", name: "MoMo", kind: "e_wallet", currencyCode: "VND", initialBalance: 0, balance: 42_000, isArchived: false },
