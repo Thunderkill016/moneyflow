@@ -14,6 +14,7 @@ import { useTransactions } from "@/hooks/use-transactions";
 import { buildAttentionItems } from "@/lib/attention";
 import { captureConsequence } from "@/lib/capture-consequence";
 import type { LedgerTrustSummary } from "@/lib/ledger-trust";
+import { getTransactionReviewStatus } from "@/lib/transaction-review";
 import { sumBudgetSpent, type BudgetSummary } from "@/lib/planning/budgets";
 import { hydrateCommitmentsWithOccurrences } from "@/lib/planning/commitment-occurrence-store";
 import {
@@ -201,15 +202,24 @@ export function MoneyFlowDashboard({
     [transactions, workspace.today],
   );
 
+  const needsReviewCount = useMemo(
+    () =>
+      transactions.filter(
+        (item) => getTransactionReviewStatus(item) === "needs_review",
+      ).length,
+    [transactions],
+  );
+
   const attentionItems = useMemo(
     () =>
       buildAttentionItems({
         budgets: liveBudgets,
         commitments: liveCommitments,
         inboxCount,
+        needsReviewCount,
         today: workspace.today,
       }),
-    [liveBudgets, liveCommitments, inboxCount, workspace.today],
+    [liveBudgets, liveCommitments, inboxCount, needsReviewCount, workspace.today],
   );
 
   async function addTransaction(input: CreateTransactionInput) {
