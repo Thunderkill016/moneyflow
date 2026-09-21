@@ -196,7 +196,7 @@ Drafted by the agent from merged evidence; the go/no-go itself (PBT-AC15) and ev
 
 #### Owner execution path
 
-`docs/plans/active/beta-owner-action-pack.md` consolidates every owner-side gate below into ordered, executable steps (tool links, console checklists, draft dispositions, legal-review brief). It is the recommended single sitting for the owner.
+`docs/operations/beta-owner-action-pack.md` consolidates every owner-side gate below into ordered, executable steps (tool links, console checklists, draft dispositions, legal-review brief). It is the recommended single sitting for the owner.
 
 #### Remaining gates, by who can move them
 
