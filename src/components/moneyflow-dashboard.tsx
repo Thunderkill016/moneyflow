@@ -11,7 +11,7 @@ import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useTransactions } from "@/hooks/use-transactions";
-import { buildAttentionItems } from "@/lib/attention";
+import { buildAttentionItems, type BackupReminderState } from "@/lib/attention";
 import { captureConsequence } from "@/lib/capture-consequence";
 import {
   reconcileAccountBalances,
@@ -80,6 +80,7 @@ export function MoneyFlowDashboard({
   viewer,
   workspace,
   accountBalances,
+  backupState,
   initialInboxCount,
   ledgerTrust,
   budgets,
@@ -88,6 +89,7 @@ export function MoneyFlowDashboard({
   viewer: ViewerSummary;
   workspace: DashboardWorkspace;
   accountBalances: AccountBalanceRow[];
+  backupState: BackupReminderState;
   initialInboxCount: number;
   ledgerTrust: LedgerTrustSummary | null;
   budgets: BudgetSummary[];
@@ -240,8 +242,16 @@ export function MoneyFlowDashboard({
         inboxCount,
         needsReviewCount,
         today: workspace.today,
+        backup: backupState,
       }),
-    [liveBudgets, liveCommitments, inboxCount, needsReviewCount, workspace.today],
+    [
+      liveBudgets,
+      liveCommitments,
+      inboxCount,
+      needsReviewCount,
+      workspace.today,
+      backupState,
+    ],
   );
 
   async function addTransaction(input: CreateTransactionInput) {

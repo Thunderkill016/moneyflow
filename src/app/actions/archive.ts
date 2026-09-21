@@ -65,6 +65,18 @@ export async function createArchiveBackupAction(): Promise<BackupActionResult> {
     console.error("archive_backup_invalid", { rejections: validated.errors.length });
     return { ok: false, kind: "archive_rejected" };
   }
+
+  // Record the backup for the Home reminder chip. Advisory only: the archive is
+  // already valid and on its way, so a failed timestamp must not fail the
+  // backup — it just leaves the reminder stale for one more render.
+  const { error: stampError } = await supabase
+    .from("profiles")
+    .update({ last_backup_at: new Date().toISOString() })
+    .eq("id", viewer.id);
+  if (stampError) {
+    console.error("archive_backup_stamp_failed", { code: stampError.code ?? "unknown" });
+  }
+
   return { ok: true, archive: validated.archive };
 }
 

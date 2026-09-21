@@ -20,6 +20,7 @@ export default async function DashboardPage() {
   const {
     workspace,
     accountBalances,
+    backupState,
     budgets,
     commitments,
     pendingInboxCount,
@@ -35,6 +36,7 @@ export default async function DashboardPage() {
       }}
       workspace={workspace}
       accountBalances={accountBalances}
+      backupState={backupState}
       initialInboxCount={pendingInboxCount}
       ledgerTrust={ledgerTrust}
       budgets={budgets}
