@@ -172,16 +172,24 @@ export function buildExplainLines(
     const peer = candidate.duplicateOfId
       ? ` · ứng viên ${candidate.duplicateOfId}`
       : "";
+    const basis =
+      (candidate.duplicateDayDiff ?? 0) > 0
+        ? `cùng số tiền/mô tả · lệch ${candidate.duplicateDayDiff} ngày`
+        : "cùng fingerprint";
     lines.push({
       kind: "audit",
-      text: `Cảnh báo: có thể trùng (cùng fingerprint)${peer}`,
+      text: `Cảnh báo: có thể trùng (${basis})${peer}`,
     });
   }
 
   if (candidate.possibleTransfer && candidate.transferPairId) {
+    const dayBasis =
+      (candidate.transferDayDiff ?? 0) > 0
+        ? `lệch ${candidate.transferDayDiff} ngày`
+        : "cùng ngày";
     lines.push({
       kind: "audit",
-      text: `Gợi ý chuyển khoản: cùng số tiền · cùng ngày · đối ứng với ${candidate.transferPairId}`,
+      text: `Gợi ý chuyển khoản: cùng số tiền · ${dayBasis} · đối ứng với ${candidate.transferPairId}`,
     });
   } else if (candidate.kind === "transfer") {
     lines.push({
