@@ -37,9 +37,17 @@ import {
 } from "@/lib/transaction-store";
 import {
   applyBulkCategoryCorrection,
+  applyBulkDateChange,
   applyBulkReviewStatus,
+  BULK_SKIP_OFFLINE,
+  bulkSkipReasonForFailure,
   getTransactionReviewStatus,
+  planBulkDateChange,
+  planBulkDelete,
+  type BulkMutationResult,
+  type BulkSkippedRow,
 } from "@/lib/transaction-review";
+import { todayInVietnam } from "@/lib/vietnam-date";
 import {
   buildOptimisticTransaction,
   reduceOptimisticTransactions,
@@ -56,6 +64,43 @@ function withReviewStatus(transaction: Transaction): Transaction {
   return {
     ...transaction,
     reviewStatus: getTransactionReviewStatus(transaction),
+  };
+}
+
+/**
+ * Rebuild the single-row update input with only `occurredOn` changed — the
+ * update RPCs require the full field set, so a bulk date edit replays each
+ * row's own account/category/kind/amount/note through the same contract the
+ * edit dialog uses.
+ */
+function dateUpdateInput(
+  transaction: Transaction,
+  occurredOn: string,
+): UpdateMoneyTransactionInput | UpdateTransferInput | null {
+  if (transaction.kind === "transfer") {
+    if (!transaction.destinationAccountId) return null;
+    return {
+      id: transaction.id,
+      kind: "transfer",
+      sourceAccountId: transaction.accountId,
+      destinationAccountId: transaction.destinationAccountId,
+      amount: transaction.amount,
+      occurredOn,
+      note: transaction.note,
+    };
+  }
+  if (transaction.kind !== "income" && transaction.kind !== "expense") {
+    return null;
+  }
+  if (!transaction.categoryId) return null;
+  return {
+    id: transaction.id,
+    kind: transaction.kind,
+    accountId: transaction.accountId,
+    categoryId: transaction.categoryId,
+    amount: transaction.amount,
+    occurredOn,
+    note: transaction.note,
   };
 }
 
@@ -486,6 +531,163 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     }
   }
 
+  /**
+   * Bulk "đổi ngày": re-plan against the live ledger at execution time, then
+   * walk the eligible rows through the same per-row update RPCs the edit
+   * dialog uses (update_money_transaction / update_account_transfer).
+   * Sequential calls keep per-item skip reporting honest for a personal
+   * ledger's bounded selection (≤100 rows).
+   */
+  async function bulkUpdateDate(input: {
+    ids: string[];
+    occurredOn: string;
+  }): Promise<BulkMutationResult> {
+    const sourceTransactions = isDemo
+      ? readStoredTransactions()
+      : transactions;
+    const plan = planBulkDateChange(
+      sourceTransactions,
+      input.ids,
+      input.occurredOn,
+    );
+    if (!plan.ok) return plan;
+    const skipped: BulkSkippedRow[] = [...plan.skipped];
+    if (plan.eligible.length === 0) {
+      return { ok: true, updatedIds: [], skipped };
+    }
+
+    if (isDemo) {
+      const applied = applyBulkDateChange(
+        sourceTransactions,
+        plan.eligible.map((transaction) => transaction.id),
+        input.occurredOn,
+        todayInVietnam(),
+      );
+      if (!applied.ok) return { ok: false, message: applied.message };
+      commitDemoTransactions(applied.transactions);
+      return { ok: true, updatedIds: applied.updatedIds, skipped };
+    }
+
+    setIsMutating(true);
+    try {
+      const updatedIds: string[] = [];
+      const updatedRows = new Map<string, Transaction>();
+      for (const transaction of plan.eligible) {
+        const update = dateUpdateInput(transaction, input.occurredOn);
+        if (!update) {
+          skipped.push({
+            id: transaction.id,
+            note: transaction.note,
+            reason: "thiếu dữ liệu để đổi ngày",
+          });
+          continue;
+        }
+        try {
+          const result =
+            update.kind === "transfer"
+              ? await updateTransferAction(update)
+              : await updateTransactionAction(update);
+          if (result.ok) {
+            updatedIds.push(transaction.id);
+            if (result.transaction) {
+              updatedRows.set(transaction.id, result.transaction);
+            }
+          } else {
+            skipped.push({
+              id: transaction.id,
+              note: transaction.note,
+              reason: bulkSkipReasonForFailure(result.code, result.message),
+            });
+          }
+        } catch {
+          skipped.push({
+            id: transaction.id,
+            note: transaction.note,
+            reason: BULK_SKIP_OFFLINE,
+          });
+        }
+      }
+      if (updatedRows.size > 0) {
+        setTransactions((current) =>
+          current.map((item) => {
+            const confirmed = updatedRows.get(item.id);
+            return confirmed
+              ? {
+                  ...confirmed,
+                  reviewStatus: getTransactionReviewStatus(item),
+                }
+              : item;
+          }),
+        );
+      }
+      return { ok: true, updatedIds, skipped };
+    } finally {
+      setIsMutating(false);
+    }
+  }
+
+  /**
+   * Bulk soft delete: same `soft_delete_money_transaction` RPC per row as the
+   * single-row delete, so RLS, the recurring lock and the reconciled-entry
+   * trigger all apply unchanged. Returns deleted ids plus per-row skips.
+   */
+  async function bulkDeleteTransactions(input: {
+    ids: string[];
+  }): Promise<BulkMutationResult> {
+    const sourceTransactions = isDemo
+      ? readStoredTransactions()
+      : transactions;
+    const plan = planBulkDelete(sourceTransactions, input.ids);
+    if (!plan.ok) return plan;
+    const skipped: BulkSkippedRow[] = [...plan.skipped];
+    if (plan.eligible.length === 0) {
+      return { ok: true, updatedIds: [], skipped };
+    }
+
+    const eligibleIds = plan.eligible.map((transaction) => transaction.id);
+    if (isDemo) {
+      const gone = new Set(eligibleIds);
+      commitDemoTransactions(
+        sourceTransactions.filter((transaction) => !gone.has(transaction.id)),
+      );
+      return { ok: true, updatedIds: eligibleIds, skipped };
+    }
+
+    setIsMutating(true);
+    try {
+      const deletedIds: string[] = [];
+      for (const transaction of plan.eligible) {
+        try {
+          const result = await deleteTransactionAction(transaction.id);
+          if (result.ok) {
+            deletedIds.push(transaction.id);
+          } else {
+            skipped.push({
+              id: transaction.id,
+              note: transaction.note,
+              reason: bulkSkipReasonForFailure(result.code, result.message),
+            });
+          }
+        } catch {
+          skipped.push({
+            id: transaction.id,
+            note: transaction.note,
+            reason: BULK_SKIP_OFFLINE,
+          });
+        }
+      }
+      if (deletedIds.length > 0) {
+        const gone = new Set(deletedIds);
+        setTransactions((current) =>
+          current.filter((transaction) => !gone.has(transaction.id)),
+        );
+      }
+      return { ok: true, updatedIds: deletedIds, skipped };
+    } finally {
+      setIsMutating(false);
+    }
+  }
+
   return {
     transactions: optimisticTransactions,
     addTransaction,
@@ -496,6 +698,8 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     restoreTransaction,
     bulkSetReviewStatus,
     bulkUpdateCategory,
+    bulkUpdateDate,
+    bulkDeleteTransactions,
     isMutating,
   };
 }

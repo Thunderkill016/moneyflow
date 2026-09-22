@@ -435,7 +435,8 @@
 }
 
 .bulkReviewActions,
-.bulkCategoryActions {
+.bulkCategoryActions,
+.bulkEditActions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -449,6 +450,10 @@
 
 .bulkCategoryActions .field {
   flex: 1 1 240px;
+}
+
+.bulkEditActions .field {
+  flex: 0 1 200px;
 }
 
 .bulkHint,
@@ -812,13 +817,16 @@
 
   .selectionToolbar,
   .bulkReviewActions,
-  .bulkCategoryActions {
+  .bulkCategoryActions,
+  .bulkEditActions {
     align-items: stretch;
   }
 
   .selectionToolbar > *,
   .bulkReviewActions > button,
-  .bulkCategoryActions > button {
+  .bulkCategoryActions > button,
+  .bulkEditActions > button,
+  .bulkEditActions > .field {
     width: 100%;
   }
 

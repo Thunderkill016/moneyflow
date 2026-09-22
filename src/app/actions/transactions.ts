@@ -17,7 +17,40 @@ import { mapTransactionFeedRow } from "@/server/finance";
 
 export type TransactionActionResult =
   | { ok: true; transaction?: Transaction }
-  | { ok: false; message: string };
+  | {
+      ok: false;
+      message: string;
+      /**
+       * Stable machine reason when the failure maps to a known RPC guard
+       * (`transaction_reconciled`, `recurring_payment_locked`,
+       * `transaction_not_found`). Bulk edits group per-row skips on it; the
+       * `message` stays the user-facing single-row copy.
+       */
+      code?: string;
+    };
+
+/**
+ * The reconciled-entry trigger (`guard_reconciled_transaction_mutation`)
+ * surfaces as `transaction_reconciled` from both update RPCs and soft delete.
+ * Bulk edits group these rows as "đã đối soát"; single edits get real copy
+ * instead of the generic failure.
+ */
+const TRANSACTION_RECONCILED_MESSAGE =
+  "Giao dịch đã đối soát. Mở lại kỳ đối soát ở trang tài khoản trước khi sửa.";
+
+function mutationErrorCode(error: { message?: string } | null) {
+  const message = error?.message ?? "";
+  if (message.includes("transaction_reconciled")) {
+    return "transaction_reconciled";
+  }
+  if (message.includes("recurring_payment_locked")) {
+    return "recurring_payment_locked";
+  }
+  if (message.includes("transaction_not_found")) {
+    return "transaction_not_found";
+  }
+  return undefined;
+}
 
 const createSchema = z.object({
   kind: z.enum(["income", "expense"]),
@@ -192,9 +225,10 @@ export async function deleteTransactionAction(id: string): Promise<TransactionAc
   const { data, error } = await supabase.rpc("soft_delete_money_transaction", {
     p_transaction_id: parsed.data,
   });
-  if (error?.message.includes("recurring_payment_locked")) return { ok: false, message: "Khoản này được tạo từ lịch định kỳ. Hãy hoàn tác ở trang Định kỳ hoặc Lương định kỳ." };
+  if (error?.message.includes("recurring_payment_locked")) return { ok: false, code: "recurring_payment_locked", message: "Khoản này được tạo từ lịch định kỳ. Hãy hoàn tác ở trang Định kỳ hoặc Lương định kỳ." };
+  if (error?.message.includes("transaction_reconciled")) return { ok: false, code: "transaction_reconciled", message: TRANSACTION_RECONCILED_MESSAGE };
   if (error) return { ok: false, message: "Không thể xóa giao dịch. Hãy thử lại." };
-  if (data !== true) return { ok: false, message: "Giao dịch không còn tồn tại." };
+  if (data !== true) return { ok: false, code: "transaction_not_found", message: "Giao dịch không còn tồn tại." };
 
   refreshFinancePages();
   return { ok: true };
@@ -271,8 +305,9 @@ export async function updateTransactionAction(input: UpdateMoneyTransactionInput
     p_transaction_id: value.id, p_account_id: value.accountId, p_category_id: value.categoryId,
     p_kind: value.kind, p_amount_minor: value.amount, p_occurred_on: value.occurredOn, p_note: value.note,
   });
-  if (error?.message.includes("recurring_payment_locked")) return { ok: false, message: "Khoản này được quản lý ở trang Định kỳ hoặc Lương định kỳ." };
-  if (error || typeof transactionId !== "string") return { ok: false, message: "Không thể cập nhật giao dịch. Hãy kiểm tra và thử lại." };
+  if (error?.message.includes("recurring_payment_locked")) return { ok: false, code: "recurring_payment_locked", message: "Khoản này được quản lý ở trang Định kỳ hoặc Lương định kỳ." };
+  if (error?.message.includes("transaction_reconciled")) return { ok: false, code: "transaction_reconciled", message: TRANSACTION_RECONCILED_MESSAGE };
+  if (error || typeof transactionId !== "string") return { ok: false, code: mutationErrorCode(error), message: "Không thể cập nhật giao dịch. Hãy kiểm tra và thử lại." };
   const { data, error: readError } = await supabase.from("transaction_feed").select(feedColumns).eq("id", transactionId).single();
   if (readError || !data) { refreshFinancePages(); return { ok: false, message: "Đã cập nhật nhưng chưa tải lại được giao dịch." }; }
   try { const transaction = mapTransactionFeedRow(data); refreshFinancePages(); return { ok: true, transaction }; }
@@ -292,7 +327,9 @@ export async function updateTransferAction(input: UpdateTransferInput): Promise<
     p_destination_account_id: value.destinationAccountId, p_amount_minor: value.amount,
     p_occurred_on: value.occurredOn, p_note: value.note,
   });
-  if (error || typeof transactionId !== "string") return { ok: false, message: "Không thể cập nhật chuyển tiền. Hãy kiểm tra hai tài khoản." };
+  if (error?.message.includes("recurring_payment_locked")) return { ok: false, code: "recurring_payment_locked", message: "Khoản này được quản lý ở trang Định kỳ hoặc Lương định kỳ." };
+  if (error?.message.includes("transaction_reconciled")) return { ok: false, code: "transaction_reconciled", message: TRANSACTION_RECONCILED_MESSAGE };
+  if (error || typeof transactionId !== "string") return { ok: false, code: mutationErrorCode(error), message: "Không thể cập nhật chuyển tiền. Hãy kiểm tra hai tài khoản." };
   const { data, error: readError } = await supabase.from("transaction_feed").select(feedColumns).eq("id", transactionId).single();
   if (readError || !data) { refreshFinancePages(); return { ok: false, message: "Đã cập nhật nhưng chưa tải lại được giao dịch." }; }
   try { const transaction = mapTransactionFeedRow(data); refreshFinancePages(); return { ok: true, transaction }; }
