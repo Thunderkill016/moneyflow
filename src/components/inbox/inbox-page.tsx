@@ -350,13 +350,15 @@ export function InboxPage({
   }, [detected, reviewId]);
 
   const activeSelectedIds = useMemo(() => {
+    // `detected` includes virtual commitment suggestions so bulk select can
+    // reach them; non-approve bulk actions strip suggestion ids downstream.
     const pendingIds = new Set(
-      candidates
+      detected
         .filter((item) => item.status === "pending")
         .map((item) => item.id),
     );
     return selectedIds.filter((id) => pendingIds.has(id));
-  }, [candidates, selectedIds]);
+  }, [detected, selectedIds]);
 
   const safeFocusedIndex =
     visible.length === 0
