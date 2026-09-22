@@ -46,6 +46,12 @@ export type AccountOption = {
   name: string;
   /** ISO 4217; defaults to VND when omitted by legacy callers. */
   currencyCode?: string;
+  /**
+   * Current balance in integer minor units, present only when the loader
+   * resolved it (server: `account_balances` view; demo: fixture snapshot).
+   * Absent means unknown — never read it as zero.
+   */
+  balance?: number;
 };
 
 export type CategoryOption = {

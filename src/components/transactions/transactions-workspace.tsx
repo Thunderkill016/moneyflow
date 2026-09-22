@@ -30,6 +30,10 @@ import {
   type UpdateTransferInput,
 } from "@/lib/sample-data";
 import { GHI_CHI_TIEU_HREF, GHI_CHI_TIEU_LABEL } from "@/lib/nav-ia";
+import {
+  buildRunningBalance,
+  resolveRegisterBalanceScope,
+} from "@/lib/running-balance";
 import { safeUserNotice } from "@/lib/safe-log";
 import { isSplitExpense } from "@/lib/splits";
 import { derivePayeeSuggestions } from "@/lib/quick-add-defaults";
@@ -442,6 +446,31 @@ export function TransactionsWorkspace({
       .reduce((sum, item) => sum + item.amount, 0);
     return { income, expense, net: income - expense };
   }, [filtered]);
+
+  /*
+   * Running balance — only when the ledger is scoped to exactly one account.
+   * The column is computed over the account's whole register (not the filtered
+   * subset), anchored at the account's current balance and reconciled against
+   * the mount-time ledger so session mutations stay consistent. Every row
+   * shows "Số dư sau giao dịch" — the balance right after that transaction —
+   * so search/kind/date filters can hide rows but never change a number.
+   */
+  const registerScope = useMemo(
+    () => resolveRegisterBalanceScope(account, workspace.accounts),
+    [account, workspace.accounts],
+  );
+  const runningBalance = useMemo(
+    () =>
+      registerScope
+        ? buildRunningBalance(
+            transactions,
+            mountTransactionsRef.current,
+            registerScope,
+            workspace.accounts,
+          )
+        : null,
+    [registerScope, transactions, workspace.accounts],
+  );
 
   /**
    * Ledger-wide queue depth, not the filtered count: the number stays honest
@@ -1273,9 +1302,15 @@ export function TransactionsWorkspace({
 
           {grouped.length ? (
             <div className={styles.list} data-slot="ledger-list">
-              <div className={styles.listHeader} aria-hidden="true">
+              <div
+                className={`${styles.listHeader}${
+                  runningBalance ? ` ${styles.listHeaderWithBalance}` : ""
+                }`}
+                aria-hidden="true"
+              >
                 <span>Giao dịch</span>
                 <span>Số tiền</span>
+                {runningBalance ? <span>Số dư sau giao dịch</span> : null}
                 <span>Thao tác</span>
               </div>
 
@@ -1306,9 +1341,14 @@ export function TransactionsWorkspace({
                       categoryMeta["Thu nhập khác"];
                     const reviewStatus =
                       getTransactionReviewStatus(transaction);
+                    const balance = runningBalance?.balanceAfter.get(
+                      transaction.id,
+                    );
                     return (
                       <article
-                        className={styles.row}
+                        className={`${styles.row}${
+                          runningBalance ? ` ${styles.rowWithBalance}` : ""
+                        }`}
                         key={transaction.id}
                         data-slot="ledger-row"
                         data-transaction-id={transaction.id}
@@ -1376,6 +1416,25 @@ export function TransactionsWorkspace({
                           emphasis="strong"
                           className={styles.amount}
                         />
+                        {runningBalance ? (
+                          balance == null ? (
+                            <span
+                              className={styles.balanceMissing}
+                              title="Không tính được số dư cho dòng này"
+                              aria-label="Không tính được số dư cho dòng này"
+                            >
+                              —
+                            </span>
+                          ) : (
+                            <MoneyValue
+                              amount={balance}
+                              mode="plain"
+                              currencyCode={runningBalance.currencyCode}
+                              className={styles.balance}
+                              label={`Số dư sau giao dịch ${transaction.note}`}
+                            />
+                          )
+                        ) : null}
                         {transaction.isRecurringPayment ? (
                           <LinkButton
                             href="/commitments"
