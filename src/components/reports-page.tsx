@@ -31,6 +31,7 @@ import {
   formatReportPeriodTitle,
   REPORT_PERIOD_OPTIONS,
   reportPeriodHref,
+  reportTrendGranularity,
 } from "@/lib/reports";
 import { categoryMeta } from "@/lib/sample-data";
 import type { ReportsWorkspace } from "@/server/reports";
@@ -71,7 +72,13 @@ export function ReportsPage({
 }) {
   const { report } = workspace;
   const expenseChange = report.expenseChangePercent;
-  const expenseDays = report.trend.filter((item) => item.expense > 0);
+  /*
+   * The trend buckets are days or months depending on the window's span, so the
+   * unit label is derived from the same rule — never keyed on the period name,
+   * which would call a 63-day custom window's monthly bars "ngày".
+   */
+  const trendUnit = reportTrendGranularity(report.range) === "month" ? "tháng" : "ngày";
+  const expenseBuckets = report.trend.filter((item) => item.expense > 0);
   /*
    * Both series share one scale, or the two bars in a column would not be
    * comparable and the chart would lie about which way money moved.
@@ -88,8 +95,8 @@ export function ReportsPage({
   const trendHasActivity = report.trend.some(
     (item) => item.income > 0 || item.expense > 0,
   );
-  const averageExpense = expenseDays.length
-    ? Math.round(report.totals.expense / expenseDays.length)
+  const averageExpense = expenseBuckets.length
+    ? Math.round(report.totals.expense / expenseBuckets.length)
     : 0;
   const { currentStart, currentEnd } = report.range;
   const csvDownloadHref = reportCsvDownloadHref(period, currentStart, currentEnd);
@@ -286,16 +293,16 @@ export function ReportsPage({
               title="Nhịp chi tiêu"
               description={
                 <p>
-                  Mức chi theo từng {period === "year" ? "tháng" : "ngày"}; chuyển
+                  Mức chi theo từng {trendUnit}; chuyển
                   tiền giữa các tài khoản được loại trừ.
                 </p>
               }
               action={
                 <div className={styles.chartStat}>
-                  <span>TB/ngày có chi</span>
+                  <span>TB/{trendUnit} có chi</span>
                   <MoneyValue
                     amount={averageExpense}
-                    label="Trung bình ngày có chi"
+                    label={`Trung bình ${trendUnit} có chi`}
                     emphasis="strong"
                   />
                 </div>

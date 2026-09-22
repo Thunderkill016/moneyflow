@@ -92,3 +92,23 @@ test("the series are named in text, not distinguished by colour alone", () => {
   assert.match(page, />Chi</u);
   assert.match(styles, /^\.legendIncome::before\s*\{/mu);
 });
+
+test("the trend labels name the bucket shape, not the period name", () => {
+  /*
+   * `trendBuckets` switches to monthly bars by span — the year preset and any
+   * custom window over 62 days both produce months. Labels keyed on
+   * `period === "year"` called those monthly bars "ngày", and the "per-day"
+   * average divided total expense by a count of months.
+   */
+  assert.match(page, /reportTrendGranularity\(report\.range\)/u);
+  assert.match(page, /theo từng \{trendUnit\}/u);
+  assert.match(page, /TB\/\{trendUnit\} có chi/u);
+  assert.ok(
+    !/TB\/ngày có chi/u.test(page),
+    "a fixed per-day label must be gone — it lies on monthly buckets",
+  );
+  assert.ok(
+    !/expenseDays/u.test(page),
+    "buckets are not days; the variable name must not claim they are",
+  );
+});

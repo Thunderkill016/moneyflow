@@ -10,6 +10,7 @@ import {
   normalizeReportPeriod,
   reportPeriodHref,
   reportRange,
+  reportTrendGranularity,
   REPORTS_MONTH_HREF,
   resolveReportRange,
   transactionsToCsv,
@@ -147,6 +148,31 @@ test("trend buckets switch from daily to monthly by span, not by period name", (
   // 63 days must not produce 63 bars the chart was never shaped for.
   const monthly = buildFinancialReport([], customReportRange("2026-05-13", "2026-07-14"));
   assert.deepEqual(monthly.trend.map((item) => item.key), ["2026-05", "2026-06", "2026-07"]);
+});
+
+test("trend granularity names the bucket shape the page labels must use", () => {
+  // Presets: week and month stay daily; year is monthly.
+  assert.equal(reportTrendGranularity(reportRange("2026-07-14", "week")), "day");
+  assert.equal(reportTrendGranularity(reportRange("2026-07-14", "month")), "day");
+  assert.equal(reportTrendGranularity(reportRange("2026-07-14", "year")), "month");
+
+  // Custom follows the span rule, not the period name: 62 days is the last
+  // daily window, 63 the first monthly one.
+  assert.equal(reportTrendGranularity(customReportRange("2026-06-01", "2026-07-01")), "day");
+  assert.equal(reportTrendGranularity(customReportRange("2026-05-14", "2026-07-14")), "day");
+  assert.equal(reportTrendGranularity(customReportRange("2026-05-13", "2026-07-14")), "month");
+});
+
+test("trend granularity and the buckets it describes cannot disagree", () => {
+  // The label is derived from the same range the buckets were built from, so
+  // a monthly report can never render bars labelled as days.
+  const monthly = buildFinancialReport([], customReportRange("2026-05-13", "2026-07-14"));
+  assert.equal(reportTrendGranularity(monthly.range), "month");
+  assert.ok(monthly.trend.every((item) => item.key.length === 7));
+
+  const daily = buildFinancialReport([], customReportRange("2026-06-01", "2026-07-01"));
+  assert.equal(reportTrendGranularity(daily.range), "day");
+  assert.ok(daily.trend.every((item) => item.key.length === 10));
 });
 
 test("custom trend totals stay attached to the right bucket", () => {
