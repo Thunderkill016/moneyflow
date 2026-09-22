@@ -40,6 +40,7 @@ import {
   dueDateForMonth,
   markCommitmentPaid,
   markCommitmentUnpaid,
+  nextOccurrence,
   removePaymentExpense,
   unpaidActiveCount,
   type RecurringCommitment,
@@ -645,6 +646,7 @@ export function CommitmentsPage({
                     };
                     const tone = commitmentDueTone(item, today);
                     const statusText = commitmentDueLabel(item, today);
+                    const nextOn = nextOccurrence(item, today, monthStart);
 
                     return (
                       <PlanningCard key={item.id} tone={tone}>
@@ -697,6 +699,13 @@ export function CommitmentsPage({
                             </strong>
                           </div>
                         </div>
+
+                        {nextOn ? (
+                          <p className={planningStyles.context}>
+                            Kỳ tới: {nextOn.slice(8, 10)}/
+                            {nextOn.slice(5, 7)}
+                          </p>
+                        ) : null}
 
                         <div
                           className={planningStyles.actions}
