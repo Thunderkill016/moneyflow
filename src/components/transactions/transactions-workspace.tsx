@@ -32,6 +32,7 @@ import {
 import { GHI_CHI_TIEU_HREF, GHI_CHI_TIEU_LABEL } from "@/lib/nav-ia";
 import { safeUserNotice } from "@/lib/safe-log";
 import { isSplitExpense } from "@/lib/splits";
+import { derivePayeeSuggestions } from "@/lib/quick-add-defaults";
 import {
   filterTransactions,
   normalizeTransactionAmountInput,
@@ -412,6 +413,10 @@ export function TransactionsWorkspace({
   const bulkCategorySelection = useMemo(
     () => evaluateBulkCategorySelection(transactions, selectedIds),
     [selectedIds, transactions],
+  );
+  const payeeSuggestions = useMemo(
+    () => derivePayeeSuggestions(transactions),
+    [transactions],
   );
   const bulkCategoryOptions = useMemo(
     () =>
@@ -1355,7 +1360,7 @@ export function TransactionsWorkspace({
                                         `${line.category} ${formatMoney(line.amount)}`,
                                     )
                                     .join(" · ")}`
-                                : `${transaction.category} · ${transaction.account}`}
+                                : `${transaction.payee ? `${transaction.payee} · ` : ""}${transaction.category} · ${transaction.account}`}
                             {transaction.isRecurringPayment
                               ? " · Từ lịch định kỳ"
                               : ""}
@@ -1530,6 +1535,7 @@ export function TransactionsWorkspace({
           onClose={() => setEditing(null)}
           onSave={handleUpdate}
           disabled={isMutating || Boolean(workspace.dataError)}
+          payeeSuggestions={payeeSuggestions}
         />
       ) : null}
       <SecondaryReviewDialog

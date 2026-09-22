@@ -24,6 +24,7 @@ const approvalSchema = z
     amount: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
     occurredOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     note: z.string().trim().max(500),
+    payee: z.string().trim().max(200).optional(),
     idempotencyKey: z.string().uuid(),
     allowHeuristicDuplicate: z.boolean().default(false),
   })
@@ -48,7 +49,7 @@ const approvalSchema = z
   });
 
 const feedColumns =
-  "id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines";
+  "id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines,payee";
 
 export type AtomicInboxApprovalInput = z.input<typeof approvalSchema>;
 
@@ -343,6 +344,7 @@ export async function approveInboxCandidateAction(
       p_amount_minor: value.amount,
       p_occurred_on: value.occurredOn,
       p_note: value.note,
+      p_payee: value.payee ?? null,
       p_idempotency_key: value.idempotencyKey,
       p_allow_heuristic_duplicate: value.allowHeuristicDuplicate,
     },

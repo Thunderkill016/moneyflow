@@ -14,6 +14,8 @@ export type Transaction = {
   categoryId: string;
   category: string;
   note: string;
+  /** Merchant/person/entity name (≤200 chars). Optional: demo rows stored before this field existed carry no payee. */
+  payee?: string;
   accountId: string;
   account: string;
   destinationAccountId?: string;
@@ -67,6 +69,7 @@ export type CreateTransactionInput = InboxApprovalCommand & {
   accountId: string;
   amount: number;
   note: string;
+  payee?: string;
   occurredOn: string;
   idempotencyKey: string;
 };
@@ -84,6 +87,7 @@ export type CreateTransferInput = InboxApprovalCommand & {
 export type CreateSplitExpenseInput = {
   accountId: string;
   note: string;
+  payee?: string;
   occurredOn: string;
   idempotencyKey: string;
   lines: { categoryId: string; amount: number }[];

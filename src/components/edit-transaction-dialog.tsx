@@ -34,6 +34,7 @@ export function EditTransactionDialog({
   onClose,
   onSave,
   disabled = false,
+  payeeSuggestions = [],
 }: {
   transaction: Transaction;
   accounts: AccountOption[];
@@ -41,6 +42,7 @@ export function EditTransactionDialog({
   onClose: () => void;
   onSave: (input: UpdateInput) => Promise<{ ok: boolean; message?: string }>;
   disabled?: boolean;
+  payeeSuggestions?: string[];
 }) {
   const amountRef = useRef<HTMLInputElement>(null);
   const formId = useId();
@@ -58,6 +60,7 @@ export function EditTransactionDialog({
   );
   const [occurredOn, setOccurredOn] = useState(transaction.occurredOn);
   const [note, setNote] = useState(transaction.note);
+  const [payee, setPayee] = useState(transaction.payee ?? "");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -151,6 +154,7 @@ export function EditTransactionDialog({
         amount: parsedAmount,
         occurredOn,
         note: note.trim(),
+        payee: payee.trim(),
       };
     }
 
@@ -379,6 +383,28 @@ export function EditTransactionDialog({
               changed();
             }}
           />
+          {!isTransfer && (
+            <TextField
+              label="Nơi giao dịch"
+              value={payee}
+              targetSize="important"
+              disabled={submitting}
+              onChange={(event) => {
+                setPayee(event.target.value);
+                changed();
+              }}
+              maxLength={200}
+              placeholder="Ví dụ: Highlands Coffee"
+              list={`${formId}-payees`}
+            />
+          )}
+          {!isTransfer && payeeSuggestions.length > 0 ? (
+            <datalist id={`${formId}-payees`}>
+              {payeeSuggestions.map((suggestion) => (
+                <option key={suggestion} value={suggestion} />
+              ))}
+            </datalist>
+          ) : null}
           <TextField
             label="Ghi chú"
             rootClassName={isTransfer ? styles.spanFull : undefined}
