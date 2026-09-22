@@ -134,9 +134,25 @@ test.describe("Account reconciliation workspace", () => {
     await expect(
       page.getByRole("button", { name: "Đánh dấu đã khớp Đồ dùng cá nhân" }),
     ).toBeVisible();
+
+    /*
+     * A nonzero difference no longer disables completion outright: the button
+     * opens the explicit adjustment dialog instead, and confirming stays
+     * disabled until a category is chosen. Cancel out to keep exercising the
+     * hint flow below.
+     */
+    await page.getByRole("button", { name: "Hoàn tất đối soát" }).click();
+    const adjustmentDialog = page.getByRole("dialog");
     await expect(
-      page.getByRole("button", { name: "Hoàn tất đối soát" }),
+      adjustmentDialog.getByText("Hoàn tất bằng khoản điều chỉnh?"),
+    ).toBeVisible();
+    await expect(
+      adjustmentDialog.getByRole("button", {
+        name: "Hoàn tất với điều chỉnh",
+      }),
     ).toBeDisabled();
+    await adjustmentDialog.getByRole("button", { name: "Hủy" }).click();
+    await expect(adjustmentDialog).toBeHidden();
 
     await page
       .getByRole("button", { name: "Đánh dấu đã khớp Đồ dùng cá nhân" })
@@ -185,8 +201,14 @@ test.describe("Account reconciliation workspace", () => {
     ).toBeVisible();
     await expect(page.getByText("1 kỳ", { exact: true })).toBeVisible();
 
-    // The adjustment is a real ledger row — visible on the account register.
-    await page.goto("/accounts/demo-account-mb");
+    /*
+     * The adjustment is a real ledger row — visible on the account register.
+     * Navigate client-side: this spec's beforeEach registers an init script
+     * that clears localStorage on every full document load, so page.goto
+     * would wipe the demo ledger store before hydration.
+     */
+    await page.getByRole("link", { name: "Quay lại sổ tài khoản" }).click();
+    await expect(page).toHaveURL(/\/accounts\/demo-account-mb$/);
     await expect(
       page.getByText(`Điều chỉnh đối soát — sao kê ${STATEMENT_DATE_LABEL}`),
     ).toBeVisible();
