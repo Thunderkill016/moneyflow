@@ -8,6 +8,7 @@ import { MoneyValue } from "@/components/money-value";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, IconButton, LinkButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SecondaryReviewDialog } from "@/components/secondary/secondary-layout";
 import { type ViewerSummary } from "@/components/user-chip";
 import { useTransactions } from "@/hooks/use-transactions";
 import {
@@ -204,6 +205,9 @@ export function TransactionsWorkspace({
     ids: string[];
   }>({ filterKey: "", ids: [] });
   const [bulkCategoryId, setBulkCategoryId] = useState("");
+  const [bulkCategoryReview, setBulkCategoryReview] =
+    useState<CategoryOption | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
   const [notice, setNotice] = useState("");
   const [pendingUndo, setPendingUndo] = useState<Transaction | null>(null);
   const noticeTimerRef = useRef<number | null>(null);
@@ -555,7 +559,7 @@ export function TransactionsWorkspace({
     setSelectedIds([]);
   }
 
-  async function handleBulkCategory() {
+  function handleBulkCategory() {
     const target = workspace.categories.find(
       (item) => item.id === effectiveBulkCategoryId,
     );
@@ -567,19 +571,23 @@ export function TransactionsWorkspace({
       );
       return;
     }
-    const confirmed = window.confirm(
-      `Đổi danh mục của ${selectedIds.length} giao dịch sang “${target.name}”? Số tiền, ngày và tài khoản sẽ giữ nguyên.`,
-    );
-    if (!confirmed) return;
+    setBulkCategoryReview(target);
+  }
+
+  async function confirmBulkCategory() {
+    const target = bulkCategoryReview;
+    if (!target) return;
 
     const result = await bulkUpdateCategory({
       ids: selectedIds,
       categoryId: target.id,
     });
     if (!result.ok) {
+      setBulkCategoryReview(null);
       showNotice(safeUserNotice(result.message, "Không đổi được danh mục."));
       return;
     }
+    setBulkCategoryReview(null);
     showNotice(`Đã đổi danh mục cho ${result.updatedIds.length} giao dịch.`);
     setSelectedIds([]);
     setBulkCategoryId("");
@@ -602,21 +610,25 @@ export function TransactionsWorkspace({
     return result;
   }
 
-  async function handleDelete(transaction: Transaction) {
+  function handleDelete(transaction: Transaction) {
     if (transaction.isRecurringPayment) {
       showNotice("Khoản này được quản lý ở trang Định kỳ.");
       return;
     }
-    const confirmed = window.confirm(
-      `Xóa giao dịch “${transaction.note}” (${formatMoney(transaction.amount)})? Giao dịch sẽ được ẩn khỏi sổ của bạn. Bạn có thể hoàn tác trong 8 giây.`,
-    );
-    if (!confirmed) return;
+    setDeleteTarget(transaction);
+  }
+
+  async function confirmDelete() {
+    const transaction = deleteTarget;
+    if (!transaction) return;
 
     const result = await deleteTransaction(transaction.id);
     if (!result.ok) {
+      setDeleteTarget(null);
       showNotice(safeUserNotice(result.message, "Không xóa được giao dịch."));
       return;
     }
+    setDeleteTarget(null);
 
     setSelectedIds((current) => current.filter((id) => id !== transaction.id));
     clearNoticeTimer();
@@ -830,11 +842,24 @@ export function TransactionsWorkspace({
                 >
                   <Icon name="arrows" /> Chuyển tiền ví
                 </Button>
+                {!workspace.dataError &&
+                (expenseCategoryCount < 2 || workspace.accounts.length < 2) ? (
+                  <small className={styles.actionHint}>
+                    {workspace.accounts.length < 1
+                      ? "Tạo tài khoản trước để chia khoản chi hoặc chuyển tiền giữa ví."
+                      : workspace.accounts.length < 2 && expenseCategoryCount < 2
+                        ? "Chuyển tiền ví cần hai tài khoản; chia khoản chi cần hai danh mục chi tiêu."
+                        : workspace.accounts.length < 2
+                          ? "Chuyển tiền ví cần ít nhất hai tài khoản."
+                          : "Chia khoản chi cần ít nhất hai danh mục chi tiêu."}
+                  </small>
+                ) : null}
               </>
             )}
           </div>
         </section>
 
+        {workspace.dataError ? null : (
         <section
           className={styles.summary}
           aria-label="Tóm tắt theo bộ lọc"
@@ -872,6 +897,7 @@ export function TransactionsWorkspace({
             />
           </div>
         </section>
+        )}
 
         <section className={styles.manager} aria-label="Danh sách giao dịch">
           <div className={styles.toolbar} data-slot="ledger-filters">
@@ -1207,7 +1233,7 @@ export function TransactionsWorkspace({
                   targetSize="important"
                   pending={isMutating}
                   pendingLabel="Đang đổi..."
-                  onClick={() => void handleBulkCategory()}
+                  onClick={handleBulkCategory}
                   disabled={
                     !bulkCategorySelection.ok || !effectiveBulkCategoryId
                   }
@@ -1434,21 +1460,37 @@ export function TransactionsWorkspace({
           ) : (
             <EmptyState
               icon={<Icon name={isTimeline ? "timeline" : "arrows"} />}
-              title="Chưa có giao dịch"
+              title={
+                workspace.dataError
+                  ? "Không tải được giao dịch"
+                  : "Chưa có giao dịch"
+              }
               description={
-                isTimeline
-                  ? "Ghi khoản chi hoặc thu để dòng tiền hiện trên timeline."
-                  : "Ghi khoản chi đầu tiên để bắt đầu theo dõi dòng tiền."
+                workspace.dataError
+                  ? "Dữ liệu của bạn vẫn được bảo vệ. Thử tải lại trang hoặc quay lại Tổng quan."
+                  : isTimeline
+                    ? "Ghi khoản chi hoặc thu để dòng tiền hiện trên timeline."
+                    : "Ghi khoản chi đầu tiên để bắt đầu theo dõi dòng tiền."
               }
               primaryAction={
-                <Button
-                  type="button"
-                  intent="secondary"
-                  targetSize="important"
-                  onClick={() => setDialogOpen(true)}
-                >
-                  {GHI_CHI_TIEU_LABEL}
-                </Button>
+                workspace.dataError ? (
+                  <LinkButton
+                    href="/dashboard"
+                    intent="secondary"
+                    targetSize="important"
+                  >
+                    Về Tổng quan
+                  </LinkButton>
+                ) : (
+                  <Button
+                    type="button"
+                    intent="secondary"
+                    targetSize="important"
+                    onClick={() => setDialogOpen(true)}
+                  >
+                    {GHI_CHI_TIEU_LABEL}
+                  </Button>
+                )
               }
               className={styles.emptyState}
             />
@@ -1490,6 +1532,41 @@ export function TransactionsWorkspace({
           disabled={isMutating || Boolean(workspace.dataError)}
         />
       ) : null}
+      <SecondaryReviewDialog
+        open={Boolean(bulkCategoryReview)}
+        onOpenChange={(open) => {
+          if (!open && !isMutating) setBulkCategoryReview(null);
+        }}
+        title="Đổi danh mục?"
+        description="Kiểm tra trước khi áp dụng cho các giao dịch đã chọn."
+        details={bulkCategoryReview ? [
+          { label: "Giao dịch", value: `${selectedIds.length} mục đã chọn` },
+          { label: "Danh mục mới", value: bulkCategoryReview.name },
+        ] : []}
+        consequence="Số tiền, ngày và tài khoản của từng giao dịch giữ nguyên. Thay đổi áp dụng ngay cho tất cả mục đã chọn."
+        confirmLabel="Đổi danh mục"
+        pending={isMutating}
+        onConfirm={confirmBulkCategory}
+        slot="bulk-category-review"
+      />
+      <SecondaryReviewDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open && !isMutating) setDeleteTarget(null);
+        }}
+        title="Xóa giao dịch?"
+        description="Kiểm tra trước khi ẩn khỏi sổ của bạn."
+        details={deleteTarget ? [
+          { label: "Giao dịch", value: deleteTarget.note },
+          { label: "Số tiền", value: formatMoney(deleteTarget.amount) },
+        ] : []}
+        consequence="Giao dịch sẽ được ẩn khỏi sổ của bạn. Bạn có thể hoàn tác trong 8 giây."
+        confirmLabel="Xóa giao dịch"
+        confirmIntent="destructive"
+        pending={isMutating}
+        onConfirm={confirmDelete}
+        slot="transaction-delete-review"
+      />
     </AppShell>
   );
 }

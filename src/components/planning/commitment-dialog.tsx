@@ -237,6 +237,15 @@ export function CommitmentDialog({
             ))}
           </SelectField>
         </div>
+        {commitment?.isPaid ? (
+          <Alert tone="warning">
+            <AlertDescription>
+              Khoản này đã ghi thanh toán tháng này. Sửa mẫu không thay đổi giao
+              dịch chi đã ghi trong sổ — hoàn tác thanh toán trước nếu cần đổi số
+              tiền đã ghi.
+            </AlertDescription>
+          </Alert>
+        ) : null}
         <Alert tone="info">
           <AlertDescription>
             Lưu mẫu không thay đổi số dư. Review “Ghi đã thanh toán” sẽ nêu rõ trước khi tạo giao dịch chi thật.

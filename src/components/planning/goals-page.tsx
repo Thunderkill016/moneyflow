@@ -3,12 +3,13 @@
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import {
+  fundableIntoGoals,
   reserveExplanation,
   reservePictureFromTotals,
 } from "@/lib/planning/reserve";
 import { adjustGoalAction, archiveGoalAction, saveGoalAction } from "@/app/actions/goals";
 import { Icon } from "@/components/icons";
-import { AppShell } from "@/components/layout/app-shell";
+import { AppShell, type NoticeAction } from "@/components/layout/app-shell";
 import { MoneyValue } from "@/components/money-value";
 import {
   PlanningHeader,
@@ -18,14 +19,17 @@ import {
   PlanningSummaryItem,
   PlanningWorkspace,
   Button,
+  LinkButton,
   planningStyles,
 } from "@/components/planning/planning-layout";
 import { PlanningCard } from "@/components/planning/planning-card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EmptyState } from "@/components/ui/empty-state";
 import { type ViewerSummary } from "@/components/user-chip";
 import { formatMoney } from "@/lib/money";
 import {
   dailyGoalSaving,
+  goalIsOverdue,
   goalProgress,
   goalRemaining,
   goalTotals,
@@ -89,14 +93,23 @@ export function GoalsPage({
   const [reviewGoal, setReviewGoal] = useState<SavingsGoal | null>(null);
   const [dialogVersion, setDialogVersion] = useState(0);
   const [notice, setNotice] = useState("");
+  const [noticeAction, setNoticeAction] = useState<NoticeAction | undefined>();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 4200);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setNoticeAction(undefined);
+    }, 4200);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  function notify(message: string, action?: NoticeAction) {
+    setNotice(message);
+    setNoticeAction(action);
+  }
 
   const active = useMemo(() => goals.filter((goal) => !goal.isArchived), [goals]);
   const archived = useMemo(() => goals.filter((goal) => goal.isArchived), [goals]);
@@ -131,7 +144,7 @@ export function GoalsPage({
           : [...current, next],
       );
       setGoalDialogOpen(false);
-      setNotice(existing ? "Đã cập nhật mục tiêu demo." : "Đã thêm mục tiêu demo.");
+      notify(existing ? "Đã cập nhật mục tiêu demo." : "Đã thêm mục tiêu demo.");
       return { ok: true };
     }
 
@@ -143,7 +156,7 @@ export function GoalsPage({
           : [...current, result.goal!],
       );
       setGoalDialogOpen(false);
-      setNotice("Đã lưu mục tiêu.");
+      notify("Đã lưu mục tiêu.");
     }
     return result;
   }
@@ -165,7 +178,7 @@ export function GoalsPage({
         ),
       );
       setAllocationOpen(false);
-      setNotice(successMessage);
+      notify(successMessage);
       return { ok: true };
     }
 
@@ -177,14 +190,21 @@ export function GoalsPage({
         ),
       );
       setAllocationOpen(false);
-      setNotice(successMessage);
+      notify(successMessage);
     }
     return result;
   }
 
   function requestArchive(goal: SavingsGoal) {
     if (!goal.isArchived && goal.allocated > 0) {
-      setNotice("Hãy giảm số đã đánh dấu về 0 trước khi lưu trữ mục tiêu.");
+      notify("Hãy giảm số đã đánh dấu về 0 trước khi lưu trữ mục tiêu.", {
+        label: "Giảm số đánh dấu",
+        onClick: () => {
+          setNotice("");
+          setNoticeAction(undefined);
+          openAllocation(goal, "release");
+        },
+      });
       return;
     }
     setReviewGoal(goal);
@@ -198,7 +218,7 @@ export function GoalsPage({
       : await archiveGoalAction(reviewGoal.id, !reviewGoal.isArchived);
     setBusyId(null);
     if (!result.ok) {
-      setNotice(result.message);
+      notify(result.message);
       return;
     }
     setGoals((current) =>
@@ -206,7 +226,7 @@ export function GoalsPage({
         goal.id === reviewGoal.id ? { ...goal, isArchived: !goal.isArchived } : goal,
       ),
     );
-    setNotice(reviewGoal.isArchived ? "Đã khôi phục mục tiêu." : "Đã lưu trữ mục tiêu.");
+    notify(reviewGoal.isArchived ? "Đã khôi phục mục tiêu." : "Đã lưu trữ mục tiêu.");
     setReviewGoal(null);
   }
 
@@ -220,6 +240,7 @@ export function GoalsPage({
       }}
       showPrimaryActionOnMobile
       notice={notice}
+      noticeAction={noticeAction}
     >
       <PlanningWorkspace>
         <PlanningHeader
@@ -229,6 +250,29 @@ export function GoalsPage({
           truthNote="Số được đánh dấu cho mục tiêu chỉ là một earmark trong kế hoạch. MoneyFlow không tạo giao dịch, không chuyển tiền và không loại số đó khỏi số dư tài khoản."
         />
 
+        {dataError ? (
+          <Alert tone="error" live="assertive">
+            <AlertDescription>{dataError}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {dataError ? (
+          <EmptyState
+            icon={<Icon name="flag" />}
+            title="Không tải được mục tiêu"
+            description="Dữ liệu của bạn vẫn được bảo vệ. Thử tải lại trang hoặc quay lại Tổng quan."
+            primaryAction={
+              <LinkButton
+                href="/dashboard"
+                intent="secondary"
+                targetSize="important"
+              >
+                Về Tổng quan
+              </LinkButton>
+            }
+          />
+        ) : (
+          <>
         <PlanningSummary label="Tổng quan mục tiêu">
           <PlanningSummaryItem
             label="Đã đánh dấu"
@@ -241,7 +285,7 @@ export function GoalsPage({
           </PlanningSummaryItem>
           <PlanningSummaryItem
             label="Nhịp kế hoạch mỗi ngày"
-            meta="Chỉ tính từ các mục tiêu đang hoạt động có thời hạn."
+            meta="Chỉ tính từ các mục tiêu đang hoạt động còn trong thời hạn."
           >
             <MoneyValue amount={totals.plannedDaily} emphasis="strong" align="start" />
           </PlanningSummaryItem>
@@ -283,6 +327,7 @@ export function GoalsPage({
                 const remaining = goalRemaining(goal);
                 const daily = dailyGoalSaving(goal, today);
                 const achieved = progress === 100;
+                const overdue = goalIsOverdue(goal, today);
                 const tone = achieved ? "achieved" : "ok";
 
                 return (
@@ -335,7 +380,9 @@ export function GoalsPage({
                         ? `Nhịp kế hoạch hiện tại: ${formatMoney(daily)} mỗi ngày.`
                         : achieved
                           ? "Mục tiêu đã đủ số được đánh dấu."
-                          : "Không có nhịp bắt buộc khi chưa đặt thời hạn."}
+                          : overdue
+                            ? `Đã quá hạn — còn thiếu ${formatMoney(remaining)}. Đổi thời hạn hoặc đánh dấu thêm khi sẵn sàng.`
+                            : "Không có nhịp bắt buộc khi chưa đặt thời hạn."}
                     </p>
 
                     <div className={planningStyles.actions} data-slot="planning-card-actions">
@@ -409,6 +456,8 @@ export function GoalsPage({
             />
           )}
         </PlanningSection>
+          </>
+        )}
       </PlanningWorkspace>
 
       <GoalDialog
@@ -424,6 +473,7 @@ export function GoalsPage({
         open={allocationOpen}
         goal={allocationGoal}
         mode={allocationMode}
+        fundable={reserve ? fundableIntoGoals(reserve) : null}
         onClose={() => setAllocationOpen(false)}
         onSubmit={adjust}
       />

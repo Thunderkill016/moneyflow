@@ -11,7 +11,10 @@ export type SaveGoalInput = { id?: string; name: string; target: number; deadlin
 
 export function goalProgress(goal: SavingsGoal) {
   if (goal.target <= 0) return 0;
-  return Math.min(100, Math.max(0, Math.round((goal.allocated / goal.target) * 100)));
+  // Floor, not round: 99.6% must not claim "100% hoàn thành" while money is
+  // still missing — the card would disable "Đánh dấu thêm" with Còn thiếu > 0.
+  if (goal.allocated >= goal.target) return 100;
+  return Math.max(0, Math.floor((goal.allocated / goal.target) * 100));
 }
 
 /** Remaining minor units until target (never negative). */
@@ -26,7 +29,20 @@ export function daysUntil(date: string, today: string) {
 export function dailyGoalSaving(goal: SavingsGoal, today: string) {
   const remaining = goalRemaining(goal);
   if (!goal.deadline || remaining === 0 || goal.isArchived) return 0;
+  // No honest "per day" once the deadline passed — dividing by a clamped
+  // single day would tell the user to earmark the whole remainder today.
+  if (goal.deadline < today) return 0;
   return Math.ceil(remaining / daysUntil(goal.deadline, today));
+}
+
+/** True when the deadline exists and is strictly before today. */
+export function goalIsOverdue(goal: SavingsGoal, today: string) {
+  return (
+    !goal.isArchived &&
+    Boolean(goal.deadline) &&
+    goal.deadline! < today &&
+    goalRemaining(goal) > 0
+  );
 }
 
 /**

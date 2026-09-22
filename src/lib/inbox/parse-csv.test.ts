@@ -149,6 +149,33 @@ test("toCsvCandidateInputs preserves evidence-aware source lineage through previ
   assert.equal(input?.mappingVersion, 3);
 });
 
+test("toCsvCandidateInputs stamps a chosen batch account on every row", () => {
+  const row: ParsedCsvRow = {
+    kind: "expense",
+    amount: 89_000,
+    merchant: "Merchant",
+    note: "",
+    occurredOn: "2026-09-05",
+    confidence: "high",
+    uncertainFields: [],
+    explanations: [],
+    rawSnippet: "synthetic",
+    rowIndex: 0,
+  };
+
+  const withAccount = toCsvCandidateInputs([row, { ...row, kind: "income" }], "batch-1", "csv", {
+    account: { id: "acc-mb", name: "MB Bank" },
+  });
+  assert.ok(withAccount.every((i) => i.accountId === "acc-mb"));
+  assert.ok(withAccount.every((i) => i.account === "MB Bank"));
+
+  // No account chosen → fields stay absent; resolveAccountId keeps doing its
+  // name-based inference instead of being pinned to a wrong guess.
+  const without = toCsvCandidateInputs([row], "batch-1", "csv");
+  assert.equal(without[0]?.accountId, undefined);
+  assert.equal(without[0]?.account, undefined);
+});
+
 test("parseCsvStatement empty / no amount column → error", () => {
   const empty = parseCsvStatement("   ");
   assert.equal(empty.ok, false);
