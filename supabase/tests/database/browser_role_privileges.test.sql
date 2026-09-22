@@ -41,6 +41,7 @@ select ok(
       and table_name in (
         'account_balances',
         'budget_progress',
+        'deleted_transaction_feed',
         'recurring_commitment_feed',
         'recurring_income_template_feed',
         'transaction_feed'

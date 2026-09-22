@@ -11,6 +11,7 @@ import {
 import type {
   AccountOption,
   CategoryOption,
+  DeletedTransaction,
   Transaction,
   TransactionReviewStatus,
 } from "@/lib/transactions/contracts";
@@ -37,6 +38,7 @@ export type FinanceWorkspace = {
 const TRANSACTION_FEED_COLUMNS =
   "id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines,payee";
 const TRANSACTION_REVIEW_COLUMNS = "id,review_status,occurred_on,created_at";
+const DELETED_TRANSACTION_FEED_COLUMNS = `${TRANSACTION_FEED_COLUMNS},deleted_at`;
 
 type FinanceWorkspaceScope = "full" | "dashboard";
 
@@ -87,6 +89,15 @@ const feedSchema = z.object({
   /** Multi-entry expense lines when split across categories (TASK-128). */
   split_lines: z.array(splitLineSchema).nullable().optional(),
   payee: z.string().optional(),
+});
+
+/**
+ * Companion feed over soft-deleted rows (`deleted_transaction_feed`). Same
+ * projection as `feedSchema` plus the tombstone timestamp that drives the
+ * "Đã xóa lúc …" line and the newest-deleted-first ordering.
+ */
+const deletedFeedSchema = feedSchema.extend({
+  deleted_at: z.string(),
 });
 
 function shiftDate(date: string, days: number) {
@@ -156,6 +167,16 @@ export function mapTransactionFeedRow(value: unknown): Transaction {
     occurredAt: row.created_at,
     relativeDate: formatRelativeDate(row.occurred_on),
   };
+}
+
+/**
+ * `deleted_transaction_feed` mirrors `transaction_feed`, so the row mapping
+ * stays identical; only the tombstone timestamp is peeled off first.
+ * `feedSchema` strips `deleted_at` on the inner parse, so this stays honest.
+ */
+export function mapDeletedTransactionFeedRow(value: unknown): DeletedTransaction {
+  const row = deletedFeedSchema.parse(value);
+  return { transaction: mapTransactionFeedRow(row), deletedAt: row.deleted_at };
 }
 
 function demoWorkspace(): FinanceWorkspace {
@@ -404,4 +425,54 @@ export async function getFinanceWorkspace(): Promise<FinanceWorkspace> {
 /** Bounded loader for dashboard calculations and recent activity. */
 export async function getDashboardFinanceWorkspace(): Promise<FinanceWorkspace> {
   return loadFinanceWorkspace("dashboard");
+}
+
+export type DeletedTransactionsResult = {
+  deleted: DeletedTransaction[];
+  dataError: string | null;
+};
+
+/**
+ * Trash surface loader: every soft-deleted row the viewer owns, newest-deleted
+ * first. Demo keeps its tombstones on the device (see
+ * `deleted-transactions.ts`), so the server returns an empty list and the
+ * page hydrates from localStorage.
+ */
+export async function getDeletedTransactions(): Promise<DeletedTransactionsResult> {
+  const viewer = await requireViewer();
+  if (viewer.isDemo) return { deleted: [], dataError: null };
+
+  const supabase = await createClient();
+  if (!supabase) {
+    return { deleted: [], dataError: "Không thể kết nối dữ liệu." };
+  }
+
+  const result = await readAllPages((from, to) =>
+    supabase
+      .from("deleted_transaction_feed")
+      .select(DELETED_TRANSACTION_FEED_COLUMNS)
+      .eq("user_id", viewer.id)
+      .order("deleted_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(from, to),
+  );
+
+  if (result.error) {
+    return {
+      deleted: [],
+      dataError: "Chưa tải được các giao dịch đã xóa. Hãy thử tải lại trang.",
+    };
+  }
+
+  try {
+    return {
+      deleted: (result.data ?? []).map(mapDeletedTransactionFeedRow),
+      dataError: null,
+    };
+  } catch {
+    return {
+      deleted: [],
+      dataError: "Dữ liệu đã xóa không đúng định dạng. Hãy liên hệ hỗ trợ.",
+    };
+  }
 }
