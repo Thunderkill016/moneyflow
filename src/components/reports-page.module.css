@@ -147,6 +147,9 @@
   display: grid;
   justify-items: end;
   gap: 0.25rem;
+  /* MoneyValue is nowrap: never let the section header shrink this cell below
+     its content — the copy column or a wrap absorbs the space instead. */
+  flex-shrink: 0;
   color: var(--mf-text-muted);
   font-size: 0.75rem;
 }
@@ -280,6 +283,135 @@
   clip: rect(0 0 0 0);
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/*
+ * Net-worth line chart — a level over time, so a line rather than the flow
+ * bars above. The viewBox scales to the section width; the minimum width keeps
+ * long monthly windows legible inside the shared horizontal scroller.
+ */
+.balanceChart {
+  display: block;
+  width: 100%;
+  min-width: max(100%, 30rem);
+  height: auto;
+  border-bottom: 1px solid var(--mf-border);
+}
+
+.balanceLine {
+  fill: none;
+  stroke: var(--mf-brand);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.balanceArea {
+  fill: color-mix(in srgb, var(--mf-brand) 14%, transparent);
+  stroke: none;
+}
+
+.balanceDot {
+  fill: var(--mf-brand);
+  stroke: var(--mf-surface);
+  stroke-width: 1.5;
+}
+
+.balanceZero {
+  stroke: var(--mf-border);
+  stroke-dasharray: 5 4;
+}
+
+.legendBalance {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.legendBalance::before {
+  content: "";
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 0.2rem;
+  background: var(--mf-brand);
+}
+
+.balanceAxis {
+  position: relative;
+  height: 1.05rem;
+  min-width: max(100%, 30rem);
+  margin-top: 0.35rem;
+  color: var(--mf-text-muted);
+  font-size: 0.68rem;
+}
+
+/* Each label sits at its point's exact x so ticks stay under the data. */
+.balanceAxis span {
+  position: absolute;
+  top: 0;
+  overflow: hidden;
+  max-width: 6rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.balanceScale {
+  margin: 0.5rem 0 0;
+  color: var(--mf-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.balanceAccountsTitle {
+  margin: 1rem 0 0.25rem;
+  color: var(--mf-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.balanceAccounts {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * Account rows reuse the category row grid; only the icon tint differs —
+ * balances are neutral brand, not expense red.
+ */
+.balanceIcon {
+  background: color-mix(in srgb, var(--mf-brand) 13%, var(--mf-surface));
+  color: var(--mf-brand-text);
+}
+
+.balanceAccountName {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.balanceAccountName small {
+  color: var(--mf-text-muted);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+@media (forced-colors: active) {
+  .balanceLine {
+    stroke: CanvasText;
+  }
+
+  .balanceArea {
+    fill: none;
+  }
+
+  .balanceDot {
+    fill: CanvasText;
+    stroke: Canvas;
+  }
 }
 
 .categories {
