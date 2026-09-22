@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import type { Transaction } from "../../lib/transactions/contracts.ts";
 import { minorSchema, minor } from "../../lib/minor.ts";
+import { normalizeSearchText } from "../../lib/search-text.ts";
 import { buildBasis, validIsoDate } from "./basis.ts";
 import type {
   CapabilityContext,
@@ -118,9 +119,9 @@ export async function run(
     .filter((transaction) => !input.categoryId || transaction.categoryId === input.categoryId)
     .filter((transaction) => {
       if (!input.text) return true;
-      const needle = input.text.toLocaleLowerCase("vi");
+      const needle = normalizeSearchText(input.text);
       return [transaction.note, transaction.category, transaction.account]
-        .some((value) => value.toLocaleLowerCase("vi").includes(needle));
+        .some((value) => normalizeSearchText(value).includes(needle));
     })
     .sort(compareTransactions);
 

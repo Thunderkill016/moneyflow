@@ -6,6 +6,7 @@ import {
   classifyCandidateReadiness,
   type CandidateAttentionReason,
 } from "./inbox/readiness.ts";
+import { normalizeSearchText } from "./search-text.ts";
 import type {
   AccountOption,
   CategoryOption,
@@ -74,7 +75,7 @@ export type ActivityBuildInput = {
 };
 
 function normalizeSearchPart(value: string | null | undefined): string {
-  return value?.trim().toLocaleLowerCase("vi-VN") ?? "";
+  return normalizeSearchText(value ?? "");
 }
 
 function searchable(...values: Array<string | null | undefined>): string {
