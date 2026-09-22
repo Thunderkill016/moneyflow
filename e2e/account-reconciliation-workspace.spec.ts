@@ -96,6 +96,15 @@ test.describe("Account reconciliation workspace", () => {
     ).toBeVisible();
     await page.getByRole("button", { name: "Hoàn tất đối soát" }).click();
 
+    const completeDialog = page.getByRole("dialog");
+    await expect(
+      completeDialog.getByText("Hoàn tất kỳ đối soát?"),
+    ).toBeVisible();
+    await expect(completeDialog.getByText("3 mục đã khớp")).toBeVisible();
+    await completeDialog
+      .getByRole("button", { name: "Hoàn tất đối soát" })
+      .click();
+
     await expect(page.getByRole("heading", { name: "Các kỳ đã hoàn tất" })).toBeVisible();
     await expect(page.getByText("1 kỳ", { exact: true })).toBeVisible();
     await expect(page.getByText(`Kỳ sao kê ${STATEMENT_DATE_LABEL}`, { exact: true })).toBeVisible();
