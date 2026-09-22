@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
-import { findMatchingRule, resolveCategoryIdForRuleMatch } from "@/lib/inbox/apply-rules";
+import { resolveRuleCategoryFill } from "@/lib/inbox/apply-rules";
 import { readStoredRules, type InboxRule } from "@/lib/inbox/rules-store";
 import {
   MONEY_FRACTION_ENTRY_MESSAGE,
@@ -303,35 +303,43 @@ export function AddTransactionDialog({
   }, [effectiveOpen]);
 
   /*
-   * Typing a payee only updates the payee — the category suggestion it may
-   * unlock is applied exclusively through the chip's explicit tap below.
+   * A saved deterministic rule evaluates the whole draft — the typed payee is
+   * the merchant haystack, the note draft the note haystack — so rules saved
+   * from Inbox review as "Nơi chi = X → Y" fire here too. The fill touches
+   * only the draft category with visible attribution: a rule's merchant
+   * normalization never rewrites typed text, and an explicit category choice
+   * (categoryTouchedRef) is never overridden.
+   */
+  function applyRuleFill(draft: { merchant: string; note: string }) {
+    if (categoryTouchedRef.current) return;
+    const fill = resolveRuleCategoryFill(
+      rules,
+      { merchant: draft.merchant, note: draft.note, kind },
+      categories,
+    );
+    if (!fill) {
+      setAutoRuleHint(null);
+      return;
+    }
+    setCategoryId(fill.categoryId);
+    setAutoRuleHint(fill.hint);
+  }
+
+  /*
+   * Typing a payee updates the payee plus any explicit saved rule it
+   * triggers. The learned category suggestion it may unlock is still applied
+   * exclusively through the chip's explicit tap below.
    */
   function applyPayeeChange(value: string) {
     setPayee(value);
     markInputChanged();
+    applyRuleFill({ merchant: value, note });
   }
 
   function applyNoteChange(value: string) {
     setNote(value);
     markInputChanged();
-    if (categoryTouchedRef.current || !value.trim()) {
-      if (!value.trim()) setAutoRuleHint(null);
-      return;
-    }
-    const match = findMatchingRule(rules, {
-      merchant: "",
-      note: value,
-      rawSnippet: "",
-    });
-    const targetId = resolveCategoryIdForRuleMatch(match, categories, kind);
-    if (!match || !targetId) {
-      setAutoRuleHint(null);
-      return;
-    }
-    setCategoryId(targetId);
-    setAutoRuleHint(
-      `tự động theo quy tắc “${match.contains}” → ${match.category}`,
-    );
+    applyRuleFill({ merchant: payee, note: value });
   }
 
   function handleRequestClose() {
@@ -717,7 +725,8 @@ export function AddTransactionDialog({
           aria-label="Đổi nhanh danh mục"
           data-slot="capture-category-suggestions"
         >
-          {payeeCategorySuggestion &&
+          {!autoRuleHint &&
+          payeeCategorySuggestion &&
           payeeCategorySuggestion.categoryId !== selectedCategoryId ? (
             <Button
               type="button"

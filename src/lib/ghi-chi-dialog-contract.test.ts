@@ -66,7 +66,7 @@ test("R5: Ghi prefers a stable ledger preset before the local fallback", () => {
   assert.match(defaults, /b\.occurredAt\.localeCompare\(a\.occurredAt\)/);
 });
 
-test("R5: a typed payee offers a category suggestion but never applies it", () => {
+test("R5: a typed payee offers a learned suggestion applied only via tap", () => {
   const src = read("src/components/add-transaction-dialog.tsx");
   const defaults = read("src/lib/quick-add-defaults.ts");
 
@@ -77,7 +77,8 @@ test("R5: a typed payee offers a category suggestion but never applies it", () =
   assert.match(src, /Gợi ý/);
   assert.match(src, /chooseCategory\(payeeCategorySuggestion\.categoryId\)/);
 
-  // Typing a payee only stores the payee — it must not touch the category.
+  // Typing a payee stores the payee and runs the saved-rule evaluation — it
+  // still must not pick a category directly inside the change handler.
   const payeeChange = src.match(
     /function applyPayeeChange\(value: string\) \{([\s\S]*?)\n  \}/,
   );
@@ -88,6 +89,51 @@ test("R5: a typed payee offers a category suggestion but never applies it", () =
   assert.match(defaults, /derivePayeeCategorySuggestion/);
   assert.match(defaults, /normalizeSearchText/);
   assert.match(defaults, /compareLedgerRecency/);
+});
+
+test("R5: saved deterministic rules fire on the capture payee field", () => {
+  const src = read("src/components/add-transaction-dialog.tsx");
+  const applyRules = read("src/lib/inbox/apply-rules.ts");
+
+  // Both text fields evaluate the same draft through one shared fill: the
+  // typed payee is the merchant haystack, the note draft the note haystack,
+  // so field:"merchant" and field:"any" rules see "Nơi chi" text.
+  assert.match(src, /resolveRuleCategoryFill/);
+  assert.match(applyRules, /export function resolveRuleCategoryFill/);
+  const payeeChange = src.match(
+    /function applyPayeeChange\(value: string\) \{([\s\S]*?)\n  \}/,
+  );
+  assert.match(
+    payeeChange?.[1] ?? "",
+    /applyRuleFill\(\{ merchant: value, note \}\)/,
+  );
+  const noteChange = src.match(
+    /function applyNoteChange\(value: string\) \{([\s\S]*?)\n  \}/,
+  );
+  assert.match(
+    noteChange?.[1] ?? "",
+    /applyRuleFill\(\{ merchant: payee, note: value \}\)/,
+  );
+
+  // The fill surfaces the existing visible attribution hint, and an explicit
+  // rule fill takes precedence over the learned payee→category chip.
+  assert.match(src, /setAutoRuleHint\(fill\.hint\)/);
+  assert.match(src, /setCategoryId\(fill\.categoryId\)/);
+  assert.match(
+    src,
+    /\{!autoRuleHint &&\s+payeeCategorySuggestion &&\s+payeeCategorySuggestion\.categoryId !== selectedCategoryId/,
+  );
+
+  // A rule's merchant normalization must never rewrite the typed payee: the
+  // only writes are the typed value itself and the post-save reset.
+  const payeeWrites = src.match(/setPayee\([^)]*\)/g) ?? [];
+  assert.ok(payeeWrites.length >= 2);
+  for (const write of payeeWrites) {
+    assert.ok(
+      write === 'setPayee(value)' || write === 'setPayee("")',
+      `unexpected payee write: ${write}`,
+    );
+  }
 });
 
 test("R4: save-and-add-another keeps a controlled dialog session alive", () => {
