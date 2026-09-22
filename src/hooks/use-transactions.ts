@@ -50,6 +50,7 @@ import {
 import { todayInVietnam } from "@/lib/vietnam-date";
 import {
   buildOptimisticTransaction,
+  buildUpdatedTransaction,
   reduceOptimisticTransactions,
 } from "@/lib/optimistic-transactions";
 
@@ -108,7 +109,7 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
   const [transactions, setTransactions] = useState(
     initialTransactions.map(withReviewStatus),
   );
-  const [optimisticTransactions, addOptimisticTransaction] = useOptimistic(
+  const [optimisticTransactions, applyOptimisticMutation] = useOptimistic(
     transactions,
     reduceOptimisticTransactions,
   );
@@ -194,7 +195,10 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     setIsMutating(true);
     return await new Promise<TransactionActionResult>((resolve) => {
       startTransition(async () => {
-        addOptimisticTransaction(withReviewStatus(optimistic.transaction));
+        applyOptimisticMutation({
+          type: "add",
+          transaction: withReviewStatus(optimistic.transaction),
+        });
         try {
           const result = await createTransactionAction(input);
           if (result.ok && result.transaction) {
@@ -233,18 +237,37 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
       return { ok: true };
     }
 
+    /**
+     * Hide the row inside the transition that carries the delete RPC. If the
+     * action fails the optimistic overlay is dropped and the row returns
+     * untouched; if it succeeds the base list drops the row for good. The
+     * undo snapshot stays outside this state (`restoreTransaction` re-inserts
+     * it), and the refreshed feed cannot resurrect the row — `transaction_feed`
+     * excludes `deleted_at`.
+     */
     setIsMutating(true);
-    try {
-      const result = await deleteTransactionAction(id);
-      if (result.ok) setTransactions((current) => current.filter((item) => item.id !== id));
-      return result.ok
-        ? result
-        : { ok: false, message: result.message || "Không xóa được giao dịch. Thử lại." };
-    } catch {
-      return { ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." };
-    } finally {
-      setIsMutating(false);
-    }
+    return await new Promise<TransactionActionResult>((resolve) => {
+      startTransition(async () => {
+        applyOptimisticMutation({ type: "remove", id });
+        try {
+          const result = await deleteTransactionAction(id);
+          if (result.ok) {
+            setTransactions((current) =>
+              current.filter((item) => item.id !== id),
+            );
+          }
+          resolve(
+            result.ok
+              ? result
+              : { ok: false, message: result.message || "Không xóa được giao dịch. Thử lại." },
+          );
+        } catch {
+          resolve({ ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." });
+        } finally {
+          setIsMutating(false);
+        }
+      });
+    });
   }
 
   /** Undo soft-delete: demo re-inserts snapshot; server clears deleted_at via RPC. */
@@ -375,81 +398,63 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
       if (!existing || existing.isRecurringPayment) {
         return { ok: false, message: "Giao dịch này không thể sửa tại đây." };
       }
-      let transaction: Transaction;
-      if (input.kind === "transfer") {
-        const source = accounts.find((item) => item.id === input.sourceAccountId);
-        const destination = accounts.find((item) => item.id === input.destinationAccountId);
-        if (!source || !destination || source.id === destination.id) {
-          return { ok: false, message: "Chọn hai tài khoản khác nhau." };
-        }
-        transaction = {
-          ...existing,
-          kind: "transfer",
-          categoryId: "",
-          category: "Chuyển tiền",
-          note: input.note || "Chuyển tiền",
-          accountId: source.id,
-          account: source.name,
-          destinationAccountId: destination.id,
-          destinationAccount: destination.name,
-          amount: input.amount,
-          occurredOn: input.occurredOn,
-          relativeDate: "Vừa sửa",
-        };
-      } else {
-        const account = accounts.find((item) => item.id === input.accountId);
-        const category = categories.find((item) => item.id === input.categoryId);
-        if (!account || !category || category.kind !== input.kind) {
-          return { ok: false, message: "Tài khoản hoặc danh mục chưa hợp lệ." };
-        }
-        transaction = {
-          ...existing,
-          kind: input.kind,
-          categoryId: category.id,
-          category: category.name,
-          note: input.note || category.name,
-          payee: input.payee?.trim() || undefined,
-          accountId: account.id,
-          account: account.name,
-          destinationAccountId: undefined,
-          destinationAccount: undefined,
-          amount: input.amount,
-          occurredOn: input.occurredOn,
-          relativeDate: "Vừa sửa",
-        };
-      }
+      const draft = buildUpdatedTransaction(existing, input, accounts, categories);
+      if (!draft.ok) return { ok: false, message: draft.message };
+      const transaction = draft.transaction;
       const next = current.map((item) =>
         item.id === transaction.id ? transaction : item,
       );
       commitDemoTransactions(next);
       return { ok: true, transaction };
     }
+
+    /**
+     * The same shared builder produces the draft shown while the update RPC
+     * is in flight. Recurring rows are skipped — the server rejects them with
+     * `recurring_payment_locked`, so previewing a known failure would flash a
+     * lie. A missing base row (stale id) just runs without the preview.
+     */
+    const existing = transactions.find((item) => item.id === input.id);
+    const draft =
+      existing && !existing.isRecurringPayment
+        ? buildUpdatedTransaction(existing, input, accounts, categories)
+        : null;
+
     setIsMutating(true);
-    try {
-      const result =
-        input.kind === "transfer"
-          ? await updateTransferAction(input)
-          : await updateTransactionAction(input);
-      if (result.ok && result.transaction) {
-        setTransactions((current) =>
-          current.map((item) =>
-            item.id === result.transaction?.id
-              ? {
-                  ...(result.transaction as Transaction),
-                  reviewStatus: getTransactionReviewStatus(item),
-                }
-              : item,
-          ),
-        );
-      }
-      return result.ok
-        ? result
-        : { ok: false, message: result.message || "Không cập nhật được. Thử lại." };
-    } catch {
-      return { ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." };
-    } finally {
-      setIsMutating(false);
-    }
+    return await new Promise<TransactionActionResult>((resolve) => {
+      startTransition(async () => {
+        if (draft?.ok) {
+          applyOptimisticMutation({ type: "update", transaction: draft.transaction });
+        }
+        try {
+          const result =
+            input.kind === "transfer"
+              ? await updateTransferAction(input)
+              : await updateTransactionAction(input);
+          if (result.ok && result.transaction) {
+            setTransactions((current) =>
+              current.map((item) =>
+                item.id === result.transaction?.id
+                  ? {
+                      ...(result.transaction as Transaction),
+                      reviewStatus: getTransactionReviewStatus(item),
+                    }
+                  : item,
+              ),
+            );
+          }
+          resolve(
+            result.ok
+              ? result
+              : { ok: false, message: result.message || "Không cập nhật được. Thử lại." },
+          );
+        } catch {
+          resolve({ ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." });
+        } finally {
+          setIsMutating(false);
+        }
+      });
+    });
   }
 
   async function bulkSetReviewStatus(
