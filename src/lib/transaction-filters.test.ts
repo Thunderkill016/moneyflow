@@ -195,6 +195,49 @@ test("invalid date or amount ranges return an explicit error and no rows", () =>
   assert.deepEqual(filterTransactions(transactions, unsafeAmount), []);
 });
 
+test("query folds diacritics so typing without Telex marks still matches", () => {
+  // "an uong" must reach category "Ăn uống".
+  const anUong = filterTransactions(transactions, filters({ query: "an uong" }));
+  assert.deepEqual(anUong.map((item) => item.id), ["expense-small"]);
+
+  // đ folds to d: "di sieu thi" must reach note "Đi siêu thị".
+  const diSieuThi = filterTransactions(
+    transactions,
+    filters({ query: "di sieu thi" }),
+  );
+  assert.deepEqual(diSieuThi.map((item) => item.id), ["expense-split"]);
+
+  // "tien dien" must reach a "Tiền điện" note.
+  const bills: Transaction[] = [
+    { ...transactions[0]!, id: "bill", note: "Tiền điện", category: "Hóa đơn" },
+  ];
+  const tienDien = filterTransactions(bills, filters({ query: "tien dien" }));
+  assert.deepEqual(tienDien.map((item) => item.id), ["bill"]);
+});
+
+test("short query still substring-matches folded text ('an' reaches 'bàn')", () => {
+  const rows: Transaction[] = [
+    {
+      ...transactions[0]!,
+      id: "ban-row",
+      note: "Bàn phím cơ",
+      category: "Mua sắm",
+      account: "Tiền mặt",
+    },
+  ];
+  const result = filterTransactions(rows, filters({ query: "an" }));
+  assert.deepEqual(result.map((item) => item.id), ["ban-row"]);
+});
+
+test("queries typed with diacritics still match, and unknown text matches nothing", () => {
+  // "uống" → "uong" is a substring of both "an uong" and "luong ...".
+  const withMarks = filterTransactions(transactions, filters({ query: "uống" }));
+  assert.deepEqual(withMarks.map((item) => item.id), ["expense-small", "income"]);
+
+  const none = filterTransactions(transactions, filters({ query: "xổ số" }));
+  assert.deepEqual(none, []);
+});
+
 test("serializes only active filters with canonical amount values", () => {
   const params = transactionFilterSearch(
     filters({
