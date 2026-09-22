@@ -1,6 +1,10 @@
 /**
  * THU-41 / #426 — planning stays discoverable without hydrating the full
  * planning surface into the default dashboard client boundary.
+ *
+ * Scope note: the boundary guards planning *surfaces* (columns, cards). The
+ * dashboard may hydrate income-template rows as declared inputs to the
+ * obligations-remainder suffix — a numeric disclosure, not a planning card.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -20,16 +24,23 @@ function read(path: string) {
   return readFileSync(path, "utf8");
 }
 
-test("dashboard keeps goals out of the default client boundary", () => {
+test("dashboard keeps planning surfaces out of the default client boundary", () => {
   const page = read(PAGE);
   const client = read(DASHBOARD_CLIENT);
 
   assert.match(page, /getDashboardPageWorkspace/);
   assert.doesNotMatch(page, /goals=\{goals\}/);
-  assert.doesNotMatch(page, /incomeTemplates=\{incomeTemplates\}/);
   assert.doesNotMatch(client, /DashboardPlanningColumn/);
   assert.doesNotMatch(client, /SavingsGoal/);
-  assert.doesNotMatch(client, /RecurringIncomeTemplate/);
+  assert.doesNotMatch(client, /PlanningCard/);
+  /*
+   * Income-template rows enter the boundary only as inputs to
+   * `buildCommittedRemainder` (the "chưa gồm X thu dự kiến" suffix). The
+   * income planning surface itself — cards, columns, /income-templates UI —
+   * stays on its own route.
+   */
+  assert.doesNotMatch(client, /IncomeTemplatesPage|income-templates-page/);
+  assert.match(client, /buildCommittedRemainder\(\{[\s\S]*incomeTemplates/);
 });
 
 test("planning remains discoverable from the dashboard", () => {

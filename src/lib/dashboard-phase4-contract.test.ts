@@ -128,6 +128,10 @@ test("statement month shape and prior compare lift the reports computation", () 
 test("obligations remainder stays a derived line the statement can withhold", () => {
   // The figure is computed once in the planning domain module — presentation
   // receives only the finished sentence and renders nothing when it is null.
+  // Declared income templates are wired in so the line can disclose expected
+  // income ("chưa gồm … thu dự kiến") instead of silently ignoring it.
+  assert.match(page, /incomeTemplates=\{incomeTemplates\}/);
+  assert.match(dashboard, /buildCommittedRemainder\(\{[\s\S]*incomeTemplates/);
   assert.match(dashboard, /buildCommittedRemainder\(/);
   assert.match(dashboard, /committedRemainderLabel\(/);
   assert.match(dashboard, /remainderLine=\{remainderLine\}/);

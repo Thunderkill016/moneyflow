@@ -23,6 +23,7 @@ export default async function DashboardPage() {
     backupState,
     budgets,
     commitments,
+    incomeTemplates,
     pendingInboxCount,
     ledgerTrust,
   } = await getDashboardPageWorkspace(viewer);
@@ -41,6 +42,7 @@ export default async function DashboardPage() {
       ledgerTrust={ledgerTrust}
       budgets={budgets}
       commitments={commitments}
+      incomeTemplates={incomeTemplates}
     />
   );
 }
