@@ -20,6 +20,13 @@ import {
 } from "@/lib/date-presets";
 import { formatMoney } from "@/lib/money";
 import {
+  pauseCountdown,
+  pausedCountdown,
+  resumeCountdown,
+  startCountdown,
+  type Countdown,
+} from "@/lib/pausable-countdown";
+import {
   categoryMeta,
   type AccountOption,
   type CategoryOption,
@@ -160,6 +167,22 @@ type DayGroup = {
   netForDay: number;
 };
 
+/** A live delete-undo offer: rows "Hoàn tác" restores + the toast text. */
+type PendingUndo = {
+  snapshots: Transaction[];
+  message: string;
+};
+
+/**
+ * One pausable timed slot on the toast region — the component-owned
+ * `setTimeout` handle plus the pure countdown state from
+ * `src/lib/pausable-countdown.ts`.
+ */
+type CountdownSlot = {
+  timer: number | null;
+  countdown: Countdown | null;
+};
+
 function kindLabel(value: KindFilter) {
   if (value === "expense") return "Khoản chi";
   if (value === "income") return "Khoản thu";
@@ -213,6 +236,7 @@ export function TransactionsWorkspace({
     bulkUpdateDate,
     bulkDeleteTransactions,
     isMutating,
+    mutatingIds,
   } = useTransactions({
     initialTransactions: workspace.transactions,
     accounts: workspace.accounts,
@@ -257,9 +281,29 @@ export function TransactionsWorkspace({
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
   const [notice, setNotice] = useState("");
   const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
-  const [pendingUndo, setPendingUndo] = useState<Transaction[] | null>(null);
-  const noticeTimerRef = useRef<number | null>(null);
-  const pendingUndoRef = useRef<Transaction[] | null>(null);
+  /**
+   * Live delete-undo offer: the snapshots "Hoàn tác" restores plus the message
+   * the toast falls back to while the offer is open. Kept independent of the
+   * transient notice text so an unrelated notice cannot kill a live undo.
+   */
+  const [pendingUndo, setPendingUndo] = useState<PendingUndo | null>(null);
+  const pendingUndoRef = useRef<PendingUndo | null>(null);
+  /**
+   * Two pausable countdowns share the toast region: `noticeSlot` expires the
+   * transient text, `undoSlot` expires the undo window. While an undo is open
+   * the undo text owns the toast and needs no text timer of its own — the undo
+   * deadline IS its expiry. Hover/focus on the region pauses both (WCAG
+   * 2.2.1: the undo toast holds the only recovery path, so it must not keep
+   * ticking while the reader is interacting with it).
+   */
+  const noticeSlotRef = useRef<CountdownSlot>({
+    timer: null,
+    countdown: null,
+  });
+  const undoSlotRef = useRef<CountdownSlot>({ timer: null, countdown: null });
+  const noticeHeldRef = useRef(false);
+  /** True while the toast currently displays the undo message (vs a newer notice). */
+  const undoNoticeVisibleRef = useRef(false);
 
   /*
    * Ledger-duplicate review strip. Detection runs over the loaded transaction
@@ -327,10 +371,95 @@ export function TransactionsWorkspace({
     (item) => item.kind === "expense",
   ).length;
 
-  function clearNoticeTimer() {
-    if (noticeTimerRef.current != null) {
-      window.clearTimeout(noticeTimerRef.current);
-      noticeTimerRef.current = null;
+  function clearSlot(slot: CountdownSlot) {
+    if (slot.timer != null) {
+      window.clearTimeout(slot.timer);
+      slot.timer = null;
+    }
+    slot.countdown = null;
+  }
+
+  function armSlot(slot: CountdownSlot, ms: number, onExpire: () => void) {
+    clearSlot(slot);
+    /*
+     * If the reader is already holding the region when the toast appears
+     * (it mounted under the pointer, or focus was inside), arm the countdown
+     * paused — the deadline only runs while nobody is interacting with it.
+     */
+    slot.countdown = noticeHeldRef.current
+      ? pausedCountdown(ms)
+      : startCountdown(ms, Date.now());
+    if (slot.countdown.running) {
+      slot.timer = window.setTimeout(onExpire, ms);
+    }
+  }
+
+  function pauseSlot(slot: CountdownSlot) {
+    if (slot.timer != null) {
+      window.clearTimeout(slot.timer);
+      slot.timer = null;
+    }
+    if (slot.countdown) {
+      slot.countdown = pauseCountdown(slot.countdown, Date.now());
+    }
+  }
+
+  function resumeSlot(slot: CountdownSlot, onExpire: () => void) {
+    const countdown = slot.countdown;
+    if (!countdown || countdown.running) return;
+    const next = resumeCountdown(countdown, Date.now());
+    if (!next.running) {
+      // The window lapsed while held — expire now rather than strand it.
+      slot.countdown = null;
+      onExpire();
+      return;
+    }
+    slot.countdown = next;
+    slot.timer = window.setTimeout(onExpire, next.remainingMs);
+  }
+
+  /** Hover/focus hold on the toast region — pauses every live countdown. */
+  function handleNoticeHold(held: boolean) {
+    noticeHeldRef.current = held;
+    if (held) {
+      pauseSlot(noticeSlotRef.current);
+      pauseSlot(undoSlotRef.current);
+    } else {
+      resumeSlot(noticeSlotRef.current, expireNotice);
+      resumeSlot(undoSlotRef.current, expireUndoWindow);
+    }
+  }
+
+  /**
+   * Transient text lapsed. When an undo window is still open underneath, put
+   * the undo offer back on screen for the rest of its own countdown instead
+   * of letting the recovery path die with the newer message.
+   */
+  function expireNotice() {
+    noticeSlotRef.current.timer = null;
+    noticeSlotRef.current.countdown = null;
+    const undo = pendingUndoRef.current;
+    if (undo) {
+      undoNoticeVisibleRef.current = true;
+      setNotice(undo.message);
+      setNoticeTone("neutral");
+    } else {
+      setNotice("");
+      setNoticeTone(undefined);
+    }
+    setRecentSaved(null);
+  }
+
+  /** Undo window closed for good: drop the snapshots and the toast text. */
+  function expireUndoWindow() {
+    undoSlotRef.current.timer = null;
+    undoSlotRef.current.countdown = null;
+    pendingUndoRef.current = null;
+    setPendingUndo(null);
+    if (undoNoticeVisibleRef.current) {
+      undoNoticeVisibleRef.current = false;
+      setNotice("");
+      setNoticeTone(undefined);
     }
   }
 
@@ -340,21 +469,27 @@ export function TransactionsWorkspace({
     ms = NOTICE_MS,
     preserveRecentSaved = false,
   ) {
-    clearNoticeTimer();
-    setPendingUndo(null);
-    pendingUndoRef.current = null;
+    /*
+     * Only the text timer is replaced — a live delete-undo window keeps its
+     * own countdown, so an unrelated notice cannot kill a pending "Hoàn tác".
+     * The undo action stays attached to whatever notice is on screen and the
+     * undo message resurfaces when this text expires (see expireNotice).
+     */
+    clearSlot(noticeSlotRef.current);
+    undoNoticeVisibleRef.current = false;
     if (!preserveRecentSaved) setRecentSaved(null);
     setNotice(message);
     setNoticeTone(tone);
-    noticeTimerRef.current = window.setTimeout(() => {
-      setNotice("");
-      setNoticeTone(undefined);
-      setRecentSaved(null);
-      noticeTimerRef.current = null;
-    }, ms);
+    armSlot(noticeSlotRef.current, ms, expireNotice);
   }
 
-  useEffect(() => () => clearNoticeTimer(), []);
+  useEffect(
+    () => () => {
+      clearSlot(noticeSlotRef.current);
+      clearSlot(undoSlotRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     const params = transactionFilterSearch({
@@ -720,12 +855,12 @@ export function TransactionsWorkspace({
         return;
       }
       if (action === "toggle_select") {
-        if (reviewFeatureAvailable && !isMutating) {
+        if (reviewFeatureAvailable && !rowBusy(row.id)) {
           toggleTransactionSelection(row.id);
         }
         return;
       }
-      if (action === "delete" && !isMutating) {
+      if (action === "delete" && !rowBusy(row.id)) {
         handleDelete(row);
       }
     }
@@ -994,30 +1129,35 @@ export function TransactionsWorkspace({
   /**
    * Shared 8-second undo window for single and bulk soft deletes — the notice
    * keeps the deleted snapshots so "Hoàn tác" can restore each via the same
-   * restore RPC the single-row path uses.
+   * restore RPC the single-row path uses. A second delete supersedes the
+   * pending undo slot; unrelated notices must not (see `showNotice`).
    */
   function showDeleteNotice(message: string, snapshots: Transaction[]) {
     setSelectedIds((current) =>
       current.filter((id) => !snapshots.some((item) => item.id === id)),
     );
-    clearNoticeTimer();
+    clearSlot(noticeSlotRef.current);
+    clearSlot(undoSlotRef.current);
     setRecentSaved(null);
-    pendingUndoRef.current = snapshots.length ? snapshots : null;
-    setPendingUndo(snapshots.length ? snapshots : null);
-    setNotice(safeUserNotice(message, "Đã xóa giao dịch."));
+    const text = safeUserNotice(message, "Đã xóa giao dịch.");
+    const undo: PendingUndo | null = snapshots.length
+      ? { snapshots, message: text }
+      : null;
+    pendingUndoRef.current = undo;
+    setPendingUndo(undo);
+    undoNoticeVisibleRef.current = undo != null;
+    setNotice(text);
     /*
      * A real undo offer reads as neutral, not a fresh success — the delete
      * already happened and the action restores it. When every selected row
      * was skipped there is nothing to undo, so the notice is a warning.
      */
     setNoticeTone(snapshots.length ? "neutral" : "warning");
-    noticeTimerRef.current = window.setTimeout(() => {
-      setNotice("");
-      setNoticeTone(undefined);
-      setPendingUndo(null);
-      pendingUndoRef.current = null;
-      noticeTimerRef.current = null;
-    }, DELETE_UNDO_MS);
+    if (undo) {
+      armSlot(undoSlotRef.current, DELETE_UNDO_MS, expireUndoWindow);
+    } else {
+      armSlot(noticeSlotRef.current, DELETE_UNDO_MS, expireNotice);
+    }
   }
 
   async function confirmDelete() {
@@ -1038,9 +1178,11 @@ export function TransactionsWorkspace({
   }
 
   async function handleUndoDelete() {
-    const snapshots = pendingUndoRef.current;
-    if (!snapshots?.length) return;
-    clearNoticeTimer();
+    const pending = pendingUndoRef.current;
+    if (!pending?.snapshots.length) return;
+    clearSlot(noticeSlotRef.current);
+    clearSlot(undoSlotRef.current);
+    undoNoticeVisibleRef.current = false;
     setPendingUndo(null);
     pendingUndoRef.current = null;
     setNotice("");
@@ -1048,14 +1190,14 @@ export function TransactionsWorkspace({
 
     let restored = 0;
     let lastFailure = "";
-    for (const snapshot of snapshots) {
+    for (const snapshot of pending.snapshots) {
       const result = await restoreTransaction(snapshot);
       if (result.ok) restored += 1;
       else lastFailure = result.message;
     }
-    if (restored === snapshots.length) {
+    if (restored === pending.snapshots.length) {
       showNotice(
-        snapshots.length === 1
+        pending.snapshots.length === 1
           ? "Đã khôi phục giao dịch."
           : `Đã khôi phục ${restored} giao dịch.`,
         "success",
@@ -1066,7 +1208,7 @@ export function TransactionsWorkspace({
           lastFailure,
           "Không khôi phục được hết. Một số giao dịch vẫn đang ẩn.",
         ) +
-          ` Đã khôi phục ${restored}/${snapshots.length} giao dịch.`,
+          ` Đã khôi phục ${restored}/${pending.snapshots.length} giao dịch.`,
         "error",
       );
     }
@@ -1125,12 +1267,30 @@ export function TransactionsWorkspace({
 
   function editRecentSaved() {
     if (!recentSaved) return;
-    clearNoticeTimer();
+    clearSlot(noticeSlotRef.current);
+    undoNoticeVisibleRef.current = false;
     setNotice("");
     setNoticeTone(undefined);
     setRecentSaved(null);
     setEditing(recentSaved);
   }
+
+  /**
+   * Row-scoped busy check: a row freezes when its own mutation is in flight
+   * (`mutatingIds`) or when a workspace-wide op — a bulk action or a
+   * form-level add/transfer/split — holds the global flag.
+   */
+  function rowBusy(id: string) {
+    return isMutating || mutatingIds.has(id);
+  }
+
+  /*
+   * The delete-confirm dialog tracks its own row's RPC: while the delete is
+   * in flight the confirm button spins and Esc dismissal stays locked — but
+   * an unrelated row's mutation no longer holds the dialog hostage.
+   */
+  const deleteTargetBusy =
+    deleteTarget != null && rowBusy(deleteTarget.id);
 
   return (
     <AppShell
@@ -1172,18 +1332,26 @@ export function TransactionsWorkspace({
       }
       notice={notice}
       noticeTone={noticeTone}
+      onNoticeHoldChange={handleNoticeHold}
       noticeAction={
         pendingUndo
           ? {
               label: "Hoàn tác",
               onClick: () => void handleUndoDelete(),
-              disabled: isMutating,
+              /*
+               * Gate on this offer's own restore, not the workspace-wide
+               * flag — an unrelated in-flight mutation must not eat the
+               * undo window.
+               */
+              disabled: pendingUndo.snapshots.some((item) =>
+                mutatingIds.has(item.id),
+              ),
             }
           : recentSaved
             ? {
                 label: "Sửa",
                 onClick: editRecentSaved,
-                disabled: isMutating,
+                disabled: rowBusy(recentSaved.id),
               }
             : undefined
       }
@@ -1672,7 +1840,7 @@ export function TransactionsWorkspace({
                               variant="ghost"
                               className={styles.deleteButton}
                               onClick={() => handleDelete(row)}
-                              disabled={isMutating}
+                              disabled={rowBusy(row.id)}
                               aria-label={`Xóa giao dịch ${row.note}`}
                             >
                               <Icon name="trash" />
@@ -1915,7 +2083,7 @@ export function TransactionsWorkspace({
                                   onChange={() =>
                                     toggleTransactionSelection(transaction.id)
                                   }
-                                  disabled={isMutating}
+                                  disabled={rowBusy(transaction.id)}
                                   aria-label={`Chọn giao dịch ${transaction.note}`}
                                 />
                                 <span>Chọn</span>
@@ -2000,7 +2168,7 @@ export function TransactionsWorkspace({
                               variant="ghost"
                               className={styles.editButton}
                               onClick={() => handleEditClick(transaction)}
-                              disabled={isMutating}
+                              disabled={rowBusy(transaction.id)}
                               aria-label={
                                 isSplitExpense(transaction)
                                   ? `Khoản chia ${transaction.note} — xóa rồi tạo lại để sửa`
@@ -2014,7 +2182,7 @@ export function TransactionsWorkspace({
                               variant="ghost"
                               className={styles.deleteButton}
                               onClick={() => handleDelete(transaction)}
-                              disabled={isMutating}
+                              disabled={rowBusy(transaction.id)}
                               aria-label={`Xóa giao dịch ${transaction.note}`}
                             >
                               <Icon name="trash" />
@@ -2148,7 +2316,7 @@ export function TransactionsWorkspace({
           categories={workspace.categories}
           onClose={() => setEditing(null)}
           onSave={handleUpdate}
-          disabled={isMutating || Boolean(workspace.dataError)}
+          disabled={rowBusy(editing.id) || Boolean(workspace.dataError)}
           payeeSuggestions={payeeSuggestions}
         />
       ) : null}
@@ -2242,7 +2410,7 @@ export function TransactionsWorkspace({
       <SecondaryReviewDialog
         open={Boolean(deleteTarget)}
         onOpenChange={(open) => {
-          if (!open && !isMutating) setDeleteTarget(null);
+          if (!open && !deleteTargetBusy) setDeleteTarget(null);
         }}
         title="Xóa giao dịch?"
         description="Kiểm tra trước khi ẩn khỏi sổ của bạn."
@@ -2253,7 +2421,7 @@ export function TransactionsWorkspace({
         consequence="Giao dịch sẽ được ẩn khỏi sổ của bạn. Bạn có thể hoàn tác trong 8 giây."
         confirmLabel="Xóa giao dịch"
         confirmIntent="destructive"
-        pending={isMutating}
+        pending={deleteTargetBusy}
         onConfirm={confirmDelete}
         slot="transaction-delete-review"
       />

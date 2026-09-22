@@ -152,6 +152,69 @@ test("ledger deletion remains confirmed, soft and recoverable for eight seconds"
   assert.match(workspace, /label: "Hoàn tác"/);
 });
 
+test("undo window pauses on toast hold and survives unrelated notices", () => {
+  const shell = readFileSync("src/components/layout/app-shell.tsx", "utf8");
+  const toast = readFileSync("src/components/ui/toast.tsx", "utf8");
+  const countdown = readFileSync("src/lib/pausable-countdown.ts", "utf8");
+
+  // WCAG 2.2.1: the undo toast holds the only recovery path, so hover/focus
+  // on the toast region must pause the countdown rather than run it out.
+  assert.match(toast, /onHoldChange\?: \(held: boolean\) => void/);
+  assert.match(toast, /onMouseEnter[\s\S]*onMouseLeave[\s\S]*onFocus[\s\S]*onBlur/);
+  assert.match(shell, /onNoticeHoldChange\?: \(held: boolean\) => void/);
+  assert.match(shell, /onHoldChange=\{onNoticeHoldChange\}/);
+  assert.match(workspace, /onNoticeHoldChange=\{handleNoticeHold\}/);
+  assert.match(workspace, /pauseSlot\(undoSlotRef\.current\)/);
+  assert.match(workspace, /resumeSlot\(undoSlotRef\.current/);
+  assert.match(countdown, /export function pauseCountdown/);
+  assert.match(countdown, /export function resumeCountdown/);
+
+  // An unrelated notice may share the toast but must not kill a live undo —
+  // showNotice no longer clears pendingUndo, and the undo message resurfaces
+  // when the newer text expires.
+  const showNoticeBody =
+    workspace.match(/function showNotice\([\s\S]*?\n  \}/)?.[0] ?? "";
+  assert.ok(showNoticeBody.length > 0, "showNotice body must be found");
+  assert.doesNotMatch(showNoticeBody, /setPendingUndo\(null\)/);
+  assert.doesNotMatch(showNoticeBody, /pendingUndoRef\.current = null/);
+  assert.match(workspace, /setNotice\(undo\.message\)/);
+
+  // "Hoàn tác" is gated on its own snapshots' restore, not the global flag.
+  const undoBlock =
+    workspace.match(/label: "Hoàn tác"([\s\S]*?)recentSaved/)?.[1] ?? "";
+  assert.ok(undoBlock.length > 0, "undo action must render before recentSaved");
+  assert.match(undoBlock, /disabled: pendingUndo\.snapshots\.some/);
+  assert.match(undoBlock, /mutatingIds\.has\(item\.id\)/);
+  assert.doesNotMatch(undoBlock, /disabled: isMutating/);
+});
+
+test("row-scoped mutations freeze their own row, not the whole register", () => {
+  const hook = readFileSync("src/hooks/use-transactions.ts", "utf8");
+
+  // The hook exposes the per-row busy registry alongside the global flag.
+  assert.match(hook, /mutatingIds/);
+  assert.match(hook, /addMutatingIds|markMutating/);
+  assert.match(hook, /removeMutatingIds|clearMutating/);
+
+  // Single-row delete/update/restore mark only their own id; they no longer
+  // hold the workspace-wide isMutating flag.
+  for (const op of [
+    /async function deleteTransaction\(id: string\)[\s\S]*?\n  \}/,
+    /async function restoreTransaction\(transaction: Transaction\)[\s\S]*?\n  \}/,
+    /async function updateTransaction\([\s\S]*?\n  \}/,
+  ]) {
+    const body = hook.match(op)?.[0];
+    assert.ok(body, `hook body not found for ${op}`);
+    assert.doesNotMatch(body, /setIsMutating/);
+  }
+
+  // Row controls consult the per-row check; bulk/form surfaces keep the
+  // global flag.
+  assert.match(workspace, /function rowBusy\(id: string\)/);
+  assert.match(workspace, /mutatingIds\.has\(id\)/);
+  assert.match(workspace, /disabled=\{rowBusy\(transaction\.id\)\}/);
+});
+
 test("bulk edit stays on the single-row RPC path with confirmed skip reporting", () => {
   assert.match(workspace, /planBulkDateChange\(transactions, selectedIds/);
   assert.match(workspace, /planBulkDelete\(transactions, selectedIds\)/);

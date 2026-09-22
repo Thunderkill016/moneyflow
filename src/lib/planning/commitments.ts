@@ -47,6 +47,61 @@ export function monthStartFromDate(isoDate: string): string {
   return `${isoDate.slice(0, 7)}-01`;
 }
 
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const MONTH_START_PATTERN = /^\d{4}-\d{2}-01$/;
+
+function nextMonthStart(monthStart: string): string {
+  const [year, month] = monthStart.split("-").map(Number);
+  return month === 12
+    ? `${year + 1}-01-01`
+    : `${year}-${String(month + 1).padStart(2, "0")}-01`;
+}
+
+/**
+ * The commitment's next declared occurrence date (`YYYY-MM-DD`), or `null`
+ * when the inputs cannot support the claim.
+ *
+ * `paidThroughMonth` names the month (`YYYY-MM-01`) the row's `isPaid` and
+ * `dueDate` fields were resolved for. It must be the month containing
+ * `today`, and `dueDate` must land inside it — otherwise the resolved fields
+ * are stale or malformed and the honest answer is no date at all.
+ *
+ * - unpaid with this month's date still ahead (or today) → that `dueDate`;
+ * - paid for `paidThroughMonth`, or unpaid and already past → next month's
+ *   `dueDay`, clamped to month end by `dueDateForMonth`.
+ *
+ * Declared data only — one scheduled cycle, no forecast. An archived
+ * template has no scheduled occurrence and returns `null`.
+ */
+export function nextOccurrence(
+  commitment: Pick<
+    RecurringCommitment,
+    "dueDay" | "dueDate" | "isArchived" | "isPaid"
+  >,
+  today: string,
+  paidThroughMonth: string,
+): string | null {
+  if (!ISO_DATE_PATTERN.test(today)) return null;
+  if (!MONTH_START_PATTERN.test(paidThroughMonth)) return null;
+  if (monthStartFromDate(today) !== paidThroughMonth) return null;
+  if (!ISO_DATE_PATTERN.test(commitment.dueDate)) return null;
+  if (commitment.dueDate.slice(0, 7) !== paidThroughMonth.slice(0, 7)) {
+    return null;
+  }
+  if (
+    !Number.isInteger(commitment.dueDay) ||
+    commitment.dueDay < 1 ||
+    commitment.dueDay > 31
+  ) {
+    return null;
+  }
+  if (commitment.isArchived) return null;
+  if (!commitment.isPaid && commitment.dueDate >= today) {
+    return commitment.dueDate;
+  }
+  return dueDateForMonth(nextMonthStart(paidThroughMonth), commitment.dueDay);
+}
+
 export function commitmentTotals(items: RecurringCommitment[]) {
   return items.reduce((totals, item) => {
     if (item.isArchived) return totals;

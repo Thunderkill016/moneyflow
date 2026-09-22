@@ -31,6 +31,14 @@ import {
   monthStartFromDate,
   type RecurringCommitment,
 } from "@/lib/planning/commitments";
+import {
+  dueDateForMonth as incomeDueDateForMonth,
+  type RecurringIncomeTemplate,
+} from "@/lib/planning/income-templates";
+import {
+  hydrateIncomeTemplatesWithOccurrences,
+  readStoredIncomeTemplates,
+} from "@/lib/planning/income-template-store";
 import { monthStatementDetail } from "@/lib/dashboard-month";
 import {
   calculateDashboardSummary,
@@ -92,6 +100,7 @@ export function MoneyFlowDashboard({
   budgets,
   commitments,
   goalPaceAttentionCount,
+  incomeTemplates,
 }: {
   viewer: ViewerSummary;
   workspace: DashboardWorkspace;
@@ -106,6 +115,11 @@ export function MoneyFlowDashboard({
    * goal objects never enter this client boundary.
    */
   goalPaceAttentionCount: number;
+  /**
+   * Month-resolved income templates — declared inputs to the remainder's
+   * "thu dự kiến" disclosure only; no planning surface is rendered from them.
+   */
+  incomeTemplates: RecurringIncomeTemplate[];
 }) {
   const {
     transactions,
@@ -129,6 +143,9 @@ export function MoneyFlowDashboard({
   const [demoCommitments, setDemoCommitments] = useState<
     RecurringCommitment[] | null
   >(null);
+  const [demoIncomeTemplates, setDemoIncomeTemplates] = useState<
+    RecurringIncomeTemplate[] | null
+  >(null);
   const monthStart = monthStartFromDate(workspace.today);
 
   useEffect(() => {
@@ -140,6 +157,27 @@ export function MoneyFlowDashboard({
     });
     return () => window.cancelAnimationFrame(frame);
   }, [viewer.isDemo, commitments, monthStart]);
+
+  /*
+   * Demo income state lives in browser storage, same as commitments: template
+   * edits override the seed list, and the occurrence map carries this month's
+   * received flags. Stored rows re-derive `dueDate` for the current month —
+   * the same precedence the /income-templates page applies.
+   */
+  useEffect(() => {
+    if (!viewer.isDemo) return;
+    const frame = window.requestAnimationFrame(() => {
+      const stored = readStoredIncomeTemplates();
+      const base = (stored ?? incomeTemplates).map((item) => ({
+        ...item,
+        dueDate: incomeDueDateForMonth(monthStart, item.dueDay),
+      }));
+      setDemoIncomeTemplates(
+        hydrateIncomeTemplatesWithOccurrences(base, monthStart),
+      );
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [viewer.isDemo, incomeTemplates, monthStart]);
 
   useEffect(() => {
     if (!viewer.isDemo) return;
@@ -184,6 +222,10 @@ export function MoneyFlowDashboard({
 
   const liveCommitments =
     viewer.isDemo && demoCommitments ? demoCommitments : commitments;
+  const liveIncomeTemplates =
+    viewer.isDemo && demoIncomeTemplates
+      ? demoIncomeTemplates
+      : incomeTemplates;
   const inboxCount = viewer.isDemo ? demoInboxCount : initialInboxCount;
 
   const currentBalance = useMemo(
@@ -247,9 +289,11 @@ export function MoneyFlowDashboard({
 
   /*
    * Obligations-aware remainder: "balance − unpaid declared commitments this
-   * month", disclosed as exactly that. `committedRemainderLabel` returns null
-   * whenever the derivation is incomplete or nothing was declared — the line
-   * then does not exist rather than implying coverage it cannot prove.
+   * month", disclosed as exactly that, with expected income appended as its
+   * own labeled suffix ("chưa gồm X thu dự kiến") — reported, never folded
+   * in. `committedRemainderLabel` returns null whenever the derivation is
+   * incomplete or nothing was declared — the line then does not exist rather
+   * than implying coverage it cannot prove.
    */
   const remainderLine = useMemo(
     () =>
@@ -258,10 +302,17 @@ export function MoneyFlowDashboard({
           currentBalance,
           accounts: workspace.accounts,
           commitments: liveCommitments,
+          incomeTemplates: liveIncomeTemplates,
           monthStart,
         }),
       ),
-    [currentBalance, workspace.accounts, liveCommitments, monthStart],
+    [
+      currentBalance,
+      workspace.accounts,
+      liveCommitments,
+      liveIncomeTemplates,
+      monthStart,
+    ],
   );
 
   const needsReviewCount = useMemo(
