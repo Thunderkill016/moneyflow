@@ -50,6 +50,7 @@ import {
   uncoveredCommitmentTotal,
 } from "@/lib/planning/allocation";
 import type { RecurringCommitment } from "@/lib/planning/commitments";
+import { buildMonthReview } from "@/lib/planning/month-review";
 import { budgetToneToCard } from "@/lib/planning-pages";
 import { categoryMeta, type CategoryOption } from "@/lib/sample-data";
 
@@ -68,6 +69,8 @@ type BudgetPageWorkspace = {
    */
   priorBudgets: BudgetSummary[];
   monthIncome: number;
+  /** Recorded month expense — feeds the past-month review, never the pace UI. */
+  monthExpense: number;
   monthCommitments: RecurringCommitment[];
   categories: CategoryOption[];
   monthStart: string;
@@ -186,6 +189,32 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
   const previousTotals = useMemo(
     () => sumBudgetTotals(workspace.previousBudgets),
     [workspace.previousBudgets],
+  );
+  /*
+   * Close-out facts for a finished month. Derived from the live `budgets`
+   * state so editing a past month's limit re-counts "trong giới hạn"
+   * immediately; null for the in-progress month, which keeps the pace UI.
+   */
+  const monthReview = useMemo(
+    () =>
+      buildMonthReview({
+        monthStart: workspace.monthStart,
+        today: workspace.today,
+        income: workspace.monthIncome,
+        expense: workspace.monthExpense,
+        budgets,
+        priorBudgets: workspace.priorBudgets,
+        commitments: workspace.monthCommitments,
+      }),
+    [
+      workspace.monthStart,
+      workspace.today,
+      workspace.monthIncome,
+      workspace.monthExpense,
+      workspace.priorBudgets,
+      workspace.monthCommitments,
+      budgets,
+    ],
   );
   const hasPreviousData = workspace.previousBudgets.length > 0;
   const previousByCategory = useMemo(
@@ -421,6 +450,54 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
           </PlanningSummaryItem>
         </PlanningSummary>
         )}
+
+        {/*
+         * Closed-month recap: thu/chi/ròng from recorded ledger facts, plus
+         * how many limits and recurring obligations closed inside plan. Facts
+         * only — no score or verdict — and any segment whose inputs do not
+         * exist for the month is withheld rather than shown as "0/0".
+         */}
+        {!workspace.dataError && monthReview ? (
+          <section
+            className={planningStyles.monthReview}
+            aria-label={`Tổng kết ${monthLabel}`}
+            data-slot="month-review"
+          >
+            <h2 className={planningStyles.monthReviewTitle}>
+              Tổng kết {monthLabel}
+            </h2>
+            <dl className={planningStyles.monthReviewList}>
+              <div className={planningStyles.monthReviewItem}>
+                <dt>Thu</dt>
+                <dd>{formatMoney(monthReview.income)}</dd>
+              </div>
+              <div className={planningStyles.monthReviewItem}>
+                <dt>Chi</dt>
+                <dd>{formatMoney(monthReview.expense)}</dd>
+              </div>
+              <div className={planningStyles.monthReviewItem}>
+                <dt>Ròng</dt>
+                <dd>{formatSignedMoney(monthReview.net)}</dd>
+              </div>
+              {monthReview.budgets ? (
+                <div className={planningStyles.monthReviewItem}>
+                  <dt>Hạn mức trong giới hạn</dt>
+                  <dd>
+                    {monthReview.budgets.within}/{monthReview.budgets.total}
+                  </dd>
+                </div>
+              ) : null}
+              {monthReview.commitments ? (
+                <div className={planningStyles.monthReviewItem}>
+                  <dt>Khoản định kỳ đã trả</dt>
+                  <dd>
+                    {monthReview.commitments.paid}/{monthReview.commitments.total}
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+          </section>
+        ) : null}
 
         {!workspace.dataError && !availableCategories.length && budgets.length ? (
           <p className={planningStyles.context}>
