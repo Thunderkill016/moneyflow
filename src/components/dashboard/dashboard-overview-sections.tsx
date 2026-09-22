@@ -46,6 +46,7 @@ export function DashboardHeaderSections({
   totals,
   accountBalances,
   monthDetail,
+  remainderLine,
   today,
   isEmptyLedger,
   dataError,
@@ -57,6 +58,11 @@ export function DashboardHeaderSections({
   totals: DashboardTotals;
   accountBalances: AccountBalanceRow[];
   monthDetail?: MonthStatementDetail;
+  /**
+   * Fully formed "Còn X ₫ sau N khoản định kỳ…" sentence, or null when the
+   * derivation refused incomplete inputs — the statement renders no line then.
+   */
+  remainderLine?: string | null;
   today: string;
   isEmptyLedger: boolean;
   dataError?: string | null;
@@ -96,6 +102,7 @@ export function DashboardHeaderSections({
         totals={totals}
         accountBalances={accountBalances}
         monthDetail={monthDetail}
+        remainderLine={remainderLine}
         today={today}
         isEmptyLedger={isEmptyLedger}
       />

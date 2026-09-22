@@ -5,6 +5,7 @@ import {
   reportCategoryDrilldownHref,
   reportDrilldownFilters,
   reportDrilldownHref,
+  reportPayeeDrilldownHref,
 } from "./report-drilldown.ts";
 import { buildFinancialReport, customReportRange } from "./reports.ts";
 import { filterTransactions } from "./transaction-filters.ts";
@@ -169,4 +170,85 @@ test("the href round-trips into the filters it describes", () => {
   assert.equal(params.get("to"), "2026-08-31");
   assert.equal(params.get("q"), null);
   assert.equal(params.get("review"), null);
+});
+
+/*
+ * `/transactions` has no payee facet, so the payee drill-down carries the name
+ * as `q` — the folded search haystack (payee, note, category, both account
+ * names) matches it back. That makes it a membership view like the category
+ * link: honest about which rows are about the payee, not a guaranteed sum.
+ */
+test("a payee drill-down carries the trimmed name as q inside the report window", () => {
+  const href = reportPayeeDrilldownHref(RANGE, "  Grab  ");
+  assert.ok(href);
+  const params = new URLSearchParams(href.split("?")[1]);
+
+  assert.equal(params.get("q"), "Grab");
+  assert.equal(params.get("kind"), "expense");
+  assert.equal(params.get("from"), "2026-08-01");
+  assert.equal(params.get("to"), "2026-08-31");
+  assert.equal(params.get("category"), null);
+  assert.equal(params.get("account"), null);
+});
+
+test("a payee drill-down sums to the figure when the ledger spells it consistently", () => {
+  const rows = [
+    row("grab-1", { payee: "Grab", amount: 100_000 }),
+    row("grab-2", { payee: "Grab", amount: 50_000, account: "Ngân hàng" }),
+    row("other-payee", { payee: "Highlands", amount: 999_000 }),
+    // Same text, wrong kind — the expense kind is what keeps it out.
+    row("grab-income", {
+      kind: "income",
+      payee: "Grab",
+      amount: 5_000_000,
+    } as Partial<Transaction>),
+    // Same payee, outside the window.
+    row("grab-old", { payee: "Grab", occurredOn: "2026-07-30", amount: 7_000 }),
+  ];
+  const report = buildFinancialReport(rows, RANGE);
+  const grab = report.payees.find((item) => item.name === "Grab");
+  assert.ok(grab, "fixture must produce the payee being drilled");
+
+  const filtered = filterTransactions(
+    rows,
+    reportDrilldownFilters({ range: RANGE, kind: "expense", query: "Grab" }),
+  );
+
+  assert.deepEqual(
+    filtered.map((item) => item.id).sort(),
+    ["grab-1", "grab-2"],
+  );
+  assert.equal(sum(filtered), grab.amount);
+  assert.equal(sum(filtered), 150_000);
+});
+
+test("the payee search folds spelling variants into the same list", () => {
+  // "grab" is a separate report row (exact trimmed spelling), but the folded
+  // substring `q` still finds it — and a longer name containing it. Membership
+  // semantics over a search field, pinned so the widening is deliberate.
+  const rows = [
+    row("grab-upper", { payee: "Grab", amount: 100_000 }),
+    row("grab-lower", { payee: "grab", amount: 50_000 }),
+    row("grab-super", { payee: "GrabFood", amount: 1_000 }),
+    row("unrelated", { payee: "Circle K", amount: 2_000 }),
+  ];
+  const filtered = filterTransactions(
+    rows,
+    reportDrilldownFilters({ range: RANGE, kind: "expense", query: "grab" }),
+  );
+
+  assert.deepEqual(
+    filtered.map((item) => item.id).sort(),
+    ["grab-lower", "grab-super", "grab-upper"],
+  );
+});
+
+test("a blank payee refuses to build a link", () => {
+  assert.equal(reportPayeeDrilldownHref(RANGE, "   "), null);
+  assert.equal(reportPayeeDrilldownHref(RANGE, ""), null);
+  assert.equal(
+    reportDrilldownHref({ range: RANGE, kind: "expense", requiresQuery: true }),
+    null,
+    "a missing query would open the whole ledger while looking like a slice",
+  );
 });
