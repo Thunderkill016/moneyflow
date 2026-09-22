@@ -174,7 +174,7 @@ test("findTransferPairs opposite amount same day", () => {
   assert.ok(ids.has("out") && ids.has("in"));
 });
 
-test("findTransferPairs skips same-direction and different day", () => {
+test("findTransferPairs skips same-direction and pairs near-tier dates", () => {
   assert.deepEqual(
     findTransferPairs([
       base({ id: "a", kind: "expense", amount: 100_000, occurredOn: "2026-07-01" }),
@@ -182,13 +182,118 @@ test("findTransferPairs skips same-direction and different day", () => {
     ]),
     [],
   );
+  // Adjacent-day settlement lag now pairs (flag-only, reviewer decides).
+  const near = findTransferPairs([
+    base({ id: "a", kind: "expense", amount: 100_000, occurredOn: "2026-07-01" }),
+    base({ id: "b", kind: "income", amount: 100_000, occurredOn: "2026-07-02" }),
+  ]);
+  assert.equal(near.length, 1);
+  assert.equal(near[0]?.dayDiff, 1);
+  // Beyond the near window still does not pair.
   assert.deepEqual(
     findTransferPairs([
       base({ id: "a", kind: "expense", amount: 100_000, occurredOn: "2026-07-01" }),
-      base({ id: "b", kind: "income", amount: 100_000, occurredOn: "2026-07-02" }),
+      base({ id: "b", kind: "income", amount: 100_000, occurredOn: "2026-07-05" }),
     ]),
     [],
   );
+});
+
+test("near tier flags cross-day duplicates against candidates and ledger", () => {
+  const a = base({
+    id: "nearA",
+    amount: 89_000,
+    account: "Vietcombank",
+    merchant: "GRAB *TRIP",
+    occurredOn: "2026-07-11",
+  });
+  const b = base({
+    id: "nearB",
+    amount: 89_000,
+    account: "Vietcombank",
+    merchant: "GRAB *TRIP",
+    occurredOn: "2026-07-12",
+  });
+  const matches = findDuplicateMatches([a, b]);
+  const ids = new Set(matches.map((m) => m.candidateId));
+  assert.ok(ids.has("nearA") && ids.has("nearB"));
+  assert.equal(matches.every((m) => m.dayDiff === 1), true);
+
+  // Same loose key vs a ledger row one day later.
+  const ledger: LedgerLike[] = [
+    {
+      id: "tx-9",
+      kind: "expense",
+      amount: 45_000,
+      occurredOn: "2026-07-13",
+      account: "Tiền mặt",
+      note: "Cafe sáng",
+    },
+  ];
+  const pending = base({
+    id: "nearLedger",
+    amount: 45_000,
+    account: "Tiền mặt",
+    note: "Cafe sáng",
+    merchant: "",
+    occurredOn: "2026-07-12",
+  });
+  const ledgerMatches = findDuplicateMatches([pending], ledger);
+  assert.equal(ledgerMatches.length, 1);
+  assert.equal(ledgerMatches[0]?.ledgerId, "tx-9");
+  assert.equal(ledgerMatches[0]?.dayDiff, 1);
+
+  // Three days apart is outside the window.
+  const far = base({ ...b, id: "far", occurredOn: "2026-07-15" });
+  assert.equal(findDuplicateMatches([a, far]).length, 0);
+});
+
+test("annotateCandidates marks nearMatch only for fuzzy-tier flags", () => {
+  const list = [
+    base({
+      id: "exactA",
+      amount: 10_000,
+      merchant: "X",
+      account: "Cash",
+      occurredOn: "2026-07-10",
+    }),
+    base({
+      id: "exactB",
+      amount: 10_000,
+      merchant: "X",
+      account: "Cash",
+      occurredOn: "2026-07-10",
+    }),
+    base({
+      id: "nearA",
+      amount: 20_000,
+      merchant: "Y",
+      account: "Bank",
+      occurredOn: "2026-07-10",
+    }),
+    base({
+      id: "nearB",
+      amount: 20_000,
+      merchant: "Y",
+      account: "Bank",
+      occurredOn: "2026-07-11",
+    }),
+    base({
+      id: "clean",
+      amount: 30_000,
+      merchant: "Z",
+      account: "Bank",
+      occurredOn: "2026-07-10",
+    }),
+  ];
+  const byId = Object.fromEntries(
+    annotateCandidates(list).map((c) => [c.id, c]),
+  );
+  assert.equal(byId.exactA?.possibleDuplicate, true);
+  assert.equal(byId.exactA?.nearMatch, undefined);
+  assert.equal(byId.nearA?.possibleDuplicate, true);
+  assert.equal(byId.nearA?.nearMatch, true);
+  assert.equal(byId.clean?.nearMatch, undefined);
 });
 
 test("findTransferPairs does not reuse a leg", () => {

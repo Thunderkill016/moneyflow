@@ -483,6 +483,9 @@ export function InboxPage({
     const reviewed = candidatesRef.current.find(
       (item) => item.id === payload.candidateId,
     );
+    const detectedReviewed = detectedRef.current.find(
+      (item) => item.id === payload.candidateId,
+    );
     trackProductEvent("candidate_approved", {
       kind: payload.draft.kind,
       source: reviewed?.source ?? "unknown",
@@ -494,6 +497,9 @@ export function InboxPage({
             workspace.categories,
           )
         : false,
+      flagged: detectedReviewed?.possibleDuplicate === true ||
+        detectedReviewed?.possibleTransfer === true,
+      near_match: detectedReviewed?.nearMatch === true,
       bulk,
     });
     return { ok: true };
@@ -523,10 +529,16 @@ export function InboxPage({
         "Đã từ chối ứng viên.",
       ),
     );
+    const detectedTarget = detectedRef.current.find(
+      (item) => item.id === candidateId,
+    );
     trackProductEvent("candidate_rejected", {
       kind: target?.kind ?? "unknown",
       source: target?.source ?? "unknown",
       possible_duplicate: target?.possibleDuplicate === true,
+      flagged: detectedTarget?.possibleDuplicate === true ||
+        detectedTarget?.possibleTransfer === true,
+      near_match: detectedTarget?.nearMatch === true,
       bulk: false,
     });
   }
@@ -1025,11 +1037,21 @@ export function InboxPage({
                             </span>
                           )}
                           {candidate.possibleDuplicate ? (
-                            <span>Có thể trùng</span>
+                            <span>
+                              Có thể trùng
+                              {candidate.duplicateDayDiff
+                                ? ` · lệch ${candidate.duplicateDayDiff} ngày`
+                                : ""}
+                            </span>
                           ) : null}
                           {candidate.possibleTransfer ||
                           candidate.kind === "transfer" ? (
-                            <span>Chuyển khoản</span>
+                            <span>
+                              Chuyển khoản
+                              {candidate.transferDayDiff
+                                ? ` · lệch ${candidate.transferDayDiff} ngày`
+                                : ""}
+                            </span>
                           ) : null}
                         </span>
                       </button>

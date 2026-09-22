@@ -41,6 +41,12 @@ export type InboxCandidate = {
   /** Suggested transfer pair peer (detection). */
   possibleTransfer?: boolean;
   transferPairId?: string;
+  /** Date distance of the duplicate flag: 0 = exact fingerprint, >0 = near tier. */
+  duplicateDayDiff?: number;
+  /** Date distance of the transfer-pair flag: 0 = same day, >0 = near tier. */
+  transferDayDiff?: number;
+  /** Any flag on this candidate came from the ±N-day near tier (detection). */
+  nearMatch?: boolean;
   categoryId?: string;
   category?: string;
   accountId?: string;
@@ -243,6 +249,9 @@ export function isCandidate(value: unknown): value is InboxCandidate {
     (item.duplicateOfId === undefined || typeof item.duplicateOfId === "string") &&
     (item.possibleTransfer === undefined || typeof item.possibleTransfer === "boolean") &&
     (item.transferPairId === undefined || typeof item.transferPairId === "string") &&
+    (item.duplicateDayDiff === undefined || typeof item.duplicateDayDiff === "number") &&
+    (item.transferDayDiff === undefined || typeof item.transferDayDiff === "number") &&
+    (item.nearMatch === undefined || typeof item.nearMatch === "boolean") &&
     (item.categoryId === undefined || typeof item.categoryId === "string") &&
     (item.category === undefined || typeof item.category === "string") &&
     (item.accountId === undefined || typeof item.accountId === "string") &&

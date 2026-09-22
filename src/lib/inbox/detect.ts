@@ -4,6 +4,8 @@
  *
  * Fingerprint: hash(account_hint|date|amount|desc_norm)
  * Transfer pair: opposite direction (income↔expense), same amount, same day.
+ * Near tier: same fields but date within ±NEAR_MATCH_WINDOW_DAYS — flag-only
+ * for posting-date lag; a human still reviews every flag.
  */
 
 import type { InboxCandidate } from "./candidate-store.ts";
@@ -29,6 +31,15 @@ export type DetectionFlags = {
   /** Suggested internal transfer with another candidate. */
   possibleTransfer: boolean;
   transferPairId?: string;
+  /** Date distance of the duplicate flag: 0 = exact fingerprint, >0 = near tier. */
+  duplicateDayDiff?: number;
+  /** Date distance of the transfer-pair flag: 0 = same day, >0 = near tier. */
+  transferDayDiff?: number;
+  /**
+   * At least one flag on this candidate came from the ±N-day near tier
+   * rather than an exact fingerprint/same-day match.
+   */
+  nearMatch?: boolean;
 };
 
 export type DetectedCandidate = InboxCandidate & DetectionFlags;
@@ -123,11 +134,42 @@ export function ledgerFingerprint(item: LedgerLike): string {
   );
 }
 
+/** Calendar-day distance between two YYYY-MM-DD prefixes (UTC, DST-safe). */
+export function dayDiff(a: string, b: string): number {
+  const da = Date.parse(`${a.slice(0, 10)}T00:00:00Z`);
+  const db = Date.parse(`${b.slice(0, 10)}T00:00:00Z`);
+  if (!Number.isFinite(da) || !Number.isFinite(db)) {
+    return Number.POSITIVE_INFINITY;
+  }
+  return Math.round(Math.abs(da - db) / 86_400_000);
+}
+
+/**
+ * Maximum date distance for the near tier. Chosen for T+1/T+2 posting lag on
+ * Vietnamese interbank transfers and card settlements — deliberately narrower
+ * than Actual Budget's ±7d, which suits a different ledger shape.
+ */
+export const NEAR_MATCH_WINDOW_DAYS = 2;
+
+/** Loose match key ignoring the date: account_hint|amount|desc_norm. */
+function looseKey(
+  item: { amount: number } & (
+    | Pick<InboxCandidate, "accountId" | "account" | "merchant" | "note" | "rawSnippet">
+    | Pick<LedgerLike, "accountId" | "account" | "note">
+  ),
+): string {
+  return `${accountHint(item)}|${item.amount}|${descMaterial(
+    item as Pick<InboxCandidate, "merchant" | "note" | "rawSnippet">,
+  )}`;
+}
+
 export type DuplicateMatch = {
   candidateId: string;
   fingerprint: string;
   otherCandidateId?: string;
   ledgerId?: string;
+  /** 0 = exact fingerprint; >0 = near-tier date distance in days. */
+  dayDiff?: number;
 };
 
 /**
@@ -171,6 +213,52 @@ export function findDuplicateMatches(
       fingerprint: fp,
       otherCandidateId: peers[0],
       ledgerId,
+      dayDiff: 0,
+    });
+  }
+
+  /*
+   * Near tier: same account/amount/description but posted 1–2 days apart.
+   * Bank posting lag and manual-entry date slips make exact fingerprints miss
+   * real duplicates; flag-only — the reviewer still decides.
+   */
+  const looseBuckets = new Map<string, { id: string; date: string; ledger: boolean }[]>();
+  const addLoose = (key: string, id: string, date: string, ledger: boolean) => {
+    const list = looseBuckets.get(key) ?? [];
+    list.push({ id, date, ledger });
+    looseBuckets.set(key, list);
+  };
+  for (const c of candidates) {
+    // An empty description would reduce the near tier to amount+date noise.
+    if (c.status === "rejected" || descMaterial(c) === "") continue;
+    addLoose(looseKey(c), c.id, c.occurredOn, false);
+  }
+  for (const row of ledger) {
+    if (row.kind === "transfer") continue;
+    if (descMaterial(row) === "") continue;
+    addLoose(looseKey(row), row.id, row.occurredOn, true);
+  }
+
+  for (const c of candidates) {
+    if (c.status !== "pending" || seen.has(c.id)) continue;
+    const peers = looseBuckets.get(looseKey(c)) ?? [];
+    let best: { id: string; ledger: boolean; dayDiff: number } | null = null;
+    for (const peer of peers) {
+      if (peer.id === c.id) continue;
+      const diff = dayDiff(c.occurredOn, peer.date);
+      if (diff < 1 || diff > NEAR_MATCH_WINDOW_DAYS) continue;
+      if (!best || diff < best.dayDiff) {
+        best = { id: peer.id, ledger: peer.ledger, dayDiff: diff };
+      }
+    }
+    if (!best) continue;
+    seen.add(c.id);
+    matches.push({
+      candidateId: c.id,
+      fingerprint: candidateFingerprint(c),
+      otherCandidateId: best.ledger ? undefined : best.id,
+      ledgerId: best.ledger ? best.id : undefined,
+      dayDiff: best.dayDiff,
     });
   }
 
@@ -182,6 +270,8 @@ export type TransferPair = {
   bId: string;
   amount: number;
   occurredOn: string;
+  /** 0 = same day; >0 = near-tier date distance in days. */
+  dayDiff: number;
 };
 
 function isOutKind(kind: InboxCandidate["kind"]): boolean {
@@ -193,7 +283,9 @@ function isInKind(kind: InboxCandidate["kind"]): boolean {
 }
 
 /**
- * Suggest transfer pairs: pending expense + income, same absolute amount, same day.
+ * Suggest transfer pairs: pending expense + income, same absolute amount,
+ * dates within NEAR_MATCH_WINDOW_DAYS (same day preferred — settlement lag
+ * between two own accounts often posts on adjacent days).
  * Prefer different accounts when both have account hints.
  * Greedy: each candidate at most one pair (stable by id order).
  */
@@ -216,11 +308,13 @@ export function findTransferPairs(candidates: InboxCandidate[]): TransferPair[] 
 
     let best: InboxCandidate | null = null;
     let bestScore = -1;
+    let bestDiff = 0;
 
     for (let j = i + 1; j < pending.length; j += 1) {
       const b = pending[j]!;
       if (used.has(b.id)) continue;
-      if (b.occurredOn !== a.occurredOn) {
+      const diff = dayDiff(a.occurredOn, b.occurredOn);
+      if (diff > NEAR_MATCH_WINDOW_DAYS) {
         if (b.occurredOn > a.occurredOn) break;
         continue;
       }
@@ -230,19 +324,22 @@ export function findTransferPairs(candidates: InboxCandidate[]): TransferPair[] 
         (isOutKind(a.kind) && isInKind(b.kind)) || (isInKind(a.kind) && isOutKind(b.kind));
       if (!opposite) continue;
 
-      let score = 1;
+      let accountScore = 1;
       const ha = accountHint(a);
       const hb = accountHint(b);
       if (ha && hb) {
-        if (ha === hb) score = 0; // same account → weak (skip unless no better)
-        else score = 3; // different accounts → strong
+        if (ha === hb) accountScore = 0; // same account → never a transfer
+        else accountScore = 3; // different accounts → strong
       } else if (ha || hb) {
-        score = 2;
+        accountScore = 2;
       }
+      // Prefer account evidence, then closer dates.
+      const score = accountScore * 10 - diff;
 
       if (score > bestScore) {
         bestScore = score;
         best = b;
+        bestDiff = diff;
       }
     }
 
@@ -254,6 +351,7 @@ export function findTransferPairs(candidates: InboxCandidate[]): TransferPair[] 
         bId: best.id,
         amount: a.amount,
         occurredOn: a.occurredOn,
+        dayDiff: bestDiff,
       });
     }
   }
@@ -281,16 +379,17 @@ export function annotateCandidates(
           fingerprint: m.fingerprint,
           otherCandidateId: m.candidateId,
           ledgerId: m.ledgerId,
+          dayDiff: m.dayDiff,
         });
       }
     }
   }
 
   const pairs = findTransferPairs(candidates);
-  const pairById = new Map<string, string>();
+  const pairById = new Map<string, { peerId: string; dayDiff: number }>();
   for (const p of pairs) {
-    pairById.set(p.aId, p.bId);
-    pairById.set(p.bId, p.aId);
+    pairById.set(p.aId, { peerId: p.bId, dayDiff: p.dayDiff });
+    pairById.set(p.bId, { peerId: p.aId, dayDiff: p.dayDiff });
   }
 
   return candidates.map((c) => {
@@ -299,6 +398,10 @@ export function annotateCandidates(
     const transferPeer = pairById.get(c.id);
     const possibleDuplicate =
       c.possibleDuplicate === true || Boolean(dup);
+    const duplicateDayDiff = dup?.dayDiff;
+    const transferDayDiff = transferPeer?.dayDiff;
+    const nearMatch =
+      (duplicateDayDiff ?? 0) > 0 || (transferDayDiff ?? 0) > 0;
     return {
       ...c,
       fingerprint: fp,
@@ -306,7 +409,10 @@ export function annotateCandidates(
       duplicateOfId: dup?.otherCandidateId,
       duplicateOfLedgerId: dup?.ledgerId,
       possibleTransfer: Boolean(transferPeer),
-      transferPairId: transferPeer,
+      transferPairId: transferPeer?.peerId,
+      duplicateDayDiff,
+      transferDayDiff,
+      nearMatch: nearMatch || undefined,
     };
   });
 }
