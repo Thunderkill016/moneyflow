@@ -245,6 +245,30 @@ export function draftFromCandidate(
 }
 
 /**
+ * Whether the reviewer changed any content field before approving — the
+ * difference between a clean accept and a correction intervention. Flags set
+ * outside the draft (duplicate marking, heuristic acceptance) do not count.
+ */
+export function draftWasEdited(
+  candidate: InboxCandidate,
+  draft: CandidateReviewDraft,
+  accounts: AccountOption[],
+  categories: CategoryOption[],
+): boolean {
+  const initial = draftFromCandidate(candidate, accounts, categories);
+  return (
+    draft.kind !== initial.kind ||
+    draft.amount !== initial.amount ||
+    draft.merchant !== initial.merchant ||
+    draft.note !== initial.note ||
+    draft.occurredOn !== initial.occurredOn ||
+    draft.categoryId !== initial.categoryId ||
+    draft.accountId !== initial.accountId ||
+    draft.destinationAccountId !== initial.destinationAccountId
+  );
+}
+
+/**
  * A reviewed merchant can seed a future candidate-stage rule only when the
  * reviewer selected a compatible money category. Transfers stay outside the
  * deterministic categorization contract.

@@ -62,9 +62,11 @@ import {
   applyBulkCategory,
   buildLedgerPost,
   draftFromCandidate,
+  draftWasEdited,
   findPendingCandidateTarget,
   markCandidatesStatus,
 } from "@/lib/inbox/review";
+import { trackProductEvent } from "@/lib/safe-analytics";
 import { safeUserNotice } from "@/lib/safe-log";
 import type {
   AccountOption,
@@ -383,6 +385,7 @@ export function InboxPage({
 
   async function postOne(
     payload: ReviewSubmitPayload,
+    bulk = false,
   ): Promise<{ ok: boolean; message?: string }> {
     const post = payload.post;
     const accountId =
@@ -477,6 +480,22 @@ export function InboxPage({
         "Đã duyệt giao dịch vào sổ.",
       ),
     );
+    const reviewed = candidatesRef.current.find(
+      (item) => item.id === payload.candidateId,
+    );
+    trackProductEvent("candidate_approved", {
+      kind: payload.draft.kind,
+      source: reviewed?.source ?? "unknown",
+      edited: reviewed
+        ? draftWasEdited(
+            reviewed,
+            payload.draft,
+            workspace.accounts,
+            workspace.categories,
+          )
+        : false,
+      bulk,
+    });
     return { ok: true };
   }
 
@@ -504,6 +523,12 @@ export function InboxPage({
         "Đã từ chối ứng viên.",
       ),
     );
+    trackProductEvent("candidate_rejected", {
+      kind: target?.kind ?? "unknown",
+      source: target?.source ?? "unknown",
+      possible_duplicate: target?.possibleDuplicate === true,
+      bulk: false,
+    });
   }
 
   async function handleMarkDuplicate(candidateId: string) {
@@ -533,6 +558,10 @@ export function InboxPage({
         if (!(await persist(next, payload.selectedIds))) return;
         setSelectedIds([]);
         setNotice(`Đã từ chối ${payload.selectedIds.length} ứng viên.`);
+        trackProductEvent("candidate_rejected", {
+          count: payload.selectedIds.length,
+          bulk: true,
+        });
         return;
       }
 
@@ -551,6 +580,10 @@ export function InboxPage({
         );
         if (!(await persist(next, payload.selectedIds))) return;
         setNotice(`Đã gán tài khoản “${account.name}” cho các ứng viên đã chọn.`);
+        trackProductEvent("candidate_field_assigned", {
+          field: "account",
+          count: payload.selectedIds.length,
+        });
         return;
       }
 
@@ -571,6 +604,10 @@ export function InboxPage({
         setNotice(
           `Đã gán danh mục “${category.name}” cho các ứng viên cùng loại.`,
         );
+        trackProductEvent("candidate_field_assigned", {
+          field: "category",
+          count: payload.selectedIds.length,
+        });
         return;
       }
 
@@ -601,11 +638,14 @@ export function InboxPage({
           failed += 1;
           continue;
         }
-        const result = await postOne({
-          candidateId: candidate.id,
-          draft,
-          post,
-        });
+        const result = await postOne(
+          {
+            candidateId: candidate.id,
+            draft,
+            post,
+          },
+          true,
+        );
         if (result.ok) approved += 1;
         else failed += 1;
       }
