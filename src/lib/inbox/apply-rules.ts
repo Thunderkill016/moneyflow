@@ -198,3 +198,54 @@ export function resolveCategoryIdForRuleMatch(
   );
   return found?.id ?? null;
 }
+
+/** The capture-draft fields a deterministic rule is allowed to inspect. */
+export type RuleCategoryFillDraft = Pick<
+  RuleApplyTarget,
+  "kind" | "merchant" | "note"
+>;
+
+export type RuleCategoryFill = {
+  /** The rule that fired — provenance behind the visible attribution. */
+  match: InboxRule;
+  /** Category ID resolved against the draft kind; safe to fill into the draft. */
+  categoryId: string;
+  /** Visible attribution copy shown next to the filled category. */
+  hint: string;
+};
+
+/**
+ * Resolve the category a saved rule fills into a manual-capture draft.
+ *
+ * Both the payee and the note field evaluate the same draft: the typed payee
+ * is the merchant haystack and the note draft the note haystack, so
+ * field:"merchant" and field:"any" rules fire on "Nơi chi" exactly as saved
+ * from Inbox review. A rule's merchant normalization is deliberately absent
+ * from the result — typed payee text is never rewritten, only the draft
+ * category is filled, with attribution the reader can see. Returns null when
+ * no enabled rule resolves to a category of the draft kind, leaving learned
+ * suggestions untouched.
+ */
+export function resolveRuleCategoryFill(
+  rules: InboxRule[],
+  draft: RuleCategoryFillDraft,
+  categories: Array<{ id: string; name: string; kind: string }>,
+): RuleCategoryFill | null {
+  const match = findMatchingRule(rules, {
+    kind: draft.kind,
+    merchant: draft.merchant,
+    note: draft.note,
+    rawSnippet: "",
+  });
+  const categoryId = resolveCategoryIdForRuleMatch(
+    match,
+    categories,
+    draft.kind ?? "",
+  );
+  if (!match || !categoryId) return null;
+  return {
+    match,
+    categoryId,
+    hint: `tự động theo quy tắc “${match.contains}” → ${match.category}`,
+  };
+}
