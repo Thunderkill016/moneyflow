@@ -248,6 +248,25 @@ test("folding expected income in is opt-in and labeled as included", () => {
   );
 });
 
+test("no income disclosure when the caller passes no templates at all", () => {
+  // The dashboard withholds the suffix unless it actually holds resolved
+  // income rows — an omitted key must never imply "nothing expected".
+  const result = buildCommittedRemainder({
+    currentBalance: 10_000_000,
+    accounts: vndAccounts,
+    commitments: [commitmentBase],
+    monthStart: MONTH,
+  });
+  assert.equal(result.complete, true);
+  assert.equal(result.expectedIncome, 0);
+  const label = committedRemainderLabel(result);
+  assert.equal(
+    label,
+    "Còn 9.750.000 ₫ sau 1 khoản định kỳ đã khai báo tháng này",
+  );
+  assert.doesNotMatch(label!, /thu dự kiến/);
+});
+
 test("an income template lacking a usable amount withholds the figure", () => {
   const result = build({
     commitments: [commitmentBase],

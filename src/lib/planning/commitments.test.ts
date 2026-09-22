@@ -10,6 +10,7 @@ import {
   markCommitmentPaid,
   markCommitmentUnpaid,
   monthStartFromDate,
+  nextOccurrence,
   recordOccurrence,
   removePaymentExpense,
   unpaidActiveCount,
@@ -42,6 +43,64 @@ test("due day is clamped to the final day of short months", () => {
 test("monthStartFromDate normalizes any day to first of month", () => {
   assert.equal(monthStartFromDate("2026-07-15"), "2026-07-01");
   assert.equal(monthStartFromDate("2026-12-01"), "2026-12-01");
+});
+
+test("nextOccurrence: unpaid and still ahead returns this month's due date", () => {
+  assert.equal(
+    nextOccurrence(base, "2026-07-10", "2026-07-01"),
+    "2026-07-15",
+  );
+  // Due today still counts as the upcoming occurrence.
+  assert.equal(
+    nextOccurrence(base, "2026-07-15", "2026-07-01"),
+    "2026-07-15",
+  );
+});
+
+test("nextOccurrence: unpaid and past rolls to next month's due day", () => {
+  assert.equal(
+    nextOccurrence(base, "2026-07-20", "2026-07-01"),
+    "2026-08-15",
+  );
+});
+
+test("nextOccurrence: paid through the resolved month rolls to next month", () => {
+  const paid = { ...base, isPaid: true, transactionId: "tx-1" };
+  assert.equal(nextOccurrence(paid, "2026-07-10", "2026-07-01"), "2026-08-15");
+  // Paid is paid regardless of where in the month today sits.
+  assert.equal(nextOccurrence(paid, "2026-07-31", "2026-07-01"), "2026-08-15");
+});
+
+test("nextOccurrence: next month clamps to a short month and crosses the year", () => {
+  const endOfMonth = { ...base, dueDay: 31, dueDate: "2026-01-31" };
+  assert.equal(
+    nextOccurrence({ ...endOfMonth, isPaid: true }, "2026-01-20", "2026-01-01"),
+    "2026-02-28",
+  );
+  const december = { ...base, dueDay: 15, dueDate: "2026-12-15", isPaid: true };
+  assert.equal(nextOccurrence(december, "2026-12-20", "2026-12-01"), "2027-01-15");
+});
+
+test("nextOccurrence withholds when inputs are malformed or stale", () => {
+  // Malformed dates and out-of-range due days carry no honest answer.
+  assert.equal(nextOccurrence(base, "15/07/2026", "2026-07-01"), null);
+  assert.equal(nextOccurrence(base, "2026-07-10", "2026-07-15"), null);
+  assert.equal(nextOccurrence(base, "2026-07-10", "2026-07"), null);
+  assert.equal(nextOccurrence({ ...base, dueDay: 0 }, "2026-07-10", "2026-07-01"), null);
+  assert.equal(nextOccurrence({ ...base, dueDay: 32 }, "2026-07-10", "2026-07-01"), null);
+  assert.equal(nextOccurrence({ ...base, dueDay: 1.5 }, "2026-07-10", "2026-07-01"), null);
+  assert.equal(nextOccurrence({ ...base, dueDate: "someday" }, "2026-07-10", "2026-07-01"), null);
+  // A dueDate outside the resolved month is contradictory data.
+  assert.equal(nextOccurrence({ ...base, dueDate: "2026-08-15" }, "2026-07-10", "2026-07-01"), null);
+  // Fields resolved for a different month than today's are stale.
+  assert.equal(nextOccurrence(base, "2026-08-02", "2026-07-01"), null);
+});
+
+test("nextOccurrence: archived templates have no scheduled occurrence", () => {
+  assert.equal(
+    nextOccurrence({ ...base, isArchived: true }, "2026-07-10", "2026-07-01"),
+    null,
+  );
 });
 
 test("only active unpaid commitments are reserved", () => {
