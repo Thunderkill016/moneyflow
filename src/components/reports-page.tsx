@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   reportAccountDrilldownHref,
   reportCategoryDrilldownHref,
+  reportPayeeDrilldownHref,
 } from "@/lib/report-drilldown";
 import { Icon, type IconName } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
@@ -787,6 +788,63 @@ export function ReportsPage({
                 <div className={styles.subEmpty}>
                   <Icon name="chart" />
                   <p>Chưa có khoản chi trong kỳ này.</p>
+                </div>
+              )}
+            </SecondarySection>
+
+            <SecondarySection
+              title="Chi theo nơi"
+              description={
+                <p>
+                  Những nơi bạn đã chi · {periodTitle}. Chỉ tính các khoản chi
+                  có ghi nơi giao dịch — khoản chưa ghi không vào danh sách này.
+                </p>
+              }
+              contained
+              slot="report-payees"
+            >
+              {report.payees.length ? (
+                <div className={styles.categories}>
+                  {report.payees.map((item) => {
+                    const href = reportPayeeDrilldownHref(report.range, item.name);
+                    return (
+                    <article className={styles.category} key={item.name}>
+                      <span className={styles.categoryIcon} aria-hidden="true">
+                        <Icon name="receipt" />
+                      </span>
+                      <div className={styles.categoryBody}>
+                        {href ? (
+                          <Link className={styles.categoryLink} href={href}>
+                            {item.name}
+                          </Link>
+                        ) : (
+                          <strong>{item.name}</strong>
+                        )}
+                        <span
+                          className={styles.categoryTrack}
+                          aria-hidden="true"
+                        >
+                          <i style={{ width: `${item.share}%` }} />
+                        </span>
+                      </div>
+                      <div className={styles.categoryAmount}>
+                        <MoneyValue
+                          amount={item.amount}
+                          mode="kind"
+                          kind="expense"
+                          label={`Chi tại ${item.name}`}
+                          emphasis="strong"
+                        />
+                        <small>{item.share}%</small>
+                      </div>
+                    </article>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className={styles.subEmpty}>
+                  <Icon name="receipt" />
+                  <p>Chưa có khoản chi nào ghi nơi giao dịch trong kỳ này.</p>
                 </div>
               )}
             </SecondarySection>

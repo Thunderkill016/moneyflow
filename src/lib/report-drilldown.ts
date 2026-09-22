@@ -40,6 +40,13 @@ export type ReportDrilldown = {
   category?: string;
   /** Account NAME; see the module note on name resolution. */
   account?: string;
+  /**
+   * Free-text `q` slice (the payee drill-down). `/transactions` has no payee
+   * facet, so the name travels as a query and the folded search haystack
+   * matches it back — membership like a category link, never a guaranteed
+   * exact sum: a folded spelling variant of the same payee joins the list.
+   */
+  query?: string;
 };
 
 export function reportDrilldownFilters({
@@ -47,9 +54,10 @@ export function reportDrilldownFilters({
   kind = "all",
   category,
   account,
+  query,
 }: ReportDrilldown): TransactionFilterValues {
   return {
-    query: "",
+    query: query ?? "",
     kind,
     account: account ?? "all",
     category: category ?? "all",
@@ -68,10 +76,15 @@ export function reportDrilldownFilters({
  * than emitting a link that would open everything.
  */
 export function reportDrilldownHref(
-  drilldown: ReportDrilldown & { requiresCategory?: boolean; requiresAccount?: boolean },
+  drilldown: ReportDrilldown & {
+    requiresCategory?: boolean;
+    requiresAccount?: boolean;
+    requiresQuery?: boolean;
+  },
 ): string | null {
   if (drilldown.requiresCategory && !drilldown.category?.trim()) return null;
   if (drilldown.requiresAccount && !drilldown.account?.trim()) return null;
+  if (drilldown.requiresQuery && !drilldown.query?.trim()) return null;
 
   const search = transactionFilterSearch(reportDrilldownFilters(drilldown));
   const query = search.toString();
@@ -101,5 +114,21 @@ export function reportCategoryDrilldownHref(range: ReportRange, category: string
     kind: "expense",
     category,
     requiresCategory: true,
+  });
+}
+
+/**
+ * Href for one payee's expense rows in a report window.
+ *
+ * `kind: "expense"` is load-bearing for the same reason as the account
+ * helper: without it, an income or transfer row that happens to contain the
+ * payee text would join a list opened from an expense figure.
+ */
+export function reportPayeeDrilldownHref(range: ReportRange, payee: string): string | null {
+  return reportDrilldownHref({
+    range,
+    kind: "expense",
+    query: payee,
+    requiresQuery: true,
   });
 }

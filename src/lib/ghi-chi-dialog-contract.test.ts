@@ -66,6 +66,30 @@ test("R5: Ghi prefers a stable ledger preset before the local fallback", () => {
   assert.match(defaults, /b\.occurredAt\.localeCompare\(a\.occurredAt\)/);
 });
 
+test("R5: a typed payee offers a category suggestion but never applies it", () => {
+  const src = read("src/components/add-transaction-dialog.tsx");
+  const defaults = read("src/lib/quick-add-defaults.ts");
+
+  // The suggestion renders as a labelled chip inside the category row and is
+  // applied exclusively through the same explicit tap as every other chip.
+  assert.match(src, /derivePayeeCategorySuggestion/);
+  assert.match(src, /data-payee-suggestion="true"/);
+  assert.match(src, /Gợi ý/);
+  assert.match(src, /chooseCategory\(payeeCategorySuggestion\.categoryId\)/);
+
+  // Typing a payee only stores the payee — it must not touch the category.
+  const payeeChange = src.match(
+    /function applyPayeeChange\(value: string\) \{([\s\S]*?)\n  \}/,
+  );
+  assert.ok(payeeChange, "the payee change handler must exist");
+  assert.doesNotMatch(payeeChange[1] ?? "", /setCategoryId|chooseCategory/);
+
+  // Domain side: folded whole-name match over the reviewed ledger only.
+  assert.match(defaults, /derivePayeeCategorySuggestion/);
+  assert.match(defaults, /normalizeSearchText/);
+  assert.match(defaults, /compareLedgerRecency/);
+});
+
 test("R4: save-and-add-another keeps a controlled dialog session alive", () => {
   const src = read("src/components/add-transaction-dialog.tsx");
   assert.match(src, /Lưu xong thêm tiếp/);

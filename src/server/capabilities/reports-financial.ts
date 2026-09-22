@@ -122,8 +122,16 @@ function explainedReport(
       targetKind,
     });
 
+  /*
+   * Project the declared contract field-by-field instead of spreading
+   * `...report`: page-facing additions like `payees` must not leak into the
+   * capability output ahead of a schema/version decision — the zod layer would
+   * strip them anyway, which is exactly the kind of silent divergence this
+   * golden exists to catch.
+   */
   return {
-    ...report,
+    range: report.range,
+    expenseChangePercent: report.expenseChangePercent,
     totals: {
       ...report.totals,
       income: explainedAmount(report.totals.income, basis("sum(income.amount) within the current report range", income, "income")),
