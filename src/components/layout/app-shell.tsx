@@ -28,6 +28,7 @@ import {
   TRANSACTIONS_SEARCH_HREF,
   wantsLedgerSearchFocus,
 } from "@/lib/app-shortcuts";
+import { resolveToastPresentation } from "@/lib/toast-presentation";
 import {
   APP_HOME_HREF,
   GHI_CHI_TIEU_HREF,
@@ -155,7 +156,10 @@ export function AppShell({
 
   const resolvedPrimary = primaryAction ?? DEFAULT_GHI_CHI_ACTION;
   const resolvedMobilePrimary = fabAction ?? DEFAULT_GHI_CHI_ACTION;
-  const toastPresentation = resolveToastPresentation(notice, noticeAction);
+  const toastPresentation = resolveToastPresentation(notice, {
+    hasAction: noticeAction != null,
+    tone: noticeTone,
+  });
   const toastMessages: ToastMessage[] = notice
     ? [
         {
@@ -166,7 +170,7 @@ export function AppShell({
               <span>{notice}</span>
             </span>
           ),
-          tone: noticeTone ?? toastPresentation.tone,
+          tone: toastPresentation.tone,
           urgent: noticeUrgent,
           action: noticeAction ? (
             <Button
@@ -665,38 +669,4 @@ function SheetLinks({
       })}
     </nav>
   );
-}
-
-function resolveToastPresentation(
-  notice?: string,
-  action?: NoticeAction,
-): { tone: ToastTone; icon: IconName } {
-  const text = (notice || "").toLowerCase();
-
-  if (action) return { tone: "info", icon: "restore" };
-  if (
-    text.includes("lỗi") ||
-    text.includes("thất bại") ||
-    text.includes("không thể") ||
-    text.includes("không khôi phục") ||
-    text.includes("chưa thể hoàn tác")
-  ) {
-    return { tone: "error", icon: "bell" };
-  }
-  if (
-    text.includes("cảnh báo") ||
-    text.includes("chưa") ||
-    text.includes("yêu cầu")
-  ) {
-    return { tone: "warning", icon: "bell" };
-  }
-  if (
-    text.includes("thông tin") ||
-    text.includes("chi tiết") ||
-    text.includes("đang") ||
-    text.includes("khôi phục")
-  ) {
-    return { tone: "info", icon: "bell" };
-  }
-  return { tone: "success", icon: "check" };
 }

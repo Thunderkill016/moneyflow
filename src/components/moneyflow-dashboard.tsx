@@ -10,6 +10,7 @@ import styles from "@/components/dashboard/dashboard.module.css";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import type { ToastTone } from "@/components/ui/toast";
 import { useTransactions } from "@/hooks/use-transactions";
 import { buildAttentionItems, type BackupReminderState } from "@/lib/attention";
 import { captureConsequence } from "@/lib/capture-consequence";
@@ -117,6 +118,7 @@ export function MoneyFlowDashboard({
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [recentSaved, setRecentSaved] = useState<Transaction | null>(null);
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
   const [demoInboxCount, setDemoInboxCount] = useState(0);
   const [demoCommitments, setDemoCommitments] = useState<
     RecurringCommitment[] | null
@@ -163,10 +165,16 @@ export function MoneyFlowDashboard({
     if (!notice) return;
     const timeout = window.setTimeout(() => {
       setNotice("");
+      setNoticeTone(undefined);
       setRecentSaved(null);
     }, 4200);
     return () => window.clearTimeout(timeout);
   }, [notice]);
+
+  function showNotice(message: string, tone: ToastTone) {
+    setNotice(message);
+    setNoticeTone(tone);
+  }
 
   const liveCommitments =
     viewer.isDemo && demoCommitments ? demoCommitments : commitments;
@@ -289,11 +297,12 @@ export function MoneyFlowDashboard({
       // Same helper as the quick-capture surface, so a save reads identically
       // wherever it happens rather than being richer on one screen than another.
       setRecentSaved(result.transaction);
-      setNotice(
+      showNotice(
         captureConsequence({
           saved: result.transaction,
           transactions: [result.transaction, ...transactions],
         }),
+        "success",
       );
     }
     return result;
@@ -306,7 +315,7 @@ export function MoneyFlowDashboard({
     if (result.ok) {
       setEditing(null);
       setRecentSaved(null);
-      setNotice("Đã cập nhật giao dịch.");
+      showNotice("Đã cập nhật giao dịch.", "success");
     }
     return result;
   }
@@ -316,7 +325,7 @@ export function MoneyFlowDashboard({
     if (result.ok) {
       setTransferOpen(false);
       setRecentSaved(null);
-      setNotice("Đã chuyển tiền giữa các tài khoản.");
+      showNotice("Đã chuyển tiền giữa các tài khoản.", "success");
     }
     return result;
   }
@@ -348,6 +357,7 @@ export function MoneyFlowDashboard({
         icon: "plus",
       }}
       notice={notice}
+      noticeTone={noticeTone}
       noticeAction={
         recentSaved
           ? {
@@ -356,6 +366,7 @@ export function MoneyFlowDashboard({
                 setEditing(recentSaved);
                 setRecentSaved(null);
                 setNotice("");
+                setNoticeTone(undefined);
               },
               disabled: isMutating,
             }
