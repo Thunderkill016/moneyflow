@@ -53,6 +53,10 @@ import {
 import {
   evaluateBulkCategorySelection,
   getTransactionReviewStatus,
+  planBulkDateChange,
+  planBulkDelete,
+  summarizeBulkSkips,
+  type BulkSkippedRow,
 } from "@/lib/transaction-review";
 import {
   TRANSACTION_OPEN_MISSING_NOTICE,
@@ -180,6 +184,8 @@ export function TransactionsWorkspace({
     restoreTransaction,
     bulkSetReviewStatus,
     bulkUpdateCategory,
+    bulkUpdateDate,
+    bulkDeleteTransactions,
     isMutating,
   } = useTransactions({
     initialTransactions: workspace.transactions,
@@ -212,11 +218,21 @@ export function TransactionsWorkspace({
   const [bulkCategoryId, setBulkCategoryId] = useState("");
   const [bulkCategoryReview, setBulkCategoryReview] =
     useState<CategoryOption | null>(null);
+  const [bulkDateInput, setBulkDateInput] = useState("");
+  const [bulkDateReview, setBulkDateReview] = useState<{
+    occurredOn: string;
+    eligible: Transaction[];
+    skipped: BulkSkippedRow[];
+  } | null>(null);
+  const [bulkDeleteReview, setBulkDeleteReview] = useState<{
+    eligible: Transaction[];
+    skipped: BulkSkippedRow[];
+  } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
   const [notice, setNotice] = useState("");
-  const [pendingUndo, setPendingUndo] = useState<Transaction | null>(null);
+  const [pendingUndo, setPendingUndo] = useState<Transaction[] | null>(null);
   const noticeTimerRef = useRef<number | null>(null);
-  const pendingUndoRef = useRef<Transaction | null>(null);
+  const pendingUndoRef = useRef<Transaction[] | null>(null);
 
   /*
    * Deep link (?open=<id>): resolve once against the owner-scoped rows, then
@@ -627,6 +643,105 @@ export function TransactionsWorkspace({
     setBulkCategoryId("");
   }
 
+  /**
+   * Bulk "đổi ngày": the plan partitions the selection into rows that can move
+   * and rows the single-transaction rules lock (recurring, split lines, a
+   * no-op date). Locked rows surface in the confirm dialog and result notice
+   * as grouped skip reasons instead of blocking the whole batch.
+   */
+  function handleBulkDate() {
+    const plan = planBulkDateChange(transactions, selectedIds, bulkDateInput);
+    if (!plan.ok) {
+      showNotice(plan.message);
+      return;
+    }
+    if (plan.eligible.length === 0) {
+      showNotice(
+        `Không có giao dịch nào đổi được. Bỏ qua: ${summarizeBulkSkips(plan.skipped)}.`,
+      );
+      return;
+    }
+    setBulkDateReview({
+      occurredOn: bulkDateInput,
+      eligible: plan.eligible,
+      skipped: plan.skipped,
+    });
+  }
+
+  async function confirmBulkDate() {
+    const review = bulkDateReview;
+    if (!review) return;
+
+    const result = await bulkUpdateDate({
+      ids: selectedIds,
+      occurredOn: review.occurredOn,
+    });
+    if (!result.ok) {
+      setBulkDateReview(null);
+      showNotice(safeUserNotice(result.message, "Không đổi được ngày."));
+      return;
+    }
+    setBulkDateReview(null);
+    showNotice(
+      result.skipped.length
+        ? `Đã đổi ngày ${result.updatedIds.length} giao dịch. Bỏ qua ${result.skipped.length}: ${summarizeBulkSkips(result.skipped)}.`
+        : `Đã đổi ngày cho ${result.updatedIds.length} giao dịch.`,
+    );
+    // Rows that were skipped keep their selection so the notice's grouped
+    // reasons map back to the exact rows still waiting on the user.
+    const updatedIdSet = new Set(result.updatedIds);
+    setSelectedIds((current) =>
+      current.filter((id) => !updatedIdSet.has(id)),
+    );
+    setBulkDateInput("");
+  }
+
+  /**
+   * Bulk soft delete mirrors `handleDelete`: recurring rows are skipped
+   * client-side; every other row goes through `soft_delete_money_transaction`
+   * so RLS and the reconciled-entry trigger apply unchanged. Deleted rows keep
+   * the same 8-second undo window a single delete gets.
+   */
+  function handleBulkDelete() {
+    const plan = planBulkDelete(transactions, selectedIds);
+    if (!plan.ok) {
+      showNotice(plan.message);
+      return;
+    }
+    if (plan.eligible.length === 0) {
+      showNotice(
+        `Không xóa được giao dịch nào. Bỏ qua: ${summarizeBulkSkips(plan.skipped)}.`,
+      );
+      return;
+    }
+    setBulkDeleteReview({ eligible: plan.eligible, skipped: plan.skipped });
+  }
+
+  async function confirmBulkDelete() {
+    const review = bulkDeleteReview;
+    if (!review) return;
+
+    const result = await bulkDeleteTransactions({ ids: selectedIds });
+    if (!result.ok) {
+      setBulkDeleteReview(null);
+      showNotice(safeUserNotice(result.message, "Không xóa được giao dịch."));
+      return;
+    }
+    setBulkDeleteReview(null);
+    const deletedIds = new Set(result.updatedIds);
+    const snapshots = review.eligible.filter((transaction) =>
+      deletedIds.has(transaction.id),
+    );
+    showDeleteNotice(
+      snapshots.length
+        ? result.skipped.length
+          ? `Đã xóa ${snapshots.length} giao dịch. Bỏ qua ${result.skipped.length}: ${summarizeBulkSkips(result.skipped)}.`
+          : `Đã xóa ${snapshots.length} giao dịch.`
+        : `Không xóa được giao dịch nào. Bỏ qua: ${summarizeBulkSkips(result.skipped)}.`,
+      snapshots,
+    );
+  }
+
   async function handleAdd(input: CreateTransactionInput) {
     const result = await addTransaction(input);
     if (result.ok && result.transaction) {
@@ -652,6 +767,28 @@ export function TransactionsWorkspace({
     setDeleteTarget(transaction);
   }
 
+  /**
+   * Shared 8-second undo window for single and bulk soft deletes — the notice
+   * keeps the deleted snapshots so "Hoàn tác" can restore each via the same
+   * restore RPC the single-row path uses.
+   */
+  function showDeleteNotice(message: string, snapshots: Transaction[]) {
+    setSelectedIds((current) =>
+      current.filter((id) => !snapshots.some((item) => item.id === id)),
+    );
+    clearNoticeTimer();
+    setRecentSaved(null);
+    pendingUndoRef.current = snapshots.length ? snapshots : null;
+    setPendingUndo(snapshots.length ? snapshots : null);
+    setNotice(safeUserNotice(message, "Đã xóa giao dịch."));
+    noticeTimerRef.current = window.setTimeout(() => {
+      setNotice("");
+      setPendingUndo(null);
+      pendingUndoRef.current = null;
+      noticeTimerRef.current = null;
+    }, DELETE_UNDO_MS);
+  }
+
   async function confirmDelete() {
     const transaction = deleteTarget;
     if (!transaction) return;
@@ -663,40 +800,37 @@ export function TransactionsWorkspace({
       return;
     }
     setDeleteTarget(null);
-
-    setSelectedIds((current) => current.filter((id) => id !== transaction.id));
-    clearNoticeTimer();
-    setRecentSaved(null);
-    pendingUndoRef.current = transaction;
-    setPendingUndo(transaction);
-    setNotice(
-      safeUserNotice(`Đã xóa ${transaction.note}.`, "Đã xóa giao dịch."),
-    );
-    noticeTimerRef.current = window.setTimeout(() => {
-      setNotice("");
-      setPendingUndo(null);
-      pendingUndoRef.current = null;
-      noticeTimerRef.current = null;
-    }, DELETE_UNDO_MS);
+    showDeleteNotice(`Đã xóa ${transaction.note}.`, [transaction]);
   }
 
   async function handleUndoDelete() {
-    const snapshot = pendingUndoRef.current;
-    if (!snapshot) return;
+    const snapshots = pendingUndoRef.current;
+    if (!snapshots?.length) return;
     clearNoticeTimer();
     setPendingUndo(null);
     pendingUndoRef.current = null;
     setNotice("");
 
-    const result = await restoreTransaction(snapshot);
-    if (result.ok) {
-      showNotice("Đã khôi phục giao dịch.");
+    let restored = 0;
+    let lastFailure = "";
+    for (const snapshot of snapshots) {
+      const result = await restoreTransaction(snapshot);
+      if (result.ok) restored += 1;
+      else lastFailure = result.message;
+    }
+    if (restored === snapshots.length) {
+      showNotice(
+        snapshots.length === 1
+          ? "Đã khôi phục giao dịch."
+          : `Đã khôi phục ${restored} giao dịch.`,
+      );
     } else {
       showNotice(
         safeUserNotice(
-          result.message,
-          "Không khôi phục được. Giao dịch vẫn đang ẩn.",
-        ),
+          lastFailure,
+          "Không khôi phục được hết. Một số giao dịch vẫn đang ẩn.",
+        ) +
+          ` Đã khôi phục ${restored}/${snapshots.length} giao dịch.`,
       );
     }
   }
@@ -1281,9 +1415,51 @@ export function TransactionsWorkspace({
                 </p>
               ) : (
                 <p className={styles.bulkHint}>
-                  Chỉ danh mục thay đổi; số tiền, ngày và tài khoản giữ nguyên.
+                  Chỉ danh mục của từng giao dịch thay đổi; số tiền, ngày và
+                  tài khoản giữ nguyên.
                 </p>
               )}
+
+              {/*
+                Đổi ngày and Xóa run per row through the same RPCs as the
+                single-row actions, so transfers and reconciled entries keep
+                their locks; locked rows are skipped with a reason rather than
+                blocking the batch.
+              */}
+              <div className={styles.bulkEditActions}>
+                <label className={styles.field}>
+                  <span>Ngày mới</span>
+                  <input
+                    type="date"
+                    value={bulkDateInput}
+                    onChange={(event) => setBulkDateInput(event.target.value)}
+                    disabled={isMutating}
+                    aria-label="Ngày mới cho giao dịch đã chọn"
+                  />
+                </label>
+                <Button
+                  type="button"
+                  intent="secondary"
+                  targetSize="important"
+                  pending={isMutating}
+                  pendingLabel="Đang đổi..."
+                  onClick={handleBulkDate}
+                  disabled={!bulkDateInput || isMutating}
+                >
+                  Đổi ngày
+                </Button>
+                <Button
+                  type="button"
+                  intent="destructive"
+                  targetSize="important"
+                  pending={isMutating}
+                  pendingLabel="Đang xóa..."
+                  onClick={handleBulkDelete}
+                  disabled={isMutating}
+                >
+                  <Icon name="trash" /> Xóa đã chọn
+                </Button>
+              </div>
             </section>
           ) : null}
 
@@ -1613,6 +1789,76 @@ export function TransactionsWorkspace({
         pending={isMutating}
         onConfirm={confirmBulkCategory}
         slot="bulk-category-review"
+      />
+      <SecondaryReviewDialog
+        open={Boolean(bulkDateReview)}
+        onOpenChange={(open) => {
+          if (!open && !isMutating) setBulkDateReview(null);
+        }}
+        title="Đổi ngày hàng loạt?"
+        description="Kiểm tra trước khi áp dụng cho các giao dịch đã chọn."
+        details={
+          bulkDateReview
+            ? [
+                {
+                  label: "Ngày mới",
+                  value: bulkDateReview.occurredOn
+                    .split("-")
+                    .reverse()
+                    .join("/"),
+                },
+                {
+                  label: "Sẽ đổi",
+                  value: `${bulkDateReview.eligible.length} giao dịch`,
+                },
+                ...(bulkDateReview.skipped.length
+                  ? [
+                      {
+                        label: "Bỏ qua",
+                        value: summarizeBulkSkips(bulkDateReview.skipped),
+                      },
+                    ]
+                  : []),
+              ]
+            : []
+        }
+        consequence="Chỉ ngày giao dịch thay đổi; số tiền, danh mục và tài khoản của từng giao dịch giữ nguyên. Thay đổi áp dụng ngay cho các mục đủ điều kiện."
+        confirmLabel="Đổi ngày"
+        pending={isMutating}
+        onConfirm={confirmBulkDate}
+        slot="bulk-date-review"
+      />
+      <SecondaryReviewDialog
+        open={Boolean(bulkDeleteReview)}
+        onOpenChange={(open) => {
+          if (!open && !isMutating) setBulkDeleteReview(null);
+        }}
+        title="Xóa các giao dịch đã chọn?"
+        description="Kiểm tra trước khi ẩn khỏi sổ của bạn."
+        details={
+          bulkDeleteReview
+            ? [
+                {
+                  label: "Sẽ xóa",
+                  value: `${bulkDeleteReview.eligible.length} giao dịch`,
+                },
+                ...(bulkDeleteReview.skipped.length
+                  ? [
+                      {
+                        label: "Bỏ qua",
+                        value: summarizeBulkSkips(bulkDeleteReview.skipped),
+                      },
+                    ]
+                  : []),
+              ]
+            : []
+        }
+        consequence="Các giao dịch sẽ được ẩn khỏi sổ của bạn. Bạn có thể hoàn tác trong 8 giây."
+        confirmLabel="Xóa đã chọn"
+        confirmIntent="destructive"
+        pending={isMutating}
+        onConfirm={confirmBulkDelete}
+        slot="bulk-delete-review"
       />
       <SecondaryReviewDialog
         open={Boolean(deleteTarget)}

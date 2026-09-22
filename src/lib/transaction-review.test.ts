@@ -3,10 +3,17 @@ import test from "node:test";
 import type { CategoryOption, Transaction } from "./transactions/contracts.ts";
 import {
   applyBulkCategoryCorrection,
+  applyBulkDateChange,
   applyBulkReviewStatus,
+  BULK_SELECTION_LIMIT,
+  bulkOccurredOnLabel,
+  bulkSkipReasonForFailure,
   evaluateBulkCategorySelection,
   getTransactionReviewStatus,
   normalizeTransactionIds,
+  planBulkDateChange,
+  planBulkDelete,
+  summarizeBulkSkips,
 } from "./transaction-review.ts";
 
 const expenseCategory: CategoryOption = {
@@ -176,4 +183,170 @@ test("bulk category correction rejects a wrong-kind category", () => {
   assert.equal(result.ok, false);
   if (result.ok) return;
   assert.match(result.message, /danh mục chi/);
+});
+
+test("bulk date plan keeps single-row locks and reports per-row skips", () => {
+  const result = planBulkDateChange(
+    base,
+    ["expense-1", "transfer-1", "split-1", "recurring-1"],
+    "2026-08-10",
+  );
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.deepEqual(
+    result.eligible.map((item) => item.id),
+    ["expense-1", "transfer-1"],
+  );
+  assert.deepEqual(
+    result.skipped.map((item) => ({ id: item.id, reason: item.reason })),
+    [
+      { id: "split-1", reason: "khoản chia danh mục" },
+      { id: "recurring-1", reason: "khoản định kỳ" },
+    ],
+  );
+});
+
+test("bulk date plan skips no-op dates and transfers missing a destination", () => {
+  const rows = [
+    transaction("same-date", { occurredOn: "2026-08-10" }),
+    transaction("broken-transfer", {
+      kind: "transfer",
+      categoryId: "",
+      category: "Chuyển tiền",
+      destinationAccountId: undefined,
+      destinationAccount: undefined,
+    }),
+  ];
+  const result = planBulkDateChange(
+    rows,
+    ["same-date", "broken-transfer"],
+    "2026-08-10",
+  );
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.eligible.length, 0);
+  assert.deepEqual(
+    result.skipped.map((item) => item.reason),
+    ["đã đúng ngày", "chuyển tiền thiếu tài khoản đích"],
+  );
+});
+
+test("bulk date plan rejects invalid dates and oversized selections", () => {
+  assert.equal(planBulkDateChange(base, ["expense-1"], "10/08/2026").ok, false);
+  assert.equal(planBulkDateChange(base, [], "2026-08-10").ok, false);
+  const oversized = Array.from(
+    { length: BULK_SELECTION_LIMIT + 1 },
+    (_, index) => `id-${index}`,
+  );
+  const oversizedPlan = planBulkDateChange(base, oversized, "2026-08-10");
+  assert.equal(oversizedPlan.ok, false);
+  if (oversizedPlan.ok) return;
+  assert.match(oversizedPlan.message, /100/);
+});
+
+test("bulk plans skip stale ids with a reason instead of failing the batch", () => {
+  const datePlan = planBulkDateChange(
+    base,
+    ["expense-1", "missing-id"],
+    "2026-08-10",
+  );
+  assert.equal(datePlan.ok, true);
+  if (!datePlan.ok) return;
+  assert.deepEqual(
+    datePlan.eligible.map((item) => item.id),
+    ["expense-1"],
+  );
+  assert.deepEqual(
+    datePlan.skipped.map((item) => item.reason),
+    ["không còn trong sổ"],
+  );
+
+  const deletePlan = planBulkDelete(base, ["missing-id"]);
+  assert.equal(deletePlan.ok, true);
+  if (!deletePlan.ok) return;
+  assert.equal(deletePlan.eligible.length, 0);
+  assert.deepEqual(
+    deletePlan.skipped.map((item) => item.reason),
+    ["không còn trong sổ"],
+  );
+});
+
+test("bulk delete plan skips recurring rows but keeps transfers and splits", () => {
+  const result = planBulkDelete(base, [
+    "expense-1",
+    "transfer-1",
+    "split-1",
+    "recurring-1",
+  ]);
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.deepEqual(
+    result.eligible.map((item) => item.id),
+    ["expense-1", "transfer-1", "split-1"],
+  );
+  assert.deepEqual(
+    result.skipped.map((item) => ({ id: item.id, reason: item.reason })),
+    [{ id: "recurring-1", reason: "khoản định kỳ" }],
+  );
+});
+
+test("bulk delete plan rejects an empty selection", () => {
+  assert.equal(planBulkDelete(base, []).ok, false);
+});
+
+test("summarizeBulkSkips groups rows by reason in selection order", () => {
+  const summary = summarizeBulkSkips([
+    { id: "a", note: "A", reason: "khoản định kỳ" },
+    { id: "b", note: "B", reason: "đã đối soát" },
+    { id: "c", note: "C", reason: "khoản định kỳ" },
+  ]);
+  assert.equal(summary, "2 khoản định kỳ, 1 đã đối soát");
+});
+
+test("bulkSkipReasonForFailure maps known RPC codes and falls back to the message", () => {
+  assert.equal(
+    bulkSkipReasonForFailure("transaction_reconciled", "ignored"),
+    "đã đối soát",
+  );
+  assert.equal(
+    bulkSkipReasonForFailure("recurring_payment_locked", "ignored"),
+    "khoản định kỳ",
+  );
+  assert.equal(
+    bulkSkipReasonForFailure("transaction_not_found", "ignored"),
+    "không còn trong sổ",
+  );
+  assert.equal(
+    bulkSkipReasonForFailure(undefined, "Không thể cập nhật giao dịch."),
+    "Không thể cập nhật giao dịch.",
+  );
+});
+
+test("applyBulkDateChange moves only selected rows and rewrites the label", () => {
+  const result = applyBulkDateChange(
+    base,
+    ["expense-1", "expense-2", "expense-1"],
+    "2026-08-10",
+    "2026-08-11",
+  );
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.deepEqual(result.updatedIds, ["expense-1", "expense-2"]);
+  for (const id of ["expense-1", "expense-2"]) {
+    const after: Transaction | undefined = result.transactions.find(
+      (item) => item.id === id,
+    );
+    assert.equal(after?.occurredOn, "2026-08-10");
+    assert.equal(after?.relativeDate, "Hôm qua");
+  }
+  assert.equal(
+    result.transactions.find((item) => item.id === "income-1")?.occurredOn,
+    "2026-08-03",
+  );
+});
+
+test("bulkOccurredOnLabel mirrors the demo seed label style", () => {
+  assert.equal(bulkOccurredOnLabel("2026-08-11", "2026-08-11"), "Hôm nay");
+  assert.equal(bulkOccurredOnLabel("2026-08-10", "2026-08-11"), "Hôm qua");
+  assert.equal(bulkOccurredOnLabel("2026-07-03", "2026-08-11"), "3 thg 7");
 });

@@ -152,6 +152,22 @@ test("ledger deletion remains confirmed, soft and recoverable for eight seconds"
   assert.match(workspace, /label: "Hoàn tác"/);
 });
 
+test("bulk edit stays on the single-row RPC path with confirmed skip reporting", () => {
+  assert.match(workspace, /planBulkDateChange\(transactions, selectedIds/);
+  assert.match(workspace, /planBulkDelete\(transactions, selectedIds\)/);
+  assert.match(workspace, /bulkUpdateDate\(\{/);
+  assert.match(workspace, /bulkDeleteTransactions\(\{/);
+  assert.match(workspace, /summarizeBulkSkips/);
+  assert.match(workspace, /type="date"/);
+  assert.match(workspace, /aria-label="Ngày mới cho giao dịch đã chọn"/);
+  assert.match(workspace, /intent="destructive"/);
+  assert.match(workspace, /Xóa đã chọn/);
+  assert.match(workspace, /slot="bulk-date-review"/);
+  assert.match(workspace, /slot="bulk-delete-review"/);
+  assert.match(workspace, /confirmLabel="Đổi ngày"/);
+  assert.match(workspace, /confirmLabel="Xóa đã chọn"/);
+});
+
 test("Phase 5 add, edit and split dialogs use the shared lifecycle and local transaction form owner", () => {
   for (const { path, source } of dialogSources) {
     assert.match(source, /@\/components\/ui\/dialog/, `${path} must use Dialog`);
