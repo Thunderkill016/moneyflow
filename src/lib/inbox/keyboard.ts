@@ -24,29 +24,12 @@ const KEY_TO_ACTION: Record<string, InboxShortcutAction> = {
   n: "quick_add",
 };
 
-/** True when key events should type into a field, not hit inbox shortcuts. */
-export function isEditableKeyboardTarget(target: EventTarget | null): boolean {
-  if (target == null || typeof target !== "object") return false;
-  // Duck-type so unit tests run without a DOM (no HTMLElement in Node).
-  const el = target as {
-    isContentEditable?: boolean;
-    tagName?: string;
-    closest?: (selector: string) => unknown;
-  };
-  if (el.isContentEditable) return true;
-  const tag = typeof el.tagName === "string" ? el.tagName.toUpperCase() : "";
-  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
-  if (typeof el.closest === "function") {
-    try {
-      if (el.closest("[contenteditable='true'], [contenteditable=''], [role='textbox']")) {
-        return true;
-      }
-    } catch {
-      return false;
-    }
-  }
-  return false;
-}
+/*
+ * Generic editable-target guard and focus-index walk now live in
+ * ../keyboard.ts so the ledger layer shares one implementation. Re-exported
+ * here to keep the inbox import sites and tests stable.
+ */
+export { isEditableKeyboardTarget, moveFocusIndex } from "../keyboard.ts";
 
 /**
  * Map a key event (already checked for editable/modifiers) to an inbox action.
@@ -61,25 +44,6 @@ export function resolveInboxShortcut(
   }
   if (!key || key.length !== 1) return null;
   return KEY_TO_ACTION[key.toLowerCase()] ?? null;
-}
-
-/**
- * Move keyboard focus row index within a list.
- * When current is unset (−1), first next → 0, first prev → last.
- */
-export function moveFocusIndex(
-  current: number,
-  direction: 1 | -1,
-  length: number,
-): number {
-  if (length <= 0) return -1;
-  if (current < 0 || current >= length) {
-    return direction === 1 ? 0 : length - 1;
-  }
-  const next = current + direction;
-  if (next < 0) return 0;
-  if (next >= length) return length - 1;
-  return next;
 }
 
 /** Legacy selection helper retained for callers/tests; it never posts by itself. */
