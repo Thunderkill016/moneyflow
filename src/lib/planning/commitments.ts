@@ -15,6 +15,13 @@ export type RecurringCommitment = {
   isArchived: boolean;
   isPaid: boolean;
   transactionId: string | null;
+  /**
+   * VN calendar date the month's payment was recorded (`YYYY-MM-DD`), when
+   * the occurrence row carries it. Undefined/null means "paid, date unknown"
+   * (demo occurrences and older callers) — the card falls back to the
+   * undated label rather than guessing.
+   */
+  paidOn?: string | null;
 };
 
 export type SaveCommitmentInput = {

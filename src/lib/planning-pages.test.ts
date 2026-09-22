@@ -185,6 +185,20 @@ test("all four Planning pages use the shared shell and UI empty state", () => {
     "goals must surface the load error message",
   );
 
+  const commitmentsServer = read(
+    join(root, "src/server/commitments.ts"),
+  );
+  assert.match(
+    commitmentsServer,
+    /commitment_id,transaction_id,paid_at/,
+    "occurrence select must carry paid_at so paid cards can show evidence",
+  );
+  assert.match(
+    commitments,
+    /Đã ghi ngày/,
+    "paid commitment cards must show the recorded date when known",
+  );
+
   const categories = read(CATEGORIES);
   assert.match(categories, /EmptyState/);
   assert.match(categories, /PAGE_EMPTY_CATEGORY/);
