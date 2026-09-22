@@ -29,6 +29,7 @@ import {
   type SharePayload,
 } from "@/lib/inbox/share-payload";
 import type { InboxRule } from "@/lib/inbox/rules-store";
+import { trackProductEvent } from "@/lib/safe-analytics";
 
 type Phase = "loading" | "empty" | "error" | "success";
 
@@ -252,6 +253,11 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
 
           const pending = await getPendingCountForClient(viewer.isDemo);
           setInboxCount(pending);
+          trackProductEvent("share_received", {
+            candidates: written,
+            paste_count: plan.pasteCandidates.length,
+            csv_files: csvFileCount,
+          });
           setSuccess({
             candidateCount: written,
             pasteCount: plan.pasteCandidates.length,
