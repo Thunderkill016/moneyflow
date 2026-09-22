@@ -24,7 +24,8 @@ import {
   EXPORT_SETTINGS_HREF,
   reportCsvDownloadHref,
 } from "@/lib/export-data";
-import { formatMoney } from "@/lib/money";
+import type { BalanceSeriesPoint } from "@/lib/balance-series";
+import { formatMoney, formatSignedMoney } from "@/lib/money";
 import type { ReportPeriod } from "@/lib/reports";
 import { trackProductEvent } from "@/lib/safe-analytics";
 import {
@@ -59,6 +60,48 @@ function expenseChangeLabel(value: number | null) {
   if (value > 0) return `Tăng ${Math.abs(value)}%`;
   if (value < 0) return `Giảm ${Math.abs(value)}%`;
   return "Không đổi";
+}
+
+/*
+ * Fixed viewBox; the SVG scales uniformly to the section width via CSS, so
+ * strokes and point dots keep their shape at every viewport.
+ */
+const BALANCE_CHART = { width: 720, height: 220, padX: 12, padTop: 20, padBottom: 14 };
+
+/**
+ * Net worth is a level, not a flow — a line chart is the honest shape (bars
+ * anchored at zero would make every bucket look identical at đồng scale). The
+ * domain is padded min..max rather than zero-anchored, and the exact scale is
+ * disclosed in text below the chart so the truncated axis cannot lie.
+ */
+function balanceChartGeometry(points: BalanceSeriesPoint[]) {
+  const values = points.map((point) => point.value);
+  const rawLo = Math.min(...values);
+  const rawHi = Math.max(...values);
+  const pad = Math.max(Math.round((rawHi - rawLo) * 0.12), 1);
+  const lo = rawLo - pad;
+  const hi = rawHi + pad;
+  const innerW = BALANCE_CHART.width - BALANCE_CHART.padX * 2;
+  const innerH = BALANCE_CHART.height - BALANCE_CHART.padTop - BALANCE_CHART.padBottom;
+  const x = (index: number) =>
+    points.length === 1
+      ? BALANCE_CHART.padX + innerW / 2
+      : BALANCE_CHART.padX + (index / (points.length - 1)) * innerW;
+  const y = (value: number) =>
+    BALANCE_CHART.padTop + (1 - (value - lo) / (hi - lo)) * innerH;
+  const coords = points.map((point, index) => `${x(index)},${y(point.value)}`);
+  return {
+    linePoints: coords.join(" "),
+    areaPoints: `${BALANCE_CHART.padX},${BALANCE_CHART.padTop + innerH} ${coords.join(" ")} ${
+      BALANCE_CHART.padX + innerW
+    },${BALANCE_CHART.padTop + innerH}`,
+    // Draw the zero baseline only when the series actually crosses it.
+    zeroY: rawLo < 0 && rawHi > 0 ? y(0) : null,
+    cx: x,
+    cy: y,
+    lo: rawLo,
+    hi: rawHi,
+  };
 }
 
 export function ReportsPage({
@@ -104,6 +147,15 @@ export function ReportsPage({
   const periodTitle = formatReportPeriodTitle(period, currentStart, currentEnd);
   const rangeCaption = `${dateLabel(currentStart)} – ${dateLabel(currentEnd)} · So với kỳ liền trước cùng số ngày.`;
   const rangeNotice = RANGE_NOTICES[workspace.rangeNotice ?? "none"];
+
+  const balanceSeries = workspace.balanceSeries;
+  const netWorth = balanceSeries?.netWorthVnd ?? null;
+  const netWorthPoints = netWorth?.points ?? [];
+  const netWorthLast = netWorthPoints[netWorthPoints.length - 1]?.value ?? 0;
+  const netWorthDelta = netWorthLast - (netWorth?.opening ?? 0);
+  const balanceGeometry = netWorthPoints.length
+    ? balanceChartGeometry(netWorthPoints)
+    : null;
 
   return (
     <AppShell
@@ -285,6 +337,203 @@ export function ReportsPage({
             meta="Chi tiêu cùng số ngày"
           />
         </SecondarySummary>
+        )}
+
+        {workspace.dataError ? null : (
+        <SecondarySection
+          title="Tài sản ròng"
+          description={
+            <p>
+              Số dư cuối mỗi{" "}
+              {balanceSeries?.granularity === "month" ? "tháng" : "ngày"}, suy ra
+              từ số dư hiện tại trừ các giao dịch đã ghi sau đó · {periodTitle}.
+              Chuyển tiền giữa các tài khoản không làm đổi tổng.
+              {balanceSeries?.foreignCurrencyCodes.length
+                ? ` Tài khoản ${balanceSeries.foreignCurrencyCodes.join(", ")} giữ nguyên loại tiền, không gộp vào tổng này.`
+                : ""}
+            </p>
+          }
+          action={
+            netWorth && netWorthPoints.length ? (
+              <div className={styles.chartStat}>
+                <span>Thay đổi trong kỳ</span>
+                <MoneyValue
+                  amount={netWorthDelta}
+                  mode="signed"
+                  label="Thay đổi tài sản ròng trong kỳ"
+                  emphasis="strong"
+                />
+              </div>
+            ) : undefined
+          }
+          contained
+          slot="report-balance"
+        >
+          {balanceSeries === null ? (
+            <div className={styles.subEmpty}>
+              <Icon name="chart" />
+              <p>Chưa tải được dữ liệu số dư.</p>
+            </div>
+          ) : balanceSeries.accounts.length === 0 ? (
+            <div className={styles.subEmpty}>
+              <Icon name="wallet" />
+              <p>Chưa có tài khoản nào để tính tài sản ròng.</p>
+            </div>
+          ) : (
+            <>
+              {netWorth && balanceGeometry ? (
+                <>
+                  {/*
+                    * One series, named in text as well as drawn — money must not
+                    * rely on colour alone.
+                    */}
+                  <p className={styles.trendLegend}>
+                    <span className={styles.legendBalance}>Tài sản ròng (VND)</span>
+                  </p>
+                  <div className={styles.trendScroll} tabIndex={0}>
+                    <svg
+                      className={styles.balanceChart}
+                      viewBox={`0 0 ${BALANCE_CHART.width} ${BALANCE_CHART.height}`}
+                      role="img"
+                      aria-label={`Biểu đồ tài sản ròng ${periodTitle}`}
+                      aria-describedby="report-balance-data"
+                    >
+                      {balanceGeometry.zeroY !== null ? (
+                        <line
+                          className={styles.balanceZero}
+                          x1={BALANCE_CHART.padX}
+                          x2={BALANCE_CHART.width - BALANCE_CHART.padX}
+                          y1={balanceGeometry.zeroY}
+                          y2={balanceGeometry.zeroY}
+                        />
+                      ) : null}
+                      {netWorthPoints.length > 1 ? (
+                        <polygon
+                          className={styles.balanceArea}
+                          points={balanceGeometry.areaPoints}
+                        />
+                      ) : null}
+                      <polyline
+                        className={styles.balanceLine}
+                        points={balanceGeometry.linePoints}
+                        vectorEffect="non-scaling-stroke"
+                      />
+                      {netWorthPoints.map((point, index) => (
+                        <circle
+                          key={point.key}
+                          className={styles.balanceDot}
+                          cx={balanceGeometry.cx(index)}
+                          cy={balanceGeometry.cy(point.value)}
+                          r={4}
+                        >
+                          <title>{`${point.label}: ${formatMoney(point.value)}`}</title>
+                        </circle>
+                      ))}
+                    </svg>
+                    <div className={styles.balanceAxis} aria-hidden="true">
+                      {netWorthPoints.map((point, index) => {
+                        const show =
+                          netWorthPoints.length <= 14 ||
+                          index === 0 ||
+                          index === netWorthPoints.length - 1 ||
+                          (index + 1) % 5 === 0;
+                        if (!show) return null;
+                        const left =
+                          (balanceGeometry.cx(index) / BALANCE_CHART.width) * 100;
+                        return (
+                          <span
+                            key={point.key}
+                            style={{
+                              left: `${left}%`,
+                              transform:
+                                index === 0
+                                  ? "none"
+                                  : index === netWorthPoints.length - 1
+                                    ? "translateX(-100%)"
+                                    : "translateX(-50%)",
+                            }}
+                          >
+                            {point.label}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <ul className={styles.srTrendData} id="report-balance-data">
+                    {netWorthPoints.map((point) => (
+                      <li key={point.key}>
+                        {point.label}: {formatMoney(point.value)}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className={styles.balanceScale}>
+                    Đầu kỳ {formatMoney(netWorth.opening)} · Cuối kỳ{" "}
+                    {formatMoney(netWorthLast)} · Thấp nhất{" "}
+                    {formatMoney(balanceGeometry.lo)} · Cao nhất{" "}
+                    {formatMoney(balanceGeometry.hi)}
+                  </p>
+                </>
+              ) : (
+                <div className={styles.subEmpty}>
+                  <Icon name="chart" />
+                  <p>
+                    Chưa có tài khoản VND — tài sản ròng chỉ cộng các tài khoản
+                    đồng Việt Nam.
+                  </p>
+                </div>
+              )}
+
+              <h3 className={styles.balanceAccountsTitle}>
+                Số dư theo tài khoản · cuối kỳ
+              </h3>
+              <ul className={styles.balanceAccounts}>
+                {balanceSeries.accounts.map((seriesAccount) => {
+                  const endValue =
+                    seriesAccount.points[seriesAccount.points.length - 1]?.value ??
+                    seriesAccount.opening;
+                  const delta = endValue - seriesAccount.opening;
+                  const meta = [
+                    seriesAccount.currencyCode !== "VND"
+                      ? `${seriesAccount.currencyCode} · ngoài tài sản ròng`
+                      : null,
+                    seriesAccount.isArchived ? "Đã lưu trữ" : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ");
+                  return (
+                    <li className={styles.category} key={seriesAccount.accountId}>
+                      <span
+                        className={`${styles.categoryIcon} ${styles.balanceIcon}`}
+                        aria-hidden="true"
+                      >
+                        <Icon name="wallet" />
+                      </span>
+                      <span className={styles.balanceAccountName}>
+                        <strong>{seriesAccount.name}</strong>
+                        {meta ? <small>{meta}</small> : null}
+                      </span>
+                      <span className={styles.categoryAmount}>
+                        <MoneyValue
+                          amount={endValue}
+                          currencyCode={seriesAccount.currencyCode}
+                          label={`Số dư cuối kỳ của ${seriesAccount.name}`}
+                          emphasis="strong"
+                        />
+                        <small
+                          aria-label={`Thay đổi trong kỳ của ${seriesAccount.name}`}
+                        >
+                          {delta === 0
+                            ? "Không đổi"
+                            : formatSignedMoney(delta, false, seriesAccount.currencyCode)}
+                        </small>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
+        </SecondarySection>
         )}
 
         {report.totals.transactions ? (

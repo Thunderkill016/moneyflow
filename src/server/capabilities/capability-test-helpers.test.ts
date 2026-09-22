@@ -221,6 +221,7 @@ export function fixtureDeps(
       return {
         report: buildFinancialReport(transactions, range),
         transactions,
+        balanceSeries: null,
         dataError: null,
         rangeNotice: null,
       };
