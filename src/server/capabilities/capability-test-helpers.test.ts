@@ -136,6 +136,7 @@ export function fixtureBudgetsWorkspace(): BudgetsWorkspace {
     today: "2026-07-15",
     adjustment: null,
     monthIncome: 12_000_000,
+    monthExpense: 8_400_000,
     monthCommitments: [],
     dataError: null,
   };

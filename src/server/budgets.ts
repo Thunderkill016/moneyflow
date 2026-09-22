@@ -1,6 +1,7 @@
 import "server-only";
 
 import { z } from "zod";
+import { monthExpenseTotal } from "@/lib/finance";
 import { monthIncomeTotal } from "@/lib/planning/allocation";
 import {
   budgetRolloverWindowStart,
@@ -51,6 +52,16 @@ export type BudgetsWorkspace = {
    * cannot show one user two different incomes for one month.
    */
   monthIncome: number;
+  /**
+   * Expense actually recorded in the selected month, in integer đồng.
+   *
+   * The mirror of `monthIncome` — same feed, same whole-month window. The
+   * past-month review needs the full outflow, not the sum of budget `spent`:
+   * `budget_progress` only carries categories that have a budget row, so
+   * deriving "Chi" from budgets alone would silently drop unbudgeted
+   * spending and report a net the ledger never produced.
+   */
+  monthExpense: number;
   /**
    * Recurring obligations resolved for the selected month.
    *
@@ -116,7 +127,7 @@ export function mapBudgetRow(value: unknown): BudgetSummary {
 function sumMinorAmounts(rows: { amount_minor: number }[]): number {
   return rows.reduce((sum, row) => {
     const next = sum + row.amount_minor;
-    if (!Number.isSafeInteger(next)) throw new Error("unsafe_income_total");
+    if (!Number.isSafeInteger(next)) throw new Error("unsafe_month_total");
     return next;
   }, 0);
 }
@@ -208,6 +219,7 @@ function demoWorkspace(
     // Derived from the same demo ledger the demo dashboard reads, so the two
     // agree in demo exactly as they must in authenticated mode.
     monthIncome: monthIncomeTotal(sampleTransactionsFor(todayInVietnam()), resolution.monthStart.slice(0, 7)),
+    monthExpense: monthExpenseTotal(sampleTransactionsFor(todayInVietnam()), resolution.monthStart.slice(0, 7)),
     // Demo commitment state lives in browser storage owned by the commitments
     // surface, so the server cannot resolve it here without inventing one.
     monthCommitments: [],
@@ -232,6 +244,7 @@ export async function getBudgetsWorkspace(
       priorBudgets: [],
       categories: [],
       monthIncome: 0,
+      monthExpense: 0,
       monthCommitments: [],
       dataError: "Không thể kết nối dữ liệu ngân sách.",
     };
@@ -241,7 +254,7 @@ export async function getBudgetsWorkspace(
   // budgetRollover — so history depth can never make this scan unbounded.
   const rolloverWindowStart = budgetRolloverWindowStart(resolution.monthStart);
 
-  const [budgetsResult, categoriesResult, incomeResult, commitmentsResult, occurrencesResult] =
+  const [budgetsResult, categoriesResult, incomeResult, expenseResult, commitmentsResult, occurrencesResult] =
     await Promise.all([
     supabase
       .from("budget_progress")
@@ -272,6 +285,19 @@ export async function getBudgetsWorkspace(
       .eq("kind", "income")
       .gte("occurred_on", resolution.monthStart)
       .lte("occurred_on", resolution.monthEnd),
+    /*
+     * Same feed and window as income, `kind = "expense"`. Transfers are a
+     * separate kind so they never enter either figure, and the feed's
+     * `amount_minor` is the whole-transaction total, so split expenses count
+     * once at full value exactly as `monthExpenseTotal` computes them.
+     */
+    supabase
+      .from("transaction_feed")
+      .select("amount_minor")
+      .eq("user_id", viewer.id)
+      .eq("kind", "expense")
+      .gte("occurred_on", resolution.monthStart)
+      .lte("occurred_on", resolution.monthEnd),
     supabase
       .from("recurring_commitment_feed")
       .select(
@@ -290,6 +316,7 @@ export async function getBudgetsWorkspace(
     budgetsResult.error ||
     categoriesResult.error ||
     incomeResult.error ||
+    expenseResult.error ||
     commitmentsResult.error ||
     occurrencesResult.error
   ) {
@@ -300,6 +327,7 @@ export async function getBudgetsWorkspace(
       priorBudgets: [],
       categories: [],
       monthIncome: 0,
+      monthExpense: 0,
       monthCommitments: [],
       dataError: "Chưa tải được ngân sách. Hãy thử lại.",
     };
@@ -325,6 +353,7 @@ export async function getBudgetsWorkspace(
       ),
       categories: z.array(categorySchema).parse(categoriesResult.data),
       monthIncome: sumMinorAmounts(incomeResult.data ?? []),
+      monthExpense: sumMinorAmounts(expenseResult.data ?? []),
       monthCommitments: commitments,
       dataError: null,
     };
@@ -336,6 +365,7 @@ export async function getBudgetsWorkspace(
       priorBudgets: [],
       categories: [],
       monthIncome: 0,
+      monthExpense: 0,
       monthCommitments: [],
       dataError: "Dữ liệu ngân sách không đúng định dạng.",
     };
