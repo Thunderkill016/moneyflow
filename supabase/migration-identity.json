@@ -334,6 +334,11 @@
       "version": "20260923090000",
       "name": "20260923090000_deleted_transaction_feed.sql",
       "hash": "724b82345ee17bb2405092965d6984f9"
+    },
+    {
+      "version": "20260923120000",
+      "name": "20260923120000_dashboard_bundle_goal_created_at.sql",
+      "hash": "5bb078a751ed0f44e9cdf111e040cf23"
     }
   ]
 }

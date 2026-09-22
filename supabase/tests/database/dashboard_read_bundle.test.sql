@@ -1,5 +1,5 @@
 begin;
-select plan(17);
+select plan(19);
 
 select has_function(
   'public',
@@ -231,6 +231,23 @@ insert into public.inbox_candidates (
   'high'
 );
 
+-- Tenant B goal behind the bundle's pace-anchor contract: the chip's
+-- behind-pace math anchors on `created_at`, which the bundle projection must
+-- carry or `mapGoalRow` sees a nullish field and pace stays unprovable.
+insert into public.savings_goals (
+  user_id,
+  name,
+  target_minor,
+  allocated_minor,
+  deadline
+) values (
+  '00000000-0000-4000-8000-00000000db01',
+  'Only B goal',
+  1000000,
+  100000,
+  current_date + 30
+);
+
 set local role authenticated;
 select set_config(
   'request.jwt.claim.sub',
@@ -344,6 +361,32 @@ select ok(
     where account_row ->> 'name' = 'Only B account'
   ),
   'user B bundle includes user B accounts'
+);
+
+select ok(
+  exists (
+    select 1
+    from jsonb_array_elements(
+      (select bundle -> 'goals' from dashboard_test_result)
+    ) as goal_row
+    where goal_row ->> 'name' = 'Only B goal'
+      and goal_row ? 'created_at'
+      and jsonb_typeof(goal_row -> 'created_at') = 'string'
+  ),
+  'bundled goal rows carry a string created_at for pace anchoring'
+);
+
+select is(
+  (select goal_row ->> 'created_at'
+   from jsonb_array_elements(
+     (select bundle -> 'goals' from dashboard_test_result)
+   ) as goal_row
+   where goal_row ->> 'name' = 'Only B goal'),
+  (select to_jsonb(goal.created_at) #>> '{}'
+   from public.savings_goals as goal
+   where goal.user_id = '00000000-0000-4000-8000-00000000db01'
+     and goal.name = 'Only B goal'),
+  'bundled goal created_at equals the savings_goals row timestamp'
 );
 
 select * from finish();
