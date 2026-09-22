@@ -27,6 +27,19 @@ const FREQUENT_PATTERN_WINDOW = 12;
 const FREQUENT_PATTERN_MINIMUM_SUPPORT = 2;
 const FREQUENT_PATTERN_LIMIT = 2;
 
+/**
+ * Distinct recorded payees for datalist autocompletion. Sorted by Vietnamese
+ * collation so the suggestion order is stable and readable.
+ */
+export function derivePayeeSuggestions(transactions: Transaction[]): string[] {
+  const seen = new Set<string>();
+  for (const transaction of transactions) {
+    const value = transaction.payee?.trim();
+    if (value) seen.add(value);
+  }
+  return [...seen].sort((a, b) => a.localeCompare(b, "vi"));
+}
+
 function compareLedgerRecency(a: Transaction, b: Transaction): number {
   return (
     b.occurredOn.localeCompare(a.occurredOn) ||

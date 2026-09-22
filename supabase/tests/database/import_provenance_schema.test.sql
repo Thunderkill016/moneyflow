@@ -68,7 +68,7 @@ select has_function(
   'approve_inbox_candidate',
   array[
     'uuid', 'transaction_kind', 'uuid', 'uuid', 'uuid', 'bigint',
-    'date', 'text', 'uuid', 'boolean'
+    'date', 'text', 'uuid', 'boolean', 'text'
   ],
   'atomic candidate approval function exists'
 );

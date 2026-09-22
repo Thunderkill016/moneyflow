@@ -202,6 +202,7 @@ export function buildSplitExpenseTransaction(options: {
     categoryId: resolved[0]!.categoryId,
     category: splitCategoryLabel(resolved.length),
     note,
+    payee: options.input.payee?.trim() || undefined,
     accountId: options.account.id,
     account: options.account.name,
     amount: validated.total,

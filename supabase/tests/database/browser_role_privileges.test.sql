@@ -70,7 +70,7 @@ select ok(
 select ok(
   has_function_privilege(
     'authenticated',
-    'public.create_money_transaction(uuid,uuid,public.transaction_kind,bigint,date,text,uuid)',
+    'public.create_money_transaction(uuid,uuid,public.transaction_kind,bigint,date,text,uuid,text)',
     'EXECUTE'
   )
   and has_function_privilege(

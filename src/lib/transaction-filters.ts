@@ -83,7 +83,7 @@ export function filterTransactions(
     const matchesQuery =
       !normalizedQuery ||
       normalizeSearchText(
-        `${transaction.note} ${transaction.category} ${transaction.account} ${transaction.destinationAccount ?? ""}`,
+        `${transaction.payee ?? ""} ${transaction.note} ${transaction.category} ${transaction.account} ${transaction.destinationAccount ?? ""}`,
       ).includes(normalizedQuery);
     const matchesKind =
       values.kind === "all" || transaction.kind === values.kind;

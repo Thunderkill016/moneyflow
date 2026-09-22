@@ -21,6 +21,7 @@ import type { LedgerTrustSummary } from "@/lib/ledger-trust";
 import { getTransactionReviewStatus } from "@/lib/transaction-review";
 import { sumBudgetSpent, type BudgetSummary } from "@/lib/planning/budgets";
 import { hydrateCommitmentsWithOccurrences } from "@/lib/planning/commitment-occurrence-store";
+import { derivePayeeSuggestions } from "@/lib/quick-add-defaults";
 import {
   monthStartFromDate,
   type RecurringCommitment,
@@ -234,6 +235,11 @@ export function MoneyFlowDashboard({
     [transactions],
   );
 
+  const payeeSuggestions = useMemo(
+    () => derivePayeeSuggestions(transactions),
+    [transactions],
+  );
+
   const attentionItems = useMemo(
     () =>
       buildAttentionItems({
@@ -395,6 +401,7 @@ export function MoneyFlowDashboard({
           onClose={() => setEditing(null)}
           onSave={handleUpdate}
           disabled={isMutating || actionsDisabled}
+          payeeSuggestions={payeeSuggestions}
         />
       ) : null}
     </AppShell>

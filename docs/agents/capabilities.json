@@ -6895,6 +6895,9 @@
                 "occurredOn": {
                   "type": "string"
                 },
+                "payee": {
+                  "type": "string"
+                },
                 "relativeDate": {
                   "type": "string"
                 },

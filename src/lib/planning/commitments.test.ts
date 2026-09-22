@@ -69,6 +69,7 @@ test("buildCommitmentPaymentExpense posts integer expense with recurring flag", 
   assert.equal(expense.kind, "expense");
   assert.equal(expense.amount, 250_000);
   assert.equal(expense.note, "Internet");
+  assert.equal(expense.payee, "Internet");
   assert.equal(expense.accountId, "a");
   assert.equal(expense.categoryId, "c");
   assert.equal(expense.occurredOn, "2026-07-15");

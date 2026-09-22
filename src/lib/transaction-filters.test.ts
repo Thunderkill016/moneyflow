@@ -229,6 +229,21 @@ test("short query still substring-matches folded text ('an' reaches 'bàn')", ()
   assert.deepEqual(result.map((item) => item.id), ["ban-row"]);
 });
 
+test("query reaches the payee field, including folded merchant names", () => {
+  const rows: Transaction[] = [
+    {
+      ...transactions[0]!,
+      id: "payee-row",
+      note: "Cà phê sáng",
+      category: "Ăn uống",
+      payee: "Phúc Long",
+    },
+    { ...transactions[0]!, id: "no-payee", note: "Xăng xe" },
+  ];
+  const result = filterTransactions(rows, filters({ query: "phuc long" }));
+  assert.deepEqual(result.map((item) => item.id), ["payee-row"]);
+});
+
 test("queries typed with diacritics still match, and unknown text matches nothing", () => {
   // "uống" → "uong" is a substring of both "an uong" and "luong ...".
   const withMarks = filterTransactions(transactions, filters({ query: "uống" }));

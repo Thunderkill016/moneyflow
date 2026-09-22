@@ -369,7 +369,7 @@ select is(
 
 select is(
   (select payload ->> 'schema_generation' from archive_out where key = 'a'),
-  '20260822094500',
+  '20260922120000',
   'the envelope carries the contract schema generation'
 );
 
