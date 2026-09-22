@@ -1,5 +1,5 @@
 begin;
-select plan(80);
+select plan(81);
 
 select has_table('public', 'profiles', 'profiles exists');
 select has_table('public', 'accounts', 'accounts exists');
@@ -20,6 +20,7 @@ select has_view('public', 'transaction_feed', 'transaction_feed exists');
 select has_view('public', 'budget_progress', 'budget_progress exists');
 select has_view('public', 'recurring_commitment_feed', 'recurring commitment feed exists');
 select has_view('public', 'recurring_income_template_feed', 'recurring income template feed exists');
+select has_view('public', 'deleted_transaction_feed', 'deleted transaction feed exists');
 
 select ok((select relrowsecurity from pg_class where oid = 'public.profiles'::regclass), 'profiles has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.accounts'::regclass), 'accounts has RLS');

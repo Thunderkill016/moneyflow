@@ -41,6 +41,16 @@ export type Transaction = {
   relativeDate: string;
 };
 
+/**
+ * A soft-deleted transaction plus its tombstone timestamp (`deleted_at`).
+ * The trash surface shows these; the live ledger never carries one.
+ */
+export type DeletedTransaction = {
+  transaction: Transaction;
+  /** ISO timestamptz of when the row was soft-deleted. */
+  deletedAt: string;
+};
+
 export type AccountOption = {
   id: string;
   name: string;

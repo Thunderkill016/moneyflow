@@ -1254,6 +1254,18 @@ export function TransactionsWorkspace({
                 >
                   <Icon name="arrows" /> Chuyển tiền ví
                 </Button>
+                {/*
+                  Trash is where deletes land — a quiet link beside the actions
+                  that create them keeps recovery discoverable without adding a
+                  nav item.
+                */}
+                <LinkButton
+                  href="/transactions/trash"
+                  intent="quiet"
+                  targetSize="important"
+                >
+                  <Icon name="trash" /> Đã xóa
+                </LinkButton>
                 {!workspace.dataError &&
                 (expenseCategoryCount < 2 || workspace.accounts.length < 2) ? (
                   <small className={styles.actionHint}>
