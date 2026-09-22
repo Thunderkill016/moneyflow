@@ -609,7 +609,22 @@ export function CommitmentsPage({
                         targetSize="important"
                         onClick={() => open(null)}
                       >
-                        <Icon name="plus" /> Thêm khoản đầu tiên
+                        <Icon name="plus" />
+                        {statusFilter === "all" && active.length === 0
+                          ? " Thêm khoản đầu tiên"
+                          : " Thêm khoản định kỳ"}
+                      </Button>
+                    ) : undefined
+                  }
+                  secondaryAction={
+                    !showArchived && statusFilter !== "all" && active.length > 0 ? (
+                      <Button
+                        type="button"
+                        intent="secondary"
+                        targetSize="important"
+                        onClick={() => setStatusFilter("all")}
+                      >
+                        Xem tất cả
                       </Button>
                     ) : !showArchived && !dataError && (missingAccount || missingCategory) ? (
                       <LinkButton

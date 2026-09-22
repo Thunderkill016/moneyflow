@@ -29,6 +29,7 @@ import { type ViewerSummary } from "@/components/user-chip";
 import { formatMoney } from "@/lib/money";
 import {
   dailyGoalSaving,
+  goalIsOverdue,
   goalProgress,
   goalRemaining,
   goalTotals,
@@ -284,7 +285,7 @@ export function GoalsPage({
           </PlanningSummaryItem>
           <PlanningSummaryItem
             label="Nhịp kế hoạch mỗi ngày"
-            meta="Chỉ tính từ các mục tiêu đang hoạt động có thời hạn."
+            meta="Chỉ tính từ các mục tiêu đang hoạt động còn trong thời hạn."
           >
             <MoneyValue amount={totals.plannedDaily} emphasis="strong" align="start" />
           </PlanningSummaryItem>
@@ -326,6 +327,7 @@ export function GoalsPage({
                 const remaining = goalRemaining(goal);
                 const daily = dailyGoalSaving(goal, today);
                 const achieved = progress === 100;
+                const overdue = goalIsOverdue(goal, today);
                 const tone = achieved ? "achieved" : "ok";
 
                 return (
@@ -378,7 +380,9 @@ export function GoalsPage({
                         ? `Nhịp kế hoạch hiện tại: ${formatMoney(daily)} mỗi ngày.`
                         : achieved
                           ? "Mục tiêu đã đủ số được đánh dấu."
-                          : "Không có nhịp bắt buộc khi chưa đặt thời hạn."}
+                          : overdue
+                            ? `Đã quá hạn — còn thiếu ${formatMoney(remaining)}. Đổi thời hạn hoặc đánh dấu thêm khi sẵn sàng.`
+                            : "Không có nhịp bắt buộc khi chưa đặt thời hạn."}
                     </p>
 
                     <div className={planningStyles.actions} data-slot="planning-card-actions">
