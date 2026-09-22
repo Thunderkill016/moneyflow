@@ -36,6 +36,10 @@ import {
   writeStoredTransactions,
 } from "@/lib/transaction-store";
 import {
+  releaseDeletedTransactions,
+  tombstoneTransactions,
+} from "@/lib/deleted-transactions";
+import {
   applyBulkCategoryCorrection,
   applyBulkDateChange,
   applyBulkReviewStatus,
@@ -230,6 +234,16 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
 
   async function deleteTransaction(id: string): Promise<TransactionActionResult> {
     if (isDemo) {
+      /*
+       * Tombstone before dropping from the live store so the demo trash page
+       * can offer the same browse+restore as the authenticated surface. The
+       * two reads are deliberate: the persistence contract pins
+       * `const next = readStoredTransactions().filter` verbatim.
+       */
+      const removed = readStoredTransactions().filter(
+        (transaction) => transaction.id === id,
+      );
+      tombstoneTransactions(removed);
       const next = readStoredTransactions().filter(
         (transaction) => transaction.id !== id,
       );
@@ -278,6 +292,12 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
         transaction,
       );
       commitDemoTransactions(next);
+      /*
+       * Release the tombstone only after the live store is committed — if the
+       * commit throws, the row is still recoverable from the trash page.
+       * Undo and trash-restore share this path, so both stay consistent.
+       */
+      releaseDeletedTransactions([transaction.id]);
       return { ok: true, transaction: withReviewStatus(transaction) };
     }
 
@@ -655,6 +675,8 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     const eligibleIds = plan.eligible.map((transaction) => transaction.id);
     if (isDemo) {
       const gone = new Set(eligibleIds);
+      // Tombstone every deleted row so the trash surface can restore it later.
+      tombstoneTransactions(plan.eligible);
       commitDemoTransactions(
         sourceTransactions.filter((transaction) => !gone.has(transaction.id)),
       );

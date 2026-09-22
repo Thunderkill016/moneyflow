@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, IconButton, LinkButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SecondaryReviewDialog } from "@/components/secondary/secondary-layout";
+import type { ToastTone } from "@/components/ui/toast";
 import { type ViewerSummary } from "@/components/user-chip";
 import { useTransactions } from "@/hooks/use-transactions";
 import {
@@ -243,6 +244,7 @@ export function TransactionsWorkspace({
   } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
   const [pendingUndo, setPendingUndo] = useState<Transaction[] | null>(null);
   const noticeTimerRef = useRef<number | null>(null);
   const pendingUndoRef = useRef<Transaction[] | null>(null);
@@ -302,8 +304,9 @@ export function TransactionsWorkspace({
       openConsumedRef.current = true;
       const resolution = resolveTransactionOpenTarget(initialOpenId, transactions);
       if (resolution.type === "edit") setEditing(resolution.transaction);
-      else if (resolution.type === "notice") showNotice(resolution.message);
-      else showNotice(TRANSACTION_OPEN_MISSING_NOTICE);
+      else if (resolution.type === "notice") {
+        showNotice(resolution.message, "info");
+      } else showNotice(TRANSACTION_OPEN_MISSING_NOTICE, "warning");
     }, 0);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- deep-link resolution fires once against the settled list
@@ -321,6 +324,7 @@ export function TransactionsWorkspace({
 
   function showNotice(
     message: string,
+    tone: ToastTone,
     ms = NOTICE_MS,
     preserveRecentSaved = false,
   ) {
@@ -329,8 +333,10 @@ export function TransactionsWorkspace({
     pendingUndoRef.current = null;
     if (!preserveRecentSaved) setRecentSaved(null);
     setNotice(message);
+    setNoticeTone(tone);
     noticeTimerRef.current = window.setTimeout(() => {
       setNotice("");
+      setNoticeTone(undefined);
       setRecentSaved(null);
       noticeTimerRef.current = null;
     }, ms);
@@ -648,6 +654,7 @@ export function TransactionsWorkspace({
     if (!result.ok) {
       showNotice(
         safeUserNotice(result.message, "Không cập nhật được trạng thái."),
+        "error",
       );
       return;
     }
@@ -655,6 +662,7 @@ export function TransactionsWorkspace({
       reviewStatus === "reviewed"
         ? `Đã đánh dấu ${result.updatedIds.length} giao dịch là đã duyệt.`
         : `Đã chuyển ${result.updatedIds.length} giao dịch sang cần kiểm tra.`,
+      "success",
     );
     setSelectedIds([]);
   }
@@ -668,6 +676,7 @@ export function TransactionsWorkspace({
         bulkCategorySelection.ok
           ? "Hãy chọn danh mục mới."
           : bulkCategorySelection.message,
+        "warning",
       );
       return;
     }
@@ -684,11 +693,17 @@ export function TransactionsWorkspace({
     });
     if (!result.ok) {
       setBulkCategoryReview(null);
-      showNotice(safeUserNotice(result.message, "Không đổi được danh mục."));
+      showNotice(
+        safeUserNotice(result.message, "Không đổi được danh mục."),
+        "error",
+      );
       return;
     }
     setBulkCategoryReview(null);
-    showNotice(`Đã đổi danh mục cho ${result.updatedIds.length} giao dịch.`);
+    showNotice(
+      `Đã đổi danh mục cho ${result.updatedIds.length} giao dịch.`,
+      "success",
+    );
     setSelectedIds([]);
     setBulkCategoryId("");
   }
@@ -702,12 +717,13 @@ export function TransactionsWorkspace({
   function handleBulkDate() {
     const plan = planBulkDateChange(transactions, selectedIds, bulkDateInput);
     if (!plan.ok) {
-      showNotice(plan.message);
+      showNotice(plan.message, "warning");
       return;
     }
     if (plan.eligible.length === 0) {
       showNotice(
         `Không có giao dịch nào đổi được. Bỏ qua: ${summarizeBulkSkips(plan.skipped)}.`,
+        "warning",
       );
       return;
     }
@@ -728,7 +744,10 @@ export function TransactionsWorkspace({
     });
     if (!result.ok) {
       setBulkDateReview(null);
-      showNotice(safeUserNotice(result.message, "Không đổi được ngày."));
+      showNotice(
+        safeUserNotice(result.message, "Không đổi được ngày."),
+        "error",
+      );
       return;
     }
     setBulkDateReview(null);
@@ -736,6 +755,7 @@ export function TransactionsWorkspace({
       result.skipped.length
         ? `Đã đổi ngày ${result.updatedIds.length} giao dịch. Bỏ qua ${result.skipped.length}: ${summarizeBulkSkips(result.skipped)}.`
         : `Đã đổi ngày cho ${result.updatedIds.length} giao dịch.`,
+      "success",
     );
     // Rows that were skipped keep their selection so the notice's grouped
     // reasons map back to the exact rows still waiting on the user.
@@ -755,12 +775,13 @@ export function TransactionsWorkspace({
   function handleBulkDelete() {
     const plan = planBulkDelete(transactions, selectedIds);
     if (!plan.ok) {
-      showNotice(plan.message);
+      showNotice(plan.message, "warning");
       return;
     }
     if (plan.eligible.length === 0) {
       showNotice(
         `Không xóa được giao dịch nào. Bỏ qua: ${summarizeBulkSkips(plan.skipped)}.`,
+        "warning",
       );
       return;
     }
@@ -774,7 +795,10 @@ export function TransactionsWorkspace({
     const result = await bulkDeleteTransactions({ ids: selectedIds });
     if (!result.ok) {
       setBulkDeleteReview(null);
-      showNotice(safeUserNotice(result.message, "Không xóa được giao dịch."));
+      showNotice(
+        safeUserNotice(result.message, "Không xóa được giao dịch."),
+        "error",
+      );
       return;
     }
     setBulkDeleteReview(null);
@@ -802,6 +826,7 @@ export function TransactionsWorkspace({
           `Đã thêm ${result.transaction.note}.`,
           "Đã thêm giao dịch.",
         ),
+        "success",
         NOTICE_MS,
         true,
       );
@@ -811,7 +836,7 @@ export function TransactionsWorkspace({
 
   function handleDelete(transaction: Transaction) {
     if (transaction.isRecurringPayment) {
-      showNotice("Khoản này được quản lý ở trang Định kỳ.");
+      showNotice("Khoản này được quản lý ở trang Định kỳ.", "info");
       return;
     }
     setDeleteTarget(transaction);
@@ -825,7 +850,7 @@ export function TransactionsWorkspace({
   function dismissDupeGroups(keys: string[]) {
     if (keys.length === 0) return;
     setDismissedDupeKeys(new Set(dismissLedgerDupePatterns(keys)));
-    showNotice("Đã bỏ qua gợi ý trùng.", NOTICE_MS, true);
+    showNotice("Đã bỏ qua gợi ý trùng.", "success", NOTICE_MS, true);
   }
 
   /**
@@ -842,8 +867,15 @@ export function TransactionsWorkspace({
     pendingUndoRef.current = snapshots.length ? snapshots : null;
     setPendingUndo(snapshots.length ? snapshots : null);
     setNotice(safeUserNotice(message, "Đã xóa giao dịch."));
+    /*
+     * A real undo offer reads as neutral, not a fresh success — the delete
+     * already happened and the action restores it. When every selected row
+     * was skipped there is nothing to undo, so the notice is a warning.
+     */
+    setNoticeTone(snapshots.length ? "neutral" : "warning");
     noticeTimerRef.current = window.setTimeout(() => {
       setNotice("");
+      setNoticeTone(undefined);
       setPendingUndo(null);
       pendingUndoRef.current = null;
       noticeTimerRef.current = null;
@@ -857,7 +889,10 @@ export function TransactionsWorkspace({
     const result = await deleteTransaction(transaction.id);
     if (!result.ok) {
       setDeleteTarget(null);
-      showNotice(safeUserNotice(result.message, "Không xóa được giao dịch."));
+      showNotice(
+        safeUserNotice(result.message, "Không xóa được giao dịch."),
+        "error",
+      );
       return;
     }
     setDeleteTarget(null);
@@ -871,6 +906,7 @@ export function TransactionsWorkspace({
     setPendingUndo(null);
     pendingUndoRef.current = null;
     setNotice("");
+    setNoticeTone(undefined);
 
     let restored = 0;
     let lastFailure = "";
@@ -884,6 +920,7 @@ export function TransactionsWorkspace({
         snapshots.length === 1
           ? "Đã khôi phục giao dịch."
           : `Đã khôi phục ${restored} giao dịch.`,
+        "success",
       );
     } else {
       showNotice(
@@ -892,6 +929,7 @@ export function TransactionsWorkspace({
           "Không khôi phục được hết. Một số giao dịch vẫn đang ẩn.",
         ) +
           ` Đã khôi phục ${restored}/${snapshots.length} giao dịch.`,
+        "error",
       );
     }
   }
@@ -904,6 +942,7 @@ export function TransactionsWorkspace({
       setEditing(null);
       showNotice(
         "Đã cập nhật giao dịch. Bộ lọc hiện tại vẫn được giữ; giao dịch sẽ ẩn nếu không còn khớp.",
+        "success",
       );
     }
     return result;
@@ -913,7 +952,7 @@ export function TransactionsWorkspace({
     const result = await addTransfer(input);
     if (result.ok) {
       setTransferOpen(false);
-      showNotice("Đã chuyển ví thành công.");
+      showNotice("Đã chuyển ví thành công.", "success");
     }
     return result;
   }
@@ -929,6 +968,7 @@ export function TransactionsWorkspace({
             : "Đã chia khoản chi.",
           "Đã chia khoản chi.",
         ),
+        "success",
       );
     }
     return result;
@@ -936,7 +976,10 @@ export function TransactionsWorkspace({
 
   function handleEditClick(transaction: Transaction) {
     if (isSplitExpense(transaction)) {
-      showNotice("Khoản chia danh mục: xóa rồi tạo lại nếu cần sửa các dòng.");
+      showNotice(
+        "Khoản chia danh mục: xóa rồi tạo lại nếu cần sửa các dòng.",
+        "info",
+      );
       return;
     }
     setEditing(transaction);
@@ -946,6 +989,7 @@ export function TransactionsWorkspace({
     if (!recentSaved) return;
     clearNoticeTimer();
     setNotice("");
+    setNoticeTone(undefined);
     setRecentSaved(null);
     setEditing(recentSaved);
   }
@@ -989,6 +1033,7 @@ export function TransactionsWorkspace({
             }
       }
       notice={notice}
+      noticeTone={noticeTone}
       noticeAction={
         pendingUndo
           ? {
@@ -1071,6 +1116,18 @@ export function TransactionsWorkspace({
                 >
                   <Icon name="arrows" /> Chuyển tiền ví
                 </Button>
+                {/*
+                  Trash is where deletes land — a quiet link beside the actions
+                  that create them keeps recovery discoverable without adding a
+                  nav item.
+                */}
+                <LinkButton
+                  href="/transactions/trash"
+                  intent="quiet"
+                  targetSize="important"
+                >
+                  <Icon name="trash" /> Đã xóa
+                </LinkButton>
                 {!workspace.dataError &&
                 (expenseCategoryCount < 2 || workspace.accounts.length < 2) ? (
                   <small className={styles.actionHint}>

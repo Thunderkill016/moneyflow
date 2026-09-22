@@ -62,13 +62,14 @@ select is(
       and c.relname in (
         'account_balances',
         'budget_progress',
+        'deleted_transaction_feed',
         'recurring_commitment_feed',
         'recurring_income_template_feed',
         'transaction_feed'
       )
       and coalesce(c.reloptions, array[]::text[]) @> array['security_invoker=true']::text[]
   ),
-  5,
+  6,
   'all exposed finance views execute with caller security'
 );
 
