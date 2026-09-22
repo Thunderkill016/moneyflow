@@ -33,6 +33,10 @@ const sessionSchema = z.object({
   accountId: accountIdSchema,
   reconciliationId: z.string().uuid(),
 });
+const completeSchema = sessionSchema.extend({
+  adjustmentCategoryId: z.string().uuid().optional(),
+  adjustmentPayee: z.string().trim().max(200).optional(),
+});
 
 type RpcError = { code?: string; message?: string } | null;
 
@@ -91,6 +95,14 @@ function reconciliationError(error: RpcError) {
   if (message.includes("only_latest_reconciliation_can_reopen")) {
     return "Chỉ kỳ đã hoàn tất gần nhất mới có thể mở lại.";
   }
+  if (message.includes("category_kind_mismatch")) {
+    return "Danh mục điều chỉnh phải cùng loại thu hoặc chi với khoản chênh lệch.";
+  }
+  if (message.includes("category_archived")) {
+    return "Danh mục điều chỉnh đã lưu trữ. Hãy chọn danh mục đang hoạt động.";
+  }
+  if (message.includes("note_too_long")) return "Ghi chú điều chỉnh quá dài.";
+  if (message.includes("payee_too_long")) return "Tên đối tác điều chỉnh quá dài.";
   return "Không cập nhật được đối soát. Hãy thử lại.";
 }
 
@@ -200,8 +212,10 @@ export async function setAccountEntryReconciliationStateAction(input: {
 export async function completeAccountReconciliationAction(input: {
   accountId: string;
   reconciliationId: string;
+  adjustmentCategoryId?: string;
+  adjustmentPayee?: string;
 }): Promise<ReconciliationActionResult> {
-  const parsed = sessionSchema.safeParse(input);
+  const parsed = completeSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Kỳ đối soát chưa hợp lệ." };
   const supabase = await authenticatedClient();
   if (!supabase) return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
@@ -215,6 +229,8 @@ export async function completeAccountReconciliationAction(input: {
 
   const { error } = await supabase.rpc("complete_account_reconciliation", {
     p_reconciliation_id: parsed.data.reconciliationId,
+    p_adjustment_category_id: parsed.data.adjustmentCategoryId ?? null,
+    p_adjustment_payee: parsed.data.adjustmentPayee ?? null,
   });
   if (error) return { ok: false, message: reconciliationError(error) };
   return canonicalState(parsed.data.accountId);

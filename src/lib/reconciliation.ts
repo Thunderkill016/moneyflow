@@ -1,4 +1,5 @@
 import type { AccountRegisterEntry } from "./account-register.ts";
+import type { CategoryOption, Transaction } from "./transactions/contracts.ts";
 
 export type EntryReconciliationState = "pending" | "cleared" | "reconciled";
 export type AccountReconciliationStatus = "open" | "completed";
@@ -50,8 +51,25 @@ export type AccountReconciliationWorkspace = {
 };
 
 export type DemoReconciliationMutationResult =
-  | { ok: true; stateData: AccountReconciliationStateData }
+  | {
+      ok: true;
+      stateData: AccountReconciliationStateData;
+      /**
+       * Real ledger transaction created to close a nonzero difference. The
+       * caller must persist it to the demo transaction store so the register
+       * and later hydration see the same leg the workspace row describes.
+       */
+      adjustmentTransaction?: Transaction;
+    }
   | { ok: false; message: string };
+
+export type DemoReconciliationAdjustment = {
+  category: CategoryOption;
+  accountName: string;
+  transactionId: string;
+  payee?: string;
+  today: string;
+};
 
 function isSafeMoney(value: number) {
   return Number.isSafeInteger(value);
@@ -66,6 +84,32 @@ function sessionNewestFirst(
     right.createdAt.localeCompare(left.createdAt) ||
     right.id.localeCompare(left.id)
   );
+}
+
+/**
+ * Fixed note written on every reconciliation adjustment transaction. Kept in
+ * lockstep with `complete_account_reconciliation` — sao kê date renders dd/mm/yyyy.
+ */
+export function reconciliationAdjustmentNote(statementDate: string) {
+  const parts = statementDate.split("-");
+  const label =
+    parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : statementDate;
+  return `Điều chỉnh đối soát — sao kê ${label}`;
+}
+
+/** Kind forced by the sign of the statement-vs-cleared difference. */
+export function reconciliationAdjustmentKind(difference: number) {
+  return difference > 0 ? "income" : "expense";
+}
+
+function adjustmentRelativeDate(occurredOn: string, today: string) {
+  if (occurredOn === today) return "Hôm nay";
+  const occurred = Date.parse(`${occurredOn}T00:00:00.000Z`);
+  const current = Date.parse(`${today}T00:00:00.000Z`);
+  if (Number.isNaN(occurred) || Number.isNaN(current)) return occurredOn;
+  const daysAgo = Math.round((current - occurred) / 86_400_000);
+  if (daysAgo === 1) return "Hôm qua";
+  return `${Number(occurredOn.slice(8, 10))} thg ${Number(occurredOn.slice(5, 7))}`;
 }
 
 export function entryStateLabel(state: EntryReconciliationState) {
@@ -353,6 +397,7 @@ export function completeDemoAccountReconciliation({
   initialBalance,
   reconciliationId,
   now,
+  adjustment,
 }: {
   stateData: AccountReconciliationStateData;
   registerEntries: AccountRegisterEntry[];
@@ -360,6 +405,7 @@ export function completeDemoAccountReconciliation({
   initialBalance: number;
   reconciliationId: string;
   now: string;
+  adjustment?: DemoReconciliationAdjustment;
 }): DemoReconciliationMutationResult {
   const refreshed = withRecalculatedOpenSessions(
     stateData,
@@ -371,8 +417,53 @@ export function completeDemoAccountReconciliation({
     (item) => item.id === reconciliationId && item.status === "open",
   );
   if (!session) return { ok: false, message: "Kỳ đối soát không còn mở." };
+
+  let adjustmentTransaction: Transaction | undefined;
+  let adjustmentRow: ReconciliationEntryStateRow | undefined;
   if (session.difference !== 0) {
-    return { ok: false, message: "Chênh lệch phải bằng 0 trước khi hoàn tất." };
+    if (!adjustment) {
+      return { ok: false, message: "Chênh lệch phải bằng 0 trước khi hoàn tất." };
+    }
+    const kind = reconciliationAdjustmentKind(session.difference);
+    if (adjustment.category.kind !== kind) {
+      return {
+        ok: false,
+        message:
+          "Danh mục điều chỉnh phải cùng loại thu hoặc chi với khoản chênh lệch.",
+      };
+    }
+    const amount = Math.abs(session.difference);
+    if (!isSafeMoney(amount) || amount <= 0) {
+      return { ok: false, message: "Khoản điều chỉnh chưa hợp lệ." };
+    }
+    /*
+     * Dated exactly on the statement date so the snapshot picks the leg up in
+     * the same atomic completion, mirroring the SQL function.
+     */
+    adjustmentTransaction = {
+      id: adjustment.transactionId,
+      kind,
+      categoryId: adjustment.category.id,
+      category: adjustment.category.name,
+      note: reconciliationAdjustmentNote(session.statementDate),
+      payee: adjustment.payee?.trim() ? adjustment.payee.trim() : undefined,
+      accountId,
+      account: adjustment.accountName,
+      amount,
+      occurredOn: session.statementDate,
+      occurredAt: now,
+      relativeDate: adjustmentRelativeDate(session.statementDate, adjustment.today),
+      reviewStatus: "reviewed",
+    };
+    adjustmentRow = {
+      entryId: `demo-entry:${accountId}:${adjustment.transactionId}`,
+      transactionId: adjustment.transactionId,
+      accountId,
+      state: "reconciled",
+      clearedAt: now,
+      reconciliationId,
+      entryCount: 1,
+    };
   }
 
   const eligibleTransactions = new Set(
@@ -380,34 +471,43 @@ export function completeDemoAccountReconciliation({
       .filter((entry) => entry.transaction.occurredOn <= session.statementDate)
       .map((entry) => entry.transaction.id),
   );
-  const rows = refreshed.rows.map((row) =>
-    row.accountId === accountId &&
-    row.state === "cleared" &&
-    eligibleTransactions.has(row.transactionId)
-      ? {
-          ...row,
-          state: "reconciled" as const,
-          reconciliationId,
-          clearedAt: row.clearedAt ?? now,
-        }
-      : row,
-  );
+  const rows = [
+    ...refreshed.rows.map((row) =>
+      row.accountId === accountId &&
+      row.state === "cleared" &&
+      eligibleTransactions.has(row.transactionId)
+        ? {
+            ...row,
+            state: "reconciled" as const,
+            reconciliationId,
+            clearedAt: row.clearedAt ?? now,
+          }
+        : row,
+    ),
+    ...(adjustmentRow ? [adjustmentRow] : []),
+  ];
   const sessions = refreshed.sessions.map((item) =>
     item.id === reconciliationId
       ? {
           ...item,
           status: "completed" as const,
-          calculatedBalance: item.clearedBalance,
+          calculatedBalance: item.statementBalance,
           difference: 0,
           clearedAccountLegCount: 0,
           reconciledAccountLegCount:
-            item.reconciledAccountLegCount + item.clearedAccountLegCount,
+            item.reconciledAccountLegCount +
+            item.clearedAccountLegCount +
+            (adjustmentRow ? 1 : 0),
           completedAt: now,
           updatedAt: now,
         }
       : item,
   );
-  return { ok: true, stateData: { ...refreshed, rows, sessions } };
+  return {
+    ok: true,
+    stateData: { ...refreshed, rows, sessions },
+    adjustmentTransaction,
+  };
 }
 
 export function reopenDemoAccountReconciliation({

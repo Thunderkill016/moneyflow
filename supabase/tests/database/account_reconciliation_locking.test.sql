@@ -32,7 +32,7 @@ select ok(
   position(
     'lock_reconciliation_account'
     in pg_get_functiondef(
-      'public.complete_account_reconciliation(uuid)'::regprocedure
+      'public.complete_account_reconciliation(uuid,uuid,text,text)'::regprocedure
     )
   ) > 0,
   'completion takes the account lock'

@@ -31,8 +31,8 @@ select has_function(
 select has_function(
   'public',
   'complete_account_reconciliation',
-  array['uuid'],
-  'complete reconciliation RPC exists'
+  array['uuid', 'uuid', 'text', 'text'],
+  'complete reconciliation RPC exists with the adjustment parameters'
 );
 select has_function(
   'public',

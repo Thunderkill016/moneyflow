@@ -65,6 +65,7 @@ export default async function Page({
       importEvidence={importEvidence}
       today={financeWorkspace.today}
       dataError={dataError}
+      categories={financeWorkspace.categories}
     />
   );
 }

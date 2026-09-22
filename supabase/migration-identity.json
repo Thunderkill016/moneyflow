@@ -326,6 +326,11 @@
       "hash": "2457cade5dccd5f93e651922f7a4a8d8"
     },
     {
+      "version": "20260923013000",
+      "name": "20260923013000_reconciliation_adjustment_completion.sql",
+      "hash": "cac1ff2348e0693cd02343f1a5cf8aac"
+    },
+    {
       "version": "20260923090000",
       "name": "20260923090000_deleted_transaction_feed.sql",
       "hash": "724b82345ee17bb2405092965d6984f9"
