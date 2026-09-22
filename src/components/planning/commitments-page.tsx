@@ -46,6 +46,15 @@ import {
   type SaveCommitmentInput,
 } from "@/lib/planning/commitments";
 import { commitmentDueLabel, commitmentDueTone } from "@/lib/planning-pages";
+import {
+  detectRecurringPatterns,
+  type RecurringDetectionRow,
+  type RecurringPatternSuggestion,
+} from "@/lib/planning/recurring-detection";
+import {
+  dismissRecurringPattern,
+  readRecurringDismissals,
+} from "@/lib/planning/recurring-dismissals";
 import { maybeNotifyDueCommitments } from "@/lib/push-client";
 import {
   categoryMeta,
@@ -75,6 +84,7 @@ type CommitmentStatusFilter = "all" | "unpaid" | "paid";
 export function CommitmentsPage({
   viewer,
   initialCommitments,
+  initialDetectionRows,
   accounts,
   categories,
   monthStart,
@@ -83,6 +93,8 @@ export function CommitmentsPage({
 }: {
   viewer: ViewerSummary;
   initialCommitments: RecurringCommitment[];
+  /** Auth-mode ledger slice for pattern detection; demo reads localStorage. */
+  initialDetectionRows: RecurringDetectionRow[];
   accounts: AccountOption[];
   categories: CategoryOption[];
   monthStart: string;
@@ -92,6 +104,10 @@ export function CommitmentsPage({
   const [items, setItems] = useState(initialCommitments);
   const [hydrated, setHydrated] = useState(!viewer.isDemo);
   const [editing, setEditing] = useState<RecurringCommitment | null>(null);
+  const [draft, setDraft] = useState<Omit<SaveCommitmentInput, "id"> | null>(
+    null,
+  );
+  const [draftKey, setDraftKey] = useState<string | null>(null);
   const [review, setReview] = useState<CommitmentReview | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [version, setVersion] = useState(0);
@@ -100,6 +116,9 @@ export function CommitmentsPage({
   const [showArchived, setShowArchived] = useState(false);
   const [statusFilter, setStatusFilter] =
     useState<CommitmentStatusFilter>("all");
+  const [demoRows, setDemoRows] = useState<RecurringDetectionRow[]>([]);
+  /** null until localStorage dismissals load — never flash dismissed cards. */
+  const [dismissed, setDismissed] = useState<Set<string> | null>(null);
 
   useEffect(() => {
     if (!viewer.isDemo) return;
@@ -107,10 +126,18 @@ export function CommitmentsPage({
       setItems(
         hydrateCommitmentsWithOccurrences(initialCommitments, monthStart),
       );
+      setDemoRows(readStoredTransactions());
       setHydrated(true);
     });
     return () => window.cancelAnimationFrame(frame);
   }, [viewer.isDemo, initialCommitments, monthStart]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setDismissed(new Set(readRecurringDismissals()));
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     if (!notice) return;
@@ -173,9 +200,61 @@ export function CommitmentsPage({
   const unpaidCount = unpaidActiveCount(items);
   const paidCount = Math.max(0, active.length - unpaidCount);
   const canAdd = !dataError && accounts.length > 0 && categories.length > 0;
+  const ledgerRows = viewer.isDemo ? demoRows : initialDetectionRows;
+  const suggestions = useMemo(
+    () =>
+      dismissed === null || dataError
+        ? []
+        : detectRecurringPatterns(ledgerRows, items, today).filter(
+            (suggestion) => !dismissed.has(suggestion.key),
+          ),
+    [dismissed, ledgerRows, items, today, dataError],
+  );
 
   function open(item: RecurringCommitment | null) {
     setEditing(item);
+    setDraft(null);
+    setDraftKey(null);
+    setVersion((value) => value + 1);
+    setDialogOpen(true);
+  }
+
+  function dismissSuggestion(key: string) {
+    setDismissed(new Set(dismissRecurringPattern(key)));
+  }
+
+  /**
+   * A suggestion the user saved (even renamed) counts as handled — the new
+   * commitment covers the pattern by name only when names still match.
+   */
+  function markSuggestionHandled() {
+    if (!draftKey) return;
+    dismissRecurringPattern(draftKey);
+    setDismissed(new Set(readRecurringDismissals()));
+    setDraftKey(null);
+    setDraft(null);
+  }
+
+  function openSuggestion(suggestion: RecurringPatternSuggestion) {
+    const categoryId = categories.some(
+      (item) => item.id === suggestion.categoryId,
+    )
+      ? suggestion.categoryId!
+      : (categories[0]?.id ?? "");
+    const accountId = accounts.some(
+      (item) => item.id === suggestion.accountId,
+    )
+      ? suggestion.accountId!
+      : (accounts[0]?.id ?? "");
+    setEditing(null);
+    setDraft({
+      name: suggestion.name,
+      amount: suggestion.amount,
+      dueDay: suggestion.dueDay,
+      categoryId,
+      accountId,
+    });
+    setDraftKey(suggestion.key);
     setVersion((value) => value + 1);
     setDialogOpen(true);
   }
@@ -212,6 +291,7 @@ export function CommitmentsPage({
           ? "Đã cập nhật khoản định kỳ demo."
           : "Đã thêm khoản định kỳ demo.",
       );
+      markSuggestionHandled();
       return { ok: true };
     }
 
@@ -226,6 +306,7 @@ export function CommitmentsPage({
       );
       setDialogOpen(false);
       setNotice("Đã lưu khoản định kỳ.");
+      markSuggestionHandled();
     }
     return result;
   }
@@ -427,6 +508,87 @@ export function CommitmentsPage({
                 <strong>{unpaidCount} khoản</strong>
               </PlanningSummaryItem>
             </PlanningSummary>
+
+            {!showArchived && suggestions.length > 0 ? (
+              <PlanningSection
+                title="Gợi ý định kỳ?"
+                description="MoneyFlow nhận thấy các khoản chi lặp lại hằng tháng trong sổ giao dịch. Không có gì được tạo tự động — bạn xem lại và quyết định."
+                slot="commitment-suggestions"
+              >
+                <div className={planningStyles.grid}>
+                  {suggestions.map((suggestion) => (
+                    <PlanningCard key={suggestion.key}>
+                      <div className={planningStyles.cardTop}>
+                        <span className={planningStyles.icon}>
+                          <Icon name="spark" />
+                        </span>
+                        <div className={planningStyles.cardTitle}>
+                          <h3>{suggestion.name}</h3>
+                          <p>
+                            Lặp lại {suggestion.occurrenceCount} tháng · lần
+                            cuối {suggestion.lastSeen.slice(8, 10)}/
+                            {suggestion.lastSeen.slice(5, 7)}
+                          </p>
+                        </div>
+                        <span
+                          className={planningStyles.status}
+                          data-slot="planning-card-status"
+                        >
+                          Gợi ý
+                        </span>
+                      </div>
+
+                      <div className={planningStyles.metrics}>
+                        <div className={planningStyles.metric}>
+                          <span className={planningStyles.metricLabel}>
+                            Số tiền thường gặp
+                          </span>
+                          <MoneyValue
+                            amount={suggestion.amount}
+                            emphasis="strong"
+                            align="start"
+                          />
+                        </div>
+                        <div className={planningStyles.metric}>
+                          <span className={planningStyles.metricLabel}>
+                            Ngày lặp lại
+                          </span>
+                          <strong>Ngày {suggestion.dueDay}</strong>
+                        </div>
+                        <div className={planningStyles.metric}>
+                          <span className={planningStyles.metricLabel}>
+                            Số tháng phát hiện
+                          </span>
+                          <strong>{suggestion.occurrenceCount}</strong>
+                        </div>
+                      </div>
+
+                      <div
+                        className={planningStyles.actions}
+                        data-slot="planning-card-actions"
+                      >
+                        <Button
+                          type="button"
+                          intent="primary"
+                          targetSize="important"
+                          onClick={() => openSuggestion(suggestion)}
+                        >
+                          <Icon name="plus" /> Tạo khoản định kỳ
+                        </Button>
+                        <Button
+                          type="button"
+                          intent="quiet"
+                          targetSize="important"
+                          onClick={() => dismissSuggestion(suggestion.key)}
+                        >
+                          <Icon name="close" /> Bỏ qua
+                        </Button>
+                      </div>
+                    </PlanningCard>
+                  ))}
+                </div>
+              </PlanningSection>
+            ) : null}
 
             {!showArchived ? (
               <div
@@ -644,9 +806,10 @@ export function CommitmentsPage({
       </PlanningWorkspace>
 
       <CommitmentDialog
-        key={`${editing?.id ?? "new"}-${version}`}
+        key={`${editing?.id ?? (draft ? "suggestion" : "new")}-${version}`}
         open={dialogOpen}
         commitment={editing}
+        draft={draft}
         accounts={accounts}
         categories={categories}
         onClose={() => setDialogOpen(false)}
