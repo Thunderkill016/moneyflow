@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   completeAccountReconciliationAction,
   reopenAccountReconciliationAction,
@@ -12,11 +12,22 @@ import {
 } from "@/app/actions/reconciliation";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
-import { SecondaryReviewDialog } from "@/components/secondary/secondary-layout";
+import {
+  SecondaryReviewDialog,
+  secondaryStyles,
+} from "@/components/secondary/secondary-layout";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { SelectField } from "@/components/ui/select-field";
+import { TextField } from "@/components/ui/text-field";
 import { MoneyValue } from "@/components/money-value";
 import { ReconciliationEntryEvidence } from "@/components/reconciliation-entry-evidence";
 import type { ViewerSummary } from "@/components/user-chip";
-import type { AccountRegisterEntry } from "@/lib/account-register";
+import {
+  buildAccountRegister,
+  type AccountRegisterEntry,
+} from "@/lib/account-register";
 import { accountKindLabels, type AccountSummary } from "@/lib/accounts";
 import { isValidDateOnly } from "@/lib/date-only";
 import {
@@ -33,6 +44,8 @@ import {
   entryStateLabel,
   isEntryEligibleForSession,
   mergeAccountReconciliationWorkspace,
+  reconciliationAdjustmentKind,
+  reconciliationAdjustmentNote,
   refreshDemoAccountReconciliationState,
   reopenDemoAccountReconciliation,
   setDemoAccountEntryReconciliationState,
@@ -42,8 +55,18 @@ import {
   type AccountReconciliationStateData,
   type EntryReconciliationState,
 } from "@/lib/reconciliation";
-import { formatMoney, formatMoneyInput, parseMoneyInput } from "@/lib/money";
+import {
+  formatMoney,
+  formatMoneyInput,
+  formatSignedMoney,
+  parseMoneyInput,
+} from "@/lib/money";
 import { trackProductEvent } from "@/lib/safe-analytics";
+import type { CategoryOption } from "@/lib/sample-data";
+import {
+  readStoredTransactions,
+  writeStoredTransactions,
+} from "@/lib/transaction-store";
 import styles from "./account-reconciliation-page.module.css";
 
 function formatSignedMoneyInput(value: string) {
@@ -110,6 +133,7 @@ export function AccountReconciliationPage({
   importEvidence,
   today,
   dataError,
+  categories,
 }: {
   viewer: ViewerSummary;
   account: AccountSummary | null;
@@ -118,6 +142,7 @@ export function AccountReconciliationPage({
   importEvidence: ReconciliationImportEvidenceData;
   today: string;
   dataError: string | null;
+  categories: CategoryOption[];
 }) {
   const router = useRouter();
   const [stateData, setStateData] = useState(initialState);
@@ -127,21 +152,38 @@ export function AccountReconciliationPage({
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [completeReview, setCompleteReview] = useState(false);
+  const [adjustmentReview, setAdjustmentReview] = useState(false);
+  const [adjustmentCategoryId, setAdjustmentCategoryId] = useState("");
+  const [adjustmentPayee, setAdjustmentPayee] = useState("");
+  const [demoEntries, setDemoEntries] = useState<AccountRegisterEntry[] | null>(
+    null,
+  );
+  const adjustmentCancelRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!viewer.isDemo || !account) return;
     const frame = window.requestAnimationFrame(() => {
+      /*
+       * The demo ledger lives in localStorage, not the server-rendered fixture
+       * list — hydrate the register from the store like the account detail
+       * page does, or a persisted adjustment leg would lose its register row.
+       */
+      const liveEntries = buildAccountRegister(
+        readStoredTransactions(),
+        account.id,
+      );
+      setDemoEntries(liveEntries);
       const stored = readDemoReconciliationState(account.id);
       const hydrated = refreshDemoAccountReconciliationState({
         stateData: stored,
-        registerEntries,
+        registerEntries: liveEntries,
         accountId: account.id,
         initialBalance: account.initialBalance,
       });
       setStateData(hydrated);
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [account, registerEntries, viewer.isDemo]);
+  }, [account, viewer.isDemo]);
 
   useEffect(() => {
     if (!notice) return;
@@ -149,9 +191,11 @@ export function AccountReconciliationPage({
     return () => window.clearTimeout(timer);
   }, [notice]);
 
+  const effectiveEntries =
+    viewer.isDemo && demoEntries ? demoEntries : registerEntries;
   const workspace = useMemo(
-    () => mergeAccountReconciliationWorkspace(registerEntries, stateData),
-    [registerEntries, stateData],
+    () => mergeAccountReconciliationWorkspace(effectiveEntries, stateData),
+    [effectiveEntries, stateData],
   );
   const openSession = workspace.openSession;
   const eligibleEntries = openSession
@@ -197,9 +241,26 @@ export function AccountReconciliationPage({
       Number.isSafeInteger(parsedStatementBalance) &&
       !busy,
   );
-  const canComplete = Boolean(
-    openSession && openSession.difference === 0 && !busy,
+  const canComplete = Boolean(openSession && !busy);
+  /*
+   * A nonzero difference can still close — but only through an explicit
+   * adjustment category the user picks. The sign of the difference fixes the
+   * kind: income when the statement exceeds the ledger, expense when short.
+   */
+  const adjustmentKind =
+    openSession && openSession.difference !== 0
+      ? reconciliationAdjustmentKind(openSession.difference)
+      : null;
+  const adjustmentCategories = useMemo(
+    () =>
+      adjustmentKind
+        ? categories.filter((category) => category.kind === adjustmentKind)
+        : [],
+    [categories, adjustmentKind],
   );
+  const selectedAdjustmentCategory =
+    adjustmentCategories.find((item) => item.id === adjustmentCategoryId) ??
+    null;
 
   function applyResult(result: ReconciliationActionResult, successMessage: string) {
     if (!result.ok) {
@@ -238,7 +299,7 @@ export function AccountReconciliationPage({
       if (viewer.isDemo) {
         const result = startDemoAccountReconciliation({
           stateData,
-          registerEntries,
+          registerEntries: effectiveEntries,
           accountId: account.id,
           initialBalance: account.initialBalance,
           statementDate,
@@ -280,7 +341,7 @@ export function AccountReconciliationPage({
       if (viewer.isDemo) {
         const result = setDemoAccountEntryReconciliationState({
           stateData,
-          registerEntries,
+          registerEntries: effectiveEntries,
           accountId: account.id,
           initialBalance: account.initialBalance,
           entryId: entry.entryId,
@@ -315,27 +376,66 @@ export function AccountReconciliationPage({
     }
   }
 
-  async function completeSession() {
+  function openCompletion() {
+    if (!openSession || !canComplete) return;
+    setError("");
+    if (openSession.difference === 0) {
+      setCompleteReview(true);
+      return;
+    }
+    setAdjustmentCategoryId("");
+    setAdjustmentPayee("");
+    setAdjustmentReview(true);
+  }
+
+  async function completeSession(
+    adjustment?: { category: CategoryOption; payee?: string },
+  ) {
     if (!account || !openSession || !canComplete) return;
+    if (openSession.difference !== 0 && !adjustment) return;
     setBusy("complete");
     setError("");
     setCompleteReview(false);
+    setAdjustmentReview(false);
     try {
       if (viewer.isDemo) {
         const result = completeDemoAccountReconciliation({
           stateData,
-          registerEntries,
+          registerEntries: effectiveEntries,
           accountId: account.id,
           initialBalance: account.initialBalance,
           reconciliationId: openSession.id,
           now: new Date().toISOString(),
+          adjustment: adjustment
+            ? {
+                category: adjustment.category,
+                accountName: account.name,
+                transactionId: crypto.randomUUID(),
+                payee: adjustment.payee,
+                today,
+              }
+            : undefined,
         });
         if (!result.ok) setError(result.message);
         else {
+          if (result.adjustmentTransaction) {
+            /*
+             * Persist into the shared demo transaction store first so the
+             * rebuilt register contains the leg the reconciled row references
+             * — both on this page and everywhere else the ledger is read.
+             */
+            const transactions = [
+              result.adjustmentTransaction,
+              ...readStoredTransactions(),
+            ];
+            writeStoredTransactions(transactions);
+            setDemoEntries(buildAccountRegister(transactions, account.id));
+          }
           persistDemo(result.stateData);
           setNotice("Đã hoàn tất kỳ đối soát demo.");
           trackProductEvent("reconcile_completed", {
             cleared_count: openSession.clearedAccountLegCount,
+            adjustment: Boolean(result.adjustmentTransaction),
           });
         }
       } else {
@@ -343,12 +443,15 @@ export function AccountReconciliationPage({
           await completeAccountReconciliationAction({
             accountId: account.id,
             reconciliationId: openSession.id,
+            adjustmentCategoryId: adjustment?.category.id,
+            adjustmentPayee: adjustment?.payee,
           }),
           "Đã hoàn tất kỳ đối soát.",
         );
         if (applied) {
           trackProductEvent("reconcile_completed", {
             cleared_count: openSession.clearedAccountLegCount,
+            adjustment: Boolean(adjustment),
           });
         }
       }
@@ -367,7 +470,7 @@ export function AccountReconciliationPage({
       if (viewer.isDemo) {
         const result = reopenDemoAccountReconciliation({
           stateData,
-          registerEntries,
+          registerEntries: effectiveEntries,
           accountId: account.id,
           initialBalance: account.initialBalance,
           reconciliationId: session.id,
@@ -402,7 +505,7 @@ export function AccountReconciliationPage({
   const primaryAction = openSession
     ? {
         label: busy === "complete" ? "Đang hoàn tất..." : "Hoàn tất đối soát",
-        onClick: () => setCompleteReview(true),
+        onClick: openCompletion,
         icon: "check" as const,
         disabled: !canComplete,
       }
@@ -466,8 +569,8 @@ export function AccountReconciliationPage({
                 <p className="eyebrow">Độ tin cậy sổ tài chính</p>
                 <h1>Đối soát {account.name}</h1>
                 <p>
-                  So sánh từng biến động MoneyFlow với sao kê thực tế. Đối soát
-                  không thay đổi số dư hoặc tự tạo khoản chênh lệch.
+                  So sánh từng biến động MoneyFlow với sao kê thực tế. Chênh
+                  lệch chỉ khép lại khi bạn chủ động ghi một khoản điều chỉnh.
                 </p>
               </div>
               <div className={styles.accountMeta}>
@@ -608,7 +711,7 @@ export function AccountReconciliationPage({
                           <small>
                             {openSession.difference === 0
                               ? "Đã khớp chính xác. Có thể hoàn tất."
-                              : "Tiếp tục đối chiếu giao dịch, không tự bù chênh lệch."}
+                              : "Tiếp tục đối chiếu, hoặc hoàn tất bằng một khoản điều chỉnh bạn chọn."}
                           </small>
                         </article>
                         <article>
@@ -808,6 +911,127 @@ export function AccountReconciliationPage({
         onConfirm={() => void completeSession()}
         slot="reconcile-complete-review"
       />
+
+      <Dialog
+        open={adjustmentReview}
+        onOpenChange={(open) => {
+          if (!open && !busy) setAdjustmentReview(false);
+        }}
+        title="Hoàn tất bằng khoản điều chỉnh?"
+        description={
+          openSession
+            ? `Sao kê còn chênh lệch ${formatSignedMoney(openSession.difference, false, account?.currencyCode ?? "VND")}. MoneyFlow ghi một khoản ${adjustmentKind === "income" ? "thu" : "chi"} điều chỉnh đúng bằng phần chênh lệch, ngày ${displayDate(openSession.statementDate)}, rồi khóa ngay trong kỳ này.`
+            : ""
+        }
+        dismissible={busy !== "complete"}
+        initialFocusRef={adjustmentCancelRef}
+        footer={
+          <>
+            <Button
+              ref={adjustmentCancelRef}
+              type="button"
+              intent="secondary"
+              targetSize="important"
+              disabled={busy === "complete"}
+              onClick={() => setAdjustmentReview(false)}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="button"
+              intent="primary"
+              targetSize="important"
+              pending={busy === "complete"}
+              pendingLabel="Đang xử lý…"
+              disabled={!selectedAdjustmentCategory}
+              onClick={() =>
+                void completeSession(
+                  selectedAdjustmentCategory
+                    ? {
+                        category: selectedAdjustmentCategory,
+                        payee: adjustmentPayee.trim() || undefined,
+                      }
+                    : undefined,
+                )
+              }
+            >
+              Hoàn tất với điều chỉnh
+            </Button>
+          </>
+        }
+      >
+        <div
+          className={secondaryStyles.review}
+          data-slot="reconcile-adjustment-review"
+        >
+          {openSession && account ? (
+            <dl className={secondaryStyles.reviewSummary}>
+              <div className={secondaryStyles.reviewRow}>
+                <dt>Kỳ sao kê</dt>
+                <dd>{displayDate(openSession.statementDate)}</dd>
+              </div>
+              <div className={secondaryStyles.reviewRow}>
+                <dt>Số dư sao kê</dt>
+                <dd>{formatMoney(openSession.statementBalance, false, account.currencyCode)}</dd>
+              </div>
+              <div className={secondaryStyles.reviewRow}>
+                <dt>Số dư đã khớp</dt>
+                <dd>{formatMoney(openSession.clearedBalance, false, account.currencyCode)}</dd>
+              </div>
+              <div className={secondaryStyles.reviewRow}>
+                <dt>Khoản điều chỉnh</dt>
+                <dd>
+                  {`${adjustmentKind === "income" ? "Thu" : "Chi"} · ${formatSignedMoney(openSession.difference, false, account.currencyCode)}`}
+                </dd>
+              </div>
+              <div className={secondaryStyles.reviewRow}>
+                <dt>Ghi chú</dt>
+                <dd>{reconciliationAdjustmentNote(openSession.statementDate)}</dd>
+              </div>
+            </dl>
+          ) : null}
+
+          {adjustmentCategories.length ? (
+            <SelectField
+              label={`Danh mục khoản ${adjustmentKind === "income" ? "thu" : "chi"} điều chỉnh`}
+              placeholder="Chọn danh mục"
+              value={adjustmentCategoryId}
+              targetSize="important"
+              disabled={busy === "complete"}
+              onChange={(event) => setAdjustmentCategoryId(event.target.value)}
+            >
+              {adjustmentCategories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </SelectField>
+          ) : (
+            <Alert tone="warning">
+              <AlertDescription>
+                {`Chưa có danh mục ${adjustmentKind === "income" ? "thu" : "chi"} nào đang hoạt động. Tạo danh mục phù hợp rồi quay lại, hoặc tiếp tục đối chiếu giao dịch.`}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <TextField
+            label="Đối tác (không bắt buộc)"
+            value={adjustmentPayee}
+            maxLength={200}
+            placeholder="VD: Ngân hàng MB"
+            targetSize="important"
+            disabled={busy === "complete"}
+            onChange={(event) => setAdjustmentPayee(event.target.value)}
+          />
+
+          <Alert tone="info">
+            <AlertDescription>
+              Khoản điều chỉnh là một giao dịch thật trong sổ — được khóa như mọi
+              mục đã đối soát và chỉ sửa được sau khi mở lại kỳ này.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </Dialog>
     </AppShell>
   );
 }
