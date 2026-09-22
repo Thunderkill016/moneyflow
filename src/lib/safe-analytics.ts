@@ -31,6 +31,7 @@ export type ProductEventName =
   | "paste_committed"
   | "candidate_approved"
   | "candidate_rejected"
+  | "candidate_field_assigned"
   | "export_downloaded"
   | "onboarding_completed"
   | "quick_capture_correction_opened"

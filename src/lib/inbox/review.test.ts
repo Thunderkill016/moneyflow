@@ -10,6 +10,7 @@ import {
   buildExplainLines,
   buildLedgerPost,
   draftFromCandidate,
+  draftWasEdited,
   markCandidatesStatus,
   meetsBulkApproveThreshold,
   partitionBulkApprove,
@@ -222,6 +223,33 @@ test("heuristic duplicate override stays false until the reviewer explicitly acc
     assert.fail("expected money post");
   }
   assert.equal(result.input.allowHeuristicDuplicate, true);
+});
+
+test("draftWasEdited separates clean accepts from corrections", () => {
+  const draft = draftFromCandidate(expense, accounts, categories);
+  assert.equal(draftWasEdited(expense, draft, accounts, categories), false);
+
+  // Accepting the heuristic duplicate warning is not a content edit.
+  draft.allowHeuristicDuplicate = true;
+  assert.equal(draftWasEdited(expense, draft, accounts, categories), false);
+
+  const corrected = { ...draft, amount: 46_000 };
+  assert.equal(
+    draftWasEdited(expense, corrected, accounts, categories),
+    true,
+  );
+
+  const recategorized = { ...draft, categoryId: "cat-salary" };
+  assert.equal(
+    draftWasEdited(expense, recategorized, accounts, categories),
+    true,
+  );
+
+  const reaccounted = { ...draft, accountId: "acc-bank" };
+  assert.equal(
+    draftWasEdited(expense, reaccounted, accounts, categories),
+    true,
+  );
 });
 
 test("buildLedgerPost transfer needs two accounts", () => {
