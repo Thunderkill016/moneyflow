@@ -1,11 +1,11 @@
 # Payee as a first-class ledger field
 
-**Status:** implementing  
-**Execution state:** implementing  
-**Active role:** implementer  
-**Permission scope:** branch_write  
-**Owner:** agent (Devin) — owner review at PR  
-**Issue/PR:** TBD  
+**Status:** implementing
+**Execution state:** implementing
+**Active role:** implementer
+**Permission scope:** branch_write
+**Owner:** agent (Devin) — owner review at PR
+**Issue/PR:** PR #673
 **Last updated:** 2026-09-22
 
 ## Outcome
