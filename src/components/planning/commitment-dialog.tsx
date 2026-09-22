@@ -20,6 +20,7 @@ import styles from "./planning-dialog.module.css";
 export function CommitmentDialog({
   open,
   commitment,
+  draft,
   accounts,
   categories,
   onClose,
@@ -27,6 +28,12 @@ export function CommitmentDialog({
 }: {
   open: boolean;
   commitment: RecurringCommitment | null;
+  /**
+   * Pre-fill values for a NEW commitment (e.g. a detected recurring pattern).
+   * `commitment` stays null so the dialog keeps create semantics; the draft
+   * never carries an id and never posts anything by itself.
+   */
+  draft?: Omit<SaveCommitmentInput, "id"> | null;
   accounts: AccountOption[];
   categories: CategoryOption[];
   onClose: () => void;
@@ -35,13 +42,20 @@ export function CommitmentDialog({
   const nameRef = useRef<HTMLInputElement>(null);
   const amountRef = useRef<HTMLInputElement>(null);
   const dueDayRef = useRef<HTMLInputElement>(null);
-  const [name, setName] = useState(commitment?.name ?? "");
-  const [amount, setAmount] = useState(
-    commitment ? formatMoneyInput(String(commitment.amount)) : "",
+  const [name, setName] = useState(commitment?.name ?? draft?.name ?? "");
+  const [amount, setAmount] = useState(() => {
+    const source = commitment ?? draft;
+    return source ? formatMoneyInput(String(source.amount)) : "";
+  });
+  const [dueDay, setDueDay] = useState(
+    String(commitment?.dueDay ?? draft?.dueDay ?? 15),
   );
-  const [dueDay, setDueDay] = useState(String(commitment?.dueDay ?? 15));
-  const [categoryId, setCategoryId] = useState(commitment?.categoryId ?? categories[0]?.id ?? "");
-  const [accountId, setAccountId] = useState(commitment?.accountId ?? accounts[0]?.id ?? "");
+  const [categoryId, setCategoryId] = useState(
+    commitment?.categoryId ?? draft?.categoryId ?? categories[0]?.id ?? "",
+  );
+  const [accountId, setAccountId] = useState(
+    commitment?.accountId ?? draft?.accountId ?? accounts[0]?.id ?? "",
+  );
   const [nameError, setNameError] = useState("");
   const [amountError, setAmountError] = useState("");
   const [dueDayError, setDueDayError] = useState("");
