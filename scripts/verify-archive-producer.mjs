@@ -14,13 +14,14 @@ import {
   ALL_ARCHIVE_COLLECTIONS,
   ARCHIVE_ROW_SPECS,
 } from "../src/lib/archive/moneyflow-archive.ts";
-import { ingestArchiveBytes } from "../src/lib/archive/source-lineage-archive-ingress.ts";
+import { ingestArchiveBytes } from "../src/lib/archive/payee-archive-ingress.ts";
 
 const failures = [];
 const CURRENT_INBOX_SOURCE_FIELDS = new Set([
   "source_lifecycle_state",
   "source_predecessor_external_id",
 ]);
+const CURRENT_TRANSACTION_FIELDS = new Set(["payee"]);
 
 function check(condition, message) {
   if (!condition) failures.push(message);
@@ -99,10 +100,19 @@ for (const [collection, spec] of Object.entries(ARCHIVE_ROW_SPECS)) {
         );
       }
     }
+    if (collection === "transactions") {
+      for (const field of CURRENT_TRANSACTION_FIELDS) {
+        check(
+          field in row,
+          `${collection}[${index}] is missing the current field ${field}`,
+        );
+      }
+    }
     for (const field of Object.keys(row)) {
       check(
         field in spec.fields ||
-          (collection === "inboxCandidates" && CURRENT_INBOX_SOURCE_FIELDS.has(field)),
+          (collection === "inboxCandidates" && CURRENT_INBOX_SOURCE_FIELDS.has(field)) ||
+          (collection === "transactions" && CURRENT_TRANSACTION_FIELDS.has(field)),
         `${collection}[${index}] carries ${field}, which is not in the contract`,
       );
     }
