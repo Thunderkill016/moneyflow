@@ -265,6 +265,32 @@ test("search only uses visible user-facing fields", () => {
   assert.equal(filterActivityItems(items, "all", "secret-raw-value").length, 0);
 });
 
+test("search folds diacritics on both the query and searchable text", () => {
+  const items = buildActivityItems({
+    transactions: [
+      transaction({ note: "Tiền điện tháng 9" }),
+      transaction({
+        id: "88888888-8888-4888-8888-888888888888",
+        note: "Bàn phím cơ",
+      }),
+    ],
+    candidates: [],
+    accounts,
+    categories,
+  });
+
+  // Unaccented typing reaches "Tiền điện" (đ → d) and category "Ăn uống".
+  assert.equal(filterActivityItems(items, "all", "tien dien").length, 1);
+  assert.equal(filterActivityItems(items, "all", "an uong").length, 2);
+  // Substring semantics preserved: "an" still lands inside folded "bàn".
+  assert.equal(filterActivityItems(items, "all", "an").length, 2);
+  // Queries typed with diacritics go through the same fold and still match.
+  assert.equal(filterActivityItems(items, "all", "uống").length, 2);
+  // Empty query still matches everything; unknown text matches nothing.
+  assert.equal(filterActivityItems(items, "all", "").length, 2);
+  assert.equal(filterActivityItems(items, "all", "xổ số").length, 0);
+});
+
 test("candidate provenance label stays bounded to known lifecycle evidence", () => {
   const items = buildActivityItems({
     transactions: [],

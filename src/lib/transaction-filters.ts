@@ -1,4 +1,5 @@
 import type { Transaction } from "./transactions/contracts.ts";
+import { normalizeSearchText } from "./search-text.ts";
 import { getTransactionReviewStatus } from "./transaction-review.ts";
 
 export type TransactionFilterKind = "all" | Transaction["kind"];
@@ -74,16 +75,16 @@ export function filterTransactions(
 ) {
   if (transactionFilterError(values)) return [];
 
-  const normalizedQuery = values.query.trim().toLocaleLowerCase("vi");
+  const normalizedQuery = normalizeSearchText(values.query);
   const minAmount = parseTransactionAmountFilter(values.minAmountInput);
   const maxAmount = parseTransactionAmountFilter(values.maxAmountInput);
 
   return transactions.filter((transaction) => {
     const matchesQuery =
       !normalizedQuery ||
-      `${transaction.note} ${transaction.category} ${transaction.account} ${transaction.destinationAccount ?? ""}`
-        .toLocaleLowerCase("vi")
-        .includes(normalizedQuery);
+      normalizeSearchText(
+        `${transaction.note} ${transaction.category} ${transaction.account} ${transaction.destinationAccount ?? ""}`,
+      ).includes(normalizedQuery);
     const matchesKind =
       values.kind === "all" || transaction.kind === values.kind;
     const matchesAccount =

@@ -3,7 +3,11 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { run } from "./transactions-search.ts";
-import { FIXED_CONTEXT, fixtureDeps } from "./capability-test-helpers.test.ts";
+import {
+  FIXED_CONTEXT,
+  demoTransactions,
+  fixtureDeps,
+} from "./capability-test-helpers.test.ts";
 
 test("transactions.search orders deterministically and cursor paging is complete", async () => {
   const deps = fixtureDeps();
@@ -47,6 +51,51 @@ test("transactions.search applies case-insensitive text and date filters", async
   );
   assert.deepEqual(output.items.map((item) => item.id), ["sample-2"]);
   assert.equal("pendingKey" in (output.items[0] ?? {}), false);
+});
+
+test("transactions.search folds Vietnamese diacritics on needle and haystack", async () => {
+  const deps = fixtureDeps();
+  // "an uong" reaches category "Ăn uống" (sample-1); "do dung" reaches note "Đồ dùng cá nhân" (sample-3).
+  assert.deepEqual(
+    (await run(FIXED_CONTEXT, { text: "an uong", limit: 50 }, deps)).items.map(
+      (item) => item.id,
+    ),
+    ["sample-1"],
+  );
+  assert.deepEqual(
+    (await run(FIXED_CONTEXT, { text: "do dung", limit: 50 }, deps)).items.map(
+      (item) => item.id,
+    ),
+    ["sample-3"],
+  );
+  // Queries typed WITH diacritics still match after the same fold.
+  // "uống" → "uong" is a substring of both "an uong" and "luong thang 7".
+  assert.deepEqual(
+    (await run(FIXED_CONTEXT, { text: "uống", limit: 50 }, deps)).items.map(
+      (item) => item.id,
+    ),
+    ["sample-1", "sample-4"],
+  );
+  // Non-matching text still matches nothing.
+  assert.equal(
+    (await run(FIXED_CONTEXT, { text: "khong ton tai", limit: 50 }, deps)).items
+      .length,
+    0,
+  );
+});
+
+test("transactions.search folds đ to d so 'tien dien' finds 'Tiền điện'", async () => {
+  const [first, ...rest] = demoTransactions();
+  const rows = [{ ...first!, id: "dien-tx", note: "Tiền điện" }, ...rest];
+  const output = await run(
+    FIXED_CONTEXT,
+    { text: "tien dien", limit: 50 },
+    fixtureDeps(rows),
+  );
+  assert.deepEqual(
+    output.items.map((item) => item.id),
+    ["dien-tx"],
+  );
 });
 
 test("transactions.search rejects malformed cursors", async () => {
