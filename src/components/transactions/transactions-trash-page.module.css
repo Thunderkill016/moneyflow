@@ -1,0 +1,180 @@
+.note {
+  color: var(--mf-text-muted);
+  font-size: 13px;
+}
+
+.dataAlert {
+  margin-bottom: 14px;
+}
+
+.alertContent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.loading {
+  display: grid;
+  gap: 10px;
+}
+
+.loading span {
+  display: block;
+  height: 56px;
+  border: 1px solid var(--mf-border);
+  border-radius: 14px;
+  background: var(--mf-surface-muted);
+  animation: trash-pulse 1.4s ease-in-out infinite;
+}
+
+.loading span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.loading span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes trash-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.emptyState {
+  margin-top: 4px;
+}
+
+.list {
+  overflow: hidden;
+  border: 1px solid var(--mf-border);
+  border-radius: 16px;
+  background: var(--mf-surface);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) minmax(120px, auto) auto;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--mf-border);
+  transition: background 150ms ease;
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.row:hover,
+.row:focus-within {
+  background: var(--mf-surface-muted);
+}
+
+.transactionIcon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--mf-border);
+  border-radius: 11px;
+}
+
+.transactionIcon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.iconExpense {
+  border-color: var(--mf-expense-border);
+  background: var(--mf-expense-subtle);
+  color: var(--mf-expense-text);
+}
+
+.iconIncome {
+  border-color: var(--mf-income-border);
+  background: var(--mf-income-subtle);
+  color: var(--mf-income-text);
+}
+
+.iconTransfer {
+  border-color: var(--mf-info-border);
+  background: var(--mf-info-subtle);
+  color: var(--mf-info-text);
+}
+
+.detail {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.detail > strong,
+.detail > small,
+.detail > time {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.detail > strong {
+  color: var(--mf-text);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.detail > small {
+  color: var(--mf-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.deletedAt {
+  color: var(--mf-text-muted);
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.45;
+}
+
+.amount {
+  white-space: nowrap;
+}
+
+.restoreButton {
+  justify-self: end;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .row {
+    grid-template-columns: 38px minmax(0, 1fr) minmax(104px, auto);
+    grid-template-areas:
+      "icon detail amount"
+      "icon detail restore";
+    gap: 8px 12px;
+    padding: 13px 14px;
+  }
+
+  .transactionIcon {
+    grid-area: icon;
+  }
+
+  .detail {
+    grid-area: detail;
+  }
+
+  .amount {
+    grid-area: amount;
+  }
+
+  .restoreButton {
+    grid-area: restore;
+  }
+}

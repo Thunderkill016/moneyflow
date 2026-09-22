@@ -13,6 +13,7 @@ export type {
   CreateSplitExpenseInput,
   CreateTransactionInput,
   CreateTransferInput,
+  DeletedTransaction,
   Transaction,
   TransactionKind,
   TransactionReviewStatus,
