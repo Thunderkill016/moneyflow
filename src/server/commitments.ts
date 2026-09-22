@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { AccountOption, CategoryOption } from "@/lib/transactions/contracts";
 import { demoAccounts, demoCategories } from "@/lib/demo/transaction-fixtures";
 import { commitmentTotals, dueDateForMonth, type RecurringCommitment } from "@/lib/planning/commitments";
+import { demoCommitmentSeeds } from "@/lib/demo/commitment-fixtures";
 import { todayInVietnam } from "@/lib/vietnam-date";
 
 export type CommitmentsWorkspace = {
@@ -40,13 +41,7 @@ export function mapCommitmentRow(value: unknown, monthStart: string, transaction
 }
 
 function demoWorkspace(monthStart: string): CommitmentsWorkspace {
-  const account = demoAccounts[0];
-  const category = (name: string) => demoCategories.find((item) => item.name === name)!;
-  const rows: RecurringCommitment[] = [
-    { id: "demo-rent", name: "Tiền thuê nhà", amount: 4_500_000, dueDay: 5, dueDate: dueDateForMonth(monthStart, 5), accountId: account.id, accountName: account.name, categoryId: category("Nhà ở").id, categoryName: "Nhà ở", categoryIcon: "home", categoryColor: "amber", isArchived: false, isPaid: true, transactionId: "demo-rent-paid", paidOn: dueDateForMonth(monthStart, 5) },
-    { id: "demo-internet", name: "Internet gia đình", amount: 250_000, dueDay: 18, dueDate: dueDateForMonth(monthStart, 18), accountId: account.id, accountName: account.name, categoryId: category("Hóa đơn").id, categoryName: "Hóa đơn", categoryIcon: "receipt", categoryColor: "cyan", isArchived: false, isPaid: false, transactionId: null },
-    { id: "demo-electricity", name: "Tiền điện", amount: 650_000, dueDay: 25, dueDate: dueDateForMonth(monthStart, 25), accountId: account.id, accountName: account.name, categoryId: category("Hóa đơn").id, categoryName: "Hóa đơn", categoryIcon: "receipt", categoryColor: "cyan", isArchived: false, isPaid: false, transactionId: null },
-  ];
+  const rows = demoCommitmentSeeds(monthStart);
   return { commitments: rows, accounts: demoAccounts, categories: demoCategories.filter((item) => item.kind === "expense"), monthStart, today: todayInVietnam(), reservedTotal: commitmentTotals(rows).reserved, dataError: null };
 }
 

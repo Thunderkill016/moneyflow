@@ -6,6 +6,7 @@ import type { RecurringCommitment, SaveCommitmentInput } from "@/lib/planning/co
 import { createClient } from "@/lib/supabase/server";
 import { requireViewer } from "@/server/auth";
 import { mapCommitmentRow } from "@/server/commitments";
+import { currentMonthStart } from "@/server/budgets";
 
 export type CommitmentActionResult = { ok: true; commitment?: RecurringCommitment; transactionId?: string } | { ok: false; message: string };
 const saveSchema = z.object({ id: z.string().uuid().optional(), name: z.string().trim().min(1).max(80), amount: z.number().int().positive().max(Number.MAX_SAFE_INTEGER), dueDay: z.number().int().min(1).max(31), accountId: z.string().uuid(), categoryId: z.string().uuid() });
@@ -43,6 +44,50 @@ export async function payCommitmentAction(id: string, monthStart: string, paidOn
   const supabase = await createClient(); if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
   const { data, error } = await supabase.rpc("pay_recurring_commitment", { p_commitment_id: id, p_month_start: monthStart, p_paid_on: paidOn, p_idempotency_key: idempotencyKey });
   if (error || typeof data !== "string") return { ok: false, message: "Không thể ghi thanh toán. Kiểm tra lại tài khoản nguồn." }; refresh(); return { ok: true, transactionId: data };
+}
+
+export type DueCommitmentsResult =
+  | { ok: true; commitments: RecurringCommitment[]; monthStart: string }
+  | { ok: false; message: string };
+
+/**
+ * Current-month active commitments with their paid state — the raw material
+ * for Inbox commitment suggestions. Demo returns an empty list because demo
+ * seeds and occurrence state live on the device.
+ */
+export async function listDueCommitmentsAction(): Promise<DueCommitmentsResult> {
+  const viewer = await requireViewer();
+  if (viewer.isDemo) return { ok: true, commitments: [], monthStart: "" };
+  const supabase = await createClient();
+  if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
+  const monthStart = currentMonthStart();
+  const [feed, occurrences] = await Promise.all([
+    supabase
+      .from("recurring_commitment_feed")
+      .select("id,name,amount_minor,due_day,account_id,account_name,category_id,category_name,category_icon,category_color,is_archived")
+      .eq("is_archived", false),
+    supabase
+      .from("commitment_occurrences")
+      .select("commitment_id,transaction_id,paid_at")
+      .eq("month_start", monthStart),
+  ]);
+  if (feed.error || occurrences.error) {
+    return { ok: false, message: "Chưa tải được khoản định kỳ." };
+  }
+  try {
+    const paid = new Map(
+      (occurrences.data ?? []).map((item) => [
+        item.commitment_id as string,
+        item.transaction_id as string,
+      ]),
+    );
+    const commitments = (feed.data ?? []).map((row) =>
+      mapCommitmentRow(row, monthStart, paid.get(row.id as string) ?? null),
+    );
+    return { ok: true, commitments, monthStart };
+  } catch {
+    return { ok: false, message: "Dữ liệu khoản định kỳ không hợp lệ." };
+  }
 }
 
 export async function undoCommitmentPaymentAction(id: string, monthStart: string): Promise<CommitmentActionResult> {
