@@ -129,6 +129,12 @@ export type AppShellProps = {
   noticeAction?: NoticeAction;
   noticeTone?: ToastTone;
   noticeUrgent?: boolean;
+  /**
+   * Reports hover/focus holds on the toast region so pages with timed
+   * notices (e.g. the delete-undo window) can pause the countdown while the
+   * reader is interacting with the toast.
+   */
+  onNoticeHoldChange?: (held: boolean) => void;
   showPrimaryActionOnMobile?: boolean;
   children: React.ReactNode;
 };
@@ -143,6 +149,7 @@ export function AppShell({
   noticeAction,
   noticeTone,
   noticeUrgent = false,
+  onNoticeHoldChange,
   showPrimaryActionOnMobile = false,
   children,
 }: AppShellProps) {
@@ -516,6 +523,7 @@ export function AppShell({
       <ToastRegion
         messages={toastMessages}
         className={styles.toastRegion}
+        onHoldChange={onNoticeHoldChange}
         style={{
           bottom: "var(--mf-shell-feedback-bottom)",
           zIndex: "var(--mf-shell-layer-feedback)",
