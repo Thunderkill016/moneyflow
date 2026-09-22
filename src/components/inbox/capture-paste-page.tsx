@@ -28,7 +28,6 @@ import { maskSnippetForDisplay } from "@/lib/mask-account";
 import { formatMoney } from "@/lib/money";
 import type { AccountOption } from "@/lib/sample-data";
 import { trackProductEvent } from "@/lib/safe-analytics";
-import { safeUserNotice } from "@/lib/safe-log";
 
 type Phase = "edit" | "preview" | "error";
 type RuleAwareParsedCandidate = ParsedCandidate & {
@@ -210,13 +209,8 @@ export function CapturePastePage({
         source_hint: sourceHint,
         rule_evidence_failures: evidenceFailureCount,
       });
-      setNotice(
-        safeUserNotice(
-          evidenceFailureCount > 0
-            ? `Đã đưa ${inputs.length} mục vào Inbox; ${evidenceFailureCount} gợi ý quy tắc cần tải lại.`
-            : `Đã đưa ${inputs.length} mục vào Inbox — chưa ghi sổ.`,
-        ),
-      );
+      // No toast here: AppShell unmounts on navigation, so a notice set now
+      // would never paint. The Inbox itself shows the new candidates.
       router.push("/inbox");
     } catch {
       setError("Không lưu được vào Inbox. Thử lại.");

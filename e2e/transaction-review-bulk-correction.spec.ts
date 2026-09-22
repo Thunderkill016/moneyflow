@@ -108,8 +108,12 @@ test.describe("Transaction review and bounded bulk correction", () => {
     await page
       .getByLabel("Danh mục mới cho giao dịch đã chọn")
       .selectOption({ label: "Mua sắm" });
-    page.once("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "Đổi danh mục" }).click();
+    const reviewDialog = page.getByRole("dialog", { name: "Đổi danh mục?" });
+    await expect(reviewDialog).toBeVisible();
+    await reviewDialog
+      .getByRole("button", { name: "Đổi danh mục" })
+      .click();
     await expect(page.getByText(/Đã đổi danh mục cho 2 giao dịch/)).toBeVisible();
 
     const coffeeRow = page
