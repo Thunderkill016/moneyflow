@@ -2,10 +2,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   budgetBarColor,
+  budgetEffectiveAvailable,
+  budgetEffectiveStatusLabel,
+  budgetEffectiveThreshold,
   budgetMonthEnd,
   budgetMonthKey,
   budgetPaceLine,
   budgetProgress,
+  budgetRollover,
+  budgetRolloverLabel,
+  budgetRolloverWindowStart,
+  BUDGET_ROLLOVER_LOOKBACK_MONTHS,
   monthElapsedPercent,
   budgetRemaining,
   budgetsToCarryForward,
@@ -358,4 +365,188 @@ test("budgetPaceLine is null when the viewed month is not the current one", () =
   const budget = { spent: 1_800_000, limit: 4_000_000 };
   assert.equal(budgetPaceLine(budget, "2026-08-01", "2026-09-15"), null);
   assert.equal(budgetPaceLine(budget, "2026-10-01", "2026-09-15"), null);
+});
+
+// --- Rollover: prior months' under/overspend carries into the viewed month ---
+
+function rolloverRow(
+  categoryId: string,
+  monthStart: string,
+  limit: number,
+  spent: number,
+): BudgetSummary {
+  return {
+    id: `budget-${categoryId}-${monthStart}`,
+    categoryId,
+    categoryName: categoryId,
+    categoryIcon: null,
+    categoryColor: null,
+    monthStart,
+    limit,
+    spent,
+  };
+}
+
+test("budgetRolloverWindowStart caps the lookback at the documented window", () => {
+  assert.equal(BUDGET_ROLLOVER_LOOKBACK_MONTHS, 12);
+  assert.equal(budgetRolloverWindowStart("2026-09-01"), "2025-09-01");
+  assert.equal(budgetRolloverWindowStart("2026-01-01"), "2025-01-01");
+});
+
+test("budgetRollover adds a prior month's underspend", () => {
+  const rollover = budgetRollover({
+    priorBudgets: [rolloverRow("cat-food", "2026-08-01", 3_800_000, 2_940_000)],
+    categoryId: "cat-food",
+    monthStart: "2026-09-01",
+  });
+  assert.deepEqual(rollover, { carry: 860_000, monthsIncluded: 1 });
+});
+
+test("budgetRollover subtracts a prior month's overspend", () => {
+  const rollover = budgetRollover({
+    priorBudgets: [rolloverRow("cat-food", "2026-08-01", 3_000_000, 3_500_000)],
+    categoryId: "cat-food",
+    monthStart: "2026-09-01",
+  });
+  assert.deepEqual(rollover, { carry: -500_000, monthsIncluded: 1 });
+});
+
+test("budgetRollover nets several budgeted months, including gaps with no budget", () => {
+  const rollover = budgetRollover({
+    priorBudgets: [
+      rolloverRow("cat-food", "2026-08-01", 3_000_000, 2_000_000), // +1.000.000
+      // 2026-07 has no budget row: the category was not tracked that month,
+      // so it contributes nothing rather than an invented deficit.
+      rolloverRow("cat-food", "2026-06-01", 3_000_000, 3_400_000), // −400.000
+    ],
+    categoryId: "cat-food",
+    monthStart: "2026-09-01",
+  });
+  assert.deepEqual(rollover, { carry: 600_000, monthsIncluded: 2 });
+});
+
+test("budgetRollover never borrows other categories or months at/after the viewed month", () => {
+  const rollover = budgetRollover({
+    priorBudgets: [
+      rolloverRow("cat-transport", "2026-08-01", 1_000_000, 100_000),
+      rolloverRow("cat-food", "2026-09-01", 3_000_000, 0), // the viewed month itself
+      rolloverRow("cat-food", "2026-10-01", 3_000_000, 0), // a later month
+      rolloverRow("cat-food", "2026-08-01", 3_000_000, 2_500_000),
+    ],
+    categoryId: "cat-food",
+    monthStart: "2026-09-01",
+  });
+  assert.deepEqual(rollover, { carry: 500_000, monthsIncluded: 1 });
+});
+
+test("budgetRollover ignores budgeted months older than the lookback window", () => {
+  const monthStart = "2026-09-01";
+  const outside = shiftBudgetMonth(budgetRolloverWindowStart(monthStart), -1);
+  const rollover = budgetRollover({
+    priorBudgets: [
+      rolloverRow("cat-food", outside, 9_000_000, 0), // +9.000.000, too old
+      rolloverRow("cat-food", "2026-08-01", 1_000_000, 0), // +1.000.000
+    ],
+    categoryId: "cat-food",
+    monthStart,
+  });
+  assert.deepEqual(rollover, { carry: 1_000_000, monthsIncluded: 1 });
+});
+
+test("budgetRollover is zero without prior budgeted months", () => {
+  assert.deepEqual(
+    budgetRollover({
+      priorBudgets: [],
+      categoryId: "cat-food",
+      monthStart: "2026-09-01",
+    }),
+    { carry: 0, monthsIncluded: 0 },
+  );
+});
+
+test("budgetRollover rejects a malformed viewed month instead of summing nothing", () => {
+  assert.throws(
+    () =>
+      budgetRollover({
+        priorBudgets: [rolloverRow("cat-food", "2026-08-01", 1_000_000, 0)],
+        categoryId: "cat-food",
+        monthStart: "2026-13-01",
+      }),
+    /invalid_budget_month_shift|budget_month_out_of_range/u,
+  );
+});
+
+test("budgetEffectiveAvailable folds signed carry into limit minus spent", () => {
+  assert.equal(
+    budgetEffectiveAvailable({ limit: 4_000_000, spent: 2_760_000 }, 860_000),
+    2_100_000,
+  );
+  assert.equal(
+    budgetEffectiveAvailable({ limit: 4_000_000, spent: 2_760_000 }, -500_000),
+    740_000,
+  );
+  // Carried overspend can consume the whole limit and more.
+  assert.equal(
+    budgetEffectiveAvailable({ limit: 1_000_000, spent: 0 }, -1_500_000),
+    -500_000,
+  );
+});
+
+test("budgetEffectiveThreshold reports over whenever available went negative", () => {
+  // Spent under the month's own limit, but carried overspend still puts it over.
+  assert.equal(
+    budgetEffectiveThreshold({ limit: 1_000_000, spent: 0 }, -1_500_000),
+    "over",
+  );
+  // A positive carry legitimately rescues a month spent past its own limit:
+  // 1.200.000 used of a 1.500.000 effective cap lands in the 80% band.
+  assert.equal(
+    budgetEffectiveThreshold({ limit: 1_000_000, spent: 1_200_000 }, 500_000),
+    "near",
+  );
+  // Bands still apply against the effective limit.
+  assert.equal(
+    budgetEffectiveThreshold({ limit: 1_000_000, spent: 400_000 }, 0),
+    "ok",
+  );
+  assert.equal(
+    budgetEffectiveThreshold({ limit: 1_000_000, spent: 850_000 }, 0),
+    "near",
+  );
+});
+
+test("budgetEffectiveStatusLabel keeps calm copy on the effective figures", () => {
+  const format = (n: number) => `${n}`;
+  assert.equal(
+    budgetEffectiveStatusLabel({ limit: 1_000_000, spent: 400_000 }, 200_000, format),
+    "Còn 800000",
+  );
+  assert.equal(
+    budgetEffectiveStatusLabel({ limit: 1_000_000, spent: 0 }, -1_500_000, format),
+    "Đã vượt 500000",
+  );
+  assert.equal(
+    budgetEffectiveStatusLabel({ limit: 1_000_000, spent: 850_000 }, 0, format),
+    "Gần hạn mức",
+  );
+});
+
+test("budgetRolloverLabel explains the carry in plain Vietnamese", () => {
+  assert.equal(
+    budgetRolloverLabel({ carry: 860_000, monthsIncluded: 1 }),
+    "Chuyển từ tháng trước: +860.000 ₫",
+  );
+  assert.equal(
+    budgetRolloverLabel({ carry: -500_000, monthsIncluded: 1 }),
+    "Trừ vì vượt hạn mức tháng trước: −500.000 ₫",
+  );
+  assert.equal(
+    budgetRolloverLabel({ carry: 600_000, monthsIncluded: 2 }),
+    "Chuyển từ 2 tháng trước đó: +600.000 ₫",
+  );
+});
+
+test("budgetRolloverLabel stays silent when nothing carried", () => {
+  assert.equal(budgetRolloverLabel({ carry: 0, monthsIncluded: 0 }), null);
+  assert.equal(budgetRolloverLabel({ carry: 0, monthsIncluded: 3 }), null);
 });
