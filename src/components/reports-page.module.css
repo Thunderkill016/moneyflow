@@ -147,6 +147,9 @@
   display: grid;
   justify-items: end;
   gap: 0.25rem;
+  /* MoneyValue is nowrap: never let the section header shrink this cell below
+     its content — the copy column or a wrap absorbs the space instead. */
+  flex-shrink: 0;
   color: var(--mf-text-muted);
   font-size: 0.75rem;
 }
