@@ -53,6 +53,10 @@ import {
 } from "@/lib/transaction-review";
 import { todayInVietnam } from "@/lib/vietnam-date";
 import {
+  addMutatingIds,
+  removeMutatingIds,
+} from "@/lib/mutating-ids";
+import {
   buildOptimisticTransaction,
   buildUpdatedTransaction,
   reduceOptimisticTransactions,
@@ -118,6 +122,24 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     reduceOptimisticTransactions,
   );
   const [isMutating, setIsMutating] = useState(false);
+  /**
+   * Rows with an in-flight mutation of their own. Single-row delete, restore
+   * and update register here instead of `isMutating` so one slow RPC freezes
+   * only its own row's controls and undo offer — the rest of the register
+   * stays interactive. Form-level ops (add/transfer/split) and bulk ops keep
+   * the global flag because their scope is the whole selection or a new row.
+   */
+  const [mutatingIds, setMutatingIds] = useState<ReadonlySet<string>>(
+    () => new Set<string>(),
+  );
+
+  function markMutating(ids: readonly string[]) {
+    setMutatingIds((current) => addMutatingIds(current, ids));
+  }
+
+  function clearMutating(ids: readonly string[]) {
+    setMutatingIds((current) => removeMutatingIds(current, ids));
+  }
 
   useEffect(() => {
     if (!isDemo) return;
@@ -259,7 +281,7 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
      * it), and the refreshed feed cannot resurrect the row — `transaction_feed`
      * excludes `deleted_at`.
      */
-    setIsMutating(true);
+    markMutating([id]);
     return await new Promise<TransactionActionResult>((resolve) => {
       startTransition(async () => {
         applyOptimisticMutation({ type: "remove", id });
@@ -278,7 +300,7 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
         } catch {
           resolve({ ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." });
         } finally {
-          setIsMutating(false);
+          clearMutating([id]);
         }
       });
     });
@@ -301,7 +323,7 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
       return { ok: true, transaction: withReviewStatus(transaction) };
     }
 
-    setIsMutating(true);
+    markMutating([transaction.id]);
     try {
       const result = await restoreTransactionAction(transaction.id);
       if (result.ok) {
@@ -319,7 +341,7 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     } catch {
       return { ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." };
     } finally {
-      setIsMutating(false);
+      clearMutating([transaction.id]);
     }
   }
 
@@ -440,7 +462,7 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
         ? buildUpdatedTransaction(existing, input, accounts, categories)
         : null;
 
-    setIsMutating(true);
+    markMutating([input.id]);
     return await new Promise<TransactionActionResult>((resolve) => {
       startTransition(async () => {
         if (draft?.ok) {
@@ -471,7 +493,7 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
         } catch {
           resolve({ ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." });
         } finally {
-          setIsMutating(false);
+          clearMutating([input.id]);
         }
       });
     });
@@ -731,5 +753,6 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     bulkUpdateDate,
     bulkDeleteTransactions,
     isMutating,
+    mutatingIds,
   };
 }

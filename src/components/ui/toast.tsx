@@ -19,10 +19,17 @@ type ToastProps = ToastMessage & {
 
 type ToastRegionProps = Omit<
   React.ComponentPropsWithoutRef<"section">,
-  "aria-label" | "children"
+  "aria-label" | "children" | "onMouseEnter" | "onMouseLeave" | "onFocus" | "onBlur"
 > & {
   messages: readonly ToastMessage[]
   label?: string
+  /**
+   * Reports whether the reader is interacting with the region — pointer over
+   * a toast or focus inside one. Timed toasts use it to pause their
+   * auto-dismiss countdown (WCAG 2.2.1): a toast carrying the only recovery
+   * path for an action must not keep ticking while it is being read.
+   */
+  onHoldChange?: (held: boolean) => void
 }
 
 const toneClass: Record<ToastTone, string> = {
@@ -67,6 +74,7 @@ function ToastRegion({
   messages,
   label = "Thông báo",
   className,
+  onHoldChange,
   ...props
 }: ToastRegionProps) {
   const uniqueMessages = Array.from(
@@ -74,6 +82,23 @@ function ToastRegion({
   )
   const routineMessages = uniqueMessages.filter((message) => !message.urgent)
   const urgentMessages = uniqueMessages.filter((message) => message.urgent)
+
+  /*
+   * Hover and focus are independent hold sources — releasing one while the
+   * other is still inside the region must not lift the hold. `held` only
+   * flips (and only notifies) when the combined state changes.
+   */
+  const holdRef = React.useRef({ hover: false, focus: false, held: false })
+  function setHold(kind: "hover" | "focus", active: boolean) {
+    const state = holdRef.current
+    if (state[kind] === active) return
+    state[kind] = active
+    const held = state.hover || state.focus
+    if (held !== state.held) {
+      state.held = held
+      onHoldChange?.(held)
+    }
+  }
 
   return (
     <section
@@ -83,6 +108,15 @@ function ToastRegion({
         "pointer-events-none fixed right-4 bottom-4 z-[100] grid w-[min(24rem,calc(100%-2rem))] gap-2",
         className
       )}
+      onMouseEnter={() => setHold("hover", true)}
+      onMouseLeave={() => setHold("hover", false)}
+      onFocus={() => setHold("focus", true)}
+      onBlur={(event) => {
+        const next = event.relatedTarget
+        if (!(next instanceof Node) || !event.currentTarget.contains(next)) {
+          setHold("focus", false)
+        }
+      }}
       {...props}
     >
       <div aria-live="polite" aria-relevant="additions text" className="grid gap-2">
