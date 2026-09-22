@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   dailyGoalSaving,
+  goalIsOverdue,
   goalProgress,
   goalRemaining,
   goalTotals,
@@ -21,6 +22,26 @@ const goal: SavingsGoal = {
 test("goal progress is bounded", () => {
   assert.equal(goalProgress(goal), 33);
   assert.equal(goalProgress({ ...goal, allocated: 4_000_000 }), 100);
+});
+
+test("goal progress never claims 100 while money is still missing", () => {
+  // 2_990_000 / 3_000_000 = 99.67% — rounding would claim completion and
+  // disable the allocate action while "Còn thiếu" is still positive.
+  assert.equal(goalProgress({ ...goal, allocated: 2_990_000 }), 99);
+  assert.equal(goalProgress({ ...goal, allocated: 3_000_000 }), 100);
+});
+
+test("overdue goals have no invented daily pace", () => {
+  assert.equal(dailyGoalSaving(goal, "2026-07-25"), 0);
+  assert.equal(goalIsOverdue(goal, "2026-07-25"), true);
+  assert.equal(goalIsOverdue(goal, "2026-07-24"), false);
+  assert.equal(goalIsOverdue({ ...goal, deadline: null }, "2026-07-25"), false);
+  assert.equal(
+    goalIsOverdue({ ...goal, allocated: 3_000_000 }, "2026-07-25"),
+    false,
+    "a fully funded goal is achieved, not overdue",
+  );
+  assert.equal(goalIsOverdue({ ...goal, isArchived: true }, "2026-07-25"), false);
 });
 
 test("goal remaining is never negative", () => {
