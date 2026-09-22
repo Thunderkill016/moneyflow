@@ -230,6 +230,24 @@
   white-space: nowrap;
 }
 
+/*
+ * Recent-payee quick picks live inside the optional-details body, where the
+ * layout is a two-column form grid — a wrapping flex row fits variable
+ * payee lengths better than the three-up category grid.
+ */
+.payeeChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.categoryChip[aria-pressed="true"] {
+  border-color: var(--mf-brand);
+  background: var(--mf-brand-subtle);
+  color: var(--mf-brand-text);
+}
+
 .moreDisclosure {
   min-width: 0;
 }
@@ -385,7 +403,8 @@
     border-color: CanvasText;
   }
 
-  .typeSwitch > button[aria-pressed="true"] {
+  .typeSwitch > button[aria-pressed="true"],
+  .categoryChip[aria-pressed="true"] {
     outline: 2px solid Highlight;
     outline-offset: -2px;
   }
