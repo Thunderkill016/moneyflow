@@ -33,6 +33,7 @@ export type ProductEventName =
   | "candidate_rejected"
   | "candidate_field_assigned"
   | "manual_transaction_saved"
+  | "reconcile_completed"
   | "export_downloaded"
   | "onboarding_completed"
   | "quick_capture_correction_opened"
