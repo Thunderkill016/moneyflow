@@ -7,8 +7,10 @@ import type {
   TransactionKind,
 } from "./transactions/contracts.ts";
 import {
+  deriveCanonicalPayeeOffer,
   deriveFrequentLedgerPatterns,
   derivePayeeCategorySuggestion,
+  deriveRecentPayees,
   deriveStableLedgerPreset,
 } from "./quick-add-defaults.ts";
 
@@ -649,4 +651,175 @@ test("the suggestion is scoped to the kind being captured", () => {
   // The income form sees only the income row — an expense category can never
   // be suggested into a kind it does not belong to.
   assert.equal(suggest(rows, "Grab", "income")?.categoryId, "salary");
+});
+
+/*
+ * Recent-payee quick picks. Same trust contract as the datalist — the user's
+ * own trimmed spellings, offered verbatim — but ordered by canonical ledger
+ * recency instead of alphabet, and capped so the row stays a quick pick.
+ */
+test("recent payees follow ledger recency, not entry or alphabetical order", () => {
+  const rows = [
+    // Entered last but backdated — recency is the ledger date, not input order.
+    transaction({
+      id: "backdated",
+      occurredOn: "2026-09-01",
+      occurredAt: "2026-09-21T09:00:00.000Z",
+      payee: "Chợ cũ",
+    }),
+    transaction({
+      id: "newest",
+      occurredAt: "2026-09-20T09:00:00.000Z",
+      payee: "Grab",
+    }),
+    transaction({
+      id: "middle",
+      occurredAt: "2026-09-19T09:00:00.000Z",
+      payee: "Highlands",
+    }),
+    transaction({
+      id: "oldest",
+      occurredAt: "2026-09-10T09:00:00.000Z",
+      payee: "Circle K",
+    }),
+  ];
+
+  assert.deepEqual(deriveRecentPayees(rows, 4), [
+    "Grab",
+    "Highlands",
+    "Circle K",
+    "Chợ cũ",
+  ]);
+});
+
+test("recent payees dedupe exact spellings, keep variants and skip blanks", () => {
+  const rows = [
+    transaction({
+      id: "newest",
+      occurredAt: "2026-09-20T09:00:00.000Z",
+      payee: "  Grab  ",
+    }),
+    // Identical trimmed spelling — the second row must not produce a chip.
+    transaction({
+      id: "same-spelling",
+      occurredAt: "2026-09-19T09:00:00.000Z",
+      payee: "Grab",
+    }),
+    // A different stored spelling stays distinct: the report groups by exact
+    // spelling, so silently merging variants would hide real fragmentation.
+    transaction({
+      id: "variant",
+      occurredAt: "2026-09-18T09:00:00.000Z",
+      payee: "grab",
+    }),
+    transaction({
+      id: "blank",
+      occurredAt: "2026-09-17T09:00:00.000Z",
+      payee: "   ",
+    }),
+    transaction({
+      id: "missing",
+      occurredAt: "2026-09-16T09:00:00.000Z",
+    }),
+  ];
+
+  assert.deepEqual(deriveRecentPayees(rows, 4), ["Grab", "grab"]);
+});
+
+test("recent payees cap at the requested limit", () => {
+  const rows = Array.from({ length: 6 }, (_, index) =>
+    transaction({
+      id: `payee-${index}`,
+      occurredAt: `2026-09-${String(20 - index).padStart(2, "0")}T09:00:00.000Z`,
+      payee: `Nơi ${index}`,
+    }),
+  );
+
+  assert.deepEqual(deriveRecentPayees(rows, 4), [
+    "Nơi 0",
+    "Nơi 1",
+    "Nơi 2",
+    "Nơi 3",
+  ]);
+  assert.equal(deriveRecentPayees(rows, 2).length, 2);
+  assert.deepEqual(deriveRecentPayees(rows, 0), []);
+});
+
+/*
+ * Canonical-spelling offer. A folded twin (case/diacritic variant) of exactly
+ * one stored spelling is offered; an exact match, no match or an ambiguous
+ * set of candidates stays silent — the offer never guesses and never fires
+ * without an explicit tap.
+ */
+test("the canonical offer fires on a single folded-variant spelling", () => {
+  const rows = [
+    transaction({
+      id: "stored-grab",
+      occurredAt: "2026-09-12T09:00:00.000Z",
+      payee: "Grab",
+    }),
+    transaction({
+      id: "stored-phuc-long",
+      occurredAt: "2026-09-11T09:00:00.000Z",
+      payee: "Phúc Long",
+    }),
+  ];
+
+  assert.equal(deriveCanonicalPayeeOffer(rows, "grab"), "Grab");
+  // Surrounding whitespace is not a spelling difference — save trims anyway.
+  assert.equal(deriveCanonicalPayeeOffer(rows, "  GRAB "), "Grab");
+  // Telex-free typing fold-equals the stored diacritic spelling.
+  assert.equal(deriveCanonicalPayeeOffer(rows, "phuc long"), "Phúc Long");
+  // Repeated rows of one spelling still count as a single candidate.
+  const repeated = [
+    ...rows,
+    transaction({
+      id: "stored-grab-2",
+      occurredAt: "2026-09-13T09:00:00.000Z",
+      payee: "Grab",
+    }),
+  ];
+  assert.equal(deriveCanonicalPayeeOffer(repeated, "grab"), "Grab");
+});
+
+test("the canonical offer stays silent on exact, absent or ambiguous spellings", () => {
+  // The only stored spelling is byte-equal to the typed value — nothing to
+  // offer, the field already carries it.
+  const exactOnly = [
+    transaction({
+      id: "stored-grab",
+      occurredAt: "2026-09-12T09:00:00.000Z",
+      payee: "Grab",
+    }),
+  ];
+  assert.equal(deriveCanonicalPayeeOffer(exactOnly, "Grab"), null);
+
+  const ambiguous = [
+    transaction({
+      id: "stored-grab",
+      occurredAt: "2026-09-12T09:00:00.000Z",
+      payee: "Grab",
+    }),
+    transaction({
+      id: "stored-grab-upper",
+      occurredAt: "2026-09-11T09:00:00.000Z",
+      payee: "GRAB",
+    }),
+    transaction({
+      id: "blank",
+      occurredAt: "2026-09-10T09:00:00.000Z",
+      payee: "  ",
+    }),
+  ];
+  // Two distinct stored variants fold-match: ambiguous, no guess.
+  assert.equal(deriveCanonicalPayeeOffer(ambiguous, "grab"), null);
+  // When the typed value is itself stored, a different stored variant may
+  // still be offered — "Grab" typed with "GRAB" also on the ledger offers
+  // "GRAB". (The dialog hides this while a recent-payee chip is selected.)
+  assert.equal(deriveCanonicalPayeeOffer(ambiguous, "Grab"), "GRAB");
+  // No stored spelling fold-equals the typed value.
+  assert.equal(deriveCanonicalPayeeOffer(ambiguous, "Circle K"), null);
+  assert.equal(deriveCanonicalPayeeOffer(ambiguous, ""), null);
+  assert.equal(deriveCanonicalPayeeOffer(ambiguous, "   "), null);
+  assert.equal(deriveCanonicalPayeeOffer([], "grab"), null);
 });

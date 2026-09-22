@@ -136,6 +136,31 @@ test("R5: saved deterministic rules fire on the capture payee field", () => {
   }
 });
 
+test("R5: recent-payee chips and the canonical-spelling offer stay offer-only", () => {
+  const src = read("src/components/add-transaction-dialog.tsx");
+  const defaults = read("src/lib/quick-add-defaults.ts");
+
+  // Chips render the user's own recent spellings inside the optional-details
+  // disclosure and apply through the same applyPayeeChange path as typing —
+  // a tap re-evaluates saved rules and never writes payee state directly.
+  assert.match(src, /deriveRecentPayees/);
+  assert.match(src, /data-slot="capture-payee-chips"/);
+  assert.match(src, /applyPayeeChange\(name\)/);
+
+  // The canonical offer is a single folded-variant spelling applied by tap,
+  // hidden while the field already holds one of the offered chip spellings.
+  assert.match(src, /deriveCanonicalPayeeOffer/);
+  assert.match(src, /data-payee-canonical="true"/);
+  assert.match(src, /applyPayeeChange\(canonicalPayeeOffer\)/);
+  assert.match(src, /!recentPayees\.some/);
+
+  // Chips complement the datalist; the long-tail suggestion path stays.
+  assert.match(src, /<datalist/);
+  assert.match(defaults, /export function deriveRecentPayees/);
+  assert.match(defaults, /export function deriveCanonicalPayeeOffer/);
+  assert.match(defaults, /normalizeSearchText/);
+});
+
 test("R4: save-and-add-another keeps a controlled dialog session alive", () => {
   const src = read("src/components/add-transaction-dialog.tsx");
   assert.match(src, /Lưu xong thêm tiếp/);

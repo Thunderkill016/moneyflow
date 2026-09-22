@@ -27,9 +27,11 @@ import {
   parseMoneyInput,
 } from "@/lib/money";
 import {
+  deriveCanonicalPayeeOffer,
   deriveFrequentLedgerPatterns,
   derivePayeeCategorySuggestion,
   derivePayeeSuggestions,
+  deriveRecentPayees,
   deriveStableLedgerPreset,
   type FrequentLedgerPattern,
 } from "@/lib/quick-add-defaults";
@@ -57,6 +59,9 @@ import fastStyles from "./transactions/capture-fast-path.module.css";
 import styles from "./transactions/transaction-form.module.css";
 
 const KEEP_OPEN_SUCCESS = "Đã lưu · nhập khoản tiếp";
+// Four chips fit one wrapped row inside the optional-details body without
+// crowding out the note field; the datalist still covers the long tail.
+const RECENT_PAYEE_CHIP_LIMIT = 4;
 
 export function AddTransactionDialog({
   open,
@@ -170,6 +175,26 @@ export function AddTransactionDialog({
     () => derivePayeeSuggestions(transactions),
     [transactions],
   );
+  /*
+   * Quick-pick chips are the reliable counterpart to the payee datalist
+   * (unreliable tap-to-fill on iOS Safari): the user's own most-recent
+   * spellings, applied through the same applyPayeeChange path as typing, so a
+   * tap also re-evaluates saved deterministic rules. The canonical offer
+   * folds case/diacritics — typed "grab" may be offered stored "Grab" so
+   * "Chi theo nơi" keeps one spelling per merchant — and stays silent while
+   * the field already holds one of the offered chip spellings.
+   */
+  const recentPayees = useMemo(
+    () => deriveRecentPayees(transactions, RECENT_PAYEE_CHIP_LIMIT),
+    [transactions],
+  );
+  const canonicalPayeeOffer = useMemo(
+    () => deriveCanonicalPayeeOffer(transactions, payee),
+    [payee, transactions],
+  );
+  const showCanonicalPayeeOffer =
+    canonicalPayeeOffer !== null &&
+    !recentPayees.some((name) => name === payee.trim());
   const hasRecentForKind = availableCategories.some((item) =>
     isRecentCategoryId(item.id, recentCategoryIds),
   );
@@ -875,6 +900,43 @@ export function AddTransactionDialog({
                   <option key={suggestion} value={suggestion} />
                 ))}
               </datalist>
+            ) : null}
+            {recentPayees.length > 0 || showCanonicalPayeeOffer ? (
+              <div
+                className={`${styles.spanFull} ${fastStyles.payeeChipRow}`}
+                role="group"
+                aria-label="Nơi giao dịch gần đây"
+                data-slot="capture-payee-chips"
+              >
+                {recentPayees.map((name) => (
+                  <Button
+                    type="button"
+                    unstyled
+                    targetSize="important"
+                    key={name}
+                    className={fastStyles.categoryChip}
+                    onClick={() => applyPayeeChange(name)}
+                    aria-label={`Dùng nơi giao dịch ${name}`}
+                    aria-pressed={payee === name}
+                  >
+                    <span>{name}</span>
+                  </Button>
+                ))}
+                {showCanonicalPayeeOffer ? (
+                  <Button
+                    type="button"
+                    unstyled
+                    targetSize="important"
+                    className={fastStyles.categoryChip}
+                    onClick={() => applyPayeeChange(canonicalPayeeOffer)}
+                    aria-label={`Dùng chính tả ${canonicalPayeeOffer}`}
+                    data-payee-canonical="true"
+                  >
+                    <Icon name="spark" aria-hidden="true" />
+                    <span>Dùng “{canonicalPayeeOffer}”?</span>
+                  </Button>
+                ) : null}
+              </div>
             ) : null}
             <TextField
               label="Ghi chú (không bắt buộc)"

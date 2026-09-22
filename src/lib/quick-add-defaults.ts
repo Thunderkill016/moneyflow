@@ -41,6 +41,66 @@ export function derivePayeeSuggestions(transactions: Transaction[]): string[] {
   return [...seen].sort((a, b) => a.localeCompare(b, "vi"));
 }
 
+/**
+ * The payee spellings the ledger reached for most recently, as tappable
+ * offers.
+ *
+ * Same trust contract as `derivePayeeSuggestions`: these are the user's own
+ * recorded spellings, offered verbatim — the helper never normalizes,
+ * rewrites or promotes a payee into the draft by itself. Ordering follows the
+ * canonical ledger recency (transaction date, then creation time, then id) so
+ * the chips surface what the user uses NOW; a newly-entered backdated row
+ * cannot jump ahead of today's activity.
+ *
+ * Distinctness is by exact trimmed spelling: "Grab" and "grab" are different
+ * stored spellings and may both appear — choosing between them is the
+ * canonical-spelling offer's job, not silent deduplication here.
+ */
+export function deriveRecentPayees(
+  transactions: Transaction[],
+  limit: number,
+): string[] {
+  const seen = new Set<string>();
+  const recent: string[] = [];
+  for (const transaction of [...transactions].sort(compareLedgerRecency)) {
+    if (recent.length >= limit) break;
+    const value = transaction.payee?.trim();
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    recent.push(value);
+  }
+  return recent;
+}
+
+/**
+ * The single stored spelling a typed payee is a folded twin of.
+ *
+ * "Chi theo nơi" groups by exact trimmed spelling, so "grab" and "Grab" split
+ * one merchant into two report rows. When the typed value fold-equals exactly
+ * ONE distinct stored spelling (a case/diacritic variant, never byte-equal)
+ * the dialog may offer "Dùng 'Grab'?" — an explicit tap replaces the typed
+ * text. Zero candidates means there is nothing to offer; several means the
+ * honest answer is ambiguous, so the offer stays silent rather than guessing.
+ */
+export function deriveCanonicalPayeeOffer(
+  transactions: Transaction[],
+  payee: string,
+): string | null {
+  const folded = normalizeSearchText(payee);
+  if (!folded) return null;
+  const typed = payee.trim();
+  const candidates = new Set<string>();
+  for (const transaction of transactions) {
+    const stored = transaction.payee?.trim();
+    if (!stored || stored === typed) continue;
+    if (normalizeSearchText(stored) !== folded) continue;
+    candidates.add(stored);
+    if (candidates.size > 1) return null;
+  }
+  const [only] = candidates;
+  return only ?? null;
+}
+
 function compareLedgerRecency(a: Transaction, b: Transaction): number {
   return (
     b.occurredOn.localeCompare(a.occurredOn) ||
