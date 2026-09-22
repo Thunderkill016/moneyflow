@@ -20,6 +20,7 @@ Use one owner for each question; this router links to depth but is not a competi
 
 | Question | Current authority | Routed detail or evidence |
 |---|---|---|
+| Which external standards and stage order apply? | `docs/product/CANON.md` (binding) | CFPB, OECD/INFE 2026, GOV.UK standard+principles, WCAG 2.2, OWASP ASVS 5.0, NIST CSF/Privacy, PDPD 91/2025+356/2025, RFC 9700/FAPI 2.0, ISO 20022 |
 | What is MoneyFlow? | `README.md` and `docs/product/PRINCIPLES.md` | `docs/product/PRODUCT_STRATEGY.md`, `docs/product/MONEYFLOW_PRODUCT_VISION.md`, `docs/MVP_DEFINITION.md` |
 | What long-term outcome is MoneyFlow trying to improve? | `docs/product/PRODUCT_STRATEGY.md` under `PRINCIPLES.md` | `docs/product/ECOSYSTEM_STRATEGY.md`, `docs/product/PRODUCT_METRICS.md`, product research |
 | How may the ecosystem expand? | `docs/product/ECOSYSTEM_STRATEGY.md` under `PRINCIPLES.md` | capability-specific research/specs; strategy alone grants no implementation permission |
