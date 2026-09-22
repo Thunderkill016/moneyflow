@@ -26,17 +26,21 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EmptyState } from "@/components/ui/empty-state";
 import { type ViewerSummary } from "@/components/user-chip";
-import { formatMoney } from "@/lib/money";
+import { formatMoney, formatSignedMoney } from "@/lib/money";
 import {
+  budgetEffectiveAvailable,
+  budgetEffectiveLimit,
+  budgetEffectiveStatusLabel,
+  budgetEffectiveThreshold,
   budgetPaceLine,
   budgetProgress,
-  budgetRemaining,
-  budgetStatusLabel,
-  budgetThreshold,
+  budgetRollover,
+  budgetRolloverLabel,
   budgetsToCarryForward,
   budgetTransactionsHref,
   compareBudgetAmount,
   type BudgetMonthAdjustment,
+  type BudgetRollover,
   type BudgetSummary,
   type SaveBudgetInput,
 } from "@/lib/planning/budgets";
@@ -57,6 +61,12 @@ const BudgetDialog = dynamic(
 type BudgetPageWorkspace = {
   budgets: BudgetSummary[];
   previousBudgets: BudgetSummary[];
+  /**
+   * Every budgeted month inside the rollover window before the viewed month.
+   * Fed through `budgetRollover` per card so "Còn lại" is the effective
+   * available, never a silently month-only figure.
+   */
+  priorBudgets: BudgetSummary[];
   monthIncome: number;
   monthCommitments: RecurringCommitment[];
   categories: CategoryOption[];
@@ -125,6 +135,35 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
   }, [notice]);
 
   const totals = useMemo(() => sumBudgetTotals(budgets), [budgets]);
+  /*
+   * Per-category carry from prior budgeted months. Recomputed from the live
+   * `budgets` state so a card added or removed mid-session immediately gains
+   * or loses its "chuyển từ tháng trước" explanation.
+   */
+  const rolloverByCategory = useMemo(() => {
+    const map = new Map<string, BudgetRollover>();
+    for (const budget of budgets) {
+      map.set(
+        budget.categoryId,
+        budgetRollover({
+          priorBudgets: workspace.priorBudgets,
+          categoryId: budget.categoryId,
+          monthStart: workspace.monthStart,
+        }),
+      );
+    }
+    return map;
+  }, [budgets, workspace.priorBudgets, workspace.monthStart]);
+  const totalCarry = useMemo(() => {
+    let total = 0;
+    for (const rollover of rolloverByCategory.values()) {
+      const next = total + rollover.carry;
+      if (!Number.isSafeInteger(next)) return 0;
+      total = next;
+    }
+    return total;
+  }, [rolloverByCategory]);
+  const totalAvailable = totals.limit + totalCarry - totals.spent;
   /*
    * Recomputed from the live `budgets` state rather than read from the server
    * payload, so the figure moves the moment a limit is added, edited or removed
@@ -303,7 +342,7 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
           section="Kế hoạch chi tiêu"
           title="Ngân sách"
           description={`${monthLabel} · So sánh hạn mức với số đã chi và mở đúng giao dịch đứng sau mỗi tổng.`}
-          truthNote="Ngân sách là hạn mức theo danh mục cho từng tháng. MoneyFlow không chuyển tiền vào phong bì, không tự phân bổ số dư và không cộng dồn hạn mức sang tháng sau."
+          truthNote="Ngân sách là hạn mức theo danh mục cho từng tháng. Số còn lại đã gồm phần chuyển từ các tháng trước — chi dưới hạn mức cộng vào, vượt hạn mức trừ đi. MoneyFlow không chuyển tiền vào phong bì và không tự phân bổ số dư."
         />
 
         <section className={planningStyles.periodNav} aria-label="Chọn tháng ngân sách" data-slot="planning-period-nav">
@@ -353,11 +392,17 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
             <MoneyValue amount={totals.spent} emphasis="strong" align="start" />
           </PlanningSummaryItem>
           <PlanningSummaryItem
-            label={totals.spent > totals.limit ? "Đã vượt" : "Còn lại"}
-            meta={hasPreviousData ? `Đối chiếu với ${previousMonthLabel}.` : "Chưa có dữ liệu tháng trước."}
+            label={totalAvailable < 0 ? "Đã vượt" : "Còn lại"}
+            meta={
+              totalCarry !== 0
+                ? `Đã gồm ${formatSignedMoney(totalCarry)} chuyển từ các tháng trước.`
+                : hasPreviousData
+                  ? `Đối chiếu với ${previousMonthLabel}.`
+                  : "Chưa có dữ liệu tháng trước."
+            }
           >
             <MoneyValue
-              amount={Math.abs(totals.limit - totals.spent)}
+              amount={Math.abs(totalAvailable)}
               emphasis="strong"
               align="start"
             />
@@ -406,16 +451,38 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
           {budgets.length ? (
             <div className={planningStyles.grid}>
               {budgets.map((budget) => {
-                const progress = budgetProgress(budget);
-                const remaining = budgetRemaining(budget);
-                const pace = budgetPaceLine(
+                /*
+                 * Effective figures fold the carry in: available = limit +
+                 * carry − spent. "Hạn mức" still shows the month's own limit —
+                 * the rollover line right below is what makes the difference
+                 * between the two numbers legible.
+                 */
+                const rollover =
+                  rolloverByCategory.get(budget.categoryId) ?? {
+                    carry: 0,
+                    monthsIncluded: 0,
+                  };
+                const effective = {
+                  spent: budget.spent,
+                  limit: budgetEffectiveLimit(budget, rollover.carry),
+                };
+                const progress = budgetProgress(effective);
+                const available = budgetEffectiveAvailable(
                   budget,
+                  rollover.carry,
+                );
+                const pace = budgetPaceLine(
+                  effective,
                   workspace.monthStart,
                   workspace.today,
                 );
-                const level = budgetThreshold(budget);
+                const level = budgetEffectiveThreshold(budget, rollover.carry);
                 const tone = budgetToneToCard(level);
-                const statusText = budgetStatusLabel(budget);
+                const statusText = budgetEffectiveStatusLabel(
+                  budget,
+                  rollover.carry,
+                );
+                const rolloverLine = budgetRolloverLabel(rollover);
                 const meta =
                   categoryMeta[budget.categoryName] ?? categoryMeta["Thu nhập khác"];
                 const previousBudget = previousByCategory.get(budget.categoryId);
@@ -450,11 +517,15 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
                       </div>
                       <div className={planningStyles.metric}>
                         <span className={planningStyles.metricLabel}>
-                          {remaining < 0 ? "Vượt" : "Còn lại"}
+                          {available < 0 ? "Vượt" : "Còn lại"}
                         </span>
-                        <MoneyValue amount={Math.abs(remaining)} emphasis="strong" align="start" />
+                        <MoneyValue amount={Math.abs(available)} emphasis="strong" align="start" />
                       </div>
                     </div>
+
+                    {rolloverLine ? (
+                      <p className={planningStyles.context}>{rolloverLine}</p>
+                    ) : null}
 
                     {previousBudget ? (
                       <p className={planningStyles.context}>

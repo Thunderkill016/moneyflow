@@ -320,3 +320,167 @@ export function budgetsToCarryForward({
       limit: budget.limit,
     }));
 }
+
+/**
+ * How far back a rollover may reach, counted in whole months before the
+ * viewed month. A bound must exist somewhere; twelve months covers every
+ * budgeted history the product can hold today while keeping the server read
+ * and the sum itself bounded no matter how much history accrues. The bound is
+ * applied twice — once in the `budget_progress` range read and again inside
+ * `budgetRollover` — so a caller that hands over deeper history still gets
+ * the same answer.
+ */
+export const BUDGET_ROLLOVER_LOOKBACK_MONTHS = 12;
+
+/** First month_start inside the rollover window for a viewed month. */
+export function budgetRolloverWindowStart(monthStart: string) {
+  return shiftBudgetMonth(monthStart, -BUDGET_ROLLOVER_LOOKBACK_MONTHS);
+}
+
+export type BudgetRollover = {
+  /**
+   * Signed đồng carried into the viewed month: prior underspend adds to what
+   * the category may still absorb, prior overspend subtracts.
+   */
+  carry: number;
+  /**
+   * How many prior budgeted months contributed. Kept for honest labelling —
+   * "chuyển từ tháng trước" would be a lie when the carry actually nets three
+   * earlier months.
+   */
+  monthsIncluded: number;
+};
+
+/**
+ * Carry-forward into `monthStart` for one category.
+ *
+ * Each prior month that has a budget row contributes `limit − spent` for that
+ * month — under- and overspend cancel, which is the rollover contract. Months
+ * with no budget row contribute nothing: the category was not being tracked
+ * that month, and inventing a deficit for it would charge the user for a
+ * decision they never made.
+ *
+ * `priorBudgets` must hold budget summaries from months before `monthStart`;
+ * rows outside the lookback window or at/after the viewed month are ignored,
+ * so passing an unfiltered history is safe. Only integer đồng participate;
+ * unsafe rows are skipped like `sumBudgetSpent` rather than poisoning the sum.
+ */
+export function budgetRollover({
+  priorBudgets,
+  categoryId,
+  monthStart,
+}: {
+  priorBudgets: Pick<
+    BudgetSummary,
+    "categoryId" | "monthStart" | "limit" | "spent"
+  >[];
+  categoryId: string;
+  monthStart: string;
+}): BudgetRollover {
+  // Throws on a malformed viewed month before any arithmetic happens.
+  const windowStart = budgetRolloverWindowStart(monthStart);
+
+  let carry = 0;
+  let monthsIncluded = 0;
+  for (const row of priorBudgets) {
+    if (row.categoryId !== categoryId) continue;
+    if (row.monthStart >= monthStart || row.monthStart < windowStart) continue;
+    if (!Number.isSafeInteger(row.limit) || !Number.isSafeInteger(row.spent)) {
+      continue;
+    }
+    const delta = row.limit - row.spent;
+    const next = carry + delta;
+    if (!Number.isSafeInteger(delta) || !Number.isSafeInteger(next)) continue;
+    carry = next;
+    monthsIncluded += 1;
+  }
+  return { carry, monthsIncluded };
+}
+
+/**
+ * The cap the viewed month effectively works against: `limit + carry`.
+ * May fall to zero or below when carried overspend outweighs the month's own
+ * limit — callers treat a non-positive effective limit as fully consumed,
+ * never as "no budget".
+ */
+export function budgetEffectiveLimit(
+  budget: Pick<BudgetSummary, "limit">,
+  carry: number,
+): number {
+  if (!Number.isSafeInteger(carry)) throw new Error("invalid_budget_carry");
+  const effectiveLimit = budget.limit + carry;
+  if (!Number.isSafeInteger(effectiveLimit)) {
+    throw new Error("invalid_budget_effective_limit");
+  }
+  return effectiveLimit;
+}
+
+/**
+ * What the category may still absorb this month once prior under/overspend
+ * is folded in: `limit + carry − spent`. Signed — negative means the budget
+ * is over even if this month's own spending stayed under its own limit.
+ */
+export function budgetEffectiveAvailable(
+  budget: Pick<BudgetSummary, "spent" | "limit">,
+  carry: number,
+): number {
+  const available = budgetEffectiveLimit(budget, carry) - budget.spent;
+  if (!Number.isSafeInteger(available)) {
+    throw new Error("invalid_budget_available");
+  }
+  return available;
+}
+
+/**
+ * Threshold on the effective figures. A negative available is always "over",
+ * which also covers the edge where carried overspend pushes the effective
+ * limit to zero or below — a case `budgetThreshold` alone cannot express
+ * because progress is undefined on a non-positive limit.
+ */
+export function budgetEffectiveThreshold(
+  budget: Pick<BudgetSummary, "spent" | "limit">,
+  carry: number,
+): BudgetThreshold {
+  if (budgetEffectiveAvailable(budget, carry) < 0) return "over";
+  return budgetThreshold({
+    spent: budget.spent,
+    limit: budgetEffectiveLimit(budget, carry),
+  });
+}
+
+/**
+ * Status on the effective figures, same calm vocabulary as
+ * `budgetStatusLabel`. When available is non-negative the effective limit is
+ * necessarily ≥ spent ≥ 0, so the shared label sees only states it already
+ * handles; the early return covers the carried-overspend edge it cannot.
+ */
+export function budgetEffectiveStatusLabel(
+  budget: Pick<BudgetSummary, "spent" | "limit">,
+  carry: number,
+  format: (minorUnits: number) => string = formatMoney,
+): string {
+  const available = budgetEffectiveAvailable(budget, carry);
+  if (available < 0) return `Đã vượt ${format(Math.abs(available))}`;
+  return budgetStatusLabel(
+    { spent: budget.spent, limit: budgetEffectiveLimit(budget, carry) },
+    format,
+  );
+}
+
+/**
+ * One honest line explaining where the carry came from, or null when nothing
+ * carried — the card stays quiet rather than printing "+0 ₫" noise.
+ */
+export function budgetRolloverLabel(rollover: BudgetRollover): string | null {
+  if (!Number.isSafeInteger(rollover.carry) || rollover.carry === 0) {
+    return null;
+  }
+  const months =
+    rollover.monthsIncluded > 1
+      ? `${rollover.monthsIncluded} tháng trước đó`
+      : "tháng trước";
+  const amount = formatMoney(Math.abs(rollover.carry));
+  return rollover.carry > 0
+    ? `Chuyển từ ${months}: +${amount}`
+    : `Trừ vì vượt hạn mức ${months}: −${amount}`;
+}

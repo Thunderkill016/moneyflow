@@ -3,6 +3,7 @@ import "server-only";
 import { z } from "zod";
 import { monthIncomeTotal } from "@/lib/planning/allocation";
 import {
+  budgetRolloverWindowStart,
   resolveBudgetMonth,
   type BudgetMonthAdjustment,
   type BudgetMonthResolution,
@@ -19,6 +20,15 @@ import { mapCommitmentRow } from "@/server/commitments";
 export type BudgetsWorkspace = {
   budgets: BudgetSummary[];
   previousBudgets: BudgetSummary[];
+  /**
+   * Every budgeted month inside the rollover window
+   * (`BUDGET_ROLLOVER_LOOKBACK_MONTHS` before the viewed month), all
+   * categories. The page sums each row's `limit − spent` through
+   * `budgetRollover` so prior under/overspend honestly moves the viewed
+   * month's effective available — `previousBudgets` alone cannot express a
+   * carry that originates deeper than one month back.
+   */
+  priorBudgets: BudgetSummary[];
   categories: CategoryOption[];
   monthStart: string;
   monthEnd: string;
@@ -179,6 +189,11 @@ function demoWorkspace(
 ): BudgetsWorkspace {
   const selectedIsCurrent = resolution.monthStart === currentStart;
   const selectedIsImmediatePrevious = resolution.nextMonthStart === currentStart;
+  // The demo ledger seeds exactly one month of budget history; that month is
+  // the whole rollover window the demo can honestly show.
+  const demoPriorBudgets = selectedIsCurrent
+    ? demoRows(resolution.previousMonthStart, "previous")
+    : [];
 
   return {
     ...workspaceMetadata(resolution),
@@ -188,9 +203,8 @@ function demoWorkspace(
       : selectedIsImmediatePrevious
         ? demoRows(resolution.monthStart, "previous")
         : [],
-    previousBudgets: selectedIsCurrent
-      ? demoRows(resolution.previousMonthStart, "previous")
-      : [],
+    previousBudgets: demoPriorBudgets,
+    priorBudgets: demoPriorBudgets,
     // Derived from the same demo ledger the demo dashboard reads, so the two
     // agree in demo exactly as they must in authenticated mode.
     monthIncome: monthIncomeTotal(sampleTransactionsFor(todayInVietnam()), resolution.monthStart.slice(0, 7)),
@@ -215,12 +229,17 @@ export async function getBudgetsWorkspace(
       ...workspaceMetadata(resolution),
       budgets: [],
       previousBudgets: [],
+      priorBudgets: [],
       categories: [],
       monthIncome: 0,
       monthCommitments: [],
       dataError: "Không thể kết nối dữ liệu ngân sách.",
     };
   }
+
+  // The rollover window is bounded twice — here at the read, and again inside
+  // budgetRollover — so history depth can never make this scan unbounded.
+  const rolloverWindowStart = budgetRolloverWindowStart(resolution.monthStart);
 
   const [budgetsResult, categoriesResult, incomeResult, commitmentsResult, occurrencesResult] =
     await Promise.all([
@@ -230,7 +249,8 @@ export async function getBudgetsWorkspace(
         "id,category_id,category_name,category_icon,category_color,month_start,limit_minor,spent_minor",
       )
       .eq("user_id", viewer.id)
-      .in("month_start", [resolution.monthStart, resolution.previousMonthStart])
+      .gte("month_start", rolloverWindowStart)
+      .lte("month_start", resolution.monthStart)
       .order("month_start", { ascending: false })
       .order("category_name"),
     supabase
@@ -277,6 +297,7 @@ export async function getBudgetsWorkspace(
       ...workspaceMetadata(resolution),
       budgets: [],
       previousBudgets: [],
+      priorBudgets: [],
       categories: [],
       monthIncome: 0,
       monthCommitments: [],
@@ -299,6 +320,9 @@ export async function getBudgetsWorkspace(
       previousBudgets: rows.filter(
         (item) => item.monthStart === resolution.previousMonthStart,
       ),
+      priorBudgets: rows.filter(
+        (item) => item.monthStart < resolution.monthStart,
+      ),
       categories: z.array(categorySchema).parse(categoriesResult.data),
       monthIncome: sumMinorAmounts(incomeResult.data ?? []),
       monthCommitments: commitments,
@@ -309,6 +333,7 @@ export async function getBudgetsWorkspace(
       ...workspaceMetadata(resolution),
       budgets: [],
       previousBudgets: [],
+      priorBudgets: [],
       categories: [],
       monthIncome: 0,
       monthCommitments: [],

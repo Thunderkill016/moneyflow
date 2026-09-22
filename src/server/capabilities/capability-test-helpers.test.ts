@@ -126,6 +126,7 @@ export function fixtureBudgetsWorkspace(): BudgetsWorkspace {
       },
     ],
     previousBudgets: [],
+    priorBudgets: [],
     categories: [],
     monthStart: "2026-07-01",
     monthEnd: "2026-07-31",
