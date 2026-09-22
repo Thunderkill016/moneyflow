@@ -830,11 +830,24 @@ export function TransactionsWorkspace({
                 >
                   <Icon name="arrows" /> Chuyển tiền ví
                 </Button>
+                {!workspace.dataError &&
+                (expenseCategoryCount < 2 || workspace.accounts.length < 2) ? (
+                  <small className={styles.actionHint}>
+                    {workspace.accounts.length < 1
+                      ? "Tạo tài khoản trước để chia khoản chi hoặc chuyển tiền giữa ví."
+                      : workspace.accounts.length < 2 && expenseCategoryCount < 2
+                        ? "Chuyển tiền ví cần hai tài khoản; chia khoản chi cần hai danh mục chi tiêu."
+                        : workspace.accounts.length < 2
+                          ? "Chuyển tiền ví cần ít nhất hai tài khoản."
+                          : "Chia khoản chi cần ít nhất hai danh mục chi tiêu."}
+                  </small>
+                ) : null}
               </>
             )}
           </div>
         </section>
 
+        {workspace.dataError ? null : (
         <section
           className={styles.summary}
           aria-label="Tóm tắt theo bộ lọc"
@@ -872,6 +885,7 @@ export function TransactionsWorkspace({
             />
           </div>
         </section>
+        )}
 
         <section className={styles.manager} aria-label="Danh sách giao dịch">
           <div className={styles.toolbar} data-slot="ledger-filters">
@@ -1434,21 +1448,37 @@ export function TransactionsWorkspace({
           ) : (
             <EmptyState
               icon={<Icon name={isTimeline ? "timeline" : "arrows"} />}
-              title="Chưa có giao dịch"
+              title={
+                workspace.dataError
+                  ? "Không tải được giao dịch"
+                  : "Chưa có giao dịch"
+              }
               description={
-                isTimeline
-                  ? "Ghi khoản chi hoặc thu để dòng tiền hiện trên timeline."
-                  : "Ghi khoản chi đầu tiên để bắt đầu theo dõi dòng tiền."
+                workspace.dataError
+                  ? "Dữ liệu của bạn vẫn được bảo vệ. Thử tải lại trang hoặc quay lại Tổng quan."
+                  : isTimeline
+                    ? "Ghi khoản chi hoặc thu để dòng tiền hiện trên timeline."
+                    : "Ghi khoản chi đầu tiên để bắt đầu theo dõi dòng tiền."
               }
               primaryAction={
-                <Button
-                  type="button"
-                  intent="secondary"
-                  targetSize="important"
-                  onClick={() => setDialogOpen(true)}
-                >
-                  {GHI_CHI_TIEU_LABEL}
-                </Button>
+                workspace.dataError ? (
+                  <LinkButton
+                    href="/dashboard"
+                    intent="secondary"
+                    targetSize="important"
+                  >
+                    Về Tổng quan
+                  </LinkButton>
+                ) : (
+                  <Button
+                    type="button"
+                    intent="secondary"
+                    targetSize="important"
+                    onClick={() => setDialogOpen(true)}
+                  >
+                    {GHI_CHI_TIEU_LABEL}
+                  </Button>
+                )
               }
               className={styles.emptyState}
             />

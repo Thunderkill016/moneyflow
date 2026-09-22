@@ -79,6 +79,15 @@
   gap: 10px;
 }
 
+.actionHint {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--mf-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: right;
+}
+
 /* Summary and ledger are one workspace, not two cards. The summary keeps its own
    grid but shares the surface and the top corners with the manager below it, so
    the eye reads a single object with a header band. */

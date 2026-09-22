@@ -11,12 +11,14 @@ import styles from "./account-dialog.module.css";
 
 export function AccountArchiveDialog({
   account,
+  isLastActive,
   open,
   submitting,
   onClose,
   onConfirm,
 }: {
   account: AccountSummary | null;
+  isLastActive: boolean;
   open: boolean;
   submitting: boolean;
   onClose: () => void;
@@ -57,6 +59,7 @@ export function AccountArchiveDialog({
             pending={submitting}
             pendingLabel="Đang lưu trữ..."
             onClick={onConfirm}
+            disabled={isLastActive}
           >
             <Icon name="archive" /> Lưu trữ tài khoản
           </Button>
@@ -85,6 +88,16 @@ export function AccountArchiveDialog({
             Tài khoản sẽ chuyển sang nhóm đã lưu trữ và bạn có thể khôi phục sau.
           </AlertDescription>
         </Alert>
+
+        {isLastActive ? (
+          <Alert tone="error">
+            <AlertTitle>Không thể lưu trữ tài khoản cuối cùng</AlertTitle>
+            <AlertDescription>
+              Đây là tài khoản đang hoạt động duy nhất. MoneyFlow cần giữ lại ít
+              nhất một tài khoản để ghi giao dịch — hãy tạo tài khoản khác trước.
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
         <ul className={styles.archiveConsequences}>
           <li>Tài khoản không còn xuất hiện khi ghi giao dịch mới.</li>
