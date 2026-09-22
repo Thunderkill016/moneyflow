@@ -68,6 +68,28 @@ import {
 } from "@/lib/inbox/review";
 import { trackProductEvent } from "@/lib/safe-analytics";
 import { safeUserNotice } from "@/lib/safe-log";
+import {
+  listDueCommitmentsAction,
+  payCommitmentAction,
+} from "@/app/actions/commitments";
+import { demoCommitmentSeeds } from "@/lib/demo/commitment-fixtures";
+import {
+  appendPaymentExpense,
+  buildCommitmentPaymentExpense,
+  markCommitmentPaid,
+  monthStartFromDate,
+  type RecurringCommitment,
+} from "@/lib/planning/commitments";
+import {
+  hydrateCommitmentsWithOccurrences,
+  persistPayOccurrence,
+} from "@/lib/planning/commitment-occurrence-store";
+import {
+  buildCommitmentSuggestions,
+  commitmentSuggestionEditBlocked,
+  parseCommitmentSuggestionId,
+} from "@/lib/planning/commitment-suggestions";
+import { todayInVietnam } from "@/lib/vietnam-date";
 import type {
   AccountOption,
   CategoryOption,
@@ -124,6 +146,11 @@ export function InboxPage({
 
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [candidates, setCandidates] = useState<InboxCandidate[]>([]);
+  const [dueCommitments, setDueCommitments] = useState<RecurringCommitment[]>(
+    [],
+  );
+  const [today] = useState(() => todayInVietnam());
+  const monthStart = monthStartFromDate(today);
   const [filter, setFilter] = useState<InboxViewFilter>("all");
   const [notice, setNotice] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -158,12 +185,33 @@ export function InboxPage({
     candidatesRef.current = candidates;
   }, [candidates]);
 
+  /*
+   * Due unpaid commitments become virtual Inbox suggestions. Auth reads the
+   * server feed + current-month occurrences; demo hydrates the shared seeds
+   * with the on-device occurrence map.
+   */
+  const loadDueCommitments = useCallback(async () => {
+    if (viewer.isDemo) {
+      const hydrated = await Promise.resolve(
+        hydrateCommitmentsWithOccurrences(
+          demoCommitmentSeeds(monthStart),
+          monthStart,
+        ),
+      );
+      setDueCommitments(hydrated);
+      return;
+    }
+    const result = await listDueCommitmentsAction();
+    if (result.ok) setDueCommitments(result.commitments);
+  }, [viewer.isDemo, monthStart]);
+
   const load = useCallback(
     async (opts?: { showLoading?: boolean }) => {
       if (opts?.showLoading) {
         setLoadState("loading");
         setErrorMessage("");
       }
+      void loadDueCommitments();
       const result = await loadInboxForClient(viewer.isDemo);
       if (!result.ok) {
         setErrorMessage(result.message || "Không tải được Inbox.");
@@ -176,7 +224,7 @@ export function InboxPage({
       setLoadState("ready");
       resolveCandidateTarget(result.candidates);
     },
-    [viewer.isDemo, resolveCandidateTarget],
+    [viewer.isDemo, resolveCandidateTarget, loadDueCommitments],
   );
 
   useEffect(() => {
@@ -185,6 +233,7 @@ export function InboxPage({
     void (async () => {
       const result = await loadInboxForClient(viewer.isDemo);
       if (cancelled) return;
+      await loadDueCommitments();
       if (!result.ok) {
         setErrorMessage(result.message || "Không tải được Inbox.");
         setLoadState("error");
@@ -198,7 +247,7 @@ export function InboxPage({
     return () => {
       cancelled = true;
     };
-  }, [viewer.isDemo, initialCandidateId, resolveCandidateTarget]);
+  }, [viewer.isDemo, initialCandidateId, resolveCandidateTarget, loadDueCommitments]);
 
   useEffect(() => {
     if (!notice) return;
@@ -206,10 +255,20 @@ export function InboxPage({
     return () => window.clearTimeout(timer);
   }, [notice]);
 
+  /*
+   * Commitment suggestions are virtual — derived from commitment state each
+   * render, never part of `candidates`, so persist/mutation paths never see
+   * them. They still flow through annotateCandidates like real candidates.
+   */
+  const commitmentSuggestions = useMemo(
+    () => buildCommitmentSuggestions(dueCommitments, monthStart, today),
+    [dueCommitments, monthStart, today],
+  );
+
   const detected = useMemo(
     () =>
       annotateCandidates(
-        candidates,
+        [...candidates, ...commitmentSuggestions],
         workspace.transactions.map((transaction) => ({
           id: transaction.id,
           kind: transaction.kind,
@@ -220,7 +279,7 @@ export function InboxPage({
           accountId: transaction.accountId,
         })),
       ),
-    [candidates, workspace.transactions],
+    [candidates, commitmentSuggestions, workspace.transactions],
   );
   const detectedRef = useRef<DetectedCandidate[]>(detected);
 
@@ -383,10 +442,117 @@ export function InboxPage({
     );
   }
 
+  /*
+   * Commitment suggestions are virtual: approval pays the commitment's
+   * declared values through the existing pay path (atomic transaction +
+   * occurrence), never through the generic candidate-approval path. The only
+   * reviewer-adjustable field is the paid-on date.
+   */
+  async function postCommitmentSuggestion(
+    target: { commitmentId: string; monthStart: string },
+    payload: ReviewSubmitPayload,
+    bulk: boolean,
+  ): Promise<{ ok: boolean; message?: string }> {
+    const commitment = dueCommitments.find(
+      (item) => item.id === target.commitmentId,
+    );
+    if (!commitment || commitment.isPaid || commitment.isArchived) {
+      return {
+        ok: false,
+        message: "Khoản định kỳ này đã được ghi hoặc không còn hiệu lực.",
+      };
+    }
+    const suggestion = detectedRef.current.find(
+      (item) => item.id === payload.candidateId,
+    );
+    if (payload.post.mode !== "money" || payload.draft.kind !== "expense") {
+      return {
+        ok: false,
+        message: "Khoản định kỳ chỉ ghi được một khoản chi.",
+      };
+    }
+    if (
+      suggestion &&
+      commitmentSuggestionEditBlocked(
+        suggestion,
+        payload.draft,
+        workspace.accounts,
+        workspace.categories,
+      )
+    ) {
+      return {
+        ok: false,
+        message:
+          "Khoản định kỳ chỉ đổi được ngày ghi — sửa chi tiết tại Khoản định kỳ.",
+      };
+    }
+    const paidOn = payload.draft.occurredOn;
+
+    if (viewer.isDemo) {
+      const transactionId = crypto.randomUUID();
+      const expense = buildCommitmentPaymentExpense(
+        commitment,
+        paidOn,
+        transactionId,
+      );
+      writeStoredTransactions(
+        appendPaymentExpense(readStoredTransactions(), expense),
+      );
+      persistPayOccurrence(target.monthStart, commitment.id, transactionId);
+      setDueCommitments((current) =>
+        markCommitmentPaid(current, commitment.id, transactionId),
+      );
+    } else {
+      const result = await payCommitmentAction(
+        target.commitmentId,
+        target.monthStart,
+        paidOn,
+        crypto.randomUUID(),
+      );
+      if (!result.ok) return { ok: false, message: result.message };
+      setDueCommitments((current) =>
+        markCommitmentPaid(current, commitment.id, result.transactionId ?? "paid"),
+      );
+    }
+
+    setSelectedIds((current) =>
+      current.filter((id) => id !== payload.candidateId),
+    );
+    setErrorMessage("");
+    setNotice(
+      safeUserNotice(
+        `Đã ghi khoản định kỳ “${commitment.name}” vào sổ.`,
+        "Đã ghi khoản định kỳ vào sổ.",
+      ),
+    );
+    trackProductEvent("candidate_approved", {
+      kind: "expense",
+      source: "commitment",
+      edited: suggestion
+        ? draftWasEdited(
+            suggestion,
+            payload.draft,
+            workspace.accounts,
+            workspace.categories,
+          )
+        : false,
+      flagged:
+        suggestion?.possibleDuplicate === true ||
+        suggestion?.possibleTransfer === true,
+      near_match: suggestion?.nearMatch === true,
+      bulk,
+    });
+    return { ok: true };
+  }
+
   async function postOne(
     payload: ReviewSubmitPayload,
     bulk = false,
   ): Promise<{ ok: boolean; message?: string }> {
+    const suggestionTarget = parseCommitmentSuggestionId(payload.candidateId);
+    if (suggestionTarget) {
+      return postCommitmentSuggestion(suggestionTarget, payload, bulk);
+    }
     const post = payload.post;
     const accountId =
       post.mode === "money" ? post.input.accountId : post.input.sourceAccountId;
@@ -512,6 +678,13 @@ export function InboxPage({
   }
 
   async function handleReject(candidateId: string) {
+    if (parseCommitmentSuggestionId(candidateId)) {
+      setReviewId(null);
+      setNotice(
+        "Khoản định kỳ đến hạn chỉ có thể ghi sổ — đổi hoặc lưu trữ tại trang Khoản định kỳ.",
+      );
+      return;
+    }
     const target = candidatesRef.current.find(
       (item) => item.id === candidateId,
     );
@@ -544,6 +717,10 @@ export function InboxPage({
   }
 
   async function handleMarkDuplicate(candidateId: string) {
+    if (parseCommitmentSuggestionId(candidateId)) {
+      setNotice("Gợi ý định kỳ được đối chiếu tự động — không cần đánh dấu.");
+      return;
+    }
     const result = await updateCandidateForClient(
       viewer.isDemo,
       { id: candidateId, possibleDuplicate: true },
@@ -561,17 +738,40 @@ export function InboxPage({
   async function handleBulkApply(payload: BulkApplyPayload) {
     setBulkBusy(true);
     try {
+      /*
+       * Commitment suggestions are virtual — they cannot be rejected or
+       * field-assigned, and must never reach persist paths with unknown ids.
+       * Bulk approve still reaches them through postOne's dedicated branch.
+       */
+      const realIds = payload.selectedIds.filter(
+        (id) => !parseCommitmentSuggestionId(id),
+      );
+      const skippedSuggestions =
+        payload.selectedIds.length - realIds.length;
+      const skippedNote =
+        skippedSuggestions > 0
+          ? ` · bỏ qua ${skippedSuggestions} gợi ý định kỳ`
+          : "";
+
+      if (payload.action !== "approve" && realIds.length === 0) {
+        setSelectedIds([]);
+        setNotice(`Không có ứng viên nào để xử lý${skippedNote}.`);
+        return;
+      }
+
       if (payload.action === "reject") {
         const next = markCandidatesStatus(
           candidatesRef.current,
-          payload.selectedIds,
+          realIds,
           "rejected",
         );
-        if (!(await persist(next, payload.selectedIds))) return;
+        if (!(await persist(next, realIds))) return;
         setSelectedIds([]);
-        setNotice(`Đã từ chối ${payload.selectedIds.length} ứng viên.`);
+        setNotice(
+          `Đã từ chối ${realIds.length} ứng viên${skippedNote}.`,
+        );
         trackProductEvent("candidate_rejected", {
-          count: payload.selectedIds.length,
+          count: realIds.length,
           bulk: true,
         });
         return;
@@ -587,14 +787,16 @@ export function InboxPage({
         }
         const next = applyBulkAccount(
           candidatesRef.current,
-          payload.selectedIds,
+          realIds,
           account,
         );
-        if (!(await persist(next, payload.selectedIds))) return;
-        setNotice(`Đã gán tài khoản “${account.name}” cho các ứng viên đã chọn.`);
+        if (!(await persist(next, realIds))) return;
+        setNotice(
+          `Đã gán tài khoản “${account.name}” cho các ứng viên đã chọn${skippedNote}.`,
+        );
         trackProductEvent("candidate_field_assigned", {
           field: "account",
-          count: payload.selectedIds.length,
+          count: realIds.length,
         });
         return;
       }
@@ -609,16 +811,16 @@ export function InboxPage({
         }
         const next = applyBulkCategory(
           candidatesRef.current,
-          payload.selectedIds,
+          realIds,
           category,
         );
-        if (!(await persist(next, payload.selectedIds))) return;
+        if (!(await persist(next, realIds))) return;
         setNotice(
-          `Đã gán danh mục “${category.name}” cho các ứng viên cùng loại.`,
+          `Đã gán danh mục “${category.name}” cho các ứng viên cùng loại${skippedNote}.`,
         );
         trackProductEvent("candidate_field_assigned", {
           field: "category",
-          count: payload.selectedIds.length,
+          count: realIds.length,
         });
         return;
       }

@@ -11,6 +11,9 @@ import {
   type ImportBatchRow,
 } from "@/lib/inbox/inbox-map";
 import { createClient } from "@/lib/supabase/server";
+import { dueDateForMonth } from "@/lib/planning/commitments";
+import { todayInVietnam } from "@/lib/vietnam-date";
+import { currentMonthStart } from "@/server/budgets";
 import { requireViewer } from "@/server/auth";
 
 const CANDIDATE_BASE_COLUMNS =
@@ -69,7 +72,35 @@ export async function getPendingInboxCountFromServer(): Promise<number | null> {
     .eq("status", "pending");
 
   if (error) return null;
-  return count ?? 0;
+
+  /*
+   * Due unpaid commitments surface in the Inbox as virtual suggestions, so
+   * the badge counts them too — otherwise the badge would under-report what
+   * the Inbox actually lists.
+   */
+  const monthStart = currentMonthStart();
+  const today = todayInVietnam();
+  const [feed, occurrences] = await Promise.all([
+    supabase
+      .from("recurring_commitment_feed")
+      .select("id,due_day")
+      .eq("is_archived", false),
+    supabase
+      .from("commitment_occurrences")
+      .select("commitment_id")
+      .eq("month_start", monthStart),
+  ]);
+  if (feed.error || occurrences.error) return count ?? 0;
+  const paidIds = new Set(
+    (occurrences.data ?? []).map((row) => row.commitment_id as string),
+  );
+  const due = (feed.data ?? []).filter(
+    (row) =>
+      !paidIds.has(row.id as string) &&
+      dueDateForMonth(monthStart, row.due_day as number) <= today,
+  ).length;
+
+  return (count ?? 0) + due;
 }
 
 export async function listInboxFromServer(): Promise<InboxListResult> {
