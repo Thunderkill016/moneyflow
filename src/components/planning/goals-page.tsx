@@ -18,14 +18,17 @@ import {
   PlanningSummaryItem,
   PlanningWorkspace,
   Button,
+  LinkButton,
   planningStyles,
 } from "@/components/planning/planning-layout";
 import { PlanningCard } from "@/components/planning/planning-card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EmptyState } from "@/components/ui/empty-state";
 import { type ViewerSummary } from "@/components/user-chip";
 import { formatMoney } from "@/lib/money";
 import {
   dailyGoalSaving,
+  goalIsOverdue,
   goalProgress,
   goalRemaining,
   goalTotals,
@@ -229,6 +232,29 @@ export function GoalsPage({
           truthNote="Số được đánh dấu cho mục tiêu chỉ là một earmark trong kế hoạch. MoneyFlow không tạo giao dịch, không chuyển tiền và không loại số đó khỏi số dư tài khoản."
         />
 
+        {dataError ? (
+          <Alert tone="error" live="assertive">
+            <AlertDescription>{dataError}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {dataError ? (
+          <EmptyState
+            icon={<Icon name="flag" />}
+            title="Không tải được mục tiêu"
+            description="Dữ liệu của bạn vẫn được bảo vệ. Thử tải lại trang hoặc quay lại Tổng quan."
+            primaryAction={
+              <LinkButton
+                href="/dashboard"
+                intent="secondary"
+                targetSize="important"
+              >
+                Về Tổng quan
+              </LinkButton>
+            }
+          />
+        ) : (
+          <>
         <PlanningSummary label="Tổng quan mục tiêu">
           <PlanningSummaryItem
             label="Đã đánh dấu"
@@ -241,7 +267,7 @@ export function GoalsPage({
           </PlanningSummaryItem>
           <PlanningSummaryItem
             label="Nhịp kế hoạch mỗi ngày"
-            meta="Chỉ tính từ các mục tiêu đang hoạt động có thời hạn."
+            meta="Chỉ tính từ các mục tiêu đang hoạt động còn trong thời hạn."
           >
             <MoneyValue amount={totals.plannedDaily} emphasis="strong" align="start" />
           </PlanningSummaryItem>
@@ -283,6 +309,7 @@ export function GoalsPage({
                 const remaining = goalRemaining(goal);
                 const daily = dailyGoalSaving(goal, today);
                 const achieved = progress === 100;
+                const overdue = goalIsOverdue(goal, today);
                 const tone = achieved ? "achieved" : "ok";
 
                 return (
@@ -335,7 +362,9 @@ export function GoalsPage({
                         ? `Nhịp kế hoạch hiện tại: ${formatMoney(daily)} mỗi ngày.`
                         : achieved
                           ? "Mục tiêu đã đủ số được đánh dấu."
-                          : "Không có nhịp bắt buộc khi chưa đặt thời hạn."}
+                          : overdue
+                            ? `Đã quá hạn — còn thiếu ${formatMoney(remaining)}. Đổi thời hạn hoặc đánh dấu thêm khi sẵn sàng.`
+                            : "Không có nhịp bắt buộc khi chưa đặt thời hạn."}
                     </p>
 
                     <div className={planningStyles.actions} data-slot="planning-card-actions">
@@ -409,6 +438,8 @@ export function GoalsPage({
             />
           )}
         </PlanningSection>
+          </>
+        )}
       </PlanningWorkspace>
 
       <GoalDialog

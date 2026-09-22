@@ -137,6 +137,8 @@ export function IncomeTemplatesPage({
   const totals = incomeTemplateTotals(items);
   const pendingCount = pendingActiveCount(items);
   const canAdd = !dataError && accounts.length > 0 && categories.length > 0;
+  const missingAccount = accounts.length === 0;
+  const missingCategory = !missingAccount && categories.length === 0;
 
   function open(item: RecurringIncomeTemplate | null) {
     setEditing(item);
@@ -470,13 +472,25 @@ export function IncomeTemplatesPage({
                   description={
                     showArchived
                       ? "Các khoản được lưu trữ sẽ xuất hiện tại đây."
-                      : "Thêm lương hoặc khoản thu lặp để review và ghi nhận nhanh mỗi tháng."
+                      : missingAccount
+                        ? "Khoản thu định kỳ cần một tài khoản để ghi nhận tiền vào. Tạo tài khoản trước, rồi quay lại đặt khoản đầu tiên."
+                        : missingCategory
+                          ? "Khoản thu định kỳ cần một danh mục thu để phân loại. Tạo danh mục trước, rồi quay lại đặt khoản đầu tiên."
+                          : "Thêm lương hoặc khoản thu lặp để review và ghi nhận nhanh mỗi tháng."
                   }
                   primaryAction={
                     !showArchived && canAdd ? (
                       <Button type="button" intent="primary" targetSize="important" onClick={() => open(null)}>
                         <Icon name="plus" /> Thêm khoản thu đầu tiên
                       </Button>
+                    ) : !showArchived && !dataError && (missingAccount || missingCategory) ? (
+                      <LinkButton
+                        href={missingAccount ? "/accounts" : "/categories"}
+                        intent="primary"
+                        targetSize="important"
+                      >
+                        {missingAccount ? "Tạo tài khoản" : "Tạo danh mục"}
+                      </LinkButton>
                     ) : undefined
                   }
                 />

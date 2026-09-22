@@ -238,6 +238,7 @@ export function CategoriesPage({
     const result = await setCategoryArchivedAction(category.id, archivedNext);
     setBusyId(null);
     if (!result.ok) {
+      setArchiveReview(null);
       setNotice(result.message);
       return;
     }

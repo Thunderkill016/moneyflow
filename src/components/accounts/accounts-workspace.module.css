@@ -56,6 +56,15 @@
   flex-wrap: wrap;
 }
 
+.actionHint {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--mf-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: right;
+}
+
 .summary {
   min-width: 0;
   display: grid;
