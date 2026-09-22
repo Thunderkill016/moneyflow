@@ -116,8 +116,14 @@ test("mixed batch selects and posts only Ready candidates after explicit confirm
 
   await expect(page.getByText("Sẵn sàng").first()).toBeVisible();
   await expect(page.getByText("Cần xem lại").first()).toBeVisible();
-  const selectReady = page.getByRole("button", { name: "Chọn Sẵn sàng (3)", exact: true });
+  // Ready count is dynamic: a due unpaid demo commitment adds a reviewable
+  // suggestion row on top of the seeded candidates (e.g. Internet due day 18).
+  const selectReady = page.getByRole("button", { name: /Chọn Sẵn sàng \(\d+\)/ });
   await expect(selectReady).toBeEnabled();
+  const readyCount = Number(
+    (await selectReady.textContent())?.match(/\((\d+)\)/)?.[1],
+  );
+  expect(readyCount).toBeGreaterThanOrEqual(3);
 
   // The pre-#511 UI already had a three-activation bulk path via Chọn tất cả.
   // This test proves the same explicit-review path now selects only deterministic
@@ -125,15 +131,17 @@ test("mixed batch selects and posts only Ready candidates after explicit confirm
   await selectReady.click();
 
   const bulkBar = page.locator('[data-slot="inbox-bulk-review"]');
-  await expect(bulkBar.getByText("Đã chọn 3 ứng viên", { exact: true })).toBeVisible();
+  await expect(
+    bulkBar.getByText(`Đã chọn ${readyCount} ứng viên`, { exact: true }),
+  ).toBeVisible();
   await bulkBar.getByRole("button", { name: "Xem lại", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Xác nhận hành động hàng loạt" });
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByText("3 giao dịch")).toBeVisible();
+  await expect(dialog.getByText(`${readyCount} giao dịch`)).toBeVisible();
   await expect(dialog.getByText("0 ứng viên")).toBeVisible();
 
   await dialog.getByRole("button", { name: "Duyệt vào sổ" }).click();
-  await expect(page.getByText(/Đã duyệt 3/)).toBeVisible();
+  await expect(page.getByText(new RegExp(`Đã duyệt ${readyCount}`))).toBeVisible();
 
   const state = await page.evaluate(
     ({ candidateKey, transactionKey }) => {

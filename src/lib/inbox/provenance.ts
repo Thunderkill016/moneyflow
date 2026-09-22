@@ -105,6 +105,7 @@ const PARSER_VERSION_BY_SOURCE: Record<CandidateSource, string> = {
   notification: "notification@1.0",
   email: "email@1.0",
   agent: "capability@1.0",
+  commitment: "commitment_schedule@1.0",
 };
 
 export const CURRENT_IMPORT_MAPPING_VERSION = 1;

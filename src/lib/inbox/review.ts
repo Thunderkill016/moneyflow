@@ -66,6 +66,7 @@ const PARSER_BY_SOURCE: Record<InboxCandidate["source"], string> = {
   notification: "notification@1.0",
   email: "email@1.0",
   agent: "capability@1.0",
+  commitment: "commitment_schedule@1.0",
 };
 
 /** Confidence levels allowed for bulk approve without opt-in. */
