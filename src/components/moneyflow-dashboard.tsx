@@ -21,6 +21,10 @@ import type { LedgerTrustSummary } from "@/lib/ledger-trust";
 import { getTransactionReviewStatus } from "@/lib/transaction-review";
 import { sumBudgetSpent, type BudgetSummary } from "@/lib/planning/budgets";
 import { hydrateCommitmentsWithOccurrences } from "@/lib/planning/commitment-occurrence-store";
+import {
+  buildCommittedRemainder,
+  committedRemainderLabel,
+} from "@/lib/planning/committed-remainder";
 import { derivePayeeSuggestions } from "@/lib/quick-add-defaults";
 import {
   monthStartFromDate,
@@ -117,17 +121,17 @@ export function MoneyFlowDashboard({
   const [demoCommitments, setDemoCommitments] = useState<
     RecurringCommitment[] | null
   >(null);
+  const monthStart = monthStartFromDate(workspace.today);
 
   useEffect(() => {
     if (!viewer.isDemo) return;
-    const monthStart = monthStartFromDate(workspace.today);
     const frame = window.requestAnimationFrame(() => {
       setDemoCommitments(
         hydrateCommitmentsWithOccurrences(commitments, monthStart),
       );
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [viewer.isDemo, commitments, workspace.today]);
+  }, [viewer.isDemo, commitments, monthStart]);
 
   useEffect(() => {
     if (!viewer.isDemo) return;
@@ -225,6 +229,25 @@ export function MoneyFlowDashboard({
   const monthDetail = useMemo(
     () => monthStatementDetail(transactions, workspace.today),
     [transactions, workspace.today],
+  );
+
+  /*
+   * Obligations-aware remainder: "balance − unpaid declared commitments this
+   * month", disclosed as exactly that. `committedRemainderLabel` returns null
+   * whenever the derivation is incomplete or nothing was declared — the line
+   * then does not exist rather than implying coverage it cannot prove.
+   */
+  const remainderLine = useMemo(
+    () =>
+      committedRemainderLabel(
+        buildCommittedRemainder({
+          currentBalance,
+          accounts: workspace.accounts,
+          commitments: liveCommitments,
+          monthStart,
+        }),
+      ),
+    [currentBalance, workspace.accounts, liveCommitments, monthStart],
   );
 
   const needsReviewCount = useMemo(
@@ -354,6 +377,7 @@ export function MoneyFlowDashboard({
           totals={totals}
           accountBalances={liveAccountBalances}
           monthDetail={monthDetail}
+          remainderLine={remainderLine}
           today={workspace.today}
           isEmptyLedger={isEmptyLedger && !workspace.dataError}
           dataError={workspace.dataError}
