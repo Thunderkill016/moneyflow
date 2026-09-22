@@ -141,7 +141,11 @@ test("filtered summary keeps transfer exclusion and complete integer money flow"
 
 test("ledger deletion remains confirmed, soft and recoverable for eight seconds", () => {
   assert.match(workspace, /const DELETE_UNDO_MS = 8000/);
-  assert.match(workspace, /window\.confirm\(/);
+  assert.doesNotMatch(workspace, /window\.confirm\(/);
+  assert.match(workspace, /SecondaryReviewDialog/);
+  assert.match(workspace, /confirmLabel="Xóa giao dịch"/);
+  assert.match(workspace, /confirmLabel="Đổi danh mục"/);
+  assert.match(workspace, /setDeleteTarget\(transaction\)/);
   assert.match(workspace, /Bạn có thể hoàn tác trong 8 giây/);
   assert.match(workspace, /deleteTransaction\(transaction\.id\)/);
   assert.match(workspace, /restoreTransaction\(snapshot\)/);
