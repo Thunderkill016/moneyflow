@@ -5,6 +5,7 @@ import type {
   TransactionKind,
 } from "./transactions/contracts.ts";
 import type { QuickAddPreset } from "./quick-add-prefs.ts";
+import { normalizeSearchText } from "./search-text.ts";
 
 export type StableLedgerPresetInput = {
   transactions: Transaction[];
@@ -169,4 +170,61 @@ export function deriveFrequentLedgerPatterns({
     )
     .slice(0, FREQUENT_PATTERN_LIMIT)
     .map(([, candidate]) => candidate.pattern);
+}
+
+export type PayeeCategorySuggestion = {
+  categoryId: string;
+  categoryName: string;
+  /** The stored payee spelling the suggestion was derived from. */
+  matchedPayee: string;
+};
+
+export type PayeeCategorySuggestionInput = FrequentLedgerPatternsInput & {
+  /** The payee currently typed into the capture form. */
+  payee: string;
+  kind: TransactionKind;
+};
+
+/**
+ * The category a reviewed ledger row last carried for this exact payee.
+ *
+ * Matching folds diacritics and case through `normalizeSearchText` — "grab"
+ * finds "Grab", "com minh duc" finds "Cơm Minh Đức" — but only on the whole
+ * name: a partial "Gra" must not pre-empt the reader's own category choice.
+ *
+ * When several reviewed rows share the payee under different categories, the
+ * MOST RECENT one wins (the canonical ledger ordering). Recency is the
+ * simpler honest rule: it reflects how the user files the payee today, while
+ * a frequency vote would quietly resurrect a category the user has already
+ * moved away from. Only the trusted set can answer — reviewed, unsplit,
+ * kind-matched rows whose account and category references still resolve.
+ *
+ * The result is an offer, never a default: callers render it as a tappable
+ * suggestion and must not apply it without an explicit tap.
+ */
+export function derivePayeeCategorySuggestion({
+  transactions,
+  payee,
+  kind,
+  accounts,
+  categories,
+}: PayeeCategorySuggestionInput): PayeeCategorySuggestion | null {
+  const folded = normalizeSearchText(payee);
+  if (!folded) return null;
+  const match = eligibleReviewedTransactions({ transactions, accounts, categories })
+    .filter((transaction) => transaction.kind === kind)
+    .sort(compareLedgerRecency)
+    .find(
+      (transaction) => normalizeSearchText(transaction.payee ?? "") === folded,
+    );
+  if (!match) return null;
+  // Eligibility already proved the category exists with the right kind; the
+  // lookup only supplies the display name.
+  const category = categories.find((item) => item.id === match.categoryId);
+  if (!category) return null;
+  return {
+    categoryId: category.id,
+    categoryName: category.name,
+    matchedPayee: (match.payee ?? "").trim(),
+  };
 }

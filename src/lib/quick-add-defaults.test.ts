@@ -8,6 +8,7 @@ import type {
 } from "./transactions/contracts.ts";
 import {
   deriveFrequentLedgerPatterns,
+  derivePayeeCategorySuggestion,
   deriveStableLedgerPreset,
 } from "./quick-add-defaults.ts";
 
@@ -32,6 +33,7 @@ function transaction({
   occurredOn = occurredAt.slice(0, 10),
   reviewStatus = "reviewed",
   splits,
+  payee,
 }: {
   id: string;
   kind?: Transaction["kind"];
@@ -41,6 +43,7 @@ function transaction({
   occurredOn?: string;
   reviewStatus?: Transaction["reviewStatus"];
   splits?: Transaction["splits"];
+  payee?: string;
 }): Transaction {
   return {
     id,
@@ -48,6 +51,7 @@ function transaction({
     categoryId,
     category: categoryId,
     note: id,
+    payee,
     accountId,
     account: accountId,
     amount: 100_000,
@@ -510,4 +514,139 @@ test("frequent patterns use only the twelve most recent eligible rows", () => {
       },
     ],
   );
+});
+
+/*
+ * Payee → category suggestion. An offer, never a default: the deriver returns
+ * the category the MOST RECENT reviewed row carried for that exact (folded)
+ * payee, and the dialog applies it only through an explicit chip tap.
+ */
+function suggest(
+  transactions: Transaction[],
+  payee: string,
+  kind: TransactionKind = "expense",
+  accountOptions = accounts,
+  categoryOptions = categories,
+) {
+  return derivePayeeCategorySuggestion({
+    transactions,
+    payee,
+    kind,
+    accounts: accountOptions,
+    categories: categoryOptions,
+  });
+}
+
+test("a typed payee suggests the category of its most recent reviewed row", () => {
+  const rows = [
+    transaction({
+      id: "older-food",
+      categoryId: "food",
+      occurredAt: "2026-09-10T09:00:00.000Z",
+      payee: "Grab",
+    }),
+    transaction({
+      id: "newer-travel",
+      categoryId: "travel",
+      occurredAt: "2026-09-12T09:00:00.000Z",
+      payee: "Grab",
+    }),
+  ];
+
+  // Recency is the honest tie-break: how the user files the payee TODAY, not
+  // a frequency vote that would resurrect a category they moved away from.
+  assert.deepEqual(suggest(rows, "Grab"), {
+    categoryId: "travel",
+    categoryName: "Đi lại",
+    matchedPayee: "Grab",
+  });
+});
+
+test("payee matching folds diacritics and case but requires the whole name", () => {
+  const rows = [
+    transaction({
+      id: "phuc-long",
+      categoryId: "food",
+      occurredAt: "2026-09-12T09:00:00.000Z",
+      payee: "Phúc Long",
+    }),
+  ];
+
+  // Typed without Telex marks or case — the same fold search uses.
+  assert.equal(suggest(rows, "phuc long")?.categoryId, "food");
+  assert.equal(suggest(rows, "  PHUC LONG  ")?.categoryId, "food");
+
+  // A partial name is not a match: "phuc" must not pre-empt the choice.
+  assert.equal(suggest(rows, "phuc"), null);
+  assert.equal(suggest(rows, "phuc long cafe"), null);
+  assert.equal(suggest(rows, "Circle K"), null);
+  assert.equal(suggest(rows, "   "), null);
+  assert.equal(suggest(rows, ""), null);
+});
+
+test("unreviewed, split and stale-reference payee rows cannot suggest", () => {
+  const rows = [
+    // Newest matching row is unreviewed — it cannot teach anything.
+    transaction({
+      id: "unreviewed-newest",
+      categoryId: "travel",
+      occurredAt: "2026-09-14T09:00:00.000Z",
+      payee: "Grab",
+      reviewStatus: "needs_review",
+    }),
+    // A split expense names several categories; it cannot nominate one.
+    transaction({
+      id: "split-row",
+      categoryId: "travel",
+      occurredAt: "2026-09-13T09:00:00.000Z",
+      payee: "Grab",
+      splits: [
+        { categoryId: "travel", category: "Đi lại", amount: 50_000 },
+        { categoryId: "food", category: "Ăn uống", amount: 50_000 },
+      ],
+    }),
+    // The category it points at no longer exists.
+    transaction({
+      id: "stale-category",
+      categoryId: "gone",
+      occurredAt: "2026-09-12T09:00:00.000Z",
+      payee: "Grab",
+    }),
+    transaction({
+      id: "reviewed-oldest",
+      categoryId: "food",
+      occurredAt: "2026-09-10T09:00:00.000Z",
+      payee: "Grab",
+    }),
+  ];
+
+  assert.deepEqual(suggest(rows, "Grab"), {
+    categoryId: "food",
+    categoryName: "Ăn uống",
+    matchedPayee: "Grab",
+  });
+});
+
+test("the suggestion is scoped to the kind being captured", () => {
+  const rows = [
+    transaction({
+      id: "expense-row",
+      categoryId: "food",
+      occurredAt: "2026-09-12T09:00:00.000Z",
+      payee: "Grab",
+    }),
+    transaction({
+      id: "income-row",
+      kind: "income",
+      accountId: "bank",
+      categoryId: "salary",
+      occurredAt: "2026-09-13T09:00:00.000Z",
+      payee: "Grab",
+    }),
+  ];
+
+  assert.equal(suggest(rows, "Grab", "expense")?.categoryId, "food");
+  // The income form sees only the income row — an expense category can never
+  // be suggested into a kind it does not belong to.
+  assert.equal(suggest(rows, "Grab", "income")?.categoryId, "salary");
 });

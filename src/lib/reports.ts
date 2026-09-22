@@ -67,6 +67,16 @@ export type FinancialReport = {
    * with the account register.
    */
   accounts: { name: string; amount: number; share: number }[];
+  /**
+   * Expense grouped by the recorded payee, largest first.
+   *
+   * Whole-row like `accounts`: a split payment names several categories but is
+   * still one payment to one payee, so its full amount belongs there. Rows
+   * without a payee are simply absent, and shares divide by the period's total
+   * expense — a partially tagged month honestly sums under 100% instead of
+   * being silently re-normalized.
+   */
+  payees: { name: string; amount: number; share: number }[];
   trend: { key: string; label: string; income: number; expense: number }[];
 };
 
@@ -414,6 +424,22 @@ export function buildFinancialReport(transactions: Transaction[], range: ReportR
   const accounts = [...accountTotals.entries()]
     .map(([name, amount]) => ({ name, amount, share: expense ? Math.round((amount / expense) * 100) : 0 }))
     .sort((a, b) => b.amount - a.amount);
+  /*
+   * Same whole-row rule as accounts — a split expense is still one payment to
+   * one payee, so its full amount belongs there. Grouping is by the exact
+   * trimmed spelling: folding "grab" into "Grab" would silently merge names
+   * the user wrote differently (search folds; a ledger breakdown does not).
+   */
+  const payeeTotals = new Map<string, number>();
+  for (const item of current) {
+    if (item.kind !== "expense") continue;
+    const name = item.payee?.trim();
+    if (!name) continue;
+    payeeTotals.set(name, safeAdd(payeeTotals.get(name) ?? 0, item.amount));
+  }
+  const payees = [...payeeTotals.entries()]
+    .map(([name, amount]) => ({ name, amount, share: expense ? Math.round((amount / expense) * 100) : 0 }))
+    .sort((a, b) => b.amount - a.amount);
   const trend = trendBuckets(range).map((bucket) => {
     // A monthly bucket key is `YYYY-MM`; a daily one is a full date. Matching on
     // key length keeps this in step with trendBuckets without repeating its rule.
@@ -428,6 +454,7 @@ export function buildFinancialReport(transactions: Transaction[], range: ReportR
     expenseChangePercent: previousExpense === 0 ? null : Math.round(((expense - previousExpense) / previousExpense) * 100),
     categories,
     accounts,
+    payees,
     trend,
   };
 }

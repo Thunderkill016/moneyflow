@@ -318,6 +318,91 @@ test("an empty range reports no accounts rather than a zero row", () => {
   assert.deepEqual(report.accounts, []);
 });
 
+/*
+ * Payee breakdown — the same whole-row rule as accounts. A split expense is
+ * still one payment to one payee, and shares divide by total expense so a
+ * partially tagged month cannot pretend every đồng carried a payee.
+ */
+test("expense groups by trimmed payee, largest first", () => {
+  const report = buildFinancialReport(
+    [
+      accountRow("a", "Tiền mặt", 300_000, { payee: "Highlands Coffee" }),
+      accountRow("b", "Ngân hàng", 700_000, { payee: "Grab" }),
+      // Surrounding whitespace trims into the same group, not a second row.
+      accountRow("c", "Tiền mặt", 200_000, { payee: "  Highlands Coffee  " }),
+    ],
+    ACCOUNT_RANGE,
+  );
+
+  assert.deepEqual(
+    report.payees.map((item) => [item.name, item.amount]),
+    [
+      ["Grab", 700_000],
+      ["Highlands Coffee", 500_000],
+    ],
+  );
+  assert.equal(report.payees[0]?.share, 58);
+});
+
+test("income, transfers and empty payees never enter the payee breakdown", () => {
+  const report = buildFinancialReport(
+    [
+      accountRow("a", "Tiền mặt", 300_000, { payee: "Grab" }),
+      accountRow("i", "Ngân hàng", 20_000_000, {
+        kind: "income",
+        payee: "Grab",
+      } as Partial<Transaction>),
+      accountRow("t", "Tiền mặt", 5_000_000, {
+        kind: "transfer",
+        payee: "Grab",
+        destinationAccount: "Ngân hàng",
+      } as Partial<Transaction>),
+      accountRow("blank", "Tiền mặt", 100_000, { payee: "   " }),
+      accountRow("none", "Tiền mặt", 100_000),
+    ],
+    ACCOUNT_RANGE,
+  );
+
+  assert.deepEqual(
+    report.payees.map((item) => [item.name, item.amount]),
+    [["Grab", 300_000]],
+  );
+});
+
+test("payee shares divide by total expense so untagged spend stays honest", () => {
+  const report = buildFinancialReport(
+    [
+      accountRow("a", "Tiền mặt", 300_000, { payee: "Grab" }),
+      accountRow("b", "Tiền mặt", 700_000), // no payee recorded
+    ],
+    ACCOUNT_RANGE,
+  );
+
+  // 30% of all spend — not re-normalized to 100% of tagged spend.
+  assert.equal(report.payees[0]?.share, 30);
+});
+
+test("a split row belongs whole to the payee it was paid to", () => {
+  const split = accountRow("split", "Ngân hàng", 300_000, {
+    payee: "Circle K",
+    splits: [
+      { category: "Ăn uống", amount: 200_000 },
+      { category: "Di chuyển", amount: 100_000 },
+    ],
+  } as Partial<Transaction>);
+  const report = buildFinancialReport([split], ACCOUNT_RANGE);
+
+  assert.deepEqual(
+    report.payees.map((item) => [item.name, item.amount]),
+    [["Circle K", 300_000]],
+  );
+});
+
+test("an empty range reports no payees rather than a zero row", () => {
+  const report = buildFinancialReport([], ACCOUNT_RANGE);
+  assert.deepEqual(report.payees, []);
+});
+
 test("category trends span six calendar months ending at the viewed month", () => {
   const range = reportRange("2026-09-21", "month");
   const report = buildFinancialReport(

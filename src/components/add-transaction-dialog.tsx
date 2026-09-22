@@ -28,6 +28,7 @@ import {
 } from "@/lib/money";
 import {
   deriveFrequentLedgerPatterns,
+  derivePayeeCategorySuggestion,
   derivePayeeSuggestions,
   deriveStableLedgerPreset,
   type FrequentLedgerPattern,
@@ -131,12 +132,32 @@ export function AddTransactionDialog({
   const selectedCategory = availableCategories.find(
     (item) => item.id === selectedCategoryId,
   );
+  /*
+   * The payee suggestion is an offer, not a default: it renders as a chip the
+   * reader taps, and it is excluded from the generic quick chips so the same
+   * category can never appear twice in the row.
+   */
+  const payeeCategorySuggestion = useMemo(
+    () =>
+      derivePayeeCategorySuggestion({
+        transactions,
+        payee,
+        kind,
+        accounts,
+        categories,
+      }),
+    [accounts, categories, kind, payee, transactions],
+  );
   const quickCategories = useMemo(
     () =>
       availableCategories
-        .filter((item) => item.id !== selectedCategoryId)
+        .filter(
+          (item) =>
+            item.id !== selectedCategoryId &&
+            item.id !== payeeCategorySuggestion?.categoryId,
+        )
         .slice(0, 2),
-    [availableCategories, selectedCategoryId],
+    [availableCategories, payeeCategorySuggestion, selectedCategoryId],
   );
   const frequentPatterns = useMemo(
     () =>
@@ -280,6 +301,15 @@ export function AddTransactionDialog({
     const frame = window.requestAnimationFrame(() => setRules(readStoredRules()));
     return () => window.cancelAnimationFrame(frame);
   }, [effectiveOpen]);
+
+  /*
+   * Typing a payee only updates the payee — the category suggestion it may
+   * unlock is applied exclusively through the chip's explicit tap below.
+   */
+  function applyPayeeChange(value: string) {
+    setPayee(value);
+    markInputChanged();
+  }
 
   function applyNoteChange(value: string) {
     setNote(value);
@@ -687,6 +717,23 @@ export function AddTransactionDialog({
           aria-label="Đổi nhanh danh mục"
           data-slot="capture-category-suggestions"
         >
+          {payeeCategorySuggestion &&
+          payeeCategorySuggestion.categoryId !== selectedCategoryId ? (
+            <Button
+              type="button"
+              unstyled
+              targetSize="important"
+              className={fastStyles.categoryChip}
+              onClick={() =>
+                chooseCategory(payeeCategorySuggestion.categoryId)
+              }
+              aria-label={`Dùng danh mục gợi ý ${payeeCategorySuggestion.categoryName} cho ${payeeCategorySuggestion.matchedPayee}`}
+              data-payee-suggestion="true"
+            >
+              <Icon name="spark" aria-hidden="true" />
+              <span>Gợi ý · {payeeCategorySuggestion.categoryName}</span>
+            </Button>
+          ) : null}
           {quickCategories.map((item) => {
             const meta = categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
             return (
@@ -808,10 +855,7 @@ export function AddTransactionDialog({
               value={payee}
               targetSize="important"
               disabled={submitting}
-              onChange={(event) => {
-                setPayee(event.target.value);
-                markInputChanged();
-              }}
+              onChange={(event) => applyPayeeChange(event.target.value)}
               placeholder="Ví dụ: Highlands Coffee"
               maxLength={200}
               list={`${formId}-payees`}
