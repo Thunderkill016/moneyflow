@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
@@ -40,6 +41,12 @@ import {
   dismissLedgerDupePatterns,
   readLedgerDupeDismissals,
 } from "@/lib/ledger-duplicate-dismissals";
+import {
+  isAppSearchTarget,
+  isEditableKeyboardTarget,
+  isInteractiveKeyboardTarget,
+  moveFocusIndex,
+} from "@/lib/keyboard";
 import { safeUserNotice } from "@/lib/safe-log";
 import { isSplitExpense } from "@/lib/splits";
 import { derivePayeeSuggestions } from "@/lib/quick-add-defaults";
@@ -64,6 +71,10 @@ import {
   summarizeBulkSkips,
   type BulkSkippedRow,
 } from "@/lib/transaction-review";
+import {
+  resolveLedgerEscape,
+  resolveLedgerShortcut,
+} from "@/lib/transactions/keyboard";
 import {
   TRANSACTION_OPEN_MISSING_NOTICE,
   resolveTransactionOpenTarget,
@@ -185,6 +196,7 @@ export function TransactionsWorkspace({
   initialMaxAmount = "",
   initialOpenId,
 }: TransactionsWorkspaceProps) {
+  const router = useRouter();
   const isTimeline = variant === "timeline";
   const reviewFeatureAvailable =
     viewer.isDemo || workspace.reviewFeatureAvailable === true;
@@ -595,6 +607,132 @@ export function TransactionsWorkspace({
     }
     return groups;
   }, [listWindow.visible]);
+
+  /*
+   * Keyboard layer — mirrors the inbox shortcuts (shared helpers live in
+   * src/lib/keyboard.ts, the ledger mapping in src/lib/transactions/keyboard.ts).
+   * The focus index walks `listWindow.visible`, the flat display order the day
+   * groups render. The listener re-subscribes every render (no dep array) so
+   * row actions always see the current filter key, selection and dialog state
+   * rather than stale closures.
+   */
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const rowIndexById = useMemo(() => {
+    const map = new Map<string, number>();
+    listWindow.visible.forEach((transaction, index) => {
+      map.set(transaction.id, index);
+    });
+    return map;
+  }, [listWindow.visible]);
+  const safeFocusedIndex =
+    listWindow.visible.length === 0 || focusedIndex < 0
+      ? -1
+      : Math.min(focusedIndex, listWindow.visible.length - 1);
+  const modalOpen = Boolean(
+    dialogOpen ||
+      transferOpen ||
+      splitOpen ||
+      editing ||
+      deleteTarget ||
+      bulkCategoryReview ||
+      bulkDateReview ||
+      bulkDeleteReview,
+  );
+
+  useEffect(() => {
+    if (safeFocusedIndex < 0) return;
+    document
+      .querySelector<HTMLElement>(`[data-ledger-index="${safeFocusedIndex}"]`)
+      ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [safeFocusedIndex]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      // Any open dialog owns its keys (Esc dismissal, Enter confirm).
+      if (event.defaultPrevented || modalOpen) return;
+
+      if (event.key === "Escape") {
+        // Esc is never text input, so it is evaluated before the editable
+        // guard: it peels search → selection → row focus, innermost first.
+        const escapeTarget = resolveLedgerEscape({
+          searchActive:
+            isAppSearchTarget(document.activeElement) || query.trim() !== "",
+          hasSelection: selectedIds.length > 0,
+          hasRowFocus: safeFocusedIndex >= 0,
+        });
+        if (!escapeTarget) return;
+        event.preventDefault();
+        if (escapeTarget === "search") setQuery("");
+        else if (escapeTarget === "selection") setSelectedIds([]);
+        else setFocusedIndex(-1);
+        return;
+      }
+
+      if (isEditableKeyboardTarget(event.target)) return;
+      const action = resolveLedgerShortcut(event.key, {
+        metaKey: event.metaKey,
+        ctrlKey: event.ctrlKey,
+        altKey: event.altKey,
+      });
+      if (!action) return;
+
+      const list = listWindow.visible;
+
+      if (action === "search") {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+        return;
+      }
+      if (action === "add") {
+        event.preventDefault();
+        if (isTimeline) router.push(GHI_CHI_TIEU_HREF);
+        else if (!workspace.dataError) setDialogOpen(true);
+        return;
+      }
+      if (list.length === 0) return;
+
+      if (action === "next" || action === "prev") {
+        event.preventDefault();
+        setFocusedIndex((current) =>
+          moveFocusIndex(current, action === "next" ? 1 : -1, list.length),
+        );
+        return;
+      }
+
+      const row =
+        safeFocusedIndex >= 0 ? list[safeFocusedIndex] : undefined;
+      if (!row) {
+        showNotice("Dùng J/K chọn một giao dịch trước.", "info");
+        return;
+      }
+      // Enter/e must not hijack a focused control's own activation — the row's
+      // edit/delete buttons and the recurring-row commitments link keep their
+      // native click.
+      if (action === "edit" && isInteractiveKeyboardTarget(event.target)) {
+        return;
+      }
+      event.preventDefault();
+      if (action === "edit") {
+        if (row.isRecurringPayment) router.push("/commitments");
+        else handleEditClick(row);
+        return;
+      }
+      if (action === "toggle_select") {
+        if (reviewFeatureAvailable && !isMutating) {
+          toggleTransactionSelection(row.id);
+        }
+        return;
+      }
+      if (action === "delete" && !isMutating) {
+        handleDelete(row);
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
 
   const hasActiveFilters =
     query.trim().length > 0 ||
@@ -1180,6 +1318,8 @@ export function TransactionsWorkspace({
               <div className={styles.searchControl}>
                 <Icon name="search" />
                 <input
+                  ref={searchInputRef}
+                  data-app-search="true"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Tìm theo ghi chú, danh mục..."
@@ -1733,14 +1873,20 @@ export function TransactionsWorkspace({
                     const balance = runningBalance?.balanceAfter.get(
                       transaction.id,
                     );
+                    const rowIndex =
+                      rowIndexById.get(transaction.id) ?? -1;
+                    const rowFocused =
+                      rowIndex >= 0 && rowIndex === safeFocusedIndex;
                     return (
                       <article
                         className={`${styles.row}${
                           runningBalance ? ` ${styles.rowWithBalance}` : ""
-                        }`}
+                        }${rowFocused ? ` ${styles.focused}` : ""}`}
                         key={transaction.id}
                         data-slot="ledger-row"
                         data-transaction-id={transaction.id}
+                        data-ledger-index={rowIndex}
+                        aria-current={rowFocused ? "true" : undefined}
                       >
                         <span
                           className={`${styles.transactionIcon} ${iconTone(transaction.kind)}`}
@@ -1892,6 +2038,14 @@ export function TransactionsWorkspace({
                   ) : null}
                 </div>
               ) : null}
+
+              <div className={styles.listFooter}>
+                <p aria-label="Phím tắt sổ giao dịch">
+                  <kbd>J</kbd>/<kbd>K</kbd> di chuyển · <kbd>Enter</kbd>/
+                  <kbd>E</kbd> sửa · <kbd>X</kbd> chọn · <kbd>Del</kbd> xóa ·{" "}
+                  <kbd>N</kbd> thêm · <kbd>/</kbd> tìm · <kbd>Esc</kbd> bỏ
+                </p>
+              </div>
             </div>
           ) : transactions.length ? (
             <EmptyState
