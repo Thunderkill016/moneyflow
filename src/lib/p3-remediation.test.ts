@@ -107,7 +107,10 @@ test("PP-03: a confirmed row retires its pending row instead of stacking on it",
   const pending = { ...confirmedRow({ id: "pending:key-1" }), pendingKey: "key-1" };
   const confirmed = { ...confirmedRow(), pendingKey: "key-1" };
 
-  const both = reduceOptimisticTransactions([confirmed], pending);
+  const both = reduceOptimisticTransactions([confirmed], {
+    type: "add",
+    transaction: pending,
+  });
   assert.equal(both.length, 1, "the pending row must be dropped once confirmed");
   assert.equal(both[0].id, "server-uuid-1");
 });
@@ -118,12 +121,18 @@ test("PP-03: no aggregate double-counts during the confirmation window", () => {
   const confirmed = { ...confirmedRow(), pendingKey: "key-1" };
 
   // 1. optimistic only — the user should see the new value immediately.
-  const optimisticOnly = reduceOptimisticTransactions([], pending);
+  const optimisticOnly = reduceOptimisticTransactions([], {
+    type: "add",
+    transaction: pending,
+  });
   const optimisticBalance = balanceAfterTransactions(opening, optimisticOnly);
   assert.equal(optimisticBalance, opening - 50_000);
 
   // 2. the confirmation lands while the transition is still open.
-  const duringConfirmation = reduceOptimisticTransactions([confirmed], pending);
+  const duringConfirmation = reduceOptimisticTransactions([confirmed], {
+    type: "add",
+    transaction: pending,
+  });
   assert.equal(
     balanceAfterTransactions(opening, duringConfirmation),
     opening - 50_000,
@@ -148,13 +157,19 @@ test("PP-03: a genuinely different pending row is still shown", () => {
     ...confirmedRow({ id: "pending:key-2", amount: 20_000 }),
     pendingKey: "key-2",
   };
-  const next = reduceOptimisticTransactions([confirmed], otherPending);
+  const next = reduceOptimisticTransactions([confirmed], {
+    type: "add",
+    transaction: otherPending,
+  });
   assert.equal(next.length, 2);
 });
 
 test("PP-03: a pending row with no key keeps the previous id-based behaviour", () => {
   const legacy = confirmedRow({ id: "pending:legacy" });
-  const next = reduceOptimisticTransactions([confirmedRow()], legacy);
+  const next = reduceOptimisticTransactions([confirmedRow()], {
+    type: "add",
+    transaction: legacy,
+  });
   assert.equal(next.length, 2);
 });
 
@@ -455,7 +470,10 @@ test("PP-15: a retried save still cannot create a second row", () => {
   // row, whether the first attempt failed or merely appeared to.
   const pending = { ...confirmedRow({ id: "pending:key-1" }), pendingKey: "key-1" };
   const confirmed = { ...confirmedRow(), pendingKey: "key-1" };
-  const afterRetry = reduceOptimisticTransactions([confirmed], pending);
+  const afterRetry = reduceOptimisticTransactions([confirmed], {
+    type: "add",
+    transaction: pending,
+  });
   assert.equal(afterRetry.length, 1);
   assert.equal(balanceAfterTransactions(0, afterRetry), -50_000);
 
