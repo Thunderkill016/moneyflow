@@ -492,8 +492,14 @@
 }
 
 .listHeader span:nth-child(2),
-.listHeader span:nth-child(3) {
+.listHeader span:nth-child(3),
+.listHeader span:nth-child(4) {
   text-align: right;
+}
+
+/* Single-account scope adds the running-balance column. */
+.listHeaderWithBalance {
+  grid-template-columns: minmax(0, 1fr) minmax(140px, auto) minmax(140px, auto) 100px;
 }
 
 .dayGroup {
@@ -542,6 +548,11 @@
   padding: 14px 20px;
   border-bottom: 1px solid var(--mf-border);
   transition: background 150ms ease;
+}
+
+/* Register variant: amount | running balance | actions. */
+.rowWithBalance {
+  grid-template-columns: 42px minmax(0, 1fr) minmax(140px, auto) minmax(140px, auto) 100px;
 }
 
 .row:last-child {
@@ -669,6 +680,21 @@
 .amount {
   min-width: 0;
   justify-self: end;
+  text-align: right;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/*
+ * Running balance stays visually secondary to the row amount: muted ink and a
+ * smaller step. The value itself carries its sign — money is never color-only.
+ */
+.balance,
+.balanceMissing {
+  min-width: 0;
+  justify-self: end;
+  color: var(--mf-text-muted);
+  font-size: 13px;
   text-align: right;
   white-space: normal;
   overflow-wrap: anywhere;
@@ -877,6 +903,26 @@
     grid-row: 1 / span 2;
     align-self: center;
     justify-self: end;
+  }
+
+  /*
+   * With the balance column the row gains a fourth track: balance shares the
+   * amount's line on the trailing edge and actions move to the far column.
+   */
+  .rowWithBalance {
+    grid-template-columns: 38px minmax(0, 1fr) auto auto;
+  }
+
+  .rowWithBalance .balance,
+  .rowWithBalance .balanceMissing {
+    grid-column: 3;
+    grid-row: 2;
+    justify-self: end;
+  }
+
+  .rowWithBalance .rowActions,
+  .rowWithBalance .recurringLock {
+    grid-column: 4;
   }
 
   .loadMore {

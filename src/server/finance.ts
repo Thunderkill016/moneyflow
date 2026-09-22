@@ -326,9 +326,25 @@ async function loadFinanceWorkspace(
   }
 
   try {
+    /*
+     * Per-account balances ride along on AccountOption so the ledger can anchor
+     * a running-balance column; rows that failed safe-integer parsing simply
+     * stay absent, which hides the column instead of inventing an anchor.
+     */
+    const balanceByAccountId = new Map<string, number>();
+    for (const item of balancesResult.data ?? []) {
+      const amount = Number(item.balance_minor);
+      if (Number.isSafeInteger(amount)) {
+        balanceByAccountId.set(String(item.account_id), amount);
+      }
+    }
     const accounts = z
       .array(accountSchema)
-      .parse(accountsResult.data) satisfies AccountOption[];
+      .parse(accountsResult.data)
+      .map((item) => ({
+        ...item,
+        balance: balanceByAccountId.get(item.id),
+      })) satisfies AccountOption[];
     const categories = z
       .array(categorySchema)
       .parse(categoriesResult.data) satisfies CategoryOption[];

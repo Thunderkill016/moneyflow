@@ -1,11 +1,16 @@
 import type { AccountOption, CategoryOption, Transaction, TransactionKind } from "../transactions/contracts.ts";
 import { categories, categoryMeta } from "../transactions/category-presentation.ts";
 
+/*
+ * `balance` mirrors the demoAccountRows snapshot in src/server/accounts.ts:
+ * the running-balance column anchors at the same figure the accounts page
+ * shows, then reconciles against the stored demo ledger.
+ */
 export const demoAccounts: AccountOption[] = [
-  { id: "demo-account-mb", name: "MB Bank", currencyCode: "VND" },
-  { id: "demo-account-cash", name: "Tiền mặt", currencyCode: "VND" },
-  { id: "demo-account-momo", name: "MoMo", currencyCode: "VND" },
-  { id: "demo-account-usd", name: "USD du lịch", currencyCode: "USD" },
+  { id: "demo-account-mb", name: "MB Bank", currencyCode: "VND", balance: 15_454_000 },
+  { id: "demo-account-cash", name: "Tiền mặt", currencyCode: "VND", balance: 239_000 },
+  { id: "demo-account-momo", name: "MoMo", currencyCode: "VND", balance: 42_000 },
+  { id: "demo-account-usd", name: "USD du lịch", currencyCode: "USD", balance: 20_000 },
 ];
 
 export const demoCategories: CategoryOption[] = Object.entries(categories).flatMap(
