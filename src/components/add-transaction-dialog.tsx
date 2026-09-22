@@ -11,6 +11,7 @@ import {
 import { Icon, type IconName } from "@/components/icons";
 import { useConnectionState } from "@/hooks/use-connection-state";
 import { saveFailureMessage } from "@/lib/connectivity";
+import { trackProductEvent } from "@/lib/safe-analytics";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -454,6 +455,11 @@ export function AddTransactionDialog({
     setError("");
     categoryTouchedRef.current = false;
     setAutoRuleHint(null);
+
+    trackProductEvent("manual_transaction_saved", {
+      kind,
+      keep_open: shouldKeepOpen,
+    });
 
     if (shouldKeepOpen) {
       showKeepOpenSuccess();

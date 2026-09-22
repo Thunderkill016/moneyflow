@@ -22,6 +22,7 @@ import {
 } from "@/lib/money";
 import type { CreateTransferInput } from "@/lib/sample-data";
 import { TRANSFER_LIST_HINT } from "@/lib/transfers";
+import { trackProductEvent } from "@/lib/safe-analytics";
 import { todayInVietnam } from "@/lib/vietnam-date";
 import styles from "./transfers/transfer-dialog.module.css";
 
@@ -175,6 +176,7 @@ export function TransferDialog({
       setError(result.message || "Không thể chuyển tiền.");
       return;
     }
+    trackProductEvent("manual_transaction_saved", { kind: "transfer" });
     idempotencyRef.current = null;
     setAmount("");
     setNote("");
