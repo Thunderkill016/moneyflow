@@ -16,6 +16,22 @@
  */
 
 /**
+ * Any instant expressed as a Vietnam calendar day `YYYY-MM-DD`.
+ *
+ * Server rows carry `timestamptz`; slicing the ISO string would take the UTC
+ * date and could disagree with `todayInVietnam` by a day around midnight in
+ * Asia/Ho_Chi_Minh. Convert through the timezone instead.
+ */
+export function dateInVietnam(date: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+/**
  * Today in Asia/Ho_Chi_Minh as `YYYY-MM-DD`.
  *
  * `en-CA` is deliberate — it is the locale that yields ISO-ordered
@@ -25,10 +41,5 @@
  * fixed string makes the test depend on the machine clock.
  */
 export function todayInVietnam(now: Date = new Date()): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(now);
+  return dateInVietnam(now);
 }

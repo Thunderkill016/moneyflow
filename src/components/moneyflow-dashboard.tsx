@@ -99,6 +99,7 @@ export function MoneyFlowDashboard({
   ledgerTrust,
   budgets,
   commitments,
+  goalPaceAttentionCount,
   incomeTemplates,
 }: {
   viewer: ViewerSummary;
@@ -109,6 +110,11 @@ export function MoneyFlowDashboard({
   ledgerTrust: LedgerTrustSummary | null;
   budgets: BudgetSummary[];
   commitments: RecurringCommitment[];
+  /**
+   * Server-computed count of overdue/behind-pace goals — a bare number, so
+   * goal objects never enter this client boundary.
+   */
+  goalPaceAttentionCount: number;
   /**
    * Month-resolved income templates — declared inputs to the remainder's
    * "thu dự kiến" disclosure only; no planning surface is rendered from them.
@@ -329,6 +335,7 @@ export function MoneyFlowDashboard({
         commitments: liveCommitments,
         inboxCount,
         needsReviewCount,
+        goalPaceAttentionCount,
         today: workspace.today,
         backup: backupState,
       }),
@@ -337,6 +344,7 @@ export function MoneyFlowDashboard({
       liveCommitments,
       inboxCount,
       needsReviewCount,
+      goalPaceAttentionCount,
       workspace.today,
       backupState,
     ],

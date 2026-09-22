@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { MoneyFlowDashboard } from "@/components/moneyflow-dashboard";
+import { countGoalPaceAttention } from "@/lib/planning/goals";
 import { requireViewer } from "@/server/auth";
 import { getDashboardPageWorkspace } from "@/server/dashboard";
 
@@ -23,10 +24,20 @@ export default async function DashboardPage() {
     backupState,
     budgets,
     commitments,
+    goals,
     incomeTemplates,
     pendingInboxCount,
     ledgerTrust,
   } = await getDashboardPageWorkspace(viewer);
+
+  /*
+   * Only the count crosses into the client boundary — goal objects stay
+   * server-side per the dashboard planning-boundary contract.
+   */
+  const goalPaceAttentionCount = countGoalPaceAttention(
+    goals,
+    workspace.today,
+  );
 
   return (
     <MoneyFlowDashboard
@@ -42,6 +53,7 @@ export default async function DashboardPage() {
       ledgerTrust={ledgerTrust}
       budgets={budgets}
       commitments={commitments}
+      goalPaceAttentionCount={goalPaceAttentionCount}
       incomeTemplates={incomeTemplates}
     />
   );

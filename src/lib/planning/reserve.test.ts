@@ -36,6 +36,7 @@ function goal(allocated: number, overrides: Partial<SavingsGoal> = {}): SavingsG
     target: 10_000_000,
     allocated,
     deadline: null,
+    createdAt: null,
     isArchived: false,
     ...overrides,
   };

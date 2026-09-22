@@ -29,10 +29,15 @@ import { type ViewerSummary } from "@/components/user-chip";
 import { formatMoney } from "@/lib/money";
 import {
   dailyGoalSaving,
+  GOAL_FUNDING_WINDOW_DAYS,
+  goalFundingInWindow,
   goalIsOverdue,
+  goalPaceStatus,
   goalProgress,
   goalRemaining,
   goalTotals,
+  type GoalAllocation,
+  type GoalPace,
   type SaveGoalInput,
   type SavingsGoal,
 } from "@/lib/planning/goals";
@@ -61,15 +66,37 @@ function deadlineLabel(goal: SavingsGoal, today: string) {
   return `Còn ${days} ngày`;
 }
 
+/**
+ * The deadline-pace line. `expected`/`actual` are always printed because the
+ * judgment word must never travel on color alone; "nhịp đều" names the linear
+ * assumption — the user declared a deadline, not a schedule. `past-deadline`
+ * renders nothing: the overdue context line already carries that story.
+ */
+function paceLabel(pace: GoalPace): string | null {
+  const base = `Nhịp đều đến hạn: hôm nay cần đã có ~${formatMoney(pace.expected)} · đang đánh dấu ${formatMoney(pace.actual)}`;
+  if (pace.state === "behind")
+    return `${base} — chậm hơn ${formatMoney(-pace.delta)}.`;
+  if (pace.state === "ahead")
+    return `${base} — nhanh hơn ${formatMoney(pace.delta)}.`;
+  if (pace.state === "on-track") return `${base} — đúng nhịp.`;
+  return null;
+}
+
 export function GoalsPage({
   viewer,
   initialGoals,
+  allocations,
   today,
   reserveInputs,
   dataError,
 }: {
   viewer: ViewerSummary;
   initialGoals: SavingsGoal[];
+  /**
+   * Real funding events per goal; null in demo or when the read failed — the
+   * card then withholds the history line rather than seeding fiction.
+   */
+  allocations: GoalAllocation[] | null;
   today: string;
   /**
    * Balance and unpaid bills behind the reserve figure. Null when the server
@@ -136,6 +163,12 @@ export function GoalsPage({
         ...input,
         id: existing?.id ?? crypto.randomUUID(),
         allocated: existing?.allocated ?? 0,
+        /*
+         * A goal born in this demo session really was created today — an
+         * honest pace anchor. Seeded demo goals keep null instead, so their
+         * pace line withholds rather than implying a fictional history.
+         */
+        createdAt: existing?.createdAt ?? today,
         isArchived: false,
       };
       setGoals((current) =>
@@ -329,6 +362,18 @@ export function GoalsPage({
                 const achieved = progress === 100;
                 const overdue = goalIsOverdue(goal, today);
                 const tone = achieved ? "achieved" : "ok";
+                const goalAllocations =
+                  allocations?.filter((row) => row.goalId === goal.id) ?? null;
+                const funding = goalAllocations
+                  ? goalFundingInWindow(
+                      goal,
+                      goalAllocations,
+                      today,
+                      GOAL_FUNDING_WINDOW_DAYS,
+                    )
+                  : null;
+                const pace = goalPaceStatus(goal, today, goalAllocations ?? []);
+                const paceText = pace ? paceLabel(pace) : null;
 
                 return (
                   <PlanningCard key={goal.id} tone={tone}>
@@ -384,6 +429,18 @@ export function GoalsPage({
                             ? `Đã quá hạn — còn thiếu ${formatMoney(remaining)}. Đổi thời hạn hoặc đánh dấu thêm khi sẵn sàng.`
                             : "Không có nhịp bắt buộc khi chưa đặt thời hạn."}
                     </p>
+
+                    {paceText ? (
+                      <p className={planningStyles.context}>{paceText}</p>
+                    ) : null}
+
+                    {funding ? (
+                      <p className={planningStyles.context}>
+                        {funding.count > 0
+                          ? `${GOAL_FUNDING_WINDOW_DAYS} ngày qua đã đánh dấu ${formatMoney(funding.total)} · ${funding.count} lần.`
+                          : `${GOAL_FUNDING_WINDOW_DAYS} ngày qua chưa đánh dấu thêm lần nào.`}
+                      </p>
+                    ) : null}
 
                     <div className={planningStyles.actions} data-slot="planning-card-actions">
                       {!goal.isArchived ? (
