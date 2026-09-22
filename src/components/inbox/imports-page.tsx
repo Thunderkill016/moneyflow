@@ -185,7 +185,7 @@ export function ImportsPage({ viewer }: { viewer: ViewerSummary }) {
           <EmptyState
             icon={<Icon name="imports" />}
             title="Chưa có lượt import"
-            description="Tải hoặc dán sao kê để tạo ứng viên trong Inbox trước khi ghi vào sổ."
+            description="Tải sao kê CSV UTF-8, Excel (.xlsx/.xls) hoặc PDF text-layer (≤10MB) — hoặc dán nội dung — để tạo ứng viên trong Inbox trước khi ghi vào sổ."
             primaryAction={
               <LinkButton
                 href="/capture/upload"

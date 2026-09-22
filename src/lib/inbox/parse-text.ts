@@ -465,6 +465,7 @@ export function parsePasteText(
 /** Map parsed rows to store inputs (source always paste). */
 export function toCreateCandidateInputs(
   parsed: ParsedCandidate[],
+  options?: { account?: { id: string; name: string } },
 ): CreateCandidateInput[] {
   return parsed.map((item) => ({
     kind: item.kind,
@@ -477,6 +478,8 @@ export function toCreateCandidateInputs(
     status: "pending" as const,
     rawSnippet: item.rawSnippet,
     category: item.category,
+    accountId: options?.account?.id,
+    account: options?.account?.name,
   }));
 }
 

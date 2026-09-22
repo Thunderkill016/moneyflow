@@ -12,6 +12,7 @@ import {
 } from "@/app/actions/reconciliation";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
+import { SecondaryReviewDialog } from "@/components/secondary/secondary-layout";
 import { MoneyValue } from "@/components/money-value";
 import { ReconciliationEntryEvidence } from "@/components/reconciliation-entry-evidence";
 import type { ViewerSummary } from "@/components/user-chip";
@@ -124,6 +125,7 @@ export function AccountReconciliationPage({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [completeReview, setCompleteReview] = useState(false);
 
   useEffect(() => {
     if (!viewer.isDemo || !account) return;
@@ -172,6 +174,14 @@ export function AccountReconciliationPage({
   const laterEntryCount = openSession
     ? workspace.entries.length - eligibleEntries.length
     : 0;
+  const laterEntries = openSession
+    ? workspace.entries.filter(
+        (entry) => !isEntryEligibleForSession(entry, openSession.statementDate),
+      )
+    : [];
+  const clearedToLockCount = eligibleEntries.filter(
+    (entry) => entry.state === "cleared",
+  ).length;
   const parsedStatementBalance = parseSignedMoneyInput(statementBalanceInput);
   const canStart = Boolean(
     account &&
@@ -308,6 +318,7 @@ export function AccountReconciliationPage({
     if (!account || !openSession || !canComplete) return;
     setBusy("complete");
     setError("");
+    setCompleteReview(false);
     try {
       if (viewer.isDemo) {
         const result = completeDemoAccountReconciliation({
@@ -382,7 +393,7 @@ export function AccountReconciliationPage({
   const primaryAction = openSession
     ? {
         label: busy === "complete" ? "Đang hoàn tất..." : "Hoàn tất đối soát",
-        onClick: () => void completeSession(),
+        onClick: () => setCompleteReview(true),
         icon: "check" as const,
         disabled: !canComplete,
       }
@@ -611,9 +622,29 @@ export function AccountReconciliationPage({
                         <span>{eligibleEntries.length} giao dịch</span>
                       </div>
                       {laterEntryCount > 0 ? (
-                        <p className={styles.futureNote} role="status">
-                          {laterEntryCount} giao dịch sau ngày sao kê không được tính trong kỳ này.
-                        </p>
+                        <details className={styles.futureDetails}>
+                          <summary className={styles.futureNote}>
+                            {laterEntryCount} giao dịch sau ngày sao kê không được tính trong kỳ này — xem danh sách
+                          </summary>
+                          <ul className={styles.futureList}>
+                            {laterEntries.map((entry) => (
+                              <li key={entry.entryId}>
+                                <span>
+                                  <strong>{entry.transaction.note}</strong>
+                                  <time dateTime={entry.transaction.occurredAt}>
+                                    {displayDate(entry.transaction.occurredOn)}
+                                  </time>
+                                </span>
+                                <MoneyValue
+                                  amount={entry.impact}
+                                  mode="signed"
+                                  currencyCode={account.currencyCode}
+                                  label={`${entry.transaction.note}, ngoài kỳ sao kê`}
+                                />
+                              </li>
+                            ))}
+                          </ul>
+                        </details>
                       ) : null}
                       {eligibleEntries.length ? (
                         <div className={styles.entryList}>
@@ -738,6 +769,36 @@ export function AccountReconciliationPage({
           </>
         )}
       </main>
+
+      <SecondaryReviewDialog
+        open={completeReview}
+        onOpenChange={(open) => {
+          if (!open && !busy) setCompleteReview(false);
+        }}
+        title="Hoàn tất kỳ đối soát?"
+        description="Chênh lệch đã bằng 0. Kiểm tra những gì sẽ thay đổi trước khi khóa kỳ."
+        details={
+          openSession && account
+            ? [
+                { label: "Kỳ sao kê", value: displayDate(openSession.statementDate) },
+                {
+                  label: "Số dư sao kê",
+                  value: formatMoney(openSession.statementBalance, false, account.currencyCode),
+                },
+                {
+                  label: "Giao dịch sẽ khóa",
+                  value: `${clearedToLockCount} mục đã khớp`,
+                },
+              ]
+            : []
+        }
+        consequence="Giao dịch đã đối soát không sửa hay xóa được cho đến khi mở lại kỳ này. Kỳ hoàn tất được lưu trong lịch sử sao kê và vẫn mở lại được khi là kỳ gần nhất."
+        confirmLabel="Hoàn tất đối soát"
+        confirmIntent="primary"
+        pending={busy === "complete"}
+        onConfirm={() => void completeSession()}
+        slot="reconcile-complete-review"
+      />
     </AppShell>
   );
 }
