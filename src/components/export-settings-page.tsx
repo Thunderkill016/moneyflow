@@ -26,6 +26,7 @@ import {
   type InboxCandidate,
 } from "@/lib/inbox/candidate-store";
 import { recordPrivacyExport } from "@/lib/privacy-prefs";
+import { trackProductEvent } from "@/lib/safe-analytics";
 import type { Transaction } from "@/lib/sample-data";
 import { readStoredTransactions } from "@/lib/transaction-store";
 import styles from "./settings/settings-surfaces.module.css";
@@ -158,6 +159,12 @@ export function ExportSettingsPage({
       const filename = exportFilename(kind, preview.extension, { from, to });
       downloadTextFile(filename, preview.body, preview.mime);
       recordPrivacyExport();
+      trackProductEvent("export_downloaded", {
+        surface: "settings",
+        kind,
+        format: effectiveFormat,
+        count: preview.count,
+      });
       setNotice(`Đã tải ${preview.count} mục (${preview.extension.toUpperCase()}).`);
     } catch {
       setError("Không tạo được file tải xuống. Thử lại.");

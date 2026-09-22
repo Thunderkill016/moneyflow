@@ -26,6 +26,7 @@ import {
 } from "@/lib/export-data";
 import { formatMoney } from "@/lib/money";
 import type { ReportPeriod } from "@/lib/reports";
+import { trackProductEvent } from "@/lib/safe-analytics";
 import {
   formatReportPeriodTitle,
   REPORT_PERIOD_OPTIONS,
@@ -105,6 +106,12 @@ export function ReportsPage({
         href: csvDownloadHref,
         icon: "arrowDown",
         disabled: exportDisabled,
+        onClick: () =>
+          trackProductEvent("export_downloaded", {
+            surface: "reports",
+            kind: "transactions",
+            format: "csv",
+          }),
       }}
     >
       <SecondaryWorkspace slot="reports-workspace">

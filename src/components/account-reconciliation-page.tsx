@@ -43,6 +43,7 @@ import {
   type EntryReconciliationState,
 } from "@/lib/reconciliation";
 import { formatMoney, formatMoneyInput, parseMoneyInput } from "@/lib/money";
+import { trackProductEvent } from "@/lib/safe-analytics";
 import styles from "./account-reconciliation-page.module.css";
 
 function formatSignedMoneyInput(value: string) {
@@ -333,15 +334,23 @@ export function AccountReconciliationPage({
         else {
           persistDemo(result.stateData);
           setNotice("Đã hoàn tất kỳ đối soát demo.");
+          trackProductEvent("reconcile_completed", {
+            cleared_count: openSession.clearedAccountLegCount,
+          });
         }
       } else {
-        applyResult(
+        const applied = applyResult(
           await completeAccountReconciliationAction({
             accountId: account.id,
             reconciliationId: openSession.id,
           }),
           "Đã hoàn tất kỳ đối soát.",
         );
+        if (applied) {
+          trackProductEvent("reconcile_completed", {
+            cleared_count: openSession.clearedAccountLegCount,
+          });
+        }
       }
     } catch {
       setError("Mất kết nối khi hoàn tất đối soát.");
