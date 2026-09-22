@@ -14,6 +14,8 @@ Executable scope comes from the explicit human request plus the current GitHub i
 
 GitHub Issues/PRs own backlog, status and review. Do not infer executable work from a Markdown queue, newest document, open PR, old packet or chat continuation. A handoff must name the current task, artifacts, permission scope and next allowed action.
 
+External authority and roadmap order are frozen in `docs/product/CANON.md` (owner decision 2026-09-22). Any strategy, feature, redesign or roadmap proposal must name the canon authority and stage gate it serves before it may claim a product reason to exist; proposals that cannot do so are declined, not deferred.
+
 ## Read order
 
 For every change:
