@@ -158,10 +158,16 @@ export function CommitmentsPage({
       : statusFilter === "paid"
         ? "Chưa có khoản đã thanh toán"
         : "Chưa có khoản định kỳ";
+  const missingAccount = accounts.length === 0;
+  const missingCategory = !missingAccount && categories.length === 0;
   const emptyDescription = showArchived
     ? "Các khoản được lưu trữ sẽ xuất hiện tại đây."
     : statusFilter === "all"
-      ? "Thêm tiền nhà hoặc hóa đơn để theo dõi ngày và chỉ ghi chi khi bạn thanh toán."
+      ? missingAccount
+        ? "Khoản định kỳ cần một tài khoản để ghi chi. Tạo tài khoản trước, rồi quay lại đặt khoản đầu tiên."
+        : missingCategory
+          ? "Khoản định kỳ cần một danh mục chi để phân loại. Tạo danh mục trước, rồi quay lại đặt khoản đầu tiên."
+          : "Thêm tiền nhà hoặc hóa đơn để theo dõi ngày và chỉ ghi chi khi bạn thanh toán."
       : "Đổi bộ lọc để xem các khoản định kỳ khác hoặc thêm một khoản mới.";
   const totals = commitmentTotals(items);
   const unpaidCount = unpaidActiveCount(items);
@@ -603,6 +609,14 @@ export function CommitmentsPage({
                       >
                         <Icon name="plus" /> Thêm khoản đầu tiên
                       </Button>
+                    ) : !showArchived && !dataError && (missingAccount || missingCategory) ? (
+                      <LinkButton
+                        href={missingAccount ? "/accounts" : "/categories"}
+                        intent="primary"
+                        targetSize="important"
+                      >
+                        {missingAccount ? "Tạo tài khoản" : "Tạo danh mục"}
+                      </LinkButton>
                     ) : undefined
                   }
                 />
