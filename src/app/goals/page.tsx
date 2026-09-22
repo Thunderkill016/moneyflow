@@ -20,6 +20,7 @@ export default async function Page() {
         isDemo: viewer.isDemo,
       }}
       initialGoals={workspace.goals}
+      allocations={workspace.allocations}
       reserveInputs={
         workspace.reserve
           ? {

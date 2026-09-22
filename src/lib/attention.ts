@@ -48,6 +48,12 @@ export function buildAttentionItems(input: {
   commitments: RecurringCommitment[];
   inboxCount?: number;
   needsReviewCount?: number;
+  /**
+   * Count of goals that are overdue or behind their declared deadline pace —
+   * a number only, so goal objects stay outside the dashboard client boundary.
+   * Absent/zero renders nothing.
+   */
+  goalPaceAttentionCount?: number;
   today: string;
   /**
    * Null/absent means the state is unknown (demo, deploy skew) — no chip,
@@ -63,6 +69,7 @@ export function buildAttentionItems(input: {
     commitments,
     inboxCount = 0,
     needsReviewCount = 0,
+    goalPaceAttentionCount = 0,
     today,
     backup = null,
   } = input;
@@ -96,6 +103,15 @@ export function buildAttentionItems(input: {
       label: `${unpaidDue.length} hóa đơn tới hạn hoặc quá hạn`,
       href: "/commitments",
       tone: "warning",
+    });
+  }
+
+  if (goalPaceAttentionCount > 0) {
+    items.push({
+      id: "goals-pace",
+      label: `${goalPaceAttentionCount} mục tiêu quá hạn hoặc chậm nhịp`,
+      href: "/goals",
+      tone: "info",
     });
   }
 

@@ -18,7 +18,7 @@ export async function saveGoalAction(input: SaveGoalInput): Promise<GoalActionRe
   const supabase = await createClient(); if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
   const value = parsed.data; const { data: id, error } = await supabase.rpc("upsert_savings_goal", { p_goal_id: value.id ?? null, p_name: value.name, p_target_minor: value.target, p_deadline: value.deadline });
   if (error || typeof id !== "string") return { ok: false, message: "Không thể lưu mục tiêu. Mức đích không được thấp hơn tiền đã dành." };
-  const { data, error: readError } = await supabase.from("savings_goals").select("id,name,target_minor,allocated_minor,deadline,is_archived").eq("id", id).single();
+  const { data, error: readError } = await supabase.from("savings_goals").select("id,name,target_minor,allocated_minor,deadline,created_at,is_archived").eq("id", id).single();
   if (readError || !data) { refresh(); return { ok: false, message: "Đã lưu nhưng chưa tải lại được mục tiêu." }; }
   try { const goal = mapGoalRow(data); refresh(); return { ok: true, goal }; } catch { refresh(); return { ok: false, message: "Dữ liệu mục tiêu trả về không hợp lệ." }; }
 }

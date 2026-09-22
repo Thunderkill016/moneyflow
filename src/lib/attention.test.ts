@@ -83,6 +83,30 @@ test("buildAttentionItems surfaces unreviewed ledger rows", () => {
   assert.match(chip.label, /cần kiểm tra/i);
 });
 
+test("buildAttentionItems surfaces goals that are overdue or behind pace as a count", () => {
+  const items = buildAttentionItems({
+    budgets: [],
+    commitments: [],
+    goalPaceAttentionCount: 2,
+    today: "2026-07-15",
+  });
+  const chip = items.find((i) => i.id === "goals-pace");
+  assert.ok(chip, "expected a goal-pace chip");
+  assert.equal(chip.href, "/goals");
+  assert.match(chip.label, /2/);
+  assert.match(chip.label, /mục tiêu/);
+});
+
+test("buildAttentionItems stays silent on goals when none need pace attention", () => {
+  const items = buildAttentionItems({
+    budgets: [],
+    commitments: [],
+    goalPaceAttentionCount: 0,
+    today: "2026-07-15",
+  });
+  assert.ok(!items.some((i) => i.id === "goals-pace"));
+});
+
 test("buildAttentionItems stays quiet when nothing needs review", () => {
   const items = buildAttentionItems({
     budgets: [],

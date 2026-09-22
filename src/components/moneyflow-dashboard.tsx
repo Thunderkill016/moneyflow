@@ -91,6 +91,7 @@ export function MoneyFlowDashboard({
   ledgerTrust,
   budgets,
   commitments,
+  goalPaceAttentionCount,
 }: {
   viewer: ViewerSummary;
   workspace: DashboardWorkspace;
@@ -100,6 +101,11 @@ export function MoneyFlowDashboard({
   ledgerTrust: LedgerTrustSummary | null;
   budgets: BudgetSummary[];
   commitments: RecurringCommitment[];
+  /**
+   * Server-computed count of overdue/behind-pace goals — a bare number, so
+   * goal objects never enter this client boundary.
+   */
+  goalPaceAttentionCount: number;
 }) {
   const {
     transactions,
@@ -278,6 +284,7 @@ export function MoneyFlowDashboard({
         commitments: liveCommitments,
         inboxCount,
         needsReviewCount,
+        goalPaceAttentionCount,
         today: workspace.today,
         backup: backupState,
       }),
@@ -286,6 +293,7 @@ export function MoneyFlowDashboard({
       liveCommitments,
       inboxCount,
       needsReviewCount,
+      goalPaceAttentionCount,
       workspace.today,
       backupState,
     ],
