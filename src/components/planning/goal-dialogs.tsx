@@ -187,12 +187,20 @@ export function GoalAllocationDialog({
   open,
   goal,
   mode,
+  fundable,
   onClose,
   onSubmit,
 }: {
   open: boolean;
   goal: SavingsGoal | null;
   mode: "allocate" | "release";
+  /**
+   * Largest amount `adjust_savings_goal` will accept into goals right now
+   * (spendable balance minus unpaid bills minus what goals already hold).
+   * Null when the server could not derive it — the dialog then keeps the
+   * goal-remainder cap and lets the RPC be the final check.
+   */
+  fundable?: number | null;
   onClose: () => void;
   onSubmit: (amount: number) => Promise<{ ok: boolean; message?: string }>;
 }) {
@@ -200,10 +208,16 @@ export function GoalAllocationDialog({
   const [amount, setAmount] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const max =
+  const remaining =
     mode === "allocate"
       ? Math.max(0, (goal?.target ?? 0) - (goal?.allocated ?? 0))
       : goal?.allocated ?? 0;
+  const fundableCap =
+    fundable != null && fundable >= 0 ? Math.max(0, fundable) : null;
+  const max =
+    mode === "allocate" && fundableCap !== null
+      ? Math.min(remaining, fundableCap)
+      : remaining;
   const formId = "goal-allocation-form";
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -221,9 +235,11 @@ export function GoalAllocationDialog({
     }
     if (parsedAmount > max) {
       setError(
-        mode === "allocate"
-          ? "Số tiền vượt phần còn thiếu của mục tiêu."
-          : "Không thể giảm quá số đang được đánh dấu cho mục tiêu.",
+        mode === "release"
+          ? "Không thể giảm quá số đang được đánh dấu cho mục tiêu."
+          : parsedAmount > remaining
+            ? "Số tiền vượt phần còn thiếu của mục tiêu."
+            : `Số dư sau khi trừ hoá đơn chưa trả chỉ đủ đánh dấu thêm ${formatMoney(max)}.`,
       );
       amountRef.current?.focus();
       return;
@@ -288,7 +304,9 @@ export function GoalAllocationDialog({
             <strong>{goal?.name}</strong>
             <p>
               {mode === "allocate"
-                ? `Còn thiếu ${formatMoney(max)}`
+                ? fundableCap !== null && fundableCap < remaining
+                  ? `Còn thiếu ${formatMoney(remaining)} — hiện chỉ dành thêm được ${formatMoney(fundableCap)} sau khi trừ hoá đơn chưa trả.`
+                  : `Còn thiếu ${formatMoney(remaining)}`
                 : `Đang đánh dấu ${formatMoney(max)}`}
             </p>
           </div>
