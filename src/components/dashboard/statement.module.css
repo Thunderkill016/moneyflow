@@ -69,6 +69,34 @@
   font-size: 14px;
 }
 
+/*
+ * Obligations-aware remainder — one quiet caption line under the standing
+ * figure it annotates. Plain text with an inline link: it states arithmetic
+ * on declared commitments and never reads as a spending recommendation.
+ */
+.remainder {
+  margin: 8px 0 0;
+  color: var(--mf-text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.remainderLink {
+  color: var(--mf-brand-text);
+  font-weight: 750;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.remainderLink:hover {
+  text-decoration: underline;
+}
+
+.remainderLink:focus-visible {
+  outline: 2px solid var(--mf-focus, currentColor);
+  outline-offset: 2px;
+}
+
 .action {
   flex: 0 0 auto;
 }

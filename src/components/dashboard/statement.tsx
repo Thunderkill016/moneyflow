@@ -45,6 +45,7 @@ export function DashboardStatement({
   totals,
   accountBalances = [],
   monthDetail,
+  remainderLine,
   today,
   isEmptyLedger,
   action,
@@ -52,6 +53,12 @@ export function DashboardStatement({
   totals: StatementTotals;
   accountBalances?: AccountBalanceRow[];
   monthDetail?: MonthStatementDetail;
+  /**
+   * The obligations-aware remainder sentence ("Còn X ₫ sau N khoản định kỳ…"),
+   * already validated upstream. `null`/absent renders no line — a figure built
+   * on incomplete inputs is withheld rather than shown partially.
+   */
+  remainderLine?: string | null;
   today: string;
   isEmptyLedger: boolean;
   action?: React.ReactNode;
@@ -80,6 +87,14 @@ export function DashboardStatement({
             }`}
           />
           <p className={styles.caption}>Cộng số dư mọi ví đang dùng</p>
+          {remainderLine ? (
+            <p className={styles.remainder}>
+              {remainderLine}.{" "}
+              <Link className={styles.remainderLink} href="/commitments">
+                Xem khoản định kỳ →
+              </Link>
+            </p>
+          ) : null}
         </div>
         {action ? <div className={styles.action}>{action}</div> : null}
       </div>

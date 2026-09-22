@@ -125,6 +125,19 @@ test("statement month shape and prior compare lift the reports computation", () 
   assert.match(dashboard, /monthStatementDetail\(transactions, workspace\.today\)/);
 });
 
+test("obligations remainder stays a derived line the statement can withhold", () => {
+  // The figure is computed once in the planning domain module — presentation
+  // receives only the finished sentence and renders nothing when it is null.
+  assert.match(dashboard, /buildCommittedRemainder\(/);
+  assert.match(dashboard, /committedRemainderLabel\(/);
+  assert.match(dashboard, /remainderLine=\{remainderLine\}/);
+  assert.match(overview, /remainderLine=\{remainderLine\}/);
+  assert.match(statement, /remainderLine \? \(/);
+  assert.match(statement, /href="\/commitments"/);
+  // The statement never re-derives the number itself.
+  assert.doesNotMatch(statement, /buildCommittedRemainder|committedRemainderLabel/);
+});
+
 test("withdrawn safe-to-spend advice is absent from active Dashboard JSX", () => {
   assert.doesNotMatch(dashboard, /safe-card-hero|safe[- ]to[- ]spend/i);
   assert.doesNotMatch(overview, /safe-card-hero|safe[- ]to[- ]spend/i);
