@@ -88,6 +88,7 @@ export function buildIncomeTemplateReceipt(
     categoryId: template.categoryId,
     category: template.categoryName,
     note: template.name,
+    payee: template.name,
     accountId: template.accountId,
     account: template.accountName,
     amount: template.amount,

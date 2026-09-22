@@ -30,6 +30,7 @@ const transactionSchema = z.object({
   categoryId: z.string(),
   category: z.string(),
   note: z.string(),
+  payee: z.string().optional(),
   accountId: z.string(),
   account: z.string(),
   destinationAccountId: z.string().optional(),
@@ -92,9 +93,10 @@ function withoutPendingKey(transaction: Transaction): Omit<Transaction, "pending
 }
 
 function toSearchItem(transaction: Transaction): TransactionsSearchOutput["items"][number] {
-  const { splits, ...rest } = withoutPendingKey(transaction);
+  const { splits, payee, ...rest } = withoutPendingKey(transaction);
   return {
     ...rest,
+    ...(payee !== undefined ? { payee } : {}),
     ...(splits
       ? { splits: splits.map((line) => ({ ...line, amount: minor(line.amount) })) }
       : {}),
@@ -120,8 +122,12 @@ export async function run(
     .filter((transaction) => {
       if (!input.text) return true;
       const needle = normalizeSearchText(input.text);
-      return [transaction.note, transaction.category, transaction.account]
-        .some((value) => normalizeSearchText(value).includes(needle));
+      return [
+        transaction.payee ?? "",
+        transaction.note,
+        transaction.category,
+        transaction.account,
+      ].some((value) => normalizeSearchText(value).includes(needle));
     })
     .sort(compareTransactions);
 

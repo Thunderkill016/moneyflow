@@ -80,6 +80,7 @@ export function buildCommitmentPaymentExpense(
     categoryId: commitment.categoryId,
     category: commitment.categoryName,
     note: commitment.name,
+    payee: commitment.name,
     accountId: commitment.accountId,
     account: commitment.accountName,
     amount: commitment.amount,

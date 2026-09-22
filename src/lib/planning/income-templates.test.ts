@@ -76,6 +76,7 @@ test("buildIncomeTemplateReceipt posts integer income with recurring flag", () =
   assert.equal(income.kind, "income");
   assert.equal(income.amount, 20_000_000);
   assert.equal(income.note, "Lương tháng");
+  assert.equal(income.payee, "Lương tháng");
   assert.equal(income.accountId, "a");
   assert.equal(income.categoryId, "c");
   assert.equal(income.occurredOn, "2026-07-05");
