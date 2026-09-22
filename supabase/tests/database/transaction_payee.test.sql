@@ -273,8 +273,23 @@ reset role;
 
 select lives_ok(
   $$
+    with recon as (
+      insert into public.account_reconciliations (
+        user_id, account_id, statement_date, statement_balance_minor, status,
+        completed_at, calculated_balance_minor, pending_account_leg_count,
+        cleared_account_leg_count, reconciled_account_leg_count
+      ) values (
+        '19200000-0000-4000-8000-000000000001',
+        (select id from payee_ids where key = 'account'),
+        '2026-07-31'::date, -63000::bigint, 'completed',
+        now(), -63000::bigint, 0::bigint, 1::bigint, 1::bigint
+      )
+      returning id
+    )
     update public.transaction_entries
-    set reconciliation_state = 'reconciled'
+    set reconciliation_state = 'reconciled',
+        cleared_at = now(),
+        reconciliation_id = (select id from recon)
     where transaction_id = (select id from payee_ids where key = 'tx_paid')
       and user_id = '19200000-0000-4000-8000-000000000001'
   $$,
