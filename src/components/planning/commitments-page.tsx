@@ -528,7 +528,9 @@ export function CommitmentsPage({
                             </span>
                             <strong>
                               {item.isPaid
-                                ? "Đã có giao dịch chi"
+                                ? item.paidOn
+                                  ? `Đã ghi ngày ${item.paidOn.slice(8, 10)}/${item.paidOn.slice(5, 7)}`
+                                  : "Đã có giao dịch chi"
                                 : "Chưa ghi giao dịch"}
                             </strong>
                           </div>
