@@ -26,10 +26,14 @@ test("budget route resolves the URL month through the server workspace", () => {
 
 test("budget history reads stay tenant and month bounded", () => {
   assert.match(server, /\.eq\("user_id", viewer\.id\)/);
+  // Rollover widened the read from two months to a bounded lookback window;
+  // both bounds must stay explicit so history depth cannot unbound the scan.
   assert.match(
     server,
-    /\.in\("month_start", \[resolution\.monthStart, resolution\.previousMonthStart\]\)/,
+    /\.gte\("month_start", rolloverWindowStart\)/,
   );
+  assert.match(server, /\.lte\("month_start", resolution\.monthStart\)/);
+  assert.match(server, /budgetRolloverWindowStart\(resolution\.monthStart\)/);
   assert.match(
     server,
     /rows\.filter\(\(item\) => item\.monthStart === resolution\.monthStart\)/,
