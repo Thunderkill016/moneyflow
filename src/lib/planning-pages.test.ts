@@ -185,7 +185,6 @@ test("all four Planning pages use the shared shell and UI empty state", () => {
     "goals must surface the load error message",
   );
 
-  const goals = read(GOALS);
   assert.match(
     goals,
     /fundableIntoGoals/,
