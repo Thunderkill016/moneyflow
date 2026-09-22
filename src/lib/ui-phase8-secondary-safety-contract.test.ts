@@ -119,7 +119,10 @@ test("Rules and Imports expose review consequences without browser confirms", ()
   }
   assert.match(rules, /slot="rule-delete-review"/);
   assert.match(rules, /không tự tạo giao dịch trong sổ/);
+  assert.match(rules, /Tạo danh mục trước, rồi quay lại đây đặt quy tắc đầu tiên/);
+  assert.match(rules, /href="\/categories"/);
   assert.match(imports, /slot="import-delete-review"/);
+  assert.match(imports, /CSV UTF-8, Excel \(\.xlsx\/\.xls\) hoặc PDF text-layer/);
   assert.match(
     imports,
     /Xóa metadata không xóa giao dịch đã được duyệt vào sổ/,

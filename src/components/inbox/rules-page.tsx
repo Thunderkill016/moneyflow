@@ -377,7 +377,11 @@ export function RulesPage({
           <EmptyState
             icon={<Icon name="rules" />}
             title="Chưa có quy tắc"
-            description="Thêm một quy tắc, thử nội dung và xem kết quả trước khi dùng trong Inbox."
+            description={
+              availableCategories.length > 0
+                ? "Quy tắc gợi ý danh mục khi nội dung ứng viên khớp — ví dụ: chứa “HIGHLANDS” → Ăn uống. Quy tắc chỉ chuẩn hóa ứng viên; giao dịch vẫn do bạn duyệt trong Inbox."
+                : "Quy tắc cần một danh mục để gợi ý. Tạo danh mục trước, rồi quay lại đây đặt quy tắc đầu tiên."
+            }
             primaryAction={
               availableCategories.length > 0 ? (
                 <Button
@@ -388,7 +392,15 @@ export function RulesPage({
                 >
                   Thêm quy tắc
                 </Button>
-              ) : undefined
+              ) : (
+                <LinkButton
+                  href="/categories"
+                  intent="primary"
+                  targetSize="important"
+                >
+                  Tạo danh mục
+                </LinkButton>
+              )
             }
             secondaryAction={
               <LinkButton href="/inbox" intent="secondary" targetSize="important">
