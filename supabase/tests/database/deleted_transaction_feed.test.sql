@@ -300,6 +300,7 @@ set local role anon;
 select throws_ok(
   $$ select count(*) from public.deleted_transaction_feed $$,
   '42501',
+  null,
   'anon cannot read the deleted feed'
 );
 
