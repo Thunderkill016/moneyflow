@@ -11,6 +11,7 @@ import {
   LEGACY_RULES_STORAGE_KEY,
   RULES_STORAGE_KEY,
 } from "./inbox/rules-store.ts";
+import { LEDGER_DUPE_DISMISSALS_STORAGE_KEY } from "./ledger-duplicate-dismissals.ts";
 import { ONBOARDING_STORAGE_KEY } from "./onboarding.ts";
 import { PRIVACY_PREFS_KEY } from "./privacy-prefs.ts";
 import { PUSH_PREFS_KEY } from "./push-prefs.ts";
@@ -40,6 +41,7 @@ export const LOCAL_DATA_STORAGE_KEYS: readonly string[] = [
   TRANSACTION_STORAGE_KEY,
   COMMITMENT_OCCURRENCE_STORAGE_KEY,
   RECURRING_DISMISSALS_STORAGE_KEY,
+  LEDGER_DUPE_DISMISSALS_STORAGE_KEY,
   INCOME_TEMPLATE_STORAGE_KEY,
   INCOME_TEMPLATE_OCCURRENCE_STORAGE_KEY,
   PRIVACY_PREFS_KEY,

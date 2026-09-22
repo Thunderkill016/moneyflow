@@ -34,6 +34,11 @@ import {
   buildRunningBalance,
   resolveRegisterBalanceScope,
 } from "@/lib/running-balance";
+import { findLedgerDuplicateGroups } from "@/lib/ledger-duplicates";
+import {
+  dismissLedgerDupePatterns,
+  readLedgerDupeDismissals,
+} from "@/lib/ledger-duplicate-dismissals";
 import { safeUserNotice } from "@/lib/safe-log";
 import { isSplitExpense } from "@/lib/splits";
 import { derivePayeeSuggestions } from "@/lib/quick-add-defaults";
@@ -156,6 +161,14 @@ function iconTone(kind: Transaction["kind"]) {
   return styles.iconExpense;
 }
 
+/** dd/mm/yyyy for the duplicate-review rows — same shape as the day headers. */
+function formatDayMonth(occurredOn: string) {
+  const parts = occurredOn.split("-");
+  return parts.length === 3
+    ? `${parts[2]}/${parts[1]}/${parts[0]}`
+    : occurredOn;
+}
+
 export function TransactionsWorkspace({
   viewer,
   workspace,
@@ -233,6 +246,43 @@ export function TransactionsWorkspace({
   const [pendingUndo, setPendingUndo] = useState<Transaction[] | null>(null);
   const noticeTimerRef = useRef<number | null>(null);
   const pendingUndoRef = useRef<Transaction[] | null>(null);
+
+  /*
+   * Ledger-duplicate review strip. Detection runs over the loaded transaction
+   * list — demo and authenticated modes share `transactions`, so both work
+   * unchanged. Dismissals are device-local and keyed on the flagged pattern
+   * (account|kind|amount|note), matching the recurring-dismissal convention:
+   * `null` until localStorage is read so already-dismissed groups never flash.
+   * The strip is advisory only — the sole mutation it offers is the existing
+   * soft-delete path (handleDelete → confirm → 8s undo).
+   */
+  const [dismissedDupeKeys, setDismissedDupeKeys] = useState<Set<string> | null>(
+    null,
+  );
+  const [dupeReviewOpen, setDupeReviewOpen] = useState(false);
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setDismissedDupeKeys(new Set(readLedgerDupeDismissals()));
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  const dupeGroups = useMemo(
+    () => findLedgerDuplicateGroups(transactions),
+    [transactions],
+  );
+  const visibleDupeGroups = useMemo(
+    () =>
+      dismissedDupeKeys === null
+        ? []
+        : dupeGroups.filter((group) => !dismissedDupeKeys.has(group.key)),
+    [dupeGroups, dismissedDupeKeys],
+  );
+  const dupeFlaggedCount = useMemo(
+    () =>
+      visibleDupeGroups.reduce((count, group) => count + group.rows.length, 0),
+    [visibleDupeGroups],
+  );
 
   /*
    * Deep link (?open=<id>): resolve once against the owner-scoped rows, then
@@ -765,6 +815,17 @@ export function TransactionsWorkspace({
       return;
     }
     setDeleteTarget(transaction);
+  }
+
+  /**
+   * Dismiss one duplicate pattern (or every flagged pattern from the strip).
+   * Keys are bucket-level, so a dismissed "Cà phê 30k" pattern stays quiet even
+   * when new rows join it — see ledger-duplicate-dismissals.ts.
+   */
+  function dismissDupeGroups(keys: string[]) {
+    if (keys.length === 0) return;
+    setDismissedDupeKeys(new Set(dismissLedgerDupePatterns(keys)));
+    showNotice("Đã bỏ qua gợi ý trùng.", NOTICE_MS, true);
   }
 
   /**
@@ -1321,6 +1382,113 @@ export function TransactionsWorkspace({
               </Button>
             ) : null}
           </div>
+
+          {/*
+            Ledger-duplicate review strip — advisory only. It never mutates
+            anything; the review list's only action is the same soft-delete
+            path the row trash button uses (confirm dialog + 8s undo).
+          */}
+          {!workspace.dataError && visibleDupeGroups.length > 0 ? (
+            <section
+              className={styles.dupeStrip}
+              data-slot="ledger-dupe-strip"
+              aria-label="Giao dịch có vẻ trùng"
+            >
+              <div className={styles.dupeSummary}>
+                <span className={styles.dupeIcon} aria-hidden="true">
+                  <Icon name="flag" />
+                </span>
+                <p className={styles.dupeText}>
+                  <strong>{dupeFlaggedCount} giao dịch</strong> có vẻ trùng —
+                  cùng tài khoản, cùng số tiền, ghi chú giống nhau.
+                </p>
+                <div className={styles.dupeActions}>
+                  <Button
+                    type="button"
+                    intent="secondary"
+                    targetSize="important"
+                    onClick={() => setDupeReviewOpen((open) => !open)}
+                    aria-expanded={dupeReviewOpen}
+                  >
+                    {dupeReviewOpen ? "Ẩn" : "Xem lại"}
+                  </Button>
+                  <Button
+                    type="button"
+                    intent="quiet"
+                    targetSize="important"
+                    onClick={() =>
+                      dismissDupeGroups(
+                        visibleDupeGroups.map((group) => group.key),
+                      )
+                    }
+                  >
+                    Bỏ qua
+                  </Button>
+                </div>
+              </div>
+
+              {dupeReviewOpen ? (
+                <div className={styles.dupeGroups}>
+                  <p className={styles.dupeHint}>
+                    Chỉ gợi ý — MoneyFlow không tự thay đổi gì. Xóa một bản ghi
+                    nếu đúng là nhập hai lần; bỏ qua nếu đây là các khoản thật.
+                  </p>
+                  {visibleDupeGroups.map((group) => (
+                    <article
+                      key={`${group.key}:${group.rows[0]!.id}`}
+                      className={styles.dupeGroup}
+                    >
+                      <header className={styles.dupeGroupHead}>
+                        <strong>{group.note || "(không ghi chú)"}</strong>
+                        <span className={styles.dupeGroupMeta}>
+                          {group.account} · {formatMoney(group.amount)} ·{" "}
+                          {group.rows.length} lần
+                          {group.hasSameDayPair
+                            ? " · cùng ngày"
+                            : ` · cách nhau ${group.spanDays} ngày`}
+                        </span>
+                        <Button
+                          type="button"
+                          intent="quiet"
+                          targetSize="important"
+                          onClick={() => dismissDupeGroups([group.key])}
+                        >
+                          Bỏ qua
+                        </Button>
+                      </header>
+                      <ul className={styles.dupeRows}>
+                        {group.rows.map((row) => (
+                          <li key={row.id} className={styles.dupeRow}>
+                            <span className={styles.dupeRowDate}>
+                              {formatDayMonth(row.occurredOn)}
+                            </span>
+                            <span className={styles.dupeRowNote}>
+                              {row.note || "(không ghi chú)"}
+                            </span>
+                            <MoneyValue
+                              amount={row.amount}
+                              mode="kind"
+                              kind={row.kind}
+                            />
+                            <IconButton
+                              type="button"
+                              variant="ghost"
+                              className={styles.deleteButton}
+                              onClick={() => handleDelete(row)}
+                              disabled={isMutating}
+                              aria-label={`Xóa giao dịch ${row.note}`}
+                            >
+                              <Icon name="trash" />
+                            </IconButton>
+                          </li>
+                        ))}
+                      </ul>
+                    </article>
+                  ))}
+                </div>
+              ) : null}
+            </section>
+          ) : null}
 
           {reviewFeatureAvailable && filtered.length ? (
             <div

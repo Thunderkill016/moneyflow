@@ -426,6 +426,123 @@
   margin-right: auto;
 }
 
+/*
+ * Duplicate-review strip — a quiet advisory band, not an alert: it shares the
+ * toolbar's muted canvas ground and never blocks the list below. The flag icon
+ * is decoration; the wording carries the meaning, so no warning tone is needed.
+ */
+.dupeStrip {
+  border-bottom: 1px solid var(--mf-border);
+  background: var(--mf-canvas);
+}
+
+.dupeSummary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 12px 20px;
+}
+
+.dupeIcon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--mf-text-muted);
+}
+
+.dupeIcon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.dupeText {
+  flex: 1 1 260px;
+  margin: 0;
+  color: var(--mf-text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.dupeText strong {
+  color: var(--mf-text);
+}
+
+.dupeActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.dupeGroups {
+  display: grid;
+  gap: 10px;
+  padding: 0 20px 16px;
+}
+
+.dupeHint {
+  margin: 0;
+  color: var(--mf-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.dupeGroup {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--mf-border);
+  border-radius: 12px;
+  background: var(--mf-surface);
+  padding: 10px 14px;
+}
+
+.dupeGroupHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+
+.dupeGroupHead > strong {
+  font-size: 13px;
+}
+
+.dupeGroupMeta {
+  flex: 1 1 auto;
+  color: var(--mf-text-muted);
+  font-size: 12px;
+}
+
+.dupeRows {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dupeRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 7px 0;
+  border-top: 1px solid var(--mf-border-subtle);
+  font-size: 13px;
+}
+
+.dupeRowDate {
+  color: var(--mf-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.dupeRowNote {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .bulkBar {
   display: grid;
   gap: 12px;
@@ -824,6 +941,8 @@
 
   .toolbar,
   .selectionToolbar,
+  .dupeSummary,
+  .dupeGroups,
   .bulkBar {
     padding-inline: 14px;
   }
@@ -979,6 +1098,7 @@
   .summary,
   .transactionIcon,
   .reviewBadge,
+  .dupeGroup,
   .searchControl,
   .field input,
   .field select {
