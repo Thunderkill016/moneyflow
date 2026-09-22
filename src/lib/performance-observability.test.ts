@@ -21,7 +21,7 @@ test("real transaction creation uses React optimistic state", () => {
   assert.match(hook, /startTransition\(async \(\) =>/);
   assert.match(
     hook,
-    /addOptimisticTransaction\((?:withReviewStatus\()?optimistic\.transaction\)?\)/,
+    /applyOptimisticMutation\(\{\s*type: "add",\s*transaction: (?:withReviewStatus\()?optimistic\.transaction\)?/u,
   );
   assert.match(hook, /transactions: optimisticTransactions/);
 });
