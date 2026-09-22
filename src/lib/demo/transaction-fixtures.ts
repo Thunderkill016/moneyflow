@@ -39,6 +39,8 @@ type DemoSeed = {
   categoryId: string;
   category: string;
   note: (monthLabel: string) => string;
+  /** Merchant/entity shown beside the memo; absent means no payee recorded. */
+  payee?: string;
   accountId: string;
   account: string;
   amount: number;
@@ -55,6 +57,7 @@ const DEMO_SEEDS: DemoSeed[] = [
     categoryId: "demo-category-expense-Ăn uống",
     category: "Ăn uống",
     note: () => "Cơm trưa",
+    payee: "Cơm Minh Đức",
     accountId: "demo-account-mb",
     account: "MB Bank",
     amount: 63_000,
@@ -67,6 +70,7 @@ const DEMO_SEEDS: DemoSeed[] = [
     categoryId: "demo-category-expense-Di chuyển",
     category: "Di chuyển",
     note: () => "Grab đi làm",
+    payee: "Grab",
     accountId: "demo-account-momo",
     account: "MoMo",
     amount: 42_000,
@@ -138,6 +142,7 @@ export function sampleTransactionsFor(today: string): Transaction[] {
       categoryId: seed.categoryId,
       category: seed.category,
       note: seed.note(monthLabel),
+      payee: seed.payee,
       accountId: seed.accountId,
       account: seed.account,
       amount: seed.amount,
