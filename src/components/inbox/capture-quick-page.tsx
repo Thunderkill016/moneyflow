@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import type { ToastTone } from "@/components/ui/toast";
 import type { ViewerSummary } from "@/components/user-chip";
 import { useTransactions } from "@/hooks/use-transactions";
 import { captureConsequence } from "@/lib/capture-consequence";
@@ -94,6 +95,7 @@ export function CaptureQuickPage({
     isDemo: viewer.isDemo,
   });
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
   const [recentSaved, setRecentSaved] = useState<Transaction | null>(null);
   const recentSavedRef = useRef<Transaction | null>(null);
   const [editing, setEditing] = useState<Transaction | null>(null);
@@ -139,6 +141,7 @@ export function CaptureQuickPage({
     const returnToCapture = Boolean(recentSaved && !formOpen);
     const timer = window.setTimeout(() => {
       setNotice("");
+      setNoticeTone(undefined);
       setRecentSaved(null);
       recentSavedRef.current = null;
       lastSavedAtRef.current = null;
@@ -146,6 +149,11 @@ export function CaptureQuickPage({
     }, 3600);
     return () => window.clearTimeout(timer);
   }, [formOpen, notice, recentSaved, router]);
+
+  function showNotice(message: string, tone: ToastTone) {
+    setNotice(message);
+    setNoticeTone(tone);
+  }
 
   async function handleAdd(input: CreateTransactionInput) {
     const startedAt = captureStartedAtRef.current ?? performance.now();
@@ -205,13 +213,14 @@ export function CaptureQuickPage({
       recentSavedRef.current = result.transaction;
       setRecentSaved(result.transaction);
     }
-    setNotice(
+    showNotice(
       result.transaction
         ? captureConsequence({
             saved: result.transaction,
             transactions: [result.transaction, ...transactions],
           })
         : "Đã lưu giao dịch.",
+      "success",
     );
     return result;
   }
@@ -224,7 +233,7 @@ export function CaptureQuickPage({
       setEditing(null);
       setRecentSaved(null);
       recentSavedRef.current = null;
-      setNotice("Đã cập nhật giao dịch.");
+      showNotice("Đã cập nhật giao dịch.", "success");
     }
     return result;
   }
@@ -236,7 +245,7 @@ export function CaptureQuickPage({
       setFormOpen(true);
       setRecentSaved(null);
       recentSavedRef.current = null;
-      setNotice("Đã chuyển tiền giữa các tài khoản.");
+      showNotice("Đã chuyển tiền giữa các tài khoản.", "success");
     }
     return result;
   }
@@ -284,12 +293,14 @@ export function CaptureQuickPage({
     setRecentSaved(null);
     recentSavedRef.current = null;
     setNotice("");
+    setNoticeTone(undefined);
   }
 
   function addAnother() {
     setRecentSaved(null);
     recentSavedRef.current = null;
     setNotice("");
+    setNoticeTone(undefined);
     captureStartedAtRef.current = performance.now();
     lastSavedAtRef.current = null;
     selectedPatternRankRef.current = null;
@@ -311,6 +322,7 @@ export function CaptureQuickPage({
         icon: "inbox",
       }}
       notice={notice}
+      noticeTone={noticeTone}
       noticeAction={
         recentSaved
           ? {

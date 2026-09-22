@@ -22,6 +22,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import type { ToastTone } from "@/components/ui/toast";
 import type { ViewerSummary } from "@/components/user-chip";
 import {
   loadInboxForClient,
@@ -153,7 +154,17 @@ export function InboxPage({
   const monthStart = monthStartFromDate(today);
   const [filter, setFilter] = useState<InboxViewFilter>("all");
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
   const [errorMessage, setErrorMessage] = useState("");
+  /*
+   * Notice + tone always move as a pair so a cleared or replaced notice can
+   * never inherit a stale tone. Stable identity: resolveCandidateTarget's
+   * useCallback lists it as a dependency.
+   */
+  const showNotice = useCallback((message: string, tone: ToastTone) => {
+    setNotice(message);
+    setNoticeTone(tone);
+  }, []);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [reviewId, setReviewId] = useState<string | null>(
     initialCandidateId ?? null,
@@ -175,10 +186,10 @@ export function InboxPage({
       candidateTargetHandledRef.current = true;
       if (!findPendingCandidateTarget(list, initialCandidateId)) {
         setReviewId(null);
-        setNotice("Ứng viên không còn chờ xử lý.");
+        showNotice("Ứng viên không còn chờ xử lý.", "warning");
       }
     },
-    [initialCandidateId],
+    [initialCandidateId, showNotice],
   );
 
   useEffect(() => {
@@ -251,7 +262,10 @@ export function InboxPage({
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 5000);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setNoticeTone(undefined);
+    }, 5000);
     return () => window.clearTimeout(timer);
   }, [notice]);
 
@@ -396,7 +410,7 @@ export function InboxPage({
 
   function seedDemo() {
     if (!viewer.isDemo) {
-      setNotice("Dữ liệu mẫu chỉ dùng trong chế độ demo trên thiết bị.");
+      showNotice("Dữ liệu mẫu chỉ dùng trong chế độ demo trên thiết bị.", "info");
       return;
     }
     const next = sampleCandidates.map((item) => ({ ...item }));
@@ -404,7 +418,7 @@ export function InboxPage({
     setCandidates(next);
     candidatesRef.current = next;
     setSelectedIds([]);
-    setNotice("Đã nạp dữ liệu mẫu vào Inbox.");
+    showNotice("Đã nạp dữ liệu mẫu vào Inbox.", "success");
   }
 
   function toggleSelect(id: string) {
@@ -437,10 +451,11 @@ export function InboxPage({
     setSelectedIds(readyIds);
     setFilter("ready");
     setFocusedIndex(-1);
-    setNotice(
+    showNotice(
       readyIds.length > 0
         ? `Đã chọn ${readyIds.length} ứng viên Sẵn sàng. Chưa có giao dịch nào được ghi sổ.`
         : "Chưa có ứng viên Sẵn sàng để chọn.",
+      readyIds.length > 0 ? "success" : "warning",
     );
   }
 
@@ -521,11 +536,12 @@ export function InboxPage({
       current.filter((id) => id !== payload.candidateId),
     );
     setErrorMessage("");
-    setNotice(
+    showNotice(
       safeUserNotice(
         `Đã ghi khoản định kỳ “${commitment.name}” vào sổ.`,
         "Đã ghi khoản định kỳ vào sổ.",
       ),
+      "success",
     );
     trackProductEvent("candidate_approved", {
       kind: "expense",
@@ -628,8 +644,9 @@ export function InboxPage({
     );
     const saved = await persist(next, [payload.candidateId]);
     if (!saved) {
-      setNotice(
+      showNotice(
         "Giao dịch đã vào sổ nhưng trạng thái Inbox chưa đồng bộ. Bấm duyệt lại là an toàn: MoneyFlow dùng cùng mã ứng viên và không tạo bản sao.",
+        "warning",
       );
       return {
         ok: false,
@@ -642,11 +659,12 @@ export function InboxPage({
       current.filter((id) => id !== payload.candidateId),
     );
     setErrorMessage("");
-    setNotice(
+    showNotice(
       safeUserNotice(
         `Đã duyệt “${payload.draft.merchant.trim() || "giao dịch"}” vào sổ.`,
         "Đã duyệt giao dịch vào sổ.",
       ),
+      "success",
     );
     const reviewed = candidatesRef.current.find(
       (item) => item.id === payload.candidateId,
@@ -682,8 +700,9 @@ export function InboxPage({
   async function handleReject(candidateId: string) {
     if (parseCommitmentSuggestionId(candidateId)) {
       setReviewId(null);
-      setNotice(
+      showNotice(
         "Khoản định kỳ đến hạn chỉ có thể ghi sổ — đổi hoặc lưu trữ tại trang Khoản định kỳ.",
+        "info",
       );
       return;
     }
@@ -698,11 +717,12 @@ export function InboxPage({
     if (!(await persist(next, [candidateId]))) return;
     setSelectedIds((current) => current.filter((id) => id !== candidateId));
     setReviewId(null);
-    setNotice(
+    showNotice(
       safeUserNotice(
         `Đã từ chối${target ? ` “${target.merchant}”` : ""}.`,
         "Đã từ chối ứng viên.",
       ),
+      "success",
     );
     const detectedTarget = detectedRef.current.find(
       (item) => item.id === candidateId,
@@ -720,7 +740,10 @@ export function InboxPage({
 
   async function handleMarkDuplicate(candidateId: string) {
     if (parseCommitmentSuggestionId(candidateId)) {
-      setNotice("Gợi ý định kỳ được đối chiếu tự động — không cần đánh dấu.");
+      showNotice(
+        "Gợi ý định kỳ được đối chiếu tự động — không cần đánh dấu.",
+        "info",
+      );
       return;
     }
     const result = await updateCandidateForClient(
@@ -729,12 +752,12 @@ export function InboxPage({
       candidatesRef.current,
     );
     if (!result.ok) {
-      setNotice(result.message);
+      showNotice(result.message, "error");
       return;
     }
     setCandidates(result.candidates);
     candidatesRef.current = result.candidates;
-    setNotice("Đã đánh dấu có thể trùng. Hãy kiểm tra trước khi duyệt.");
+    showNotice("Đã đánh dấu có thể trùng. Hãy kiểm tra trước khi duyệt.", "success");
   }
 
   async function handleBulkApply(payload: BulkApplyPayload) {
@@ -757,7 +780,7 @@ export function InboxPage({
 
       if (payload.action !== "approve" && realIds.length === 0) {
         setSelectedIds([]);
-        setNotice(`Không có ứng viên nào để xử lý${skippedNote}.`);
+        showNotice(`Không có ứng viên nào để xử lý${skippedNote}.`, "warning");
         return;
       }
 
@@ -769,8 +792,9 @@ export function InboxPage({
         );
         if (!(await persist(next, realIds))) return;
         setSelectedIds([]);
-        setNotice(
+        showNotice(
           `Đã từ chối ${realIds.length} ứng viên${skippedNote}.`,
+          "success",
         );
         trackProductEvent("candidate_rejected", {
           count: realIds.length,
@@ -784,7 +808,7 @@ export function InboxPage({
           (item) => item.id === payload.accountId,
         );
         if (!account) {
-          setNotice("Chưa chọn được tài khoản.");
+          showNotice("Chưa chọn được tài khoản.", "warning");
           return;
         }
         const next = applyBulkAccount(
@@ -793,8 +817,9 @@ export function InboxPage({
           account,
         );
         if (!(await persist(next, realIds))) return;
-        setNotice(
+        showNotice(
           `Đã gán tài khoản “${account.name}” cho các ứng viên đã chọn${skippedNote}.`,
+          "success",
         );
         trackProductEvent("candidate_field_assigned", {
           field: "account",
@@ -808,7 +833,7 @@ export function InboxPage({
           (item) => item.id === payload.categoryId,
         );
         if (!category) {
-          setNotice("Chưa chọn được danh mục.");
+          showNotice("Chưa chọn được danh mục.", "warning");
           return;
         }
         const next = applyBulkCategory(
@@ -817,8 +842,9 @@ export function InboxPage({
           category,
         );
         if (!(await persist(next, realIds))) return;
-        setNotice(
+        showNotice(
           `Đã gán danh mục “${category.name}” cho các ứng viên cùng loại${skippedNote}.`,
+          "success",
         );
         trackProductEvent("candidate_field_assigned", {
           field: "category",
@@ -867,8 +893,9 @@ export function InboxPage({
       }
 
       setSelectedIds([]);
-      setNotice(
+      showNotice(
         `Đã duyệt ${approved}${currentReadiness.needsAttention.length ? ` · Giữ lại ${currentReadiness.needsAttention.length} Cần xem lại` : ""}${failed ? ` · Cần xử lý lại ${failed}` : ""}.`,
+        failed ? "warning" : "success",
       );
     } finally {
       setBulkBusy(false);
@@ -926,7 +953,7 @@ export function InboxPage({
       if (action === "toggle_select") {
         const index = focusedIndexRef.current;
         if (index < 0 || index >= list.length) {
-          setNotice("Dùng J/K chọn hàng rồi X để đánh dấu.");
+          showNotice("Dùng J/K chọn hàng rồi X để đánh dấu.", "info");
           return;
         }
         event.preventDefault();
@@ -936,7 +963,7 @@ export function InboxPage({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [loadState, router]);
+  }, [loadState, router, showNotice]);
 
   const allVisibleSelected =
     visible.length > 0 &&
@@ -947,6 +974,7 @@ export function InboxPage({
       viewer={viewer}
       inboxCount={pendingCount}
       notice={notice}
+      noticeTone={noticeTone}
       /* No showPrimaryActionOnMobile here, unlike the planning routes. Their
          topbar action is a distinct operation (add a budget, a goal, a
          category); Inbox's is capture, which the global middle tab already
