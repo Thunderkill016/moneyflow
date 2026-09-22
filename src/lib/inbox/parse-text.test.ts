@@ -201,3 +201,17 @@ test("toCreateCandidateInputs maps source paste + integer amount", () => {
   assert.equal(Number.isSafeInteger(inputs[0]?.amount), true);
   assert.equal(inputs[0]?.status, "pending");
 });
+
+test("toCreateCandidateInputs stamps a chosen account on every pasted candidate", () => {
+  const result = parsePasteText("Highlands 45k\nGrab 89k", { today: "2026-07-15" });
+  const withAccount = toCreateCandidateInputs(result.candidates, {
+    account: { id: "acc-mb", name: "MB Bank" },
+  });
+  assert.ok(withAccount.length >= 1);
+  assert.ok(withAccount.every((i) => i.accountId === "acc-mb"));
+  assert.ok(withAccount.every((i) => i.account === "MB Bank"));
+
+  const without = toCreateCandidateInputs(result.candidates);
+  assert.equal(without[0]?.accountId, undefined);
+  assert.equal(without[0]?.account, undefined);
+});

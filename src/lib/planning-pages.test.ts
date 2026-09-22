@@ -162,6 +162,42 @@ test("all four Planning pages use the shared shell and UI empty state", () => {
   assert.match(commitments, /aria-pressed=\{statusFilter === value\}/);
   assert.match(commitments, /Không có khoản chưa thanh toán/);
   assert.match(commitments, /Chưa có khoản đã thanh toán/);
+  assert.match(
+    commitments,
+    /Khoản định kỳ cần một tài khoản để ghi chi/,
+    "commitments empty state must explain the missing-account prerequisite instead of a dead end",
+  );
+  assert.match(
+    commitments,
+    /href=\{missingAccount \? "\/accounts" : "\/categories"\}/,
+    "commitments empty state must route to the missing prerequisite",
+  );
+
+  const goals = read(GOALS);
+  assert.match(
+    goals,
+    /Không tải được mục tiêu/,
+    "goals must render an honest error state rather than a fake empty ledger",
+  );
+  assert.match(
+    goals,
+    /\{dataError\}/,
+    "goals must surface the load error message",
+  );
+
+  const commitmentsServer = read(
+    join(root, "src/server/commitments.ts"),
+  );
+  assert.match(
+    commitmentsServer,
+    /commitment_id,transaction_id,paid_at/,
+    "occurrence select must carry paid_at so paid cards can show evidence",
+  );
+  assert.match(
+    commitments,
+    /Đã ghi ngày/,
+    "paid commitment cards must show the recorded date when known",
+  );
 
   const categories = read(CATEGORIES);
   assert.match(categories, /EmptyState/);

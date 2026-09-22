@@ -158,10 +158,16 @@ export function CommitmentsPage({
       : statusFilter === "paid"
         ? "Chưa có khoản đã thanh toán"
         : "Chưa có khoản định kỳ";
+  const missingAccount = accounts.length === 0;
+  const missingCategory = !missingAccount && categories.length === 0;
   const emptyDescription = showArchived
     ? "Các khoản được lưu trữ sẽ xuất hiện tại đây."
     : statusFilter === "all"
-      ? "Thêm tiền nhà hoặc hóa đơn để theo dõi ngày và chỉ ghi chi khi bạn thanh toán."
+      ? missingAccount
+        ? "Khoản định kỳ cần một tài khoản để ghi chi. Tạo tài khoản trước, rồi quay lại đặt khoản đầu tiên."
+        : missingCategory
+          ? "Khoản định kỳ cần một danh mục chi để phân loại. Tạo danh mục trước, rồi quay lại đặt khoản đầu tiên."
+          : "Thêm tiền nhà hoặc hóa đơn để theo dõi ngày và chỉ ghi chi khi bạn thanh toán."
       : "Đổi bộ lọc để xem các khoản định kỳ khác hoặc thêm một khoản mới.";
   const totals = commitmentTotals(items);
   const unpaidCount = unpaidActiveCount(items);
@@ -522,7 +528,9 @@ export function CommitmentsPage({
                             </span>
                             <strong>
                               {item.isPaid
-                                ? "Đã có giao dịch chi"
+                                ? item.paidOn
+                                  ? `Đã ghi ngày ${item.paidOn.slice(8, 10)}/${item.paidOn.slice(5, 7)}`
+                                  : "Đã có giao dịch chi"
                                 : "Chưa ghi giao dịch"}
                             </strong>
                           </div>
@@ -601,8 +609,31 @@ export function CommitmentsPage({
                         targetSize="important"
                         onClick={() => open(null)}
                       >
-                        <Icon name="plus" /> Thêm khoản đầu tiên
+                        <Icon name="plus" />
+                        {statusFilter === "all" && active.length === 0
+                          ? " Thêm khoản đầu tiên"
+                          : " Thêm khoản định kỳ"}
                       </Button>
+                    ) : undefined
+                  }
+                  secondaryAction={
+                    !showArchived && statusFilter !== "all" && active.length > 0 ? (
+                      <Button
+                        type="button"
+                        intent="secondary"
+                        targetSize="important"
+                        onClick={() => setStatusFilter("all")}
+                      >
+                        Xem tất cả
+                      </Button>
+                    ) : !showArchived && !dataError && (missingAccount || missingCategory) ? (
+                      <LinkButton
+                        href={missingAccount ? "/accounts" : "/categories"}
+                        intent="primary"
+                        targetSize="important"
+                      >
+                        {missingAccount ? "Tạo tài khoản" : "Tạo danh mục"}
+                      </LinkButton>
                     ) : undefined
                   }
                 />

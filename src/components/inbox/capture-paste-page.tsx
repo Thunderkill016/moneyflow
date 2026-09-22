@@ -23,8 +23,10 @@ import {
   type PasteSourceHint,
 } from "@/lib/inbox/parse-text";
 import type { InboxRule } from "@/lib/inbox/rules-store";
+import { SelectField } from "@/components/ui/select-field";
 import { maskSnippetForDisplay } from "@/lib/mask-account";
 import { formatMoney } from "@/lib/money";
+import type { AccountOption } from "@/lib/sample-data";
 import { trackProductEvent } from "@/lib/safe-analytics";
 
 type Phase = "edit" | "preview" | "error";
@@ -59,7 +61,13 @@ function confidenceClass(confidence: ParsedCandidate["confidence"]): string {
   return "danger";
 }
 
-export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
+export function CapturePastePage({
+  viewer,
+  accounts,
+}: {
+  viewer: ViewerSummary;
+  accounts: AccountOption[];
+}) {
   const router = useRouter();
   const textareaId = useId();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -77,6 +85,7 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
   const [committing, setCommitting] = useState(false);
   const [inboxCount, setInboxCount] = useState(0);
   const [notice, setNotice] = useState("");
+  const [accountId, setAccountId] = useState("");
 
   useEffect(() => {
     textareaRef.current?.focus();
@@ -161,7 +170,12 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
     setCommitting(true);
     setError("");
     try {
-      const inputs = toCreateCandidateInputs(candidates);
+      const selectedAccount = accounts.find((item) => item.id === accountId);
+      const inputs = toCreateCandidateInputs(candidates, {
+        account: selectedAccount
+          ? { id: selectedAccount.id, name: selectedAccount.name }
+          : undefined,
+      });
       const result = await addCandidatesForClient(viewer.isDemo, inputs);
       if (!result.ok) {
         setError(result.message);
@@ -411,6 +425,24 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
                   </li>
                 ))}
               </ul>
+
+              <SelectField
+                label="Các mục này thuộc tài khoản"
+                value={accountId}
+                onChange={(event) => setAccountId(event.target.value)}
+                disabled={committing}
+                targetSize="important"
+              >
+                <option value="">Chọn sau trong Inbox</option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                    {account.currencyCode && account.currencyCode !== "VND"
+                      ? ` (${account.currencyCode})`
+                      : ""}
+                  </option>
+                ))}
+              </SelectField>
 
               <div className="capture-paste-actions">
                 <button
