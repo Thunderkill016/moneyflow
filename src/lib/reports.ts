@@ -309,15 +309,30 @@ function inRange(transaction: Transaction, start: string, end: string) {
   return transaction.occurredOn >= start && transaction.occurredOn <= end;
 }
 
+export type ReportTrendGranularity = "day" | "month";
+
+/**
+ * The bucket shape `trend` uses for a range — one bar per day while the window
+ * is short enough to read, one per month beyond `TREND_DAILY_MAX_DAYS` and for
+ * the year preset.
+ *
+ * Exported because the page's labels must agree with the bars: the decision is
+ * by span, not by period name, so a 63-day custom window draws months — and a
+ * label that only checks `period === "year"` would still call them days.
+ */
+export function reportTrendGranularity(range: ReportRange): ReportTrendGranularity {
+  return range.period === "year" ||
+    daysBetween(range.currentStart, range.currentEnd) > TREND_DAILY_MAX_DAYS
+    ? "month"
+    : "day";
+}
+
 function trendBuckets(range: ReportRange) {
   const buckets: { key: string; label: string }[] = [];
   // Monthly for the year preset, and for any window too long to read one bar per
   // day. Bucketing is chosen by span rather than by period name so a 90-day custom
   // window cannot produce 90 bars the chart was never shaped for.
-  const monthly =
-    range.period === "year" ||
-    daysBetween(range.currentStart, range.currentEnd) > TREND_DAILY_MAX_DAYS;
-  if (monthly) {
+  if (reportTrendGranularity(range) === "month") {
     let cursor = range.currentStart.slice(0, 7);
     const end = range.currentEnd.slice(0, 7);
     while (cursor <= end) {
