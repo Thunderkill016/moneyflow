@@ -228,8 +228,31 @@ test.describe("Deterministic rules workspace", () => {
   test("saves a reviewed merchant rule without posting the current candidate", async ({
     page,
   }) => {
+    // Seed directly: a due demo commitment suggestion keeps Inbox non-empty, so
+    // the "Nạp dữ liệu mẫu" empty-state button is not rendered anymore.
+    await page.addInitScript((candidatesKey) => {
+      window.localStorage.setItem(
+        candidatesKey,
+        JSON.stringify([
+          {
+            id: "cand-demo-1",
+            kind: "expense",
+            amount: 45_000,
+            merchant: "Highlands Coffee",
+            note: "Cafe sáng",
+            occurredOn: "2026-07-12",
+            source: "paste",
+            confidence: "low",
+            status: "pending",
+            category: "Ăn uống",
+            account: "Tiền mặt",
+            rawSnippet: "Highlands 45k",
+            createdAt: "2026-07-12T02:10:00.000Z",
+          },
+        ]),
+      );
+    }, CANDIDATES_KEY);
     await page.goto("/inbox", { waitUntil: "domcontentloaded" });
-    await page.getByRole("button", { name: "Nạp dữ liệu mẫu", exact: true }).click();
     await page.getByRole("button", { name: /Duyệt Highlands Coffee/ }).click();
 
     const review = page.getByRole("dialog", { name: "Duyệt giao dịch" });
