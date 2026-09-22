@@ -139,6 +139,7 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
         categoryId: category.id,
         category: category.name,
         note: input.note || category.name,
+        payee: input.payee?.trim() || undefined,
         accountId: account.id,
         account: account.name,
         amount: input.amount,
@@ -168,6 +169,7 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
           amount: input.amount,
           occurredOn: input.occurredOn,
           note: input.note,
+          payee: input.payee,
           idempotencyKey: input.idempotencyKey,
           allowHeuristicDuplicate: input.allowHeuristicDuplicate ?? false,
         });
@@ -406,6 +408,7 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
           categoryId: category.id,
           category: category.name,
           note: input.note || category.name,
+          payee: input.payee?.trim() || undefined,
           accountId: account.id,
           account: account.name,
           destinationAccountId: undefined,

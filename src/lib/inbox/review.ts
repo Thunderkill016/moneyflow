@@ -430,6 +430,7 @@ export function buildLedgerPost(
       accountId: account.id,
       amount: draft.amount,
       note: noteBase,
+      payee: draft.merchant.trim() || undefined,
       occurredOn: draft.occurredOn,
       idempotencyKey,
     },

@@ -15,6 +15,7 @@ export function isTransaction(value: unknown): value is Transaction {
     typeof item.categoryId === "string" &&
     typeof item.category === "string" &&
     typeof item.note === "string" &&
+    (item.payee === undefined || typeof item.payee === "string") &&
     typeof item.accountId === "string" &&
     typeof item.account === "string" &&
     typeof item.amount === "number" &&

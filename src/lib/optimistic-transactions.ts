@@ -38,6 +38,7 @@ export function buildOptimisticTransaction(
       categoryId: category.id,
       category: category.name,
       note: input.note || category.name,
+      payee: input.payee?.trim() || undefined,
       accountId: account.id,
       account: account.name,
       amount: input.amount,
