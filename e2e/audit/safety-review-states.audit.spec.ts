@@ -293,15 +293,34 @@ test.describe("Phase B safety and review states", () => {
   test("Inbox review validation leaves ledger and candidate pending", async ({
     page,
   }, testInfo) => {
+    // Seed a persisted candidate directly: a due demo commitment suggestion
+    // keeps Inbox non-empty, so the "Nạp dữ liệu mẫu" empty-state button is
+    // not rendered, and the first "Duyệt" row may be the virtual suggestion.
+    await page.addInitScript((candidatesKey) => {
+      window.localStorage.setItem(
+        candidatesKey,
+        JSON.stringify([
+          {
+            id: "cand-demo-1",
+            kind: "expense",
+            amount: 45_000,
+            merchant: "Highlands Coffee",
+            note: "Cafe sáng",
+            occurredOn: "2026-07-12",
+            source: "paste",
+            confidence: "low",
+            status: "pending",
+            category: "Ăn uống",
+            account: "Tiền mặt",
+            rawSnippet: "Highlands 45k",
+            createdAt: "2026-07-12T02:10:00.000Z",
+          },
+        ]),
+      );
+    }, CANDIDATES_KEY);
     await page.goto("/inbox", { waitUntil: "domcontentloaded" });
-    const seed = page.getByRole("button", {
-      name: "Nạp dữ liệu mẫu",
-      exact: true,
-    });
-    await expect(seed).toBeVisible();
-    await seed.click();
 
-    const review = page.getByRole("button", { name: /^Duyệt .+/ }).first();
+    const review = page.getByRole("button", { name: /^Duyệt Highlands Coffee/ });
     await expect(review).toBeVisible();
     await review.click();
     await expect(
