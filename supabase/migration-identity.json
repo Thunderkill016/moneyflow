@@ -324,6 +324,11 @@
       "version": "20260922120000",
       "name": "20260922120000_transaction_payee.sql",
       "hash": "2457cade5dccd5f93e651922f7a4a8d8"
+    },
+    {
+      "version": "20260923013000",
+      "name": "20260923013000_reconciliation_adjustment_completion.sql",
+      "hash": "cac1ff2348e0693cd02343f1a5cf8aac"
     }
   ]
 }

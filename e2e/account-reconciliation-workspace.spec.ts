@@ -148,17 +148,47 @@ test.describe("Account reconciliation workspace", () => {
     ).toBeVisible();
   });
 
-  test("does not enable completion while the statement difference is nonzero", async ({ page }) => {
+  test("completes a nonzero statement only through an explicit income adjustment", async ({ page }) => {
     await page.goto("/accounts/demo-account-mb/reconcile");
     await fillStatementForm(page, STATEMENT_DATE, "15.777.000");
     await expect(page.getByRole("button", { name: "Mở kỳ đối soát" })).toBeEnabled();
     await page.getByRole("button", { name: "Mở kỳ đối soát" }).click();
 
     await expect(
-      page.getByRole("button", { name: "Hoàn tất đối soát" }),
-    ).toBeDisabled();
+      page.getByText("Tiếp tục đối chiếu, hoặc hoàn tất bằng một khoản điều chỉnh bạn chọn."),
+    ).toBeVisible();
+
+    // The difference is positive (statement above cleared) → income categories only.
+    await page.getByRole("button", { name: "Hoàn tất đối soát" }).click();
+    const adjustmentDialog = page.getByRole("dialog");
     await expect(
-      page.getByText("Tiếp tục đối chiếu giao dịch, không tự bù chênh lệch."),
+      adjustmentDialog.getByText("Hoàn tất bằng khoản điều chỉnh?"),
+    ).toBeVisible();
+    await expect(
+      adjustmentDialog.getByText(
+        `Điều chỉnh đối soát — sao kê ${STATEMENT_DATE_LABEL}`,
+      ),
+    ).toBeVisible();
+
+    const confirm = adjustmentDialog.getByRole("button", {
+      name: "Hoàn tất với điều chỉnh",
+    });
+    await expect(confirm).toBeDisabled();
+    await adjustmentDialog
+      .getByLabel("Danh mục khoản thu điều chỉnh")
+      .selectOption({ index: 1 });
+    await expect(confirm).toBeEnabled();
+    await confirm.click();
+
+    await expect(
+      page.getByRole("heading", { name: "Các kỳ đã hoàn tất" }),
+    ).toBeVisible();
+    await expect(page.getByText("1 kỳ", { exact: true })).toBeVisible();
+
+    // The adjustment is a real ledger row — visible on the account register.
+    await page.goto("/accounts/demo-account-mb");
+    await expect(
+      page.getByText(`Điều chỉnh đối soát — sao kê ${STATEMENT_DATE_LABEL}`),
     ).toBeVisible();
   });
 

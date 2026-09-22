@@ -1,17 +1,36 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { AccountRegisterEntry } from "./account-register.ts";
-import type { Transaction } from "./transactions/contracts.ts";
+import type {
+  CategoryOption,
+  Transaction,
+} from "./transactions/contracts.ts";
 import {
   buildDemoReconciliationRows,
   calculateOpenSessionSnapshot,
   completeDemoAccountReconciliation,
   emptyReconciliationState,
   mergeAccountReconciliationWorkspace,
+  reconciliationAdjustmentNote,
   reopenDemoAccountReconciliation,
   setDemoAccountEntryReconciliationState,
   startDemoAccountReconciliation,
 } from "./reconciliation.ts";
+
+const incomeCategory: CategoryOption = {
+  id: "demo-category-income-Tiền lương",
+  name: "Tiền lương",
+  kind: "income",
+  icon: null,
+  color: null,
+};
+const expenseCategory: CategoryOption = {
+  id: "demo-category-expense-Phí ngân hàng",
+  name: "Phí ngân hàng",
+  kind: "expense",
+  icon: null,
+  color: null,
+};
 
 function transaction(
   id: string,
@@ -141,6 +160,227 @@ test("demo flow completes only at exact zero and preserves a completed snapshot"
   assert.deepEqual(
     completed.stateData.rows.map((row) => row.state),
     ["reconciled", "reconciled", "pending"],
+  );
+});
+
+test("demo completion with a positive difference posts an income adjustment", () => {
+  const started = startDemoAccountReconciliation({
+    stateData: demoState(),
+    registerEntries: entries,
+    accountId: "account-a",
+    initialBalance: 100_000,
+    statementDate: "2026-07-31",
+    statementBalance: 900_000,
+    today: "2026-08-03",
+    now: "2026-08-03T10:00:00.000Z",
+    reconciliationId: "session-adj",
+  });
+  assert.equal(started.ok, true);
+  if (!started.ok) return;
+  // Clearing only the expense leg leaves the statement above the cleared
+  // ledger — a positive difference, so the adjustment must be income.
+  const cleared = setDemoAccountEntryReconciliationState({
+    stateData: started.stateData,
+    registerEntries: entries,
+    accountId: "account-a",
+    initialBalance: 100_000,
+    entryId: started.stateData.rows[1]!.entryId,
+    state: "cleared",
+    now: "2026-08-03T10:01:00.000Z",
+  });
+  assert.equal(cleared.ok, true);
+  if (!cleared.ok) return;
+  // cleared = 100_000 - 250_000 = -150_000; difference = 900_000 - (-150_000) = 1_050_000
+  const completed = completeDemoAccountReconciliation({
+    stateData: cleared.stateData,
+    registerEntries: entries,
+    accountId: "account-a",
+    initialBalance: 100_000,
+    reconciliationId: "session-adj",
+    now: "2026-08-03T10:02:00.000Z",
+    adjustment: {
+      category: incomeCategory,
+      accountName: "Tài khoản A",
+      transactionId: "adjustment-tx",
+      payee: "  Ngân hàng MB  ",
+      today: "2026-08-03",
+    },
+  });
+  assert.equal(completed.ok, true);
+  if (!completed.ok) return;
+
+  const adjustment = completed.adjustmentTransaction!;
+  assert.equal(adjustment.kind, "income");
+  assert.equal(adjustment.amount, 1_050_000);
+  assert.equal(adjustment.occurredOn, "2026-07-31");
+  assert.equal(adjustment.note, "Điều chỉnh đối soát — sao kê 31/07/2026");
+  assert.equal(adjustment.payee, "Ngân hàng MB");
+  assert.equal(adjustment.categoryId, incomeCategory.id);
+  assert.equal(adjustment.accountId, "account-a");
+
+  const session = completed.stateData.sessions[0]!;
+  assert.equal(session.status, "completed");
+  assert.equal(session.calculatedBalance, 900_000);
+  assert.equal(session.difference, 0);
+  assert.equal(session.reconciledAccountLegCount, 2);
+
+  const adjustmentRow = completed.stateData.rows.find(
+    (row) => row.transactionId === "adjustment-tx",
+  );
+  assert.ok(adjustmentRow);
+  assert.equal(adjustmentRow.state, "reconciled");
+  assert.equal(adjustmentRow.reconciliationId, "session-adj");
+  assert.equal(adjustmentRow.clearedAt, "2026-08-03T10:02:00.000Z");
+});
+
+test("demo completion with a negative difference posts an expense adjustment", () => {
+  const started = startDemoAccountReconciliation({
+    stateData: demoState(),
+    registerEntries: entries,
+    accountId: "account-a",
+    initialBalance: 100_000,
+    statementDate: "2026-07-31",
+    statementBalance: 800_000,
+    today: "2026-08-03",
+    now: "2026-08-03T10:00:00.000Z",
+    reconciliationId: "session-adj",
+  });
+  assert.equal(started.ok, true);
+  if (!started.ok) return;
+  const cleared = setDemoAccountEntryReconciliationState({
+    stateData: started.stateData,
+    registerEntries: entries,
+    accountId: "account-a",
+    initialBalance: 100_000,
+    entryId: started.stateData.rows[0]!.entryId,
+    state: "cleared",
+    now: "2026-08-03T10:01:00.000Z",
+  });
+  assert.equal(cleared.ok, true);
+  if (!cleared.ok) return;
+  // cleared = 100_000 + 1_000_000 = 1_100_000; difference = 800_000 - 1_100_000 = -300_000
+  const completed = completeDemoAccountReconciliation({
+    stateData: cleared.stateData,
+    registerEntries: entries,
+    accountId: "account-a",
+    initialBalance: 100_000,
+    reconciliationId: "session-adj",
+    now: "2026-08-03T10:02:00.000Z",
+    adjustment: {
+      category: expenseCategory,
+      accountName: "Tài khoản A",
+      transactionId: "adjustment-tx",
+      today: "2026-08-03",
+    },
+  });
+  assert.equal(completed.ok, true);
+  if (!completed.ok) return;
+  assert.equal(completed.adjustmentTransaction!.kind, "expense");
+  assert.equal(completed.adjustmentTransaction!.amount, 300_000);
+  assert.equal(completed.adjustmentTransaction!.payee, undefined);
+  assert.equal(completed.stateData.sessions[0]!.calculatedBalance, 800_000);
+});
+
+test("demo adjustment rejects a category whose kind does not match the difference", () => {
+  const started = startDemoAccountReconciliation({
+    stateData: demoState(),
+    registerEntries: entries,
+    accountId: "account-a",
+    initialBalance: 100_000,
+    statementDate: "2026-07-31",
+    statementBalance: 900_000,
+    today: "2026-08-03",
+    now: "2026-08-03T10:00:00.000Z",
+    reconciliationId: "session-adj",
+  });
+  assert.equal(started.ok, true);
+  if (!started.ok) return;
+  // difference positive → income required; an expense category must fail
+  const rejected = completeDemoAccountReconciliation({
+    stateData: started.stateData,
+    registerEntries: entries,
+    accountId: "account-a",
+    initialBalance: 100_000,
+    reconciliationId: "session-adj",
+    now: "2026-08-03T10:02:00.000Z",
+    adjustment: {
+      category: expenseCategory,
+      accountName: "Tài khoản A",
+      transactionId: "adjustment-tx",
+      today: "2026-08-03",
+    },
+  });
+  assert.deepEqual(rejected, {
+    ok: false,
+    message:
+      "Danh mục điều chỉnh phải cùng loại thu hoặc chi với khoản chênh lệch.",
+  });
+});
+
+test("demo reopen returns the adjustment leg to cleared", () => {
+  const started = startDemoAccountReconciliation({
+    stateData: demoState(),
+    registerEntries: entries,
+    accountId: "account-a",
+    initialBalance: 100_000,
+    statementDate: "2026-07-31",
+    statementBalance: 900_000,
+    today: "2026-08-03",
+    now: "2026-08-03T10:00:00.000Z",
+    reconciliationId: "session-adj",
+  });
+  assert.equal(started.ok, true);
+  if (!started.ok) return;
+  const cleared = setDemoAccountEntryReconciliationState({
+    stateData: started.stateData,
+    registerEntries: entries,
+    accountId: "account-a",
+    initialBalance: 100_000,
+    entryId: started.stateData.rows[1]!.entryId,
+    state: "cleared",
+    now: "2026-08-03T10:01:00.000Z",
+  });
+  assert.equal(cleared.ok, true);
+  if (!cleared.ok) return;
+  const completed = completeDemoAccountReconciliation({
+    stateData: cleared.stateData,
+    registerEntries: entries,
+    accountId: "account-a",
+    initialBalance: 100_000,
+    reconciliationId: "session-adj",
+    now: "2026-08-03T10:02:00.000Z",
+    adjustment: {
+      category: incomeCategory,
+      accountName: "Tài khoản A",
+      transactionId: "adjustment-tx",
+      today: "2026-08-03",
+    },
+  });
+  assert.equal(completed.ok, true);
+  if (!completed.ok) return;
+
+  const reopened = reopenDemoAccountReconciliation({
+    stateData: completed.stateData,
+    registerEntries: entries,
+    accountId: "account-a",
+    initialBalance: 100_000,
+    reconciliationId: "session-adj",
+    now: "2026-08-03T11:00:00.000Z",
+  });
+  assert.equal(reopened.ok, true);
+  if (!reopened.ok) return;
+  const adjustmentRow = reopened.stateData.rows.find(
+    (row) => row.transactionId === "adjustment-tx",
+  );
+  assert.ok(adjustmentRow);
+  assert.equal(adjustmentRow.state, "cleared");
+  assert.equal(adjustmentRow.reconciliationId, null);
+});
+
+test("demo adjustment note renders the statement date dd/mm/yyyy", () => {
+  assert.equal(
+    reconciliationAdjustmentNote("2026-09-05"),
+    "Điều chỉnh đối soát — sao kê 05/09/2026",
   );
 });
 
