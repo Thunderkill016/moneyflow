@@ -25,6 +25,7 @@ const createSchema = z.object({
   accountId: z.string().uuid(),
   amount: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
   note: z.string().trim().max(500),
+  payee: z.string().trim().max(200).optional(),
   occurredOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   idempotencyKey: z.string().uuid(),
 });
@@ -35,6 +36,7 @@ const transferSchema = transferFields.refine((value) => value.sourceAccountId !=
 const splitExpenseSchema = z.object({
   accountId: z.string().uuid(),
   note: z.string().trim().max(500),
+  payee: z.string().trim().max(200).optional(),
   occurredOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   idempotencyKey: z.string().uuid(),
   lines: z
@@ -49,7 +51,7 @@ const splitExpenseSchema = z.object({
 });
 const updateSchema = createSchema.omit({ idempotencyKey: true }).extend({ id: z.string().uuid() });
 const updateTransferSchema = transferFields.omit({ idempotencyKey: true }).extend({ id: z.string().uuid(), kind: z.literal("transfer") }).refine((value) => value.sourceAccountId !== value.destinationAccountId);
-const feedColumns = "id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines";
+const feedColumns = "id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines,payee";
 
 function refreshFinancePages() {
   revalidatePath("/");
@@ -78,6 +80,7 @@ export async function createTransactionAction(
     p_amount_minor: parsed.data.amount,
     p_occurred_on: parsed.data.occurredOn,
     p_note: parsed.data.note,
+    p_payee: parsed.data.payee ?? "",
     p_idempotency_key: parsed.data.idempotencyKey,
   });
 
@@ -151,6 +154,7 @@ export async function createSplitExpenseAction(
     p_lines: pLines,
     p_occurred_on: value.occurredOn,
     p_note: value.note,
+    p_payee: value.payee ?? "",
     p_idempotency_key: value.idempotencyKey,
   });
 
@@ -270,6 +274,7 @@ export async function updateTransactionAction(input: UpdateMoneyTransactionInput
   const { data: transactionId, error } = await supabase.rpc("update_money_transaction", {
     p_transaction_id: value.id, p_account_id: value.accountId, p_category_id: value.categoryId,
     p_kind: value.kind, p_amount_minor: value.amount, p_occurred_on: value.occurredOn, p_note: value.note,
+    p_payee: value.payee ?? "",
   });
   if (error?.message.includes("recurring_payment_locked")) return { ok: false, message: "Khoản này được quản lý ở trang Định kỳ hoặc Lương định kỳ." };
   if (error || typeof transactionId !== "string") return { ok: false, message: "Không thể cập nhật giao dịch. Hãy kiểm tra và thử lại." };

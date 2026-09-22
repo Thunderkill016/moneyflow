@@ -98,6 +98,22 @@ test("transactions.search folds đ to d so 'tien dien' finds 'Tiền điện'", 
   );
 });
 
+test("transactions.search matches payee text", async () => {
+  const deps = fixtureDeps();
+  // "minh đức" only exists in sample-1's payee — note and category do not carry it.
+  assert.deepEqual(
+    (await run(FIXED_CONTEXT, { text: "minh đức", limit: 50 }, deps)).items.map(
+      (item) => item.id,
+    ),
+    ["sample-1"],
+  );
+  assert.equal(
+    (await run(FIXED_CONTEXT, { text: "minh đức", limit: 50 }, deps)).items[0]
+      ?.payee,
+    "Cơm Minh Đức",
+  );
+});
+
 test("transactions.search rejects malformed cursors", async () => {
   await assert.rejects(
     () => run(FIXED_CONTEXT, { cursor: "not-base64", limit: 50 }, fixtureDeps()),

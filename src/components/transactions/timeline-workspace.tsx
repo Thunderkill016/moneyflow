@@ -287,7 +287,7 @@ export function TimelineWorkspace({
                                         `${line.category} ${formatMoney(line.amount)}`,
                                     )
                                     .join(" · ")}`
-                                : `${transaction.category} · ${transaction.account}`}
+                                : `${transaction.payee ? `${transaction.payee} · ` : ""}${transaction.category} · ${transaction.account}`}
                             {transaction.isRecurringPayment
                               ? " · Từ lịch định kỳ"
                               : ""}

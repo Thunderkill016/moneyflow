@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AddTransactionDialog } from "@/components/add-transaction-dialog";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
@@ -16,7 +16,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import type { ViewerSummary } from "@/components/user-chip";
 import { useTransactions } from "@/hooks/use-transactions";
 import { captureConsequence } from "@/lib/capture-consequence";
-import { deriveFrequentLedgerPatterns } from "@/lib/quick-add-defaults";
+import {
+  deriveFrequentLedgerPatterns,
+  derivePayeeSuggestions,
+} from "@/lib/quick-add-defaults";
 import {
   buildQuickCaptureCorrectionMeta,
   buildQuickCaptureSaveMeta,
@@ -111,6 +114,10 @@ export function CaptureQuickPage({
     accounts: workspace.accounts,
     categories: workspace.categories,
   }).length;
+  const payeeSuggestions = useMemo(
+    () => derivePayeeSuggestions(transactions),
+    [transactions],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -454,6 +461,7 @@ export function CaptureQuickPage({
           onClose={() => setEditing(null)}
           onSave={handleUpdate}
           disabled={isMutating || Boolean(workspace.dataError)}
+          payeeSuggestions={payeeSuggestions}
         />
       ) : null}
     </AppShell>

@@ -28,6 +28,7 @@ import {
 } from "@/lib/money";
 import {
   deriveFrequentLedgerPatterns,
+  derivePayeeSuggestions,
   deriveStableLedgerPreset,
   type FrequentLedgerPattern,
 } from "@/lib/quick-add-defaults";
@@ -97,6 +98,7 @@ export function AddTransactionDialog({
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [note, setNote] = useState("");
+  const [payee, setPayee] = useState("");
   const [accountId, setAccountId] = useState("");
   const [occurredOn, setOccurredOn] = useState(() => todayInVietnam());
   const [keepOpen, setKeepOpen] = useState(false);
@@ -142,6 +144,10 @@ export function AddTransactionDialog({
         ? deriveFrequentLedgerPatterns({ transactions, accounts, categories })
         : [],
     [accounts, categories, showFrequentPatterns, transactions],
+  );
+  const payeeSuggestions = useMemo(
+    () => derivePayeeSuggestions(transactions),
+    [transactions],
   );
   const hasRecentForKind = availableCategories.some((item) =>
     isRecentCategoryId(item.id, recentCategoryIds),
@@ -414,6 +420,7 @@ export function AddTransactionDialog({
         kind,
         categoryId: selectedCategoryId,
         note: note.trim(),
+        payee: payee.trim(),
         accountId: selectedAccountId,
         amount: parsedAmount,
         occurredOn,
@@ -452,6 +459,7 @@ export function AddTransactionDialog({
     idempotencyKeyRef.current = null;
     setAmount("");
     setNote("");
+    setPayee("");
     setError("");
     categoryTouchedRef.current = false;
     setAutoRuleHint(null);
@@ -794,6 +802,27 @@ export function AddTransactionDialog({
         </summary>
         <div className={styles.optionalBody}>
           <div className={styles.formGrid}>
+            <TextField
+              label="Nơi giao dịch (không bắt buộc)"
+              rootClassName={styles.spanFull}
+              value={payee}
+              targetSize="important"
+              disabled={submitting}
+              onChange={(event) => {
+                setPayee(event.target.value);
+                markInputChanged();
+              }}
+              placeholder="Ví dụ: Highlands Coffee"
+              maxLength={200}
+              list={`${formId}-payees`}
+            />
+            {payeeSuggestions.length > 0 ? (
+              <datalist id={`${formId}-payees`}>
+                {payeeSuggestions.map((suggestion) => (
+                  <option key={suggestion} value={suggestion} />
+                ))}
+              </datalist>
+            ) : null}
             <TextField
               label="Ghi chú (không bắt buộc)"
               rootClassName={styles.spanFull}

@@ -35,7 +35,7 @@ export type FinanceWorkspace = {
 };
 
 const TRANSACTION_FEED_COLUMNS =
-  "id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines";
+  "id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines,payee";
 const TRANSACTION_REVIEW_COLUMNS = "id,review_status,occurred_on,created_at";
 
 type FinanceWorkspaceScope = "full" | "dashboard";
@@ -86,6 +86,7 @@ const feedSchema = z.object({
   is_recurring_payment: z.boolean().optional(),
   /** Multi-entry expense lines when split across categories (TASK-128). */
   split_lines: z.array(splitLineSchema).nullable().optional(),
+  payee: z.string().optional(),
 });
 
 function shiftDate(date: string, days: number) {
@@ -143,6 +144,7 @@ export function mapTransactionFeedRow(value: unknown): Transaction {
         ? "Chuyển tiền"
         : (row.category_name ?? "Chưa phân loại"),
     note: row.note || row.category_name || "Giao dịch",
+    payee: row.payee || undefined,
     accountId: row.account_id,
     account: row.account_name,
     destinationAccountId: row.destination_account_id ?? undefined,
