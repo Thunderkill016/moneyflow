@@ -18,9 +18,11 @@ import {
   PlanningSummaryItem,
   PlanningWorkspace,
   Button,
+  LinkButton,
   planningStyles,
 } from "@/components/planning/planning-layout";
 import { PlanningCard } from "@/components/planning/planning-card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EmptyState } from "@/components/ui/empty-state";
 import { type ViewerSummary } from "@/components/user-chip";
 import { formatMoney } from "@/lib/money";
@@ -230,6 +232,29 @@ export function GoalsPage({
           truthNote="Số được đánh dấu cho mục tiêu chỉ là một earmark trong kế hoạch. MoneyFlow không tạo giao dịch, không chuyển tiền và không loại số đó khỏi số dư tài khoản."
         />
 
+        {dataError ? (
+          <Alert tone="error" live="assertive">
+            <AlertDescription>{dataError}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {dataError ? (
+          <EmptyState
+            icon={<Icon name="flag" />}
+            title="Không tải được mục tiêu"
+            description="Dữ liệu của bạn vẫn được bảo vệ. Thử tải lại trang hoặc quay lại Tổng quan."
+            primaryAction={
+              <LinkButton
+                href="/dashboard"
+                intent="secondary"
+                targetSize="important"
+              >
+                Về Tổng quan
+              </LinkButton>
+            }
+          />
+        ) : (
+          <>
         <PlanningSummary label="Tổng quan mục tiêu">
           <PlanningSummaryItem
             label="Đã đánh dấu"
@@ -413,6 +438,8 @@ export function GoalsPage({
             />
           )}
         </PlanningSection>
+          </>
+        )}
       </PlanningWorkspace>
 
       <GoalDialog
