@@ -940,7 +940,7 @@ export function DirectCsvImportPage({
                       {phase !== "done" ? (
                         <Button
                           type="button"
-                          intent="destructive"
+                          intent="primary"
                           targetSize="important"
                           disabled={!plan || plan.readyCount === 0 || busy}
                           onClick={() => setReviewOpen(true)}

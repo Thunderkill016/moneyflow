@@ -445,7 +445,7 @@ export function AccountsWorkspace({
                         </Button>
                         <Button
                           type="button"
-                          intent="destructive"
+                          intent="quiet"
                           targetSize="important"
                           onClick={() => setArchiveTarget(account)}
                           disabled={busyId === account.id}
