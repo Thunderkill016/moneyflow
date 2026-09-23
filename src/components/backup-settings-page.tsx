@@ -18,13 +18,16 @@ import type { ViewerSummary } from "@/components/user-chip";
 import {
   ARCHIVE_MAX_RESTORE_BYTES,
   backupFileName,
+  describeArchiveCollection,
   describeBackupFailure,
   describeIngressRejection,
   describeRestoreFailure,
   describeTransportLimit,
   serializeArchive,
   summarizeArchive,
+  verifyArchiveBytes,
   type ArchiveSummary,
+  type ArchiveVerificationReport,
 } from "@/lib/archive/archive-backup";
 import { ingestArchiveBytes } from "@/lib/archive/payee-archive-ingress";
 import type { MoneyFlowArchive } from "@/lib/archive/moneyflow-archive";
@@ -60,6 +63,13 @@ import styles from "./settings/settings-surfaces.module.css";
  * restoring → failed (the database rolls the whole restore back)
  *
  * Validation and mutation are never the same button press.
+ *
+ * ## Verify-only path
+ *
+ * idle → checking → valid | invalid — and it ends there. The report describes
+ * file integrity only: it deliberately has no restore eligibility state,
+ * because the only honest answer to "would this restore?" is a restore.
+ * Checking a file is local inspection, so demo viewers may use it too.
  */
 
 type RestoreState =
@@ -76,6 +86,16 @@ type BackupState =
   | { kind: "working" }
   | { kind: "done"; fileName: string }
   | { kind: "failed"; message: string };
+
+/**
+ * Deliberately terminal: `valid` means the file passed validation, never that
+ * it is restorable, so there is no `confirming`/`restoring` kind to reach.
+ */
+type VerifyState =
+  | { kind: "idle" }
+  | { kind: "checking" }
+  | { kind: "invalid"; message: string }
+  | { kind: "valid"; report: ArchiveVerificationReport };
 
 function formatProducedAt(value: string): string {
   const parsed = new Date(value);
@@ -94,8 +114,11 @@ export function BackupSettingsPage({
   const router = useRouter();
   const fileInputId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const verifyInputId = useId();
+  const verifyInputRef = useRef<HTMLInputElement>(null);
   const [backup, setBackup] = useState<BackupState>({ kind: "idle" });
   const [restore, setRestore] = useState<RestoreState>({ kind: "idle" });
+  const [verify, setVerify] = useState<VerifyState>({ kind: "idle" });
   // A ref, not state: a second click must be refused before React re-renders.
   const busy = useRef(false);
 
@@ -213,6 +236,43 @@ export function BackupSettingsPage({
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
+  function clearVerifyInput() {
+    if (verifyInputRef.current) verifyInputRef.current.value = "";
+  }
+
+  /**
+   * Verify never restores. The bytes stop at `verifyArchiveBytes` — the same
+   * trusted ingress the restore picker uses — and the result is only ever a
+   * report, so this path needs no confirm step and no demo gate: nothing here
+   * can write anywhere.
+   */
+  async function handleVerifyFile(file: File | undefined) {
+    if (!file || busy.current) return;
+    busy.current = true;
+    setVerify({ kind: "checking" });
+    try {
+      // Bytes, never file.text() — exactly one untrusted-input boundary, the
+      // same one the restore flow uses.
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const result = verifyArchiveBytes(bytes);
+      // Cleared either way so re-picking the same file still fires onChange.
+      clearVerifyInput();
+      if (!result.ok) {
+        setVerify({ kind: "invalid", message: describeIngressRejection(result.code) });
+        return;
+      }
+      setVerify({ kind: "valid", report: result.report });
+    } catch {
+      clearVerifyInput();
+      setVerify({
+        kind: "invalid",
+        message: "Không đọc được tệp.",
+      });
+    } finally {
+      busy.current = false;
+    }
+  }
+
   function resetRestore() {
     setRestore({ kind: "idle" });
     clearFileInput();
@@ -243,7 +303,8 @@ export function BackupSettingsPage({
           <AlertTitle>Chế độ dùng thử chưa có sao lưu đầy đủ</AlertTitle>
           <AlertDescription>
             Sao lưu và khôi phục toàn bộ dữ liệu chỉ hoạt động với tài khoản đã đăng nhập. Bạn
-            vẫn có thể dùng mục Xuất giao dịch và Inbox.
+            vẫn có thể kiểm tra một tệp sao lưu có sẵn ở mục Kiểm tra tệp sao lưu hoặc dùng mục
+            Xuất giao dịch và Inbox.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -278,6 +339,82 @@ export function BackupSettingsPage({
               <AlertTitle>Chưa tạo được bản sao lưu</AlertTitle>
               <AlertDescription>{backup.message}</AlertDescription>
             </Alert>
+          ) : null}
+        </div>
+      </section>
+
+      <section className={styles.panel} aria-labelledby="verify-heading">
+        <h2 id="verify-heading">Kiểm tra tệp sao lưu</h2>
+        <p>
+          Chọn một tệp bản sao lưu để kiểm tra ngay trên thiết bị này: tệp có đọc được không, có
+          đúng cấu trúc bản sao lưu MoneyFlow không và chứa bao nhiêu bản ghi. Tệp không được tải
+          lên máy chủ và không có dữ liệu nào bị thay đổi.
+        </p>
+
+        <label htmlFor={verifyInputId} className={styles.dateField}>
+          <span>Chọn tệp bản sao lưu MoneyFlow (.json)</span>
+          <input
+            ref={verifyInputRef}
+            id={verifyInputId}
+            type="file"
+            accept="application/json,.json"
+            disabled={verify.kind === "checking"}
+            data-testid="verify-file"
+            onChange={(event) => void handleVerifyFile(event.target.files?.[0])}
+          />
+        </label>
+
+        <div role="status" aria-live="polite" className={styles.summary}>
+          {verify.kind === "checking" ? <p>Đang kiểm tra tệp…</p> : null}
+          {verify.kind === "invalid" ? (
+            <Alert tone="error">
+              <AlertTitle>Tệp không hợp lệ</AlertTitle>
+              <AlertDescription>
+                {verify.message} Không có dữ liệu nào bị thay đổi.
+              </AlertDescription>
+            </Alert>
+          ) : null}
+          {verify.kind === "valid" ? (
+            <>
+              <Alert tone="success">
+                <AlertTitle>Tệp hợp lệ</AlertTitle>
+                <AlertDescription>
+                  Tệp đọc được và đúng cấu trúc bản sao lưu MoneyFlow. Kết quả này{" "}
+                  <strong>chưa chứng minh tệp có thể khôi phục</strong> — chỉ một lần khôi phục
+                  thật trên tài khoản mới mới xác nhận điều đó.
+                </AlertDescription>
+              </Alert>
+              <dl className={styles.resultGrid}>
+                <div className={styles.resultRow}>
+                  <dt>Tạo lúc</dt>
+                  <dd>{formatProducedAt(verify.report.producedAt)}</dd>
+                </div>
+                <div className={styles.resultRow}>
+                  <dt>Thế hệ lược đồ</dt>
+                  <dd>{verify.report.schemaGeneration}</dd>
+                </div>
+                <div className={styles.resultRow}>
+                  <dt>Phiên bản</dt>
+                  <dd>{verify.report.archiveVersion}</dd>
+                </div>
+                {verify.report.collections.map((entry) => (
+                  <div className={styles.resultRow} key={entry.collection}>
+                    <dt>{describeArchiveCollection(entry.collection)}</dt>
+                    <dd>{entry.count}</dd>
+                  </div>
+                ))}
+                <div className={styles.resultRow}>
+                  <dt>Tổng số bản ghi</dt>
+                  <dd>{verify.report.totalRows}</dd>
+                </div>
+              </dl>
+              {verify.report.bytes > ARCHIVE_MAX_RESTORE_BYTES ? (
+                <p>
+                  Tệp này lớn hơn giới hạn tải lên hiện tại của trình duyệt nên hiện chưa thể
+                  khôi phục qua trang này.
+                </p>
+              ) : null}
+            </>
           ) : null}
         </div>
       </section>

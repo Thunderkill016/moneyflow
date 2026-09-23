@@ -2,13 +2,14 @@
  * R9 — the pure pieces of the Backup & Restore surface.
  *
  * Filename, safe summary and message mapping live here so they can be tested
- * without a browser. Nothing in this module touches Supabase, React or the DOM,
- * and nothing here validates an archive: R8 owns ingress and R5 owns the
- * contract.
+ * without a browser. Nothing in this module touches Supabase, React or the DOM.
+ * Validation still belongs to R8/R5 — `verifyArchiveBytes` below only composes
+ * the proven ingress boundary with the summary, it re-implements none of it.
  */
 
-import type { MoneyFlowArchive } from "./moneyflow-archive.ts";
+import { ALL_ARCHIVE_COLLECTIONS, type MoneyFlowArchive } from "./moneyflow-archive.ts";
 import type { ArchiveIngressRejectionCode } from "./archive-ingress.ts";
+import { ingestArchiveBytes } from "./payee-archive-ingress.ts";
 
 /**
  * A human-recognisable, private-by-default backup filename.
@@ -63,6 +64,118 @@ export function summarizeArchive(archive: MoneyFlowArchive): ArchiveSummary {
     goals: value("savingsGoals"),
     inboxCandidates: value("inboxCandidates"),
   };
+}
+
+export type ArchiveCollectionCount = {
+  /** Collection key inside the archive payload, e.g. `transactions`. */
+  readonly collection: string;
+  readonly count: number;
+};
+
+/**
+ * What a standalone file check may claim.
+ *
+ * `ok: true` means the bytes crossed the whole trusted boundary — byte bound,
+ * strict UTF-8, duplicate-member scan, JSON syntax and the archive contract —
+ * and nothing more. It is evidence the file is a structurally valid MoneyFlow
+ * backup, never evidence it would restore: restore still depends on the
+ * server-side validator, the target account being empty and the transport
+ * limit, none of which a file inspection can prove. Only an actual restore
+ * proves restorability, so this type carries no eligibility field on purpose.
+ */
+export type ArchiveVerificationReport = {
+  readonly producedAt: string;
+  readonly archiveVersion: number;
+  readonly schemaGeneration: string;
+  /** Every contract collection, in inventory order, with its row count. */
+  readonly collections: readonly ArchiveCollectionCount[];
+  readonly totalRows: number;
+  readonly bytes: number;
+};
+
+export type ArchiveVerification =
+  | { readonly ok: true; readonly report: ArchiveVerificationReport }
+  | { readonly ok: false; readonly code: ArchiveIngressRejectionCode };
+
+/**
+ * Check an untrusted backup file end to end without touching the database.
+ *
+ * Same ingress the restore picker uses, then the same summary — the only
+ * difference is what the caller is allowed to conclude. The validator has
+ * already proven `tenant_row_counts` complete and consistent with `tables`,
+ * so the report reads it rather than re-walking the payload.
+ */
+export function verifyArchiveBytes(bytes: Uint8Array): ArchiveVerification {
+  const result = ingestArchiveBytes(bytes);
+  if (!result.ok) return { ok: false, code: result.code };
+  const summary = summarizeArchive(result.archive);
+  const collections = ALL_ARCHIVE_COLLECTIONS.map((collection) => ({
+    collection,
+    count: result.archive.tenant_row_counts[collection] ?? 0,
+  }));
+  let totalRows = 0;
+  for (const entry of collections) totalRows += entry.count;
+  return {
+    ok: true,
+    report: {
+      producedAt: summary.producedAt,
+      archiveVersion: summary.archiveVersion,
+      schemaGeneration: result.archive.schema_generation,
+      collections,
+      totalRows,
+      bytes: result.bytes,
+    },
+  };
+}
+
+/**
+ * Vietnamese label for an archive collection, used by the verify report.
+ * Falls back to the raw key so an unrecognized collection is shown as the
+ * file's own vocabulary rather than dressed up in an invented label.
+ */
+export function describeArchiveCollection(collection: string): string {
+  switch (collection) {
+    case "profile":
+      return "Hồ sơ";
+    case "categories":
+      return "Danh mục";
+    case "accounts":
+      return "Tài khoản tiền";
+    case "importBatches":
+      return "Lượt import sao kê";
+    case "savingsGoals":
+      return "Mục tiêu";
+    case "recurringIncomeTemplates":
+      return "Khoản thu định kỳ";
+    case "recurringCommitments":
+      return "Khoản định kỳ";
+    case "monthlyBudgets":
+      return "Ngân sách";
+    case "inboxRules":
+      return "Quy tắc Inbox";
+    case "accountReconciliations":
+      return "Kỳ đối chiếu sao kê";
+    case "transactions":
+      return "Giao dịch";
+    case "inboxCandidates":
+      return "Mục chờ trong Inbox";
+    case "savingsGoalAllocations":
+      return "Lần góp vào mục tiêu";
+    case "incomeTemplateOccurrences":
+      return "Lần thu định kỳ đã ghi";
+    case "commitmentOccurrences":
+      return "Lần chi định kỳ đã ghi";
+    case "transactionImportProvenance":
+      return "Nguồn gốc giao dịch import";
+    case "transactionEntries":
+      return "Bút toán chi tiết";
+    case "accountReconciliationEvents":
+      return "Sự kiện đối chiếu";
+    case "auditHistory":
+      return "Lịch sử thay đổi";
+    default:
+      return collection;
+  }
 }
 
 /** Vietnamese message for a file that never reached the database. */
