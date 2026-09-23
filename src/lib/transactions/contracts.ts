@@ -38,6 +38,12 @@ export type Transaction = {
   amount: number;
   occurredOn: string;
   occurredAt: string;
+  /**
+   * Server-side `updated_at` when the row came from `transaction_feed`.
+   * Fed back as `expectedUpdatedAt` on update — the optimistic-concurrency
+   * precondition. Absent on demo/local rows.
+   */
+  updatedAt?: string;
   relativeDate: string;
 };
 
@@ -114,6 +120,8 @@ export type UpdateMoneyTransactionInput = Omit<
   "idempotencyKey" | "inboxCandidateId" | "allowHeuristicDuplicate"
 > & {
   id: string;
+  /** Optimistic-concurrency precondition: the `updated_at` the caller read. */
+  expectedUpdatedAt?: string;
 };
 
 export type UpdateTransferInput = Omit<
