@@ -212,62 +212,6 @@
       "status": "debt"
     },
     {
-      "class": "capture-menu",
-      "owner": "src/components/inbox/capture-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-menu-actions",
-      "owner": "src/components/inbox/capture-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-menu-heading",
-      "owner": "src/components/inbox/capture-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-menu-lead",
-      "owner": "src/components/inbox/capture-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-menu-option",
-      "owner": "src/components/inbox/capture-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-menu-option-icon",
-      "owner": "src/components/inbox/capture-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-menu-option-text",
-      "owner": "src/components/inbox/capture-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-menu-trust",
-      "owner": "src/components/inbox/capture-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
       "class": "capture-paste-actions",
       "owner": "src/components/inbox/capture-paste-page.tsx",
       "alsoEmittedBy": [
