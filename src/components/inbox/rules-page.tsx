@@ -15,6 +15,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
+import type { ToastTone } from "@/components/ui/toast";
 import type { ViewerSummary } from "@/components/user-chip";
 import { getPendingCountForClient } from "@/hooks/client-inbox";
 import {
@@ -92,6 +93,7 @@ export function RulesPage({
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
   const [previewText, setPreviewText] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<InboxRule | null>(null);
 
@@ -146,9 +148,17 @@ export function RulesPage({
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 3600);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setNoticeTone(undefined);
+    }, 3600);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  function showNotice(message: string, tone: ToastTone) {
+    setNotice(message);
+    setNoticeTone(tone);
+  }
 
   function openAdd() {
     setForm(emptyForm(availableCategories));
@@ -200,7 +210,10 @@ export function RulesPage({
     setRules(result.rules);
     setFormOpen(false);
     setForm(emptyForm(availableCategories));
-    setNotice(form.id ? "Đã cập nhật quy tắc." : "Đã thêm quy tắc.");
+    showNotice(
+      form.id ? "Đã cập nhật quy tắc." : "Đã thêm quy tắc.",
+      "success",
+    );
   }
 
   async function toggleEnabled(rule: InboxRule) {
@@ -224,7 +237,10 @@ export function RulesPage({
       return;
     }
     setRules(result.rules);
-    setNotice(rule.enabled ? "Đã tắt quy tắc." : "Đã bật quy tắc.");
+    showNotice(
+      rule.enabled ? "Đã tắt quy tắc." : "Đã bật quy tắc.",
+      "success",
+    );
   }
 
   async function deleteRule(rule: InboxRule) {
@@ -238,7 +254,10 @@ export function RulesPage({
     }
     setRules(result.rules);
     setDeleteTarget(null);
-    setNotice("Đã xóa quy tắc. Bằng chứng cũ trên ứng viên vẫn được giữ nguyên.");
+    showNotice(
+      "Đã xóa quy tắc. Bằng chứng cũ trên ứng viên vẫn được giữ nguyên.",
+      "success",
+    );
   }
 
   async function moveRule(ruleId: string, direction: -1 | 1) {
@@ -256,7 +275,7 @@ export function RulesPage({
       return;
     }
     setRules(result.rules);
-    setNotice("Đã cập nhật thứ tự ưu tiên.");
+    showNotice("Đã cập nhật thứ tự ưu tiên.", "success");
   }
 
   return (
@@ -264,6 +283,7 @@ export function RulesPage({
       viewer={viewer}
       inboxCount={inboxCount}
       notice={notice}
+      noticeTone={noticeTone}
       primaryAction={
         featureAvailable && availableCategories.length > 0
           ? { label: "Thêm quy tắc", onClick: openAdd, icon: "plus" }

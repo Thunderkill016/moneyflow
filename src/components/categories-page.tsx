@@ -13,6 +13,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import type { ToastTone } from "@/components/ui/toast";
 import type { ViewerSummary } from "@/components/user-chip";
 import {
   saveCategoryAction,
@@ -147,6 +148,7 @@ export function CategoriesPage({
   const [dialogVersion, setDialogVersion] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
   const [kindFilter, setKindFilter] = useState<"all" | TransactionKind>("all");
   const [archiveReview, setArchiveReview] = useState<CategorySummary | null>(null);
 
@@ -165,9 +167,17 @@ export function CategoriesPage({
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 3600);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setNoticeTone(undefined);
+    }, 3600);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  function showNotice(message: string, tone: ToastTone) {
+    setNotice(message);
+    setNoticeTone(tone);
+  }
 
   function openCategory(category: CategorySummary | null) {
     setEditing(category);
@@ -198,7 +208,10 @@ export function CategoriesPage({
           : [...current, next],
       );
       setDialogOpen(false);
-      setNotice(input.id ? "Đã cập nhật danh mục demo." : "Đã thêm danh mục demo.");
+      showNotice(
+        input.id ? "Đã cập nhật danh mục demo." : "Đã thêm danh mục demo.",
+        "success",
+      );
       return { ok: true };
     }
 
@@ -216,7 +229,10 @@ export function CategoriesPage({
           : [...current, result.category as CategorySummary],
       );
       setDialogOpen(false);
-      setNotice(input.id ? "Đã cập nhật danh mục." : "Đã thêm danh mục.");
+      showNotice(
+        input.id ? "Đã cập nhật danh mục." : "Đã thêm danh mục.",
+        "success",
+      );
     }
     return result;
   }
@@ -231,7 +247,10 @@ export function CategoriesPage({
       );
       setBusyId(null);
       setArchiveReview(null);
-      setNotice(archivedNext ? "Đã ẩn danh mục." : "Đã hiện lại danh mục.");
+      showNotice(
+        archivedNext ? "Đã ẩn danh mục." : "Đã hiện lại danh mục.",
+        "success",
+      );
       return;
     }
 
@@ -239,7 +258,7 @@ export function CategoriesPage({
     setBusyId(null);
     if (!result.ok) {
       setArchiveReview(null);
-      setNotice(result.message);
+      showNotice(result.message, "error");
       return;
     }
     setCategories((current) =>
@@ -250,7 +269,10 @@ export function CategoriesPage({
       ),
     );
     setArchiveReview(null);
-    setNotice(archivedNext ? "Đã ẩn danh mục." : "Đã hiện lại danh mục.");
+    showNotice(
+      archivedNext ? "Đã ẩn danh mục." : "Đã hiện lại danh mục.",
+      "success",
+    );
   }
 
   function toggleArchived(category: CategorySummary) {
@@ -273,6 +295,7 @@ export function CategoriesPage({
       }}
       showPrimaryActionOnMobile
       notice={notice}
+      noticeTone={noticeTone}
     >
       <SecondaryWorkspace slot="categories-workspace">
         {dataError ? (

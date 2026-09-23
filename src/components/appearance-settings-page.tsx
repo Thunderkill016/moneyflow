@@ -9,6 +9,7 @@ import {
 } from "@/components/secondary/secondary-layout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
+import type { ToastTone } from "@/components/ui/toast";
 import type { ViewerSummary } from "@/components/user-chip";
 import { getPendingCountForClient } from "@/hooks/client-inbox";
 import {
@@ -29,6 +30,7 @@ export function AppearanceSettingsPage({ viewer }: { viewer: ViewerSummary }) {
   const [saved, setSaved] = useState<ThemePreference>(defaultThemePreference());
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
   const dirty = preference !== saved;
 
   function reload() {
@@ -66,9 +68,17 @@ export function AppearanceSettingsPage({ viewer }: { viewer: ViewerSummary }) {
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 3200);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setNoticeTone(undefined);
+    }, 3200);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  function showNotice(message: string, tone: ToastTone) {
+    setNotice(message);
+    setNoticeTone(tone);
+  }
 
   useEffect(() => {
     if (!ready || preference !== "system") return;
@@ -92,7 +102,7 @@ export function AppearanceSettingsPage({ viewer }: { viewer: ViewerSummary }) {
       applyThemeToDocument(next);
       setSaved(next);
       setPreference(next);
-      setNotice("Đã lưu giao diện trên thiết bị này.");
+      showNotice("Đã lưu giao diện trên thiết bị này.", "success");
       setError(null);
     } catch {
       setError("Không lưu được giao diện. Thử lại.");
@@ -111,6 +121,7 @@ export function AppearanceSettingsPage({ viewer }: { viewer: ViewerSummary }) {
       viewer={viewer}
       inboxCount={inboxCount}
       notice={notice}
+      noticeTone={noticeTone}
       primaryAction={{
         label: saving ? "Đang lưu…" : "Lưu",
         onClick: () =>

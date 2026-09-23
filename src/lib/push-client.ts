@@ -15,6 +15,7 @@ import {
   recordPushNotified,
   type PushPrefs,
 } from "./push-prefs.ts";
+import type { ToastTone } from "@/components/ui/toast";
 
 export const PUSH_SERVICE_WORKER_URL = "/sw.js";
 export const DEFAULT_NOTIFICATION_PATH = "/commitments";
@@ -219,5 +220,26 @@ export function notifyResultMessage(result: NotifyResult): string {
       return "Không gửi được thông báo. Thử lại sau.";
     default:
       return "";
+  }
+}
+
+/**
+ * Toast tone paired with `notifyResultMessage` — the same result semantics,
+ * declared once here so a notice cannot drift from the copy it explains.
+ * Skipped results are informational (nothing went wrong, nothing happened);
+ * denied/unsupported need reader action in browser settings; only "error" is
+ * a real failure.
+ */
+export function notifyResultTone(result: NotifyResult): ToastTone {
+  switch (result) {
+    case "shown":
+      return "success";
+    case "denied":
+    case "unsupported":
+      return "warning";
+    case "error":
+      return "error";
+    default:
+      return "info";
   }
 }

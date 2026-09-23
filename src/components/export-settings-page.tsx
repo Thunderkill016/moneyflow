@@ -10,6 +10,7 @@ import {
 } from "@/components/secondary/secondary-layout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
+import type { ToastTone } from "@/components/ui/toast";
 import type { ViewerSummary } from "@/components/user-chip";
 import {
   buildExportContent,
@@ -72,6 +73,7 @@ export function ExportSettingsPage({
   const [to, setTo] = useState("");
   const [exporting, setExporting] = useState(false);
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
 
   /**
    * Build the whole warning sentence here rather than appending a fixed tail in
@@ -128,9 +130,17 @@ export function ExportSettingsPage({
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 3600);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setNoticeTone(undefined);
+    }, 3600);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  function showNotice(message: string, tone: ToastTone) {
+    setNotice(message);
+    setNoticeTone(tone);
+  }
 
   const effectiveFormat: ExportFormat = kind === "all" ? "json" : format;
   const preview = useMemo(() => {
@@ -165,7 +175,10 @@ export function ExportSettingsPage({
         format: effectiveFormat,
         count: preview.count,
       });
-      setNotice(`Đã tải ${preview.count} mục (${preview.extension.toUpperCase()}).`);
+      showNotice(
+        `Đã tải ${preview.count} mục (${preview.extension.toUpperCase()}).`,
+        "success",
+      );
     } catch {
       setError("Không tạo được file tải xuống. Thử lại.");
     } finally {
@@ -185,6 +198,7 @@ export function ExportSettingsPage({
       viewer={viewer}
       inboxCount={inboxCount}
       notice={notice}
+      noticeTone={noticeTone}
       primaryAction={{
         label: exporting ? "Đang xuất…" : "Tải xuống",
         onClick: () =>

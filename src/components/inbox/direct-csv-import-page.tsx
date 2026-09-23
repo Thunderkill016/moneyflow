@@ -24,6 +24,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
 import { SelectField } from "@/components/ui/select-field";
+import type { ToastTone } from "@/components/ui/toast";
 import type { ViewerSummary } from "@/components/user-chip";
 import { loadRulesForClient } from "@/hooks/client-rules";
 import { useTransactions } from "@/hooks/use-transactions";
@@ -149,6 +150,7 @@ export function DirectCsvImportPage({
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
   const [dragOver, setDragOver] = useState(false);
   const [fileName, setFileName] = useState("");
   const [fileSize, setFileSize] = useState(0);
@@ -183,9 +185,17 @@ export function DirectCsvImportPage({
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 4000);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setNoticeTone(undefined);
+    }, 4000);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  function showNotice(message: string, tone: ToastTone) {
+    setNotice(message);
+    setNoticeTone(tone);
+  }
 
   useEffect(() => {
     if (!viewer.isDemo) return;
@@ -326,21 +336,27 @@ export function DirectCsvImportPage({
     if (!rememberedColumnMap || !csvText || !fileName) return;
     setMappingEvidence("preset_applied");
     reparseWithMap(csvText, fileName, rememberedColumnMap);
-    setNotice("Đã dùng mapping đã nhớ. Hãy kiểm tra dry-run trước khi ghi sổ.");
+    showNotice(
+      "Đã dùng mapping đã nhớ. Hãy kiểm tra dry-run trước khi ghi sổ.",
+      "info",
+    );
   }
 
   function rememberCurrentColumnMap() {
     const preset = createDirectCsvMappingPreset(headers, columnMap);
     if (!preset) {
-      setNotice("Mapping hiện tại chưa hợp lệ để nhớ.");
+      showNotice("Mapping hiện tại chưa hợp lệ để nhớ.", "warning");
       return;
     }
     try {
       writeDirectCsvMappingPreset(window.localStorage, preset);
       setRememberedColumnMap(preset.columnMap);
-      setNotice("Đã nhớ mapping này trên thiết bị.");
+      showNotice("Đã nhớ mapping này trên thiết bị.", "success");
     } catch {
-      setNotice("Không thể nhớ mapping trên thiết bị này; vẫn có thể import như bình thường.");
+      showNotice(
+        "Không thể nhớ mapping trên thiết bị này; vẫn có thể import như bình thường.",
+        "error",
+      );
     }
   }
 
@@ -406,10 +422,11 @@ export function DirectCsvImportPage({
       });
 
       if (created > 0) {
-        setNotice(
+        showNotice(
           failed === 0
             ? `Đã ghi ${created} giao dịch vào bộ nhớ demo.`
             : `Đã ghi ${created} giao dịch demo; ${failed} dòng lỗi.`,
+          failed === 0 ? "success" : "warning",
         );
         setPhase("done");
       } else {
@@ -475,7 +492,10 @@ export function DirectCsvImportPage({
       failed: 0,
       skipped,
     });
-    setNotice(`Đã ghi trọn lượt ${result.transactionIds.length} giao dịch vào sổ.`);
+    showNotice(
+      `Đã ghi trọn lượt ${result.transactionIds.length} giao dịch vào sổ.`,
+      "success",
+    );
     setPhase("done");
     trackProductEvent("import_direct_committed", {
       created_count: result.transactionIds.length,
@@ -503,7 +523,7 @@ export function DirectCsvImportPage({
   const ruleNormalizedCount = plan?.ready.filter((row) => row.appliedRuleId).length ?? 0;
 
   return (
-    <AppShell viewer={viewer} notice={notice}>
+    <AppShell viewer={viewer} notice={notice} noticeTone={noticeTone}>
       <SecondaryWorkspace slot="direct-import-workspace">
         <SecondaryHeader
           section="Imports · Công cụ nâng cao"

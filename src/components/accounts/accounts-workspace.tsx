@@ -9,6 +9,7 @@ import { MoneyValue } from "@/components/money-value";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import type { ToastTone } from "@/components/ui/toast";
 import type { ViewerSummary } from "@/components/user-chip";
 import { saveAccountAction, setAccountArchivedAction } from "@/app/actions/accounts";
 import { executeTransferMutation } from "@/hooks/transfer-mutation";
@@ -76,6 +77,7 @@ export function AccountsWorkspace({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<AccountSummary | null>(null);
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
   const [reconciledDemoSource, setReconciledDemoSource] =
     useState<AccountSummary[] | null>(viewer.isDemo ? null : initialAccounts);
 
@@ -121,9 +123,17 @@ export function AccountsWorkspace({
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 4800);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setNoticeTone(undefined);
+    }, 4800);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  function showNotice(message: string, tone: ToastTone) {
+    setNotice(message);
+    setNoticeTone(tone);
+  }
 
   function openAccount(account: AccountSummary | null) {
     setEditing(account);
@@ -159,8 +169,9 @@ export function AccountsWorkspace({
           : [...current, next],
       );
       setDialogOpen(false);
-      setNotice(
+      showNotice(
         input.id ? "Đã cập nhật tài khoản demo." : "Đã thêm tài khoản demo.",
+        "success",
       );
       return { ok: true };
     }
@@ -177,7 +188,10 @@ export function AccountsWorkspace({
           : [...current, result.account as AccountSummary],
       );
       setDialogOpen(false);
-      setNotice(input.id ? "Đã cập nhật tài khoản." : "Đã thêm tài khoản.");
+      showNotice(
+        input.id ? "Đã cập nhật tài khoản." : "Đã thêm tài khoản.",
+        "success",
+      );
     }
     return result;
   }
@@ -191,7 +205,7 @@ export function AccountsWorkspace({
 
     if (!result.ok) {
       if (archived) setArchiveTarget(null);
-      setNotice(result.message);
+      showNotice(result.message, "error");
       return;
     }
 
@@ -201,10 +215,11 @@ export function AccountsWorkspace({
       ),
     );
     if (archived) setArchiveTarget(null);
-    setNotice(
+    showNotice(
       archived
         ? `Đã lưu trữ ${account.name}. Số dư vẫn nằm trong nhóm đã lưu trữ.`
         : `Đã khôi phục ${account.name} vào tài khoản đang hoạt động.`,
+      "success",
     );
   }
 
@@ -226,12 +241,13 @@ export function AccountsWorkspace({
         );
       }
       setTransferOpen(false);
-      setNotice(
+      showNotice(
         `Đã chuyển ${formatMoney(
           result.transaction.amount,
           false,
           result.source.currencyCode,
         )} sang ${result.destination.name}.`,
+        "success",
       );
     }
     return result;
@@ -247,6 +263,7 @@ export function AccountsWorkspace({
       }}
       showPrimaryActionOnMobile
       notice={notice}
+      noticeTone={noticeTone}
     >
       <main data-slot="account-overview-workspace" className={styles.workspace}>
         {dataError ? (

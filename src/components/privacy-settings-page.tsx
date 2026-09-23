@@ -10,6 +10,7 @@ import {
 } from "@/components/secondary/secondary-layout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
+import type { ToastTone } from "@/components/ui/toast";
 import type { ViewerSummary } from "@/components/user-chip";
 import { getPendingCountForClient } from "@/hooks/client-inbox";
 import {
@@ -33,6 +34,7 @@ export function PrivacySettingsPage({ viewer }: { viewer: ViewerSummary }) {
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
 
   function reload() {
     try {
@@ -69,9 +71,17 @@ export function PrivacySettingsPage({ viewer }: { viewer: ViewerSummary }) {
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 3200);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setNoticeTone(undefined);
+    }, 3200);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  function showNotice(message: string, tone: ToastTone) {
+    setNotice(message);
+    setNoticeTone(tone);
+  }
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -84,7 +94,7 @@ export function PrivacySettingsPage({ viewer }: { viewer: ViewerSummary }) {
       });
       setPrefs(next);
       setDirty(false);
-      setNotice("Đã lưu thời gian giữ draft import.");
+      showNotice("Đã lưu thời gian giữ draft import.", "success");
       setError(null);
     } catch {
       setError("Không lưu được tùy chọn. Thử lại.");
@@ -103,6 +113,7 @@ export function PrivacySettingsPage({ viewer }: { viewer: ViewerSummary }) {
       viewer={viewer}
       inboxCount={inboxCount}
       notice={notice}
+      noticeTone={noticeTone}
       primaryAction={{
         label: saving ? "Đang lưu…" : "Lưu",
         onClick: () =>

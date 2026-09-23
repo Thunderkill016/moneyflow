@@ -10,12 +10,14 @@ import {
 } from "@/components/secondary/secondary-layout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
+import type { ToastTone } from "@/components/ui/toast";
 import type { ViewerSummary } from "@/components/user-chip";
 import { getPendingCountForClient } from "@/hooks/client-inbox";
 import {
   isNotificationSupported,
   notificationPermission,
   notifyResultMessage,
+  notifyResultTone,
   registerPushServiceWorker,
   requestNotificationPermission,
   showDueNotification,
@@ -53,6 +55,7 @@ export function NotificationSettingsPage({ viewer }: { viewer: ViewerSummary }) 
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
   const [testing, setTesting] = useState(false);
 
   function reload() {
@@ -94,9 +97,17 @@ export function NotificationSettingsPage({ viewer }: { viewer: ViewerSummary }) 
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 4000);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setNoticeTone(undefined);
+    }, 4000);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  function showNotice(message: string, tone: ToastTone) {
+    setNotice(message);
+    setNoticeTone(tone);
+  }
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -105,6 +116,7 @@ export function NotificationSettingsPage({ viewer }: { viewer: ViewerSummary }) 
     try {
       let nextEnabled = enabled;
       let statusNotice = "Đã lưu tùy chọn thông báo.";
+      let statusTone: ToastTone = "success";
       if (enabled) {
         if (!isNotificationSupported()) {
           setError("Trình duyệt không hỗ trợ thông báo web.");
@@ -117,6 +129,7 @@ export function NotificationSettingsPage({ viewer }: { viewer: ViewerSummary }) 
         if (nextPermission !== "granted") {
           nextEnabled = false;
           setEnabled(false);
+          statusTone = "warning";
           statusNotice =
             nextPermission === "denied"
               ? "Trình duyệt chặn thông báo — opt-in vẫn tắt."
@@ -133,7 +146,7 @@ export function NotificationSettingsPage({ viewer }: { viewer: ViewerSummary }) 
       });
       setPrefs(next);
       setDirty(false);
-      setNotice(statusNotice);
+      showNotice(statusNotice, statusTone);
       setError(null);
     } catch {
       setError("Không lưu được tùy chọn. Thử lại.");
@@ -154,14 +167,14 @@ export function NotificationSettingsPage({ viewer }: { viewer: ViewerSummary }) 
     setTesting(true);
     try {
       if (!isNotificationSupported()) {
-        setNotice(notifyResultMessage("unsupported"));
+        showNotice(notifyResultMessage("unsupported"), "warning");
         return;
       }
       await registerPushServiceWorker();
       const nextPermission = await requestNotificationPermission();
       setPermission(nextPermission);
       if (nextPermission !== "granted") {
-        setNotice(notifyResultMessage("denied"));
+        showNotice(notifyResultMessage("denied"), "warning");
         return;
       }
       const result = await showDueNotification({
@@ -170,13 +183,14 @@ export function NotificationSettingsPage({ viewer }: { viewer: ViewerSummary }) 
         tag: "moneyflow-commitment-test",
         url: "/commitments",
       });
-      setNotice(
+      showNotice(
         result === "shown"
           ? "Đã gửi thông báo thử không có số tiền."
           : notifyResultMessage(result),
+        result === "shown" ? "success" : notifyResultTone(result),
       );
     } catch {
-      setNotice(notifyResultMessage("error"));
+      showNotice(notifyResultMessage("error"), "error");
     } finally {
       setTesting(false);
     }
@@ -187,6 +201,7 @@ export function NotificationSettingsPage({ viewer }: { viewer: ViewerSummary }) 
       viewer={viewer}
       inboxCount={inboxCount}
       notice={notice}
+      noticeTone={noticeTone}
       primaryAction={{
         label: saving ? "Đang lưu…" : "Lưu",
         onClick: () =>

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { ingestShareTargetAction } from "@/app/actions/share-target-import";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
+import type { ToastTone } from "@/components/ui/toast";
 import type { ViewerSummary } from "@/components/user-chip";
 import {
   addCandidatesForClient,
@@ -83,12 +84,21 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
   const [success, setSuccess] = useState<SuccessInfo | null>(null);
   const [inboxCount, setInboxCount] = useState(0);
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 4000);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setNoticeTone(undefined);
+    }, 4000);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  function showNotice(message: string, tone: ToastTone) {
+    setNotice(message);
+    setNoticeTone(tone);
+  }
 
   useEffect(() => {
     if (ranRef.current) return;
@@ -264,8 +274,9 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
             csvFileCount,
             warnings: [...plan.warnings, ...plan.errors, ...ruleWarnings],
           });
-          setNotice(
+          showNotice(
             `Đã đưa ${written} mục vào Inbox từ chia sẻ — chưa ghi sổ.`,
+            "success",
           );
           setPhase("success");
 
@@ -288,6 +299,7 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
       inboxCount={inboxCount}
       primaryAction={{ label: "Inbox", href: "/inbox", icon: "inbox" }}
       notice={notice}
+      noticeTone={noticeTone}
     >
       <main className="dashboard capture-workspace capture-share-workspace">
         <section className="transactions-title-row capture-title-row">

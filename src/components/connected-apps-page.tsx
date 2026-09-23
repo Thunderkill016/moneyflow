@@ -13,6 +13,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import type { ToastTone } from "@/components/ui/toast";
 import type { ViewerSummary } from "@/components/user-chip";
 import { revokeConnectedApp } from "@/app/settings/apps/actions";
 import { getPendingCountForClient } from "@/hooks/client-inbox";
@@ -35,6 +36,7 @@ export function ConnectedAppsPage({
   const router = useRouter();
   const [inboxCount, setInboxCount] = useState(0);
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
   const [actionError, setActionError] = useState<string | null>(null);
   const [revoking, setRevoking] = useState<ConnectedApp | null>(null);
   const [pending, startTransition] = useTransition();
@@ -54,9 +56,17 @@ export function ConnectedAppsPage({
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 3200);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setNoticeTone(undefined);
+    }, 3200);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  function showNotice(message: string, tone: ToastTone) {
+    setNotice(message);
+    setNoticeTone(tone);
+  }
 
   function confirmRevoke() {
     const target = revoking;
@@ -68,7 +78,7 @@ export function ConnectedAppsPage({
       if (result.ok) {
         setRevoking(null);
         setActionError(null);
-        setNotice(`Đã thu hồi quyền truy cập của ${target.name}.`);
+        showNotice(`Đã thu hồi quyền truy cập của ${target.name}.`, "success");
         router.refresh();
       } else {
         setActionError(result.message);
@@ -78,7 +88,12 @@ export function ConnectedAppsPage({
   }
 
   return (
-    <AppShell viewer={viewer} inboxCount={inboxCount} notice={notice}>
+    <AppShell
+      viewer={viewer}
+      inboxCount={inboxCount}
+      notice={notice}
+      noticeTone={noticeTone}
+    >
       <SecondaryWorkspace slot="settings-apps-workspace">
         <SecondaryHeader
           section="Cài đặt · Tài khoản"
