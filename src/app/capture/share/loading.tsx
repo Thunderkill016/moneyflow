@@ -1,16 +1,17 @@
+import styles from "../../route-loading.module.css";
 export default function Loading() {
   return (
     <main
-      className="route-loading capture-route-loading"
+      className={styles.route}
       aria-label="Đang tải nhận chia sẻ"
       aria-busy="true"
     >
-      <div className="loading-line wide" />
-      <div className="loading-line" />
-      <div className="capture-skeleton-block">
-        <div className="capture-skeleton-row">
-          <span className="loading-line capture-skel-label" />
-          <span className="loading-line capture-skel-desc" />
+      <div className={styles.lineWide} />
+      <div className={styles.line} />
+      <div className={styles.block}>
+        <div className={styles.skelRow}>
+          <span className={styles.line} />
+          <span className={styles.line} />
         </div>
       </div>
     </main>

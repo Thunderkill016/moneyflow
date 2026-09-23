@@ -1,38 +1,45 @@
+import styles from "../route-loading.module.css";
 export default function Loading() {
   return (
     <main
-      className="dashboard route-loading commitments-workspace"
+      className={styles.route}
       aria-label="Đang tải lương định kỳ"
       aria-busy="true"
     >
-      <section className="budgets-heading">
+      <section>
         <div>
-          <div className="loading-line" style={{ width: "140px", height: "12px" }} />
           <div
-            className="loading-line wide"
+            className={styles.line}
+            style={{ width: "140px", height: "12px" }}
+          />
+          <div
+            className={styles.lineWide}
             style={{ width: "200px", height: "28px", marginTop: "10px" }}
           />
           <div
-            className="loading-line"
+            className={styles.line}
             style={{ width: "300px", height: "14px", marginTop: "8px" }}
           />
         </div>
       </section>
 
-      <section
-        className="budget-overview commitment-overview"
-        aria-hidden="true"
-        style={{ marginTop: "20px" }}
-      >
+      <section aria-hidden="true" style={{ marginTop: "20px" }}>
         {Array.from({ length: 3 }, (_, index) => (
-          <div key={index} className="loading-card" style={{ height: "72px", borderRadius: "16px" }} />
+          <div
+            key={index}
+            className={styles.card}
+            style={{ height: "72px", borderRadius: "16px" }}
+          />
         ))}
       </section>
 
-      <section aria-hidden="true" style={{ display: "grid", gap: "12px", marginTop: "20px" }}>
+      <section
+        aria-hidden="true"
+        style={{ display: "grid", gap: "12px", marginTop: "20px" }}
+      >
         {Array.from({ length: 2 }, (_, index) => (
           <div
-            className="loading-card"
+            className={styles.card}
             key={index}
             style={{ height: "112px", borderRadius: "16px", marginTop: 0 }}
           />

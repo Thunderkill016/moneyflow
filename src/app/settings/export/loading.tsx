@@ -1,18 +1,19 @@
+import styles from "../../route-loading.module.css";
 export default function Loading() {
   return (
     <main
-      className="route-loading privacy-route-loading"
+      className={styles.route}
       aria-label="Đang tải Xuất dữ liệu"
       aria-busy="true"
     >
-      <div className="loading-line wide" />
-      <div className="loading-line" />
-      <div className="privacy-skeleton-block">
+      <div className={styles.lineWide} />
+      <div className={styles.line} />
+      <div className={styles.block}>
         {Array.from({ length: 3 }, (_, index) => (
-          <div className="privacy-skeleton-card" key={index}>
-            <span className="loading-line privacy-skel-title" />
-            <span className="loading-line privacy-skel-body" />
-            <span className="loading-line privacy-skel-body" />
+          <div className={styles.card} key={index}>
+            <span className={styles.line} />
+            <span className={styles.line} />
+            <span className={styles.line} />
           </div>
         ))}
       </div>
