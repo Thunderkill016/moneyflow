@@ -24,7 +24,7 @@ export type RouteErrorProps = {
 export function RouteError({
   error,
   reset,
-  homeHref = "/insights",
+  homeHref = "/dashboard",
   homeLabel = "Về Tổng quan",
   routeKey = "app",
 }: RouteErrorProps) {
