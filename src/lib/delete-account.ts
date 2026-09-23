@@ -19,6 +19,7 @@ import { QUICK_ADD_PREFS_KEY } from "./quick-add-prefs.ts";
 import { THEME_STORAGE_KEY } from "./theme-prefs.ts";
 import { TRANSACTION_STORAGE_KEY } from "./transaction-store.ts";
 import { DELETED_TRANSACTION_STORAGE_KEY } from "./deleted-transactions.ts";
+import { UNSENT_DRAFT_STORAGE_KEY } from "./unsent-draft.ts";
 import { COMMITMENT_OCCURRENCE_STORAGE_KEY } from "./planning/commitment-occurrence-store.ts";
 import { RECURRING_DISMISSALS_STORAGE_KEY } from "./planning/recurring-dismissals.ts";
 import {
@@ -41,6 +42,7 @@ export const LOCAL_DATA_STORAGE_KEYS: readonly string[] = [
   LEGACY_RULES_STORAGE_KEY,
   TRANSACTION_STORAGE_KEY,
   DELETED_TRANSACTION_STORAGE_KEY,
+  UNSENT_DRAFT_STORAGE_KEY,
   COMMITMENT_OCCURRENCE_STORAGE_KEY,
   RECURRING_DISMISSALS_STORAGE_KEY,
   LEDGER_DUPE_DISMISSALS_STORAGE_KEY,
