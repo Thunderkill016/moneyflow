@@ -17,7 +17,7 @@ export default function ErrorBoundary({
     <RouteError
       error={error}
       reset={reset}
-      homeHref="/insights"
+      homeHref="/dashboard"
       homeLabel="Về Tổng quan"
       routeKey="root"
     />
