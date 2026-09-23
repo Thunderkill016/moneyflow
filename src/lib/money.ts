@@ -114,6 +114,125 @@ function numericPortion(value: string): string {
 }
 
 /**
+ * Vietnamese shorthand units — the way people actually write đồng.
+ *
+ * `k` is nghìn (×1 000); `tr`, `triệu`, `trieu` and `củ` are triệu
+ * (×1 000 000); `tỷ`, `tỉ` and `ty` are tỷ (×1 000 000 000). Digits after the
+ * unit are the fraction of that unit (`1tr5` = 1,5 triệu = 1 500 000), and a
+ * `.`/`,` inside the number means the same (`1,5tr`, `1.5tr`). Bare `m` stays
+ * unsupported on purpose — it reads as million or minute and must not guess.
+ *
+ * Any entry that looks like shorthand is parsed by these rules or rejected
+ * with `NaN`: a malformed unit must never fall through to the digits-only
+ * path and silently drop the unit (`k50`, `tr`, `1tr5x`).
+ */
+const VND_SHORTHAND_SCALE: Record<string, number> = {
+  k: 1_000,
+  tr: 1_000_000,
+  triệu: 1_000_000,
+  trieu: 1_000_000,
+  củ: 1_000_000,
+  tỷ: 1_000_000_000,
+  tỉ: 1_000_000_000,
+  ty: 1_000_000_000,
+};
+
+/** A complete unit anywhere in the entry forces the shorthand grammar. */
+const VND_SHORTHAND_UNIT = /k|triệu|trieu|tr|củ|tỷ|tỉ|ty/iu;
+
+/**
+ * A half-typed unit at the end of the entry — `1t`, `3 c` — counts as
+ * shorthand too, so the formatter keeps it on screen instead of swallowing
+ * the `t` out of `tr` mid-typing, and the parser refuses to read a stray
+ * partial unit as a plain integer. The prefix must follow a digit, a
+ * separator, a space or the string start, which keeps pasted words like
+ * `Total: 45.000` or `cat` on the normal digits-only path.
+ */
+const VND_SHORTHAND_TYPING_TAIL =
+  /(?:^|[\d.,\u00a0\s])(?:k|triệu|triệ|trieu|trie|tri|tr|tỷ|tỉ|ty|t|củ|c)$/iu;
+
+/** `<number> <unit> <unit-fraction digits>` — the whole entry, nothing else. */
+const VND_SHORTHAND_PATTERN =
+  /^([\d.,\u00a0\s]*\d[\d.,\u00a0\s]*?)[\u00a0\s]*(k|triệu|trieu|tr|củ|tỷ|tỉ|ty)(\d*)$/iu;
+
+/**
+ * Characters kept on screen while shorthand is being typed: digits,
+ * separators, spaces and the alphabet of every unit. Anything else (`₫`,
+ * stray letters) is cleaned away exactly like the plain path cleans it.
+ */
+const VND_SHORTHAND_NOISE = /[^\d.,\u00a0\sktriecuệủỷỉy]/giu;
+
+/**
+ * Does this entry look like shorthand — a complete unit, or the tail of one
+ * still being typed? Everything matching is governed by the shorthand rules:
+ * valid input scales to an integer, invalid input rejects, and neither is
+ * ever re-read as a stripped-digit guess.
+ */
+function isVndShorthandCandidate(value: string) {
+  const normalized = value.normalize("NFKC").trim();
+  return (
+    VND_SHORTHAND_UNIT.test(normalized) ||
+    VND_SHORTHAND_TYPING_TAIL.test(normalized)
+  );
+}
+
+/**
+ * Split the leading number of a shorthand into whole and fraction digits.
+ *
+ * Three-digit groups keep the plain contract's grouping rule (`1.234tr` =
+ * 1 234 triệu); a single separator with any other tail is the decimal
+ * fraction (`1,5tr`, `12,5tr`). Anything messier — `1.2.3`, a leading
+ * separator, three or more parts — fails closed.
+ */
+function splitVndShorthandNumber(text: string) {
+  const cleaned = text.trim();
+  if (!/^\d[\d.,\u00a0\s]*$/u.test(cleaned)) return null;
+  const groups = cleaned.split(/[.,\u00a0\s]+/u);
+  if (groups.length === 1) return { whole: groups[0], fraction: "" };
+  const [head, ...tails] = groups;
+  if (head.length <= 3 && tails.every((group) => group.length === 3)) {
+    return { whole: groups.join(""), fraction: "" };
+  }
+  if (groups.length === 2) return { whole: head, fraction: tails[0] };
+  return null;
+}
+
+/**
+ * Parse `<number><unit>` shorthand to an exact integer, or `NaN` when it is
+ * malformed or finer than one đồng. `undefined` means the entry carries no
+ * shorthand at all and the caller keeps the plain contract.
+ *
+ * All scales are powers of ten, so the unit fraction is resolved with digit
+ * strings — never floats: `tr5` contributes `5 × 10⁵`, and a fraction longer
+ * than the unit can express is only exact on trailing zeros (`1tr5000000` =
+ * 1 500 000); anything else is refused rather than rounded.
+ */
+function parseVndShorthand(value: string): number | undefined {
+  if (!isVndShorthandCandidate(value)) return undefined;
+  const match = VND_SHORTHAND_PATTERN.exec(value.normalize("NFKC").trim());
+  const parts = match ? splitVndShorthandNumber(match[1]) : null;
+  if (!match || !parts) return Number.NaN;
+  const [, , unit, tail = ""] = match;
+  // `1,5tr5` carries two fractions — one from the separator, one after the
+  // unit — and guessing either is the silent rewrite this contract forbids.
+  if (parts.fraction && tail) return Number.NaN;
+  const scale = VND_SHORTHAND_SCALE[unit.toLowerCase()];
+  const whole = Number(parts.whole);
+  if (!scale || !Number.isSafeInteger(whole)) return Number.NaN;
+  const fraction = parts.fraction || tail;
+  const shift = Math.log10(scale);
+  let fractionUnits = 0;
+  if (fraction.length > shift) {
+    if (!/^0+$/u.test(fraction.slice(shift))) return Number.NaN;
+    fractionUnits = Number(fraction.slice(0, shift));
+  } else if (fraction) {
+    fractionUnits = Number(fraction) * 10 ** (shift - fraction.length);
+  }
+  const total = whole * scale + fractionUnits;
+  return Number.isSafeInteger(total) ? total : Number.NaN;
+}
+
+/**
  * Does this text try to express a fraction?
  *
  * Checked against the raw text, because the information is destroyed the moment
@@ -122,6 +241,9 @@ function numericPortion(value: string): string {
  * of how many minor digits the currency has.
  */
 export function isFractionAttempt(value: string): boolean {
+  // Shorthand-looking text answers to the shorthand rules instead — it is a
+  // scaled integer or invalid input there, never a fraction attempt.
+  if (parseVndShorthand(value) !== undefined) return false;
   const numeric = numericPortion(value);
   if (!numeric) return false;
   // A trailing separator is mid-typing, not yet a fraction: `12.` is on its way to
@@ -130,12 +252,16 @@ export function isFractionAttempt(value: string): boolean {
 }
 
 /**
- * Digits-only major units; grouping separators are accepted and removed.
+ * Digits-only major units; grouping separators are accepted and removed, and
+ * a Vietnamese unit suffix scales the entry (`50k`, `1tr5`, `2tỷ`).
  *
- * Returns `NaN` for a fraction attempt so callers reject it instead of saving a
- * different number from the one the user believes they typed.
+ * Returns `NaN` for a fraction attempt or a malformed shorthand so callers
+ * reject it instead of saving a different number from the one the user
+ * believes they typed.
  */
 export function parseMoneyInput(value: string) {
+  const shorthand = parseVndShorthand(value);
+  if (shorthand !== undefined) return shorthand;
   if (isFractionAttempt(value)) return Number.NaN;
   // NFKC first: fullwidth digits would otherwise be stripped as non-digits and
   // silently read as an empty amount.
@@ -167,8 +293,19 @@ export function formatMoneyInputFromMinor(amount: number, currencyCode = "VND") 
  * A fraction attempt is returned as the user typed it (minus stray characters)
  * so the separator stays visible and the mismatch is theirs to see. Collapsing
  * it into a grouped integer was the silent rewrite this function must not do.
+ *
+ * Shorthand is kept on screen as typed too — expanding `50k` to `50.000` while
+ * the user is still reaching for the `5` in `1tr5` would destroy the entry,
+ * and stripping the unit would silently divide the amount they believe they
+ * typed.
  */
 export function formatMoneyInput(value: string) {
+  if (isVndShorthandCandidate(value)) {
+    return value
+      .normalize("NFKC")
+      .replace(VND_SHORTHAND_NOISE, "")
+      .trim();
+  }
   if (isFractionAttempt(value)) return numericPortion(value);
   const amount = parseMoneyInput(value);
   return Number.isSafeInteger(amount) && amount
