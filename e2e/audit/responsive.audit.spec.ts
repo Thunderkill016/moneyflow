@@ -222,7 +222,7 @@ test.describe("cross-device responsive audit", () => {
       .poll(
         async () => {
           const current = await readMetrics();
-          return current?.position === "static" && current.headerHeight > 0;
+          return current?.position === "sticky" && current.headerHeight > 0;
         },
         { timeout: 15_000 },
       )
@@ -241,7 +241,10 @@ test.describe("cross-device responsive audit", () => {
       contentType: "application/json",
     });
 
-    expect(metrics.position).toBe("static");
+    // Day headers are sticky landmarks on every viewport now — the overlap
+    // assertions below keep the pre-sticky guarantee that a day total never
+    // paints inside a transaction row at rest.
+    expect(metrics.position).toBe("sticky");
     expect(metrics.headerHeight).toBeGreaterThanOrEqual(44);
     expect(metrics.headerBottom).toBeLessThanOrEqual(metrics.rowTop + 1);
     expect(metrics.overlap).toBeLessThanOrEqual(1);

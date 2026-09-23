@@ -67,6 +67,9 @@
   color: var(--mf-brand-text);
   font-size: 12px;
   font-weight: 750;
+  /* Vietnamese capitals stack marks (Ố, Ứ): ≥1.4 keeps the tone mark
+     inside the line box instead of clipping at this size. */
+  line-height: 1.4;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -125,6 +128,8 @@
   color: var(--mf-text-muted);
   font-size: 11px;
   font-weight: 700;
+  /* Same Vietnamese stacked-mark headroom as .eyebrow. */
+  line-height: 1.4;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -178,8 +183,20 @@
 }
 
 .manager {
+  /*
+   * Measured sticky inset: the shell topbar's painted height, so a stuck
+   * day header parks directly beneath it instead of sliding under the blur.
+   * .topbar is min-height 64px above 760px and 62px + safe-area-inset-top
+   * at/under it (app-shell.module.css). Row focus uses the same value plus
+   * the day header's own height as scroll clearance.
+   */
+  --mf-ledger-sticky-top: 64px;
   min-width: 0;
-  overflow: hidden;
+  /* clip, not hidden: hidden makes the manager a scroll container, which
+     would capture the sticky day headers against a box that never scrolls
+     and freeze them. clip keeps the corner rounding while the viewport
+     stays the one scroll owner. */
+  overflow: clip;
   border: 1px solid var(--mf-border);
   border-radius: 0 0 16px 16px;
   background: var(--mf-surface);
@@ -609,6 +626,8 @@
   color: var(--mf-text-muted);
   font-size: 10px;
   font-weight: 750;
+  /* Same Vietnamese stacked-mark headroom as .eyebrow. */
+  line-height: 1.4;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -633,6 +652,12 @@
 }
 
 .dayHeader {
+  /* Date groups are the ledger's section landmarks: each sticks below the
+     shell topbar until the next group pushes it away. The background must
+     stay an opaque --mf-surface-* value — rows scroll underneath it. */
+  position: sticky;
+  z-index: var(--z-sticky);
+  top: var(--mf-ledger-sticky-top);
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -669,6 +694,9 @@
   min-width: 0;
   padding: 14px 20px;
   border-bottom: 1px solid var(--mf-border);
+  /* sticky-top + 46px day header + 8px air: J/K row focus scrolls the row
+     into view, and it must land below a stuck day header, not behind it. */
+  scroll-margin-top: calc(var(--mf-ledger-sticky-top) + 54px);
   transition: background 150ms ease;
 }
 
@@ -689,6 +717,16 @@
 /* Keyboard-focused row — positional bar, not color alone (mirrors inbox). */
 .focused {
   box-shadow: inset 3px 0 0 var(--mf-brand);
+}
+
+/*
+ * Browser focus-scroll inside a row gets the same clearance as the row
+ * itself: the shell's generic focus margin (74–84px) is shorter than the
+ * sticky zone, so a focused control could hide under a stuck day header.
+ * Two classes + :focus keeps this ahead of the shell's :where(...) rule.
+ */
+.manager .row :focus {
+  scroll-margin-top: calc(var(--mf-ledger-sticky-top) + 54px);
 }
 
 .transactionIcon {
@@ -754,6 +792,17 @@
 
 .detail > time {
   display: none;
+}
+
+/*
+ * Import provenance is evidence, not row content: one quiet step below the
+ * subtitle in size and ink. It wraps rather than truncates — Vietnamese
+ * marks never sit under overflow:hidden.
+ */
+.detail > .rowProvenance {
+  color: var(--mf-text-soft);
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .rowReviewLine {
@@ -956,6 +1005,11 @@
     padding: 18px 12px 36px;
   }
 
+  /* Mobile topbar paints 62px + the device's top safe-area inset. */
+  .manager {
+    --mf-ledger-sticky-top: calc(62px + env(safe-area-inset-top, 0px));
+  }
+
   .titleCopy h1 {
     font-size: 27px;
   }
@@ -1014,10 +1068,16 @@
   }
 
   .dayHeader {
-    position: static;
     flex-wrap: wrap;
     align-items: baseline;
     padding: 12px 14px;
+  }
+
+  /* The day header can wrap to ~70px on a phone (column at ≤360px), so the
+     focus clearance grows past the single-line 46px desktop measure. */
+  .row,
+  .manager .row :focus {
+    scroll-margin-top: calc(var(--mf-ledger-sticky-top) + 76px);
   }
 
   .dayTotal {
