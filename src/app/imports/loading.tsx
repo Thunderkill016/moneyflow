@@ -1,18 +1,19 @@
+import styles from "../route-loading.module.css";
 export default function Loading() {
   return (
     <main
-      className="route-loading imports-route-loading"
+      className={styles.route}
       aria-label="Đang tải Lịch sử import"
       aria-busy="true"
     >
-      <div className="loading-line wide" />
-      <div className="loading-line" />
-      <div className="imports-skeleton-block">
+      <div className={styles.lineWide} />
+      <div className={styles.line} />
+      <div className={styles.block}>
         {Array.from({ length: 4 }, (_, index) => (
-          <div className="imports-skeleton-row" key={index}>
-            <span className="loading-line imports-skel-date" />
-            <span className="loading-line imports-skel-body" />
-            <span className="loading-line imports-skel-btn" />
+          <div className={styles.skelRow} key={index}>
+            <span className={styles.line} />
+            <span className={styles.line} />
+            <span className={styles.line} />
           </div>
         ))}
       </div>

@@ -1,34 +1,42 @@
+import styles from "../route-loading.module.css";
 export default function Loading() {
   return (
     <main
-      className="dashboard route-loading reports-workspace"
+      className={styles.route}
       aria-label="Đang tải báo cáo"
       aria-busy="true"
     >
-      <section className="reports-heading">
+      <section>
         <div>
-          <div className="loading-line" style={{ width: "120px", height: "12px" }} />
           <div
-            className="loading-line wide"
+            className={styles.line}
+            style={{ width: "120px", height: "12px" }}
+          />
+          <div
+            className={styles.lineWide}
             style={{ width: "140px", height: "28px", marginTop: "10px" }}
           />
           <div
-            className="loading-line"
+            className={styles.line}
             style={{ width: "280px", height: "14px", marginTop: "8px" }}
           />
         </div>
       </section>
 
       <div
-        className="report-periods"
         aria-hidden="true"
         style={{ display: "flex", gap: "8px", marginTop: "16px" }}
       >
         {Array.from({ length: 3 }, (_, index) => (
           <div
-            className="loading-line"
+            className={styles.line}
             key={index}
-            style={{ width: "88px", height: "36px", borderRadius: "999px", marginTop: 0 }}
+            style={{
+              width: "88px",
+              height: "36px",
+              borderRadius: "999px",
+              marginTop: 0,
+            }}
           />
         ))}
       </div>
@@ -44,7 +52,7 @@ export default function Loading() {
       >
         {Array.from({ length: 4 }, (_, index) => (
           <div
-            className="loading-card"
+            className={styles.card}
             key={index}
             style={{ height: "88px", borderRadius: "16px", marginTop: 0 }}
           />
@@ -52,12 +60,12 @@ export default function Loading() {
       </section>
 
       <div
-        className="loading-card"
+        className={styles.card}
         aria-hidden="true"
         style={{ height: "220px", borderRadius: "18px", marginTop: "16px" }}
       />
       <div
-        className="loading-card"
+        className={styles.card}
         aria-hidden="true"
         style={{ height: "160px", borderRadius: "18px", marginTop: "12px" }}
       />

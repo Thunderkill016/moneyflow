@@ -1,16 +1,17 @@
+import styles from "../route-loading.module.css";
 export default function Loading() {
   return (
-    <main className="route-loading inbox-route-loading" aria-label="Đang tải Inbox" aria-busy="true">
-      <div className="loading-line wide" />
-      <div className="loading-line" />
-      <div className="inbox-skeleton-block">
+    <main className={styles.route} aria-label="Đang tải Inbox" aria-busy="true">
+      <div className={styles.lineWide} />
+      <div className={styles.line} />
+      <div className={styles.block}>
         {Array.from({ length: 8 }, (_, index) => (
-          <div className="inbox-skeleton-row" key={index}>
-            <span className="loading-line inbox-skel-date" />
-            <span className="loading-line inbox-skel-merchant" />
-            <span className="loading-line inbox-skel-money" />
-            <span className="loading-line inbox-skel-badge" />
-            <span className="loading-line inbox-skel-badge" />
+          <div className={styles.skelRow} key={index}>
+            <span className={styles.line} />
+            <span className={styles.line} />
+            <span className={styles.line} />
+            <span className={styles.line} />
+            <span className={styles.line} />
           </div>
         ))}
       </div>
