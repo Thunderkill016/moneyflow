@@ -361,6 +361,7 @@ export function ReportsPage({
                 <MoneyValue
                   amount={netWorthDelta}
                   mode="signed"
+                  compact
                   label="Thay đổi tài sản ròng trong kỳ"
                   emphasis="strong"
                 />
@@ -467,11 +468,16 @@ export function ReportsPage({
                       </li>
                     ))}
                   </ul>
+                  {/*
+                    * The axis-scale line carries four values in one caption —
+                    * compact keeps each readable on one line. Per-account exact
+                    * balances stay in the rows below.
+                    */}
                   <p className={styles.balanceScale}>
-                    Đầu kỳ {formatMoney(netWorth.opening)} · Cuối kỳ{" "}
-                    {formatMoney(netWorthLast)} · Thấp nhất{" "}
-                    {formatMoney(balanceGeometry.lo)} · Cao nhất{" "}
-                    {formatMoney(balanceGeometry.hi)}
+                    Đầu kỳ {formatMoney(netWorth.opening, /* compact */ true)} · Cuối kỳ{" "}
+                    {formatMoney(netWorthLast, /* compact */ true)} · Thấp nhất{" "}
+                    {formatMoney(balanceGeometry.lo, /* compact */ true)} · Cao nhất{" "}
+                    {formatMoney(balanceGeometry.hi, /* compact */ true)}
                   </p>
                 </>
               ) : (
@@ -552,6 +558,7 @@ export function ReportsPage({
                   <span>TB/{trendUnit} có chi</span>
                   <MoneyValue
                     amount={averageExpense}
+                    compact
                     label={`Trung bình ${trendUnit} có chi`}
                     emphasis="strong"
                   />
@@ -613,7 +620,14 @@ export function ReportsPage({
                               }}
                             >
                               {item.expense === trendMax ? (
-                                <b>{formatMoney(item.expense)}</b>
+                                /*
+                                 * The peak label sits above a narrow bar
+                                 * (`max-width: 8rem`, nowrap) — compact VND
+                                 * keeps it on the chart instead of over a
+                                 * neighbour. Exact values stay in the column
+                                 * tooltip and the data list below.
+                                 */
+                                <b>{formatMoney(item.expense, /* compact */ true)}</b>
                               ) : null}
                             </span>
                           </div>
