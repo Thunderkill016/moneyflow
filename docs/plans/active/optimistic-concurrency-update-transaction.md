@@ -8,7 +8,7 @@
 **Issue/PR:** #432 (multi-device correctness); spec: `docs/operations/multi-device-write-semantics.md`
 **Last updated:** 2026-09-23
 
-## Context
+## Repository reconnaissance
 
 `docs/operations/multi-device-write-semantics.md` records the current truth:
 every update RPC takes the row `for update` but accepts **no version
@@ -17,10 +17,44 @@ smallest honest increment: an optional `expected_updated_at` on update RPCs
 that rejects stale writes with `stale_write` so the client can surface
 "bản ghi đã đổi ở nơi khác — tải lại?".
 
-This packet implements that increment on **one** RPC —
-`update_money_transaction` — the most-edited entity. Transfers, splits,
-budgets, goals, commitments and templates are explicitly out of scope for this
-slice; the pattern is proven on one path first.
+Code reconnaissance:
+
+- `update_money_transaction` already takes the row `for update` inside the
+  function, so adding the precondition check after the lock is serialized and
+  race-free — no new locking machinery needed.
+- `financial_transactions.updated_at` is maintained by the
+  `transactions_set_updated_at` trigger (server time), so the version the
+  client compares against is never client-supplied.
+- `transaction_feed` did not expose `updated_at`; the view must surface it
+  before the client can send a meaningful precondition.
+- `use-transactions.ts` routes ordinary edits through
+  `updateTransactionAction` and transfer edits through `updateTransferAction`;
+  only the ordinary path gains the precondition in this slice.
+
+## Research
+
+- **PostgREST overload resolution**: adding a defaulted trailing parameter
+  while dropping the old signature keeps named-arg callers on 9 args working —
+  they resolve to the new function via defaults. This is the chosen rolling-
+  deploy story instead of keeping two overloads.
+- **Optimistic-locking precedent in-repo**: none on update RPCs today; the
+  ops doc's increment is the authority. Industry baseline (HTTP ETag /
+  `If-Match`, ORM `version` columns) confirms the same shape: compare a
+  server-maintained version, fail closed on mismatch.
+- **Alternatives rejected**: field-level merge and CRDT conflict resolution —
+  the ops doc already rules both out as disproportionate for this product.
+
+## Implementation plan
+
+1. Migration: recreate `transaction_feed` with `updated_at`; create the
+   10-arg `update_money_transaction` (new `p_expected_updated_at timestamptz
+default null` checked after the `for update` lock); drop the 9-arg
+   signature; keep identical grants (`authenticated` only).
+2. Client wire: feed schema/columns → `Transaction.updatedAt` → action
+   schema/args → `stale_write` → truthful "đã đổi ở nơi khác" message →
+   `use-transactions` attaches `existing.updatedAt` on submit.
+3. Contract tests pin the signature, ordering (lock → check → update),
+   grants and the client mapping; pgTAP pins the stale/current/null paths.
 
 ## Specification
 
