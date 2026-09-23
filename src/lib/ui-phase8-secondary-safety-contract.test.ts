@@ -113,6 +113,31 @@ test("Inbox review is explicit and retries use candidate identity", () => {
   assert.match(inboxBulk, /Xác nhận hành động hàng loạt/);
 });
 
+test("Inbox rows confirm Ready candidates in one tap through the same post", () => {
+  const normalizedInbox = normalizeSource(inbox);
+  // The per-row confirm must reuse the bulk-approve write path end to end:
+  // deterministic draft, candidate-id idempotency key, single postOne call.
+  assert.match(inbox, /handleConfirmOne/);
+  assert.match(normalizedInbox, /draftFromCandidate\(\s*candidate,\s*workspace\.accounts,\s*workspace\.categories,?\s*\)/);
+  assert.match(
+    normalizedInbox,
+    /buildLedgerPost\(\s*draft,\s*workspace\.accounts,\s*workspace\.categories,\s*approvalIdempotencyKey\(candidate\.id\),?\s*\)/,
+  );
+  assert.match(
+    normalizedInbox,
+    /postOne\(\{ candidateId: candidate\.id, draft, post \}\)/,
+  );
+  // Only resolvable (Ready) rows expose one-tap confirm; Cần xem lại keeps
+  // the review dialog as the single door, and the review button stays.
+  assert.match(inbox, /rowReadiness\?\.state === "ready"/);
+  assert.match(inbox, /aria-label=\{`Xác nhận \$\{candidate\.merchant\}`\}/);
+  assert.match(inbox, /aria-label=\{`Duyệt \$\{candidate\.merchant\}`\}/);
+  assert.match(inbox, /data-slot="inbox-row-actions"/);
+  // Inbox-zero is a calm done state, not an acquisition wall.
+  assert.match(inbox, /Đã xử lý hết/);
+  assert.match(inbox, /Không còn ứng viên nào chờ duyệt/);
+});
+
 test("Rules and Imports expose review consequences without browser confirms", () => {
   for (const source of [rules, imports, importPreview, directImport]) {
     assert.doesNotMatch(source, new RegExp(browserConfirm.replace(".", "\\.")));
