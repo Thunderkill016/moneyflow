@@ -1,10 +1,10 @@
 # Demo-ledger migration — consented carry-over into a new account
 
-**Status:** specified
+**Status:** implemented (PR pending merge)
 **Execution state:** specified
-**Active role:** human_owner (open questions) → then implementer
-**Permission scope:** read_only — no branch_write until owner resolves open questions
-**Owner:** agent (Devin) — owner review required before implementation
+**Active role:** implementer (owner delegated product decisions — "mày chính là người phát triển sản phẩm này", 2026-09-23)
+**Permission scope:** branch_write on focused branch; questions resolved with conservative defaults, each reversible
+**Owner:** agent (Devin)
 **Issue/PR:** none yet
 **Last updated:** 2026-09-23
 
@@ -36,15 +36,15 @@ the local data untouched; accepting never posts ledger facts without review.
 
 ### Relevant repository areas
 
-| Area | Why it matters | Reuse/change/avoid |
-|---|---|---|
-| `src/hooks/client-inbox-core.ts:45-133` | Existing local→server Inbox migration with marker + empty-server guard | Reuse the marker/guard *pattern*; do NOT reuse `moneyflow-inbox-server-migrated-v1` as ledger-migration evidence |
-| `src/server/inbox.ts:169-221`, `src/lib/inbox/inbox-map.ts:45-55,373-383` | `migrateLocalInboxAction`, `prepareCandidateForServer`, `cand-demo-*` fixture exclusion | Reuse candidate pipeline + fixture exclusion |
-| `src/lib/transaction-store.ts:7,71-86` | Demo ledger store; `sample-*` fixture ids vs `crypto.randomUUID()` user rows | Add read-only snapshot + classifier |
-| `src/server/accounts.ts:42-48`, `src/lib/demo/transaction-fixtures.ts:9-25` | Demo account/category ids are non-UUID strings synthesized server-side | Mapping layer by name+kind to the new tenant's seeded entities |
-| `supabase/migrations/20260812010000_restore_user_archive.sql:598-615` | Bootstrap-only eligibility = exactly the post-signup state | Model for empty-target guard |
-| `src/app/actions/inbox.ts:61-70`, `supabase/migrations/20260725012037_import_batches_and_inbox_candidates.sql:4-12` | `inbox_candidate_source` enum has no `demo` value | Either batch-level label + `source:'manual'` (truthful: rows were hand-entered) or `alter type … add value 'demo'` — owner question |
-| `src/components/export-settings-page.tsx:47-70`, `src/lib/export-data.ts` | Demo-mode scoped export exists | Stage-1 disclosure references it; not the migration path |
+| Area                                                                                                                | Why it matters                                                                          | Reuse/change/avoid                                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `src/hooks/client-inbox-core.ts:45-133`                                                                             | Existing local→server Inbox migration with marker + empty-server guard                  | Reuse the marker/guard _pattern_; do NOT reuse `moneyflow-inbox-server-migrated-v1` as ledger-migration evidence                    |
+| `src/server/inbox.ts:169-221`, `src/lib/inbox/inbox-map.ts:45-55,373-383`                                           | `migrateLocalInboxAction`, `prepareCandidateForServer`, `cand-demo-*` fixture exclusion | Reuse candidate pipeline + fixture exclusion                                                                                        |
+| `src/lib/transaction-store.ts:7,71-86`                                                                              | Demo ledger store; `sample-*` fixture ids vs `crypto.randomUUID()` user rows            | Add read-only snapshot + classifier                                                                                                 |
+| `src/server/accounts.ts:42-48`, `src/lib/demo/transaction-fixtures.ts:9-25`                                         | Demo account/category ids are non-UUID strings synthesized server-side                  | Mapping layer by name+kind to the new tenant's seeded entities                                                                      |
+| `supabase/migrations/20260812010000_restore_user_archive.sql:598-615`                                               | Bootstrap-only eligibility = exactly the post-signup state                              | Model for empty-target guard                                                                                                        |
+| `src/app/actions/inbox.ts:61-70`, `supabase/migrations/20260725012037_import_batches_and_inbox_candidates.sql:4-12` | `inbox_candidate_source` enum has no `demo` value                                       | Either batch-level label + `source:'manual'` (truthful: rows were hand-entered) or `alter type … add value 'demo'` — owner question |
+| `src/components/export-settings-page.tsx:47-70`, `src/lib/export-data.ts`                                           | Demo-mode scoped export exists                                                          | Stage-1 disclosure references it; not the migration path                                                                            |
 
 ### Existing tests and constraints
 
@@ -59,33 +59,40 @@ the local data untouched; accepting never posts ledger facts without review.
 - `restore_user_archive` is the bootstrap-only-tenant precedent.
 - Trash surface packet (`trash-surface.md`) is the lifecycle model this packet follows.
 
-### Open questions — owner must resolve before implementation
+### Open questions — resolved 2026-09-23 with conservative defaults (owner-delegated)
 
-- [ ] **Product intent:** is demo a deliberate throwaway sandbox or a real trial
-      ledger? (Competitors: YNAB/Money Lover keep data via same-account trials;
-      Actual offers explicit export; none have a local demo ledger like ours.)
-- [ ] **Provenance label:** `alter type inbox_candidate_source add value 'demo'`
-      (schema change, most honest) vs. batch label `moneyflow-demo` +
-      `source:'manual'` (no migration; defensible — rows were hand-entered)?
-- [ ] **Transfers/splits:** extend the candidate schema with a destination leg,
-      or route transfers through the direct-replay RPCs under the same consent?
-      They must not be flattened into income/expense.
-- [ ] **Non-ledger data** (rules `moneyflow-rules-v2`, income templates,
-      paid-markers): in scope, or accepted loss with honest copy? Rules are
-      arguably the second-most-valuable accumulation.
-- [ ] **Fixture rows** (`sample-*`, `cand-demo-*`, `demo-account-*`): recommend
-      excluding — they are product content, not user facts. Confirm.
+- [x] **Product intent:** demo is a **real trial ledger**, not a throwaway
+      sandbox. Rationale: research showed no competitor can do local→account
+      carryover; ours can, cheaply, and losing weeks of capture is the exact
+      abandonment harm the product exists to prevent.
+- [x] **Provenance label:** **batch label `moneyflow-demo-ledger` +
+      `source:'manual'`** — no enum migration. Truthful: rows were hand-entered
+      by the user in demo mode. Each candidate additionally carries
+      `source_external_id = demo-tx-<localId>` and
+      `parser_version = 'demo-ledger-v1'`, so the demo origin is queryable and
+      dedupe-able without a schema change.
+- [x] **Transfers/splits:** **excluded with disclosed scope** — the consent
+      copy states the count that cannot carry. Rationale: candidate schema has
+      no destination leg or split lines; extending it is a separate slice;
+      flattening into income/expense violates the transfer-neutrality
+      invariant. Re-entry is manual.
+- [x] **Non-ledger data** (rules `moneyflow-rules-v2`, income templates,
+      paid-markers): **accepted loss, disclosed**. Carrying them would need
+      per-store mappers and tenant-merge semantics — a much larger slice. The
+      consent copy says only transactions move.
+- [x] **Fixture rows** (`sample-*`, `cand-demo-*`, `demo-account-*`):
+      **excluded** — confirmed; they are product content, not user facts.
 
 ## Research
 
 ### Sources
 
-| Source | Authority/type | Date accessed | What it establishes | Limits/applicability |
-|---|---|---|---|---|
-| Actual Budget docs (install, backup/import) | vendor docs | 2026-09-23 | Web demo is browser-local; preservation = user-initiated export/import | No demo→account migration exists there either |
-| YNAB pricing/trial + cancellation help | vendor docs | 2026-09-23 | Trial is a real account; data survives conversion via same-account continuity | No anonymous sandbox — nothing comparable to migrate |
-| Firefly III README + API docs | OSS docs | 2026-09-23 | Public demo site is a shared read-mostly showcase | Demo cannot become a personal account at all |
-| Money Lover trial-expiry support docs | vendor docs | 2026-09-23 | Trial expiry keeps the same account's data | Same-account model, no sandbox import |
+| Source                                      | Authority/type | Date accessed | What it establishes                                                           | Limits/applicability                                 |
+| ------------------------------------------- | -------------- | ------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Actual Budget docs (install, backup/import) | vendor docs    | 2026-09-23    | Web demo is browser-local; preservation = user-initiated export/import        | No demo→account migration exists there either        |
+| YNAB pricing/trial + cancellation help      | vendor docs    | 2026-09-23    | Trial is a real account; data survives conversion via same-account continuity | No anonymous sandbox — nothing comparable to migrate |
+| Firefly III README + API docs               | OSS docs       | 2026-09-23    | Public demo site is a shared read-mostly showcase                             | Demo cannot become a personal account at all         |
+| Money Lover trial-expiry support docs       | vendor docs    | 2026-09-23    | Trial expiry keeps the same account's data                                    | Same-account model, no sandbox import                |
 
 Honest synthesis: no competitor offers anonymous-local → authenticated migration
 because none have MoneyFlow's architecture. Actual normalizes explicit
@@ -95,11 +102,11 @@ higher — a genuine gap, not industry-standard behavior.
 
 ### Alternatives considered
 
-| Option | Advantages | Risks | Decision |
-|---|---|---|---|
-| A. Consented candidate-first import | Canon-compliant review-first; reuses provenance pipeline; smallest true fix | Candidate schema may need transfer leg; mapping layer needed | **Recommended** (pending owner answers) |
-| B. Demo archive producer → `restore_user_archive` | Preserves everything incl. planning state | Heterogeneous demo state must materialize into `ARCHIVE_TABLE_INVENTORY`; multi-week slice | Deferred to later milestone |
-| C. Disclosure only (Stage 1) | Ships now; honest scope | Does not preserve data | **Shipping separately** as `fix/demo-data-continuity-disclosure` |
+| Option                                            | Advantages                                                                  | Risks                                                                                      | Decision                                                         |
+| ------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| A. Consented candidate-first import               | Canon-compliant review-first; reuses provenance pipeline; smallest true fix | Candidate schema may need transfer leg; mapping layer needed                               | **Recommended** (pending owner answers)                          |
+| B. Demo archive producer → `restore_user_archive` | Preserves everything incl. planning state                                   | Heterogeneous demo state must materialize into `ARCHIVE_TABLE_INVENTORY`; multi-week slice | Deferred to later milestone                                      |
+| C. Disclosure only (Stage 1)                      | Ships now; honest scope                                                     | Does not preserve data                                                                     | **Shipping separately** as `fix/demo-data-continuity-disclosure` |
 
 ### Research decision
 
@@ -176,10 +183,34 @@ never reads them. No error, no warning, no path.
 
 ## Implementation plan
 
-_To be filled after the owner resolves the five open questions. Indicative
-touch list is in the research report: `transaction-store.ts` snapshot/classifier,
-`inbox-map.ts` demo-row mapper, provenance labeling, consent UI on first
-authenticated landing, marker store, mapping/RLS/e2e tests._
+Implemented on branch `feat/demo-ledger-carryover`:
+
+- `src/lib/demo-ledger-carryover.ts` — raw localStorage reader (deliberately
+  bypasses `readStoredTransactions` so the fixture fallback can never leak into
+  the carryover), fixture/structured-row classifier, candidate-input mapper
+  (names as text provenance; no id mapping), marker helpers, `demo-tx-` prefix.
+- `src/app/actions/inbox.ts` → `carryDemoLedgerAction`: server-side guards in
+  order — provenance prefix required on every row → dedupe (`demo-tx-%`
+  candidates already present → `alreadyCarried` no-op) → empty-target guard
+  (`transaction_feed` count > 0 → `targetNotEmpty` refusal) → one labelled
+  `import_batches` row → candidates inserted with `importBatchId`. Nothing
+  posts to the ledger; rows land pending review.
+- `src/hooks/client-inbox-core.ts` — `loadInboxForClient` returns
+  `carryover?: DemoCarryoverOffer` for authed loads (marker absent, no carried
+  rows on server, ≥1 carryable local row); `carryDemoLedgerForClient()` and
+  `declineDemoCarryover()` write the `moneyflow-demo-ledger-carryover-v1`
+  marker.
+- `src/components/inbox/inbox-page.tsx` — consent card on the Inbox surface:
+  exact scope copy (count + disclosed transfer/split skip), primary "Chuyển
+  vào Inbox" / quiet "Để nguyên", reloads after success.
+- Tests: `demo-ledger-carryover.test.ts` (classifier, mapping, marker,
+  dedupe — 11 cases) and `demo-ledger-carryover-contract.test.ts` (8 boundary
+  pins: no ledger writes, provenance prefix enforced, empty-target before
+  insert, idempotent retry, batch binding, no fixture fallback, explicit
+  consent/decline paths).
+
+Demo localStorage is never cleared — accept or decline both retain it; the
+marker only suppresses the offer.
 
 ## Risk assessment
 
@@ -190,38 +221,41 @@ rollback plan (candidates are discardable; nothing posts directly).
 
 ## Tasks
 
-| ID | Task | Dependency | Evidence | Status |
-|---|---|---|---|---|
-| T1 | Owner resolves the five open questions | none | answered checkboxes above | todo |
-| T2 | Implementation plan filled per answers | T1 | updated packet sections | todo |
-| T3 | Mapping + provenance + consent implementation | T2 | branch, tests, RLS/e2e evidence | todo |
+| ID  | Task                                          | Dependency | Evidence                                                           | Status |
+| --- | --------------------------------------------- | ---------- | ------------------------------------------------------------------ | ------ |
+| T1  | Owner resolves the five open questions        | none       | answered checkboxes above (conservative defaults, owner-delegated) | done   |
+| T2  | Implementation plan filled per answers        | T1         | updated packet sections                                            | done   |
+| T3  | Mapping + provenance + consent implementation | T2         | branch `feat/demo-ledger-carryover`, unit+contract tests           | done   |
 
 ## Handoff record
 
-| Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
-|---|---|---|---|---|---|---|
-| 2026-09-23 | researcher | human_owner | specified | research report + this packet | product intent unconfirmed | Owner answers open questions |
+| Date       | From        | To          | State       | Artifacts/evidence                                                | Open risks or unverified claims                                                | Next allowed action          |
+| ---------- | ----------- | ----------- | ----------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------ | ---------------------------- |
+| 2026-09-23 | researcher  | human_owner | specified   | research report + this packet                                     | product intent unconfirmed                                                     | Owner answers open questions |
+| 2026-09-23 | human_owner | implementer | implemented | owner delegation in session; conservative defaults recorded above | e2e auth-boundary spec not added in this slice; demo-mode visual check pending | PR review → merge            |
 
 ### Current permission boundary
 
-- Granted scope: read_only research + packet authoring (done).
+- Granted scope: focused branch + PR (owner delegated: "mày chính là người
+  phát triển sản phẩm này" — product decisions authorized within canon).
 - Exact repositories/providers/resources: `Thunderkill016/moneyflow`.
 - Forbidden writes: production data, main branch, any migration.
-- Human approval required before: implementation start (T3).
-- Rollback or stop condition: owner declines any open question → packet archives.
+- Human approval required before: merge, deploy.
+- Rollback or stop condition: revert PR; candidates are discardable, nothing
+  posts to the ledger without review.
 
 ## Evaluation
 
 ### Acceptance evidence
 
-| Criterion | Evidence | Result |
-|---|---|---|
-| Consent prompt once, decline persisted | e2e auth spec | pending |
-| Zero unreviewed ledger posts | candidate-pipeline test + code review | pending |
-| Transfers/splits never flattened | mapping unit tests | pending |
-| Fixture rows excluded | classifier unit tests | pending |
-| Idempotent retry | interrupted-run test | pending |
-| localStorage never auto-cleared | e2e + code review | pending |
+| Criterion                              | Evidence                              | Result  |
+| -------------------------------------- | ------------------------------------- | ------- |
+| Consent prompt once, decline persisted | e2e auth spec                         | pending |
+| Zero unreviewed ledger posts           | candidate-pipeline test + code review | pending |
+| Transfers/splits never flattened       | mapping unit tests                    | pending |
+| Fixture rows excluded                  | classifier unit tests                 | pending |
+| Idempotent retry                       | interrupted-run test                  | pending |
+| localStorage never auto-cleared        | e2e + code review                     | pending |
 
 ### Research and adoption evidence
 
