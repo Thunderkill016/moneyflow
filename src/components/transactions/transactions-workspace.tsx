@@ -45,6 +45,10 @@ import {
 } from "@/lib/running-balance";
 import { findLedgerDuplicateGroups } from "@/lib/ledger-duplicates";
 import {
+  reconciliationImportEvidenceLabel,
+  type ReconciliationImportEvidenceData,
+} from "@/lib/reconciliation-import-evidence";
+import {
   dismissLedgerDupePatterns,
   readLedgerDupeDismissals,
 } from "@/lib/ledger-duplicate-dismissals";
@@ -145,6 +149,12 @@ type TransactionsWorkspaceData = {
 type TransactionsWorkspaceProps = {
   viewer: ViewerSummary;
   workspace: TransactionsWorkspaceData;
+  /**
+   * Server-read import provenance keyed by transaction id (the same map the
+   * reconciliation surface uses). Rows with no entry render no subtitle —
+   * provenance is evidence, never an assumed manual-entry default.
+   */
+  importEvidence?: ReconciliationImportEvidenceData;
   variant?: TransactionsWorkspaceVariant;
   initialQuery?: string;
   initialCategory?: string;
@@ -207,6 +217,7 @@ function formatDayMonth(occurredOn: string) {
 export function TransactionsWorkspace({
   viewer,
   workspace,
+  importEvidence,
   variant = "ledger",
   initialQuery = "",
   initialCategory = "all",
@@ -2057,6 +2068,8 @@ export function TransactionsWorkspace({
                       rowIndexById.get(transaction.id) ?? -1;
                     const rowFocused =
                       rowIndex >= 0 && rowIndex === safeFocusedIndex;
+                    const provenance =
+                      importEvidence?.byTransactionId[transaction.id];
                     return (
                       <article
                         className={`${styles.row}${
@@ -2120,6 +2133,15 @@ export function TransactionsWorkspace({
                               ? " · Từ lịch định kỳ"
                               : ""}
                           </small>
+                          {provenance ? (
+                            <small
+                              className={styles.rowProvenance}
+                              data-slot="ledger-row-provenance"
+                            >
+                              Nguồn nhập ·{" "}
+                              {reconciliationImportEvidenceLabel(provenance)}
+                            </small>
+                          ) : null}
                           <time dateTime={transaction.occurredAt}>
                             {transaction.relativeDate}
                           </time>

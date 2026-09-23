@@ -14,6 +14,9 @@ const QUERY_CHUNK_SIZE = 100;
 
 const provenanceRowSchema = z.object({
   transaction_id: z.string().uuid(),
+  /* Must mirror the live inbox_candidate_source enum — 'agent' was added by
+     20260920120000_agent_candidate_proposals.sql; a source the schema does
+     not know would fail the whole evidence read instead of one row. */
   source: z.enum([
     "paste",
     "csv",
@@ -22,6 +25,7 @@ const provenanceRowSchema = z.object({
     "manual",
     "notification",
     "email",
+    "agent",
   ]),
   source_row_index: z.number().int().nonnegative().nullable(),
   original_description: z.string(),
