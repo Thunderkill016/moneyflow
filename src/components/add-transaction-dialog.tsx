@@ -54,6 +54,11 @@ import {
   type Transaction,
   type TransactionKind,
 } from "@/lib/sample-data";
+import {
+  clearUnsentCaptureDraft,
+  readUnsentCaptureDraft,
+  writeUnsentCaptureDraft,
+} from "@/lib/unsent-draft";
 import { todayInVietnam } from "@/lib/vietnam-date";
 import fastStyles from "./transactions/capture-fast-path.module.css";
 import styles from "./transactions/transaction-form.module.css";
@@ -117,7 +122,14 @@ export function AddTransactionDialog({
   const [recentPresets, setRecentPresets] = useState<QuickAddPreset[]>([]);
   const [rules, setRules] = useState<InboxRule[]>([]);
   const [autoRuleHint, setAutoRuleHint] = useState<string | null>(null);
+  const [draftRestored, setDraftRestored] = useState(false);
   const categoryTouchedRef = useRef(false);
+  /*
+   * Set by markInputChanged, which only user-initiated edits call. The
+   * mount-time draft restore checks it so a form the reader already touched
+   * is never silently overwritten by a retained draft.
+   */
+  const formTouchedRef = useRef(false);
   const effectiveOpen = open || keepOpenSession;
   const today = todayInVietnam();
 
@@ -308,6 +320,40 @@ export function AddTransactionDialog({
 
       applyDefaultForKind(resolvedKind, prefs);
       setOccurredOn(todayInVietnam());
+
+      /*
+       * A draft left by a failed save outlives the dialog that held it, so it
+       * is offered back on the next mount. It only hydrates a fresh form —
+       * once the reader has touched any field, their current input wins. ids
+       * that no longer resolve (deleted account/category since the failure)
+       * fall back to the defaults applied above rather than inventing one.
+       */
+      const draft = readUnsentCaptureDraft();
+      if (draft && !formTouchedRef.current) {
+        /*
+         * The restored payee goes through applyPayeeChange like every other
+         * payee write so saved deterministic rules still see it. When the
+         * draft's own category still resolves it counts as the reader's
+         * explicit choice — categoryTouchedRef stops a rule fill from
+         * overriding it, the same protection chooseCategory gives a tap.
+         */
+        const draftCategoryResolves = categories.some(
+          (item) => item.kind === draft.kind && item.id === draft.categoryId,
+        );
+        categoryTouchedRef.current = draftCategoryResolves;
+        setKind(draft.kind);
+        setAmount(formatMoneyInput(String(draft.amount)));
+        applyPayeeChange(draft.payee);
+        setNote(draft.note);
+        setOccurredOn(draft.occurredOn);
+        if (accounts.some((item) => item.id === draft.accountId)) {
+          setAccountId(draft.accountId);
+        }
+        if (draftCategoryResolves) {
+          setCategoryId(draft.categoryId);
+        }
+        setDraftRestored(true);
+      }
     });
     return () => window.cancelAnimationFrame(frame);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional one-shot prefs hydrate
@@ -376,8 +422,10 @@ export function AddTransactionDialog({
 
   function markInputChanged() {
     idempotencyKeyRef.current = null;
+    formTouchedRef.current = true;
     setError("");
     if (savedFlash) setSavedFlash("");
+    if (draftRestored) setDraftRestored(false);
   }
 
   function chooseCategory(nextCategoryId: string) {
@@ -499,8 +547,20 @@ export function AddTransactionDialog({
       /*
        * Offline, "hãy thử lại" is the one recommendation guaranteed not to
        * work. The form keeps everything the reader typed either way, so the
-       * message says that instead of sending them into a dead network.
+       * message says that instead of sending them into a dead network. The
+       * same input is also retained as a draft so a closed tab or navigation
+       * no longer discards it — retention only, nothing sends it later.
        */
+      writeUnsentCaptureDraft({
+        kind,
+        amount: parsedAmount,
+        note: note.trim(),
+        payee: payee.trim(),
+        categoryId: selectedCategoryId,
+        accountId: selectedAccountId,
+        occurredOn,
+        savedAt: new Date().toISOString(),
+      });
       setError(
         saveFailureMessage(
           connectionState,
@@ -519,11 +579,13 @@ export function AddTransactionDialog({
       },
       true,
     );
+    clearUnsentCaptureDraft();
     idempotencyKeyRef.current = null;
     setAmount("");
     setNote("");
     setPayee("");
     setError("");
+    setDraftRestored(false);
     categoryTouchedRef.current = false;
     setAutoRuleHint(null);
 
@@ -726,6 +788,16 @@ export function AddTransactionDialog({
       {savedFlash && !error ? (
         <Alert tone="success" live="polite" className={styles.formStatus}>
           <AlertDescription>{savedFlash}</AlertDescription>
+        </Alert>
+      ) : null}
+      {draftRestored && !error && !savedFlash ? (
+        <Alert
+          tone="info"
+          live="polite"
+          className={styles.formStatus}
+          data-slot="capture-draft-restored"
+        >
+          <AlertDescription>Đã khôi phục nháp chưa gửi</AlertDescription>
         </Alert>
       ) : null}
 
