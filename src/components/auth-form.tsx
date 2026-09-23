@@ -169,13 +169,36 @@ export function AuthForm({
               <p className={styles.description}>{content.description}</p>
             </header>
 
-            {demoMode && mode === "login" && !isReauth && (
-              <div className={styles.demoNotice} role="status">
-                <strong>Đang ở chế độ demo</strong>
-                <span>Dữ liệu demo chỉ được lưu trong trình duyệt này.</span>
-                <Link href="/dashboard">Tiếp tục bản demo</Link>
-              </div>
-            )}
+            {demoMode &&
+              (mode === "register" || (mode === "login" && !isReauth)) && (
+                <div className={styles.demoNotice} role="status">
+                  <strong>Đang ở chế độ demo</strong>
+                  {mode === "register" ? (
+                    /*
+                     * The local demo ledger is never migrated into a new
+                     * account; say so plainly before the form and offer the
+                     * honest escape — the scoped transactions/Inbox export,
+                     * not a restorable backup.
+                     */
+                    <>
+                      <span>
+                        Dữ liệu demo chỉ lưu trên thiết bị này và không được
+                        chuyển vào tài khoản mới. Trước khi tiếp tục, bạn có thể
+                        xuất giao dịch và Inbox tại Cài đặt → Xuất dữ liệu —
+                        file xuất chưa phải bản sao lưu đầy đủ.
+                      </span>
+                      <Link href="/settings/export">Mở Xuất dữ liệu</Link>
+                    </>
+                  ) : (
+                    <>
+                      <span>
+                        Dữ liệu demo chỉ được lưu trong trình duyệt này.
+                      </span>
+                      <Link href="/dashboard">Tiếp tục bản demo</Link>
+                    </>
+                  )}
+                </div>
+              )}
 
             {(mode === "login" || mode === "register") && (
               <form action={signInWithGoogle}>

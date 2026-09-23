@@ -65,6 +65,15 @@ test("export page labels the file as transactions/Inbox subset, not backup", () 
   );
 });
 
+test("export page tells demo viewers their data never leaves this device", () => {
+  const source = normalizeSource(read(EXPORT));
+  assert.match(source, /viewer\.isDemo/);
+  assert.match(
+    source,
+    /Dữ liệu demo chỉ nằm trên thiết bị này — tạo tài khoản không chuyển dữ liệu đó\./,
+  );
+});
+
 test("export kind options still frame candidates as advanced data", () => {
   const source = read(EXPORT_LIB);
   assert.match(source, /Sổ thu chi|giao dịch đã ghi/i);
