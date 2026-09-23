@@ -89,16 +89,19 @@ export function moneyDisplayTone(
 }
 
 export function moneyDisplayAriaLabel(options: MoneyDisplayOptions): string {
+  // Compact text ("12,5 tr") is a one-line visual squeeze; a screen reader
+  // has no line limit and always hears the exact đồng figure.
+  const exact = { ...options, compact: false };
   let valueLabel: string;
 
   if (options.mode === "kind") {
-    valueLabel = `${kindAriaLabels[options.kind]} ${formattedAbsoluteAmount(options)}`;
+    valueLabel = `${kindAriaLabels[options.kind]} ${formattedAbsoluteAmount(exact)}`;
   } else if (options.mode === "signed" && options.amount > 0) {
-    valueLabel = `Cộng ${formattedAbsoluteAmount(options)}`;
+    valueLabel = `Cộng ${formattedAbsoluteAmount(exact)}`;
   } else if (options.mode === "signed" && options.amount < 0) {
-    valueLabel = `Trừ ${formattedAbsoluteAmount(options)}`;
+    valueLabel = `Trừ ${formattedAbsoluteAmount(exact)}`;
   } else {
-    valueLabel = moneyDisplayText(options);
+    valueLabel = moneyDisplayText(exact);
   }
 
   const context = options.label?.trim();

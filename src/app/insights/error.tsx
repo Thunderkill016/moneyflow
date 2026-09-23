@@ -13,7 +13,7 @@ export default function InsightsError({
     <RouteError
       error={error}
       reset={reset}
-      homeHref="/insights"
+      homeHref="/dashboard"
       homeLabel="Về Tổng quan"
       routeKey="insights"
     />

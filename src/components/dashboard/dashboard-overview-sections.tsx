@@ -279,6 +279,12 @@ export function DashboardLedgerColumn({
                             amount={item.amount}
                             mode="kind"
                             kind="expense"
+                            /*
+                             * The bar row is one line shared with the category
+                             * name: compact keeps a large month figure from
+                             * squeezing it; the drill-down rows stay exact.
+                             */
+                            compact
                             className="amount"
                           />
                         </div>
