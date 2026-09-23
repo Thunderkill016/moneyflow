@@ -22,7 +22,7 @@ const importEvidenceServer = readFileSync(
 
 /** First rule block for a selector — base declarations precede media overrides. */
 function cssRule(selector: string) {
-  const escaped = selector.replace(/\./g, "\\.");
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const match = workspaceCss.match(
     new RegExp(`${escaped}\\s*\\{([^}]*)\\}`, "m"),
   );
