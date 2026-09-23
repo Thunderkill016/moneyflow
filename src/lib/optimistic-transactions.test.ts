@@ -454,8 +454,8 @@ test("update dispatches the draft inside the transition before the RPC", () => {
     hookSource,
   )?.[0];
   assert.ok(updateBody, "updateTransaction must exist");
-  const dispatch = updateBody.indexOf(
-    'applyOptimisticMutation({ type: "update", transaction: draft.transaction })',
+  const dispatch = updateBody.search(
+    /applyOptimisticMutation\(\{\s*type: "update",\s*transaction: draft\.transaction,?\s*\}\)/u,
   );
   const awaited = Math.min(
     updateBody.indexOf("await updateTransferAction(input)"),
@@ -510,7 +510,7 @@ test("restore still re-inserts the undo snapshot into the base list", () => {
   assert.ok(restoreBody, "restoreTransaction must exist");
   assert.match(
     restoreBody,
-    /setTransactions\(\(current\) => restoreTransactionInList\(current, restored\)\)/u,
+    /setTransactions\(\(current\) =>\s*restoreTransactionInList\(current, restored\),?\s*\)/u,
   );
   assert.doesNotMatch(restoreBody, /applyOptimisticMutation/u);
 });
