@@ -4,13 +4,19 @@ import test from "node:test";
 import {
   backupFileName,
   classifyRestoreFailure,
+  describeArchiveCollection,
   describeBackupFailure,
   describeIngressRejection,
   describeRestoreFailure,
   serializeArchive,
   summarizeArchive,
+  verifyArchiveBytes,
 } from "./archive-backup.ts";
-import type { MoneyFlowArchive } from "./moneyflow-archive.ts";
+import {
+  ALL_ARCHIVE_COLLECTIONS,
+  ARCHIVE_SCHEMA_GENERATION,
+  type MoneyFlowArchive,
+} from "./moneyflow-archive.ts";
 
 /**
  * R9 — the pure parts of the Backup & Restore surface: what the file is called,
@@ -177,6 +183,115 @@ test("backup failures are distinguished from restore failures", () => {
   assert.ok(describeBackupFailure("unexpected").includes("Chưa có tệp nào được tải về"));
 });
 
+// --- Standalone file verification ----------------------------------------------
+//
+// The verify affordance is a composition, not a new validator: untrusted bytes
+// cross the same ingress the restore picker uses, then the same summary. These
+// tests pin what the composition may claim — and what it must never claim.
+
+function serializableArchive(): Record<string, unknown> {
+  const tables: Record<string, unknown> = {
+    profile: {
+      full_name: "Người dùng",
+      avatar_url: null,
+      currency_code: "VND",
+      locale: "vi-VN",
+      timezone: "Asia/Ho_Chi_Minh",
+    },
+    categories: [
+      {
+        id: "00000000-0000-4000-8000-000000000010",
+        name: "Ăn uống",
+        kind: "expense",
+        icon: null,
+        color: null,
+        is_default: false,
+        is_archived: false,
+        created_at: "2026-08-12T09:30:00.000000Z",
+      },
+    ],
+  };
+  const counts: Record<string, number> = {};
+  for (const collection of ALL_ARCHIVE_COLLECTIONS) {
+    if (!(collection in tables)) tables[collection] = [];
+    counts[collection] =
+      collection === "profile" ? 1 : (tables[collection] as unknown[]).length;
+  }
+  return {
+    archive_version: 1,
+    archive_id: "00000000-0000-4000-8000-000000000001",
+    produced_at: "2026-08-12T09:30:00.000000Z",
+    schema_generation: ARCHIVE_SCHEMA_GENERATION,
+    tenant_row_counts: counts,
+    tables,
+  };
+}
+
+test("verifyArchiveBytes reports generation, produced_at and per-collection counts", () => {
+  const result = verifyArchiveBytes(
+    new TextEncoder().encode(JSON.stringify(serializableArchive())),
+  );
+  assert.ok(result.ok, `expected acceptance, got ${result.ok ? "" : result.code}`);
+  assert.equal(result.report.schemaGeneration, ARCHIVE_SCHEMA_GENERATION);
+  assert.equal(result.report.producedAt, "2026-08-12T09:30:00.000000Z");
+  assert.equal(result.report.archiveVersion, 1);
+  // Every contract collection is reported exactly once, in inventory order.
+  assert.deepEqual(
+    result.report.collections.map((entry) => entry.collection),
+    [...ALL_ARCHIVE_COLLECTIONS],
+  );
+  assert.equal(
+    result.report.collections.find((entry) => entry.collection === "categories")?.count,
+    1,
+  );
+  assert.equal(result.report.totalRows, 2);
+  assert.ok(result.report.bytes > 0);
+});
+
+test("verifyArchiveBytes surfaces the ingress rejection unchanged", () => {
+  const empty = verifyArchiveBytes(new Uint8Array(0));
+  assert.ok(!empty.ok);
+  assert.equal(empty.code, "file_empty");
+  const garbage = verifyArchiveBytes(new TextEncoder().encode("not json at all"));
+  assert.ok(!garbage.ok);
+  assert.equal(garbage.code, "invalid_json_syntax");
+  const notArchive = verifyArchiveBytes(new TextEncoder().encode('{"hello": "world"}'));
+  assert.ok(!notArchive.ok);
+  assert.equal(notArchive.code, "archive_invalid");
+});
+
+test("verification counts come from the validated file, not a claim inside it", () => {
+  // The counts and the tables disagree, so the file is invalid — a check that
+  // trusted tenant_row_counts blindly would report 99 phantom categories.
+  const built = serializableArchive();
+  (built.tenant_row_counts as Record<string, number>).categories = 99;
+  const result = verifyArchiveBytes(new TextEncoder().encode(JSON.stringify(built)));
+  assert.ok(!result.ok);
+  assert.equal(result.code, "archive_invalid");
+});
+
+test("a verification report carries no restore eligibility", () => {
+  const result = verifyArchiveBytes(
+    new TextEncoder().encode(JSON.stringify(serializableArchive())),
+  );
+  assert.ok(result.ok);
+  // "Valid file" must never be expressible as "restorable file" by this shape.
+  for (const key of [...Object.keys(result), ...Object.keys(result.report)]) {
+    assert.ok(
+      !/restor|eligib|confirm/iu.test(key),
+      `${key} must not imply restore eligibility`,
+    );
+  }
+});
+
+test("every contract collection has a Vietnamese label", () => {
+  for (const collection of ALL_ARCHIVE_COLLECTIONS) {
+    const label = describeArchiveCollection(collection);
+    assert.ok(label.length > 1, `${collection} needs a real label`);
+    assert.notEqual(label, collection, `${collection} fell back to the raw key`);
+  }
+});
+
 // --- Surface composition -------------------------------------------------------
 
 const surfaceSource = readFileSync(
@@ -299,4 +414,44 @@ test("the report export stays a separate feature", () => {
   assert.ok(hub.includes("Bản sao lưu MoneyFlow"));
   // The report export must keep saying it is not a full backup.
   assert.ok(hub.includes("chưa phải bản sao lưu đầy đủ"));
+});
+
+test("the verify path inspects a file without restore eligibility", () => {
+  // The affordance exists as its own section with its own input.
+  assert.ok(surface.includes("Kiểm tra tệp sao lưu"), "the verify section must exist");
+  assert.ok(surface.includes('data-testid="verify-file"'));
+  // It crosses the same trusted boundary as the restore picker.
+  assert.ok(surface.includes("verifyArchiveBytes"));
+
+  // The handler ends at a report: it must not reach the restore action, the
+  // restore state machine, or the transport pre-check that only exists to
+  // bound an upload — verify never uploads anything.
+  const verifyHandler = surface.slice(
+    surface.indexOf("async function handleVerifyFile"),
+    surface.indexOf("function resetRestore"),
+  );
+  assert.ok(!verifyHandler.includes("restoreArchiveAction"));
+  assert.ok(!verifyHandler.includes("setRestore"), "verify must not touch restore state");
+  assert.ok(
+    !verifyHandler.includes('"confirming"') && !verifyHandler.includes('"restoring"'),
+    "verify has no path into the restore state machine",
+  );
+  assert.ok(
+    !verifyHandler.includes("ARCHIVE_MAX_RESTORE_BYTES"),
+    "verify inspects locally; the transport cap bounds uploads only",
+  );
+
+  // Honest copy: "valid file" is never stated as "restorable file".
+  assert.ok(surface.includes("Tệp hợp lệ"));
+  assert.ok(
+    surface.includes("chưa chứng minh tệp có thể khôi phục"),
+    "the report must say validation is not proof of restorability",
+  );
+  // And the verify state machine is terminal — no restore kinds exist.
+  const verifyState = surface.slice(
+    surface.indexOf("type VerifyState"),
+    surface.indexOf("function formatProducedAt"),
+  );
+  assert.ok(verifyState.includes('"valid"') && verifyState.includes('"invalid"'));
+  assert.ok(!verifyState.includes("confirming") && !verifyState.includes("restoring"));
 });
