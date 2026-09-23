@@ -31,18 +31,39 @@ import {
   writeStoredImportBatches,
   type ImportBatch,
 } from "@/lib/inbox/import-batch-store";
-import { prepareCandidateForServer, prepareBatchForServer } from "@/lib/inbox/inbox-map";
+import {
+  carryDemoLedgerAction,
+  type CarryDemoLedgerResult,
+} from "@/app/actions/inbox";
+import {
+  prepareCandidateForServer,
+  prepareBatchForServer,
+} from "@/lib/inbox/inbox-map";
 import type {
   CreateCandidateWithProvenanceInput,
   CreateImportBatchWithProvenanceInput,
   PersistedInboxCandidate,
 } from "@/lib/inbox/provenance";
+import {
+  hasCarriedDemoRows,
+  readCarryoverMarker,
+  readDemoCarryoverState,
+  toCarryoverCandidateInput,
+  writeCarryoverMarker,
+} from "@/lib/demo-ledger-carryover";
 
 export type ClientInboxResult<T = undefined> = T extends undefined
   ? { ok: true } | { ok: false; message: string }
   : ({ ok: true } & T) | { ok: false; message: string };
 
 export const INBOX_MIGRATED_MARKER_KEY = "moneyflow-inbox-server-migrated-v1";
+
+export type DemoCarryoverOffer = {
+  /** Expense/income rows the user entered in demo — movable to Inbox. */
+  carryableCount: number;
+  /** Transfers/splits — disclosed as not carried. */
+  skippedStructured: number;
+};
 
 export function readMigratedMarker(): string | null {
   if (typeof window === "undefined") return null;
@@ -73,9 +94,13 @@ export function clearLocalInboxAfterMigrate(): void {
 /**
  * Load candidates for UI. When authed: migrate local once if server empty, then list.
  */
-export async function loadInboxForClient(
-  isDemo: boolean,
-): Promise<ClientInboxResult<{ candidates: InboxCandidate[]; batches: ImportBatch[] }>> {
+export async function loadInboxForClient(isDemo: boolean): Promise<
+  ClientInboxResult<{
+    candidates: InboxCandidate[];
+    batches: ImportBatch[];
+    carryover?: DemoCarryoverOffer;
+  }>
+> {
   if (isDemo) {
     try {
       return {
@@ -97,20 +122,23 @@ export async function loadInboxForClient(
       batches: localBatches,
     });
 
-    if (!migrateResult.ok) {
+    let candidates: InboxCandidate[];
+    let batches: ImportBatch[];
+    if (migrateResult.ok) {
+      candidates = migrateResult.candidates;
+      batches = migrateResult.batches;
+    } else {
       const listed = await listInboxAction();
       if (!listed.ok) return { ok: false, message: listed.message };
-      return {
-        ok: true,
-        candidates: listed.candidates,
-        batches: listed.batches,
-      };
+      candidates = listed.candidates;
+      batches = listed.batches;
     }
 
     if (
-      migrateResult.candidates.length > 0 ||
-      migrateResult.batches.length > 0 ||
-      readMigratedMarker()
+      migrateResult.ok &&
+      (migrateResult.candidates.length > 0 ||
+        migrateResult.batches.length > 0 ||
+        readMigratedMarker())
     ) {
       const hadLocalWork =
         localCandidates.some((c) => !c.id.startsWith("cand-demo-")) ||
@@ -122,14 +150,53 @@ export async function loadInboxForClient(
       }
     }
 
+    const carryover = demoCarryoverOffer(candidates);
+
     return {
       ok: true,
-      candidates: migrateResult.candidates,
-      batches: migrateResult.batches,
+      candidates,
+      batches,
+      ...(carryover ? { carryover } : {}),
     };
   } catch {
     return { ok: false, message: "Không tải được Inbox từ máy chủ." };
   }
+}
+
+/**
+ * Offer the demo→account carryover only when it is meaningful and not yet
+ * decided: no marker, no already-carried rows on the server, and at least one
+ * user-entered demo row waiting in local storage.
+ */
+function demoCarryoverOffer(
+  candidates: InboxCandidate[],
+): DemoCarryoverOffer | null {
+  if (readCarryoverMarker()) return null;
+  if (hasCarriedDemoRows(candidates)) return null;
+  const state = readDemoCarryoverState();
+  if (!state || state.carryable.length === 0) return null;
+  return {
+    carryableCount: state.carryable.length,
+    skippedStructured: state.skippedStructured,
+  };
+}
+
+/** Consented carryover: moves user-entered demo rows into the Inbox. */
+export async function carryDemoLedgerForClient(): Promise<CarryDemoLedgerResult> {
+  const state = readDemoCarryoverState();
+  if (!state || state.carryable.length === 0) {
+    return { ok: false, message: "Không có bản ghi demo để chuyển." };
+  }
+  const result = await carryDemoLedgerAction(
+    state.carryable.map(toCarryoverCandidateInput),
+  );
+  if (result.ok) writeCarryoverMarker("accepted");
+  return result;
+}
+
+/** Explicit decline — never ask again on this browser. */
+export function declineDemoCarryover(): void {
+  writeCarryoverMarker("declined");
 }
 
 function createLocalCandidateWithProvenance(
@@ -224,7 +291,9 @@ export async function updateCandidateForClient(
   if (!result.ok) return { ok: false, message: result.message };
 
   const next = currentList.map((item) =>
-    item.id === result.candidate?.id ? (result.candidate as InboxCandidate) : item,
+    item.id === result.candidate?.id
+      ? (result.candidate as InboxCandidate)
+      : item,
   );
   return { ok: true, candidates: next };
 }
@@ -302,7 +371,10 @@ export async function addImportBatchForClient(
       const batch = addStoredImportBatch(input);
       return { ok: true, batch };
     } catch {
-      return { ok: false, message: "Không lưu được lượt import trên thiết bị." };
+      return {
+        ok: false,
+        message: "Không lưu được lượt import trên thiết bị.",
+      };
     }
   }
 
@@ -315,7 +387,8 @@ export async function addImportBatchForClient(
     mappingVersion: prepared.mappingVersion,
   });
   if (!result.ok) return { ok: false, message: result.message };
-  if (!result.batch) return { ok: false, message: "Không nhận được lượt import." };
+  if (!result.batch)
+    return { ok: false, message: "Không nhận được lượt import." };
   return { ok: true, batch: result.batch };
 }
 
@@ -364,7 +437,10 @@ export async function deleteImportBatchForClient(
       removeStoredImportBatch(id);
       return { ok: true };
     } catch {
-      return { ok: false, message: "Không xóa được meta import trên thiết bị." };
+      return {
+        ok: false,
+        message: "Không xóa được meta import trên thiết bị.",
+      };
     }
   }
 
@@ -375,7 +451,9 @@ export async function deleteImportBatchForClient(
 
 export async function loadImportBatchesForClient(
   isDemo: boolean,
-): Promise<ClientInboxResult<{ batches: ImportBatch[]; pendingCount: number }>> {
+): Promise<
+  ClientInboxResult<{ batches: ImportBatch[]; pendingCount: number }>
+> {
   if (isDemo) {
     try {
       return {
@@ -397,7 +475,9 @@ export async function loadImportBatchesForClient(
   };
 }
 
-export async function getPendingCountForClient(isDemo: boolean): Promise<number> {
+export async function getPendingCountForClient(
+  isDemo: boolean,
+): Promise<number> {
   if (isDemo) {
     try {
       return countPending(readStoredCandidates());

@@ -25,9 +25,12 @@ import { EmptyState } from "@/components/ui/empty-state";
 import type { ToastTone } from "@/components/ui/toast";
 import type { ViewerSummary } from "@/components/user-chip";
 import {
+  carryDemoLedgerForClient,
+  declineDemoCarryover,
   loadInboxForClient,
   persistCandidateListForClient,
   updateCandidateForClient,
+  type DemoCarryoverOffer,
 } from "@/hooks/client-inbox";
 import { useTransactions } from "@/hooks/use-transactions";
 import {
@@ -154,7 +157,9 @@ export function InboxPage({
   const monthStart = monthStartFromDate(today);
   const [filter, setFilter] = useState<InboxViewFilter>("all");
   const [notice, setNotice] = useState("");
-  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(
+    undefined,
+  );
   const [errorMessage, setErrorMessage] = useState("");
   /*
    * Notice + tone always move as a pair so a cleared or replaced notice can
@@ -171,6 +176,8 @@ export function InboxPage({
   );
   const [bulkBusy, setBulkBusy] = useState(false);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [carryover, setCarryover] = useState<DemoCarryoverOffer | null>(null);
+  const [carryoverBusy, setCarryoverBusy] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const candidatesRef = useRef<InboxCandidate[]>(candidates);
   const candidateTargetHandledRef = useRef(false);
@@ -232,6 +239,7 @@ export function InboxPage({
       }
       setCandidates(result.candidates);
       candidatesRef.current = result.candidates;
+      setCarryover(result.carryover ?? null);
       setErrorMessage("");
       setLoadState("ready");
       resolveCandidateTarget(result.candidates);
@@ -253,13 +261,19 @@ export function InboxPage({
       }
       setCandidates(result.candidates);
       candidatesRef.current = result.candidates;
+      setCarryover(result.carryover ?? null);
       setLoadState("ready");
       resolveCandidateTarget(result.candidates);
     })();
     return () => {
       cancelled = true;
     };
-  }, [viewer.isDemo, initialCandidateId, resolveCandidateTarget, loadDueCommitments]);
+  }, [
+    viewer.isDemo,
+    initialCandidateId,
+    resolveCandidateTarget,
+    loadDueCommitments,
+  ]);
 
   useEffect(() => {
     if (!notice) return;
@@ -411,7 +425,10 @@ export function InboxPage({
 
   function seedDemo() {
     if (!viewer.isDemo) {
-      showNotice("Dữ liệu mẫu chỉ dùng trong chế độ demo trên thiết bị.", "info");
+      showNotice(
+        "Dữ liệu mẫu chỉ dùng trong chế độ demo trên thiết bị.",
+        "info",
+      );
       return;
     }
     const next = sampleCandidates.map((item) => ({ ...item }));
@@ -420,6 +437,31 @@ export function InboxPage({
     candidatesRef.current = next;
     setSelectedIds([]);
     showNotice("Đã nạp dữ liệu mẫu vào Inbox.", "success");
+  }
+
+  async function handleCarryoverAccept() {
+    setCarryoverBusy(true);
+    const result = await carryDemoLedgerForClient();
+    setCarryoverBusy(false);
+    if (!result.ok) {
+      if (result.targetNotEmpty) setCarryover(null);
+      setErrorMessage(result.message);
+      return;
+    }
+    setCarryover(null);
+    showNotice(
+      result.alreadyCarried
+        ? "Dữ liệu demo đã được chuyển vào Inbox trước đó."
+        : `Đã chuyển ${result.carried} giao dịch demo vào Inbox — duyệt lại trước khi ghi sổ.`,
+      "success",
+    );
+    void load();
+  }
+
+  function handleCarryoverDecline() {
+    declineDemoCarryover();
+    setCarryover(null);
+    showNotice("Dữ liệu demo vẫn giữ nguyên trên thiết bị này.", "info");
   }
 
   function toggleSelect(id: string) {
@@ -529,7 +571,11 @@ export function InboxPage({
       );
       if (!result.ok) return { ok: false, message: result.message };
       setDueCommitments((current) =>
-        markCommitmentPaid(current, commitment.id, result.transactionId ?? "paid"),
+        markCommitmentPaid(
+          current,
+          commitment.id,
+          result.transactionId ?? "paid",
+        ),
       );
     }
 
@@ -684,7 +730,8 @@ export function InboxPage({
             workspace.categories,
           )
         : false,
-      flagged: detectedReviewed?.possibleDuplicate === true ||
+      flagged:
+        detectedReviewed?.possibleDuplicate === true ||
         detectedReviewed?.possibleTransfer === true,
       near_match: detectedReviewed?.nearMatch === true,
       bulk,
@@ -720,7 +767,8 @@ export function InboxPage({
     );
     if (!post.ok) {
       showNotice(
-        post.message || "Chưa đủ dữ kiện để xác nhận. Hãy mở Duyệt để kiểm tra.",
+        post.message ||
+          "Chưa đủ dữ kiện để xác nhận. Hãy mở Duyệt để kiểm tra.",
         "warning",
       );
       return;
@@ -774,7 +822,8 @@ export function InboxPage({
       kind: target?.kind ?? "unknown",
       source: target?.source ?? "unknown",
       possible_duplicate: target?.possibleDuplicate === true,
-      flagged: detectedTarget?.possibleDuplicate === true ||
+      flagged:
+        detectedTarget?.possibleDuplicate === true ||
         detectedTarget?.possibleTransfer === true,
       near_match: detectedTarget?.nearMatch === true,
       bulk: false,
@@ -800,7 +849,10 @@ export function InboxPage({
     }
     setCandidates(result.candidates);
     candidatesRef.current = result.candidates;
-    showNotice("Đã đánh dấu có thể trùng. Hãy kiểm tra trước khi duyệt.", "success");
+    showNotice(
+      "Đã đánh dấu có thể trùng. Hãy kiểm tra trước khi duyệt.",
+      "success",
+    );
   }
 
   async function handleBulkApply(payload: BulkApplyPayload) {
@@ -814,8 +866,7 @@ export function InboxPage({
       const realIds = payload.selectedIds.filter(
         (id) => !parseCommitmentSuggestionId(id),
       );
-      const skippedSuggestions =
-        payload.selectedIds.length - realIds.length;
+      const skippedSuggestions = payload.selectedIds.length - realIds.length;
       const skippedNote =
         skippedSuggestions > 0
           ? ` · bỏ qua ${skippedSuggestions} gợi ý định kỳ`
@@ -854,11 +905,7 @@ export function InboxPage({
           showNotice("Chưa chọn được tài khoản.", "warning");
           return;
         }
-        const next = applyBulkAccount(
-          candidatesRef.current,
-          realIds,
-          account,
-        );
+        const next = applyBulkAccount(candidatesRef.current, realIds, account);
         if (!(await persist(next, realIds))) return;
         showNotice(
           `Đã gán tài khoản “${account.name}” cho các ứng viên đã chọn${skippedNote}.`,
@@ -1017,8 +1064,7 @@ export function InboxPage({
    * candidate-status persistence can never interleave two pending→approved
    * patches.
    */
-  const rowConfirmBusy =
-    bulkBusy || isMutating || confirmingId !== null;
+  const rowConfirmBusy = bulkBusy || isMutating || confirmingId !== null;
 
   return (
     <AppShell
@@ -1121,6 +1167,46 @@ export function InboxPage({
               >
                 Thử lại
               </Button>
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {carryover && loadState === "ready" ? (
+          <Alert tone="info" live="polite">
+            <AlertDescription className={styles.alertContent}>
+              <Icon name="bell" />
+              <div className={styles.carryoverBody}>
+                <strong>
+                  Có {carryover.carryableCount} giao dịch trong bản demo
+                </strong>
+                <span>
+                  Chuyển vào Inbox để duyệt lại trước khi ghi sổ.
+                  {carryover.skippedStructured > 0
+                    ? ` ${carryover.skippedStructured} chuyển khoản/chi tách không mang theo được — nhập lại sau.`
+                    : ""}{" "}
+                  Dữ liệu demo trên máy vẫn giữ nguyên.
+                </span>
+                <div className={styles.carryoverActions}>
+                  <Button
+                    type="button"
+                    intent="primary"
+                    targetSize="important"
+                    pending={carryoverBusy}
+                    pendingLabel="Đang chuyển…"
+                    onClick={() => void handleCarryoverAccept()}
+                  >
+                    Chuyển vào Inbox
+                  </Button>
+                  <Button
+                    type="button"
+                    intent="quiet"
+                    disabled={carryoverBusy}
+                    onClick={handleCarryoverDecline}
+                  >
+                    Để nguyên
+                  </Button>
+                </div>
+              </div>
             </AlertDescription>
           </Alert>
         ) : null}

@@ -216,6 +216,120 @@ export async function migrateLocalInboxAction(input: {
   return result;
 }
 
+export type CarryDemoLedgerResult =
+  | { ok: true; carried: number; alreadyCarried?: boolean }
+  | { ok: false; message: string; targetNotEmpty?: boolean };
+
+const DEMO_CARRYOVER_EXTERNAL_PREFIX = "demo-tx-";
+const DEMO_CARRYOVER_BATCH_NAME = "moneyflow-demo-ledger";
+
+/**
+ * Demo → account carryover (consented). Every row lands as a pending Inbox
+ * candidate bound to one labelled batch — nothing posts to the ledger here.
+ * Server-side guards: rows must carry the demo provenance prefix, the target
+ * ledger must be empty, and a repeat call is a no-op when demo rows already
+ * exist (idempotent retry).
+ */
+export async function carryDemoLedgerAction(
+  inputs: CreateCandidateWithProvenanceInput[],
+): Promise<CarryDemoLedgerResult> {
+  if (!Array.isArray(inputs) || inputs.length === 0) {
+    return { ok: false, message: "Không có bản ghi demo để chuyển." };
+  }
+  if (inputs.length > 500) {
+    return {
+      ok: false,
+      message: "Quá nhiều bản ghi trong một lần (tối đa 500).",
+    };
+  }
+
+  const auth = await requireAuthedClient();
+  if (!auth.ok) return { ok: false, message: auth.message };
+
+  const limited = checkImportRateLimit(auth.viewer.id);
+  if (limited && !limited.ok) return { ok: false, message: limited.message };
+
+  const prepared: PersistedInboxCandidate[] = [];
+  for (const raw of inputs) {
+    const parsed = createCandidateSchema.safeParse(raw);
+    if (!parsed.success) {
+      return { ok: false, message: "Dữ liệu chuyển tiếp chưa hợp lệ." };
+    }
+    if (
+      !parsed.data.sourceExternalId?.startsWith(DEMO_CARRYOVER_EXTERNAL_PREFIX)
+    ) {
+      return { ok: false, message: "Thiếu nhận diện nguồn demo." };
+    }
+    prepared.push(prepareCandidateForServer(parsed.data));
+  }
+
+  const { data: existing } = await auth.supabase
+    .from("inbox_candidates")
+    .select("id")
+    .like("source_external_id", `${DEMO_CARRYOVER_EXTERNAL_PREFIX}%`)
+    .limit(1);
+  if (existing && existing.length > 0) {
+    return { ok: true, carried: 0, alreadyCarried: true };
+  }
+
+  const { count, error: countError } = await auth.supabase
+    .from("transaction_feed")
+    .select("id", { count: "exact", head: true });
+  if (countError) {
+    return { ok: false, message: "Không kiểm tra được sổ hiện tại." };
+  }
+  if ((count ?? 0) > 0) {
+    return {
+      ok: false,
+      message: "Tài khoản đã có giao dịch — không chuyển dữ liệu demo tự động.",
+      targetNotEmpty: true,
+    };
+  }
+
+  const batch = prepareBatchForServer({
+    fileName: DEMO_CARRYOVER_BATCH_NAME,
+    source: "paste",
+    rowCount: prepared.length,
+    warningCount: 0,
+    skippedRows: 0,
+    mapConfidence: 1,
+    headers: [],
+    columnMap: {
+      date: null,
+      amount: null,
+      desc: null,
+      debit: null,
+      credit: null,
+    },
+  });
+  const { data: batchRow, error: batchError } = await auth.supabase
+    .from("import_batches")
+    .insert(batchToInsertRow(batch, auth.viewer.id, { localId: null }))
+    .select(BATCH_COLUMNS)
+    .single();
+  if (batchError || !batchRow) {
+    return { ok: false, message: "Không tạo được lượt chuyển tiếp." };
+  }
+
+  const rows = prepared.map((item) =>
+    candidateToInsertRow(item, auth.viewer.id, {
+      localId: null,
+      importBatchId: (batchRow as { id?: string }).id ?? null,
+    }),
+  );
+
+  const { data, error } = await auth.supabase
+    .from("inbox_candidates")
+    .insert(rows)
+    .select(CANDIDATE_COLUMNS);
+  if (error || !data) {
+    return { ok: false, message: "Không lưu được bản ghi demo lên máy chủ." };
+  }
+
+  refreshInboxPaths();
+  return { ok: true, carried: data.length };
+}
+
 export async function createInboxCandidatesAction(
   inputs: CreateCandidateWithProvenanceInput[],
 ): Promise<InboxActionResult> {
@@ -223,7 +337,10 @@ export async function createInboxCandidatesAction(
     return { ok: false, message: "Không có ứng viên để lưu." };
   }
   if (inputs.length > 500) {
-    return { ok: false, message: "Quá nhiều ứng viên trong một lần (tối đa 500)." };
+    return {
+      ok: false,
+      message: "Quá nhiều ứng viên trong một lần (tối đa 500).",
+    };
   }
 
   const auth = await requireAuthedClient();
@@ -258,7 +375,9 @@ export async function createInboxCandidatesAction(
   }
 
   try {
-    const candidates = data.map((row) => mapCandidateRow(row as InboxCandidateRow));
+    const candidates = data.map((row) =>
+      mapCandidateRow(row as InboxCandidateRow),
+    );
     refreshInboxPaths();
     return { ok: true, candidates };
   } catch {
@@ -292,11 +411,13 @@ export async function updateInboxCandidateAction(
     patch.possible_duplicate = value.possibleDuplicate;
   }
   if (value.categoryId !== undefined) {
-    patch.category_id = value.categoryId === null ? null : optionalUuid(value.categoryId);
+    patch.category_id =
+      value.categoryId === null ? null : optionalUuid(value.categoryId);
   }
   if (value.category !== undefined) patch.category_name = value.category;
   if (value.accountId !== undefined) {
-    patch.account_id = value.accountId === null ? null : optionalUuid(value.accountId);
+    patch.account_id =
+      value.accountId === null ? null : optionalUuid(value.accountId);
   }
   if (value.account !== undefined) patch.account_name = value.account;
   if (value.rawSnippet !== undefined) patch.raw_snippet = value.rawSnippet;
@@ -329,7 +450,10 @@ export async function updateInboxCandidateAction(
     return { ok: true, candidate };
   } catch {
     refreshInboxPaths();
-    return { ok: false, message: "Đã cập nhật nhưng dữ liệu trả về không hợp lệ." };
+    return {
+      ok: false,
+      message: "Đã cập nhật nhưng dữ liệu trả về không hợp lệ.",
+    };
   }
 }
 
@@ -422,11 +546,16 @@ export async function updateImportBatchStatusAction(
     return { ok: true, batch };
   } catch {
     refreshInboxPaths();
-    return { ok: false, message: "Đã cập nhật nhưng dữ liệu trả về không hợp lệ." };
+    return {
+      ok: false,
+      message: "Đã cập nhật nhưng dữ liệu trả về không hợp lệ.",
+    };
   }
 }
 
-export async function deleteImportBatchAction(id: string): Promise<InboxActionResult> {
+export async function deleteImportBatchAction(
+  id: string,
+): Promise<InboxActionResult> {
   if (!isUuid(id)) return { ok: false, message: "Mã import không hợp lệ." };
 
   const auth = await requireAuthedClient();
@@ -438,7 +567,8 @@ export async function deleteImportBatchAction(id: string): Promise<InboxActionRe
     .eq("id", id);
 
   if (error) return { ok: false, message: "Không xóa được meta import." };
-  if (count === 0) return { ok: false, message: "Lượt import không còn tồn tại." };
+  if (count === 0)
+    return { ok: false, message: "Lượt import không còn tồn tại." };
 
   refreshInboxPaths();
   return { ok: true };
