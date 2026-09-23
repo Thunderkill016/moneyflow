@@ -32,6 +32,31 @@ export function isSearchShortcut(event: {
   return Boolean(event.metaKey || event.ctrlKey);
 }
 
+/**
+ * Bare "/" — the same search intent as ⌘K, but as printable text it needs the
+ * stricter editable guard (`isEditableKeyboardTarget`, which also covers the
+ * app search fields) so a typed "/" is never swallowed. Modifier chords stay
+ * with the browser/app.
+ */
+export function isSlashSearchShortcut(event: {
+  key: string;
+  metaKey?: boolean;
+  ctrlKey?: boolean;
+  altKey?: boolean;
+}): boolean {
+  if (event.metaKey || event.ctrlKey || event.altKey) return false;
+  return event.key === "/";
+}
+
+/**
+ * Routes whose workspace already binds "/" to its own search field. The
+ * ledger workspace focuses its in-toolbar input (not the topbar), so the
+ * global handler yields there instead of racing a page-level listener.
+ */
+export function pathnameOwnsSlashSearch(pathname: string): boolean {
+  return pathname === "/transactions";
+}
+
 /** Skip hijacking when user is typing in a field other than our search. */
 export function shouldIgnoreShortcutTarget(target: EventTarget | null): boolean {
   if (!target || !(target instanceof HTMLElement)) return false;

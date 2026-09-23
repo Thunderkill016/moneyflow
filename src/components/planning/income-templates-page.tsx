@@ -26,6 +26,7 @@ import {
 } from "@/components/planning/planning-layout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EmptyState } from "@/components/ui/empty-state";
+import type { ToastTone } from "@/components/ui/toast";
 import { type ViewerSummary } from "@/components/user-chip";
 import { formatMoney } from "@/lib/money";
 import {
@@ -103,6 +104,7 @@ export function IncomeTemplatesPage({
   const [version, setVersion] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
   const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
@@ -121,9 +123,17 @@ export function IncomeTemplatesPage({
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 4000);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setNoticeTone(undefined);
+    }, 4000);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  function showNotice(message: string, tone: ToastTone) {
+    setNotice(message);
+    setNoticeTone(tone);
+  }
 
   const active = useMemo(
     () =>
@@ -178,7 +188,10 @@ export function IncomeTemplatesPage({
         return updated;
       });
       setDialogOpen(false);
-      setNotice(existing ? "Đã cập nhật khoản thu định kỳ demo." : "Đã thêm khoản thu định kỳ demo.");
+      showNotice(
+        existing ? "Đã cập nhật khoản thu định kỳ demo." : "Đã thêm khoản thu định kỳ demo.",
+        "success",
+      );
       return { ok: true };
     }
 
@@ -192,7 +205,7 @@ export function IncomeTemplatesPage({
           : [...current, result.template!],
       );
       setDialogOpen(false);
-      setNotice("Đã lưu khoản thu định kỳ.");
+      showNotice("Đã lưu khoản thu định kỳ.", "success");
     }
     return result;
   }
@@ -209,7 +222,7 @@ export function IncomeTemplatesPage({
     } else {
       const result = await archiveIncomeTemplateAction(item.id, !item.isArchived);
       if (!result.ok) {
-        setNotice(result.message);
+        showNotice(result.message, "error");
         return false;
       }
       setItems((current) =>
@@ -218,7 +231,10 @@ export function IncomeTemplatesPage({
         ),
       );
     }
-    setNotice(item.isArchived ? "Đã khôi phục khoản thu định kỳ." : "Đã lưu trữ khoản thu định kỳ.");
+    showNotice(
+      item.isArchived ? "Đã khôi phục khoản thu định kỳ." : "Đã lưu trữ khoản thu định kỳ.",
+      "success",
+    );
     return true;
   }
 
@@ -239,17 +255,20 @@ export function IncomeTemplatesPage({
           crypto.randomUUID(),
         );
         if (!result.ok) {
-          setNotice(result.message);
+          showNotice(result.message, "error");
           return false;
         }
         setItems((current) =>
           markIncomeReceived(current, item.id, result.transactionId ?? "received"),
         );
       }
-      setNotice(`Đã ghi khoản thu ${formatMoney(item.amount)} cho ${item.name} vào sổ giao dịch.`);
+      showNotice(
+        `Đã ghi khoản thu ${formatMoney(item.amount)} cho ${item.name} vào sổ giao dịch.`,
+        "success",
+      );
       return true;
     } catch {
-      setNotice("Không thể ghi nhận thu. Hãy thử lại.");
+      showNotice("Không thể ghi nhận thu. Hãy thử lại.", "error");
       return false;
     }
   }
@@ -264,15 +283,15 @@ export function IncomeTemplatesPage({
       } else {
         const result = await undoIncomeTemplateReceiptAction(item.id, monthStart);
         if (!result.ok) {
-          setNotice(result.message);
+          showNotice(result.message, "error");
           return false;
         }
         setItems((current) => markIncomeUnreceived(current, item.id));
       }
-      setNotice("Đã hoàn tác ghi nhận thu và xóa giao dịch thu liên kết.");
+      showNotice("Đã hoàn tác ghi nhận thu và xóa giao dịch thu liên kết.", "success");
       return true;
     } catch {
-      setNotice("Không thể hoàn tác ghi nhận thu. Hãy thử lại.");
+      showNotice("Không thể hoàn tác ghi nhận thu. Hãy thử lại.", "error");
       return false;
     }
   }
@@ -309,6 +328,7 @@ export function IncomeTemplatesPage({
       primaryAction={{ label: "Thêm khoản thu định kỳ", onClick: () => open(null), disabled: !canAdd }}
       showPrimaryActionOnMobile
       notice={notice}
+      noticeTone={noticeTone}
     >
       <PlanningWorkspace>
         {dataError ? (

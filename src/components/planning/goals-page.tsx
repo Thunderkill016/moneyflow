@@ -25,6 +25,7 @@ import {
 import { PlanningCard } from "@/components/planning/planning-card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EmptyState } from "@/components/ui/empty-state";
+import type { ToastTone } from "@/components/ui/toast";
 import { type ViewerSummary } from "@/components/user-chip";
 import { formatMoney } from "@/lib/money";
 import {
@@ -120,6 +121,7 @@ export function GoalsPage({
   const [reviewGoal, setReviewGoal] = useState<SavingsGoal | null>(null);
   const [dialogVersion, setDialogVersion] = useState(0);
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
   const [noticeAction, setNoticeAction] = useState<NoticeAction | undefined>();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
@@ -128,13 +130,15 @@ export function GoalsPage({
     if (!notice) return;
     const timer = window.setTimeout(() => {
       setNotice("");
+      setNoticeTone(undefined);
       setNoticeAction(undefined);
     }, 4200);
     return () => window.clearTimeout(timer);
   }, [notice]);
 
-  function notify(message: string, action?: NoticeAction) {
+  function notify(message: string, tone: ToastTone, action?: NoticeAction) {
     setNotice(message);
+    setNoticeTone(tone);
     setNoticeAction(action);
   }
 
@@ -177,7 +181,10 @@ export function GoalsPage({
           : [...current, next],
       );
       setGoalDialogOpen(false);
-      notify(existing ? "Đã cập nhật mục tiêu demo." : "Đã thêm mục tiêu demo.");
+      notify(
+        existing ? "Đã cập nhật mục tiêu demo." : "Đã thêm mục tiêu demo.",
+        "success",
+      );
       return { ok: true };
     }
 
@@ -189,7 +196,7 @@ export function GoalsPage({
           : [...current, result.goal!],
       );
       setGoalDialogOpen(false);
-      notify("Đã lưu mục tiêu.");
+      notify("Đã lưu mục tiêu.", "success");
     }
     return result;
   }
@@ -211,7 +218,7 @@ export function GoalsPage({
         ),
       );
       setAllocationOpen(false);
-      notify(successMessage);
+      notify(successMessage, "success");
       return { ok: true };
     }
 
@@ -223,21 +230,26 @@ export function GoalsPage({
         ),
       );
       setAllocationOpen(false);
-      notify(successMessage);
+      notify(successMessage, "success");
     }
     return result;
   }
 
   function requestArchive(goal: SavingsGoal) {
     if (!goal.isArchived && goal.allocated > 0) {
-      notify("Hãy giảm số đã đánh dấu về 0 trước khi lưu trữ mục tiêu.", {
-        label: "Giảm số đánh dấu",
-        onClick: () => {
-          setNotice("");
-          setNoticeAction(undefined);
-          openAllocation(goal, "release");
+      notify(
+        "Hãy giảm số đã đánh dấu về 0 trước khi lưu trữ mục tiêu.",
+        "warning",
+        {
+          label: "Giảm số đánh dấu",
+          onClick: () => {
+            setNotice("");
+            setNoticeTone(undefined);
+            setNoticeAction(undefined);
+            openAllocation(goal, "release");
+          },
         },
-      });
+      );
       return;
     }
     setReviewGoal(goal);
@@ -251,7 +263,7 @@ export function GoalsPage({
       : await archiveGoalAction(reviewGoal.id, !reviewGoal.isArchived);
     setBusyId(null);
     if (!result.ok) {
-      notify(result.message);
+      notify(result.message, "error");
       return;
     }
     setGoals((current) =>
@@ -259,7 +271,10 @@ export function GoalsPage({
         goal.id === reviewGoal.id ? { ...goal, isArchived: !goal.isArchived } : goal,
       ),
     );
-    notify(reviewGoal.isArchived ? "Đã khôi phục mục tiêu." : "Đã lưu trữ mục tiêu.");
+    notify(
+      reviewGoal.isArchived ? "Đã khôi phục mục tiêu." : "Đã lưu trữ mục tiêu.",
+      "success",
+    );
     setReviewGoal(null);
   }
 
@@ -273,6 +288,7 @@ export function GoalsPage({
       }}
       showPrimaryActionOnMobile
       notice={notice}
+      noticeTone={noticeTone}
       noticeAction={noticeAction}
     >
       <PlanningWorkspace>

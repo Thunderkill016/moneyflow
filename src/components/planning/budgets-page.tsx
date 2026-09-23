@@ -25,6 +25,7 @@ import {
 } from "@/components/planning/planning-layout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EmptyState } from "@/components/ui/empty-state";
+import type { ToastTone } from "@/components/ui/toast";
 import { type ViewerSummary } from "@/components/user-chip";
 import { formatMoney, formatSignedMoney } from "@/lib/money";
 import {
@@ -130,12 +131,21 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [carrying, setCarrying] = useState(false);
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 3600);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setNoticeTone(undefined);
+    }, 3600);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  function showNotice(message: string, tone: ToastTone) {
+    setNotice(message);
+    setNoticeTone(tone);
+  }
 
   const totals = useMemo(() => sumBudgetTotals(budgets), [budgets]);
   /*
@@ -252,7 +262,7 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
     const result = await carryForwardBudgetsAction(carryable);
     setCarrying(false);
     if (!result.ok) {
-      setNotice(result.message);
+      showNotice(result.message, "error");
       return;
     }
     // Merge rather than replace: a category the user edited by hand while this
@@ -261,10 +271,12 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
       const existing = new Set(current.map((item) => item.categoryId));
       return [...current, ...result.budgets.filter((item) => !existing.has(item.categoryId))];
     });
-    setNotice(
-      result.budgets.length === carryable.length
+    const carriedAll = result.budgets.length === carryable.length;
+    showNotice(
+      carriedAll
         ? `Đã áp dụng ${result.budgets.length} hạn mức của ${previousMonthLabel}.`
         : `Đã áp dụng ${result.budgets.length}/${carryable.length} hạn mức. Hãy kiểm tra phần còn lại.`,
+      carriedAll ? "success" : "warning",
     );
   }
 
@@ -298,7 +310,10 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
           : [...current, next],
       );
       setDialogOpen(false);
-      setNotice(existing ? "Đã cập nhật ngân sách demo." : "Đã thêm ngân sách demo.");
+      showNotice(
+        existing ? "Đã cập nhật ngân sách demo." : "Đã thêm ngân sách demo.",
+        "success",
+      );
       return { ok: true };
     }
 
@@ -314,14 +329,14 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
           : [...current, next],
       );
       setDialogOpen(false);
-      setNotice("Đã lưu ngân sách.");
+      showNotice("Đã lưu ngân sách.", "success");
     }
     return result;
   }
 
   function requestRemove(budget: BudgetSummary) {
     if (budget.monthStart !== workspace.monthStart) {
-      setNotice("Không thể xóa ngân sách của tháng khác.");
+      showNotice("Không thể xóa ngân sách của tháng khác.", "error");
       return;
     }
     setReviewBudget(budget);
@@ -336,11 +351,14 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
     setBusyId(null);
     if (!result.ok) {
       setReviewBudget(null);
-      setNotice(result.message);
+      showNotice(result.message, "error");
       return;
     }
     setBudgets((current) => current.filter((item) => item.id !== reviewBudget.id));
-    setNotice("Đã xóa hạn mức ngân sách. Các giao dịch vẫn được giữ nguyên.");
+    showNotice(
+      "Đã xóa hạn mức ngân sách. Các giao dịch vẫn được giữ nguyên.",
+      "success",
+    );
     setReviewBudget(null);
   }
 
@@ -354,6 +372,7 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
       }}
       showPrimaryActionOnMobile
       notice={notice}
+      noticeTone={noticeTone}
     >
       <PlanningWorkspace>
         {workspace.dataError ? (

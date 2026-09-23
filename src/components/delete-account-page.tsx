@@ -14,6 +14,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
+import type { ToastTone } from "@/components/ui/toast";
 import type { ViewerSummary } from "@/components/user-chip";
 import {
   accountDeletionLoginUrl,
@@ -39,6 +40,7 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
   const [deleting, setDeleting] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
 
   const confirmOk = isDeleteConfirmValid(confirmText);
 
@@ -64,9 +66,17 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 4000);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setNoticeTone(undefined);
+    }, 4000);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  function showNotice(message: string, tone: ToastTone) {
+    setNotice(message);
+    setNoticeTone(tone);
+  }
 
   function requestReview(event?: FormEvent) {
     event?.preventDefault();
@@ -95,7 +105,7 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
           setDeleting(false);
           return;
         }
-        setNotice("Đã xóa dữ liệu demo trên thiết bị này.");
+        showNotice("Đã xóa dữ liệu demo trên thiết bị này.", "success");
         setReviewOpen(false);
         window.setTimeout(() => {
           router.replace("/?deleted=1&scope=demo-local");
@@ -155,6 +165,7 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
       viewer={viewer}
       inboxCount={inboxCount}
       notice={notice}
+      noticeTone={noticeTone}
       primaryAction={{
         label: deleting ? "Đang xóa…" : "Xem lại xóa",
         onClick: () => requestReview(),

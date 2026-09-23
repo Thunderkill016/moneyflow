@@ -24,10 +24,13 @@ import {
 } from "@/components/ui/toast";
 import {
   isSearchShortcut,
+  isSlashSearchShortcut,
+  pathnameOwnsSlashSearch,
   shouldIgnoreShortcutTarget,
   TRANSACTIONS_SEARCH_HREF,
   wantsLedgerSearchFocus,
 } from "@/lib/app-shortcuts";
+import { isEditableKeyboardTarget } from "@/lib/keyboard";
 import { resolveToastPresentation } from "@/lib/toast-presentation";
 import {
   APP_HOME_HREF,
@@ -231,8 +234,20 @@ export function AppShell({
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (!isSearchShortcut(event)) return;
-      if (shouldIgnoreShortcutTarget(event.target)) return;
+      if (isSearchShortcut(event)) {
+        if (shouldIgnoreShortcutTarget(event.target)) return;
+      } else if (isSlashSearchShortcut(event)) {
+        /*
+         * The ledger workspace binds "/" to its own toolbar search field, so
+         * it wins there untouched. Everywhere else "/" must not swallow real
+         * text entry — the editable guard (which also counts the app search
+         * inputs) is stricter than the ⌘K carve-out on purpose.
+         */
+        if (pathnameOwnsSlashSearch(pathname)) return;
+        if (isEditableKeyboardTarget(event.target)) return;
+      } else {
+        return;
+      }
       event.preventDefault();
       if (searchBar && searchInputRef.current) {
         searchInputRef.current.focus();

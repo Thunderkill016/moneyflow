@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SelectField } from "@/components/ui/select-field";
+import type { ToastTone } from "@/components/ui/toast";
 import type { ViewerSummary } from "@/components/user-chip";
 import {
   addCandidatesForClient,
@@ -73,6 +74,7 @@ export function ImportPreviewPage({
   const [state, setState] = useState<LoadState>({ phase: "loading" });
   const [inboxCount, setInboxCount] = useState(0);
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
   const [committing, setCommitting] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -138,9 +140,17 @@ export function ImportPreviewPage({
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 3600);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setNoticeTone(undefined);
+    }, 3600);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  function showNotice(message: string, tone: ToastTone) {
+    setNotice(message);
+    setNoticeTone(tone);
+  }
 
   const previewRows = useMemo(
     () => (state.phase === "ready" ? previewDraftRows(state.rows, PREVIEW_LIMIT) : []),
@@ -203,7 +213,10 @@ export function ImportPreviewPage({
         map_confidence: state.batch.mapConfidence,
       });
       setInboxCount(await getPendingCountForClient(viewer.isDemo));
-      setNotice(`Đã đưa ${inputs.length} ứng viên vào Inbox — chưa ghi sổ.`);
+      showNotice(
+        `Đã đưa ${inputs.length} ứng viên vào Inbox — chưa ghi sổ.`,
+        "success",
+      );
       router.push("/inbox");
     } catch {
       setActionError("Không lưu được vào Inbox. Hãy mở Inbox kiểm tra trước khi thử lại.");
@@ -234,7 +247,7 @@ export function ImportPreviewPage({
               ? "pdf"
               : "csv",
       });
-      setNotice(`Đã hủy import ${state.batch.fileName}.`);
+      showNotice(`Đã hủy import ${state.batch.fileName}.`, "success");
       router.push("/capture/upload");
     } catch {
       setActionError("Không hủy được batch import. Thử lại.");
@@ -249,6 +262,7 @@ export function ImportPreviewPage({
       inboxCount={inboxCount}
       primaryAction={{ label: "Inbox", href: "/inbox", icon: "inbox" }}
       notice={notice}
+      noticeTone={noticeTone}
     >
       <SecondaryWorkspace slot="import-preview-workspace">
         <SecondaryHeader

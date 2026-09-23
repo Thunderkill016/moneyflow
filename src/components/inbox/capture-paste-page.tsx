@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
+import type { ToastTone } from "@/components/ui/toast";
 import type { ViewerSummary } from "@/components/user-chip";
 import {
   addCandidatesForClient,
@@ -85,7 +86,13 @@ export function CapturePastePage({
   const [committing, setCommitting] = useState(false);
   const [inboxCount, setInboxCount] = useState(0);
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
   const [accountId, setAccountId] = useState("");
+
+  function showNotice(message: string, tone: ToastTone) {
+    setNotice(message);
+    setNoticeTone(tone);
+  }
 
   useEffect(() => {
     textareaRef.current?.focus();
@@ -99,7 +106,10 @@ export function CapturePastePage({
       if (ruleResult.ok) {
         setRules(ruleResult.rules);
       } else {
-        setNotice("Chưa tải được quy tắc; bạn vẫn có thể phân tích và duyệt thủ công.");
+        showNotice(
+          "Chưa tải được quy tắc; bạn vẫn có thể phân tích và duyệt thủ công.",
+          "warning",
+        );
       }
       setRulesReady(true);
     });
@@ -110,7 +120,10 @@ export function CapturePastePage({
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 3600);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setNoticeTone(undefined);
+    }, 3600);
     return () => window.clearTimeout(timer);
   }, [notice]);
 
@@ -229,6 +242,7 @@ export function CapturePastePage({
         icon: "inbox",
       }}
       notice={notice}
+      noticeTone={noticeTone}
     >
       <main className="dashboard capture-workspace capture-paste-workspace">
         <section className="transactions-title-row capture-title-row">

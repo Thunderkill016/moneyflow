@@ -26,6 +26,7 @@ import {
 } from "@/components/planning/planning-layout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EmptyState } from "@/components/ui/empty-state";
+import type { ToastTone } from "@/components/ui/toast";
 import { type ViewerSummary } from "@/components/user-chip";
 import { formatMoney } from "@/lib/money";
 import {
@@ -114,6 +115,7 @@ export function CommitmentsPage({
   const [version, setVersion] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
   const [showArchived, setShowArchived] = useState(false);
   const [statusFilter, setStatusFilter] =
     useState<CommitmentStatusFilter>("all");
@@ -142,9 +144,17 @@ export function CommitmentsPage({
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 4000);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setNoticeTone(undefined);
+    }, 4000);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  function showNotice(message: string, tone: ToastTone) {
+    setNotice(message);
+    setNoticeTone(tone);
+  }
 
   useEffect(() => {
     if (!hydrated) return;
@@ -287,10 +297,11 @@ export function CommitmentsPage({
           : [...current, next],
       );
       setDialogOpen(false);
-      setNotice(
+      showNotice(
         existing
           ? "Đã cập nhật khoản định kỳ demo."
           : "Đã thêm khoản định kỳ demo.",
+        "success",
       );
       markSuggestionHandled();
       return { ok: true };
@@ -306,7 +317,7 @@ export function CommitmentsPage({
           : [...current, result.commitment!],
       );
       setDialogOpen(false);
-      setNotice("Đã lưu khoản định kỳ.");
+      showNotice("Đã lưu khoản định kỳ.", "success");
       markSuggestionHandled();
     }
     return result;
@@ -317,7 +328,7 @@ export function CommitmentsPage({
       ? { ok: true as const }
       : await archiveCommitmentAction(item.id, !item.isArchived);
     if (!result.ok) {
-      setNotice(result.message);
+      showNotice(result.message, "error");
       return false;
     }
     setItems((current) =>
@@ -327,10 +338,11 @@ export function CommitmentsPage({
           : value,
       ),
     );
-    setNotice(
+    showNotice(
       item.isArchived
         ? "Đã khôi phục khoản định kỳ."
         : "Đã lưu trữ khoản định kỳ.",
+      "success",
     );
     return true;
   }
@@ -360,19 +372,20 @@ export function CommitmentsPage({
           crypto.randomUUID(),
         );
         if (!result.ok) {
-          setNotice(result.message);
+          showNotice(result.message, "error");
           return false;
         }
         setItems((current) =>
           markCommitmentPaid(current, item.id, result.transactionId ?? "paid"),
         );
       }
-      setNotice(
+      showNotice(
         `Đã ghi khoản chi ${formatMoney(item.amount)} cho ${item.name} vào sổ giao dịch.`,
+        "success",
       );
       return true;
     } catch {
-      setNotice("Không thể ghi thanh toán. Hãy thử lại.");
+      showNotice("Không thể ghi thanh toán. Hãy thử lại.", "error");
       return false;
     }
   }
@@ -389,15 +402,15 @@ export function CommitmentsPage({
       } else {
         const result = await undoCommitmentPaymentAction(item.id, monthStart);
         if (!result.ok) {
-          setNotice(result.message);
+          showNotice(result.message, "error");
           return false;
         }
         setItems((current) => markCommitmentUnpaid(current, item.id));
       }
-      setNotice("Đã hoàn tác thanh toán và xóa giao dịch chi liên kết.");
+      showNotice("Đã hoàn tác thanh toán và xóa giao dịch chi liên kết.", "success");
       return true;
     } catch {
-      setNotice("Không thể hoàn tác thanh toán. Hãy thử lại.");
+      showNotice("Không thể hoàn tác thanh toán. Hãy thử lại.", "error");
       return false;
     }
   }
@@ -439,6 +452,7 @@ export function CommitmentsPage({
       }}
       showPrimaryActionOnMobile
       notice={notice}
+      noticeTone={noticeTone}
     >
       <PlanningWorkspace>
         {dataError ? (

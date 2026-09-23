@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
+import type { ToastTone } from "@/components/ui/toast";
 import { MoneyValue } from "@/components/money-value";
 import { ReconciliationEntryEvidence } from "@/components/reconciliation-entry-evidence";
 import type { ViewerSummary } from "@/components/user-chip";
@@ -151,6 +152,7 @@ export function AccountReconciliationPage({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
   const [completeReview, setCompleteReview] = useState(false);
   const [adjustmentReview, setAdjustmentReview] = useState(false);
   const [adjustmentCategoryId, setAdjustmentCategoryId] = useState("");
@@ -187,9 +189,17 @@ export function AccountReconciliationPage({
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 4200);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setNoticeTone(undefined);
+    }, 4200);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  function showNotice(message: string, tone: ToastTone) {
+    setNotice(message);
+    setNoticeTone(tone);
+  }
 
   const effectiveEntries =
     viewer.isDemo && demoEntries ? demoEntries : registerEntries;
@@ -269,7 +279,7 @@ export function AccountReconciliationPage({
     }
     setStateData(result.stateData);
     setError("");
-    setNotice(successMessage);
+    showNotice(successMessage, "success");
     router.refresh();
     return true;
   }
@@ -311,7 +321,7 @@ export function AccountReconciliationPage({
         if (!result.ok) setError(result.message);
         else {
           persistDemo(result.stateData);
-          setNotice("Đã mở kỳ đối soát demo.");
+          showNotice("Đã mở kỳ đối soát demo.", "success");
         }
       } else {
         applyResult(
@@ -351,10 +361,11 @@ export function AccountReconciliationPage({
         if (!result.ok) setError(result.message);
         else {
           persistDemo(result.stateData);
-          setNotice(
+          showNotice(
             state === "cleared"
               ? "Đã đánh dấu giao dịch khớp sao kê."
               : "Đã đưa giao dịch về chờ đối chiếu.",
+            "success",
           );
         }
       } else {
@@ -432,7 +443,7 @@ export function AccountReconciliationPage({
             setDemoEntries(buildAccountRegister(transactions, account.id));
           }
           persistDemo(result.stateData);
-          setNotice("Đã hoàn tất kỳ đối soát demo.");
+          showNotice("Đã hoàn tất kỳ đối soát demo.", "success");
           trackProductEvent("reconcile_completed", {
             cleared_count: openSession.clearedAccountLegCount,
             adjustment: Boolean(result.adjustmentTransaction),
@@ -479,7 +490,7 @@ export function AccountReconciliationPage({
         if (!result.ok) setError(result.message);
         else {
           persistDemo(result.stateData);
-          setNotice("Đã mở lại kỳ đối soát demo gần nhất.");
+          showNotice("Đã mở lại kỳ đối soát demo gần nhất.", "success");
         }
       } else {
         applyResult(
@@ -522,6 +533,7 @@ export function AccountReconciliationPage({
       primaryAction={primaryAction}
       showPrimaryActionOnMobile
       notice={notice}
+      noticeTone={noticeTone}
     >
       <main className={styles.workspace}>
         <nav className={styles.breadcrumb} aria-label="Điều hướng đối soát">

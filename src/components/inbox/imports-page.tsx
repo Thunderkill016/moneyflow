@@ -12,6 +12,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import type { ToastTone } from "@/components/ui/toast";
 import type { ViewerSummary } from "@/components/user-chip";
 import {
   deleteImportBatchForClient,
@@ -47,6 +48,7 @@ export function ImportsPage({ viewer }: { viewer: ViewerSummary }) {
   const [batches, setBatches] = useState<ImportBatch[]>([]);
   const [inboxCount, setInboxCount] = useState(0);
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ImportBatch | null>(null);
 
@@ -81,9 +83,17 @@ export function ImportsPage({ viewer }: { viewer: ViewerSummary }) {
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 3600);
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setNoticeTone(undefined);
+    }, 3600);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  function showNotice(message: string, tone: ToastTone) {
+    setNotice(message);
+    setNoticeTone(tone);
+  }
 
   async function deleteMetadata(batch: ImportBatch) {
     if (deletingId) return;
@@ -97,7 +107,7 @@ export function ImportsPage({ viewer }: { viewer: ViewerSummary }) {
       }
       await reload();
       setDeleteTarget(null);
-      setNotice("Đã xóa metadata và bản nháp import còn lại.");
+      showNotice("Đã xóa metadata và bản nháp import còn lại.", "success");
     } catch {
       setError("Không xóa được metadata import. Thử lại.");
     } finally {
@@ -110,6 +120,7 @@ export function ImportsPage({ viewer }: { viewer: ViewerSummary }) {
       viewer={viewer}
       inboxCount={inboxCount}
       notice={notice}
+      noticeTone={noticeTone}
       primaryAction={{
         label: "Tải sao kê",
         href: "/capture/upload",
