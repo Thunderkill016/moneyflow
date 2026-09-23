@@ -76,7 +76,7 @@ test("export kind options still frame candidates as advanced data", () => {
 
 test("delete account preserves server-first order, final review and explicit receipt", () => {
   const page = read(DELETE);
-  assert.match(page, /href="\/settings\/export"/);
+  assert.match(page, /href="\/settings\/backup"/);
   assert.match(page, /không thể hoàn tác|Không thể hoàn tác/i);
   assert.match(page, /finalizeAccountDeletion\(confirmText\)/);
   assert.match(page, /slot="delete-account-review"/);
