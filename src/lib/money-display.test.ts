@@ -88,3 +88,20 @@ test("MoneyValue CSS keeps values unbroken without clipping or legacy surfaces",
   assert.match(component, /data-money="true"/);
   assert.match(component, /data-money-value="true"/);
 });
+
+test("compact squeezes the visible text but the aria label stays exact", () => {
+  assert.equal(moneyDisplayText({ amount: 12_500_000, compact: true }), "12,5 tr");
+  assert.equal(
+    moneyDisplayAriaLabel({ amount: 12_500_000, compact: true }),
+    "12.500.000 ₫",
+  );
+  assert.equal(
+    moneyDisplayAriaLabel({
+      amount: 12_500_000,
+      mode: "kind",
+      kind: "expense",
+      compact: true,
+    }),
+    "Chi trừ 12.500.000 ₫",
+  );
+});

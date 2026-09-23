@@ -37,6 +37,14 @@ export type BackupReminderState = {
 
 const DAY_MS = 86_400_000;
 
+/*
+ * Chips are single-line pills (`white-space: nowrap`), so a full
+ * "12.500.000 ₫" can crowd the strip. Compact VND ("12,5 tr") keeps the nudge
+ * on one line; the linked page always shows exact đồng.
+ */
+const chipMoney = (minorUnits: number) =>
+  formatMoney(minorUnits, /* compact */ true);
+
 function daysBetweenIso(from: string, to: string) {
   return Math.round(
     (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS,
@@ -79,7 +87,7 @@ export function buildAttentionItems(input: {
     if (level === "over" || level === "near") {
       items.push({
         id: `budget-${budget.id}`,
-        label: `${budget.categoryName}: ${budgetStatusLabel(budget, formatMoney)}`,
+        label: `${budget.categoryName}: ${budgetStatusLabel(budget, chipMoney)}`,
         href: "/budgets",
         tone: level === "over" ? "warning" : "info",
       });
@@ -93,7 +101,7 @@ export function buildAttentionItems(input: {
     const c = unpaidDue[0]!;
     items.push({
       id: `bill-${c.id}`,
-      label: `Hóa đơn tới hạn: ${c.name} (${formatMoney(c.amount)})`,
+      label: `Hóa đơn tới hạn: ${c.name} (${chipMoney(c.amount)})`,
       href: "/commitments",
       tone: "warning",
     });

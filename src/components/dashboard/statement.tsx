@@ -249,6 +249,12 @@ export function DashboardStatement({
                 Kỳ trước cùng {monthDetail.shape.length} ngày: chi{" "}
                 <MoneyValue
                   amount={monthDetail.prior.expense}
+                  /*
+                   * One-line compare caption (`white-space: nowrap`): compact
+                   * keeps the figure inside it; /reports shows the same
+                   * prior-period expense in exact đồng.
+                   */
+                  compact
                   label={`Chi kỳ trước cùng ${monthDetail.shape.length} ngày`}
                   align="start"
                   className={styles.compareValue}
