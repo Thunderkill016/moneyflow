@@ -217,6 +217,9 @@ export function ExportSettingsPage({
                 File được tạo trên thiết bị từ giao dịch và ứng viên Inbox mà
                 MoneyFlow hiện hỗ trợ xuất. Không có file nào được gửi lên máy chủ
                 chỉ để tạo bản tải xuống.
+                {viewer.isDemo
+                  ? " Dữ liệu demo chỉ nằm trên thiết bị này — tạo tài khoản không chuyển dữ liệu đó."
+                  : ""}
               </p>
               <ul className={styles.trustBar} aria-label="Phạm vi xuất">
                 <li>
