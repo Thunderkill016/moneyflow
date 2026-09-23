@@ -170,6 +170,7 @@ export function InboxPage({
     initialCandidateId ?? null,
   );
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const candidatesRef = useRef<InboxCandidate[]>(candidates);
   const candidateTargetHandledRef = useRef(false);
@@ -697,6 +698,48 @@ export function InboxPage({
     return postOne(payload);
   }
 
+  /*
+   * One-tap row confirm runs the identical post the bulk "approve" action
+   * builds for a Ready candidate — same deterministic draft, same
+   * candidate-id idempotency key, same postOne — so confirming alone or in a
+   * batch writes the same ledger fact and never duplicates. Only rows whose
+   * readiness resolves to "ready" render the button; Cần xem lại rows keep
+   * the review dialog as the single door.
+   */
+  async function handleConfirmOne(candidate: InboxCandidate) {
+    const draft = draftFromCandidate(
+      candidate,
+      workspace.accounts,
+      workspace.categories,
+    );
+    const post = buildLedgerPost(
+      draft,
+      workspace.accounts,
+      workspace.categories,
+      approvalIdempotencyKey(candidate.id),
+    );
+    if (!post.ok) {
+      showNotice(
+        post.message || "Chưa đủ dữ kiện để xác nhận. Hãy mở Duyệt để kiểm tra.",
+        "warning",
+      );
+      return;
+    }
+    setConfirmingId(candidate.id);
+    try {
+      const result = await postOne({ candidateId: candidate.id, draft, post });
+      if (!result.ok) {
+        showNotice(
+          result.message ||
+            "Chưa ghi được vào sổ. Hãy mở Duyệt để kiểm tra rồi thử lại.",
+          "warning",
+        );
+      }
+    } finally {
+      setConfirmingId(null);
+    }
+  }
+
   async function handleReject(candidateId: string) {
     if (parseCommitmentSuggestionId(candidateId)) {
       setReviewId(null);
@@ -968,6 +1011,14 @@ export function InboxPage({
   const allVisibleSelected =
     visible.length > 0 &&
     visible.every((item) => activeSelectedIds.includes(item.id));
+  /*
+   * One ledger write at a time: while a bulk apply, a transaction mutation or
+   * another row confirm is in flight, every row confirm stays disabled so
+   * candidate-status persistence can never interleave two pending→approved
+   * patches.
+   */
+  const rowConfirmBusy =
+    bulkBusy || isMutating || confirmingId !== null;
 
   return (
     <AppShell
@@ -1124,13 +1175,13 @@ export function InboxPage({
 
         {loadState === "ready" && visible.length === 0 ? (
           <EmptyState
-            icon={<Icon name={pendingCount === 0 ? "inbox" : "search"} />}
+            icon={<Icon name={pendingCount === 0 ? "check" : "search"} />}
             title={
-              pendingCount === 0 ? "Inbox trống" : "Không có mục khớp bộ lọc"
+              pendingCount === 0 ? "Đã xử lý hết" : "Không có mục khớp bộ lọc"
             }
             description={
               pendingCount === 0
-                ? "Dán nội dung, tải file hoặc thêm nhanh để tạo ứng viên chờ duyệt."
+                ? "Không còn ứng viên nào chờ duyệt. Mục mới từ dán nội dung, sao kê hoặc thêm nhanh sẽ xuất hiện ở đây."
                 : "Chọn Tất cả hoặc thay đổi bộ lọc để xem các ứng viên còn lại."
             }
             primaryAction={
@@ -1303,15 +1354,43 @@ export function InboxPage({
                       >
                         {CONFIDENCE_LABELS[candidate.confidence]}
                       </span>
-                      <Button
-                        type="button"
-                        intent="secondary"
-                        targetSize="important"
-                        onClick={() => setReviewId(candidate.id)}
-                        aria-label={`Duyệt ${candidate.merchant}`}
+                      <div
+                        className={styles.rowActions}
+                        data-slot="inbox-row-actions"
                       >
-                        Duyệt
-                      </Button>
+                        {/*
+                         * One clear row action: a Ready suggestion confirms in
+                         * a single tap through the same post bulk approve
+                         * builds; Cần xem lại keeps "Duyệt" opening the review
+                         * dialog. On ready rows the row body above remains the
+                         * one-tap door to review + explain.
+                         */}
+                        {rowReadiness?.state === "ready" ? (
+                          <Button
+                            type="button"
+                            intent="secondary"
+                            targetSize="important"
+                            disabled={rowConfirmBusy}
+                            pending={confirmingId === candidate.id}
+                            pendingLabel="Đang ghi…"
+                            onClick={() => void handleConfirmOne(candidate)}
+                            aria-label={`Xác nhận ${candidate.merchant}`}
+                          >
+                            <Icon name="check" />
+                            Xác nhận
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            intent="secondary"
+                            targetSize="important"
+                            onClick={() => setReviewId(candidate.id)}
+                            aria-label={`Duyệt ${candidate.merchant}`}
+                          >
+                            Duyệt
+                          </Button>
+                        )}
+                      </div>
                     </article>
                   </li>
                 );
