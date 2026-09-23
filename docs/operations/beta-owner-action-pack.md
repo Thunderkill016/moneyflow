@@ -35,7 +35,7 @@ Full checklist lives in `docs/compliance/P1_GATE_PREPARATION.md` §3.1 and the V
 - [ ] Confirm the production deployment actually points at this project
 - [ ] Auth settings vs `docs/configuration.md`: password min length **12**, email confirmation, CAPTCHA, rate limits, Site URL + redirect allow-list (only `mfvn.vercel.app` + intentional origins), neutral anti-enumeration responses
 - [ ] Who holds `service_role` and where it lives
-- [ ] Backup schedule/retention; whether a restore has ever been exercised (feeds RRB-02)
+- [x] Whether a restore has ever been exercised — YES, hosted rehearsal passed 2026-09-23 (feeds RRB-02); backup schedule/retention read-back still open
 
 **Vercel dashboard:**
 - [ ] Firewall/rate-limit configuration read-back
@@ -52,9 +52,8 @@ Draft texts below; edit and record in `public-beta-trust.md` (or reply on the is
 **RRB-05 — formal close.** Evidence already merged: `src/lib/support-contact.ts` publishes the owner's own mailbox (`SUPPORT_EMAIL`), `OWNED_HOSTS` excludes `moneyflow.app`, `support-contact.test.ts` fails the build on regression.
 > Draft: "RRB-05 closed. Published support contact is an owner-controlled mailbox; the foreign `moneyflow.app` contact was removed and a contract test guards it. Verified by owner mailbox control + merged code."
 
-**RRB-02 — hosted restore.** Choose one:
-> (a) "Accepted limitation for closed beta: hosted restore unexecuted; archive/export contract is proven repo-side; restore risk is borne by Supabase backups (verify in Step 2) and accepted by owner." — or —
-> (b) Authorize a bounded hosted restore proof against a disposable/authorized target; the agent then executes it.
+**RRB-02 — hosted restore.** Executed 2026-09-23 under option (b): bounded proof against disposable auth tenants on the live project passed (full export→delete→fresh-account→restore round-trip, per-table row counts matched, residue zero; see `public-beta-trust.md` "Evidence since the last status update"). What remains is the owner's formal disposition.
+> Draft: "RRB-02 closed. Hosted export/restore round-trip proven on managed Supabase against disposable tenants on 2026-09-23; evidence recorded in the trust packet."
 
 **RRB-03 — destructive recent-auth edges.** Choose one:
 > (a) "Accepted limitation: stale-AMR/account-mismatch destructive probes unexecuted; fail-closed evidence exists; residual risk accepted for beta boundary." — or —
