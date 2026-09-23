@@ -180,8 +180,9 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
           description={
             <>
               <p>
-                Xóa tài khoản là thao tác vĩnh viễn. Hãy xuất dữ liệu cần giữ trước
-                khi tiếp tục; export hiện tại chỉ gồm giao dịch và Inbox.
+                Xóa tài khoản là thao tác vĩnh viễn. Hãy tải bản sao lưu đầy đủ
+                (có thể khôi phục) trước khi tiếp tục; xuất dữ liệu chỉ gồm giao
+                dịch và Inbox, không dùng được để dựng lại tài khoản.
               </p>
               <ul className={styles.trustBar} aria-label="Trước khi xóa">
                 <li>
@@ -205,11 +206,11 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
                 Cài đặt
               </LinkButton>
               <LinkButton
-                href="/settings/export"
+                href="/settings/backup"
                 intent="secondary"
                 targetSize="important"
               >
-                Xuất dữ liệu
+                Sao lưu đầy đủ
               </LinkButton>
             </>
           }
