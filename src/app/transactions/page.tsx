@@ -7,6 +7,7 @@ import {
 } from "@/lib/transaction-filters";
 import { requireViewer } from "@/server/auth";
 import { getFinanceWorkspace } from "@/server/finance";
+import { getReconciliationImportEvidence } from "@/server/reconciliation-import-evidence";
 
 export const metadata: Metadata = {
   title: "Giao dịch — MoneyFlow",
@@ -40,6 +41,14 @@ export default async function Page({
   const params = await searchParams;
   const viewer = await requireViewer();
   const workspace = await getFinanceWorkspace();
+  /*
+   * Import provenance rides beside the feed (transaction_import_provenance
+   * is keyed by transaction_id, not a feed column). Demo viewers get the
+   * empty map from the same helper — rows without evidence render nothing.
+   */
+  const importEvidence = await getReconciliationImportEvidence(
+    workspace.transactions.map((transaction) => transaction.id),
+  );
   const initialCategory = workspace.categories.some(
     (item) => item.name === params.category,
   )
@@ -59,6 +68,7 @@ export default async function Page({
         isDemo: viewer.isDemo,
       }}
       workspace={workspace}
+      importEvidence={importEvidence}
       initialQuery={params.q?.slice(0, 200) ?? ""}
       initialCategory={initialCategory}
       initialAccount={initialAccount}

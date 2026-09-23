@@ -2,6 +2,30 @@ import { expect, test } from "@playwright/test";
 
 const CANDIDATE_KEY = "moneyflow-inbox-candidates-v1";
 const TRANSACTION_KEY = "moneyflow-demo-transactions-v1";
+const OCCURRENCE_KEY = "moneyflow-demo-commitment-occurrences-v1";
+
+/*
+ * The demo workspace injects due commitment suggestions into Inbox. Marking
+ * every unpaid seed paid for the current Vietnam month keeps suggestion rows
+ * out of these tests so row-level assertions stay deterministic.
+ */
+function vietnamMonthStart(): string {
+  const month = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+  }).format(new Date());
+  return `${month}-01`;
+}
+
+function paidDemoCommitments(monthStart: string) {
+  return {
+    [monthStart]: {
+      "demo-internet": "txn-e2e-internet",
+      "demo-electricity": "txn-e2e-electricity",
+    },
+  };
+}
 
 const candidates = [
   {
@@ -178,4 +202,97 @@ test("mixed batch selects and posts only Ready candidates after explicit confirm
 
   await page.getByRole("button", { name: "Cần xem lại", exact: true }).click();
   await expect(page.locator('[data-slot="inbox-candidate-row"]')).toHaveCount(3);
+});
+
+test("a Ready row confirms in one tap; Cần xem lại rows keep review only", async ({
+  page,
+}) => {
+  await page.addInitScript(
+    ({ candidateKey, transactionKey, occurrenceKey, occurrences, seed }) => {
+      localStorage.setItem(candidateKey, JSON.stringify(seed));
+      localStorage.removeItem(transactionKey);
+      localStorage.setItem(occurrenceKey, JSON.stringify(occurrences));
+    },
+    {
+      candidateKey: CANDIDATE_KEY,
+      transactionKey: TRANSACTION_KEY,
+      occurrenceKey: OCCURRENCE_KEY,
+      occurrences: paidDemoCommitments(vietnamMonthStart()),
+      seed: [candidates[0], candidates[3]],
+    },
+  );
+
+  await page.goto("/inbox");
+
+  const confirm = page.getByRole("button", { name: "Xác nhận Ready Coffee" });
+  await expect(confirm).toBeVisible();
+  await expect(confirm).toBeEnabled();
+  // One-tap confirm never appears on rows that still need review — the
+  // review dialog stays their single door.
+  await expect(
+    page.getByRole("button", { name: "Xác nhận Low Confidence" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Duyệt Low Confidence" }),
+  ).toBeVisible();
+
+  await confirm.click();
+
+  await expect(page.getByText(/Đã duyệt .+ vào sổ\./)).toBeVisible();
+
+  const state = await page.evaluate(
+    ({ candidateKey, transactionKey }) => {
+      const savedCandidates = JSON.parse(
+        localStorage.getItem(candidateKey) ?? "[]",
+      ) as Array<{ id: string; status: string }>;
+      const savedTransactions = JSON.parse(
+        localStorage.getItem(transactionKey) ?? "[]",
+      ) as Array<{ note?: string }>;
+      return {
+        statuses: Object.fromEntries(
+          savedCandidates.map((item) => [item.id, item.status]),
+        ),
+        notes: savedTransactions.map((item) => item.note ?? ""),
+      };
+    },
+    { candidateKey: CANDIDATE_KEY, transactionKey: TRANSACTION_KEY },
+  );
+
+  expect(state.statuses["ready-1"]).toBe("approved");
+  expect(state.statuses["attention-low"]).toBe("pending");
+  expect(state.notes).toContain("READY_ONE");
+  expect(state.notes).not.toContain("ATTENTION_LOW");
+});
+
+test("a fully cleared inbox shows the done state, not a bare empty list", async ({
+  page,
+}) => {
+  await page.addInitScript(
+    ({ candidateKey, transactionKey, occurrenceKey, occurrences }) => {
+      localStorage.setItem(candidateKey, JSON.stringify([]));
+      localStorage.removeItem(transactionKey);
+      localStorage.setItem(occurrenceKey, JSON.stringify(occurrences));
+    },
+    {
+      candidateKey: CANDIDATE_KEY,
+      transactionKey: TRANSACTION_KEY,
+      occurrenceKey: OCCURRENCE_KEY,
+      occurrences: paidDemoCommitments(vietnamMonthStart()),
+    },
+  );
+
+  await page.goto("/inbox");
+
+  await expect(
+    page.getByRole("heading", { name: "Đã xử lý hết" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/Không còn ứng viên nào chờ duyệt/),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Dán nội dung" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Nạp dữ liệu mẫu" }),
+  ).toBeVisible();
 });
