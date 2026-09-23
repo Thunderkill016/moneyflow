@@ -292,62 +292,6 @@
       "status": "debt"
     },
     {
-      "class": "capture-menu",
-      "owner": "src/components/inbox/capture-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-menu-actions",
-      "owner": "src/components/inbox/capture-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-menu-heading",
-      "owner": "src/components/inbox/capture-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-menu-lead",
-      "owner": "src/components/inbox/capture-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-menu-option",
-      "owner": "src/components/inbox/capture-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-menu-option-icon",
-      "owner": "src/components/inbox/capture-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-menu-option-text",
-      "owner": "src/components/inbox/capture-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-menu-trust",
-      "owner": "src/components/inbox/capture-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
       "class": "capture-paste-actions",
       "owner": "src/components/inbox/capture-paste-page.tsx",
       "alsoEmittedBy": [
@@ -2091,7 +2035,7 @@
       "class": "transaction-detail",
       "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
       "alsoEmittedBy": [],
-      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.timeline-review-boundary-module__GxbAYG__boundary .manager-toolbar label:has(select[aria-label=\"L\u1ecdc theo tr\u1ea1ng th\u00e1i ki\u1ec3m tra\"]),.timeline-review-boundary-module__GxbAYG__boundary .filter-reset-button,.timeline-review-boundary-module__GxbAYG__boundary .filter-empty button,.timeline-review-boundary-module__GxbAYG__boundary [aria-label=\"Ch\u1ecdn giao d\u1ecbch\"],.timeline-review-boundary-module__GxbAYG__boundary [aria-label=\"Thao t\u00e1c h\u00e0ng lo\u1ea1t\"],.timeline-review-boundary-module__GxbAYG__boundary .transaction-detail>span:has(input[aria-label^=\"Ch\u1ecdn giao d\u1ecbch \"])))",
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.timeline-review-boundary-module__GxbAYG__boundary .manager-toolbar label:has(select[aria-label=\"Lọc theo trạng thái kiểm tra\"]),.timeline-review-boundary-module__GxbAYG__boundary .filter-reset-button,.timeline-review-boundary-module__GxbAYG__boundary .filter-empty button,.timeline-review-boundary-module__GxbAYG__boundary [aria-label=\"Chọn giao dịch\"],.timeline-review-boundary-module__GxbAYG__boundary [aria-label=\"Thao tác hàng loạt\"],.timeline-review-boundary-module__GxbAYG__boundary .transaction-detail>span:has(input[aria-label^=\"Chọn giao dịch \"])))",
       "status": "debt"
     },
     {
