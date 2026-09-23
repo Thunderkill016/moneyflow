@@ -1,10 +1,15 @@
+import styles from "../route-loading.module.css";
 export default function Loading() {
   return (
-    <main className="route-loading" aria-label="Đang tải dòng thời gian" aria-busy="true">
-      <div className="loading-line wide" />
-      <div className="loading-line" />
-      <div className="loading-card" />
-      <div className="loading-card tall" />
+    <main
+      className={styles.route}
+      aria-label="Đang tải dòng thời gian"
+      aria-busy="true"
+    >
+      <div className={styles.lineWide} />
+      <div className={styles.line} />
+      <div className={styles.card} />
+      <div className={styles.cardTall} />
     </main>
   );
 }
