@@ -187,3 +187,43 @@ Class 3: crosses the auth boundary, writes tenant data, touches financial
 semantics (transfer/split fidelity) and possibly schema (`inbox_candidate_source`
 enum). Requires RLS/ownership tests, mapping unit tests, e2e consent/decline,
 rollback plan (candidates are discardable; nothing posts directly).
+
+## Tasks
+
+| ID | Task | Dependency | Evidence | Status |
+|---|---|---|---|---|
+| T1 | Owner resolves the five open questions | none | answered checkboxes above | todo |
+| T2 | Implementation plan filled per answers | T1 | updated packet sections | todo |
+| T3 | Mapping + provenance + consent implementation | T2 | branch, tests, RLS/e2e evidence | todo |
+
+## Handoff record
+
+| Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
+|---|---|---|---|---|---|---|
+| 2026-09-23 | researcher | human_owner | specified | research report + this packet | product intent unconfirmed | Owner answers open questions |
+
+### Current permission boundary
+
+- Granted scope: read_only research + packet authoring (done).
+- Exact repositories/providers/resources: `Thunderkill016/moneyflow`.
+- Forbidden writes: production data, main branch, any migration.
+- Human approval required before: implementation start (T3).
+- Rollback or stop condition: owner declines any open question → packet archives.
+
+## Evaluation
+
+### Acceptance evidence
+
+| Criterion | Evidence | Result |
+|---|---|---|
+| Consent prompt once, decline persisted | e2e auth spec | pending |
+| Zero unreviewed ledger posts | candidate-pipeline test + code review | pending |
+| Transfers/splits never flattened | mapping unit tests | pending |
+| Fixture rows excluded | classifier unit tests | pending |
+| Idempotent retry | interrupted-run test | pending |
+| localStorage never auto-cleared | e2e + code review | pending |
+
+### Research and adoption evidence
+
+Competitor synthesis and repository audit recorded in the Research section;
+no new dependency adopted.
