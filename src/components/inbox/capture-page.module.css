@@ -1,0 +1,189 @@
+/*
+ * /capture chooser — sole owner of every class it renders. The global
+ * capture-* classes were removed by the Phase-10 stylesheet replay while the
+ * page still referenced them, which left the route fully unstyled; this
+ * module restores the layout inside the CSS-ownership model.
+ */
+
+.workspace {
+  max-width: 640px;
+  min-width: 0;
+  padding-bottom: 88px;
+}
+
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.eyebrow {
+  display: block;
+  margin: 0 0 3px;
+  color: var(--mf-brand-text);
+  font-size: 12px;
+  font-weight: 750;
+  /* Vietnamese capitals stack marks (Ố, Ứ): ≥1.4 keeps the tone mark
+     inside the line box. */
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.titleCopy h1 {
+  margin: 0;
+  color: var(--mf-text);
+  font-size: 30px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.titleCopy > p:last-child {
+  margin: 6px 0 0;
+  max-width: 46ch;
+  color: var(--mf-text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.titleActions {
+  flex: 0 0 auto;
+}
+
+.menu {
+  margin-top: 8px;
+  padding: 22px 20px 20px;
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-radius-lg);
+  background: var(--mf-surface);
+}
+
+.menuHeading {
+  margin: 0 0 6px;
+  color: var(--mf-text);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.menuLead {
+  margin: 0 0 18px;
+  color: var(--mf-text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.menuActions {
+  display: grid;
+  gap: 10px;
+}
+
+.option {
+  display: grid;
+  grid-template-columns: 48px 1fr 18px;
+  align-items: center;
+  gap: 14px;
+  min-height: 72px;
+  padding: 14px 16px;
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-radius-md);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.option:hover {
+  border-color: var(--mf-brand-200);
+  background: var(--mf-surface-muted);
+}
+
+.option:focus-visible {
+  outline: 2px solid var(--mf-brand);
+  outline-offset: 2px;
+}
+
+.optionIcon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: var(--mf-radius-md);
+  background: var(--mf-brand-50);
+  color: var(--mf-brand);
+}
+
+.optionIcon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.optionText {
+  min-width: 0;
+}
+
+.optionText strong {
+  display: block;
+  color: var(--mf-text);
+  font-size: 15px;
+  font-weight: 680;
+  letter-spacing: -0.01em;
+}
+
+.optionText small {
+  display: block;
+  margin-top: 4px;
+  color: var(--mf-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.optionArrow {
+  width: 18px;
+  height: 18px;
+  color: var(--mf-text-soft);
+}
+
+.trust {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 18px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--mf-border);
+  color: var(--mf-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.trust svg {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  color: var(--mf-brand);
+}
+
+@media (max-width: 640px) {
+  .titleCopy h1 {
+    font-size: 26px;
+  }
+
+  .option {
+    grid-template-columns: 44px 1fr 16px;
+    gap: 12px;
+    min-height: 64px;
+    padding: 12px 14px;
+  }
+
+  .optionIcon {
+    width: 44px;
+    height: 44px;
+  }
+}
