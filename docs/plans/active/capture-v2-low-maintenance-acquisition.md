@@ -336,6 +336,98 @@ Implementation requires separate explicit authorization. The order below is a hy
 - benchmark terminology/search/favorite value if possible before schema;
 - if durable persistence is justified, create a separate Class 3 packet with migration, RLS, backup/export/restore, rollback and exact-head database evidence.
 
+#### Slice 2 inventory — what already exists (verified at `8da3c59b`, post-#673/#710)
+
+The ledger already owns a first-class `payee` end to end; Slice 2 must not
+re-propose it. Chain of evidence:
+
+- **Source/evidence layer:** `inbox_candidates.merchant` (≤200, editable in
+  review) is raw evidence; it is *not* destroyed at commit anymore.
+- **Candidate → ledger:** `approve_inbox_candidate` persists the *reviewed*
+  merchant into `financial_transactions.payee`
+  (`src/lib/inbox/review.ts:433`); batch path falls back to the stored
+  candidate merchant.
+- **Ledger field:** `financial_transactions.payee text not null default ''`,
+  `check (char_length ≤ 200)` — migration `20260922120000` (merged in #673,
+  `64daef39`). `p_payee` on `create`/`update_money_transaction` and
+  `create_split_expense`; `pay_recurring_commitment` and
+  `record_recurring_income_template` stamp the commitment/template name;
+  transfers keep `''`. Reconciled-guard excludes `payee` — it is editable
+  metadata, not reconciliation truth.
+- **Rules engine:** merchant-field rules evaluate the *typed* payee to fill
+  the draft category with attribution; rules never rewrite payee text
+  (`src/lib/inbox/apply-rules.ts:220`).
+- **Search:** folded-diacritic haystack includes `payee` in both the UI filter
+  (`src/lib/transaction-filters.ts:86`) and the `transactions.search`
+  capability + golden.
+- **Reports:** page-facing `payees` breakdown exists — expense grouped by the
+  **exact trimmed spelling** (`src/lib/reports.ts:425-441`). The code comment
+  pins the design rule: *search folds; a ledger breakdown does not*. The
+  field is deliberately projected out of the capability contract pending a
+  schema/version decision (`src/server/capabilities/reports-financial.ts:127`).
+- **Capture-time assists:** `derivePayeeSuggestions` (datalist),
+  `deriveRecentPayees` (chips), `deriveCanonicalPayeeOffer` (a typed
+  folded-twin is offered the stored spelling — an offer, never a rewrite),
+  `derivePayeeCategorySuggestion` (payee→category memory; most recent
+  reviewed row; recurring rows stay valid evidence here by design)
+  — all in `src/lib/quick-add-defaults.ts`.
+- **Archive/export/restore:** generation `20260922120000` layer
+  (`src/lib/archive/payee-archive-*`) now wrapped by goal-linkage generation
+  `20260924120000`; legacy generations still validate/restore.
+
+What does **not** exist:
+
+- no canonical counterparty entity — `payee` is per-row free text;
+- no cross-row alias/normalization — `Grab`, `GRAB Vietnam`, `grab` remain
+  distinct stored spellings; the canonical-spelling offer only exists at
+  capture time as an opt-in;
+- no retro-merge/rename path (cannot fix N historical spellings in one act);
+- no payee favorites/pinning;
+- no payee inside frequent-pattern keys (Slice 1 deliberately derives
+  `kind + account + category` only);
+- no payee in the capability contract surface (page-only today);
+- no household/shared counterparty semantics.
+
+#### Slice 2 decision memo — position for owner review
+
+**What current capability already covers (no new schema needed):**
+
+1. "Where did I spend at X?" — search + `payees` breakdown answer this today.
+2. "How do I file X next time?" — payee→category suggestion + merchant-field
+   rules already reduce the recurring filing decision.
+3. "Keep spellings consistent going forward" — the canonical-spelling offer
+   plus datalist cover the *incoming* edge.
+
+**Gaps with real evidence:**
+
+- Spelling drift already stored in history cannot be reconciled — reports
+  split `grab`/`Grab`/`GRAB Vietnam` into separate rows and there is no
+  merge tool. Evidence: grouping is exact-spelling by design; no rename
+  RPC exists.
+- Pattern chips cannot express "coffee at *this* shop" — Slice 1 keys
+  exclude payee by design; whether users actually need payee-scoped
+  patterns is a hypothesis for Slice 3, contingent on H2/H3 benchmark
+  survival — not yet evidenced.
+- API/MCP consumers cannot read the payee breakdown — capability contract
+  excludes it pending a schema/version decision.
+
+**Questions the owner must answer before any Class 3 packet:**
+
+1. Is historical spelling drift a real user pain (worth a merge/rename
+   feature) or cosmetic (exact-spelling reports are honest and fine)?
+2. Should counterparty become a *canonical entity* (id + alias table +
+   retro-merge + favorites) or stay *raw evidence + capture-time offers*?
+   The entity path is a Class 3 schema decision with RLS/backup/rollback
+   obligations; the evidence path may only need a merge tool + surfacing
+   `payees` in the capability contract.
+3. Terminology: Vietnamese UX says "nơi giao dịch" — is "counterparty"
+   ever user-facing or strictly internal?
+
+**Recommended default (holds until evidence says otherwise):** keep
+`payee` as raw evidence + capture-time offers; evaluate the merge/rename
+tool as the cheapest durable fix for drift; defer canonical entity until
+Slice 3 evaluation proves payee-scoped patterns/favorites are wanted.
+
 ### Slice 3 — Frequent Patterns + Counterparty integration
 
 Only if H2/H3 survive evaluation:

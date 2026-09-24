@@ -109,3 +109,75 @@ all task and seed content is synthetic; `noindex,nofollow`.
   (the followup select) rather than instrumented inside the app.
 - Evidence from real runs feeds H1/H4 evaluation in the Capture V2 spec; this
   tool alone does not authorize any product change.
+
+## Runbook — how a human runs the benchmark (handoff)
+
+Everything below happens in **demo mode** on one device; nothing leaves the
+browser except the same-origin `/api/health` fetch.
+
+### 0. Setup (once per device/profile)
+
+1. Serve the app with `NEXT_PUBLIC_APP_MODE=demo` (e.g. `next dev -p 3100`
+   or the deployed demo build).
+2. Open `/capture-bench.html` in tab A — this is the measurement tab.
+3. Open the app in tab B — this is where tasks are performed.
+4. Fill the session fields (date, commit, device, network, cohort). Commit
+   is auto-read from `/api/health` — verify it matches the build under test.
+
+### 1. Control cohort (released #596 behavior)
+
+- Run tasks **A1–A4** (amount-first quick capture) and **D1–D3**
+  (description/paste) exactly as described on each card.
+- These are the baseline: they measure today's shipped capture cost without
+  any pattern assistance.
+
+### 2. Pattern cohort (P1–P3)
+
+1. In tab A, press **Seed lịch sử mẫu** once — it writes five reviewed
+   `bench-seed-*` rows (Tiền mặt·Ăn uống ×3, MoMo·Di chuyển ×2).
+2. Reload tab B (`/capture/quick`) — the app reads storage on mount only.
+3. **P1** (clear pattern): run the task; expect the food/cash chip.
+4. **P2** (competing patterns): both chips appear; the saved row must land
+   on the *tasked* account+category or the run is marked `khác-kỳ-vọng` —
+   this verifies the user picked the right chip, not just any chip.
+5. **P3** (weak history): run in a **clean profile** (fresh browser profile
+   or `localStorage` cleared, no seed). Expected: **no chip**. If a chip
+   still appears, the run is contaminated by real prior history — discard it
+   and reset the profile. The built-in `sample-*` demo baseline is excluded
+   from ledger detection automatically.
+6. After each task, answer the follow-up honestly: taps, whether a chip was
+   used / manual entry / no chip shown, corrections, free note.
+7. When the session is done, press **Gỡ lịch sử bench** to remove the
+   `bench-seed-*` rows.
+
+### 3. Record
+
+- Press **Tạo biên bản**, copy the report, paste it into the evaluation
+  record for the run (device + cohort + commit must be filled).
+- Per task the report carries: total ms, candidate ms, ledger ms, match
+  verdict, taps, corrections, pattern-use answer, note — plus per-group
+  medians.
+
+### 4. Keep / change / kill criteria (H2 evaluation)
+
+Evaluate per cohort, not pooled:
+
+- **Keep signal:** pattern tasks show materially lower median TTLT and tap
+  count than the A-cohort control, `đúng` rate is not worse, and correction
+  rate does not rise.
+- **Change signal:** TTLT improves but wrong-context saves or corrections
+  rise (users tap the nearest chip rather than the right one) → the chip
+  presentation needs work, not the concept.
+- **Kill signal:** no TTLT/tap advantage, chips ignored (pattern-use =
+  manual/none dominant), or P3-style weak histories keep surfacing noise.
+- Any verdict requires runs on **≥2 devices** with the session fields
+  filled; a single happy-path run is not evidence.
+
+### Honest limits (unchanged)
+
+- Tab switching adds ~1–3 s to every measured TTLT — compare within cohorts,
+  never across tools.
+- Demo fixtures + `bench-seed-*` are a synthetic approximation of
+  stable-history, not a true longitudinal cohort.
+- Correction auto-detection only works in demo mode.
+- Chip usage is self-reported in the followup, not instrumented in-app.
