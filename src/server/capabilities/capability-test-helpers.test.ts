@@ -54,6 +54,7 @@ export function fixtureWorkspace(
     transactions,
     accounts: demoAccounts,
     categories: demoCategories,
+    goals: [],
     totalBalance: 15_735_000,
     today: FIXED_CONTEXT.today,
     dataError: null,
@@ -175,6 +176,7 @@ export function fixtureGoalsWorkspace(): GoalsWorkspace {
       reservedForGoals: 3_400_000,
       unreserved: 10_293_000,
     },
+    relatedCounts: null,
     dataError: null,
   };
 }

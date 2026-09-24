@@ -2,7 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { goalTotals, type GoalAllocation, type SavingsGoal } from "@/lib/planning/goals";
+import { DEMO_SAVINGS_GOALS, goalTotals, type GoalAllocation, type SavingsGoal } from "@/lib/planning/goals";
 import { mapCommitmentRow } from "@/server/commitments";
 import { reservePicture, type ReservePicture } from "@/lib/planning/reserve";
 import { currentMonthStart } from "@/server/budgets";
@@ -28,6 +28,12 @@ export type GoalsWorkspace = {
    * would then refuse an allocation the screen had promised.
    */
   reserve: ReservePicture | null;
+  /**
+   * Count of live transactions tagged to each goal — informational history
+   * ("Giao dịch liên quan"), never progress. Null when the read fails or in
+   * demo, so the card withholds the line rather than inventing zero.
+   */
+  relatedCounts: Record<string, number> | null;
   dataError: string | null;
 };
 const goalSchema = z.object({ id: z.string().uuid(), name: z.string().min(1), target_minor: z.union([z.number(), z.string()]), allocated_minor: z.union([z.number(), z.string()]), deadline: z.string().nullable(), created_at: z.string().nullish(), is_archived: z.boolean() });
@@ -47,10 +53,7 @@ export function mapGoalRow(value: unknown): SavingsGoal { const row = goalSchema
 function mapAllocationRow(value: unknown): GoalAllocation { const row = allocationSchema.parse(value); const amount = Number(row.amount_minor); if (!Number.isSafeInteger(amount)) throw new Error("invalid_goal_allocation"); const createdAt = vietnamDay(row.created_at); if (!createdAt) throw new Error("invalid_goal_allocation_date"); return { goalId: row.goal_id, amount, createdAt }; }
 
 function demoWorkspace(today: string): GoalsWorkspace {
-  const goals: SavingsGoal[] = [
-    { id: "demo-goal-emergency", name: "Quỹ khẩn cấp", target: 6_000_000, allocated: 2_400_000, deadline: "2026-09-30", createdAt: null, isArchived: false },
-    { id: "demo-goal-laptop", name: "Laptop mới", target: 20_000_000, allocated: 5_000_000, deadline: "2027-01-31", createdAt: null, isArchived: false },
-  ];
+  const goals: SavingsGoal[] = DEMO_SAVINGS_GOALS;
   const totals = goalTotals(goals, today);
   /*
    * Demo balances and commitments live in browser storage owned by other
@@ -58,19 +61,19 @@ function demoWorkspace(today: string): GoalsWorkspace {
    * invented figure — demo money is fictional, but the arithmetic shown about
    * it should not be.
    */
-  return { goals, allocations: null, today, allocatedTotal: totals.allocated, plannedDaily: totals.plannedDaily, reserve: null, dataError: null };
+  return { goals, allocations: null, today, allocatedTotal: totals.allocated, plannedDaily: totals.plannedDaily, reserve: null, relatedCounts: null, dataError: null };
 }
 
 export async function getGoalsWorkspace(): Promise<GoalsWorkspace> {
   const viewer = await requireViewer(); const today = todayInVietnam(); if (viewer.isDemo) return demoWorkspace(today);
-  const supabase = await createClient(); if (!supabase) return { goals: [], allocations: null, today, allocatedTotal: 0, plannedDaily: 0, reserve: null, dataError: "Không thể kết nối dữ liệu mục tiêu." };
+  const supabase = await createClient(); if (!supabase) return { goals: [], allocations: null, today, allocatedTotal: 0, plannedDaily: 0, reserve: null, relatedCounts: null, dataError: "Không thể kết nối dữ liệu mục tiêu." };
   /*
    * The three reads the RPC's own guard makes, so the figure shown matches the
    * figure enforced. The commitment month is the current one from
    * `currentMonthStart()`, mirroring `date_trunc('month', now())` in the SQL.
    */
   const monthStart = currentMonthStart();
-  const [{ data, error }, allocationsResult, balancesResult, commitmentsResult, occurrencesResult] = await Promise.all([
+  const [{ data, error }, allocationsResult, balancesResult, commitmentsResult, occurrencesResult, taggedResult] = await Promise.all([
     supabase.from("savings_goals").select("id,name,target_minor,allocated_minor,deadline,created_at,is_archived").order("is_archived").order("deadline", { nullsFirst: false }),
     /*
      * The adjust RPC has always written this ledger; the goals screen is the
@@ -86,11 +89,29 @@ export async function getGoalsWorkspace(): Promise<GoalsWorkspace> {
       .from("commitment_occurrences")
       .select("commitment_id,transaction_id")
       .eq("month_start", monthStart),
+    /*
+     * Live rows carrying a goal tag — counted per goal client-side. A failed
+     * read degrades to null so the card withholds the line.
+     */
+    supabase
+      .from("financial_transactions")
+      .select("goal_id")
+      .eq("user_id", viewer.id)
+      .is("deleted_at", null)
+      .not("goal_id", "is", null),
   ]);
-  if (error) return { goals: [], allocations: null, today, allocatedTotal: 0, plannedDaily: 0, reserve: null, dataError: "Chưa tải được mục tiêu tiết kiệm. Hãy thử lại." };
+  if (error) return { goals: [], allocations: null, today, allocatedTotal: 0, plannedDaily: 0, reserve: null, relatedCounts: null, dataError: "Chưa tải được mục tiêu tiết kiệm. Hãy thử lại." };
   let allocations: GoalAllocation[] | null = null;
   if (!allocationsResult.error) {
     try { allocations = z.array(z.unknown()).parse(allocationsResult.data).map(mapAllocationRow); } catch { allocations = null; }
+  }
+  let relatedCounts: Record<string, number> | null = null;
+  if (!taggedResult.error) {
+    relatedCounts = {};
+    for (const row of taggedResult.data ?? []) {
+      const goalId = String(row.goal_id);
+      relatedCounts[goalId] = (relatedCounts[goalId] ?? 0) + 1;
+    }
   }
   try {
     const goals = z.array(z.unknown()).parse(data).map(mapGoalRow);
@@ -114,7 +135,7 @@ export async function getGoalsWorkspace(): Promise<GoalsWorkspace> {
       }, 0);
       reserve = reservePicture({ balance, commitments, goals });
     }
-    return { goals, allocations, today, allocatedTotal: totals.allocated, plannedDaily: totals.plannedDaily, reserve, dataError: null };
+    return { goals, allocations, today, allocatedTotal: totals.allocated, plannedDaily: totals.plannedDaily, reserve, relatedCounts, dataError: null };
   }
-  catch { return { goals: [], allocations: null, today, allocatedTotal: 0, plannedDaily: 0, reserve: null, dataError: "Dữ liệu mục tiêu không đúng định dạng." }; }
+  catch { return { goals: [], allocations: null, today, allocatedTotal: 0, plannedDaily: 0, reserve: null, relatedCounts: null, dataError: "Dữ liệu mục tiêu không đúng định dạng." }; }
 }

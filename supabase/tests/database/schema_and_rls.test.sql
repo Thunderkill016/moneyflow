@@ -60,7 +60,7 @@ select ok(exists(select 1 from pg_policies where schemaname = 'public' and table
 
 select col_type_is('public', 'inbox_candidates', 'amount_minor', 'bigint', 'inbox candidate money uses bigint');
 
-select has_function('public', 'create_money_transaction', array['uuid', 'uuid', 'transaction_kind', 'bigint', 'date', 'text', 'uuid', 'text'], 'create RPC exists (with payee)');
+select has_function('public', 'create_money_transaction', array['uuid', 'uuid', 'transaction_kind', 'bigint', 'date', 'text', 'uuid', 'text', 'uuid'], 'create RPC exists (with payee + goal_id)');
 select has_function('public', 'soft_delete_money_transaction', array['uuid'], 'soft delete RPC exists');
 select has_function('public', 'restore_money_transaction', array['uuid'], 'restore soft-deleted transaction RPC exists');
 select has_function('public', 'create_financial_account', array['text', 'account_kind', 'bigint', 'text'], 'create account RPC exists (with currency)');
@@ -80,12 +80,13 @@ select has_function('public', 'upsert_savings_goal', array['uuid', 'text', 'bigi
 select has_function('public', 'adjust_savings_goal', array['uuid', 'bigint'], 'adjust savings goal RPC exists');
 select has_function('public', 'set_savings_goal_archived', array['uuid', 'boolean'], 'archive savings goal RPC exists');
 select has_function('public', 'create_account_transfer', array['uuid', 'uuid', 'bigint', 'date', 'text', 'uuid'], 'account transfer RPC exists');
-select has_function('public', 'update_money_transaction', array['uuid', 'uuid', 'uuid', 'transaction_kind', 'bigint', 'date', 'text', 'text', 'timestamptz'], 'update transaction RPC exists (with payee + expected_updated_at)');
+select has_function('public', 'update_money_transaction', array['uuid', 'uuid', 'uuid', 'transaction_kind', 'bigint', 'date', 'text', 'text', 'timestamptz', 'uuid', 'boolean'], 'update transaction RPC exists (with payee + expected_updated_at + goal sentinel)');
 select has_function('public', 'update_account_transfer', array['uuid', 'uuid', 'uuid', 'bigint', 'date', 'text'], 'update transfer RPC exists');
 select col_type_is('public', 'transaction_entries', 'amount_minor', 'bigint', 'money uses bigint');
 select col_type_is('public', 'savings_goals', 'allocated_minor', 'bigint', 'goal allocations use bigint');
 select col_not_null('public', 'financial_transactions', 'idempotency_key', 'idempotency key is required');
 select col_not_null('public', 'financial_transactions', 'payee', 'transaction payee defaults to empty string');
+select col_type_is('public', 'financial_transactions', 'goal_id', 'uuid', 'transaction goal tag is a nullable uuid');
 select col_has_check('public', 'financial_transactions', 'payee', 'transaction payee length is constrained');
 select col_has_check('public', 'profiles', 'full_name', 'profile display name length is constrained');
 

@@ -29,6 +29,11 @@ export type UnsentCaptureDraft = {
   amount: number;
   note: string;
   payee: string;
+  /**
+   * Optional goal tag — opaque string because demo goal ids are not uuids.
+   * Absent on drafts written before the tag existed.
+   */
+  goalId?: string;
   categoryId: string;
   accountId: string;
   occurredOn: string;
@@ -58,6 +63,9 @@ export function isUnsentCaptureDraft(
     item.note.length <= NOTE_MAX_LENGTH &&
     typeof item.payee === "string" &&
     item.payee.length <= PAYEE_MAX_LENGTH &&
+    (item.goalId === undefined ||
+      (typeof item.goalId === "string" &&
+        item.goalId.length <= ID_MAX_LENGTH)) &&
     typeof item.categoryId === "string" &&
     item.categoryId.length > 0 &&
     item.categoryId.length <= ID_MAX_LENGTH &&

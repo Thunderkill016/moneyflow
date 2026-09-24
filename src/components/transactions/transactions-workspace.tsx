@@ -33,6 +33,7 @@ import {
   type CreateSplitExpenseInput,
   type CreateTransactionInput,
   type CreateTransferInput,
+  type GoalOption,
   type Transaction,
   type TransactionReviewStatus,
   type UpdateMoneyTransactionInput,
@@ -140,6 +141,8 @@ type TransactionsWorkspaceData = {
   transactions: Transaction[];
   accounts: AccountOption[];
   categories: CategoryOption[];
+  /** Goal picker options for the edit dialog; demo ids are strings. */
+  goals?: GoalOption[];
   totalBalance: number;
   today: string;
   dataError: string | null;
@@ -252,6 +255,7 @@ export function TransactionsWorkspace({
     initialTransactions: workspace.transactions,
     accounts: workspace.accounts,
     categories: workspace.categories,
+    goals: workspace.goals,
     isDemo: viewer.isDemo,
   });
 
@@ -2142,6 +2146,14 @@ export function TransactionsWorkspace({
                               {reconciliationImportEvidenceLabel(provenance)}
                             </small>
                           ) : null}
+                          {transaction.goalName ? (
+                            <small
+                              className={styles.rowGoal}
+                              data-slot="ledger-row-goal"
+                            >
+                              Mục tiêu · {transaction.goalName}
+                            </small>
+                          ) : null}
                           <time dateTime={transaction.occurredAt}>
                             {transaction.relativeDate}
                           </time>
@@ -2313,6 +2325,7 @@ export function TransactionsWorkspace({
         onAdd={handleAdd}
         accounts={workspace.accounts}
         categories={workspace.categories}
+        goals={workspace.goals}
         transactions={transactions}
         disabled={isMutating || Boolean(workspace.dataError)}
       />
@@ -2336,6 +2349,7 @@ export function TransactionsWorkspace({
           transaction={editing}
           accounts={workspace.accounts}
           categories={workspace.categories}
+          goals={workspace.goals}
           onClose={() => setEditing(null)}
           onSave={handleUpdate}
           disabled={rowBusy(editing.id) || Boolean(workspace.dataError)}

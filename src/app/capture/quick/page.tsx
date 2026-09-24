@@ -38,6 +38,7 @@ export default async function Page({
         transactions: workspace.transactions,
         accounts: workspace.accounts,
         categories: workspace.categories,
+        goals: workspace.goals,
         dataError: workspace.dataError,
       }}
     />

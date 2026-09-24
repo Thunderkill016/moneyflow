@@ -36,6 +36,7 @@ import type {
   CategoryOption,
   CreateTransactionInput,
   CreateTransferInput,
+  GoalOption,
   Transaction,
   TransactionKind,
   UpdateMoneyTransactionInput,
@@ -59,6 +60,8 @@ type QuickWorkspace = {
   transactions: Transaction[];
   accounts: AccountOption[];
   categories: CategoryOption[];
+  /** Goal picker options for the quick-add dialog. */
+  goals?: GoalOption[];
   dataError: string | null;
 };
 
@@ -92,6 +95,7 @@ export function CaptureQuickPage({
     initialTransactions: workspace.transactions,
     accounts: workspace.accounts,
     categories: workspace.categories,
+    goals: workspace.goals,
     isDemo: viewer.isDemo,
   });
   const [notice, setNotice] = useState("");
@@ -451,6 +455,7 @@ export function CaptureQuickPage({
             }}
             accounts={workspace.accounts}
             categories={workspace.categories}
+            goals={workspace.goals}
             transactions={transactions}
             showFrequentPatterns
             disabled={isMutating}

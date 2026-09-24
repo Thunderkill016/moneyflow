@@ -2,6 +2,7 @@ import type {
   AccountOption,
   CategoryOption,
   CreateTransactionInput,
+  GoalOption,
   Transaction,
   UpdateMoneyTransactionInput,
   UpdateTransferInput,
@@ -23,6 +24,7 @@ export function buildOptimisticTransaction(
   accounts: AccountOption[],
   categories: CategoryOption[],
   now = new Date(),
+  goals: GoalOption[] = [],
 ): OptimisticTransactionResult {
   const account = accounts.find((item) => item.id === input.accountId);
   const category = categories.find((item) => item.id === input.categoryId);
@@ -41,6 +43,10 @@ export function buildOptimisticTransaction(
       category: category.name,
       note: input.note || category.name,
       payee: input.payee?.trim() || undefined,
+      goalId: input.goalId ?? undefined,
+      goalName: input.goalId
+        ? goals.find((goal) => goal.id === input.goalId)?.name
+        : undefined,
       accountId: account.id,
       account: account.name,
       amount: input.amount,
@@ -65,6 +71,7 @@ export function buildUpdatedTransaction(
   input: UpdateMoneyTransactionInput | UpdateTransferInput,
   accounts: AccountOption[],
   categories: CategoryOption[],
+  goals: GoalOption[] = [],
 ): OptimisticTransactionResult {
   if (input.kind === "transfer") {
     const source = accounts.find((item) => item.id === input.sourceAccountId);
@@ -98,6 +105,14 @@ export function buildUpdatedTransaction(
   if (!account || !category || category.kind !== input.kind) {
     return { ok: false, message: "Tài khoản hoặc danh mục chưa hợp lệ." };
   }
+  const goalId =
+    input.goalId === undefined ? existing.goalId : (input.goalId ?? undefined);
+  const goalName =
+    goalId === undefined
+      ? undefined
+      : goalId === existing.goalId
+        ? existing.goalName
+        : goals.find((goal) => goal.id === goalId)?.name;
   return {
     ok: true,
     transaction: {
@@ -107,6 +122,8 @@ export function buildUpdatedTransaction(
       category: category.name,
       note: input.note || category.name,
       payee: input.payee?.trim() || undefined,
+      goalId,
+      goalName,
       accountId: account.id,
       account: account.name,
       destinationAccountId: undefined,

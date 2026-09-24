@@ -89,6 +89,7 @@ export function GoalsPage({
   allocations,
   today,
   reserveInputs,
+  relatedCounts,
   dataError,
 }: {
   viewer: ViewerSummary;
@@ -105,6 +106,11 @@ export function GoalsPage({
    * then refuses, and the goal side is recomputed here from live state.
    */
   reserveInputs: { balance: number; protectedForBills: number } | null;
+  /**
+   * Informational tag counts per goal — "giao dịch liên quan" history, never
+   * progress. Null in demo or when the read failed; the line stays hidden.
+   */
+  relatedCounts: Record<string, number> | null;
   dataError: string | null;
 }) {
   const [goals, setGoals] = useState(initialGoals);
@@ -455,6 +461,12 @@ export function GoalsPage({
                         {funding.count > 0
                           ? `${GOAL_FUNDING_WINDOW_DAYS} ngày qua đã đánh dấu ${formatMoney(funding.total)} · ${funding.count} lần.`
                           : `${GOAL_FUNDING_WINDOW_DAYS} ngày qua chưa đánh dấu thêm lần nào.`}
+                      </p>
+                    ) : null}
+
+                    {relatedCounts?.[goal.id] ? (
+                      <p className={planningStyles.context}>
+                        {relatedCounts[goal.id]} giao dịch liên quan.
                       </p>
                     ) : null}
 

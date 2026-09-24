@@ -29,7 +29,7 @@ import {
   type ArchiveSummary,
   type ArchiveVerificationReport,
 } from "@/lib/archive/archive-backup";
-import { ingestArchiveBytes } from "@/lib/archive/payee-archive-ingress";
+import { ingestArchiveBytes } from "@/lib/archive/goal-linkage-archive-ingress";
 import type { MoneyFlowArchive } from "@/lib/archive/moneyflow-archive";
 import styles from "./settings/settings-surfaces.module.css";
 

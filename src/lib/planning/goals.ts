@@ -241,3 +241,13 @@ export function goalTotals(goals: SavingsGoal[], today: string) {
     return totals;
   }, { target: 0, allocated: 0, plannedDaily: 0 });
 }
+
+/**
+ * Seeded demo goals — string ids on purpose: demo data is fictional, and a
+ * `demo-*` id can never collide with a real uuid in the goal tag column.
+ * Shared by the goals workspace and the transaction picker's demo list.
+ */
+export const DEMO_SAVINGS_GOALS: SavingsGoal[] = [
+  { id: "demo-goal-emergency", name: "Quỹ khẩn cấp", target: 6_000_000, allocated: 2_400_000, deadline: "2026-09-30", createdAt: null, isArchived: false },
+  { id: "demo-goal-laptop", name: "Laptop mới", target: 20_000_000, allocated: 5_000_000, deadline: "2027-01-31", createdAt: null, isArchived: false },
+];

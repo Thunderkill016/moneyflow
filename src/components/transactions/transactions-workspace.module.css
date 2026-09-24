@@ -805,6 +805,13 @@
   line-height: 1.45;
 }
 
+/* Goal tag is annotation, same quiet tier as import provenance. */
+.detail > .rowGoal {
+  color: var(--mf-text-soft);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .rowReviewLine {
   display: flex;
   flex-wrap: wrap;

@@ -40,6 +40,7 @@ test("registry maps invalid input and output-schema failures to capability error
             transactions: [],
             accounts: [],
             categories: [],
+            goals: [],
             totalBalance: Number.NaN,
             today: FIXED_CONTEXT.today,
             dataError: null,

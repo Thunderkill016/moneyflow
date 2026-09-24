@@ -17,6 +17,7 @@ import {
   categoryMeta,
   type AccountOption,
   type CategoryOption,
+  type GoalOption,
   type Transaction,
   type TransactionKind,
   type UpdateMoneyTransactionInput,
@@ -31,6 +32,7 @@ export function EditTransactionDialog({
   transaction,
   accounts,
   categories,
+  goals = [],
   onClose,
   onSave,
   disabled = false,
@@ -39,6 +41,8 @@ export function EditTransactionDialog({
   transaction: Transaction;
   accounts: AccountOption[];
   categories: CategoryOption[];
+  /** Goal options for the annotation picker; empty hides the field. */
+  goals?: GoalOption[];
   onClose: () => void;
   onSave: (input: UpdateInput) => Promise<{ ok: boolean; message?: string }>;
   disabled?: boolean;
@@ -61,6 +65,7 @@ export function EditTransactionDialog({
   const [occurredOn, setOccurredOn] = useState(transaction.occurredOn);
   const [note, setNote] = useState(transaction.note);
   const [payee, setPayee] = useState(transaction.payee ?? "");
+  const [goalId, setGoalId] = useState(transaction.goalId ?? "");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -70,20 +75,30 @@ export function EditTransactionDialog({
   );
   const selectedAccount = accounts.some((item) => item.id === accountId)
     ? accountId
-    : accounts[0]?.id ?? "";
+    : (accounts[0]?.id ?? "");
   const selectedCategory = availableCategories.some(
     (item) => item.id === categoryId,
   )
     ? categoryId
-    : availableCategories[0]?.id ?? "";
+    : (availableCategories[0]?.id ?? "");
   const destinationOptions = accounts.filter(
     (item) => item.id !== selectedAccount,
   );
+  /**
+   * Picker options: active goals plus the currently tagged goal when it has
+   * been archived — historical links stay selectable as "keep", they are only
+   * excluded from *new* assignments.
+   */
+  const goalOptions = useMemo(() => {
+    const active = goals.filter((goal) => !goal.isArchived);
+    const tagged = goals.find((goal) => goal.id === goalId);
+    return tagged && tagged.isArchived ? [...active, tagged] : active;
+  }, [goals, goalId]);
   const selectedDestination = destinationOptions.some(
     (item) => item.id === destinationId,
   )
     ? destinationId
-    : destinationOptions[0]?.id ?? "";
+    : (destinationOptions[0]?.id ?? "");
 
   function changed() {
     setError("");
@@ -155,6 +170,13 @@ export function EditTransactionDialog({
         occurredOn,
         note: note.trim(),
         payee: payee.trim(),
+        /*
+         * Explicit value: a goal uuid tags, empty string clears the tag. When
+         * the picker never rendered (goal list unavailable), the field stays
+         * undefined so the server preserves the existing tag.
+         */
+        goalId:
+          goals.length > 0 ? (goalId === "" ? null : goalId) : undefined,
       };
     }
 
@@ -404,6 +426,25 @@ export function EditTransactionDialog({
                 <option key={suggestion} value={suggestion} />
               ))}
             </datalist>
+          ) : null}
+          {!isTransfer && goals.length > 0 ? (
+            <SelectField
+              label="Mục tiêu liên quan"
+              value={goalId}
+              targetSize="important"
+              disabled={submitting}
+              onChange={(event) => {
+                setGoalId(event.target.value);
+                changed();
+              }}
+            >
+              <option value="">Không gắn mục tiêu</option>
+              {goalOptions.map((goal) => (
+                <option value={goal.id} key={goal.id}>
+                  {goal.isArchived ? `${goal.name} (đã lưu trữ)` : goal.name}
+                </option>
+              ))}
+            </SelectField>
           ) : null}
           <TextField
             label="Ghi chú"

@@ -95,6 +95,20 @@ test("draft validator rejects malformed values", () => {
     isUnsentCaptureDraft({ ...validDraft, payee: "p".repeat(201) }),
     false,
   );
+  // goalId is an optional opaque string (demo ids are not uuids), but it is
+  // still bounded so a hostile payload fails closed.
+  assert.equal(isUnsentCaptureDraft({ ...validDraft, goalId: 42 }), false);
+  assert.equal(
+    isUnsentCaptureDraft({ ...validDraft, goalId: "g".repeat(201) }),
+    false,
+  );
+});
+
+test("a draft keeps its optional goal tag through write → read", () => {
+  const { storage } = mockStorage();
+  const tagged = { ...validDraft, goalId: "demo-goal-laptop" };
+  writeUnsentCaptureDraft(tagged, storage);
+  assert.deepEqual(readUnsentCaptureDraft(storage), tagged);
 });
 
 test("write → read → clear round-trips the draft", () => {
@@ -164,4 +178,18 @@ test("capture dialog offers the draft back only into an untouched form", () => {
   assert.match(dialog, /formTouchedRef\.current = true/);
   // The notice says restored-draft only — no copy may imply it will send itself.
   assert.match(dialog, /Đã khôi phục nháp chưa gửi/);
+});
+
+test("capture dialog retains and restores the goal tag with the draft", () => {
+  // The retained draft carries the selected goal id...
+  assert.match(
+    dialog,
+    /writeUnsentCaptureDraft\(\{[\s\S]*?goalId: goalId \|\| undefined,[\s\S]*?\}\);/,
+  );
+  // ...and restores it only when the goal is still an active option — a
+  // goal archived since the failure is dropped rather than resurrected.
+  assert.match(
+    dialog,
+    /draft\.goalId && goals\.some\(\(g\) => g\.id === draft\.goalId && !g\.isArchived\)/,
+  );
 });
