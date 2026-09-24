@@ -48,20 +48,34 @@ ledger movements, not parallel balances.
 **A `debts` entity as an annotated ledger view, never a second ledger:**
 
 - `debts` table: `id, user_id, direction ('i_owe'|'owed_to_me'), counterparty
-  text, principal_minor bigint, opened_on date, closed_at, note`. RLS
-  standard; mutations via `security definer` RPCs.
-- `debt_movements` link table: `(debt_id, transaction_id)` — every payment/
-  disbursement is a real `financial_transactions` row first, then linked.
-  Outstanding = `principal_minor − Σ linked repayment movements` — **derived,
-  never stored**.
-- Direction mapping to ledger truth:
-  - *I owe*: receiving the loan = income linked to the debt (disbursement);
-    repayments = expense linked to the debt.
-  - *Owed to me*: lending = expense linked; repayments received = income
-    linked.
-  - Alternatively map disbursement/repayment as transfers to a virtual account
-    — rejected: creates phantom account balances; the linked-annotation model
-    keeps income/expense honest.
+  text, principal_minor bigint, opened_on date, closed_at, closed_reason
+  ('repaid'|'forgiven'|'written_off'), note`. RLS standard; mutations via
+  `security definer` RPCs.
+- `debt_movements` link table: `(debt_id, transaction_id, movement_type
+  ('disbursement'|'repayment'))` — every payment/disbursement is a real
+  `financial_transactions` row first, then linked. `transaction_id` UNIQUE
+  (one transaction serves at most one debt in v1; multi-debt needs amounts on
+  the link, later).
+- Outstanding = `principal_minor − Σ linked repayment movements` — **derived,
+  never stored**. `principal_minor` = the original obligation; later advances
+  create a new debt (or are forbidden in v1). RPCs reject repayments that
+  would make outstanding < 0, and lock the debt row while linking/validating.
+- **Reporting semantics — the correction from external review (ChatGPT,
+  2026-09-24):** booking loan principal as `income`/`expense` corrupts the
+  income/expense reports (₫10m borrowed is not earned income; ₫10m lent is
+  not consumption). The v1 invariant: *real cash transaction → debt movement
+  annotation → derived obligation.* Debt principal movements still move real
+  account balances, but **reports must exclude debt-linked principal** from
+  income/expense totals — implemented either by report queries consulting
+  `debt_movements`, or by a dedicated movement classification. The earlier
+  "income linked / expense linked" mapping is rejected.
+- Editing or soft-deleting a linked transaction must revalidate/recompute the
+  debt — an update RPC cannot be allowed to bypass repayment constraints.
+- `closed_reason='repaid'` requires outstanding exactly zero; `forgiven` /
+  `written_off` records an explicit non-cash adjustment event for the
+  residual — the audit trail must not contradict the closed state. Linked
+  repayments are principal-only in v1 (a payment containing principal + fee
+  cannot be whole-linked).
 - Commitments integration (optional, later): a fixed installment debt can
   generate a commitment occurrence — but only as a *reminder*; the repayment
   stays a real transaction.
@@ -85,7 +99,12 @@ ledger movements, not parallel balances.
       (Recommend: free text v1.)
 - [ ] Should a closed debt require the outstanding to reach zero, or allow
       "forgiven/settled" states with a residual? (Recommend: explicit
-      `closed_reason` enum: `repaid | forgiven | written_off`.)
+      `closed_reason` enum: `repaid | forgiven | written_off`; repaid requires
+      outstanding = 0, others record a non-cash adjustment event.)
+- [ ] How should debt-linked principal be excluded from income/expense
+      reports — report queries consulting `debt_movements`, or a dedicated
+      movement kind? (Recommend: decide at implementation packet; both keep
+      account balances honest.)
 
 ## Implementation plan
 
