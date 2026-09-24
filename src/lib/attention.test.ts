@@ -47,11 +47,23 @@ test("buildAttentionItems shows spent/limit figures on budget chips", () => {
   });
   assert.equal(
     items.find((i) => i.id === "budget-near")?.label,
-    "Ăn uống: 4,2 tr/5 tr",
+    "Ăn uống: Gần hạn mức (4,2 tr/5 tr)",
   );
   assert.equal(
     items.find((i) => i.id === "budget-over")?.label,
     "Mua sắm: Đã vượt 1,2 tr (6,2 tr/5 tr)",
+  );
+});
+
+test("buildAttentionItems keeps the status cue when compact figures collapse", () => {
+  const items = buildAttentionItems({
+    budgets: [baseBudget({ id: "near", spent: 1_000_000, limit: 1_010_000 })],
+    commitments: [],
+    today: "2026-07-15",
+  });
+  assert.equal(
+    items.find((i) => i.id === "budget-near")?.label,
+    "Ăn uống: Gần hạn mức (1 tr/1 tr)",
   );
 });
 
