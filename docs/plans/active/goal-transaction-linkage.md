@@ -41,20 +41,31 @@ Two real questions the product cannot answer:
 
 ### Recommended slice
 
-**Option B first** — tag a transaction with a goal:
+**Option B first** — tag a transaction with a goal, scoped as **goal
+association / activity history**, not "funding provenance":
 
 - `alter table financial_transactions add column goal_id uuid null` + composite
   FK `(goal_id, user_id)` mirroring the `savings_goal_allocations` pattern.
 - `create/update` RPCs gain optional `p_goal_id`; `transaction_feed` exposes
   `goal_id` + `goal_name`; edit dialog gets an optional goal picker.
-- Goal detail shows linked transactions; goal progress stays allocation-based
-  (unchanged math — no silent redefinition).
+- Goal detail shows linked transactions under **"Giao dịch liên quan"**
+  (related transactions) — never "Giao dịch đóng góp" / "Nguồn tiền" and never
+  a summed total beside progress; progress stays allocation-based (unchanged
+  math — no silent redefinition).
 - Option A (allocation provenance) is the natural follow-up once B proves the
-  linking UX.
+  linking UX — that is where GoalAllocation itself explains *why* progress
+  changed.
 
 Rationale: B is the smaller contract change, keeps goal math honest
 (allocations unchanged), and directly answers question 2. Option A alone would
 improve auditability but not the user-visible "this spend served that goal".
+
+External review (ChatGPT, 2026-09-24) confirmed B answers "which goal did this
+expense serve?" but **not** "which transaction funded this goal?" — the claim
+is narrowed accordingly. It also confirmed: `goal_id` must have zero effect on
+`allocated`/progress (two writers for one number = the trap); two visible
+numbers that can disagree must be named differently (authoritative "Tiến độ /
+Đã phân bổ" vs informational "Giao dịch liên quan").
 
 ## Specification
 
@@ -63,8 +74,20 @@ improve auditability but not the user-visible "this spend served that goal".
 - Integer VND; no new arithmetic — linkage is a pointer, not a calculation.
 - RLS: composite FK `(goal_id, user_id)` prevents cross-tenant links.
 - A goal tag never changes how the transaction counts toward income/expense/
-  transfer — it is annotation, not reclassification.
-- Archived goal: keep the tag (history) but hide from pickers.
+  transfer — it is annotation, not reclassification, and never writes to
+  `allocated` or progress (exactly one writer for progress: allocations).
+- Single `goal_id` lives on `financial_transactions` (not entries): a split
+  expense cannot attribute individual lines to different goals — documented
+  boundary; multi-goal would need `transaction_goal_links` with amounts, not
+  an array column.
+- Transfers may carry the tag only under "liên quan" wording — a transfer
+  between owned accounts changes location, never goal progress or funding.
+- Archived goal: preserve existing `goal_id`, show the historical name/link,
+  exclude from pickers for new tagging; editing an already-tagged transaction
+  may keep or clear the archived goal — RPCs reject *new* assignment to
+  archived goals but do not reject unrelated edits on tagged rows.
+- Deleted goal: soft-delete/archive only — hard delete while references exist
+  is forbidden (`ON DELETE SET NULL` destroys provenance; CASCADE is worse).
 
 ### Open questions for owner
 
