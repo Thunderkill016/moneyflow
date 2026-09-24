@@ -40,8 +40,11 @@ alter table public.financial_transactions
   references public.savings_goals (id, user_id)
   on delete restrict;
 
+-- Partial index: (goal_id, user_id) left-prefix covers the FK and the
+-- related-count lookup (equality on both columns); NULL rows — the majority —
+-- stay out of the index.
 create index financial_transactions_goal_idx
-  on public.financial_transactions (user_id, goal_id)
+  on public.financial_transactions (goal_id, user_id)
   where goal_id is not null;
 
 -- ---------------------------------------------------------------------------

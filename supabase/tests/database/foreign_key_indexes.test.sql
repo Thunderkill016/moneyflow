@@ -26,7 +26,8 @@ where c.contype = 'f'
           index_namespace.nspname = 'public'
           and index_class.relname in (
             'inbox_candidates_account_owner_idx',
-            'inbox_candidates_category_owner_idx'
+            'inbox_candidates_category_owner_idx',
+            'financial_transactions_goal_idx'
           )
         )
       )

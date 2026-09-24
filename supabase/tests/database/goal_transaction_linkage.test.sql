@@ -69,8 +69,27 @@ insert into public.transaction_entries (
   '88888888-0000-4000-8000-0000000000f1'::uuid,
   '88888888-8888-4888-8888-888888888881'::uuid,
   '88888888-0000-4000-8000-0000000000c1'::uuid,
-  -5000, 'reconciled'
+  -5000, 'pending'
 );
+with recon as (
+  insert into public.account_reconciliations (
+    user_id, account_id, statement_date, statement_balance_minor, status,
+    completed_at, calculated_balance_minor, pending_account_leg_count,
+    cleared_account_leg_count, reconciled_account_leg_count
+  ) values (
+    '88888888-8888-4888-8888-888888888881'::uuid,
+    '88888888-0000-4000-8000-0000000000c1'::uuid,
+    '2026-09-20'::date, -5000::bigint, 'completed',
+    now(), -5000::bigint, 0::bigint, 0::bigint, 1::bigint
+  )
+  returning id
+)
+update public.transaction_entries
+set reconciliation_state = 'reconciled',
+    cleared_at = now(),
+    reconciliation_id = (select id from recon)
+where transaction_id = '88888888-0000-4000-8000-0000000000f1'::uuid
+  and user_id = '88888888-8888-4888-8888-888888888881'::uuid;
 
 set local request.jwt.claims =
   '{"sub":"88888888-8888-4888-8888-888888888881","role":"authenticated"}';
