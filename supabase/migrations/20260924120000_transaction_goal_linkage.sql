@@ -54,6 +54,7 @@ create index financial_transactions_goal_idx
 create or replace function public.guard_reconciled_transaction_mutation()
 returns trigger
 language plpgsql
+security definer
 set search_path = ''
 as $$
 declare
@@ -294,6 +295,10 @@ begin
   -- non-null value. Re-submitting the identical tag, preserving it, and
   -- clearing it never touch the goal table — so an archived goal keeps its
   -- history while staying out of new-assignment reach.
+  -- An explicit NULL sentinel is a protocol error, not "preserve": the flag
+  -- defaults to false, so NULL only arrives through a deliberately typed call.
+  if p_goal_id_is_set is null then raise exception 'invalid_goal_flag'; end if;
+
   if p_goal_id_is_set
      and p_goal_id is distinct from v_existing_goal_id
      and p_goal_id is not null

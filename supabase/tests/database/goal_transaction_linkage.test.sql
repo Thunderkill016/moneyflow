@@ -7,7 +7,7 @@
 -- FK is ON DELETE RESTRICT so a referenced goal cannot be hard-deleted.
 
 begin;
-select plan(15);
+select plan(18);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -258,10 +258,14 @@ select throws_ok(
 );
 
 -- 9-10: a row already tagged with a now-archived goal keeps the tag on
--- unrelated edits (is_set=false) and on an identical explicit value.
+-- unrelated edits (is_set=false) and on an identical explicit value. Seed the
+-- archived tag as the owning role — authenticated has no direct table grants,
+-- all its writes go through the RPCs being tested.
+reset role;
 update public.financial_transactions
 set goal_id = '88888888-0000-4000-8000-0000000000a3'::uuid
 where id = current_setting('moneyflow_test.gl_tx')::uuid;
+set local role authenticated;
 
 select lives_ok(
   format(
@@ -293,12 +297,16 @@ select lives_ok(
 );
 
 -- 12: the composite FK is ON DELETE RESTRICT — the goal fixture has no
--- allocations, so only the transaction reference can block the delete.
+-- allocations, so only the transaction reference can block the delete. Run
+-- as the owning role: under `authenticated` a bare DELETE would fail on
+-- permission and give a false green — asserting 23503 pins the FK itself.
+reset role;
 select throws_ok(
   'delete from public.savings_goals where id = ''88888888-0000-4000-8000-0000000000a3''::uuid',
-  null,
-  'deleting a referenced goal is restricted'
+  '23503',
+  'deleting a referenced goal is restricted by the composite FK'
 );
+set local role authenticated;
 
 -- 13-14: reconciled rows accept a goal-only edit (annotation, not
 -- reconciliation truth) but still reject a real-field edit.
@@ -323,7 +331,7 @@ select throws_ok(
   'a real-field edit on a reconciled transaction is still blocked'
 );
 
--- 15: the feed exposes goal_id + goal_name for display — including the
+-- 16: the feed exposes goal_id + goal_name for display — including the
 -- name of an archived goal still referenced by history.
 select is(
   (select goal_id::text || '|' || coalesce(goal_name, '')
@@ -331,6 +339,46 @@ select is(
    where id = current_setting('moneyflow_test.gl_tx')::uuid),
   '88888888-0000-4000-8000-0000000000a3|Goal A archived',
   'transaction_feed exposes goal_id and goal_name'
+);
+
+-- 17-18: tagging must never move goal progress — allocations stay the single
+-- authority. Snapshot allocation state, assign a tag, and assert nothing
+-- allocation-owned moved.
+create temp table gl_alloc_snapshot on commit drop as
+select
+  (select coalesce(sum(amount_minor), 0)::bigint
+   from public.savings_goal_allocations
+   where user_id = '88888888-8888-4888-8888-888888888881') as alloc_sum,
+  (select count(*)::int
+   from public.savings_goal_allocations
+   where user_id = '88888888-8888-4888-8888-888888888881') as alloc_count,
+  (select allocated_minor
+   from public.savings_goals
+   where id = '88888888-0000-4000-8000-0000000000a1'::uuid) as goal_allocated;
+
+select lives_ok(
+  format(
+    'select public.update_money_transaction(%L::uuid, %L::uuid, %L::uuid, ''expense'', 52000, ''2026-09-24''::date, ''tag a1'', '''', null, %L::uuid, true)',
+    current_setting('moneyflow_test.gl_tx'),
+    current_setting('moneyflow_test.gl_account'),
+    current_setting('moneyflow_test.gl_category'),
+    '88888888-0000-4000-8000-0000000000a1'
+  ),
+  'assigning an active goal tag succeeds'
+);
+select results_eq(
+  'select alloc_sum, alloc_count, goal_allocated from gl_alloc_snapshot',
+  $$select
+    (select coalesce(sum(amount_minor), 0)::bigint
+     from public.savings_goal_allocations
+     where user_id = '88888888-8888-4888-8888-888888888881'),
+    (select count(*)::int
+     from public.savings_goal_allocations
+     where user_id = '88888888-8888-4888-8888-888888888881'),
+    (select allocated_minor
+     from public.savings_goals
+     where id = '88888888-0000-4000-8000-0000000000a1'::uuid)$$,
+  'goal tag assignment left allocation state untouched'
 );
 
 select * from finish();
