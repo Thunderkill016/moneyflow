@@ -1,0 +1,133 @@
+# Optimistic concurrency on `update_money_transaction`
+
+**Status:** implementing
+**Execution state:** implementing
+**Active role:** implementer (owner delegated: "mày chính là người phát triển sản phẩm này")
+**Permission scope:** branch_write
+**Owner:** agent (Devin)
+**Issue/PR:** #432 (multi-device correctness); spec: `docs/operations/multi-device-write-semantics.md`
+**Last updated:** 2026-09-23
+
+## Repository reconnaissance
+
+`docs/operations/multi-device-write-semantics.md` records the current truth:
+every update RPC takes the row `for update` but accepts **no version
+precondition** — last write wins silently. The same document names the
+smallest honest increment: an optional `expected_updated_at` on update RPCs
+that rejects stale writes with `stale_write` so the client can surface
+"bản ghi đã đổi ở nơi khác — tải lại?".
+
+Code reconnaissance:
+
+- `update_money_transaction` already takes the row `for update` inside the
+  function, so adding the precondition check after the lock is serialized and
+  race-free — no new locking machinery needed.
+- `financial_transactions.updated_at` is maintained by the
+  `transactions_set_updated_at` trigger (server time), so the version the
+  client compares against is never client-supplied.
+- `transaction_feed` did not expose `updated_at`; the view must surface it
+  before the client can send a meaningful precondition.
+- `use-transactions.ts` routes ordinary edits through
+  `updateTransactionAction` and transfer edits through `updateTransferAction`;
+  only the ordinary path gains the precondition in this slice.
+
+## Research
+
+- **PostgREST overload resolution**: adding a defaulted trailing parameter
+  while dropping the old signature keeps named-arg callers on 9 args working —
+  they resolve to the new function via defaults. This is the chosen rolling-
+  deploy story instead of keeping two overloads.
+- **Optimistic-locking precedent in-repo**: none on update RPCs today; the
+  ops doc's increment is the authority. Industry baseline (HTTP ETag /
+  `If-Match`, ORM `version` columns) confirms the same shape: compare a
+  server-maintained version, fail closed on mismatch.
+- **Alternatives rejected**: field-level merge and CRDT conflict resolution —
+  the ops doc already rules both out as disproportionate for this product.
+
+## Implementation plan
+
+1. Migration: recreate `transaction_feed` with `updated_at`; create the
+   10-arg `update_money_transaction` (new `p_expected_updated_at timestamptz
+default null` checked after the `for update` lock); drop the 8-arg
+   signature; keep identical grants (`authenticated` only).
+2. Client wire: feed schema/columns → `Transaction.updatedAt` → action
+   schema/args → `stale_write` → truthful "đã đổi ở nơi khác" message →
+   `use-transactions` attaches `existing.updatedAt` on submit.
+3. Contract tests pin the signature, ordering (lock → check → update),
+   grants and the client mapping; pgTAP pins the stale/current/null paths.
+
+## Specification
+
+### Behavior
+
+- `transaction_feed` exposes `updated_at` so the client model carries the
+  version it read.
+- `update_money_transaction` gains `p_expected_updated_at timestamptz
+default null` (new signature; the old 8-arg signature is dropped — named-arg
+  RPC calls with 8 params still resolve via the default).
+- When supplied and the row's `updated_at` differs, the function raises
+  `stale_write` — after the existing `for update` lock, so the check is
+  serialized and race-free.
+- `null` means "no precondition" — identical semantics to today (LWW). Bulk
+  tools and older clients keep working.
+- `updateTransactionAction` accepts optional `expectedUpdatedAt`, forwards it,
+  and maps `stale_write` to a truthful message telling the user to reload.
+- `use-transactions` attaches `existing.updatedAt` when submitting an edit, so
+  the check is active wherever the edited row was loaded from the feed.
+
+### Financial and security constraints
+
+- `security definer` + `set search_path = ''` + identical grants; only
+  `authenticated` may execute.
+- The check compares the stored `updated_at` (maintained by
+  `transactions_set_updated_at` trigger) — server time, never client time.
+- A stale write must fail closed: no partial update, no force flag.
+- VND integer, RLS scoping and the recurring/reconciled locks are unchanged.
+
+### Out of scope
+
+- Other update RPCs (`update_account_transfer`, budget/goal/commitment/
+  template upserts) — same pattern, later slice if the need is measured.
+- Conflict-resolution UI beyond the honest error message (no field merge,
+  no CRDT — the ops doc already rules this out).
+- Realtime invalidation.
+
+### External review findings (ChatGPT, 2026-09-24)
+
+Applied: fixed the "old 9-arg" comment (actual old signature is 8-arg);
+verified `transactions_set_updated_at` trigger maintains `updated_at`;
+verified `updatedAt` travels as an opaque `z.string()` end-to-end (never
+through `Date`, so no microsecond truncation).
+
+Noted as pre-existing, unchanged by this slice (revisit when measured):
+
+- TOCTOU: `accounts`/`categories` reads are not locked — a row can be
+  archived between the check and the `transaction_entries` update.
+- `transaction_feed` joins to both occurrence tables can multiply entry
+  rows if >1 occurrence row ever matches a transaction.
+- `category_name` uses `count(distinct)` while `split_lines` uses
+  `count` — split lines sharing one category can mismatch the label.
+- `array_agg(...)[1]` without `order by` is nondeterministic.
+
+## Tasks
+
+| ID  | Task                                                                                                                                        | Dependency | Evidence                                  | Status |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ----------------------------------------- | ------ |
+| T1  | Migration: feed view `updated_at` + 10-arg function + drop old signature + grants                                                           | none       | migration file, contract test             | done   |
+| T2  | Client wire: feed schema/columns → `Transaction.updatedAt` → action schema/args → `stale_write` message → `use-transactions` passes version | T1         | typecheck, unit tests                     | done   |
+| T3  | Contract test pinning signature, ordering (lock→check→update), grants, client mapping                                                       | T1,T2      | `optimistic-concurrency-contract.test.ts` | done   |
+
+## Evaluation
+
+| Criterion                                   | Evidence                             | Result        |
+| ------------------------------------------- | ------------------------------------ | ------------- |
+| Stale write rejected server-side            | migration review + contract test     | pending merge |
+| Backward compat (8-arg callers)             | default param + named-arg resolution | pending merge |
+| Client surfaces honest message              | `stale_write` mapping + code         | pending merge |
+| No ledger behavior change when param absent | `null` → identical path              | pending merge |
+
+## Handoff record
+
+| Date       | From        | To          | State       | Artifacts/evidence                   | Open risks                                                                                                    | Next allowed action                      |
+| ---------- | ----------- | ----------- | ----------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| 2026-09-23 | implementer | human_owner | implemented | branch `feat/optimistic-concurrency` | `test:db` against a live DB not run locally; rolling-deploy window relies on PostgREST default-arg resolution | PR review → merge → `test:db` on preview |

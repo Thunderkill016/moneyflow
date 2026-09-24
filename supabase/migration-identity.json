@@ -339,6 +339,11 @@
       "version": "20260923120000",
       "name": "20260923120000_dashboard_bundle_goal_created_at.sql",
       "hash": "5bb078a751ed0f44e9cdf111e040cf23"
+    },
+    {
+      "version": "20260923160000",
+      "name": "20260923160000_update_money_transaction_expected_updated_at.sql",
+      "hash": "02709f4fb077ce4df52f1969240c730d"
     }
   ]
 }

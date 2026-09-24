@@ -80,7 +80,10 @@ test("builds a stable pending transaction from the idempotency key", () => {
 
   assert.equal(result.ok, true);
   if (!result.ok) return;
-  assert.equal(result.transaction.id, `${OPTIMISTIC_TRANSACTION_ID_PREFIX}request-123`);
+  assert.equal(
+    result.transaction.id,
+    `${OPTIMISTIC_TRANSACTION_ID_PREFIX}request-123`,
+  );
   assert.equal(result.transaction.relativeDate, "Đang lưu…");
   assert.equal(result.transaction.occurredAt, "2026-07-25T12:00:00.000Z");
   assert.equal(result.transaction.amount, 52_000);
@@ -121,13 +124,20 @@ test("optimistic reducer prepends once and preserves the newest base list", () =
     occurredAt: "2026-07-25T10:00:00.000Z",
     relativeDate: "Vừa xong",
   };
-  const pending = { ...existing, id: "pending:request-1", relativeDate: "Đang lưu…" };
+  const pending = {
+    ...existing,
+    id: "pending:request-1",
+    relativeDate: "Đang lưu…",
+  };
 
   const next = reduceOptimisticTransactions([existing, pending], {
     type: "add",
     transaction: pending,
   });
-  assert.deepEqual(next.map((item) => item.id), [pending.id, existing.id]);
+  assert.deepEqual(
+    next.map((item) => item.id),
+    [pending.id, existing.id],
+  );
 });
 
 // --- Optimistic remove (delete) ---------------------------------------------
@@ -178,14 +188,20 @@ test("a feed refresh cannot resurrect an optimistically deleted row", () => {
   const during = replayOptimistic(refreshedFeed, [
     { type: "remove", id: doomed.id },
   ]);
-  assert.deepEqual(during.map((item) => item.id), [kept.id]);
+  assert.deepEqual(
+    during.map((item) => item.id),
+    [kept.id],
+  );
 
   // And a stale base that still carries the row is filtered the same way.
   const staleBase = [doomed, kept];
   const duringStale = replayOptimistic(staleBase, [
     { type: "remove", id: doomed.id },
   ]);
-  assert.deepEqual(duringStale.map((item) => item.id), [kept.id]);
+  assert.deepEqual(
+    duringStale.map((item) => item.id),
+    [kept.id],
+  );
 });
 
 test("remove does not retire a pending row that only shares the list", () => {
@@ -199,10 +215,14 @@ test("remove does not retire a pending row that only shares the list", () => {
     ...confirmedRow({ id: "pending:key-9" }),
     pendingKey: "key-9",
   };
-  const during = replayOptimistic([pending, doomed], [
-    { type: "remove", id: doomed.id },
-  ]);
-  assert.deepEqual(during.map((item) => item.id), [pending.id]);
+  const during = replayOptimistic(
+    [pending, doomed],
+    [{ type: "remove", id: doomed.id }],
+  );
+  assert.deepEqual(
+    during.map((item) => item.id),
+    [pending.id],
+  );
 });
 
 test("undo re-inserts the deleted snapshot after the delete settles", () => {
@@ -214,11 +234,15 @@ test("undo re-inserts the deleted snapshot after the delete settles", () => {
   const doomed = confirmedRow({ id: "row-delete-me" });
   const kept = confirmedRow({ id: "row-keeps" });
 
-  const afterDelete = replayOptimistic([doomed, kept], [
-    { type: "remove", id: doomed.id },
-  ]);
+  const afterDelete = replayOptimistic(
+    [doomed, kept],
+    [{ type: "remove", id: doomed.id }],
+  );
   const restored = restoreTransactionInList(afterDelete, doomed);
-  assert.deepEqual(restored.map((item) => item.id), [doomed.id, kept.id]);
+  assert.deepEqual(
+    restored.map((item) => item.id),
+    [doomed.id, kept.id],
+  );
 
   // Idempotent: a second restore over the same base cannot duplicate it.
   const twice = restoreTransactionInList(restored, doomed);
@@ -394,9 +418,10 @@ test("a replayed update op lands harmlessly on the confirmed row", () => {
   if (!draft.ok) return;
 
   const confirmed = { ...draft.transaction, relativeDate: "Hôm qua" };
-  const during = replayOptimistic([confirmed], [
-    { type: "update", transaction: draft.transaction },
-  ]);
+  const during = replayOptimistic(
+    [confirmed],
+    [{ type: "update", transaction: draft.transaction }],
+  );
   assert.equal(during.length, 1);
   assert.equal(during[0].id, existing.id);
   assert.equal(during[0].amount, 60_000);
@@ -429,12 +454,12 @@ test("update dispatches the draft inside the transition before the RPC", () => {
     hookSource,
   )?.[0];
   assert.ok(updateBody, "updateTransaction must exist");
-  const dispatch = updateBody.indexOf(
-    'applyOptimisticMutation({ type: "update", transaction: draft.transaction })',
+  const dispatch = updateBody.search(
+    /applyOptimisticMutation\(\{\s*type: "update",\s*transaction: draft\.transaction,?\s*\}\)/u,
   );
   const awaited = Math.min(
     updateBody.indexOf("await updateTransferAction(input)"),
-    updateBody.indexOf("await updateTransactionAction(input)"),
+    updateBody.indexOf("await updateTransactionAction("),
   );
   const transition = updateBody.indexOf("startTransition(async () =>");
   assert.ok(transition > -1, "the update must run inside a transition");
@@ -444,7 +469,10 @@ test("update dispatches the draft inside the transition before the RPC", () => {
     "the draft must be visible before the action is awaited",
   );
   // The draft must come from the shared builder, not a second merge.
-  assert.match(updateBody, /buildUpdatedTransaction\(existing, input, accounts, categories\)/u);
+  assert.match(
+    updateBody,
+    /buildUpdatedTransaction\(existing, input, accounts, categories\)/u,
+  );
 });
 
 test("demo mode keeps the synchronous write path for delete and update", () => {
@@ -453,15 +481,21 @@ test("demo mode keeps the synchronous write path for delete and update", () => {
    * instant — and delete/update must mirror that: `commitDemoTransactions`,
    * not the optimistic overlay.
    */
-  const deleteBody = /async function deleteTransaction[\s\S]*?\n  \}/u.exec(
-    hookSource,
-  )?.[0] ?? "";
-  assert.match(deleteBody, /if \(isDemo\) \{[\s\S]*commitDemoTransactions\(next\);[\s\S]*return \{ ok: true \};/u);
+  const deleteBody =
+    /async function deleteTransaction[\s\S]*?\n  \}/u.exec(hookSource)?.[0] ??
+    "";
+  assert.match(
+    deleteBody,
+    /if \(isDemo\) \{[\s\S]*commitDemoTransactions\(next\);[\s\S]*return \{ ok: true \};/u,
+  );
 
-  const updateBody = /async function updateTransaction[\s\S]*?\n  \}/u.exec(
-    hookSource,
-  )?.[0] ?? "";
-  assert.match(updateBody, /if \(isDemo\) \{[\s\S]*buildUpdatedTransaction[\s\S]*commitDemoTransactions\(next\);[\s\S]*return \{ ok: true, transaction \};/u);
+  const updateBody =
+    /async function updateTransaction[\s\S]*?\n  \}/u.exec(hookSource)?.[0] ??
+    "";
+  assert.match(
+    updateBody,
+    /if \(isDemo\) \{[\s\S]*buildUpdatedTransaction[\s\S]*commitDemoTransactions\(next\);[\s\S]*return \{ ok: true, transaction \};/u,
+  );
 });
 
 test("restore still re-inserts the undo snapshot into the base list", () => {
@@ -476,7 +510,7 @@ test("restore still re-inserts the undo snapshot into the base list", () => {
   assert.ok(restoreBody, "restoreTransaction must exist");
   assert.match(
     restoreBody,
-    /setTransactions\(\(current\) => restoreTransactionInList\(current, restored\)\)/u,
+    /setTransactions\(\(current\) =>\s*restoreTransactionInList\(current, restored\),?\s*\)/u,
   );
   assert.doesNotMatch(restoreBody, /applyOptimisticMutation/u);
 });
