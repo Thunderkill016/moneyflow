@@ -179,6 +179,7 @@ Safety requirements for any prototype:
 - preserve coherent field relationships from the same pattern; never independently guess account/category/counterparty;
 - exclude transfers as ordinary income/expense patterns;
 - exclude split/ambiguous/review-needed rows from silently establishing a pattern;
+- exclude recurring-owned rows from establishing capture patterns — a subscription the system posted is rule output, not a manual habit (the recurring/commitment domain owns it). The same row may still answer where its payee belongs: the recurring rule's category is user-chosen evidence for that payee, offered through the explicit suggestion chip;
 - ignore invalid/deleted account/category/counterparty references;
 - leave amount and note empty by default;
 - never autopost; Save remains explicit;

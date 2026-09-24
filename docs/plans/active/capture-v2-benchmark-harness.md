@@ -38,11 +38,15 @@ and physical-device runs remain the strongest evidence tier (RRB-08 pattern).
 
 - Session facts auto-filled: date, origin, commit via `/api/health`, UA-derived
   device, `navigator.connection` network; editable before reporting.
-- 7 tasks across two groups measurable today:
+- 10 tasks across three groups measurable today:
   - `A1–A4` amount-first control via `/capture/quick` (expense, income,
     transfer-neutrality probe, repeated expense to observe #596 defaults).
   - `D1–D3` description mode via `/capture/paste` (shorthand, dated text,
     synthetic bank SMS) — these commit to Inbox candidates first, then ledger.
+  - `P1–P3` Frequent Patterns cohort via `/capture/quick`: P1 a clear single
+    pattern, P2 choosing correctly among multiple plausible patterns, P3 a
+    weak-history run that expects no chip. Each records whether the user
+    tapped a chip, typed manually, or saw no chip (`pattern:` in the report).
 - Per task: "Bắt đầu" starts `performance.now()`; a `storage` event adding a
   new transaction id stops the timer automatically. A new Inbox candidate id
   records a separate `candidateMs` leg, so description-mode TTLT splits into
@@ -55,21 +59,34 @@ and physical-device runs remain the strongest evidence tier (RRB-08 pattern).
 - Report: per-task lines (total/candidate/ledger ms, match, taps, corrections,
   notes) + median per group + honest caveat → copy → paste into evidence.
 
+Pattern cohort seeding: a "Seed lịch sử mẫu" button writes five reviewed
+synthetic rows (`bench-seed-*` ids: Tiền mặt·Ăn uống ×3, MoMo·Di chuyển ×2)
+into the demo transaction key so `deriveFrequentLedgerPatterns` yields exactly
+two chips — the stable-history cohort without hand-entering history. "Gỡ lịch
+sử bench" removes only `bench-seed-*` rows and drops the key entirely when it
+held nothing else, restoring the built-in demo baseline. Seed ids are excluded
+from ledger-write detection so a seed write can never be timed as a task save.
+Seeding only affects demo mode and must run before the app tab is (re)loaded —
+the app reads storage on mount, not on `storage` events.
+
 Privacy: no data leaves the page except a same-origin `/api/health` fetch;
-all task content is synthetic; `noindex,nofollow`.
+all task and seed content is synthetic; `noindex,nofollow`.
 
 ## Implementation plan
 
 1. `public/capture-bench.html` (this packet's only runtime artifact).
 2. `src/lib/capture-bench-tool-contract.test.ts` pinning task ids, routes,
    storage keys, report fields, and the no-external-call boundary.
-3. No product-code, schema, or loader changes. No new localStorage writes from
-   the tool itself.
+3. No product-code, schema, or loader changes. The only localStorage write the
+   tool performs is the opt-in `bench-seed-*` pattern cohort above — tagged,
+   synthetic, demo-only and removable in one click; it never touches the Inbox
+   candidate key or any authenticated data path.
 
 ## Tasks
 
 - [x] Harness page with storage-event TTLT detection
 - [x] Contract test
+- [x] P1–P3 pattern tasks + tagged demo seeding for the stable-history cohort
 - [ ] Owner/user runs the benchmark on representative devices and pastes
       evidence into the Capture V2 evaluation record
 
@@ -79,6 +96,8 @@ all task content is synthetic; `noindex,nofollow`.
 - Manual render + event simulation verified with Playwright (storage event
   stops the timer; report aggregates medians).
 - Honest limits recorded: tab-switch latency, demo fixtures ≠ true first-time
-  cohort, corrections only auto-detected in demo mode.
+  cohort, corrections only auto-detected in demo mode, seeded history is a
+  synthetic approximation of stable-history cohorts, chip usage is self-reported
+  (the followup select) rather than instrumented inside the app.
 - Evidence from real runs feeds H1/H4 evaluation in the Capture V2 spec; this
   tool alone does not authorize any product change.
