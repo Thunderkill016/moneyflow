@@ -64,11 +64,17 @@ values (
   'Guard account', 'cash', 'VND'
 );
 insert into public.transaction_entries (
-  transaction_id, user_id, account_id, amount_minor, reconciliation_state
+  transaction_id, user_id, account_id, category_id, amount_minor,
+  reconciliation_state
 ) values (
   '88888888-0000-4000-8000-0000000000f1'::uuid,
   '88888888-8888-4888-8888-888888888881'::uuid,
   '88888888-0000-4000-8000-0000000000c1'::uuid,
+  (select id from public.categories
+   where user_id = '88888888-8888-4888-8888-888888888881'
+     and kind = 'expense'
+   order by created_at, id
+   limit 1),
   -5000, 'pending'
 );
 with recon as (
@@ -301,9 +307,9 @@ select lives_ok(
 -- as the owning role: under `authenticated` a bare DELETE would fail on
 -- permission and give a false green — asserting 23503 pins the FK itself.
 reset role;
-select throws_ok(
+select throws_matching(
   'delete from public.savings_goals where id = ''88888888-0000-4000-8000-0000000000a3''::uuid',
-  '23503',
+  'financial_transactions_goal_fk',
   'deleting a referenced goal is restricted by the composite FK'
 );
 set local role authenticated;
