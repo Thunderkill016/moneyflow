@@ -199,8 +199,8 @@ test("row-scoped mutations freeze their own row, not the whole register", () => 
   // Single-row delete/update/restore mark only their own id; they no longer
   // hold the workspace-wide isMutating flag.
   for (const op of [
-    /async function deleteTransaction\(id: string\)[\s\S]*?\n  \}/,
-    /async function restoreTransaction\(transaction: Transaction\)[\s\S]*?\n  \}/,
+    /async function deleteTransaction\(\s*id: string,?\s*\)[\s\S]*?\n  \}/,
+    /async function restoreTransaction\(\s*transaction: Transaction,?\s*\)[\s\S]*?\n  \}/,
     /async function updateTransaction\([\s\S]*?\n  \}/,
   ]) {
     const body = hook.match(op)?.[0];

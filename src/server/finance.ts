@@ -78,6 +78,7 @@ const feedSchema = z.object({
   note: z.string(),
   occurred_on: z.string(),
   created_at: z.string(),
+  updated_at: z.string().optional(),
   amount_minor: z.union([z.number(), z.string()]),
   account_id: z.string().uuid(),
   account_name: z.string().min(1),
@@ -165,6 +166,7 @@ export function mapTransactionFeedRow(value: unknown): Transaction {
     amount,
     occurredOn: row.occurred_on,
     occurredAt: row.created_at,
+    updatedAt: row.updated_at,
     relativeDate: formatRelativeDate(row.occurred_on),
   };
 }
@@ -174,7 +176,9 @@ export function mapTransactionFeedRow(value: unknown): Transaction {
  * stays identical; only the tombstone timestamp is peeled off first.
  * `feedSchema` strips `deleted_at` on the inner parse, so this stays honest.
  */
-export function mapDeletedTransactionFeedRow(value: unknown): DeletedTransaction {
+export function mapDeletedTransactionFeedRow(
+  value: unknown,
+): DeletedTransaction {
   const row = deletedFeedSchema.parse(value);
   return { transaction: mapTransactionFeedRow(row), deletedAt: row.deleted_at };
 }

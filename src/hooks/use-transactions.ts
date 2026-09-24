@@ -52,10 +52,7 @@ import {
   type BulkSkippedRow,
 } from "@/lib/transaction-review";
 import { todayInVietnam } from "@/lib/vietnam-date";
-import {
-  addMutatingIds,
-  removeMutatingIds,
-} from "@/lib/mutating-ids";
+import { addMutatingIds, removeMutatingIds } from "@/lib/mutating-ids";
 import {
   buildOptimisticTransaction,
   buildUpdatedTransaction,
@@ -110,10 +107,16 @@ function dateUpdateInput(
     amount: transaction.amount,
     occurredOn,
     note: transaction.note,
+    expectedUpdatedAt: transaction.updatedAt,
   };
 }
 
-export function useTransactions({ initialTransactions, accounts, categories, isDemo }: Options) {
+export function useTransactions({
+  initialTransactions,
+  accounts,
+  categories,
+  isDemo,
+}: Options) {
   const [transactions, setTransactions] = useState(
     initialTransactions.map(withReviewStatus),
   );
@@ -143,7 +146,9 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
 
   useEffect(() => {
     if (!isDemo) return;
-    const frame = window.requestAnimationFrame(() => setTransactions(readStoredTransactions()));
+    const frame = window.requestAnimationFrame(() =>
+      setTransactions(readStoredTransactions()),
+    );
     return () => window.cancelAnimationFrame(frame);
   }, [isDemo]);
 
@@ -152,7 +157,9 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     setTransactions(next);
   }
 
-  async function addTransaction(input: CreateTransactionInput): Promise<TransactionActionResult> {
+  async function addTransaction(
+    input: CreateTransactionInput,
+  ): Promise<TransactionActionResult> {
     if (isDemo) {
       const account = accounts.find((item) => item.id === input.accountId);
       const category = categories.find((item) => item.id === input.categoryId);
@@ -209,7 +216,10 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
         }
         return result;
       } catch {
-        return { ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." };
+        return {
+          ok: false,
+          message: "Mất kết nối. Kiểm tra mạng rồi thử lại.",
+        };
       } finally {
         setIsMutating(false);
       }
@@ -243,10 +253,17 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
           resolve(
             result.ok
               ? result
-              : { ok: false, message: result.message || "Không lưu được giao dịch. Thử lại." },
+              : {
+                  ok: false,
+                  message:
+                    result.message || "Không lưu được giao dịch. Thử lại.",
+                },
           );
         } catch {
-          resolve({ ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." });
+          resolve({
+            ok: false,
+            message: "Mất kết nối. Kiểm tra mạng rồi thử lại.",
+          });
         } finally {
           setIsMutating(false);
         }
@@ -254,7 +271,9 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     });
   }
 
-  async function deleteTransaction(id: string): Promise<TransactionActionResult> {
+  async function deleteTransaction(
+    id: string,
+  ): Promise<TransactionActionResult> {
     if (isDemo) {
       /*
        * Tombstone before dropping from the live store so the demo trash page
@@ -295,10 +314,17 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
           resolve(
             result.ok
               ? result
-              : { ok: false, message: result.message || "Không xóa được giao dịch. Thử lại." },
+              : {
+                  ok: false,
+                  message:
+                    result.message || "Không xóa được giao dịch. Thử lại.",
+                },
           );
         } catch {
-          resolve({ ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." });
+          resolve({
+            ok: false,
+            message: "Mất kết nối. Kiểm tra mạng rồi thử lại.",
+          });
         } finally {
           clearMutating([id]);
         }
@@ -307,7 +333,9 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
   }
 
   /** Undo soft-delete: demo re-inserts snapshot; server clears deleted_at via RPC. */
-  async function restoreTransaction(transaction: Transaction): Promise<TransactionActionResult> {
+  async function restoreTransaction(
+    transaction: Transaction,
+  ): Promise<TransactionActionResult> {
     if (isDemo) {
       const next = restoreTransactionInList(
         readStoredTransactions(),
@@ -331,7 +359,9 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
           ...(result.transaction ?? transaction),
           reviewStatus: getTransactionReviewStatus(transaction),
         };
-        setTransactions((current) => restoreTransactionInList(current, restored));
+        setTransactions((current) =>
+          restoreTransactionInList(current, restored),
+        );
         return { ok: true, transaction: restored };
       }
       return {
@@ -345,7 +375,9 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     }
   }
 
-  async function addTransfer(input: CreateTransferInput): Promise<TransactionActionResult> {
+  async function addTransfer(
+    input: CreateTransferInput,
+  ): Promise<TransactionActionResult> {
     if (!isDemo) setIsMutating(true);
     try {
       if (!isDemo && input.inboxCandidateId) {
@@ -389,7 +421,9 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     }
   }
 
-  async function addSplitExpense(input: CreateSplitExpenseInput): Promise<TransactionActionResult> {
+  async function addSplitExpense(
+    input: CreateSplitExpenseInput,
+  ): Promise<TransactionActionResult> {
     const account = accounts.find((item) => item.id === input.accountId);
     if (!account) return { ok: false, message: "Tài khoản chưa hợp lệ." };
 
@@ -423,7 +457,10 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
       }
       return result.ok
         ? result
-        : { ok: false, message: result.message || "Không chia được khoản chi. Thử lại." };
+        : {
+            ok: false,
+            message: result.message || "Không chia được khoản chi. Thử lại.",
+          };
     } catch {
       return { ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." };
     } finally {
@@ -440,7 +477,12 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
       if (!existing || existing.isRecurringPayment) {
         return { ok: false, message: "Giao dịch này không thể sửa tại đây." };
       }
-      const draft = buildUpdatedTransaction(existing, input, accounts, categories);
+      const draft = buildUpdatedTransaction(
+        existing,
+        input,
+        accounts,
+        categories,
+      );
       if (!draft.ok) return { ok: false, message: draft.message };
       const transaction = draft.transaction;
       const next = current.map((item) =>
@@ -466,13 +508,20 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     return await new Promise<TransactionActionResult>((resolve) => {
       startTransition(async () => {
         if (draft?.ok) {
-          applyOptimisticMutation({ type: "update", transaction: draft.transaction });
+          applyOptimisticMutation({
+            type: "update",
+            transaction: draft.transaction,
+          });
         }
         try {
           const result =
             input.kind === "transfer"
               ? await updateTransferAction(input)
-              : await updateTransactionAction(input);
+              : await updateTransactionAction(
+                  existing?.updatedAt
+                    ? { ...input, expectedUpdatedAt: existing.updatedAt }
+                    : input,
+                );
           if (result.ok && result.transaction) {
             setTransactions((current) =>
               current.map((item) =>
@@ -488,10 +537,16 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
           resolve(
             result.ok
               ? result
-              : { ok: false, message: result.message || "Không cập nhật được. Thử lại." },
+              : {
+                  ok: false,
+                  message: result.message || "Không cập nhật được. Thử lại.",
+                },
           );
         } catch {
-          resolve({ ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." });
+          resolve({
+            ok: false,
+            message: "Mất kết nối. Kiểm tra mạng rồi thử lại.",
+          });
         } finally {
           clearMutating([input.id]);
         }
@@ -502,9 +557,7 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
   async function bulkSetReviewStatus(
     input: BulkTransactionReviewInput,
   ): Promise<BulkTransactionActionResult> {
-    const sourceTransactions = isDemo
-      ? readStoredTransactions()
-      : transactions;
+    const sourceTransactions = isDemo ? readStoredTransactions() : transactions;
     const applied = applyBulkReviewStatus(
       sourceTransactions,
       input.ids,
@@ -545,9 +598,7 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     if (!category) {
       return { ok: false, message: "Danh mục không còn tồn tại." };
     }
-    const sourceTransactions = isDemo
-      ? readStoredTransactions()
-      : transactions;
+    const sourceTransactions = isDemo ? readStoredTransactions() : transactions;
     const applied = applyBulkCategoryCorrection(
       sourceTransactions,
       input.ids,
@@ -592,9 +643,7 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     ids: string[];
     occurredOn: string;
   }): Promise<BulkMutationResult> {
-    const sourceTransactions = isDemo
-      ? readStoredTransactions()
-      : transactions;
+    const sourceTransactions = isDemo ? readStoredTransactions() : transactions;
     const plan = planBulkDateChange(
       sourceTransactions,
       input.ids,
@@ -684,9 +733,7 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
   async function bulkDeleteTransactions(input: {
     ids: string[];
   }): Promise<BulkMutationResult> {
-    const sourceTransactions = isDemo
-      ? readStoredTransactions()
-      : transactions;
+    const sourceTransactions = isDemo ? readStoredTransactions() : transactions;
     const plan = planBulkDelete(sourceTransactions, input.ids);
     if (!plan.ok) return plan;
     const skipped: BulkSkippedRow[] = [...plan.skipped];
