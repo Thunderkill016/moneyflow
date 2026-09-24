@@ -111,6 +111,16 @@
   </section>
 
   <section class="card">
+    <h2>Nhóm P — lịch sử mẫu "Thường dùng" (chỉ demo)</h2>
+    <p class="sub">P1–P2 cần lịch sử reviewed để chip "Thường dùng" xuất hiện. Seed ghi 5 giao dịch giả (Tiền mặt·Ăn uống ×3, MoMo·Di chuyển ×2) vào <code>moneyflow-demo-transactions-v1</code> — gộp với dữ liệu hiện có, idempotent. <strong>Seed trước khi mở/reload tab app.</strong> "Gỡ" xoá đúng các dòng bench, không đụng dữ liệu khác.</p>
+    <div class="row">
+      <button class="ghost small" id="seed">Seed lịch sử mẫu</button>
+      <button class="ghost small" id="unseed">Gỡ lịch sử bench</button>
+    </div>
+    <p class="ok hidden" id="seed-msg"></p>
+  </section>
+
+  <section class="card">
     <h2>Tasks — bấm "Bắt đầu", chuyển sang tab app, thực hiện, quay lại</h2>
     <div id="tasks"></div>
     <div class="field" id="live-field" style="display:none">
@@ -125,6 +135,13 @@
   <section class="card hidden" id="followup">
     <h2>Sau khi lưu — task <span id="fu-id"></span></h2>
     <div class="field"><label>Số lần chạm/phím (ước lượng, để trống nếu không đếm)</label><input id="fu-taps" inputmode="numeric"></div>
+    <div class="field hidden" id="fu-pattern-field"><label>Có dùng chip "Thường dùng"?</label>
+      <select id="fu-pattern">
+        <option value="chip">Có — chạm chip rồi nhập số tiền</option>
+        <option value="manual">Không — nhập tay như thường</option>
+        <option value="absent">Không thấy chip nào</option>
+      </select>
+    </div>
     <div class="field"><label>Sửa lại sau khi lưu trong ~60s?</label>
       <select id="fu-corrected">
         <option value="no">Không</option>
@@ -197,6 +214,24 @@ const TASKS = [
     desc: "Dán text giả: \"TK xxxx1234 GD -250.000VND 21/09/2026 TTTM GRAB. SDU 1.500.000VND\". Đi hết pipeline.",
     expect: { kind: "expense", amount: 250000 },
   },
+  {
+    id: "P1", group: "pattern", route: "/capture/quick", pattern: true,
+    title: "Mẫu quen thuộc — lựa chọn rõ",
+    desc: "Cần seed trước. Ghi chi 55.000₫ ăn trưa: chạm chip 'Thường dùng' Tiền mặt·Ăn uống, nhập số tiền, Lưu.",
+    expect: { kind: "expense", amount: 55000, accountId: "demo-account-cash", categoryId: "demo-category-expense-Ăn uống" },
+  },
+  {
+    id: "P2", group: "pattern", route: "/capture/quick", pattern: true,
+    title: "Nhiều mẫu khả dĩ — chọn đúng",
+    desc: "Cần seed trước. Ghi chi 38.000₫ đi xe: chọn đúng chip MoMo·Di chuyển trong các mẫu hiện có, nhập số tiền, Lưu.",
+    expect: { kind: "expense", amount: 38000, accountId: "demo-account-momo", categoryId: "demo-category-expense-Di chuyển" },
+  },
+  {
+    id: "P3", group: "pattern", route: "/capture/quick", pattern: true,
+    title: "Lịch sử yếu — kỳ vọng không chip",
+    desc: "Bấm 'Gỡ lịch sử bench' trước (fresh profile càng tốt). Ghi chi 60.000₫ tùy ý. Kiểm chứng không chip nào xuất hiện — nếu vẫn thấy chip, đó là lịch sử thật của phiên, ghi chú lại.",
+    expect: { kind: "expense", amount: 60000 },
+  },
 ];
 
 const results = {};
@@ -227,14 +262,84 @@ function readIds(key) {
 }
 
 function findNew(arr, beforeSet) {
-  return arr.filter((r) => r && typeof r.id === "string" && !beforeSet.has(r.id));
+  // bench-seed-* rows are harness-written history, never a task's ledger save.
+  // sample-* rows are the built-in demo baseline: on a fresh profile the demo
+  // store materializes them inside the same first write that carries the real
+  // save, so without this filter the matcher would grade a fixture row.
+  return arr.filter(
+    (r) =>
+      r &&
+      typeof r.id === "string" &&
+      !r.id.startsWith("bench-seed-") &&
+      !r.id.startsWith("sample-") &&
+      !beforeSet.has(r.id),
+  );
 }
+
+// ---- pattern-cohort seeding ----
+// Rows satisfy isTransaction (src/lib/transaction-store.ts) and point at the
+// demo account/category ids (src/lib/demo/transaction-fixtures.ts) so the
+// pattern deriver sees reviewed, valid, unsplit manual history.
+function seedRow(id, accountId, account, categoryId, category, amount, daysAgo) {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  const on = d.toISOString().slice(0, 10);
+  return {
+    id,
+    kind: "expense",
+    categoryId,
+    category,
+    note: "bench",
+    accountId,
+    account,
+    amount,
+    occurredOn: on,
+    occurredAt: on + "T09:00:00.000Z",
+    relativeDate: daysAgo === 0 ? "Hôm nay" : daysAgo === 1 ? "Hôm qua" : daysAgo + " ngày trước",
+    reviewStatus: "reviewed",
+  };
+}
+
+const SEED_ROWS = [
+  ["bench-seed-1", "demo-account-cash", "Tiền mặt", "demo-category-expense-Ăn uống", "Ăn uống", 45000, 0],
+  ["bench-seed-2", "demo-account-momo", "MoMo", "demo-category-expense-Di chuyển", "Di chuyển", 42000, 0],
+  ["bench-seed-3", "demo-account-cash", "Tiền mặt", "demo-category-expense-Ăn uống", "Ăn uống", 50000, 1],
+  ["bench-seed-4", "demo-account-momo", "MoMo", "demo-category-expense-Di chuyển", "Di chuyển", 38000, 2],
+  ["bench-seed-5", "demo-account-cash", "Tiền mặt", "demo-category-expense-Ăn uống", "Ăn uống", 48000, 3],
+].map((a) => seedRow(...a));
+
+function seedMsg(text) {
+  const el = document.getElementById("seed-msg");
+  el.textContent = text;
+  el.classList.remove("hidden");
+}
+
+document.getElementById("seed").addEventListener("click", () => {
+  const rows = readIds(TX_KEY);
+  const kept = rows.filter((r) => !(r && typeof r.id === "string" && r.id.startsWith("bench-seed-")));
+  localStorage.setItem(TX_KEY, JSON.stringify([...SEED_ROWS, ...kept]));
+  seedMsg("Đã seed 5 giao dịch mẫu — mở/reload tab app rồi chạy P1/P2.");
+});
+
+document.getElementById("unseed").addEventListener("click", () => {
+  const rows = readIds(TX_KEY);
+  const kept = rows.filter((r) => !(r && typeof r.id === "string" && r.id.startsWith("bench-seed-")));
+  // Empty remainder means the key only held bench rows — removing it restores
+  // the app's built-in demo baseline instead of showing an empty ledger.
+  if (kept.length) localStorage.setItem(TX_KEY, JSON.stringify(kept));
+  else localStorage.removeItem(TX_KEY);
+  seedMsg("Đã gỡ lịch sử bench.");
+});
 
 function matchExpect(t, rec) {
   if (!t.expect) return "?";
   const kindOk = rec.kind === t.expect.kind;
   const amtOk = t.expect.amount === undefined || rec.amount === t.expect.amount;
-  return kindOk && amtOk ? "đúng" : "khác-kỳ-vọng";
+  // Optional context check: a pattern task is only "đúng" when the saved row
+  // lands on the intended account+category — picking the wrong chip is a miss.
+  const accOk = t.expect.accountId === undefined || rec.accountId === t.expect.accountId;
+  const catOk = t.expect.categoryId === undefined || rec.categoryId === t.expect.categoryId;
+  return kindOk && amtOk && accOk && catOk ? "đúng" : "khác-kỳ-vọng";
 }
 
 function stopActive(reason) {
@@ -250,10 +355,13 @@ function stopActive(reason) {
 }
 
 function showFollowup(id) {
+  const task = TASKS.find((t) => t.id === id);
   document.getElementById("fu-id").textContent = id;
   document.getElementById("fu-taps").value = "";
   document.getElementById("fu-note").value = "";
   document.getElementById("fu-corrected").value = results[id].autoCorrected ? "auto" : "no";
+  document.getElementById("fu-pattern-field").classList.toggle("hidden", !task || !task.pattern);
+  document.getElementById("fu-pattern").value = "chip";
   document.getElementById("followup").classList.remove("hidden");
   document.getElementById("followup").scrollIntoView({ behavior: "smooth" });
 }
@@ -263,6 +371,9 @@ document.getElementById("fu-next").addEventListener("click", () => {
   r.taps = document.getElementById("fu-taps").value.trim();
   r.corrected = document.getElementById("fu-corrected").value;
   r.note = document.getElementById("fu-note").value.trim();
+  if (!document.getElementById("fu-pattern-field").classList.contains("hidden")) {
+    r.pattern = document.getElementById("fu-pattern").value;
+  }
   renderResult(r);
   document.getElementById("followup").classList.add("hidden");
 });
@@ -346,6 +457,9 @@ function renderResult(r) {
   if (r.ledgerMs !== undefined) parts.push("ledger@" + (r.ledgerMs / 1000).toFixed(1) + "s");
   if (r.match) parts.push(r.match);
   if (r.taps) parts.push(r.taps + " taps");
+  if (r.pattern === "chip") parts.push("dùng chip");
+  if (r.pattern === "manual") parts.push("nhập tay");
+  if (r.pattern === "absent") parts.push("không thấy chip");
   if (r.corrected === "yes" || r.corrected === "auto" || r.autoCorrected) parts.push("sửa lại");
   if (r.note) parts.push(r.note);
   el.textContent = parts.join(" · ");
@@ -402,13 +516,14 @@ document.getElementById("gen").addEventListener("click", () => {
       r.match || "-",
       "stop:" + r.stopReason,
       r.taps ? "taps:" + r.taps : "-",
+      r.pattern ? "pattern:" + r.pattern : "-",
       "corrected:" + (r.corrected || (r.autoCorrected ? "auto" : "-")),
       r.note ? "note:" + r.note : "",
     ];
     lines.push(cols.filter((c) => c !== "" && c !== "-").join(" | "));
   }
   lines.push("");
-  for (const g of ["amount-first", "description"]) {
+  for (const g of ["amount-first", "description", "pattern"]) {
     const ms = TASKS.filter((t) => t.group === g)
       .map((t) => results[t.id])
       .filter((r) => r && r.ms && !r.skipped)

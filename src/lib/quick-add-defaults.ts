@@ -143,8 +143,11 @@ function eligibleReviewedTransactions({
  * Only explicitly reviewed rows can train a default. Missing review metadata is
  * treated as unknown here rather than silently promoted to trusted evidence.
  * Transfers and split expenses are also excluded because they carry different
- * financial semantics. Current account/category options remain authoritative,
- * so archived/deleted references cannot be promoted back into the form.
+ * financial semantics. Recurring-owned rows stay out too: their account and
+ * category were filled by a recurring rule, so letting them in would fabricate
+ * a manual habit that never happened. Current account/category options remain
+ * authoritative, so archived/deleted references cannot be promoted back into
+ * the form.
  */
 export function deriveStableLedgerPreset({
   transactions,
@@ -153,7 +156,7 @@ export function deriveStableLedgerPreset({
   categories,
 }: StableLedgerPresetInput): QuickAddPreset | null {
   const recent = eligibleReviewedTransactions({ transactions, accounts, categories })
-    .filter((transaction) => transaction.kind === kind)
+    .filter((transaction) => transaction.kind === kind && !transaction.isRecurringPayment)
     .sort(compareLedgerRecency)
     .slice(0, 3);
 
@@ -188,6 +191,9 @@ export function deriveStableLedgerPreset({
  * kind/account/category combinations the user has already reviewed at least
  * twice in the recent ledger window. Frequency wins; the most recent matching
  * row and then the structural key make ordering deterministic.
+ *
+ * Recurring-owned rows are excluded: a subscription the system posted is rule
+ * output, not a manual pattern — the recurring/commitment domain owns it.
  */
 export function deriveFrequentLedgerPatterns({
   transactions,
@@ -195,6 +201,7 @@ export function deriveFrequentLedgerPatterns({
   categories,
 }: FrequentLedgerPatternsInput): FrequentLedgerPattern[] {
   const recent = eligibleReviewedTransactions({ transactions, accounts, categories })
+    .filter((transaction) => !transaction.isRecurringPayment)
     .sort(compareLedgerRecency)
     .slice(0, FREQUENT_PATTERN_WINDOW);
   const patterns = new Map<
