@@ -14,14 +14,14 @@ import {
   ALL_ARCHIVE_COLLECTIONS,
   ARCHIVE_ROW_SPECS,
 } from "../src/lib/archive/moneyflow-archive.ts";
-import { ingestArchiveBytes } from "../src/lib/archive/payee-archive-ingress.ts";
+import { ingestArchiveBytes } from "../src/lib/archive/goal-linkage-archive-ingress.ts";
 
 const failures = [];
 const CURRENT_INBOX_SOURCE_FIELDS = new Set([
   "source_lifecycle_state",
   "source_predecessor_external_id",
 ]);
-const CURRENT_TRANSACTION_FIELDS = new Set(["payee"]);
+const CURRENT_TRANSACTION_FIELDS = new Set(["payee", "goal_id"]);
 
 function check(condition, message) {
   if (!condition) failures.push(message);
