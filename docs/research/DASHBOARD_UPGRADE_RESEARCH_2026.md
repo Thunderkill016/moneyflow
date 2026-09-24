@@ -65,8 +65,8 @@ already on the client.
 > `Số dư từng ví` in `statement.tsx`, the month-shape daily strip shipped in
 > #643 (`feat(dashboard): month-shape strip + prior-window compare`), and the
 > `needs_review` attention chip is already wired end-to-end
-> (`buildAttentionItems` → `/transactions?review=needs_review`). G4 shipped in
-> the same update that added this note. Only G5 remains open (measurement-
+> (`buildAttentionItems` → `/transactions?review=needs_review`). G4 is
+> implemented in PR #712, pending merge. Only G5 remains open (measurement-
 > gated). Sections below are kept for provenance.
 
 ### G1 — Per-account balances behind the total *(highest value)* — **shipped**
