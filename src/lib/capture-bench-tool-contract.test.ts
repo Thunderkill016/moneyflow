@@ -40,6 +40,16 @@ test("capture-bench tool observes demo-mode storage keys without touching produc
   assert.match(tool, /performance\.now\(\)/);
 });
 
+test("capture-bench ledger detection ignores the materialized demo baseline", () => {
+  // On a fresh profile the demo store writes the built-in sample-* fixtures in
+  // the same first write as the task's real save. findNew must exclude them or
+  // the matcher grades a fixture row (e.g. sample-4 income) instead.
+  assert.match(tool, /sample-/);
+  const findNew = tool.slice(tool.indexOf("function findNew"), tool.indexOf("function findNew") + 700);
+  assert.match(findNew, /startsWith\("bench-seed-"\)/);
+  assert.match(findNew, /startsWith\("sample-"\)/);
+});
+
 test("capture-bench report emits the evidence fields needed for hypothesis evaluation", () => {
   for (const field of [
     "CAPTURE V2 BENCHMARK",

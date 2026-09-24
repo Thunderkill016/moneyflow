@@ -263,11 +263,15 @@ function readIds(key) {
 
 function findNew(arr, beforeSet) {
   // bench-seed-* rows are harness-written history, never a task's ledger save.
+  // sample-* rows are the built-in demo baseline: on a fresh profile the demo
+  // store materializes them inside the same first write that carries the real
+  // save, so without this filter the matcher would grade a fixture row.
   return arr.filter(
     (r) =>
       r &&
       typeof r.id === "string" &&
       !r.id.startsWith("bench-seed-") &&
+      !r.id.startsWith("sample-") &&
       !beforeSet.has(r.id),
   );
 }

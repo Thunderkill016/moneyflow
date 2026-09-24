@@ -53,7 +53,8 @@ and physical-device runs remain the strongest evidence tier (RRB-08 pattern).
   candidate creation vs ledger commit. Manual "Xong"/"Bỏ qua" fallbacks cover
   authenticated mode and bail-outs.
 - Result verification: committed record's `kind`/`amount` checked against the
-  task's expectation → `đúng` / `khác-kỳ-vọng`.
+  task's expectation; tasks that declare `accountId`/`categoryId` (pattern
+  cohort) must also land on that context → `đúng` / `khác-kỳ-vọng`.
 - Correction detection: after a ledger commit, same-id rewrites inside a 60 s
   window flag `autoCorrected`; a manual self-report field also exists.
 - Report: per-task lines (total/candidate/ledger ms, match, taps, corrections,
@@ -68,6 +69,13 @@ held nothing else, restoring the built-in demo baseline. Seed ids are excluded
 from ledger-write detection so a seed write can never be timed as a task save.
 Seeding only affects demo mode and must run before the app tab is (re)loaded —
 the app reads storage on mount, not on `storage` events.
+
+Fresh-profile caveat (found by dogfooding): on a profile where the demo
+transaction key is still absent, the app materializes its built-in `sample-*`
+fixture rows inside the same first write that carries the task's save.
+`findNew` therefore also excludes `sample-*` ids — otherwise the matcher
+grades a fixture row (e.g. `sample-4` income) instead of the real save and a
+correct run reads `khác-kỳ-vọng`.
 
 Privacy: no data leaves the page except a same-origin `/api/health` fetch;
 all task and seed content is synthetic; `noindex,nofollow`.
