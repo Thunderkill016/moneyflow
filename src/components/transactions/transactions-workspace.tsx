@@ -167,6 +167,12 @@ type TransactionsWorkspaceData = {
 
 type TransactionsWorkspaceProps = {
   viewer: ViewerSummary;
+  /**
+   * Stable viewer id (Supabase sub; "demo-user" in demo) — scopes the
+   * device-local saved-filter presets so a later sign-in on the same
+   * browser cannot read or mutate the previous viewer's presets.
+   */
+  viewerId: string;
   workspace: TransactionsWorkspaceData;
   /**
    * Server-read import provenance keyed by transaction id (the same map the
@@ -235,6 +241,7 @@ function formatDayMonth(occurredOn: string) {
 
 export function TransactionsWorkspace({
   viewer,
+  viewerId,
   workspace,
   importEvidence,
   variant = "ledger",
@@ -359,8 +366,12 @@ export function TransactionsWorkspace({
   /*
    * Named filter presets — a device-local convenience in localStorage, the
    * same class as duplicate dismissals: never ledger data, never synced.
-   * Read after mount so the server render cannot disagree with the client.
+   * Scoped per viewer: presets carry readable names, free-text queries and
+   * account/category names, so the next person signing into this browser
+   * must not inherit them. Read after mount so the server render cannot
+   * disagree with the client.
    */
+  const savedFilterScope = viewerId;
   const [savedFilters, setSavedFilters] = useState<SavedTransactionFilter[]>(
     [],
   );
@@ -368,10 +379,10 @@ export function TransactionsWorkspace({
   const [saveFilterName, setSaveFilterName] = useState("");
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
-      setSavedFilters(readSavedTransactionFilters());
+      setSavedFilters(readSavedTransactionFilters(savedFilterScope));
     });
     return () => window.cancelAnimationFrame(frame);
-  }, []);
+  }, [savedFilterScope]);
 
   const dupeGroups = useMemo(
     () => findLedgerDuplicateGroups(transactions),
@@ -987,12 +998,22 @@ export function TransactionsWorkspace({
   function handleSaveFilterSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = saveFilterName.trim();
-    const result = saveTransactionFilter(trimmed, currentFilterValues());
+    const result = saveTransactionFilter(
+      trimmed,
+      currentFilterValues(),
+      savedFilterScope,
+    );
     if (!result.ok) {
+      /*
+       * Keep the form open with the name intact — a quota/private-mode
+       * denial may be transient, and retyping the name is the annoying part.
+       */
       showNotice(
-        result.reason === "limit"
-          ? `Chỉ lưu được ${SAVED_TRANSACTION_FILTERS_LIMIT} bộ lọc. Xoá bớt trước khi thêm.`
-          : "Đặt tên cho bộ lọc trước khi lưu.",
+        result.reason === "storage"
+          ? "Trình duyệt không cho lưu — kiểm tra dung lượng hoặc chế độ riêng tư, rồi thử lại."
+          : result.reason === "limit"
+            ? `Chỉ lưu được ${SAVED_TRANSACTION_FILTERS_LIMIT} bộ lọc. Xoá bớt trước khi thêm.`
+            : "Đặt tên cho bộ lọc trước khi lưu.",
         "warning",
       );
       return;
@@ -1004,7 +1025,15 @@ export function TransactionsWorkspace({
   }
 
   function handleDeleteSavedFilter(name: string) {
-    setSavedFilters(deleteSavedTransactionFilter(name));
+    const result = deleteSavedTransactionFilter(name, savedFilterScope);
+    if (!result.ok) {
+      showNotice(
+        "Trình duyệt không cho ghi — chưa xoá được. Thử lại.",
+        "warning",
+      );
+      return;
+    }
+    setSavedFilters(result.filters);
     showNotice(`Đã xoá bộ lọc “${name}”.`, "info");
   }
 

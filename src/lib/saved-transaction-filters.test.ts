@@ -6,6 +6,7 @@ import {
   sameSavedFilterValues,
   SAVED_TRANSACTION_FILTERS_KEY,
   SAVED_TRANSACTION_FILTERS_LIMIT,
+  savedTransactionFiltersKey,
   saveTransactionFilter,
   type SavedTransactionFilter,
 } from "./saved-transaction-filters.ts";
@@ -20,6 +21,21 @@ function fakeStorage(initial?: Record<string, string>) {
     has: (key: string) => map.has(key),
   };
 }
+
+/** Storage whose writes always fail — a private-mode/quota stand-in. */
+function failingWriteStorage(initial?: Record<string, string>) {
+  const base = fakeStorage(initial);
+  return {
+    ...base,
+    setItem: () => {
+      throw new DOMException("Quota reached", "QuotaExceededError");
+    },
+  };
+}
+
+const SCOPE_A = "user-a";
+const SCOPE_B = "user-b";
+const KEY_A = savedTransactionFiltersKey(SCOPE_A);
 
 const baseValues = (
   over: Partial<TransactionFilterValues> = {},
@@ -37,53 +53,72 @@ const baseValues = (
 });
 
 test("readSavedTransactionFilters returns empty when nothing stored", () => {
-  assert.deepEqual(readSavedTransactionFilters(fakeStorage()), []);
-  assert.deepEqual(readSavedTransactionFilters(null), []);
+  assert.deepEqual(readSavedTransactionFilters(SCOPE_A, fakeStorage()), []);
+  assert.deepEqual(readSavedTransactionFilters(SCOPE_A, null), []);
 });
 
 test("save then read round-trips a named filter", () => {
   const storage = fakeStorage();
   const values = baseValues({ kind: "expense", category: "Ăn uống" });
-  const result = saveTransactionFilter("Ăn uống tháng", values, storage);
+  const result = saveTransactionFilter("Ăn uống tháng", values, SCOPE_A, storage);
   assert.equal(result.ok, true);
-  const stored = readSavedTransactionFilters(storage);
+  const stored = readSavedTransactionFilters(SCOPE_A, storage);
   assert.equal(stored.length, 1);
   assert.equal(stored[0]!.name, "Ăn uống tháng");
   assert.deepEqual(stored[0]!.values, values);
 });
 
+test("presets are isolated per scope — a second viewer sees none", () => {
+  const storage = fakeStorage();
+  saveTransactionFilter(
+    "Riêng của A",
+    baseValues({ query: "chủ nhật" }),
+    SCOPE_A,
+    storage,
+  );
+  assert.equal(readSavedTransactionFilters(SCOPE_A, storage).length, 1);
+  assert.deepEqual(readSavedTransactionFilters(SCOPE_B, storage), []);
+  // B cannot overwrite or delete A's preset either.
+  saveTransactionFilter("Riêng của A", baseValues(), SCOPE_B, storage);
+  deleteSavedTransactionFilter("Riêng của A", SCOPE_B, storage);
+  const a = readSavedTransactionFilters(SCOPE_A, storage);
+  assert.equal(a.length, 1);
+  assert.equal(a[0]!.values.query, "chủ nhật");
+});
+
 test("save upserts by name instead of duplicating", () => {
   const storage = fakeStorage();
-  saveTransactionFilter("Chi", baseValues({ kind: "expense" }), storage);
-  saveTransactionFilter("Chi", baseValues({ kind: "income" }), storage);
-  const stored = readSavedTransactionFilters(storage);
+  saveTransactionFilter("Chi", baseValues({ kind: "expense" }), SCOPE_A, storage);
+  saveTransactionFilter("Chi", baseValues({ kind: "income" }), SCOPE_A, storage);
+  const stored = readSavedTransactionFilters(SCOPE_A, storage);
   assert.equal(stored.length, 1);
   assert.equal(stored[0]!.values.kind, "income");
 });
 
 test("save trims the name and rejects an empty one", () => {
   const storage = fakeStorage();
-  const result = saveTransactionFilter("   ", baseValues(), storage);
+  const result = saveTransactionFilter("   ", baseValues(), SCOPE_A, storage);
   assert.equal(result.ok, false);
-  assert.deepEqual(readSavedTransactionFilters(storage), []);
+  assert.deepEqual(readSavedTransactionFilters(SCOPE_A, storage), []);
 });
 
 test("save enforces the preset limit", () => {
   const storage = fakeStorage();
   for (let i = 0; i < SAVED_TRANSACTION_FILTERS_LIMIT; i += 1) {
-    const r = saveTransactionFilter(`Bộ lọc ${i}`, baseValues(), storage);
+    const r = saveTransactionFilter(`Bộ lọc ${i}`, baseValues(), SCOPE_A, storage);
     assert.equal(r.ok, true);
   }
-  const overflow = saveTransactionFilter("Quá nhiều", baseValues(), storage);
+  const overflow = saveTransactionFilter("Quá nhiều", baseValues(), SCOPE_A, storage);
   assert.equal(overflow.ok, false);
   assert.equal(
-    readSavedTransactionFilters(storage).length,
+    readSavedTransactionFilters(SCOPE_A, storage).length,
     SAVED_TRANSACTION_FILTERS_LIMIT,
   );
   // Upserting an existing name still works at the cap.
   const upsert = saveTransactionFilter(
     "Bộ lọc 0",
     baseValues({ kind: "income" }),
+    SCOPE_A,
     storage,
   );
   assert.equal(upsert.ok, true);
@@ -91,21 +126,22 @@ test("save enforces the preset limit", () => {
 
 test("delete removes only the named preset", () => {
   const storage = fakeStorage();
-  saveTransactionFilter("A", baseValues(), storage);
-  saveTransactionFilter("B", baseValues(), storage);
-  const rest = deleteSavedTransactionFilter("A", storage);
+  saveTransactionFilter("A", baseValues(), SCOPE_A, storage);
+  saveTransactionFilter("B", baseValues(), SCOPE_A, storage);
+  const rest = deleteSavedTransactionFilter("A", SCOPE_A, storage);
+  assert.equal(rest.ok, true);
   assert.deepEqual(
-    rest.map((f) => f.name),
+    rest.ok ? rest.filters.map((f) => f.name) : [],
     ["B"],
   );
 });
 
 test("corrupt storage is wiped rather than trusted", () => {
   const storage = fakeStorage({
-    [SAVED_TRANSACTION_FILTERS_KEY]: "not-json{",
+    [KEY_A]: "not-json{",
   });
-  assert.deepEqual(readSavedTransactionFilters(storage), []);
-  assert.equal(storage.has(SAVED_TRANSACTION_FILTERS_KEY), false);
+  assert.deepEqual(readSavedTransactionFilters(SCOPE_A, storage), []);
+  assert.equal(storage.has(KEY_A), false);
 });
 
 test("malformed entries are dropped without touching valid ones", () => {
@@ -114,16 +150,58 @@ test("malformed entries are dropped without touching valid ones", () => {
     values: baseValues({ kind: "transfer" }),
   };
   const storage = fakeStorage({
-    [SAVED_TRANSACTION_FILTERS_KEY]: JSON.stringify([
+    [KEY_A]: JSON.stringify([
       good,
       { name: "", values: baseValues() },
       { name: "x", values: { kind: "nonsense" } },
       { nope: true },
     ]),
   });
-  const stored = readSavedTransactionFilters(storage);
+  const stored = readSavedTransactionFilters(SCOPE_A, storage);
   assert.equal(stored.length, 1);
   assert.equal(stored[0]!.name, "Hợp lệ");
+});
+
+test("unscoped legacy data is not adopted into a viewer scope", () => {
+  // If an unscoped key ever existed, a scoped read must not pick it up —
+  // that would leak presets across viewers on the same browser.
+  const legacy = {
+    name: "Cũ",
+    values: baseValues(),
+  };
+  const storage = fakeStorage({
+    [SAVED_TRANSACTION_FILTERS_KEY]: JSON.stringify([legacy]),
+  });
+  assert.deepEqual(readSavedTransactionFilters(SCOPE_A, storage), []);
+});
+
+test("save reports a storage failure instead of throwing", () => {
+  const storage = failingWriteStorage();
+  const result = saveTransactionFilter("Không lưu được", baseValues(), SCOPE_A, storage);
+  assert.equal(result.ok, false);
+  assert.equal(result.ok ? "" : result.reason, "storage");
+});
+
+test("save without storage fails explicitly, never ok:true", () => {
+  const result = saveTransactionFilter("Không có storage", baseValues(), SCOPE_A, null);
+  assert.equal(result.ok, false);
+  assert.equal(result.ok ? "" : result.reason, "storage");
+});
+
+test("delete reports a storage failure instead of throwing", () => {
+  const storage = failingWriteStorage({
+    [KEY_A]: JSON.stringify([{ name: "A", values: baseValues() }]),
+  });
+  const result = deleteSavedTransactionFilter("A", SCOPE_A, storage);
+  assert.equal(result.ok, false);
+  assert.equal(result.ok ? "" : result.reason, "storage");
+  // The failed delete must not pretend the list changed.
+  assert.equal(result.filters.length, 1);
+});
+
+test("delete without storage fails explicitly", () => {
+  const result = deleteSavedTransactionFilter("A", SCOPE_A, null);
+  assert.equal(result.ok, false);
 });
 
 test("sameSavedFilterValues matches identical values ignoring query edge whitespace", () => {

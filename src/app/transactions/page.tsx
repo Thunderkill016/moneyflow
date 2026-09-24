@@ -67,6 +67,7 @@ export default async function Page({
         displayName: viewer.displayName,
         isDemo: viewer.isDemo,
       }}
+      viewerId={viewer.id}
       workspace={workspace}
       importEvidence={importEvidence}
       initialQuery={params.q?.slice(0, 200) ?? ""}

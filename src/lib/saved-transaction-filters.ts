@@ -8,6 +8,12 @@
  * The preset name is the identity: saving again under the same name replaces
  * the stored values (an update), never duplicates. Names stay short and human;
  * the list is capped so the chip row stays a fast path, not a second registry.
+ *
+ * Storage is scoped per viewer: presets carry readable names, free-text
+ * queries and account/category names, so an unscoped key would leak them to
+ * the next person signing into the same browser. The caller passes a stable
+ * viewer id (the Supabase sub, or "demo-user" in demo); scoped keys mean the
+ * second viewer simply sees an empty list and cannot touch the first's.
  */
 
 import type { TransactionFilterValues } from "./transaction-filters.ts";
@@ -22,12 +28,26 @@ export type SavedTransactionFilter = {
   values: TransactionFilterValues;
 };
 
-export type SaveTransactionFilterResult =
+export type SavedFilterStorage = Pick<
+  Storage,
+  "getItem" | "setItem" | "removeItem"
+> | null;
+
+export type SavedFilterWriteResult =
   | { ok: true; filters: SavedTransactionFilter[] }
-  | { ok: false; reason: "empty_name" | "limit"; filters: SavedTransactionFilter[] };
+  | {
+      ok: false;
+      reason: "empty_name" | "limit" | "storage";
+      filters: SavedTransactionFilter[];
+    };
 
 const KINDS = new Set(["all", "expense", "income", "transfer"]);
 const REVIEWS = new Set(["all", "needs_review", "reviewed"]);
+
+/** The full storage key for one viewer's preset list. */
+export function savedTransactionFiltersKey(scope: string): string {
+  return `${SAVED_TRANSACTION_FILTERS_KEY}:${scope}`;
+}
 
 function isValidValues(value: unknown): value is TransactionFilterValues {
   if (typeof value !== "object" || value === null) return false;
@@ -58,19 +78,22 @@ function isValidEntry(value: unknown): value is SavedTransactionFilter {
   );
 }
 
+function defaultStorage(): SavedFilterStorage {
+  return typeof window !== "undefined" ? window.localStorage : null;
+}
+
 export function readSavedTransactionFilters(
-  storage: Pick<Storage, "getItem" | "removeItem"> | null = typeof window !==
-    "undefined"
-    ? window.localStorage
-    : null,
+  scope: string,
+  storage: SavedFilterStorage = defaultStorage(),
 ): SavedTransactionFilter[] {
   if (!storage) return [];
+  const key = savedTransactionFiltersKey(scope);
   try {
-    const raw = storage.getItem(SAVED_TRANSACTION_FILTERS_KEY);
+    const raw = storage.getItem(key);
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) {
-      storage.removeItem(SAVED_TRANSACTION_FILTERS_KEY);
+      storage.removeItem(key);
       return [];
     }
     // One bad entry must not kill the rest of the user's presets: valid
@@ -78,12 +101,12 @@ export function readSavedTransactionFilters(
     // The key is only removed when nothing valid remains.
     const valid = parsed.filter(isValidEntry);
     if (valid.length === 0) {
-      storage.removeItem(SAVED_TRANSACTION_FILTERS_KEY);
+      storage.removeItem(key);
     }
     return valid;
   } catch {
     try {
-      storage.removeItem(SAVED_TRANSACTION_FILTERS_KEY);
+      storage.removeItem(key);
     } catch {
       /* ignore */
     }
@@ -94,10 +117,10 @@ export function readSavedTransactionFilters(
 export function saveTransactionFilter(
   name: string,
   values: TransactionFilterValues,
-  storage: Pick<Storage, "getItem" | "setItem" | "removeItem"> | null =
-    typeof window !== "undefined" ? window.localStorage : null,
-): SaveTransactionFilterResult {
-  const current = readSavedTransactionFilters(storage);
+  scope: string,
+  storage: SavedFilterStorage = defaultStorage(),
+): SavedFilterWriteResult {
+  const current = readSavedTransactionFilters(scope, storage);
   const trimmed = name.trim();
   if (!trimmed || trimmed.length > SAVED_TRANSACTION_FILTER_NAME_MAX) {
     return { ok: false, reason: "empty_name", filters: current };
@@ -114,7 +137,14 @@ export function saveTransactionFilter(
     existing === -1
       ? [...current, entry]
       : current.map((f, i) => (i === existing ? entry : f));
-  storage?.setItem(SAVED_TRANSACTION_FILTERS_KEY, JSON.stringify(next));
+  if (!storage) return { ok: false, reason: "storage", filters: current };
+  try {
+    storage.setItem(savedTransactionFiltersKey(scope), JSON.stringify(next));
+  } catch {
+    // Quota/private-mode denial: report it — never claim a write that did
+    // not happen, and never let a convenience feature crash the ledger UI.
+    return { ok: false, reason: "storage", filters: current };
+  }
   return { ok: true, filters: next };
 }
 
@@ -141,12 +171,16 @@ export function sameSavedFilterValues(
 
 export function deleteSavedTransactionFilter(
   name: string,
-  storage: Pick<Storage, "getItem" | "setItem" | "removeItem"> | null =
-    typeof window !== "undefined" ? window.localStorage : null,
-): SavedTransactionFilter[] {
-  const next = readSavedTransactionFilters(storage).filter(
-    (f) => f.name !== name,
-  );
-  storage?.setItem(SAVED_TRANSACTION_FILTERS_KEY, JSON.stringify(next));
-  return next;
+  scope: string,
+  storage: SavedFilterStorage = defaultStorage(),
+): SavedFilterWriteResult {
+  const current = readSavedTransactionFilters(scope, storage);
+  const next = current.filter((f) => f.name !== name);
+  if (!storage) return { ok: false, reason: "storage", filters: current };
+  try {
+    storage.setItem(savedTransactionFiltersKey(scope), JSON.stringify(next));
+  } catch {
+    return { ok: false, reason: "storage", filters: current };
+  }
+  return { ok: true, filters: next };
 }
