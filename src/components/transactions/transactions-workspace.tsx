@@ -2,7 +2,13 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  type FormEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import { MoneyValue } from "@/components/money-value";
@@ -68,8 +74,18 @@ import {
   transactionFilterError,
   transactionFilterSearch,
   type TransactionFilterKind,
+  type TransactionFilterValues,
   type TransactionReviewFilter,
 } from "@/lib/transaction-filters";
+import {
+  deleteSavedTransactionFilter,
+  readSavedTransactionFilters,
+  sameSavedFilterValues,
+  SAVED_TRANSACTION_FILTERS_LIMIT,
+  SAVED_TRANSACTION_FILTER_NAME_MAX,
+  saveTransactionFilter,
+  type SavedTransactionFilter,
+} from "@/lib/saved-transaction-filters";
 import {
   TRANSACTION_PAGE_SIZE,
   nextVisibleCount,
@@ -336,6 +352,23 @@ export function TransactionsWorkspace({
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       setDismissedDupeKeys(new Set(readLedgerDupeDismissals()));
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  /*
+   * Named filter presets — a device-local convenience in localStorage, the
+   * same class as duplicate dismissals: never ledger data, never synced.
+   * Read after mount so the server render cannot disagree with the client.
+   */
+  const [savedFilters, setSavedFilters] = useState<SavedTransactionFilter[]>(
+    [],
+  );
+  const [saveFilterOpen, setSaveFilterOpen] = useState(false);
+  const [saveFilterName, setSaveFilterName] = useState("");
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setSavedFilters(readSavedTransactionFilters());
     });
     return () => window.cancelAnimationFrame(frame);
   }, []);
@@ -895,6 +928,23 @@ export function TransactionsWorkspace({
     Boolean(minAmountInput) ||
     Boolean(maxAmountInput);
 
+  const currentFilterValues = (): TransactionFilterValues => ({
+    query,
+    kind,
+    account,
+    category,
+    review,
+    fromDate,
+    toDate,
+    minAmountInput,
+    maxAmountInput,
+  });
+
+  const activeSavedFilterName =
+    savedFilters.find((preset) =>
+      sameSavedFilterValues(preset.values, currentFilterValues()),
+    )?.name ?? null;
+
   function loadMore() {
     setPageState({
       filterKey,
@@ -914,6 +964,48 @@ export function TransactionsWorkspace({
     setMaxAmountInput("");
     setSelectedIds([]);
     window.history.replaceState(null, "", window.location.pathname);
+  }
+
+  /*
+   * Applying a preset writes every filter field — the URL sync effect then
+   * serialises the result, so a loaded preset is deep-linkable for free.
+   */
+  function applySavedFilter(preset: SavedTransactionFilter) {
+    const v = preset.values;
+    setQuery(v.query);
+    setKind(v.kind);
+    setAccount(v.account);
+    setCategory(v.category);
+    setReview(reviewFeatureAvailable ? v.review : "all");
+    setFromDate(v.fromDate);
+    setToDate(v.toDate);
+    setMinAmountInput(v.minAmountInput);
+    setMaxAmountInput(v.maxAmountInput);
+    showNotice(`Đang lọc: ${preset.name}`, "info");
+  }
+
+  function handleSaveFilterSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmed = saveFilterName.trim();
+    const result = saveTransactionFilter(trimmed, currentFilterValues());
+    if (!result.ok) {
+      showNotice(
+        result.reason === "limit"
+          ? `Chỉ lưu được ${SAVED_TRANSACTION_FILTERS_LIMIT} bộ lọc. Xoá bớt trước khi thêm.`
+          : "Đặt tên cho bộ lọc trước khi lưu.",
+        "warning",
+      );
+      return;
+    }
+    setSavedFilters(result.filters);
+    setSaveFilterOpen(false);
+    setSaveFilterName("");
+    showNotice(`Đã lưu bộ lọc “${trimmed}”.`, "success");
+  }
+
+  function handleDeleteSavedFilter(name: string) {
+    setSavedFilters(deleteSavedTransactionFilter(name));
+    showNotice(`Đã xoá bộ lọc “${name}”.`, "info");
   }
 
   function toggleTransactionSelection(id: string) {
@@ -1737,8 +1829,103 @@ export function TransactionsWorkspace({
                     />
                   </label>
                 </div>
+
+                <div className={styles.savedFiltersEditor}>
+                  {saveFilterOpen ? (
+                    <form
+                      className={styles.savedFilterForm}
+                      onSubmit={handleSaveFilterSubmit}
+                    >
+                      <label className={styles.field}>
+                        <span>Tên bộ lọc</span>
+                        <input
+                          value={saveFilterName}
+                          maxLength={SAVED_TRANSACTION_FILTER_NAME_MAX}
+                          onChange={(event) =>
+                            setSaveFilterName(event.target.value)
+                          }
+                          placeholder="Ví dụ: Chi ăn uống tháng này"
+                          aria-label="Tên bộ lọc đã lưu"
+                        />
+                      </label>
+                      <div className={styles.savedFilterFormActions}>
+                        <Button
+                          type="submit"
+                          intent="secondary"
+                          targetSize="important"
+                        >
+                          Lưu
+                        </Button>
+                        <Button
+                          type="button"
+                          intent="quiet"
+                          targetSize="important"
+                          onClick={() => {
+                            setSaveFilterOpen(false);
+                            setSaveFilterName("");
+                          }}
+                        >
+                          Huỷ
+                        </Button>
+                      </div>
+                    </form>
+                  ) : (
+                    <Button
+                      type="button"
+                      intent="quiet"
+                      targetSize="important"
+                      disabled={!hasActiveFilters}
+                      onClick={() => setSaveFilterOpen(true)}
+                    >
+                      Lưu bộ lọc này
+                    </Button>
+                  )}
+                </div>
               </div>
             </details>
+
+            {savedFilters.length > 0 ? (
+              <div
+                className={styles.savedFilters}
+                aria-label="Bộ lọc đã lưu"
+              >
+                <span className={styles.savedFiltersLabel}>Đã lưu</span>
+                <ul className={styles.savedFiltersList}>
+                  {savedFilters.map((preset) => {
+                    const active = activeSavedFilterName === preset.name;
+                    return (
+                      <li
+                        key={preset.name}
+                        className={styles.savedFilterItem}
+                      >
+                        <Button
+                          type="button"
+                          unstyled
+                          targetSize="important"
+                          className={`${styles.savedFilterApply}${
+                            active ? ` ${styles.savedFilterApplyActive}` : ""
+                          }`}
+                          onClick={() => applySavedFilter(preset)}
+                          aria-pressed={active}
+                        >
+                          {preset.name}
+                        </Button>
+                        <Button
+                          type="button"
+                          unstyled
+                          targetSize="important"
+                          className={styles.savedFilterDelete}
+                          onClick={() => handleDeleteSavedFilter(preset.name)}
+                          aria-label={`Xoá bộ lọc ${preset.name}`}
+                        >
+                          <Icon name="close" />
+                        </Button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ) : null}
 
             {filterError ? (
               <Alert
