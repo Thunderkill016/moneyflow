@@ -7,8 +7,8 @@
 -- `null` keeps the previous last-write-wins behavior for callers that do not
 -- pass a precondition (bulk tools, older clients).
 --
--- The old 9-argument signature is dropped; named-argument RPC calls with the
--- original nine parameters resolve to the new signature via the default.
+-- The old 8-argument signature is dropped; named-argument RPC calls with the
+-- original eight parameters resolve to the new signature via the default.
 
 drop function if exists public.update_money_transaction(
   uuid, uuid, uuid, public.transaction_kind, bigint, date, text, text

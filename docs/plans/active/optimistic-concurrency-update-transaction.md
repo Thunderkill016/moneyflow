@@ -48,7 +48,7 @@ Code reconnaissance:
 
 1. Migration: recreate `transaction_feed` with `updated_at`; create the
    10-arg `update_money_transaction` (new `p_expected_updated_at timestamptz
-default null` checked after the `for update` lock); drop the 9-arg
+default null` checked after the `for update` lock); drop the 8-arg
    signature; keep identical grants (`authenticated` only).
 2. Client wire: feed schema/columns → `Transaction.updatedAt` → action
    schema/args → `stale_write` → truthful "đã đổi ở nơi khác" message →
@@ -63,8 +63,8 @@ default null` checked after the `for update` lock); drop the 9-arg
 - `transaction_feed` exposes `updated_at` so the client model carries the
   version it read.
 - `update_money_transaction` gains `p_expected_updated_at timestamptz
-default null` (new signature; the old 9-arg signature is dropped — named-arg
-  RPC calls with 9 params still resolve via the default).
+default null` (new signature; the old 8-arg signature is dropped — named-arg
+  RPC calls with 8 params still resolve via the default).
 - When supplied and the row's `updated_at` differs, the function raises
   `stale_write` — after the existing `for update` lock, so the check is
   serialized and race-free.
@@ -92,6 +92,23 @@ default null` (new signature; the old 9-arg signature is dropped — named-arg
   no CRDT — the ops doc already rules this out).
 - Realtime invalidation.
 
+### External review findings (ChatGPT, 2026-09-24)
+
+Applied: fixed the "old 9-arg" comment (actual old signature is 8-arg);
+verified `transactions_set_updated_at` trigger maintains `updated_at`;
+verified `updatedAt` travels as an opaque `z.string()` end-to-end (never
+through `Date`, so no microsecond truncation).
+
+Noted as pre-existing, unchanged by this slice (revisit when measured):
+
+- TOCTOU: `accounts`/`categories` reads are not locked — a row can be
+  archived between the check and the `transaction_entries` update.
+- `transaction_feed` joins to both occurrence tables can multiply entry
+  rows if >1 occurrence row ever matches a transaction.
+- `category_name` uses `count(distinct)` while `split_lines` uses
+  `count` — split lines sharing one category can mismatch the label.
+- `array_agg(...)[1]` without `order by` is nondeterministic.
+
 ## Tasks
 
 | ID  | Task                                                                                                                                        | Dependency | Evidence                                  | Status |
@@ -105,7 +122,7 @@ default null` (new signature; the old 9-arg signature is dropped — named-arg
 | Criterion                                   | Evidence                             | Result        |
 | ------------------------------------------- | ------------------------------------ | ------------- |
 | Stale write rejected server-side            | migration review + contract test     | pending merge |
-| Backward compat (9-arg callers)             | default param + named-arg resolution | pending merge |
+| Backward compat (8-arg callers)             | default param + named-arg resolution | pending merge |
 | Client surfaces honest message              | `stale_write` mapping + code         | pending merge |
 | No ledger behavior change when param absent | `null` → identical path              | pending merge |
 
