@@ -1545,13 +1545,6 @@
       "status": "debt"
     },
     {
-      "class": "transaction-time",
-      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
-      "alsoEmittedBy": [],
-      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .transaction-detail small,.dashboard-module___vDUZq__dashboard .transaction-time))",
-      "status": "debt"
-    },
-    {
       "class": "transactions-panel",
       "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
       "alsoEmittedBy": [],

@@ -1,4 +1,5 @@
 import type { Transaction } from "../sample-data.ts";
+import { TRANSACTION_STATUS } from "../transaction-status.ts";
 
 export type RecurringCommitment = {
   id: string;
@@ -141,7 +142,7 @@ export function buildCommitmentPaymentExpense(
     amount: commitment.amount,
     occurredOn: paidOn,
     occurredAt,
-    relativeDate: "Vừa xong",
+    relativeDate: TRANSACTION_STATUS.completed,
     isRecurringPayment: true,
   };
 }

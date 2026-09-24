@@ -1,5 +1,6 @@
 import type { AccountOption, CategoryOption, Transaction, TransactionKind } from "../transactions/contracts.ts";
 import { categories, categoryMeta } from "../transactions/category-presentation.ts";
+import { formatRelativeDate } from "../relative-date.ts";
 
 /*
  * `balance` mirrors the demoAccountRows snapshot in src/server/accounts.ts:
@@ -120,14 +121,7 @@ function shiftDays(isoDate: string, days: number): string {
   return new Date(date.getTime() - days * DAY_MS).toISOString().slice(0, 10);
 }
 
-/** "Hôm nay" / "Hôm qua" / "13 thg 7" — derived, never stored beside the date. */
-function relativeLabel(occurredOn: string, daysAgo: number): string {
-  if (daysAgo === 0) return "Hôm nay";
-  if (daysAgo === 1) return "Hôm qua";
-  const day = Number(occurredOn.slice(8, 10));
-  const month = Number(occurredOn.slice(5, 7));
-  return `${day} thg ${month}`;
-}
+
 
 /**
  * The demo ledger as of `today` ("YYYY-MM-DD", already resolved in
@@ -153,7 +147,7 @@ export function sampleTransactionsFor(today: string): Transaction[] {
       amount: seed.amount,
       occurredOn,
       occurredAt: `${occurredOn}T${seed.timeUtc}`,
-      relativeDate: relativeLabel(occurredOn, seed.daysAgo),
+      relativeDate: formatRelativeDate(occurredOn, today),
     } satisfies Transaction;
   });
 }

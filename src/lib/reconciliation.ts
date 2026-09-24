@@ -1,5 +1,6 @@
 import type { AccountRegisterEntry } from "./account-register.ts";
 import type { CategoryOption, Transaction } from "./transactions/contracts.ts";
+import { formatRelativeDate } from "./relative-date.ts";
 
 export type EntryReconciliationState = "pending" | "cleared" | "reconciled";
 export type AccountReconciliationStatus = "open" | "completed";
@@ -100,16 +101,6 @@ export function reconciliationAdjustmentNote(statementDate: string) {
 /** Kind forced by the sign of the statement-vs-cleared difference. */
 export function reconciliationAdjustmentKind(difference: number) {
   return difference > 0 ? "income" : "expense";
-}
-
-function adjustmentRelativeDate(occurredOn: string, today: string) {
-  if (occurredOn === today) return "Hôm nay";
-  const occurred = Date.parse(`${occurredOn}T00:00:00.000Z`);
-  const current = Date.parse(`${today}T00:00:00.000Z`);
-  if (Number.isNaN(occurred) || Number.isNaN(current)) return occurredOn;
-  const daysAgo = Math.round((current - occurred) / 86_400_000);
-  if (daysAgo === 1) return "Hôm qua";
-  return `${Number(occurredOn.slice(8, 10))} thg ${Number(occurredOn.slice(5, 7))}`;
 }
 
 export function entryStateLabel(state: EntryReconciliationState) {
@@ -452,7 +443,7 @@ export function completeDemoAccountReconciliation({
       amount,
       occurredOn: session.statementDate,
       occurredAt: now,
-      relativeDate: adjustmentRelativeDate(session.statementDate, adjustment.today),
+      relativeDate: formatRelativeDate(session.statementDate, adjustment.today),
       reviewStatus: "reviewed",
     };
     adjustmentRow = {

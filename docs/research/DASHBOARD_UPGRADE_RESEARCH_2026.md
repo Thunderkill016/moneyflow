@@ -60,7 +60,16 @@ already on the client.
 
 ## 3. Gaps on existing surfaces, ranked
 
-### G1 — Per-account balances behind the total *(highest value)*
+> **Status update (2026-09-24, verified on `main`):** G1, G2 and G3 shipped
+> after this document was written — the per-account strip renders
+> `Số dư từng ví` in `statement.tsx`, the month-shape daily strip shipped in
+> #643 (`feat(dashboard): month-shape strip + prior-window compare`), and the
+> `needs_review` attention chip is already wired end-to-end
+> (`buildAttentionItems` → `/transactions?review=needs_review`). G4 is
+> implemented in PR #712, pending merge. Only G5 remains open (measurement-
+> gated). Sections below are kept for provenance.
+
+### G1 — Per-account balances behind the total *(highest value)* — **shipped**
 
 `Bạn đang có` is one sum; `AccountOption` on the dashboard workspace carries
 only `{id, name, currencyCode}` (`src/lib/transactions/contracts.ts:42`).
@@ -73,7 +82,7 @@ common glance question, and every VN wallet app leads with it.
 a compact per-account strip under the total (name + balance, neutral, transfer
 accounts included). Bounded to dashboard workspace + statement section.
 
-### G2 — Month shape / spending pace *(high value, design-careful)*
+### G2 — Month shape / spending pace *(high value, design-careful)* — **shipped (#643)**
 
 The flow bar shows *how much* this month but not *when*. A thin daily-expense
 bar strip under the legend (data already in `transactions`) shows the month’s
@@ -84,7 +93,7 @@ shape without a chart library. Optionally a factual compare line ("tháng trư�
 *Boundary:* descriptive facts only — never "bạn nên chi ≤Y/ngày" (that is the
 withdrawn safe-to-spend).
 
-### G3 — needs-review visibility *(trust gap)*
+### G3 — needs-review visibility *(trust gap)* — **shipped**
 
 Transactions carry `reviewStatus` (`needs_review` exists in
 `transaction-store.ts`, `ledger-trust.ts`, transactions workspace bulk-review).
@@ -95,10 +104,20 @@ home screen.
 *Upgrade:* add a `needs_review` count chip to `buildAttentionItems` →
 `/transactions` filtered view.
 
-### G4 — Recent list polish *(low risk)*
+### G4 — Recent list polish *(low risk)* — **implemented in PR #712, pending merge**
 
 Latest-5 rows with `relativeDate`; top products group by day headers. Small
 readability upgrade, zero data change.
+
+*Implemented (PR #712):* `groupRecentTransactionsByDay(rows, today)`
+(`src/lib/dashboard-recent-groups.ts`) groups the latest-5 by `occurredOn`,
+sorted newest day first with ledger order preserved inside each group. The
+header derives the date label from `occurredOn` + the workspace `today` via
+`formatRelativeDate` (`src/lib/relative-date.ts`) inside `<time dateTime>` —
+never from `relativeDate`, which optimistic rows overload with statuses
+("Đang lưu…", "Vừa sửa", "Vừa xong", see `src/lib/transaction-status.ts`).
+A row shows that status inline only when `isTransactionStatusLabel` says the
+label is a state, so a stale persisted date can never masquerade as one.
 
 ### G5 — Hydration/perf depth *(engineering)*
 
