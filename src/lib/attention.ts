@@ -85,9 +85,13 @@ export function buildAttentionItems(input: {
   for (const budget of budgets) {
     const level = budgetThreshold(budget);
     if (level === "over" || level === "near") {
+      const figures = `${chipMoney(budget.spent)}/${chipMoney(budget.limit)}`;
       items.push({
         id: `budget-${budget.id}`,
-        label: `${budget.categoryName}: ${budgetStatusLabel(budget, chipMoney)}`,
+        label:
+          level === "over"
+            ? `${budget.categoryName}: ${budgetStatusLabel(budget, chipMoney)} (${figures})`
+            : `${budget.categoryName}: ${figures}`,
         href: "/budgets",
         tone: level === "over" ? "warning" : "info",
       });

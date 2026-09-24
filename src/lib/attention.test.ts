@@ -31,6 +31,30 @@ test("buildAttentionItems flags near and over budgets", () => {
   assert.ok(!items.some((i) => i.id === "budget-ok"));
 });
 
+test("buildAttentionItems shows spent/limit figures on budget chips", () => {
+  const items = buildAttentionItems({
+    budgets: [
+      baseBudget({ id: "near", spent: 4_200_000, limit: 5_000_000 }),
+      baseBudget({
+        id: "over",
+        spent: 6_200_000,
+        limit: 5_000_000,
+        categoryName: "Mua sắm",
+      }),
+    ],
+    commitments: [],
+    today: "2026-07-15",
+  });
+  assert.equal(
+    items.find((i) => i.id === "budget-near")?.label,
+    "Ăn uống: 4,2 tr/5 tr",
+  );
+  assert.equal(
+    items.find((i) => i.id === "budget-over")?.label,
+    "Mua sắm: Đã vượt 1,2 tr (6,2 tr/5 tr)",
+  );
+});
+
 test("buildAttentionItems lists due unpaid commitments", () => {
   const bill: RecurringCommitment = {
     id: "bill1",
