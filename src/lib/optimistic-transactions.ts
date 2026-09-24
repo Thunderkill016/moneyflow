@@ -7,6 +7,7 @@ import type {
   UpdateMoneyTransactionInput,
   UpdateTransferInput,
 } from "@/lib/sample-data";
+import { TRANSACTION_STATUS } from "./transaction-status.ts";
 
 export const OPTIMISTIC_TRANSACTION_ID_PREFIX = "pending:";
 
@@ -52,7 +53,7 @@ export function buildOptimisticTransaction(
       amount: input.amount,
       occurredOn: input.occurredOn,
       occurredAt: now.toISOString(),
-      relativeDate: "Đang lưu…",
+      relativeDate: TRANSACTION_STATUS.saving,
     },
   };
 }
@@ -95,7 +96,7 @@ export function buildUpdatedTransaction(
         destinationAccount: destination.name,
         amount: input.amount,
         occurredOn: input.occurredOn,
-        relativeDate: "Vừa sửa",
+        relativeDate: TRANSACTION_STATUS.edited,
       },
     };
   }
@@ -130,7 +131,7 @@ export function buildUpdatedTransaction(
       destinationAccount: undefined,
       amount: input.amount,
       occurredOn: input.occurredOn,
-      relativeDate: "Vừa sửa",
+      relativeDate: TRANSACTION_STATUS.edited,
     },
   };
 }

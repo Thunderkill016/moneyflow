@@ -104,15 +104,20 @@ home screen.
 *Upgrade:* add a `needs_review` count chip to `buildAttentionItems` →
 `/transactions` filtered view.
 
-### G4 — Recent list polish *(low risk)* — **shipped**
+### G4 — Recent list polish *(low risk)* — **implemented in PR #712, pending merge**
 
 Latest-5 rows with `relativeDate`; top products group by day headers. Small
 readability upgrade, zero data change.
 
-*Shipped:* `groupRecentTransactionsByDay` (`src/lib/dashboard-recent-groups.ts`)
-groups the latest-5 by `occurredOn`; the header renders the ledger's own
-`relativeDate` label inside `<time dateTime>` and rows drop the repeated date
-column. Per-row `.transaction-time` removed accordingly.
+*Implemented (PR #712):* `groupRecentTransactionsByDay(rows, today)`
+(`src/lib/dashboard-recent-groups.ts`) groups the latest-5 by `occurredOn`,
+sorted newest day first with ledger order preserved inside each group. The
+header derives the date label from `occurredOn` + the workspace `today` via
+`formatRelativeDate` (`src/lib/relative-date.ts`) inside `<time dateTime>` —
+never from `relativeDate`, which optimistic rows overload with statuses
+("Đang lưu…", "Vừa sửa", "Vừa xong", see `src/lib/transaction-status.ts`).
+A row shows that status inline only when `isTransactionStatusLabel` says the
+label is a state, so a stale persisted date can never masquerade as one.
 
 ### G5 — Hydration/perf depth *(engineering)*
 

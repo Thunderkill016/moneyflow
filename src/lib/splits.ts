@@ -10,6 +10,7 @@ import type {
   Transaction,
   TransactionSplitLine,
 } from "./sample-data.ts";
+import { TRANSACTION_STATUS } from "./transaction-status.ts";
 
 export type { CreateSplitExpenseInput };
 
@@ -208,7 +209,7 @@ export function buildSplitExpenseTransaction(options: {
     amount: validated.total,
     occurredOn: options.input.occurredOn,
     occurredAt: options.occurredAt ?? new Date().toISOString(),
-    relativeDate: options.relativeDate ?? "Vừa xong",
+    relativeDate: options.relativeDate ?? TRANSACTION_STATUS.completed,
     splits: resolved,
   };
 

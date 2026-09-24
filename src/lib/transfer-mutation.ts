@@ -1,4 +1,5 @@
 import { normalizeCurrencyCode, transferCurrencyMismatchMessage } from "./currency.ts";
+import { TRANSACTION_STATUS } from "./transaction-status.ts";
 import type { CreateTransferInput, Transaction } from "./sample-data.ts";
 
 export type TransferAccount = {
@@ -86,6 +87,6 @@ export function buildDemoTransferTransaction(
     amount: prepared.input.amount,
     occurredOn: prepared.input.occurredOn,
     occurredAt: options.occurredAt,
-    relativeDate: "Vừa xong",
+    relativeDate: TRANSACTION_STATUS.completed,
   };
 }

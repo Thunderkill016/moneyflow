@@ -31,6 +31,7 @@ import type {
   UpdateTransferInput,
 } from "@/lib/sample-data";
 import { buildSplitExpenseTransaction } from "@/lib/splits";
+import { TRANSACTION_STATUS } from "@/lib/transaction-status";
 import {
   readStoredTransactions,
   restoreTransactionInList,
@@ -187,7 +188,7 @@ export function useTransactions({
         amount: input.amount,
         occurredOn: input.occurredOn,
         occurredAt: new Date().toISOString(),
-        relativeDate: "Vừa xong",
+        relativeDate: TRANSACTION_STATUS.completed,
         reviewStatus: "reviewed",
       };
       const current = readStoredTransactions();

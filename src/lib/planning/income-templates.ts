@@ -7,6 +7,7 @@
  */
 
 import type { Transaction } from "../sample-data.ts";
+import { TRANSACTION_STATUS } from "../transaction-status.ts";
 
 export type RecurringIncomeTemplate = {
   id: string;
@@ -94,7 +95,7 @@ export function buildIncomeTemplateReceipt(
     amount: template.amount,
     occurredOn: receivedOn,
     occurredAt,
-    relativeDate: "Vừa xong",
+    relativeDate: TRANSACTION_STATUS.completed,
     isRecurringPayment: true,
   };
 }

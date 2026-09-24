@@ -14,7 +14,7 @@ import { REPORTS_MONTH_HREF, REPORTS_MONTH_LINK_LABEL } from "@/lib/reports";
 import { dashboardDrilldownHref } from "@/lib/dashboard-drilldown";
 import type { AccountBalanceRow } from "@/lib/dashboard-accounts";
 import { groupRecentTransactionsByDay } from "@/lib/dashboard-recent-groups";
-import { formatRelativeDate } from "@/lib/relative-date";
+import { isTransactionStatusLabel } from "@/lib/transaction-status";
 import type { MonthStatementDetail } from "@/lib/dashboard-month";
 import { categoryMeta, type Transaction } from "@/lib/sample-data";
 import { transferRowSubtitle } from "@/lib/transfers";
@@ -376,10 +376,8 @@ export function DashboardLedgerColumn({
                                   )
                                 : `${transaction.category} · ${transaction.account}`}
                             </small>
-                            {transaction.relativeDate !==
-                            formatRelativeDate(
-                              transaction.occurredOn,
-                              today,
+                            {isTransactionStatusLabel(
+                              transaction.relativeDate,
                             ) ? (
                               <small className={styles.transactionStatus}>
                                 {transaction.relativeDate}
