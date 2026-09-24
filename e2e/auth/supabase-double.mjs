@@ -169,6 +169,7 @@ const TABLES = new Set([
   "accounts",
   "categories",
   "account_balances",
+  "savings_goals",
 ]);
 
 /**
