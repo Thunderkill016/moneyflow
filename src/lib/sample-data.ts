@@ -14,6 +14,7 @@ export type {
   CreateTransactionInput,
   CreateTransferInput,
   DeletedTransaction,
+  GoalOption,
   Transaction,
   TransactionKind,
   TransactionReviewStatus,

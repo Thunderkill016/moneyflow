@@ -51,6 +51,7 @@ import {
   type AccountOption,
   type CategoryOption,
   type CreateTransactionInput,
+  type GoalOption,
   type Transaction,
   type TransactionKind,
 } from "@/lib/sample-data";
@@ -74,6 +75,7 @@ export function AddTransactionDialog({
   onAdd,
   accounts,
   categories,
+  goals = [],
   transactions = [],
   disabled = false,
   embedded = false,
@@ -89,6 +91,8 @@ export function AddTransactionDialog({
   onAdd: (input: CreateTransactionInput) => Promise<{ ok: boolean; message?: string }>;
   accounts: AccountOption[];
   categories: CategoryOption[];
+  /** Goal options for the annotation picker; empty hides the field. */
+  goals?: GoalOption[];
   transactions?: Transaction[];
   disabled?: boolean;
   embedded?: boolean;
@@ -110,6 +114,7 @@ export function AddTransactionDialog({
   const [categoryId, setCategoryId] = useState("");
   const [note, setNote] = useState("");
   const [payee, setPayee] = useState("");
+  const [goalId, setGoalId] = useState("");
   const [accountId, setAccountId] = useState("");
   const [occurredOn, setOccurredOn] = useState(() => todayInVietnam());
   const [keepOpen, setKeepOpen] = useState(false);
@@ -352,6 +357,10 @@ export function AddTransactionDialog({
         if (draftCategoryResolves) {
           setCategoryId(draft.categoryId);
         }
+        /* The tag only restores when its goal is still an active option. */
+        if (draft.goalId && goals.some((g) => g.id === draft.goalId && !g.isArchived)) {
+          setGoalId(draft.goalId);
+        }
         setDraftRestored(true);
       }
     });
@@ -532,6 +541,7 @@ export function AddTransactionDialog({
         categoryId: selectedCategoryId,
         note: note.trim(),
         payee: payee.trim(),
+        goalId: goalId || null,
         accountId: selectedAccountId,
         amount: parsedAmount,
         occurredOn,
@@ -556,6 +566,7 @@ export function AddTransactionDialog({
         amount: parsedAmount,
         note: note.trim(),
         payee: payee.trim(),
+        goalId: goalId || undefined,
         categoryId: selectedCategoryId,
         accountId: selectedAccountId,
         occurredOn,
@@ -1031,6 +1042,28 @@ export function AddTransactionDialog({
                 markInputChanged();
               }}
             />
+            {goals.some((goal) => !goal.isArchived) ? (
+              <SelectField
+                label="Mục tiêu liên quan (không bắt buộc)"
+                rootClassName={styles.spanFull}
+                value={goalId}
+                targetSize="important"
+                disabled={submitting}
+                onChange={(event) => {
+                  setGoalId(event.target.value);
+                  markInputChanged();
+                }}
+              >
+                <option value="">Không gắn mục tiêu</option>
+                {goals
+                  .filter((goal) => !goal.isArchived)
+                  .map((goal) => (
+                    <option value={goal.id} key={goal.id}>
+                      {goal.name}
+                    </option>
+                  ))}
+              </SelectField>
+            ) : null}
           </div>
 
           <label className={styles.keepOpenRow} htmlFor="add-tx-keep-open">

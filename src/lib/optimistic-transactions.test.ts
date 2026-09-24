@@ -471,7 +471,7 @@ test("update dispatches the draft inside the transition before the RPC", () => {
   // The draft must come from the shared builder, not a second merge.
   assert.match(
     updateBody,
-    /buildUpdatedTransaction\(existing, input, accounts, categories\)/u,
+    /buildUpdatedTransaction\(\s*existing,\s*input,\s*accounts,\s*categories(?:,\s*goals)?\s*,?\s*\)/u,
   );
 });
 

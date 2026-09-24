@@ -55,6 +55,7 @@ import {
   type CategoryOption,
   type CreateTransactionInput,
   type CreateTransferInput,
+  type GoalOption,
   type Transaction,
   type UpdateMoneyTransactionInput,
   type UpdateTransferInput,
@@ -85,6 +86,8 @@ type DashboardWorkspace = {
   transactions: Transaction[];
   accounts: AccountOption[];
   categories: CategoryOption[];
+  /** Goal picker options for the edit dialog. */
+  goals?: GoalOption[];
   totalBalance: number;
   today: string;
   dataError: string | null;
@@ -131,6 +134,7 @@ export function MoneyFlowDashboard({
     initialTransactions: workspace.transactions,
     accounts: workspace.accounts,
     categories: workspace.categories,
+    goals: workspace.goals,
     isDemo: viewer.isDemo,
   });
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -474,6 +478,7 @@ export function MoneyFlowDashboard({
           }
           accounts={workspace.accounts}
           categories={workspace.categories}
+          goals={workspace.goals}
           transactions={transactions}
           disabled={isMutating || actionsDisabled}
         />
@@ -492,6 +497,7 @@ export function MoneyFlowDashboard({
           transaction={editing}
           accounts={workspace.accounts}
           categories={workspace.categories}
+          goals={workspace.goals}
           onClose={() => setEditing(null)}
           onSave={handleUpdate}
           disabled={isMutating || actionsDisabled}

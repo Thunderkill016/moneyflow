@@ -30,6 +30,7 @@ export default async function Page() {
           : null
       }
       today={workspace.today}
+      relatedCounts={workspace.relatedCounts}
       dataError={workspace.dataError}
     />
   );

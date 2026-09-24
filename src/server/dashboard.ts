@@ -131,6 +131,7 @@ function emptyDashboard(today: string, message: string): DashboardPageWorkspace 
       transactions: [],
       accounts: [],
       categories: [],
+      goals: [],
       totalBalance: 0,
       today,
       dataError: message,
@@ -324,11 +325,14 @@ function mapAuthenticatedBundle(
     "invalid_dashboard_inbox_count",
   );
 
+  const goals = bundle.goals.map(mapGoalRow);
+
   return {
     workspace: {
       transactions: bundle.transactions.map(mapTransactionFeedRow),
       accounts: bundle.accounts,
       categories: bundle.categories satisfies CategoryOption[],
+      goals,
       totalBalance,
       today,
       dataError: null,
@@ -351,7 +355,7 @@ function mapAuthenticatedBundle(
         incomeReceipts.get(parsed.id) ?? null,
       );
     }),
-    goals: bundle.goals.map(mapGoalRow),
+    goals,
     pendingInboxCount,
     ledgerTrust: mapLedgerTrust(bundle.ledger_trust),
     backupState: bundle.backup_state

@@ -16,6 +16,14 @@ export type Transaction = {
   note: string;
   /** Merchant/person/entity name (≤200 chars). Optional: demo rows stored before this field existed carry no payee. */
   payee?: string;
+  /**
+   * Optional goal tag — annotation only ("which goal did this serve?"). It
+   * never affects amounts, kind, balances, or goal progress; `GoalAllocation`
+   * stays the sole authority for progress.
+   */
+  goalId?: string;
+  /** Display name of the tagged goal (join column; absent on demo rows). */
+  goalName?: string;
   accountId: string;
   account: string;
   destinationAccountId?: string;
@@ -78,6 +86,13 @@ export type CategoryOption = {
   color: string | null;
 };
 
+/** Minimal goal shape for pickers — demo ids are strings, not uuids. */
+export type GoalOption = {
+  id: string;
+  name: string;
+  isArchived: boolean;
+};
+
 type InboxApprovalCommand = {
   /** Present only when a reviewed Inbox candidate owns this create command. */
   inboxCandidateId?: string;
@@ -92,6 +107,8 @@ export type CreateTransactionInput = InboxApprovalCommand & {
   amount: number;
   note: string;
   payee?: string;
+  /** Optional goal tag at capture time (informational annotation). */
+  goalId?: string | null;
   occurredOn: string;
   idempotencyKey: string;
 };
@@ -122,6 +139,11 @@ export type UpdateMoneyTransactionInput = Omit<
   id: string;
   /** Optimistic-concurrency precondition: the `updated_at` the caller read. */
   expectedUpdatedAt?: string;
+  /**
+   * Goal-tag sentinel: `undefined` preserves the current tag (older callers
+   * must not silently erase it), `null` clears it, a uuid sets/changes it.
+   */
+  goalId?: string | null;
 };
 
 export type UpdateTransferInput = Omit<

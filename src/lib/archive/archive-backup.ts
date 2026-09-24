@@ -7,9 +7,12 @@
  * the proven ingress boundary with the summary, it re-implements none of it.
  */
 
-import { ALL_ARCHIVE_COLLECTIONS, type MoneyFlowArchive } from "./moneyflow-archive.ts";
+import {
+  ALL_ARCHIVE_COLLECTIONS,
+  type MoneyFlowArchive,
+} from "./moneyflow-archive.ts";
 import type { ArchiveIngressRejectionCode } from "./archive-ingress.ts";
-import { ingestArchiveBytes } from "./payee-archive-ingress.ts";
+import { ingestArchiveBytes } from "./goal-linkage-archive-ingress.ts";
 
 /**
  * A human-recognisable, private-by-default backup filename.

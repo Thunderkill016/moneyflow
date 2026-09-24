@@ -59,6 +59,7 @@ const createSchema = z.object({
   amount: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
   note: z.string().trim().max(500),
   payee: z.string().trim().max(200).optional(),
+  goalId: z.string().uuid().nullish(),
   occurredOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   idempotencyKey: z.string().uuid(),
 });
@@ -94,13 +95,18 @@ const splitExpenseSchema = z.object({
 const updateSchema = createSchema.omit({ idempotencyKey: true }).extend({
   id: z.string().uuid(),
   expectedUpdatedAt: z.string().optional(),
+  /**
+   * Sentinel: undefined preserves the tag, null clears it, uuid sets it.
+   * `goalId` stays `string | null | undefined` after this extend.
+   */
+  goalId: z.string().uuid().nullable().optional(),
 });
 const updateTransferSchema = transferFields
   .omit({ idempotencyKey: true })
   .extend({ id: z.string().uuid(), kind: z.literal("transfer") })
   .refine((value) => value.sourceAccountId !== value.destinationAccountId);
 const feedColumns =
-  "id,kind,note,occurred_on,created_at,updated_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines,payee";
+  "id,kind,note,occurred_on,created_at,updated_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines,payee,goal_id,goal_name";
 
 function refreshFinancePages() {
   revalidatePath("/");
@@ -135,6 +141,7 @@ export async function createTransactionAction(
       p_occurred_on: parsed.data.occurredOn,
       p_note: parsed.data.note,
       p_payee: parsed.data.payee ?? "",
+      p_goal_id: parsed.data.goalId ?? null,
       p_idempotency_key: parsed.data.idempotencyKey,
     },
   );
@@ -439,6 +446,8 @@ export async function updateTransactionAction(
       p_note: value.note,
       p_payee: value.payee ?? "",
       p_expected_updated_at: value.expectedUpdatedAt ?? null,
+      p_goal_id: value.goalId ?? null,
+      p_goal_id_is_set: value.goalId !== undefined,
     },
   );
   if (error?.message.includes("stale_write"))
@@ -459,6 +468,12 @@ export async function updateTransactionAction(
       ok: false,
       code: "transaction_reconciled",
       message: TRANSACTION_RECONCILED_MESSAGE,
+    };
+  if (error?.message.includes("goal_not_found_or_archived"))
+    return {
+      ok: false,
+      code: "goal_not_found_or_archived",
+      message: "Mục tiêu đó không khả dụng. Hãy chọn mục tiêu đang hoạt động.",
     };
   if (error || typeof transactionId !== "string")
     return {

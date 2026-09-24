@@ -344,6 +344,11 @@
       "version": "20260923160000",
       "name": "20260923160000_update_money_transaction_expected_updated_at.sql",
       "hash": "02709f4fb077ce4df52f1969240c730d"
+    },
+    {
+      "version": "20260924120000",
+      "name": "20260924120000_transaction_goal_linkage.sql",
+      "hash": "10c058cb04c1763891394aeed857a7ea"
     }
   ]
 }

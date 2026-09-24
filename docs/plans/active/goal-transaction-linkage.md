@@ -52,6 +52,9 @@ association / activity history**, not "funding provenance":
   (related transactions) — never "Giao dịch đóng góp" / "Nguồn tiền" and never
   a summed total beside progress; progress stays allocation-based (unchanged
   math — no silent redefinition).
+  _V1 scope note (2026-09-24): the goals page is list-only today, so v1 ships a
+  related-transaction **count** on each goal card instead of a detail route.
+  The full linked-transaction list follows when a goal detail surface exists._
 - Option A (allocation provenance) is the natural follow-up once B proves the
   linking UX — that is where GoalAllocation itself explains *why* progress
   changed.
@@ -82,6 +85,9 @@ numbers that can disagree must be named differently (authoritative "Tiến độ
   an array column.
 - Transfers may carry the tag only under "liên quan" wording — a transfer
   between owned accounts changes location, never goal progress or funding.
+  _V1 scope note (2026-09-24): transfers do not take the tag yet — the
+  create/update transfer RPCs are separate writers kept unchanged in this
+  slice; extending them is a follow-up._
 - Archived goal: preserve existing `goal_id`, show the historical name/link,
   exclude from pickers for new tagging; editing an already-tagged transaction
   may keep or clear the archived goal — RPCs reject *new* assignment to
@@ -116,7 +122,8 @@ picker, goal detail transaction list, contract + RLS tests._
 
 ## Evaluation
 
-- Goal page lists the transactions linked to it (read path).
+- Goal cards show the count of transactions tagged to each goal (v1 read
+  path; the linked-transaction list arrives with a goal detail surface).
 - Editing a transaction can set/clear the goal; the link survives.
 - Deleting/archiving a goal does not delete transactions; tag displays
   gracefully.

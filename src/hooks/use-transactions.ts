@@ -25,6 +25,7 @@ import type {
   CreateSplitExpenseInput,
   CreateTransactionInput,
   CreateTransferInput,
+  GoalOption,
   Transaction,
   UpdateMoneyTransactionInput,
   UpdateTransferInput,
@@ -63,6 +64,8 @@ type Options = {
   initialTransactions: Transaction[];
   accounts: AccountOption[];
   categories: CategoryOption[];
+  /** Goal picker options; demo ids are strings, never uuid-validated. */
+  goals?: GoalOption[];
   isDemo: boolean;
 };
 
@@ -115,6 +118,7 @@ export function useTransactions({
   initialTransactions,
   accounts,
   categories,
+  goals = [],
   isDemo,
 }: Options) {
   const [transactions, setTransactions] = useState(
@@ -174,6 +178,10 @@ export function useTransactions({
         category: category.name,
         note: input.note || category.name,
         payee: input.payee?.trim() || undefined,
+        goalId: input.goalId ?? undefined,
+        goalName: input.goalId
+          ? goals.find((goal) => goal.id === input.goalId)?.name
+          : undefined,
         accountId: account.id,
         account: account.name,
         amount: input.amount,
@@ -225,7 +233,13 @@ export function useTransactions({
       }
     }
 
-    const optimistic = buildOptimisticTransaction(input, accounts, categories);
+    const optimistic = buildOptimisticTransaction(
+      input,
+      accounts,
+      categories,
+      new Date(),
+      goals,
+    );
     if (!optimistic.ok) return optimistic;
 
     setIsMutating(true);
@@ -482,6 +496,7 @@ export function useTransactions({
         input,
         accounts,
         categories,
+        goals,
       );
       if (!draft.ok) return { ok: false, message: draft.message };
       const transaction = draft.transaction;
@@ -501,7 +516,7 @@ export function useTransactions({
     const existing = transactions.find((item) => item.id === input.id);
     const draft =
       existing && !existing.isRecurringPayment
-        ? buildUpdatedTransaction(existing, input, accounts, categories)
+        ? buildUpdatedTransaction(existing, input, accounts, categories, goals)
         : null;
 
     markMutating([input.id]);

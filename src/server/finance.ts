@@ -12,6 +12,7 @@ import type {
   AccountOption,
   CategoryOption,
   DeletedTransaction,
+  GoalOption,
   Transaction,
   TransactionReviewStatus,
 } from "@/lib/transactions/contracts";
@@ -20,6 +21,7 @@ import {
   demoCategories,
   sampleTransactionsFor,
 } from "@/lib/demo/transaction-fixtures";
+import { DEMO_SAVINGS_GOALS } from "@/lib/planning/goals";
 import { getTransactionReviewStatus } from "@/lib/transaction-review";
 import { readAllPages } from "@/lib/paginated-read";
 export { readAllPages } from "@/lib/paginated-read";
@@ -28,6 +30,8 @@ export type FinanceWorkspace = {
   transactions: Transaction[];
   accounts: AccountOption[];
   categories: CategoryOption[];
+  /** Active + archived goals for the transaction goal picker (annotation). */
+  goals: GoalOption[];
   totalBalance: number;
   today: string;
   dataError: string | null;
@@ -36,7 +40,7 @@ export type FinanceWorkspace = {
 };
 
 const TRANSACTION_FEED_COLUMNS =
-  "id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines,payee";
+  "id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines,payee,goal_id,goal_name";
 const TRANSACTION_REVIEW_COLUMNS = "id,review_status,occurred_on,created_at";
 const DELETED_TRANSACTION_FEED_COLUMNS = `${TRANSACTION_FEED_COLUMNS},deleted_at`;
 
@@ -90,6 +94,14 @@ const feedSchema = z.object({
   /** Multi-entry expense lines when split across categories (TASK-128). */
   split_lines: z.array(splitLineSchema).nullable().optional(),
   payee: z.string().optional(),
+  goal_id: z.string().uuid().nullable().optional(),
+  goal_name: z.string().nullable().optional(),
+});
+
+const goalOptionSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1),
+  is_archived: z.boolean(),
 });
 
 /**
@@ -157,6 +169,8 @@ export function mapTransactionFeedRow(value: unknown): Transaction {
         : (row.category_name ?? "Chưa phân loại"),
     note: row.note || row.category_name || "Giao dịch",
     payee: row.payee || undefined,
+    goalId: row.goal_id ?? undefined,
+    goalName: row.goal_name ?? undefined,
     accountId: row.account_id,
     account: row.account_name,
     destinationAccountId: row.destination_account_id ?? undefined,
@@ -193,6 +207,11 @@ function demoWorkspace(): FinanceWorkspace {
     ),
     accounts: demoAccounts,
     categories: demoCategories,
+    goals: DEMO_SAVINGS_GOALS.map((goal) => ({
+      id: goal.id,
+      name: goal.name,
+      isArchived: goal.isArchived,
+    })),
     totalBalance: 15_735_000,
     today: todayInVietnam(),
     dataError: null,
@@ -311,6 +330,7 @@ async function loadFinanceWorkspace(
     recentFeedResult,
     balancesResult,
     reviewFeedResult,
+    goalsResult,
   ] = await Promise.all([
     supabase
       .from("accounts")
@@ -332,6 +352,16 @@ async function loadFinanceWorkspace(
       .select("account_id,balance_minor,currency_code")
       .eq("user_id", viewer.id),
     reviewFeedPromise,
+    /*
+     * Goal picker options — active plus archived (an archived goal stays
+     * selectable on a row already tagged with it). A failed read degrades to
+     * an empty list, which hides the picker instead of failing the workspace.
+     */
+    supabase
+      .from("savings_goals")
+      .select("id,name,is_archived")
+      .eq("user_id", viewer.id)
+      .order("created_at"),
   ]);
 
   if (
@@ -345,6 +375,7 @@ async function loadFinanceWorkspace(
       transactions: [],
       accounts: [],
       categories: [],
+      goals: [],
       totalBalance: 0,
       today,
       dataError: "Chưa tải được dữ liệu tài chính. Hãy thử tải lại trang.",
@@ -375,6 +406,16 @@ async function loadFinanceWorkspace(
     const categories = z
       .array(categorySchema)
       .parse(categoriesResult.data) satisfies CategoryOption[];
+    const goals = goalsResult.error
+      ? []
+      : (z
+          .array(goalOptionSchema)
+          .parse(goalsResult.data)
+          .map((row) => ({
+            id: row.id,
+            name: row.name,
+            isArchived: row.is_archived,
+          })) satisfies GoalOption[]);
     const reviewState = readReviewState(
       scope,
       reviewFeedResult.data,
@@ -403,6 +444,7 @@ async function loadFinanceWorkspace(
       transactions,
       accounts,
       categories,
+      goals,
       totalBalance,
       today,
       dataError: null,
@@ -413,6 +455,7 @@ async function loadFinanceWorkspace(
       transactions: [],
       accounts: [],
       categories: [],
+      goals: [],
       totalBalance: 0,
       today,
       dataError: "Dữ liệu tài chính không đúng định dạng. Hãy liên hệ hỗ trợ.",
