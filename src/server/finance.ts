@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireViewer } from "@/server/auth";
 import { createClient } from "@/lib/supabase/server";
 import { todayInVietnam } from "@/lib/vietnam-date";
+import { formatRelativeDate } from "@/lib/relative-date";
 import {
   DASHBOARD_RECENT_TRANSACTION_LIMIT,
   dashboardTransactionStart,
@@ -113,23 +114,6 @@ const deletedFeedSchema = feedSchema.extend({
   deleted_at: z.string(),
 });
 
-function shiftDate(date: string, days: number) {
-  const value = new Date(`${date}T00:00:00.000Z`);
-  value.setUTCDate(value.getUTCDate() + days);
-  return value.toISOString().slice(0, 10);
-}
-
-export function formatRelativeDate(date: string) {
-  const today = todayInVietnam();
-  if (date === today) return "Hôm nay";
-  if (date === shiftDate(today, -1)) return "Hôm qua";
-  return new Intl.DateTimeFormat("vi-VN", {
-    day: "numeric",
-    month: "short",
-    timeZone: "Asia/Ho_Chi_Minh",
-  }).format(new Date(`${date}T00:00:00+07:00`));
-}
-
 export function mapTransactionFeedRow(value: unknown): Transaction {
   const row = feedSchema.parse(value);
   const amount = Math.abs(Number(row.amount_minor));
@@ -181,7 +165,7 @@ export function mapTransactionFeedRow(value: unknown): Transaction {
     occurredOn: row.occurred_on,
     occurredAt: row.created_at,
     updatedAt: row.updated_at,
-    relativeDate: formatRelativeDate(row.occurred_on),
+    relativeDate: formatRelativeDate(row.occurred_on, todayInVietnam()),
   };
 }
 

@@ -14,6 +14,7 @@ import { REPORTS_MONTH_HREF, REPORTS_MONTH_LINK_LABEL } from "@/lib/reports";
 import { dashboardDrilldownHref } from "@/lib/dashboard-drilldown";
 import type { AccountBalanceRow } from "@/lib/dashboard-accounts";
 import { groupRecentTransactionsByDay } from "@/lib/dashboard-recent-groups";
+import { formatRelativeDate } from "@/lib/relative-date";
 import type { MonthStatementDetail } from "@/lib/dashboard-month";
 import { categoryMeta, type Transaction } from "@/lib/sample-data";
 import { transferRowSubtitle } from "@/lib/transfers";
@@ -347,10 +348,10 @@ export function DashboardLedgerColumn({
               </LinkButton>
             </div>
             <div className="transaction-list">
-              {groupRecentTransactionsByDay(transactions.slice(0, 5)).map(
+              {groupRecentTransactionsByDay(transactions.slice(0, 5), today).map(
                 (group) => (
-                  <div className="transaction-day-group" key={group.occurredOn}>
-                    <p className="transaction-day-label">
+                  <div className={styles.dayGroup} key={group.occurredOn}>
+                    <p className={styles.dayLabel}>
                       <time dateTime={group.occurredOn}>{group.label}</time>
                     </p>
                     {group.rows.map((transaction) => {
@@ -375,6 +376,15 @@ export function DashboardLedgerColumn({
                                   )
                                 : `${transaction.category} · ${transaction.account}`}
                             </small>
+                            {transaction.relativeDate !==
+                            formatRelativeDate(
+                              transaction.occurredOn,
+                              today,
+                            ) ? (
+                              <small className={styles.transactionStatus}>
+                                {transaction.relativeDate}
+                              </small>
+                            ) : null}
                           </span>
                           <MoneyValue
                             amount={transaction.amount}

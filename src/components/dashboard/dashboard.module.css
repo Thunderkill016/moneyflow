@@ -473,17 +473,17 @@
   font-size: 10px;
 }
 
-.dashboard :global(.transaction-day-group) {
+.dashboard .dayGroup {
   min-width: 0;
   display: grid;
 }
 
-.dashboard :global(.transaction-day-group + .transaction-day-group) {
+.dashboard .dayGroup + .dayGroup {
   margin-top: 2px;
   border-top: 1px solid var(--mf-border);
 }
 
-.dashboard :global(.transaction-day-label) {
+.dashboard .dayLabel {
   margin: 6px 4px 0;
   color: var(--mf-text-soft);
   font-size: 10px;
@@ -525,6 +525,11 @@
 .dashboard :global(.transaction-detail small) {
   color: var(--mf-text-soft);
   font-size: 10px;
+}
+
+/* Optimistic status ("Đang lưu…", "Vừa sửa") — never a date, only a state. */
+.dashboard .transactionStatus {
+  font-style: italic;
 }
 
 .dashboard :global(.transaction-row .amount) {

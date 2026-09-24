@@ -5,6 +5,7 @@ import type {
   TransactionReviewStatus,
 } from "./transactions/contracts.ts";
 import { isSplitExpense } from "./splits.ts";
+import { formatRelativeDate } from "./relative-date.ts";
 
 export const DEFAULT_TRANSACTION_REVIEW_STATUS: TransactionReviewStatus = "reviewed";
 
@@ -358,23 +359,9 @@ export function bulkSkipReasonForFailure(
   return message.trim() || "không rõ lý do";
 }
 
-const DAY_MS = 86_400_000;
-
-/** "Hôm nay" / "Hôm qua" / "13 thg 7" — same label style the demo seeds use. */
+/** "Hôm nay" / "Hôm qua" / "13 thg 7" — delegates to the shared date label. */
 export function bulkOccurredOnLabel(occurredOn: string, today: string): string {
-  if (occurredOn === today) return "Hôm nay";
-  const todayMs = Date.parse(`${today}T00:00:00.000Z`);
-  const occurredMs = Date.parse(`${occurredOn}T00:00:00.000Z`);
-  if (
-    Number.isFinite(todayMs) &&
-    Number.isFinite(occurredMs) &&
-    todayMs - occurredMs === DAY_MS
-  ) {
-    return "Hôm qua";
-  }
-  const day = Number(occurredOn.slice(8, 10));
-  const month = Number(occurredOn.slice(5, 7));
-  return `${day} thg ${month}`;
+  return formatRelativeDate(occurredOn, today);
 }
 
 /**
