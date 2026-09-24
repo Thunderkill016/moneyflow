@@ -13,6 +13,7 @@ import { GHI_CHI_TIEU_LABEL, PLANNING_LINKS } from "@/lib/nav-ia";
 import { REPORTS_MONTH_HREF, REPORTS_MONTH_LINK_LABEL } from "@/lib/reports";
 import { dashboardDrilldownHref } from "@/lib/dashboard-drilldown";
 import type { AccountBalanceRow } from "@/lib/dashboard-accounts";
+import { groupRecentTransactionsByDay } from "@/lib/dashboard-recent-groups";
 import type { MonthStatementDetail } from "@/lib/dashboard-month";
 import { categoryMeta, type Transaction } from "@/lib/sample-data";
 import { transferRowSubtitle } from "@/lib/transfers";
@@ -346,46 +347,55 @@ export function DashboardLedgerColumn({
               </LinkButton>
             </div>
             <div className="transaction-list">
-              {transactions.slice(0, 5).map((transaction) => {
-                const meta =
-                  categoryMeta[transaction.category] ??
-                  categoryMeta["Thu nhập khác"];
-                return (
-                  <div className="transaction-row" key={transaction.id}>
-                    <span className={`transaction-icon ${meta.color}`}>
-                      <Icon name={meta.icon as IconName} aria-hidden="true" />
-                    </span>
-                    <span className="transaction-detail">
-                      <strong>{transaction.note}</strong>
-                      <small>
-                        {transaction.kind === "transfer"
-                          ? transferRowSubtitle(
-                              transaction.account,
-                              transaction.destinationAccount,
-                            )
-                          : `${transaction.category} · ${transaction.account}`}
-                      </small>
-                    </span>
-                    <span className="transaction-time">
-                      {transaction.relativeDate}
-                    </span>
-                    <MoneyValue
-                      amount={transaction.amount}
-                      mode="kind"
-                      kind={transaction.kind}
-                      direction
-                      emphasis="strong"
-                      className={
-                        transaction.kind === "income"
-                          ? "amount income"
-                          : transaction.kind === "transfer"
-                            ? "amount transfer"
-                            : "amount"
-                      }
-                    />
+              {groupRecentTransactionsByDay(transactions.slice(0, 5)).map(
+                (group) => (
+                  <div className="transaction-day-group" key={group.occurredOn}>
+                    <p className="transaction-day-label">
+                      <time dateTime={group.occurredOn}>{group.label}</time>
+                    </p>
+                    {group.rows.map((transaction) => {
+                      const meta =
+                        categoryMeta[transaction.category] ??
+                        categoryMeta["Thu nhập khác"];
+                      return (
+                        <div className="transaction-row" key={transaction.id}>
+                          <span className={`transaction-icon ${meta.color}`}>
+                            <Icon
+                              name={meta.icon as IconName}
+                              aria-hidden="true"
+                            />
+                          </span>
+                          <span className="transaction-detail">
+                            <strong>{transaction.note}</strong>
+                            <small>
+                              {transaction.kind === "transfer"
+                                ? transferRowSubtitle(
+                                    transaction.account,
+                                    transaction.destinationAccount,
+                                  )
+                                : `${transaction.category} · ${transaction.account}`}
+                            </small>
+                          </span>
+                          <MoneyValue
+                            amount={transaction.amount}
+                            mode="kind"
+                            kind={transaction.kind}
+                            direction
+                            emphasis="strong"
+                            className={
+                              transaction.kind === "income"
+                                ? "amount income"
+                                : transaction.kind === "transfer"
+                                  ? "amount transfer"
+                                  : "amount"
+                            }
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                ),
+              )}
             </div>
           </article>
         </>

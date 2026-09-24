@@ -473,10 +473,28 @@
   font-size: 10px;
 }
 
+.dashboard :global(.transaction-day-group) {
+  min-width: 0;
+  display: grid;
+}
+
+.dashboard :global(.transaction-day-group + .transaction-day-group) {
+  margin-top: 2px;
+  border-top: 1px solid var(--mf-border);
+}
+
+.dashboard :global(.transaction-day-label) {
+  margin: 6px 4px 0;
+  color: var(--mf-text-soft);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
 .dashboard :global(.transaction-row) {
   min-width: 0;
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) auto auto;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   border-top: 1px solid var(--mf-border);
@@ -504,8 +522,7 @@
   font-size: 13px;
 }
 
-.dashboard :global(.transaction-detail small),
-.dashboard :global(.transaction-time) {
+.dashboard :global(.transaction-detail small) {
   color: var(--mf-text-soft);
   font-size: 10px;
 }
@@ -741,10 +758,6 @@
 
   .dashboard :global(.transaction-row) {
     grid-template-columns: 36px minmax(0, 1fr) auto;
-  }
-
-  .dashboard :global(.transaction-time) {
-    display: none;
   }
 
   .dashboard :global(.right-stack) {
