@@ -79,7 +79,14 @@ function isValidEntry(value: unknown): value is SavedTransactionFilter {
 }
 
 function defaultStorage(): SavedFilterStorage {
-  return typeof window !== "undefined" ? window.localStorage : null;
+  if (typeof window === "undefined") return null;
+  try {
+    // Browser policy can deny the getter itself (SecurityError) before any
+    // getItem/setItem runs — treat it the same as "no storage available".
+    return window.localStorage;
+  } catch {
+    return null;
+  }
 }
 
 export function readSavedTransactionFilters(

@@ -204,6 +204,28 @@ test("delete without storage fails explicitly", () => {
   assert.equal(result.ok, false);
 });
 
+test("a denied localStorage getter degrades to no-storage, never throws", () => {
+  // Browser policy can deny the localStorage *getter* itself (SecurityError)
+  // before any getItem/setItem runs — defaultStorage() must absorb that.
+  const denied = Object.defineProperty({}, "localStorage", {
+    configurable: true,
+    get() {
+      throw new DOMException("Storage access denied", "SecurityError");
+    },
+  });
+  const original = (globalThis as { window?: unknown }).window;
+  (globalThis as { window?: unknown }).window = denied;
+  try {
+    assert.deepEqual(readSavedTransactionFilters(SCOPE_A), []);
+    const saved = saveTransactionFilter("X", baseValues(), SCOPE_A);
+    assert.equal(saved.ok, false);
+    assert.equal(saved.ok ? "" : saved.reason, "storage");
+    assert.equal(deleteSavedTransactionFilter("X", SCOPE_A).ok, false);
+  } finally {
+    (globalThis as { window?: unknown }).window = original;
+  }
+});
+
 test("sameSavedFilterValues matches identical values ignoring query edge whitespace", () => {
   const a = baseValues({
     query: " ăn ",
