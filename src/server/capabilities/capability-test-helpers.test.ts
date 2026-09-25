@@ -227,6 +227,8 @@ export function fixtureDeps(
       return {
         report: buildFinancialReport(transactions, range),
         transactions,
+        todayIso: FIXED_CONTEXT.today,
+        navUnit: period,
         balanceSeries: null,
         dataError: null,
         rangeNotice: null,

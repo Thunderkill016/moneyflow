@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  adjacentReportRanges,
   buildFinancialReport,
   categoryTrendWindowStart,
   customReportRange,
   CUSTOM_RANGE_MAX_DAYS,
   formatReportPeriodTitle,
   normalizeCustomRange,
+  normalizeNavUnit,
   normalizeReportPeriod,
   reportPeriodHref,
   reportRange,
@@ -473,4 +475,185 @@ test("categoryTrendWindowStart gives the load bound for the trend window", () =>
   assert.equal(categoryTrendWindowStart("2027-01-05"), "2026-08-01");
   // Leap February is just a month like any other.
   assert.equal(categoryTrendWindowStart("2028-02-29"), "2027-09-01");
+});
+
+/* ---- income-by-category, savings rate, adjacent-window navigation ---- */
+
+test("income categories group income rows and share the income total", () => {
+  const range = reportRange("2026-09-21", "month");
+  const report = buildFinancialReport(
+    [
+      transaction({ id: "e1", amount: 40_000, occurredOn: "2026-09-10" }),
+      transaction({ id: "i1", kind: "income", category: "Lương", amount: 1_500_000, occurredOn: "2026-09-10" }),
+      transaction({ id: "i2", kind: "income", category: "Thưởng", amount: 500_000, occurredOn: "2026-09-05" }),
+      transaction({ id: "i3", kind: "income", category: "Lương", amount: 1_000_000, occurredOn: "2026-08-15" }),
+      transaction({ id: "t1", kind: "transfer", categoryId: "", category: "Chuyển tiền", amount: 200_000, occurredOn: "2026-09-10" }),
+    ],
+    range,
+  );
+  assert.deepEqual(
+    report.incomeCategories.map(({ name, amount, share }) => ({ name, amount, share })),
+    [
+      { name: "Lương", amount: 1_500_000, share: 75 },
+      { name: "Thưởng", amount: 500_000, share: 25 },
+    ],
+  );
+  // The income strip mirrors the expense one: 6 calendar months, real history.
+  const salary = report.incomeCategories.find((item) => item.name === "Lương")!;
+  assert.equal(salary.trend.length, 6);
+  assert.equal(salary.trend.find((m) => m.key === "2026-08")!.amount, 1_000_000);
+  assert.equal(salary.trend.find((m) => m.key === "2026-09")!.amount, 1_500_000);
+});
+
+test("income categories exclude expense and transfer rows", () => {
+  const range = reportRange("2026-09-21", "month");
+  const report = buildFinancialReport(
+    [transaction({ amount: 100_000, occurredOn: "2026-09-10" })],
+    range,
+  );
+  assert.deepEqual(report.incomeCategories, []);
+});
+
+test("savingsRatePercent reports the kept share of income honestly", () => {
+  const range = reportRange("2026-09-21", "month");
+  const kept = buildFinancialReport(
+    [
+      transaction({ id: "i", kind: "income", category: "Lương", amount: 1_000_000, occurredOn: "2026-09-10" }),
+      transaction({ amount: 250_000, occurredOn: "2026-09-10" }),
+    ],
+    range,
+  );
+  assert.equal(kept.savingsRatePercent, 75);
+  // Overspending a period with income yields a negative kept share, not zero.
+  const overspent = buildFinancialReport(
+    [
+      transaction({ id: "i", kind: "income", category: "Lương", amount: 1_000_000, occurredOn: "2026-09-10" }),
+      transaction({ amount: 1_400_000, occurredOn: "2026-09-10" }),
+    ],
+    range,
+  );
+  assert.equal(overspent.savingsRatePercent, -40);
+  // No income recorded: there is no denominator, so the rate is absent.
+  const noIncome = buildFinancialReport(
+    [transaction({ amount: 10_000, occurredOn: "2026-09-10" })],
+    range,
+  );
+  assert.equal(noIncome.savingsRatePercent, null);
+});
+
+test("adjacent ranges navigate full calendar windows for presets", () => {
+  // Partial September (Sep 1–25): prev = all of August, next = all of October
+  // (fully future at Sep 25 → null).
+  const month = reportRange("2026-09-25", "month");
+  assert.deepEqual(adjacentReportRanges(month, "2026-09-25"), {
+    prev: { from: "2026-08-01", to: "2026-08-31" },
+    next: null,
+  });
+  // Custom windows shift by their own span — the same equal-length rule the
+  // comparison totals use: a 31-day August window steps to a 31-day window.
+  assert.deepEqual(adjacentReportRanges(
+    customReportRange("2026-08-01", "2026-08-31"),
+    "2026-10-03",
+  ), {
+    prev: { from: "2026-07-01", to: "2026-07-31" },
+    next: { from: "2026-09-01", to: "2026-10-01" },
+  });
+});
+
+test("adjacent ranges navigate ISO weeks and calendar years", () => {
+  // "Tuần này" always ends at today, so its next week is entirely future
+  // and the forward chevron hides — forward navigation exists only from a
+  // past window.
+  const week = reportRange("2026-09-24", "week"); // Mon 2026-09-21 → Thu 24
+  assert.deepEqual(adjacentReportRanges(week, "2026-09-24"), {
+    prev: { from: "2026-09-14", to: "2026-09-20" },
+    next: null,
+  });
+  // From that completed previous week the forward chevron reaches back
+  // toward the running week, clamped at today.
+  const pastWeek = customReportRange("2026-09-14", "2026-09-20");
+  assert.deepEqual(adjacentReportRanges(pastWeek, "2026-09-24").next, {
+    from: "2026-09-21",
+    to: "2026-09-24",
+  });
+  const year = reportRange("2026-09-21", "year");
+  assert.deepEqual(adjacentReportRanges(year, "2026-09-21"), {
+    prev: { from: "2025-01-01", to: "2025-12-31" },
+    next: null,
+  });
+  assert.deepEqual(
+    adjacentReportRanges(customReportRange("2025-01-01", "2025-12-31"), "2026-09-21").next,
+    // Equal-length shift reaches into the running year, so today clamps it.
+    { from: "2026-01-01", to: "2026-09-21" },
+  );
+});
+
+test("adjacent ranges clamp the next window at today", () => {
+  // Custom 10-day window ending two days ago: the next window overlaps today,
+  // so it clamps at today rather than hiding.
+  const custom = customReportRange("2026-09-01", "2026-09-10");
+  assert.deepEqual(adjacentReportRanges(custom, "2026-09-15"), {
+    prev: { from: "2026-08-22", to: "2026-08-31" },
+    next: { from: "2026-09-11", to: "2026-09-15" },
+  });
+});
+
+test("nav unit survives custom hops: month and week chains", () => {
+  const today = "2026-09-25";
+  // Simulated chain: preset month → prev href lands on period=custom&nav=month.
+  const sep = reportRange(today, "month");
+  let step = adjacentReportRanges(sep, today, sep.period);
+  assert.deepEqual(step.prev, { from: "2026-08-01", to: "2026-08-31" });
+  // Viewing Aug as custom with nav=month, prev is July then June — whole
+  // months. Without the remembered unit a 31-day span would land on 31/5–30/6.
+  let window = customReportRange(step.prev.from, step.prev.to);
+  step = adjacentReportRanges(window, today, "month");
+  assert.deepEqual(step.prev, { from: "2026-07-01", to: "2026-07-31" });
+  window = customReportRange(step.prev.from, step.prev.to);
+  step = adjacentReportRanges(window, today, "month");
+  assert.deepEqual(step.prev, { from: "2026-06-01", to: "2026-06-30" });
+
+  // Week round-trip through the clamped running week: the clamp must not
+  // eat the days it hid — prev of Sep 21–25 under nav=week is Sep 14–20,
+  // not a 5-day slide.
+  const runningWeek = reportRange(today, "week"); // Mon Sep 21 → Fri 25
+  const wStep = adjacentReportRanges(runningWeek, today, "week");
+  assert.deepEqual(wStep.prev, { from: "2026-09-14", to: "2026-09-20" });
+  const pastWeek = customReportRange(wStep.prev.from, wStep.prev.to);
+  const forward = adjacentReportRanges(pastWeek, today, "week");
+  assert.deepEqual(forward.next, { from: "2026-09-21", to: "2026-09-25" });
+  const clamped = customReportRange(forward.next!.from, forward.next!.to);
+  assert.deepEqual(adjacentReportRanges(clamped, today, "week").prev, {
+    from: "2026-09-14",
+    to: "2026-09-20",
+  });
+  // And from that same clamped week there is no forward — the whole next
+  // week is still in the future, matching the running-week preset.
+  assert.equal(adjacentReportRanges(clamped, today, "week").next, null);
+});
+
+test("navigation hrefs carry the unit; hand-picked windows stay clean", () => {
+  assert.equal(
+    reportPeriodHref("custom", "2026-08-01", "2026-08-31", "month"),
+    "/reports?period=custom&from=2026-08-01&to=2026-08-31&nav=month",
+  );
+  // A genuinely custom window emits no nav param — span-shifting is the
+  // honest default for a window nobody labelled.
+  assert.equal(
+    reportPeriodHref("custom", "2026-08-01", "2026-08-31"),
+    "/reports?period=custom&from=2026-08-01&to=2026-08-31",
+  );
+  assert.equal(normalizeNavUnit("month"), "month");
+  assert.equal(normalizeNavUnit("week"), "week");
+  assert.equal(normalizeNavUnit("bogus"), "custom");
+  assert.equal(normalizeNavUnit(null), "custom");
+  // The nav param never alters the resolved window — it only steers the
+  // chevrons. A crafted nav=month on a mid-month window is a display
+  // choice, not a different report.
+  const resolved = resolveReportRange("2026-09-25", "custom", {
+    from: "2026-08-05",
+    to: "2026-08-20",
+  });
+  assert.equal(resolved.currentStart, "2026-08-05");
+  assert.equal(resolved.currentEnd, "2026-08-20");
 });

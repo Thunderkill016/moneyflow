@@ -10,14 +10,14 @@ export const metadata: Metadata = { title: "Báo cáo — MoneyFlow", descriptio
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; from?: string; to?: string }>;
+  searchParams: Promise<{ period?: string; from?: string; to?: string; nav?: string }>;
 }) {
   const params = await searchParams;
   const period = normalizeReportPeriod(params.period);
   const custom = { from: params.from ?? null, to: params.to ?? null };
   const viewer = await requireViewer();
   const [workspace, categoriesWorkspace] = await Promise.all([
-    getReportsWorkspace(period, custom),
+    getReportsWorkspace(period, custom, params.nav),
     getCategoriesWorkspace(),
   ]);
   return (

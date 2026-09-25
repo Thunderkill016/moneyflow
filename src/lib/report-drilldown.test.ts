@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   reportAccountDrilldownHref,
   reportCategoryDrilldownHref,
+  reportIncomeCategoryDrilldownHref,
   reportDrilldownFilters,
   reportDrilldownHref,
   reportPayeeDrilldownHref,
@@ -251,4 +252,11 @@ test("a blank payee refuses to build a link", () => {
     null,
     "a missing query would open the whole ledger while looking like a slice",
   );
+});
+
+test("income category drilldown carries kind=income and refuses blanks", () => {
+  const href = reportIncomeCategoryDrilldownHref(RANGE, "Lương");
+  assert.ok(href, "a resolvable category name must produce a link");
+  assert.match(href!, /kind=income/);
+  assert.equal(reportIncomeCategoryDrilldownHref(RANGE, "   "), null);
 });
