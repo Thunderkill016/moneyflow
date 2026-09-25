@@ -3,6 +3,7 @@ import "server-only";
 import {
   buildFinancialReport,
   categoryTrendWindowStart,
+  normalizeNavUnit,
   resolveReportRange,
   type CustomRangeInput,
   type FinancialReport,
@@ -39,6 +40,14 @@ export type ReportsWorkspace = {
    */
   todayIso: string;
   /**
+   * The unit chevron navigation steps by: the preset itself on preset views,
+   * the `nav` query param on custom windows (defaulting to span-shifting
+   * when absent). Every adjacent hop lands on `period=custom`, so without
+   * this stamp a 31-day window walking back from July would land on
+   * 31/5–30/6 instead of June.
+   */
+  navUnit: ReportPeriod;
+  /**
    * Per-account and VND net-worth series across the report window, replayed
    * from the current account_balances anchor. `null` when the account/balance
    * read or the replay fails — the spending report still renders without it.
@@ -72,10 +81,12 @@ function safeBalanceSeries(
 export async function getReportsWorkspace(
   period: ReportPeriod,
   custom?: CustomRangeInput,
+  nav?: string | null,
 ): Promise<ReportsWorkspace> {
   const today = todayInVietnam();
   const range = resolveReportRange(today, period, custom);
   const rangeNotice = describeReportRangeAdjustment(period, custom, today);
+  const navUnit = period === "custom" ? normalizeNavUnit(nav) : period;
   /*
    * The category strips reach six months back, further than the comparison
    * window for week/month presets. Load from whichever bound is earlier so the
@@ -101,6 +112,7 @@ export async function getReportsWorkspace(
       report: buildFinancialReport(transactions, range),
       transactions,
       todayIso: today,
+      navUnit,
       balanceSeries: safeBalanceSeries(demoAccountRows, loaded, range),
       dataError: null,
       rangeNotice,
@@ -112,6 +124,7 @@ export async function getReportsWorkspace(
       report: buildFinancialReport([], range),
       transactions: [],
       todayIso: today,
+      navUnit,
       balanceSeries: null,
       dataError: "Không thể kết nối dữ liệu báo cáo.",
       rangeNotice,
@@ -145,6 +158,7 @@ export async function getReportsWorkspace(
       report: buildFinancialReport([], range),
       transactions: [],
       todayIso: today,
+      navUnit,
       balanceSeries: null,
       dataError: "Chưa tải được báo cáo. Hãy thử lại.",
       rangeNotice,
@@ -175,6 +189,7 @@ export async function getReportsWorkspace(
       report: buildFinancialReport(transactions, range),
       transactions,
       todayIso: today,
+      navUnit,
       balanceSeries,
       dataError: null,
       rangeNotice,
@@ -184,6 +199,7 @@ export async function getReportsWorkspace(
       report: buildFinancialReport([], range),
       transactions: [],
       todayIso: today,
+      navUnit,
       balanceSeries: null,
       dataError: "Dữ liệu báo cáo không đúng định dạng.",
       rangeNotice,

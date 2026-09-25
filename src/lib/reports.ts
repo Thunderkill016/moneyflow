@@ -127,12 +127,31 @@ export function normalizeReportPeriod(value: string | null | undefined): ReportP
 }
 
 /** Canonical period switcher href (always includes `period=` for share/bookmark). */
-export function reportPeriodHref(period: ReportPeriod, from?: string, to?: string): string {
+export function reportPeriodHref(
+  period: ReportPeriod,
+  from?: string,
+  to?: string,
+  nav?: ReportPeriod,
+): string {
   if (period !== "custom") return `${REPORTS_PATH}?period=${period}`;
   const params = new URLSearchParams({ period: "custom" });
   if (from) params.set("from", from);
   if (to) params.set("to", to);
+  // The nav unit survives custom hops so a clamped or span-shifted window
+  // cannot silently change what "kỳ trước" means on the next click. Genuinely
+  // hand-picked windows carry no unit — the param stays absent, not "custom".
+  if (nav && nav !== "custom") params.set("nav", nav);
   return `${REPORTS_PATH}?${params.toString()}`;
+}
+
+/**
+ * The unit chevron navigation steps by, taken from the `nav` query param.
+ * Anything unrecognised degrades to `custom` span-shifting — a hand-edited
+ * URL keeps working instead of lying about which unit it steps in.
+ */
+export function normalizeNavUnit(value: string | null | undefined): ReportPeriod {
+  if (value === "week" || value === "month" || value === "year") return value;
+  return "custom";
 }
 
 function daysBetween(start: string, end: string) {
@@ -255,46 +274,57 @@ export const REPORT_PERIOD_OPTIONS: { value: ReportPeriod; label: string }[] = [
 /**
  * Previous/next windows around the viewed range, for chevron navigation.
  *
- * Presets move by their own calendar unit: a month view's "kỳ trước" is the
- * whole previous month, not an equal-length partial window — equal-length is
- * what the *comparison* totals use, and navigation is a different question.
- * Custom windows shift by their own span, matching that same comparison rule.
- * `next` is null when the whole next window is still in the future — there is
- * nothing to report there — and clamps at `today` when it overlaps.
+ * `unit` — not the window's own span — decides the step, because every
+ * adjacent hop lands on `period=custom`: a whole past calendar month viewed
+ * as custom is still a month to its reader, so the chain must keep stepping
+ * in months. Without the remembered unit a 31-day window stepping back from
+ * July lands on 31/5–30/6 instead of June, and a clamped running week
+ * (Mon–today) stepping back skips the days the clamp hid. Steps anchor on
+ * the calendar unit containing `currentStart`, so a crafted `nav=month` on
+ * a mid-month window still resolves to whole months rather than drifting.
+ *
+ * `unit` defaults to `range.period` — a preset view steps in its own unit
+ * and a hand-picked custom window shifts by its span (the equal-length rule
+ * the comparison totals use). `next` is null when the following window is
+ * entirely future — there is nothing to report there — and clamps at
+ * `today` when it overlaps.
  */
 export function adjacentReportRanges(
   range: ReportRange,
   today: string,
+  unit: ReportPeriod = range.period,
 ): { prev: { from: string; to: string }; next: { from: string; to: string } | null } {
   const clampNext = (from: string, to: string) =>
     from > today ? null : { from, to: to > today ? today : to };
 
-  if (range.period === "month") {
-    const prevEnd = shiftDate(range.currentStart, -1);
-    const nextAnchor = parseDate(range.currentStart);
+  if (unit === "month") {
+    const prevMonthEnd = shiftDate(`${range.currentStart.slice(0, 7)}-01`, -1);
+    const nextAnchor = parseDate(`${range.currentStart.slice(0, 7)}-01`);
     nextAnchor.setUTCMonth(nextAnchor.getUTCMonth() + 1);
     const nextStart = dateString(nextAnchor);
     nextAnchor.setUTCMonth(nextAnchor.getUTCMonth() + 1);
     nextAnchor.setUTCDate(0);
     return {
-      prev: { from: `${prevEnd.slice(0, 7)}-01`, to: prevEnd },
+      prev: { from: `${prevMonthEnd.slice(0, 7)}-01`, to: prevMonthEnd },
       next: clampNext(nextStart, dateString(nextAnchor)),
     };
   }
-  if (range.period === "year") {
+  if (unit === "year") {
     const year = Number(range.currentStart.slice(0, 4));
     return {
       prev: { from: `${year - 1}-01-01`, to: `${year - 1}-12-31` },
       next: clampNext(`${year + 1}-01-01`, `${year + 1}-12-31`),
     };
   }
-  if (range.period === "week") {
-    const nextStart = shiftDate(range.currentStart, 7);
+  if (unit === "week") {
+    // Monday of the ISO week containing currentStart — the same rule
+    // `reportRange("week")` uses, so a clamped Mon–today view navigates as
+    // the week it belongs to rather than a shorter window.
+    const start = parseDate(range.currentStart);
+    const monday = shiftDate(range.currentStart, -((start.getUTCDay() + 6) % 7));
+    const nextStart = shiftDate(monday, 7);
     return {
-      prev: {
-        from: shiftDate(range.currentStart, -7),
-        to: shiftDate(range.currentStart, -1),
-      },
+      prev: { from: shiftDate(monday, -7), to: shiftDate(monday, -1) },
       next: clampNext(nextStart, shiftDate(nextStart, 6)),
     };
   }

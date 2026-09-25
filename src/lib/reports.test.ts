@@ -8,6 +8,7 @@ import {
   CUSTOM_RANGE_MAX_DAYS,
   formatReportPeriodTitle,
   normalizeCustomRange,
+  normalizeNavUnit,
   normalizeReportPeriod,
   reportPeriodHref,
   reportRange,
@@ -595,4 +596,64 @@ test("adjacent ranges clamp the next window at today", () => {
     prev: { from: "2026-08-22", to: "2026-08-31" },
     next: { from: "2026-09-11", to: "2026-09-15" },
   });
+});
+
+test("nav unit survives custom hops: month and week chains", () => {
+  const today = "2026-09-25";
+  // Simulated chain: preset month → prev href lands on period=custom&nav=month.
+  const sep = reportRange(today, "month");
+  let step = adjacentReportRanges(sep, today, sep.period);
+  assert.deepEqual(step.prev, { from: "2026-08-01", to: "2026-08-31" });
+  // Viewing Aug as custom with nav=month, prev is July then June — whole
+  // months. Without the remembered unit a 31-day span would land on 31/5–30/6.
+  let window = customReportRange(step.prev.from, step.prev.to);
+  step = adjacentReportRanges(window, today, "month");
+  assert.deepEqual(step.prev, { from: "2026-07-01", to: "2026-07-31" });
+  window = customReportRange(step.prev.from, step.prev.to);
+  step = adjacentReportRanges(window, today, "month");
+  assert.deepEqual(step.prev, { from: "2026-06-01", to: "2026-06-30" });
+
+  // Week round-trip through the clamped running week: the clamp must not
+  // eat the days it hid — prev of Sep 21–25 under nav=week is Sep 14–20,
+  // not a 5-day slide.
+  const runningWeek = reportRange(today, "week"); // Mon Sep 21 → Fri 25
+  let wStep = adjacentReportRanges(runningWeek, today, "week");
+  assert.deepEqual(wStep.prev, { from: "2026-09-14", to: "2026-09-20" });
+  const pastWeek = customReportRange(wStep.prev.from, wStep.prev.to);
+  const forward = adjacentReportRanges(pastWeek, today, "week");
+  assert.deepEqual(forward.next, { from: "2026-09-21", to: "2026-09-25" });
+  const clamped = customReportRange(forward.next!.from, forward.next!.to);
+  assert.deepEqual(adjacentReportRanges(clamped, today, "week").prev, {
+    from: "2026-09-14",
+    to: "2026-09-20",
+  });
+  // And from that same clamped week there is no forward — the whole next
+  // week is still in the future, matching the running-week preset.
+  assert.equal(adjacentReportRanges(clamped, today, "week").next, null);
+});
+
+test("navigation hrefs carry the unit; hand-picked windows stay clean", () => {
+  assert.equal(
+    reportPeriodHref("custom", "2026-08-01", "2026-08-31", "month"),
+    "/reports?period=custom&from=2026-08-01&to=2026-08-31&nav=month",
+  );
+  // A genuinely custom window emits no nav param — span-shifting is the
+  // honest default for a window nobody labelled.
+  assert.equal(
+    reportPeriodHref("custom", "2026-08-01", "2026-08-31"),
+    "/reports?period=custom&from=2026-08-01&to=2026-08-31",
+  );
+  assert.equal(normalizeNavUnit("month"), "month");
+  assert.equal(normalizeNavUnit("week"), "week");
+  assert.equal(normalizeNavUnit("bogus"), "custom");
+  assert.equal(normalizeNavUnit(null), "custom");
+  // The nav param never alters the resolved window — it only steers the
+  // chevrons. A crafted nav=month on a mid-month window is a display
+  // choice, not a different report.
+  const resolved = resolveReportRange("2026-09-25", "custom", {
+    from: "2026-08-05",
+    to: "2026-08-20",
+  });
+  assert.equal(resolved.currentStart, "2026-08-05");
+  assert.equal(resolved.currentEnd, "2026-08-20");
 });

@@ -160,12 +160,16 @@ export function ReportsPage({
   /*
    * Adjacent windows always navigate as custom ranges — a past calendar month
    * is not the "tháng này" preset, so `period=custom` is the only honest URL.
+   * `navUnit` rides along so the next click still steps in months or weeks
+   * rather than re-deriving the unit from a possibly clamped window.
    * `next` disappears when the whole following window is still in the future.
    */
-  const adjacent = adjacentReportRanges(report.range, workspace.todayIso);
-  const prevHref = reportPeriodHref("custom", adjacent.prev.from, adjacent.prev.to);
+  const adjacent = adjacentReportRanges(report.range, workspace.todayIso, workspace.navUnit);
+  const prevHref = reportPeriodHref(
+    "custom", adjacent.prev.from, adjacent.prev.to, workspace.navUnit,
+  );
   const nextHref = adjacent.next
-    ? reportPeriodHref("custom", adjacent.next.from, adjacent.next.to)
+    ? reportPeriodHref("custom", adjacent.next.from, adjacent.next.to, workspace.navUnit)
     : null;
 
   const balanceSeries = workspace.balanceSeries;
