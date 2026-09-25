@@ -30,54 +30,79 @@ xử lý mọi vấn đề trong dự án này … ko cần hỏi ý kiến")
   `public.profiles(id) ON DELETE CASCADE` removes rows with the profile on
   both purge and auth-user delete, without touching either contract.
 
-## Design decisions
+## Research
 
-- **UI preference, not ledger truth**: `pattern_dismissals` is deliberately
-  absent from the backup archive inventory, export RPC and restore RPC —
-  deleting a row only re-surfaces a suggestion. Shipping it in the archive
-  would force contract changes for zero recovery value.
-- **Scope whitelist**: `scope` CHECK + RPC validation share the list
-  `('ledger_dupe', 'recurring')` — adding a dismissal domain is a deliberate
-  migration, never a caller-supplied string. Mirrored in
-  `src/lib/pattern-dismissals.ts` (`DISMISSAL_SCOPES`) with a drift test.
-- **Idempotent write**: `ON CONFLICT DO NOTHING` — a second device
-  re-dismissing the same pattern is a no-op, not an error.
-- **Demo unchanged**: `getPatternDismissedKeys` returns `null` for demo
-  viewers; components keep the localStorage read-after-mount path byte-
-  identical. Demo has no server tenant to sync into.
-- **Honest degradation**: read error → `[]` (suppressed suggestion
-  reappears, can be re-dismissed) rather than pretending the read
-  succeeded; write failure → optimistic hide reverts + error notice, so the
-  UI never claims a dismissal the account did not store.
-- **No flash**: `null` sentinel — already-dismissed groups render only
-  after the server prop (auth) or localStorage effect (demo) resolves.
+- **Deterministic keys make sync cheap**: both dismissal domains already
+  hash stable bucket content — no row IDs, no clock. Storing the key is
+  the whole sync story; no payload replication needed.
+- **In-repo precedent**: every user-owned write boundary uses an
+  RLS-protected table plus a security-definer RPC (`search_path = ''`,
+  identity from `auth.uid()`); reads stay RLS-invoker. This packet adds
+  no new boundary kind.
+- **Alternatives rejected**: (a) a generic `user_preferences` JSON blob —
+  weaker validation, invites unbounded preference sprawl; (b) putting
+  dismissals in the archive inventory — forces export/restore/fixture
+  contract churn for state whose deletion only re-surfaces a suggestion;
+  (c) migrating existing localStorage keys — a write path for zero ledger
+  value when one re-dismiss already silences a pattern everywhere.
+
+## Specification
+
+- `pattern_dismissals`: PK `(user_id, scope, pattern_key)`; `user_id`
+  references `public.profiles(id) ON DELETE CASCADE`; scope CHECK
+  `('ledger_dupe','recurring')`; `pattern_key ~ ^[0-9a-f]{8}$`; RLS
+  select-own; `SELECT`-only grant to `authenticated`.
+- `dismiss_pattern_keys(text, text[])` security definer,
+  `search_path = ''`: derives `user_id` from `auth.uid()`; validates
+  scope whitelist, non-empty ≤500 batch and key shape before any insert;
+  `ON CONFLICT DO NOTHING` (second device re-dismissal is a no-op).
+- `getPatternDismissedKeys(scope)`: `null` for demo (component keeps
+  localStorage), `[]` on read error — honest degradation.
+- `dismissPatternKeysAction(scope, keys)`: non-demo `requireViewer`,
+  zod-validated scope + keys, RPC call, typed failure result.
+- Components: `null` sentinel init (no flash); optimistic hide + revert
+  + error notice on `{ok:false}` **and** on a rejected action (offline);
+  `markSuggestionHandled` keeps the saved commitment but reverts the
+  local hide on write failure.
+- Demo path byte-identical to before; ledger truth untouched.
 
 ## Implementation plan
 
-1. Migration `20260925150000_pattern_dismissals.sql`: table + RLS
-   select-own + `SELECT`-only grant + `dismiss_pattern_keys(text, text[])`
-   RPC; identity baseline extended via `check-migration-identity.mjs
-   --write`.
+1. Migration `20260925150000_pattern_dismissals.sql` + identity baseline
+   via `check-migration-identity.mjs --write`.
 2. `src/lib/pattern-dismissals.ts` shared contract + tests.
 3. `src/server/dismissals.ts` loader; `src/app/actions/dismissals.ts`
    action.
 4. Wire `transactions/page.tsx` + `commitments/page.tsx` loaders;
    components take the server set or fall back to localStorage.
-5. pgTAP `pattern_dismissals.test.sql` (11 assertions) +
-   `schema_and_rls.test.sql` plan 82→85.
+5. pgTAP `pattern_dismissals.test.sql` + `schema_and_rls.test.sql`
+   plan bump + `security_definer_contract` inventory bump.
 
-## Verification
+## Tasks
 
-- Local: typecheck, lint, 1888/1888 unit tests, check:migrations,
-  check:rls, check:architecture, check:knowledge, ci-policy, build,
-  browser smoke.
-- CI: `database` lane runs the new pgTAP file; e2e/browser shards per
+- [x] Migration, RPC, grants, identity baseline.
+- [x] Shared contract + server loader + action.
+- [x] Component wiring (transactions strip, commitments cards).
+- [x] pgTAP file + contract bumps; director round-2 fixes (anon 42501
+  assertion vs in-body guard, definer inventory 42→43, rejection paths).
+- [ ] CI exact-head green; merge; production migration apply (owner
+  boundary); post-merge read-back.
+
+## Evaluation
+
+- Local gates: typecheck, lint (0 errors), unit suite,
+  check:migrations, check:rls, check:architecture, check:knowledge,
+  ci-policy, build, browser smoke `/transactions` + `/commitments`.
+- CI: `database` lane runs the pgTAP file; browser/e2e shards per
   classifier (Class 3 → full verify).
+- Acceptance signal: dismiss on device A → open device B → the flagged
+  pattern stays suppressed; offline dismiss → suggestion returns with an
+  error notice, never silently "stored".
 
 ## Out of scope
 
 - Migrating pre-existing localStorage keys to the server (one re-dismiss
-  silences a pattern everywhere; a migration pass would add a write path
-  for zero ledger value).
+  silences a pattern everywhere; a migration pass adds a write path for
+  zero ledger value).
 - Un-dismissing ("xem lại gợi ý đã bỏ qua") — no UI asks for it yet.
 - Extending scopes beyond `ledger_dupe` / `recurring`.
