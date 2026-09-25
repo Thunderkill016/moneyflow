@@ -48,7 +48,7 @@ import {
   type RecurringIncomeTemplate,
   type SaveIncomeTemplateInput,
 } from "@/lib/planning/income-templates";
-import { categoryMeta, type AccountOption, type CategoryOption } from "@/lib/sample-data";
+import { resolveCategoryMeta, type AccountOption, type CategoryOption } from "@/lib/sample-data";
 import { readStoredTransactions, writeStoredTransactions } from "@/lib/transaction-store";
 
 function daysBetween(from: string, to: string) {
@@ -400,10 +400,11 @@ export function IncomeTemplatesPage({
               {visible.length ? (
                 <div className={planningStyles.grid}>
                   {visible.map((item) => {
-                    const meta = categoryMeta[item.categoryName] ?? {
-                      icon: "wallet",
-                      color: "green",
-                    };
+                    const meta = resolveCategoryMeta(
+                      item.categoryName,
+                      { icon: item.categoryIcon, color: item.categoryColor },
+                      { icon: "wallet", color: "green" },
+                    );
                     const tone = incomeTone(item, today);
                     const statusText = dueLabel(item, today);
 

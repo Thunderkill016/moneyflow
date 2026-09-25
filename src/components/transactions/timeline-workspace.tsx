@@ -11,7 +11,8 @@ import { type ViewerSummary } from "@/components/user-chip";
 import { useTransactionLedger } from "@/hooks/use-transaction-ledger";
 import { formatMoney } from "@/lib/money";
 import {
-  categoryMeta,
+  categoryMetaFor,
+  categoryMetaIndex,
   type AccountOption,
   type CategoryOption,
   type Transaction,
@@ -27,6 +28,8 @@ type TimelineWorkspaceData = {
   transactions: Transaction[];
   accounts: AccountOption[];
   categories: CategoryOption[];
+  /** Same all-categories presentation set as the ledger workspace. */
+  metaCategories?: CategoryOption[];
   totalBalance: number;
   today: string;
   dataError: string | null;
@@ -93,6 +96,11 @@ export function TimelineWorkspace({
       .reduce((sum, item) => sum + item.amount, 0);
     return { income, expense, net: income - expense };
   }, [filtered]);
+
+  const categoryMetaByName = useMemo(
+    () => categoryMetaIndex(workspace.metaCategories ?? workspace.categories),
+    [workspace.metaCategories, workspace.categories],
+  );
 
   const grouped = useMemo<DayGroup[]>(() => {
     const groups: DayGroup[] = [];
@@ -255,9 +263,11 @@ export function TimelineWorkspace({
                   </header>
 
                   {group.transactions.map((transaction) => {
-                    const meta =
-                      categoryMeta[transaction.category] ??
-                      categoryMeta["Thu nhập khác"];
+                    const meta = categoryMetaFor(
+                      categoryMetaByName,
+                      transaction.kind,
+                      transaction.category,
+                    );
                     return (
                       <article
                         className={styles.row}

@@ -30,7 +30,16 @@ export { readAllPages } from "@/lib/paginated-read";
 export type FinanceWorkspace = {
   transactions: Transaction[];
   accounts: AccountOption[];
+  /** Active categories only — the set pickers and filters may offer. */
   categories: CategoryOption[];
+  /**
+   * Active + archived categories for the presentation index. A historical row
+   * still references its archived category, so icon/color resolution must see
+   * it — while pickers keep offering `categories` only. Optional because the
+   * dashboard bundle payload carries active rows only; consumers fall back to
+   * `categories`.
+   */
+  metaCategories?: CategoryOption[];
   /** Active + archived goals for the transaction goal picker (annotation). */
   goals: GoalOption[];
   totalBalance: number;
@@ -64,6 +73,7 @@ const categorySchema = z.object({
   kind: z.enum(["income", "expense"]),
   icon: z.string().nullable(),
   color: z.string().nullable(),
+  is_archived: z.boolean(),
 });
 const splitLineSchema = z.object({
   category_id: z.string().uuid(),
@@ -191,6 +201,7 @@ function demoWorkspace(): FinanceWorkspace {
     ),
     accounts: demoAccounts,
     categories: demoCategories,
+    metaCategories: demoCategories,
     goals: DEMO_SAVINGS_GOALS.map((goal) => ({
       id: goal.id,
       name: goal.name,
@@ -322,11 +333,15 @@ async function loadFinanceWorkspace(
       .eq("user_id", viewer.id)
       .eq("is_archived", false)
       .order("created_at"),
+    /*
+     * Archived categories are part of the read too: picker options filter them
+     * out below, but the meta index still needs their stored icon/color for
+     * historical rows.
+     */
     supabase
       .from("categories")
-      .select("id,name,kind,icon,color")
+      .select("id,name,kind,icon,color,is_archived")
       .eq("user_id", viewer.id)
-      .eq("is_archived", false)
       .order("created_at"),
     periodFeedPromise,
     recentFeedPromise,
@@ -359,6 +374,7 @@ async function loadFinanceWorkspace(
       transactions: [],
       accounts: [],
       categories: [],
+      metaCategories: [],
       goals: [],
       totalBalance: 0,
       today,
@@ -387,9 +403,21 @@ async function loadFinanceWorkspace(
         ...item,
         balance: balanceByAccountId.get(item.id),
       })) satisfies AccountOption[];
-    const categories = z
+    const allCategories = z
       .array(categorySchema)
-      .parse(categoriesResult.data) satisfies CategoryOption[];
+      .parse(categoriesResult.data);
+    const categories = allCategories.filter(
+      (item) => !item.is_archived,
+    ) satisfies CategoryOption[];
+    const metaCategories = allCategories.map(
+      (item): CategoryOption => ({
+        id: item.id,
+        name: item.name,
+        kind: item.kind,
+        icon: item.icon,
+        color: item.color,
+      }),
+    );
     const goals = goalsResult.error
       ? []
       : (z
@@ -428,6 +456,7 @@ async function loadFinanceWorkspace(
       transactions,
       accounts,
       categories,
+      metaCategories,
       goals,
       totalBalance,
       today,
@@ -439,6 +468,7 @@ async function loadFinanceWorkspace(
       transactions: [],
       accounts: [],
       categories: [],
+      metaCategories: [],
       goals: [],
       totalBalance: 0,
       today,

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { TransactionsTrashPage } from "@/components/transactions/transactions-trash-page";
 import { requireViewer } from "@/server/auth";
+import { getCategoriesWorkspace } from "@/server/categories";
 import { getDeletedTransactions } from "@/server/finance";
 
 export const metadata: Metadata = {
@@ -10,7 +11,10 @@ export const metadata: Metadata = {
 
 export default async function Page() {
   const viewer = await requireViewer();
-  const { deleted, dataError } = await getDeletedTransactions();
+  const [{ deleted, dataError }, categoriesWorkspace] = await Promise.all([
+    getDeletedTransactions(),
+    getCategoriesWorkspace(),
+  ]);
 
   return (
     <TransactionsTrashPage
@@ -20,6 +24,7 @@ export default async function Page() {
         isDemo: viewer.isDemo,
       }}
       initialDeleted={deleted}
+      categories={categoriesWorkspace.categories}
       dataError={dataError}
     />
   );

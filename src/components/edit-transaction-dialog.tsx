@@ -14,7 +14,7 @@ import {
   parseMoneyInput,
 } from "@/lib/money";
 import {
-  categoryMeta,
+  resolveCategoryMeta,
   type AccountOption,
   type CategoryOption,
   type GoalOption,
@@ -346,7 +346,7 @@ export function EditTransactionDialog({
             <div className={styles.categoryGrid}>
               {availableCategories.map((item) => {
                 const meta =
-                  categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
+                  resolveCategoryMeta(item.name, item);
                 return (
                   <Button
                     type="button"

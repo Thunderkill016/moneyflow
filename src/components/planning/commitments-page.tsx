@@ -59,7 +59,7 @@ import {
 } from "@/lib/planning/recurring-dismissals";
 import { maybeNotifyDueCommitments } from "@/lib/push-client";
 import {
-  categoryMeta,
+  resolveCategoryMeta,
   type AccountOption,
   type CategoryOption,
 } from "@/lib/sample-data";
@@ -654,10 +654,11 @@ export function CommitmentsPage({
               {visible.length ? (
                 <div className={planningStyles.grid}>
                   {visible.map((item) => {
-                    const meta = categoryMeta[item.categoryName] ?? {
-                      icon: "receipt",
-                      color: "cyan",
-                    };
+                    const meta = resolveCategoryMeta(
+                      item.categoryName,
+                      { icon: item.categoryIcon, color: item.categoryColor },
+                      { icon: "receipt", color: "cyan" },
+                    );
                     const tone = commitmentDueTone(item, today);
                     const statusText = commitmentDueLabel(item, today);
                     const nextOn = nextOccurrence(item, today, monthStart);

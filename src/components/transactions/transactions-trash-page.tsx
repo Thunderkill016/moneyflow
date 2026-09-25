@@ -23,7 +23,9 @@ import {
 } from "@/lib/deleted-transactions";
 import { safeUserNotice } from "@/lib/safe-log";
 import {
-  categoryMeta,
+  categoryMetaFor,
+  categoryMetaIndex,
+  type CategoryOption,
   type DeletedTransaction,
   type Transaction,
 } from "@/lib/sample-data";
@@ -63,12 +65,15 @@ function trashRowSubtitle(transaction: Transaction) {
 export function TransactionsTrashPage({
   viewer,
   initialDeleted,
+  categories,
   dataError,
 }: {
   viewer: ViewerSummary;
   initialDeleted: DeletedTransaction[];
+  categories: CategoryOption[];
   dataError: string | null;
 }) {
+  const metaIndex = categoryMetaIndex(categories);
   const router = useRouter();
   const isDemo = viewer.isDemo;
   const [entries, setEntries] = useState<DeletedTransaction[]>(initialDeleted);
@@ -250,9 +255,11 @@ export function TransactionsTrashPage({
           <section className={styles.list} aria-label="Giao dịch đã xóa">
             {entries.map((entry) => {
               const transaction = entry.transaction;
-              const meta =
-                categoryMeta[transaction.category] ??
-                categoryMeta["Thu nhập khác"];
+              const meta = categoryMetaFor(
+                metaIndex,
+                transaction.kind,
+                transaction.category,
+              );
               const restoring = restoringId === transaction.id;
               return (
                 <article

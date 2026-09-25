@@ -53,7 +53,7 @@ import {
 import type { RecurringCommitment } from "@/lib/planning/commitments";
 import { buildMonthReview } from "@/lib/planning/month-review";
 import { budgetToneToCard } from "@/lib/planning-pages";
-import { categoryMeta, type CategoryOption } from "@/lib/sample-data";
+import { resolveCategoryMeta, type CategoryOption } from "@/lib/sample-data";
 
 const BudgetDialog = dynamic(
   () => import("@/components/planning/budget-dialog").then((module) => module.BudgetDialog),
@@ -579,8 +579,10 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
                   rollover.carry,
                 );
                 const rolloverLine = budgetRolloverLabel(rollover);
-                const meta =
-                  categoryMeta[budget.categoryName] ?? categoryMeta["Thu nhập khác"];
+                const meta = resolveCategoryMeta(budget.categoryName, {
+                  icon: budget.categoryIcon,
+                  color: budget.categoryColor,
+                });
                 const previousBudget = previousByCategory.get(budget.categoryId);
                 const transactionHref = budgetTransactionsHref(
                   workspace.monthStart,

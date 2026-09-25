@@ -47,7 +47,7 @@ import {
   type QuickAddPrefs,
 } from "@/lib/quick-add-prefs";
 import {
-  categoryMeta,
+  resolveCategoryMeta,
   type AccountOption,
   type CategoryOption,
   type CreateTransactionInput,
@@ -852,7 +852,7 @@ export function AddTransactionDialog({
             </Button>
           ) : null}
           {quickCategories.map((item) => {
-            const meta = categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
+            const meta = resolveCategoryMeta(item.name, item);
             return (
               <Button
                 type="button"
@@ -910,8 +910,7 @@ export function AddTransactionDialog({
                 </legend>
                 <div className={styles.categoryGrid}>
                   {availableCategories.map((item) => {
-                    const meta =
-                      categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
+                    const meta = resolveCategoryMeta(item.name, item);
                     const recent = isRecentCategoryId(item.id, recentCategoryIds);
                     return (
                       <Button

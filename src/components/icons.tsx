@@ -1,8 +1,12 @@
 import {
   Archive,
   ArrowLeftRight,
+  Baby,
   Bell,
+  Bike,
   BookOpen,
+  Briefcase,
+  Bus,
   CalendarDays,
   CarFront,
   ChartNoAxesColumnIncreasing,
@@ -11,10 +15,19 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronUp,
+  CircleParking,
   ClipboardPaste,
+  Coffee,
   CreditCard,
   Download,
+  Dumbbell,
+  Film,
   Flag,
+  Fuel,
+  Gift,
+  GraduationCap,
+  HandCoins,
+  HandHeart,
   Home,
   HeartPulse,
   Inbox,
@@ -24,21 +37,32 @@ import {
   type LucideIcon,
   type LucideProps,
   MoreHorizontal,
+  Music,
+  PawPrint,
   Pencil,
+  PiggyBank,
+  Pill,
+  Plane,
   Plus,
   ReceiptText,
   RotateCcw,
   Scale,
   Search,
   Settings2,
+  Shirt,
   ShoppingBag,
+  Smartphone,
   Soup,
   Sparkles,
+  Stamp,
   Table2,
   Target,
+  TicketPercent,
   Trash2,
   Upload,
   WalletCards,
+  WashingMachine,
+  Wifi,
   X,
 } from "lucide-react";
 
@@ -81,7 +105,31 @@ export type IconName =
   | "paste"
   | "upload"
   | "table"
-  | "download";
+  | "download"
+  | "coffee"
+  | "phone"
+  | "gift"
+  | "paw"
+  | "gym"
+  | "music"
+  | "plane"
+  | "wifi"
+  | "piggy"
+  | "briefcase"
+  | "coins"
+  | "fuel"
+  | "film"
+  | "shirt"
+  | "baby"
+  | "pill"
+  | "study"
+  | "bus"
+  | "bike"
+  | "parking"
+  | "ticket"
+  | "laundry"
+  | "charity"
+  | "tax";
 
 const icons: Record<IconName, LucideIcon> = {
   home: Home,
@@ -123,6 +171,30 @@ const icons: Record<IconName, LucideIcon> = {
   upload: Upload,
   table: Table2,
   download: Download,
+  coffee: Coffee,
+  phone: Smartphone,
+  gift: Gift,
+  paw: PawPrint,
+  gym: Dumbbell,
+  music: Music,
+  plane: Plane,
+  wifi: Wifi,
+  piggy: PiggyBank,
+  briefcase: Briefcase,
+  coins: HandCoins,
+  fuel: Fuel,
+  film: Film,
+  shirt: Shirt,
+  baby: Baby,
+  pill: Pill,
+  study: GraduationCap,
+  bus: Bus,
+  bike: Bike,
+  parking: CircleParking,
+  ticket: TicketPercent,
+  laundry: WashingMachine,
+  charity: HandHeart,
+  tax: Stamp,
 };
 
 export function Icon({ name, ...props }: LucideProps & { name: IconName }) {
