@@ -204,10 +204,10 @@ export function AccountDialog({
             onChange={(event) => {
               const nextKind = event.target.value as AccountKind;
               setKind(nextKind);
-              // Re-seed the icon from the new kind only while the picker
-              // still holds a kind default, not an explicit choice.
+              // Re-seed the icon only while the picker still holds the
+              // default of the kind being left — an explicit pick survives.
               setIcon((current) =>
-                (Object.values(ACCOUNT_KIND_DEFAULT_ICONS) as AccountIconName[]).includes(current)
+                current === ACCOUNT_KIND_DEFAULT_ICONS[kind]
                   ? ACCOUNT_KIND_DEFAULT_ICONS[nextKind]
                   : current,
               );
