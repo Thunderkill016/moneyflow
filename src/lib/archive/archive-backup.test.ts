@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   backupFileName,
   classifyRestoreFailure,
+  encryptedBackupFileName,
   describeArchiveCollection,
   describeBackupFailure,
   describeIngressRejection,
@@ -454,4 +455,77 @@ test("the verify path inspects a file without restore eligibility", () => {
   );
   assert.ok(verifyState.includes('"valid"') && verifyState.includes('"invalid"'));
   assert.ok(!verifyState.includes("confirming") && !verifyState.includes("restoring"));
+});
+
+// --- Optional encryption -----------------------------------------------------
+
+test("encrypted backups are opt-in and sealed client-side before download", () => {
+  const backupHandler = surface.slice(
+    surface.indexOf("async function handleBackup"),
+    surface.indexOf("async function handleFile"),
+  );
+  // Plain stays the default — encryption is a checkbox away, not the contract.
+  assert.ok(backupHandler.includes("encryptBackup"));
+  assert.ok(backupHandler.includes("encryptBackupBytes"));
+  assert.ok(backupHandler.includes("encryptedBackupFileName"));
+  // The sealed file name must disclose encryption — ".json" alone would read
+  // as a corrupt plain archive to anyone picking it back up.
+  const sealedName = encryptedBackupFileName("2026-09-25T01:00:00.000Z");
+  assert.ok(sealedName.includes("ma-hoa"));
+  assert.ok(sealedName.endsWith(".json"));
+  assert.notEqual(sealedName, backupFileName("2026-09-25T01:00:00.000Z"));
+});
+
+test("an encrypted file asks for a passphrase before touching archive ingress", () => {
+  const fileHandler = surface.slice(
+    surface.indexOf("async function handleFile"),
+    surface.indexOf("async function handleConfirmRestore"),
+  );
+  const detectAt = fileHandler.indexOf("isEncryptedBackupBytes");
+  const ingestAt = fileHandler.indexOf("ingestArchiveBytes");
+  assert.ok(detectAt > 0 && ingestAt > detectAt, "detection precedes ingress");
+  assert.ok(fileHandler.includes("decryptBackupBytes"));
+  // The passphrase prompt keeps the bytes so a wrong passphrase never forces
+  // a re-pick, and the failure copy cannot claim which half failed.
+  assert.ok(fileHandler.includes('"needsPassphrase"'));
+  assert.ok(
+    fileHandler.includes("decrypt_failed") &&
+      !fileHandler.includes("wrong_passphrase"),
+    "GCM failure stays undifferentiated",
+  );
+  // Same for the verify path — inspection accepts encrypted files too.
+  const verifyHandler = surface.slice(
+    surface.indexOf("async function handleVerifyFile"),
+    surface.indexOf("function resetRestore"),
+  );
+  assert.ok(verifyHandler.includes("isEncryptedBackupBytes"));
+  assert.ok(verifyHandler.includes("decryptBackupBytes"));
+  assert.ok(!verifyHandler.includes("encryptBackupBytes"), "verify only opens, never seals");
+});
+
+test("decrypted bytes re-enter through the same trusted boundaries", () => {
+  // No parallel ingress for encrypted files — the plaintext archive crosses
+  // the same validator as a plain file, so an envelope cannot smuggle a
+  // weaker format.
+  const fileHandler = surface.slice(
+    surface.indexOf("async function handleFile"),
+    surface.indexOf("async function handleConfirmRestore"),
+  );
+  const passHandler = fileHandler.slice(
+    fileHandler.indexOf("async function handleRestorePassphrase"),
+  );
+  const decryptAt = passHandler.indexOf("decryptBackupBytes");
+  const ingestAt = passHandler.indexOf("acceptPlainBytes");
+  assert.ok(decryptAt > 0 && ingestAt > decryptAt);
+});
+
+test("the passphrase never becomes part of the archive or a server call", () => {
+  // Passwords go to Web Crypto only; the actions take an archive document and
+  // know nothing about passphrases.
+  assert.ok(!actions.includes("passphrase"), "server actions must not see passphrases");
+  const backupHandler = surface.slice(
+    surface.indexOf("async function handleBackup"),
+    surface.indexOf("async function handleFile"),
+  );
+  assert.ok(!backupHandler.includes("createArchiveBackupAction(backupPassphrase"));
 });
