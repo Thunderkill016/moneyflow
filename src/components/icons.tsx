@@ -13,6 +13,7 @@ import {
   Check,
   CircleHelp,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   ChevronUp,
   CircleParking,
@@ -78,6 +79,7 @@ export type IconName =
   | "arrowUp"
   | "arrowDown"
   | "arrowRight"
+  | "arrowLeft"
   | "bowl"
   | "car"
   | "bag"
@@ -143,6 +145,7 @@ const icons: Record<IconName, LucideIcon> = {
   arrowUp: ChevronUp,
   arrowDown: ChevronDown,
   arrowRight: ChevronRight,
+  arrowLeft: ChevronLeft,
   bowl: Soup,
   car: CarFront,
   bag: ShoppingBag,

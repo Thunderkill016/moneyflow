@@ -33,6 +33,12 @@ export type ReportsWorkspace = {
   report: FinancialReport;
   transactions: Transaction[];
   /**
+   * Server-stamped "today" used to resolve `report.range` — the chevron
+   * navigation clamps against the same clock the range did, so a midnight
+   * boundary never shows a forward link to a window the report cannot load.
+   */
+  todayIso: string;
+  /**
    * Per-account and VND net-worth series across the report window, replayed
    * from the current account_balances anchor. `null` when the account/balance
    * read or the replay fails — the spending report still renders without it.
@@ -94,6 +100,7 @@ export async function getReportsWorkspace(
     return {
       report: buildFinancialReport(transactions, range),
       transactions,
+      todayIso: today,
       balanceSeries: safeBalanceSeries(demoAccountRows, loaded, range),
       dataError: null,
       rangeNotice,
@@ -104,6 +111,7 @@ export async function getReportsWorkspace(
     return {
       report: buildFinancialReport([], range),
       transactions: [],
+      todayIso: today,
       balanceSeries: null,
       dataError: "Không thể kết nối dữ liệu báo cáo.",
       rangeNotice,
@@ -136,6 +144,7 @@ export async function getReportsWorkspace(
     return {
       report: buildFinancialReport([], range),
       transactions: [],
+      todayIso: today,
       balanceSeries: null,
       dataError: "Chưa tải được báo cáo. Hãy thử lại.",
       rangeNotice,
@@ -165,6 +174,7 @@ export async function getReportsWorkspace(
     return {
       report: buildFinancialReport(transactions, range),
       transactions,
+      todayIso: today,
       balanceSeries,
       dataError: null,
       rangeNotice,
@@ -173,6 +183,7 @@ export async function getReportsWorkspace(
     return {
       report: buildFinancialReport([], range),
       transactions: [],
+      todayIso: today,
       balanceSeries: null,
       dataError: "Dữ liệu báo cáo không đúng định dạng.",
       rangeNotice,

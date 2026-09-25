@@ -118,6 +118,21 @@ export function reportCategoryDrilldownHref(range: ReportRange, category: string
 }
 
 /**
+ * Href for one category's income rows in a report window — `kind: "income"`
+ * is load-bearing for the same reason as the expense helper: without it an
+ * expense row in the same-named category would join a list opened from an
+ * income figure.
+ */
+export function reportIncomeCategoryDrilldownHref(range: ReportRange, category: string): string | null {
+  return reportDrilldownHref({
+    range,
+    kind: "income",
+    category,
+    requiresCategory: true,
+  });
+}
+
+/**
  * Href for one payee's expense rows in a report window.
  *
  * `kind: "expense"` is load-bearing for the same reason as the account

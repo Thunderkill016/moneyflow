@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   reportAccountDrilldownHref,
   reportCategoryDrilldownHref,
+  reportIncomeCategoryDrilldownHref,
   reportPayeeDrilldownHref,
 } from "@/lib/report-drilldown";
 import { Icon, type IconName } from "@/components/icons";
@@ -30,6 +31,7 @@ import { formatMoney, formatSignedMoney } from "@/lib/money";
 import type { ReportPeriod } from "@/lib/reports";
 import { trackProductEvent } from "@/lib/safe-analytics";
 import {
+  adjacentReportRanges,
   formatReportPeriodTitle,
   REPORT_PERIOD_OPTIONS,
   reportPeriodHref,
@@ -155,6 +157,16 @@ export function ReportsPage({
   const periodTitle = formatReportPeriodTitle(period, currentStart, currentEnd);
   const rangeCaption = `${dateLabel(currentStart)} – ${dateLabel(currentEnd)} · So với kỳ liền trước cùng số ngày.`;
   const rangeNotice = RANGE_NOTICES[workspace.rangeNotice ?? "none"];
+  /*
+   * Adjacent windows always navigate as custom ranges — a past calendar month
+   * is not the "tháng này" preset, so `period=custom` is the only honest URL.
+   * `next` disappears when the whole following window is still in the future.
+   */
+  const adjacent = adjacentReportRanges(report.range, workspace.todayIso);
+  const prevHref = reportPeriodHref("custom", adjacent.prev.from, adjacent.prev.to);
+  const nextHref = adjacent.next
+    ? reportPeriodHref("custom", adjacent.next.from, adjacent.next.to)
+    : null;
 
   const balanceSeries = workspace.balanceSeries;
   const netWorth = balanceSeries?.netWorthVnd ?? null;
@@ -214,7 +226,25 @@ export function ReportsPage({
 
         <section className={styles.periodBlock} aria-labelledby="report-period-title">
           <div className={styles.periodTitle} id="report-period-title" data-period={period}>
-            <span className={styles.periodPill}>{periodTitle}</span>
+            <span className={styles.periodNav}>
+              <Link
+                className={styles.periodLink}
+                href={prevHref}
+                aria-label={`Kỳ trước: ${dateLabel(adjacent.prev.from)} – ${dateLabel(adjacent.prev.to)}`}
+              >
+                <Icon name="arrowLeft" />
+              </Link>
+              <span className={styles.periodPill}>{periodTitle}</span>
+              {nextHref ? (
+                <Link
+                  className={styles.periodLink}
+                  href={nextHref}
+                  aria-label={`Kỳ sau: ${dateLabel(adjacent.next!.from)} – ${dateLabel(adjacent.next!.to)}`}
+                >
+                  <Icon name="arrowRight" />
+                </Link>
+              ) : null}
+            </span>
             <span className={styles.rangeCaption}>{rangeCaption}</span>
           </div>
           <nav
@@ -330,7 +360,11 @@ export function ReportsPage({
                 align="start"
               />
             }
-            meta="Tiền vào trừ tiền ra"
+            meta={
+              report.savingsRatePercent === null
+                ? "Tiền vào trừ tiền ra"
+                : `Giữ lại ${report.savingsRatePercent}% tiền vào`
+            }
           />
           <SecondarySummaryItem
             label="Kỳ trước"
@@ -751,6 +785,88 @@ export function ReportsPage({
                 <div className={styles.subEmpty}>
                   <Icon name="chart" />
                   <p>Chưa có khoản chi trong kỳ này.</p>
+                </div>
+              )}
+            </SecondarySection>
+
+            <SecondarySection
+              title="Thu theo danh mục"
+              description={
+                <p>
+                  Những nguồn tiền vào nhiều nhất · {periodTitle}. Vệt nhỏ dưới
+                  mỗi danh mục là thu theo tháng, 6 tháng gần nhất.
+                </p>
+              }
+              contained
+              slot="report-income-categories"
+            >
+              {report.incomeCategories.length ? (
+                <div className={styles.categories}>
+                  {report.incomeCategories.map((item) => {
+                    const meta = categoryMetaFor(metaIndex, "income", item.name);
+                    const href = reportIncomeCategoryDrilldownHref(report.range, item.name);
+                    const categoryTrendMax = Math.max(
+                      1,
+                      ...item.trend.map((month) => month.amount),
+                    );
+                    return (
+                      <article className={styles.category} key={item.name}>
+                        <span className={styles.categoryIcon} aria-hidden="true">
+                          <Icon name={meta.icon as IconName} />
+                        </span>
+                        <div className={styles.categoryBody}>
+                          {href ? (
+                            <Link className={styles.categoryLink} href={href}>
+                              {item.name}
+                            </Link>
+                          ) : (
+                            <strong>{item.name}</strong>
+                          )}
+                          <span
+                            className={styles.categoryTrack}
+                            aria-hidden="true"
+                          >
+                            <i style={{ width: `${item.share}%` }} />
+                          </span>
+                          <span
+                            className={styles.categoryTrend}
+                            role="img"
+                            aria-label={`${item.name} 6 tháng gần nhất: ${item.trend
+                              .map((month) => `${month.label} ${formatMoney(month.amount)}`)
+                              .join(", ")}`}
+                          >
+                            {item.trend.map((month) => (
+                              <i
+                                key={month.key}
+                                className={month.amount ? undefined : styles.trendEmpty}
+                                title={`${month.label}: ${formatMoney(month.amount)}`}
+                                style={{
+                                  height: month.amount
+                                    ? `${Math.max(15, (month.amount / categoryTrendMax) * 100)}%`
+                                    : undefined,
+                                }}
+                              />
+                            ))}
+                          </span>
+                        </div>
+                        <div className={styles.categoryAmount}>
+                          <MoneyValue
+                            amount={item.amount}
+                            mode="kind"
+                            kind="income"
+                            label={`Thu từ ${item.name}`}
+                            emphasis="strong"
+                          />
+                          <small>{item.share}%</small>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className={styles.subEmpty}>
+                  <Icon name="chart" />
+                  <p>Chưa có khoản thu trong kỳ này.</p>
                 </div>
               )}
             </SecondarySection>

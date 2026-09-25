@@ -51,7 +51,25 @@ export type FinancialReport = {
   totals: { income: number; expense: number; net: number; transactions: number };
   previous: { income: number; expense: number; net: number };
   expenseChangePercent: number | null;
+  /**
+   * Share of recorded income the period kept: `net / income` rounded. `null`
+   * when the period has no income — a percentage of nothing would pretend a
+   * denominator exists. Negative when spending exceeded income.
+   */
+  savingsRatePercent: number | null;
   categories: {
+    name: string;
+    amount: number;
+    share: number;
+    trend: CategoryTrendMonth[];
+  }[];
+  /**
+   * Income grouped by category, largest first — the same split-distribution
+   * and six-month strip rules as `categories`, on the income side. Shares
+   * divide by the period's total income, so a partially tagged month honestly
+   * sums under 100% here too.
+   */
+  incomeCategories: {
     name: string;
     amount: number;
     share: number;
@@ -234,6 +252,60 @@ export const REPORT_PERIOD_OPTIONS: { value: ReportPeriod; label: string }[] = [
   { value: "year", label: "Năm nay" },
 ];
 
+/**
+ * Previous/next windows around the viewed range, for chevron navigation.
+ *
+ * Presets move by their own calendar unit: a month view's "kỳ trước" is the
+ * whole previous month, not an equal-length partial window — equal-length is
+ * what the *comparison* totals use, and navigation is a different question.
+ * Custom windows shift by their own span, matching that same comparison rule.
+ * `next` is null when the whole next window is still in the future — there is
+ * nothing to report there — and clamps at `today` when it overlaps.
+ */
+export function adjacentReportRanges(
+  range: ReportRange,
+  today: string,
+): { prev: { from: string; to: string }; next: { from: string; to: string } | null } {
+  const clampNext = (from: string, to: string) =>
+    from > today ? null : { from, to: to > today ? today : to };
+
+  if (range.period === "month") {
+    const prevEnd = shiftDate(range.currentStart, -1);
+    const nextAnchor = parseDate(range.currentStart);
+    nextAnchor.setUTCMonth(nextAnchor.getUTCMonth() + 1);
+    const nextStart = dateString(nextAnchor);
+    nextAnchor.setUTCMonth(nextAnchor.getUTCMonth() + 1);
+    nextAnchor.setUTCDate(0);
+    return {
+      prev: { from: `${prevEnd.slice(0, 7)}-01`, to: prevEnd },
+      next: clampNext(nextStart, dateString(nextAnchor)),
+    };
+  }
+  if (range.period === "year") {
+    const year = Number(range.currentStart.slice(0, 4));
+    return {
+      prev: { from: `${year - 1}-01-01`, to: `${year - 1}-12-31` },
+      next: clampNext(`${year + 1}-01-01`, `${year + 1}-12-31`),
+    };
+  }
+  if (range.period === "week") {
+    const nextStart = shiftDate(range.currentStart, 7);
+    return {
+      prev: {
+        from: shiftDate(range.currentStart, -7),
+        to: shiftDate(range.currentStart, -1),
+      },
+      next: clampNext(nextStart, shiftDate(nextStart, 6)),
+    };
+  }
+  const span = daysBetween(range.currentStart, range.currentEnd);
+  const nextStart = shiftDate(range.currentEnd, 1);
+  return {
+    prev: { from: range.previousStart, to: range.previousEnd },
+    next: clampNext(nextStart, shiftDate(nextStart, span - 1)),
+  };
+}
+
 export function reportRange(today: string, period: ReportPeriod): ReportRange {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(today)) throw new Error("invalid_report_date");
   const current = parseDate(today);
@@ -283,11 +355,12 @@ export function categoryTrendWindowStart(currentEnd: string): string {
 }
 
 /**
- * The (category, amount) lines one expense row contributes — the same
- * split-distribution rule the period totals use. Keeping one implementation
- * is what stops the trend strip and the share column from disagreeing.
+ * The (category, amount) lines one row contributes — the same
+ * split-distribution rule the period totals use, for expense and income
+ * alike. Keeping one implementation is what stops the trend strip and the
+ * share column from disagreeing.
  */
-function expenseCategoryLines(item: Transaction): { name: string; amount: number }[] {
+function categoryLines(item: Transaction): { name: string; amount: number }[] {
   if (item.splits && item.splits.length >= 2) {
     return item.splits
       .filter(
@@ -371,10 +444,12 @@ export function buildFinancialReport(transactions: Transaction[], range: ReportR
   const previousIncome = sumKind(previousTransactions, "income");
   const previousExpense = sumKind(previousTransactions, "expense");
   const categoryTotals = new Map<string, number>();
+  const incomeCategoryTotals = new Map<string, number>();
   for (const item of current) {
-    if (item.kind !== "expense") continue;
-    for (const line of expenseCategoryLines(item)) {
-      categoryTotals.set(line.name, safeAdd(categoryTotals.get(line.name) ?? 0, line.amount));
+    if (item.kind !== "expense" && item.kind !== "income") continue;
+    const totals = item.kind === "expense" ? categoryTotals : incomeCategoryTotals;
+    for (const line of categoryLines(item)) {
+      totals.set(line.name, safeAdd(totals.get(line.name) ?? 0, line.amount));
     }
   }
   /*
@@ -386,27 +461,40 @@ export function buildFinancialReport(transactions: Transaction[], range: ReportR
   const trendMonths = categoryTrendMonths(range.currentEnd);
   const trendMonthKeys = new Set(trendMonths.map((month) => month.key));
   const trendTotals = new Map<string, Map<string, number>>();
+  const incomeTrendTotals = new Map<string, Map<string, number>>();
   for (const item of transactions) {
-    if (item.kind !== "expense") continue;
+    if (item.kind !== "expense" && item.kind !== "income") continue;
     const monthKey = item.occurredOn.slice(0, 7);
     if (!trendMonthKeys.has(monthKey)) continue;
-    for (const line of expenseCategoryLines(item)) {
-      const perMonth = trendTotals.get(line.name) ?? new Map<string, number>();
+    const perKind = item.kind === "expense" ? trendTotals : incomeTrendTotals;
+    for (const line of categoryLines(item)) {
+      const perMonth = perKind.get(line.name) ?? new Map<string, number>();
       perMonth.set(monthKey, safeAdd(perMonth.get(monthKey) ?? 0, line.amount));
-      trendTotals.set(line.name, perMonth);
+      perKind.set(line.name, perMonth);
     }
   }
-  const categories = [...categoryTotals.entries()]
-    .map(([name, amount]) => ({
-      name,
-      amount,
-      share: expense ? Math.round((amount / expense) * 100) : 0,
-      trend: trendMonths.map((month) => ({
-        ...month,
-        amount: trendTotals.get(name)?.get(month.key) ?? 0,
-      })),
-    }))
-    .sort((a, b) => b.amount - a.amount);
+  const withTrend = (
+    entries: [string, number][],
+    denominator: number,
+    perKind: Map<string, Map<string, number>>,
+  ) =>
+    entries
+      .map(([name, amount]) => ({
+        name,
+        amount,
+        share: denominator ? Math.round((amount / denominator) * 100) : 0,
+        trend: trendMonths.map((month) => ({
+          ...month,
+          amount: perKind.get(name)?.get(month.key) ?? 0,
+        })),
+      }))
+      .sort((a, b) => b.amount - a.amount);
+  const categories = withTrend([...categoryTotals.entries()], expense, trendTotals);
+  const incomeCategories = withTrend(
+    [...incomeCategoryTotals.entries()],
+    income,
+    incomeTrendTotals,
+  );
   /*
    * One pass over the same expense rows, taking each row whole. Transfers are
    * already excluded by matching `kind`, which is what keeps this honest: a
@@ -447,12 +535,15 @@ export function buildFinancialReport(transactions: Transaction[], range: ReportR
       bucket.key.length === 7 ? item.occurredOn.startsWith(bucket.key) : item.occurredOn === bucket.key);
     return { ...bucket, income: sumKind(matches, "income"), expense: sumKind(matches, "expense") };
   });
+  const net = safeDifference(income, expense);
   return {
     range,
-    totals: { income, expense, net: safeDifference(income, expense), transactions: current.length },
+    totals: { income, expense, net, transactions: current.length },
     previous: { income: previousIncome, expense: previousExpense, net: safeDifference(previousIncome, previousExpense) },
     expenseChangePercent: previousExpense === 0 ? null : Math.round(((expense - previousExpense) / previousExpense) * 100),
+    savingsRatePercent: income === 0 ? null : Math.round((net / income) * 100),
     categories,
+    incomeCategories,
     accounts,
     payees,
     trend,
