@@ -28,6 +28,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { ToastTone } from "@/components/ui/toast";
 import { type ViewerSummary } from "@/components/user-chip";
+import { dismissPatternKeysAction } from "@/app/actions/dismissals";
 import { formatMoney } from "@/lib/money";
 import {
   hydrateCommitmentsWithOccurrences,
@@ -87,6 +88,7 @@ export function CommitmentsPage({
   viewer,
   initialCommitments,
   initialDetectionRows,
+  dismissedPatternKeys,
   accounts,
   categories,
   monthStart,
@@ -97,6 +99,11 @@ export function CommitmentsPage({
   initialCommitments: RecurringCommitment[];
   /** Auth-mode ledger slice for pattern detection; demo reads localStorage. */
   initialDetectionRows: RecurringDetectionRow[];
+  /**
+   * Server-persisted dismissed suggestion keys — `null`/absent means demo (or
+   * an unavailable read path) and the component falls back to localStorage.
+   */
+  dismissedPatternKeys?: string[] | null;
   accounts: AccountOption[];
   categories: CategoryOption[];
   monthStart: string;
@@ -120,8 +127,13 @@ export function CommitmentsPage({
   const [statusFilter, setStatusFilter] =
     useState<CommitmentStatusFilter>("all");
   const [demoRows, setDemoRows] = useState<RecurringDetectionRow[]>([]);
-  /** null until localStorage dismissals load — never flash dismissed cards. */
-  const [dismissed, setDismissed] = useState<Set<string> | null>(null);
+  /**
+   * null until dismissals load — never flash dismissed cards. Server-backed
+   * viewers get the set up front; demo reads localStorage after mount.
+   */
+  const [dismissed, setDismissed] = useState<Set<string> | null>(() =>
+    dismissedPatternKeys == null ? null : new Set(dismissedPatternKeys),
+  );
 
   useEffect(() => {
     if (!viewer.isDemo) return;
@@ -136,11 +148,12 @@ export function CommitmentsPage({
   }, [viewer.isDemo, initialCommitments, monthStart]);
 
   useEffect(() => {
+    if (dismissedPatternKeys != null) return;
     const frame = window.requestAnimationFrame(() => {
       setDismissed(new Set(readRecurringDismissals()));
     });
     return () => window.cancelAnimationFrame(frame);
-  }, []);
+  }, [dismissedPatternKeys]);
 
   useEffect(() => {
     if (!notice) return;
@@ -230,18 +243,70 @@ export function CommitmentsPage({
     setDialogOpen(true);
   }
 
+  /**
+   * Demo stays device-local; server-backed viewers persist through the action
+   * and revert on failure so a dismissed card never claims to be stored when
+   * it is not.
+   */
   function dismissSuggestion(key: string) {
-    setDismissed(new Set(dismissRecurringPattern(key)));
+    if (dismissedPatternKeys == null) {
+      setDismissed(new Set(dismissRecurringPattern(key)));
+      return;
+    }
+    const before = dismissed ?? new Set<string>();
+    const next = new Set(before);
+    next.add(key);
+    setDismissed(next);
+    void (async () => {
+      let stored = false;
+      try {
+        stored = (await dismissPatternKeysAction("recurring", [key])).ok;
+      } catch {
+        // Rejected action = refused write — revert + notice below.
+      }
+      if (stored) return;
+      setDismissed((current) => {
+        const reverted = new Set(current ?? next);
+        if (!before.has(key)) reverted.delete(key);
+        return reverted;
+      });
+      showNotice("Chưa lưu được trạng thái bỏ qua — thử lại.", "error");
+    })();
   }
 
   /**
    * A suggestion the user saved (even renamed) counts as handled — the new
-   * commitment covers the pattern by name only when names still match.
+   * commitment covers the pattern by name only when names still match. The
+   * commitment itself is already stored at this point; if the dismissal write
+   * fails we still revert the local hide so a still-detected pattern does not
+   * pretend to be dismissed on this device alone.
    */
   function markSuggestionHandled() {
     if (!draftKey) return;
-    dismissRecurringPattern(draftKey);
-    setDismissed(new Set(readRecurringDismissals()));
+    const handledKey = draftKey;
+    if (dismissedPatternKeys == null) {
+      dismissRecurringPattern(handledKey);
+      setDismissed(new Set(readRecurringDismissals()));
+    } else {
+      const before = dismissed ?? new Set<string>();
+      setDismissed((current) => new Set(current ?? []).add(handledKey));
+      void (async () => {
+        let stored = false;
+        try {
+          stored = (await dismissPatternKeysAction("recurring", [handledKey]))
+            .ok;
+        } catch {
+          // Rejected action = refused write — revert + notice below.
+        }
+        if (stored) return;
+        setDismissed((current) => {
+          const reverted = new Set(current ?? []);
+          if (!before.has(handledKey)) reverted.delete(handledKey);
+          return reverted;
+        });
+        showNotice("Chưa lưu được trạng thái bỏ qua — thử lại.", "error");
+      })();
+    }
     setDraftKey(null);
     setDraft(null);
   }

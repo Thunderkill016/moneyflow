@@ -349,6 +349,11 @@
       "version": "20260924120000",
       "name": "20260924120000_transaction_goal_linkage.sql",
       "hash": "10c058cb04c1763891394aeed857a7ea"
+    },
+    {
+      "version": "20260925150000",
+      "name": "20260925150000_pattern_dismissals.sql",
+      "hash": "c665d729568b60c25e8de902835e653b"
     }
   ]
 }
