@@ -132,6 +132,121 @@
 }
 .registerHeading h2 { margin: 2px 0 0; }
 .registerHeading p:last-child { margin: 8px 0 0; color: var(--mf-text-muted); }
+
+/* Register controls sit on canvas — one step below the panel surface in both
+   themes, so the filter band recedes instead of advancing. Same recipe as the
+   transactions toolbar. */
+.registerControls {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 14px;
+  min-width: 0;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--mf-border-subtle);
+  background: var(--mf-canvas);
+}
+.searchField {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.searchField > span {
+  color: var(--mf-text-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+.searchControl {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  min-width: 0;
+  border: 1px solid var(--mf-border-strong);
+  border-radius: 10px;
+  background: var(--mf-surface);
+  padding: 0 12px;
+  transition:
+    border-color var(--mf-fast) var(--mf-ease),
+    box-shadow var(--mf-fast) var(--mf-ease);
+}
+.searchControl:focus-within {
+  border-color: var(--mf-focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mf-focus) 18%, transparent);
+}
+.searchControl svg {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  color: var(--mf-text-muted);
+}
+.searchControl input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--mf-text);
+  outline: 0;
+}
+.searchControl input::placeholder {
+  color: var(--mf-text-soft);
+}
+.kindFilter {
+  display: flex;
+  align-self: end;
+  gap: 4px;
+  min-width: 0;
+  border: 1px solid var(--mf-border);
+  border-radius: 12px;
+  background: var(--mf-surface-muted);
+  padding: 4px;
+}
+.kindButton {
+  flex: 1 1 auto;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  padding: 0 12px;
+  color: var(--mf-text-muted);
+  font-size: 12px;
+  font-weight: 680;
+  cursor: pointer;
+}
+.kindButton:hover {
+  color: var(--mf-text);
+}
+.kindButtonActive {
+  background: var(--mf-surface);
+  color: var(--mf-text);
+  box-shadow: var(--mf-shadow-sm);
+}
+.registerFilterMeta {
+  grid-column: 1 / -1;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--mf-text-muted);
+  font-size: 0.82rem;
+}
+.resetFilter {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--mf-brand-text);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.filteredEmpty {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 32px 22px;
+  text-align: center;
+}
+.filteredEmpty p { margin: 0; color: var(--mf-text-muted); }
 .registerList,
 .dateGroup,
 .rows { min-width: 0; }
@@ -190,6 +305,8 @@
   .summaryGrid { grid-template-columns: 1fr; }
   .registerHeading,
   .dateHeader { align-items: flex-start; flex-direction: column; }
+  .registerControls { grid-template-columns: 1fr; padding: 14px 16px; }
+  .kindFilter { align-self: stretch; }
   .row {
     grid-template-columns: auto minmax(0, 1fr);
     align-items: start;

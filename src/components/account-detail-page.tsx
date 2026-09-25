@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { Icon, type IconName } from "@/components/icons";
+import { Button } from "@/components/ui/button";
 import { AppShell } from "@/components/layout/app-shell";
 import { MoneyValue } from "@/components/money-value";
 import type { ViewerSummary } from "@/components/user-chip";
@@ -13,10 +14,12 @@ import {
 } from "@/lib/accounts";
 import type {
   AccountRegisterEntry,
+  AccountRegisterFilter,
   AccountRegisterSummary,
 } from "@/lib/account-register";
 import {
   buildAccountRegister,
+  filterAccountRegisterEntries,
   reconcileAccountBalanceSnapshot,
   summarizeAccountRegister,
 } from "@/lib/account-register";
@@ -40,6 +43,21 @@ function accountIcon(kind: AccountSummary["kind"]): IconName {
 function displayDate(date: string) {
   const [year, month, day] = date.split("-");
   return year && month && day ? `${day}/${month}/${year}` : date;
+}
+
+// Same order as the transactions toolbar: all → expense → income → transfer.
+const REGISTER_KIND_FILTERS = [
+  "all",
+  "expense",
+  "income",
+  "transfer",
+] as const;
+
+function registerKindLabel(value: AccountRegisterFilter["kind"]) {
+  if (value === "income") return "Khoản thu";
+  if (value === "expense") return "Khoản chi";
+  if (value === "transfer") return "Chuyển tiền";
+  return "Tất cả";
 }
 
 function entrySubtitle(entry: AccountRegisterEntry) {
@@ -102,6 +120,10 @@ export function AccountDetailPage({
     entries: AccountRegisterEntry[];
     summary: AccountRegisterSummary;
   } | null>(null);
+  const [registerFilter, setRegisterFilter] = useState<AccountRegisterFilter>({
+    kind: "all",
+    query: "",
+  });
 
   useEffect(() => {
     if (!viewer.isDemo || !account) return;
@@ -139,7 +161,14 @@ export function AccountDetailPage({
   const displaySummary = matchingDemoDetail?.summary ?? summary;
   const demoLedgerPending =
     viewer.isDemo && !dataError && Boolean(account) && !matchingDemoDetail;
-  const groups = groupEntries(displayEntries);
+  // Filtering narrows only the visible rows; `displaySummary` stays register-wide.
+  const filteredEntries = filterAccountRegisterEntries(
+    displayEntries,
+    registerFilter,
+  );
+  const registerFilterActive =
+    registerFilter.kind !== "all" || registerFilter.query.trim() !== "";
+  const groups = groupEntries(filteredEntries);
   const registerAvailable = !dataError;
 
   return (
@@ -326,6 +355,72 @@ export function AccountDetailPage({
                   </div>
                 </div>
 
+                {displayEntries.length ? (
+                  <div className={styles.registerControls}>
+                    <label className={styles.searchField}>
+                      <span>Tìm trong sổ</span>
+                      <div className={styles.searchControl}>
+                        <Icon name="search" />
+                        <input
+                          value={registerFilter.query}
+                          onChange={(event) =>
+                            setRegisterFilter((filter) => ({
+                              ...filter,
+                              query: event.target.value,
+                            }))
+                          }
+                          placeholder="Ghi chú, người nhận, danh mục..."
+                          aria-label="Tìm trong biến động tài khoản"
+                        />
+                      </div>
+                    </label>
+
+                    <div
+                      className={styles.kindFilter}
+                      aria-label="Lọc theo loại biến động"
+                    >
+                      {REGISTER_KIND_FILTERS.map((value) => (
+                        <Button
+                          type="button"
+                          unstyled
+                          targetSize="important"
+                          key={value}
+                          className={`${styles.kindButton}${
+                            registerFilter.kind === value
+                              ? ` ${styles.kindButtonActive}`
+                              : ""
+                          }`}
+                          onClick={() =>
+                            setRegisterFilter((filter) => ({
+                              ...filter,
+                              kind: value,
+                            }))
+                          }
+                          aria-pressed={registerFilter.kind === value}
+                        >
+                          {registerKindLabel(value)}
+                        </Button>
+                      ))}
+                    </div>
+
+                    {registerFilterActive ? (
+                      <p className={styles.registerFilterMeta}>
+                        Đang hiển thị {filteredEntries.length}/
+                        {displayEntries.length} giao dịch
+                        <button
+                          type="button"
+                          className={styles.resetFilter}
+                          onClick={() =>
+                            setRegisterFilter({ kind: "all", query: "" })
+                          }
+                        >
+                          Xoá lọc
+                        </button>
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 {groups.length ? (
                   <div className={styles.registerList}>
                     {groups.map((group) => (
@@ -373,6 +468,20 @@ export function AccountDetailPage({
                         </div>
                       </section>
                     ))}
+                  </div>
+                ) : displayEntries.length ? (
+                  <div className={styles.filteredEmpty} role="status">
+                    <p>Không có biến động nào khớp bộ lọc đang dùng.</p>
+                    <Button
+                      type="button"
+                      intent="secondary"
+                      targetSize="important"
+                      onClick={() =>
+                        setRegisterFilter({ kind: "all", query: "" })
+                      }
+                    >
+                      Xoá bộ lọc
+                    </Button>
                   </div>
                 ) : (
                   <EmptyState

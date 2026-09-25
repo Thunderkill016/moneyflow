@@ -4,6 +4,7 @@ import type { Transaction } from "./transactions/contracts.ts";
 import {
   accountTransactionImpact,
   buildAccountRegister,
+  filterAccountRegisterEntries,
   reconcileAccountBalanceSnapshot,
   summarizeAccountRegister,
 } from "./account-register.ts";
@@ -20,6 +21,7 @@ function transaction(
       overrides.category ??
       (overrides.kind === "transfer" ? "Chuyển tiền" : "Danh mục"),
     note: overrides.note ?? "Giao dịch",
+    payee: overrides.payee,
     accountId: overrides.accountId ?? "account-a",
     account: overrides.account ?? "Tài khoản A",
     destinationAccountId: overrides.destinationAccountId,
@@ -167,6 +169,139 @@ test("invalid amounts and structurally invalid same-account transfers are ignore
       "account-a",
     ),
     null,
+  );
+});
+
+test("filterAccountRegisterEntries narrows by transaction kind", () => {
+  const register = buildAccountRegister(
+    [
+      transaction({ id: "in", kind: "income", amount: 500_000 }),
+      transaction({ id: "out", kind: "expense", amount: 120_000 }),
+      transaction({
+        id: "move",
+        kind: "transfer",
+        amount: 300_000,
+        destinationAccountId: "account-b",
+        destinationAccount: "Tài khoản B",
+      }),
+    ],
+    "account-a",
+  );
+
+  const incomeOnly = filterAccountRegisterEntries(register, {
+    kind: "income",
+    query: "",
+  });
+  assert.deepEqual(
+    incomeOnly.map((entry) => entry.transaction.id),
+    ["in"],
+  );
+  const transferOnly = filterAccountRegisterEntries(register, {
+    kind: "transfer",
+    query: "",
+  });
+  assert.deepEqual(
+    transferOnly.map((entry) => entry.transaction.id),
+    ["move"],
+  );
+  assert.equal(
+    filterAccountRegisterEntries(register, { kind: "all", query: "" }).length,
+    3,
+  );
+});
+
+test("filterAccountRegisterEntries query folds diacritics and reaches note, payee, category, counterparty and splits", () => {
+  const register = buildAccountRegister(
+    [
+      transaction({
+        id: "cafe",
+        kind: "expense",
+        amount: 55_000,
+        note: "Cà phê sáng",
+        payee: "Highlands",
+      }),
+      transaction({
+        id: "split",
+        kind: "expense",
+        amount: 200_000,
+        note: "Đi chợ",
+        splits: [
+          { categoryId: "c1", category: "Thực phẩm", amount: 150_000 },
+          { categoryId: "c2", category: "Gia dụng", amount: 50_000 },
+        ],
+      }),
+      transaction({
+        id: "move",
+        kind: "transfer",
+        amount: 1_000_000,
+        note: "Dự phòng",
+        destinationAccountId: "account-b",
+        destinationAccount: "Ví tiết kiệm",
+      }),
+    ],
+    "account-a",
+  );
+
+  // Folded query matches folded text on note ("cà phê" typed as "ca phe").
+  assert.deepEqual(
+    filterAccountRegisterEntries(register, {
+      kind: "all",
+      query: "ca phe",
+    }).map((entry) => entry.transaction.id),
+    ["cafe"],
+  );
+  // Payee.
+  assert.deepEqual(
+    filterAccountRegisterEntries(register, {
+      kind: "all",
+      query: "highlands",
+    }).map((entry) => entry.transaction.id),
+    ["cafe"],
+  );
+  // Split category name.
+  assert.deepEqual(
+    filterAccountRegisterEntries(register, {
+      kind: "all",
+      query: "thuc pham",
+    }).map((entry) => entry.transaction.id),
+    ["split"],
+  );
+  // Transfer counterparty name.
+  assert.deepEqual(
+    filterAccountRegisterEntries(register, {
+      kind: "all",
+      query: "tiet kiem",
+    }).map((entry) => entry.transaction.id),
+    ["move"],
+  );
+});
+
+test("filterAccountRegisterEntries composes kind and query", () => {
+  const register = buildAccountRegister(
+    [
+      transaction({
+        id: "expense-match",
+        kind: "expense",
+        amount: 50_000,
+        note: "Cà phê",
+      }),
+      transaction({
+        id: "income-same-text",
+        kind: "income",
+        amount: 500_000,
+        note: "Cà phê thưởng",
+      }),
+    ],
+    "account-a",
+  );
+
+  const result = filterAccountRegisterEntries(register, {
+    kind: "expense",
+    query: "ca phe",
+  });
+  assert.deepEqual(
+    result.map((entry) => entry.transaction.id),
+    ["expense-match"],
   );
 });
 
