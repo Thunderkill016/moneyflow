@@ -27,6 +27,16 @@ export function backupFileName(producedAt: string): string {
   return `moneyflow-ban-sao-luu-${day}.json`;
 }
 
+/**
+ * Encrypted backups stay `.json` — the envelope is itself a JSON document —
+ * but the name must disclose the encryption, or someone picks the file for a
+ * plain inspection and concludes the backup is corrupt.
+ */
+export function encryptedBackupFileName(producedAt: string): string {
+  const day = /^(\d{4}-\d{2}-\d{2})/u.exec(producedAt)?.[1] ?? "unknown";
+  return `moneyflow-ban-sao-luu-ma-hoa-${day}.json`;
+}
+
 /** Serialize for download without altering the archive in any way. */
 export function serializeArchive(archive: MoneyFlowArchive): string {
   return JSON.stringify(archive);

@@ -23,12 +23,18 @@ import {
   describeIngressRejection,
   describeRestoreFailure,
   describeTransportLimit,
+  encryptedBackupFileName,
   serializeArchive,
   summarizeArchive,
   verifyArchiveBytes,
   type ArchiveSummary,
   type ArchiveVerificationReport,
 } from "@/lib/archive/archive-backup";
+import {
+  decryptBackupBytes,
+  encryptBackupBytes,
+  isEncryptedBackupBytes,
+} from "@/lib/archive/backup-encryption";
 import { ingestArchiveBytes } from "@/lib/archive/goal-linkage-archive-ingress";
 import type { MoneyFlowArchive } from "@/lib/archive/moneyflow-archive";
 import styles from "./settings/settings-surfaces.module.css";
@@ -75,6 +81,7 @@ import styles from "./settings/settings-surfaces.module.css";
 type RestoreState =
   | { kind: "idle" }
   | { kind: "validating" }
+  | { kind: "needsPassphrase"; bytes: Uint8Array; error?: string }
   | { kind: "rejected"; message: string }
   | { kind: "confirming"; archive: MoneyFlowArchive; summary: ArchiveSummary }
   | { kind: "restoring"; archive: MoneyFlowArchive; summary: ArchiveSummary }
@@ -94,8 +101,13 @@ type BackupState =
 type VerifyState =
   | { kind: "idle" }
   | { kind: "checking" }
+  | { kind: "needsPassphrase"; bytes: Uint8Array; error?: string }
   | { kind: "invalid"; message: string }
   | { kind: "valid"; report: ArchiveVerificationReport };
+
+/** Short enough to type on a phone, long enough that the KDF is not the
+ *  only thing standing between a shared laptop and a ledger. */
+const BACKUP_PASSPHRASE_MIN_LENGTH = 8;
 
 function formatProducedAt(value: string): string {
   const parsed = new Date(value);
@@ -119,6 +131,10 @@ export function BackupSettingsPage({
   const [backup, setBackup] = useState<BackupState>({ kind: "idle" });
   const [restore, setRestore] = useState<RestoreState>({ kind: "idle" });
   const [verify, setVerify] = useState<VerifyState>({ kind: "idle" });
+  const [encryptBackup, setEncryptBackup] = useState(false);
+  const [backupPassphrase, setBackupPassphrase] = useState("");
+  const [restorePassphrase, setRestorePassphrase] = useState("");
+  const [verifyPassphrase, setVerifyPassphrase] = useState("");
   // A ref, not state: a second click must be refused before React re-renders.
   const busy = useRef(false);
 
@@ -137,8 +153,18 @@ export function BackupSettingsPage({
         setBackup({ kind: "failed", message: describeBackupFailure(result.kind) });
         return;
       }
-      const fileName = backupFileName(result.archive.produced_at);
-      const blob = new Blob([serializeArchive(result.archive)], {
+      const fileName = encryptBackup
+        ? encryptedBackupFileName(result.archive.produced_at)
+        : backupFileName(result.archive.produced_at);
+      const plainBytes = new TextEncoder().encode(
+        serializeArchive(result.archive),
+      );
+      // The passphrase never leaves this page — the server action only ever
+      // returns the archive document; sealing happens here, after it.
+      const payload = encryptBackup
+        ? await encryptBackupBytes(plainBytes, backupPassphrase)
+        : plainBytes;
+      const blob = new Blob([payload as BlobPart], {
         type: "application/json",
       });
       const url = URL.createObjectURL(blob);
@@ -171,24 +197,71 @@ export function BackupSettingsPage({
         setRestore({ kind: "rejected", message: describeTransportLimit() });
         return;
       }
-      const result = ingestArchiveBytes(bytes);
-      if (!result.ok) {
-        // Clear the input: re-picking the same file would not fire onChange, so
-        // a user could not retry after fixing anything without reloading.
-        clearFileInput();
-        setRestore({ kind: "rejected", message: describeIngressRejection(result.code) });
+      if (isEncryptedBackupBytes(bytes)) {
+        setRestorePassphrase("");
+        setRestore({ kind: "needsPassphrase", bytes });
         return;
       }
-      setRestore({
-        kind: "confirming",
-        archive: result.archive,
-        summary: summarizeArchive(result.archive),
-      });
+      setRestore(acceptPlainBytes(bytes));
     } catch {
       clearFileInput();
       setRestore({
         kind: "rejected",
         message: "Không đọc được tệp. Không có dữ liệu nào bị thay đổi.",
+      });
+    } finally {
+      busy.current = false;
+    }
+  }
+
+  /**
+   * Plaintext bytes into the restore state machine. The caller decides what
+   * "before this" looked like — a picked file or an opened envelope — the
+   * archive ingress boundary is identical either way.
+   */
+  function acceptPlainBytes(bytes: Uint8Array): RestoreState {
+    const result = ingestArchiveBytes(bytes);
+    if (!result.ok) {
+      // Clear the input: re-picking the same file would not fire onChange, so
+      // a user could not retry after fixing anything without reloading.
+      clearFileInput();
+      return {
+        kind: "rejected",
+        message: describeIngressRejection(result.code),
+      };
+    }
+    return {
+      kind: "confirming",
+      archive: result.archive,
+      summary: summarizeArchive(result.archive),
+    };
+  }
+
+  async function handleRestorePassphrase() {
+    if (restore.kind !== "needsPassphrase" || busy.current) return;
+    busy.current = true;
+    const { bytes } = restore;
+    setRestore({ kind: "validating" });
+    try {
+      const opened = await decryptBackupBytes(bytes, restorePassphrase);
+      if (!opened.ok) {
+        setRestore({
+          kind: "needsPassphrase",
+          bytes,
+          error:
+            opened.code === "decrypt_failed"
+              ? "Mật khẩu không đúng hoặc tệp đã bị sửa. Thử lại hoặc chọn tệp khác."
+              : "Tệp mã hóa này không đúng định dạng MoneyFlow hỗ trợ.",
+        });
+        return;
+      }
+      setRestorePassphrase("");
+      setRestore(acceptPlainBytes(opened.bytes));
+    } catch {
+      setRestore({
+        kind: "needsPassphrase",
+        bytes,
+        error: "Không mở được tệp mã hóa. Thử lại hoặc chọn tệp khác.",
       });
     } finally {
       busy.current = false;
@@ -254,19 +327,61 @@ export function BackupSettingsPage({
       // Bytes, never file.text() — exactly one untrusted-input boundary, the
       // same one the restore flow uses.
       const bytes = new Uint8Array(await file.arrayBuffer());
-      const result = verifyArchiveBytes(bytes);
-      // Cleared either way so re-picking the same file still fires onChange.
-      clearVerifyInput();
-      if (!result.ok) {
-        setVerify({ kind: "invalid", message: describeIngressRejection(result.code) });
+      if (isEncryptedBackupBytes(bytes)) {
+        clearVerifyInput();
+        setVerifyPassphrase("");
+        setVerify({ kind: "needsPassphrase", bytes });
         return;
       }
-      setVerify({ kind: "valid", report: result.report });
+      acceptVerifyPlainBytes(bytes);
     } catch {
       clearVerifyInput();
       setVerify({
         kind: "invalid",
         message: "Không đọc được tệp.",
+      });
+    } finally {
+      busy.current = false;
+    }
+  }
+
+  /** Plaintext bytes into the verify report — same boundary as restore. */
+  function acceptVerifyPlainBytes(bytes: Uint8Array) {
+    const result = verifyArchiveBytes(bytes);
+    // Cleared either way so re-picking the same file still fires onChange.
+    clearVerifyInput();
+    if (!result.ok) {
+      setVerify({ kind: "invalid", message: describeIngressRejection(result.code) });
+      return;
+    }
+    setVerify({ kind: "valid", report: result.report });
+  }
+
+  async function handleVerifyPassphrase() {
+    if (verify.kind !== "needsPassphrase" || busy.current) return;
+    busy.current = true;
+    const { bytes } = verify;
+    setVerify({ kind: "checking" });
+    try {
+      const opened = await decryptBackupBytes(bytes, verifyPassphrase);
+      if (!opened.ok) {
+        setVerify({
+          kind: "needsPassphrase",
+          bytes,
+          error:
+            opened.code === "decrypt_failed"
+              ? "Mật khẩu không đúng hoặc tệp đã bị sửa. Thử lại hoặc chọn tệp khác."
+              : "Tệp mã hóa này không đúng định dạng MoneyFlow hỗ trợ.",
+        });
+        return;
+      }
+      setVerifyPassphrase("");
+      acceptVerifyPlainBytes(opened.bytes);
+    } catch {
+      setVerify({
+        kind: "needsPassphrase",
+        bytes,
+        error: "Không mở được tệp mã hóa. Thử lại hoặc chọn tệp khác.",
       });
     } finally {
       busy.current = false;
@@ -315,12 +430,46 @@ export function BackupSettingsPage({
           Tải về một tệp JSON chứa toàn bộ tài khoản, danh mục, giao dịch, ngân sách, mục tiêu và
           dữ liệu Inbox của bạn. Tệp không chứa mật khẩu hay khóa đăng nhập.
         </p>
+        <label className={styles.checkRow}>
+          <input
+            type="checkbox"
+            checked={encryptBackup}
+            disabled={demo || backup.kind === "working"}
+            onChange={(event) => setEncryptBackup(event.target.checked)}
+          />
+          <span className={styles.checkBody}>
+            <span className={styles.checkTitle}>Mã hóa bằng mật khẩu</span>
+            <span className={styles.checkDescription}>
+              Khóa tệp bằng mật khẩu riêng trước khi tải về — đúng thứ để lưu vào ổ đám mây hoặc
+              máy dùng chung. Mã hóa xảy ra ngay trên trình duyệt này; mật khẩu không được gửi đi
+              đâu và không có cách nào khôi phục nếu bạn quên.
+            </span>
+          </span>
+        </label>
+        {encryptBackup ? (
+          <label className={styles.dateField} htmlFor="backup-passphrase">
+            <span>Mật khẩu mã hóa (tối thiểu {BACKUP_PASSPHRASE_MIN_LENGTH} ký tự)</span>
+            <input
+              id="backup-passphrase"
+              type="password"
+              autoComplete="new-password"
+              value={backupPassphrase}
+              onChange={(event) => setBackupPassphrase(event.target.value)}
+              disabled={backup.kind === "working"}
+            />
+          </label>
+        ) : null}
         <Button
           type="button"
           intent="primary"
           targetSize="important"
           onClick={handleBackup}
-          disabled={demo || backup.kind === "working"}
+          disabled={
+            demo ||
+            backup.kind === "working" ||
+            (encryptBackup &&
+              backupPassphrase.length < BACKUP_PASSPHRASE_MIN_LENGTH)
+          }
           data-testid="create-backup"
         >
           {backup.kind === "working" ? "Đang tạo bản sao lưu…" : "Tải bản sao lưu"}
@@ -366,6 +515,44 @@ export function BackupSettingsPage({
 
         <div role="status" aria-live="polite" className={styles.summary}>
           {verify.kind === "checking" ? <p>Đang kiểm tra tệp…</p> : null}
+          {verify.kind === "needsPassphrase" ? (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleVerifyPassphrase();
+              }}
+            >
+              {verify.error ? (
+                <Alert tone="error">
+                  <AlertTitle>Chưa mở được tệp</AlertTitle>
+                  <AlertDescription>{verify.error}</AlertDescription>
+                </Alert>
+              ) : null}
+              <label className={styles.dateField} htmlFor="verify-passphrase">
+                <span>Tệp này được mã hóa — nhập mật khẩu để mở</span>
+                <input
+                  id="verify-passphrase"
+                  type="password"
+                  autoComplete="off"
+                  value={verifyPassphrase}
+                  onChange={(event) => setVerifyPassphrase(event.target.value)}
+                />
+              </label>
+              <div className={styles.formActions}>
+                <Button type="submit" intent="primary" targetSize="important">
+                  Mở tệp
+                </Button>
+                <Button
+                  type="button"
+                  intent="secondary"
+                  targetSize="important"
+                  onClick={() => setVerify({ kind: "idle" })}
+                >
+                  Chọn tệp khác
+                </Button>
+              </div>
+            </form>
+          ) : null}
           {verify.kind === "invalid" ? (
             <Alert tone="error">
               <AlertTitle>Tệp không hợp lệ</AlertTitle>
@@ -446,6 +633,46 @@ export function BackupSettingsPage({
         <div role="status" aria-live="polite" className={styles.summary}>
           {restore.kind === "validating" ? <p>Đang kiểm tra tệp…</p> : null}
           {restore.kind === "restoring" ? <p>Đang khôi phục dữ liệu…</p> : null}
+          {restore.kind === "needsPassphrase" ? (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleRestorePassphrase();
+              }}
+            >
+              {restore.error ? (
+                <Alert tone="error">
+                  <AlertTitle>Chưa mở được tệp</AlertTitle>
+                  <AlertDescription>{restore.error}</AlertDescription>
+                </Alert>
+              ) : null}
+              <label className={styles.dateField} htmlFor="restore-passphrase">
+                <span>Tệp này được mã hóa — nhập mật khẩu để mở</span>
+                <input
+                  id="restore-passphrase"
+                  type="password"
+                  autoComplete="off"
+                  value={restorePassphrase}
+                  onChange={(event) =>
+                    setRestorePassphrase(event.target.value)
+                  }
+                />
+              </label>
+              <div className={styles.formActions}>
+                <Button type="submit" intent="primary" targetSize="important">
+                  Mở tệp
+                </Button>
+                <Button
+                  type="button"
+                  intent="secondary"
+                  targetSize="important"
+                  onClick={resetRestore}
+                >
+                  Chọn tệp khác
+                </Button>
+              </div>
+            </form>
+          ) : null}
           {restore.kind === "restored" ? (
             <Alert tone="success">
               <AlertTitle>Đã khôi phục xong</AlertTitle>
