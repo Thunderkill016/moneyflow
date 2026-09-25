@@ -28,6 +28,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { ToastTone } from "@/components/ui/toast";
 import { type ViewerSummary } from "@/components/user-chip";
+import { dismissPatternKeysAction } from "@/app/actions/dismissals";
 import { formatMoney } from "@/lib/money";
 import {
   hydrateCommitmentsWithOccurrences,
@@ -87,6 +88,7 @@ export function CommitmentsPage({
   viewer,
   initialCommitments,
   initialDetectionRows,
+  dismissedPatternKeys,
   accounts,
   categories,
   monthStart,
@@ -97,6 +99,11 @@ export function CommitmentsPage({
   initialCommitments: RecurringCommitment[];
   /** Auth-mode ledger slice for pattern detection; demo reads localStorage. */
   initialDetectionRows: RecurringDetectionRow[];
+  /**
+   * Server-persisted dismissed suggestion keys — `null`/absent means demo (or
+   * an unavailable read path) and the component falls back to localStorage.
+   */
+  dismissedPatternKeys?: string[] | null;
   accounts: AccountOption[];
   categories: CategoryOption[];
   monthStart: string;
@@ -120,8 +127,13 @@ export function CommitmentsPage({
   const [statusFilter, setStatusFilter] =
     useState<CommitmentStatusFilter>("all");
   const [demoRows, setDemoRows] = useState<RecurringDetectionRow[]>([]);
-  /** null until localStorage dismissals load — never flash dismissed cards. */
-  const [dismissed, setDismissed] = useState<Set<string> | null>(null);
+  /**
+   * null until dismissals load — never flash dismissed cards. Server-backed
+   * viewers get the set up front; demo reads localStorage after mount.
+   */
+  const [dismissed, setDismissed] = useState<Set<string> | null>(() =>
+    dismissedPatternKeys == null ? null : new Set(dismissedPatternKeys),
+  );
 
   useEffect(() => {
     if (!viewer.isDemo) return;
@@ -136,11 +148,12 @@ export function CommitmentsPage({
   }, [viewer.isDemo, initialCommitments, monthStart]);
 
   useEffect(() => {
+    if (dismissedPatternKeys != null) return;
     const frame = window.requestAnimationFrame(() => {
       setDismissed(new Set(readRecurringDismissals()));
     });
     return () => window.cancelAnimationFrame(frame);
-  }, []);
+  }, [dismissedPatternKeys]);
 
   useEffect(() => {
     if (!notice) return;
@@ -230,8 +243,29 @@ export function CommitmentsPage({
     setDialogOpen(true);
   }
 
+  /**
+   * Demo stays device-local; server-backed viewers persist through the action
+   * and revert on failure so a dismissed card never claims to be stored when
+   * it is not.
+   */
   function dismissSuggestion(key: string) {
-    setDismissed(new Set(dismissRecurringPattern(key)));
+    if (dismissedPatternKeys == null) {
+      setDismissed(new Set(dismissRecurringPattern(key)));
+      return;
+    }
+    const before = dismissed ?? new Set<string>();
+    const next = new Set(before);
+    next.add(key);
+    setDismissed(next);
+    void dismissPatternKeysAction("recurring", [key]).then((result) => {
+      if (result.ok) return;
+      setDismissed((current) => {
+        const reverted = new Set(current ?? next);
+        if (!before.has(key)) reverted.delete(key);
+        return reverted;
+      });
+      showNotice("Chưa lưu được trạng thái bỏ qua — thử lại.", "error");
+    });
   }
 
   /**
@@ -240,8 +274,13 @@ export function CommitmentsPage({
    */
   function markSuggestionHandled() {
     if (!draftKey) return;
-    dismissRecurringPattern(draftKey);
-    setDismissed(new Set(readRecurringDismissals()));
+    if (dismissedPatternKeys == null) {
+      dismissRecurringPattern(draftKey);
+      setDismissed(new Set(readRecurringDismissals()));
+    } else {
+      setDismissed((current) => new Set(current ?? []).add(draftKey));
+      void dismissPatternKeysAction("recurring", [draftKey]);
+    }
     setDraftKey(null);
     setDraft(null);
   }

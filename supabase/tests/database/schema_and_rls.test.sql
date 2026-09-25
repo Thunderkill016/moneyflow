@@ -1,5 +1,5 @@
 begin;
-select plan(82);
+select plan(85);
 
 select has_table('public', 'profiles', 'profiles exists');
 select has_table('public', 'accounts', 'accounts exists');
@@ -15,6 +15,7 @@ select has_table('public', 'savings_goals', 'savings goals exists');
 select has_table('public', 'savings_goal_allocations', 'savings goal allocations exists');
 select has_table('public', 'import_batches', 'import_batches exists');
 select has_table('public', 'inbox_candidates', 'inbox_candidates exists');
+select has_table('public', 'pattern_dismissals', 'pattern dismissals exists');
 select has_view('public', 'account_balances', 'account_balances exists');
 select has_view('public', 'transaction_feed', 'transaction_feed exists');
 select has_view('public', 'budget_progress', 'budget_progress exists');
@@ -28,6 +29,7 @@ select ok((select relrowsecurity from pg_class where oid = 'public.categories'::
 select ok((select relrowsecurity from pg_class where oid = 'public.financial_transactions'::regclass), 'transactions has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.transaction_entries'::regclass), 'entries has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.monthly_budgets'::regclass), 'budgets has RLS');
+select ok((select relrowsecurity from pg_class where oid = 'public.pattern_dismissals'::regclass), 'pattern dismissals has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.recurring_commitments'::regclass), 'recurring commitments has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.commitment_occurrences'::regclass), 'commitment occurrences has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.recurring_income_templates'::regclass), 'recurring income templates has RLS');
@@ -82,6 +84,7 @@ select has_function('public', 'set_savings_goal_archived', array['uuid', 'boolea
 select has_function('public', 'create_account_transfer', array['uuid', 'uuid', 'bigint', 'date', 'text', 'uuid'], 'account transfer RPC exists');
 select has_function('public', 'update_money_transaction', array['uuid', 'uuid', 'uuid', 'transaction_kind', 'bigint', 'date', 'text', 'text', 'timestamptz', 'uuid', 'boolean'], 'update transaction RPC exists (with payee + expected_updated_at + goal sentinel)');
 select has_function('public', 'update_account_transfer', array['uuid', 'uuid', 'uuid', 'bigint', 'date', 'text'], 'update transfer RPC exists');
+select has_function('public', 'dismiss_pattern_keys', array['text', 'text[]'], 'pattern dismissal RPC exists');
 select col_type_is('public', 'transaction_entries', 'amount_minor', 'bigint', 'money uses bigint');
 select col_type_is('public', 'savings_goals', 'allocated_minor', 'bigint', 'goal allocations use bigint');
 select col_not_null('public', 'financial_transactions', 'idempotency_key', 'idempotency key is required');

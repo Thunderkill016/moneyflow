@@ -7,6 +7,7 @@ import {
 } from "@/lib/transaction-filters";
 import { requireViewer } from "@/server/auth";
 import { getFinanceWorkspace } from "@/server/finance";
+import { getPatternDismissedKeys } from "@/server/dismissals";
 import { getReconciliationImportEvidence } from "@/server/reconciliation-import-evidence";
 
 export const metadata: Metadata = {
@@ -46,9 +47,14 @@ export default async function Page({
    * is keyed by transaction_id, not a feed column). Demo viewers get the
    * empty map from the same helper — rows without evidence render nothing.
    */
-  const importEvidence = await getReconciliationImportEvidence(
-    workspace.transactions.map((transaction) => transaction.id),
-  );
+  const [importEvidence, dupeDismissals] = await Promise.all([
+    getReconciliationImportEvidence(
+      workspace.transactions.map((transaction) => transaction.id),
+    ),
+    // Server-persisted dismissals follow the account across devices; demo
+    // viewers get null and the component reads browser-local storage instead.
+    getPatternDismissedKeys("ledger_dupe"),
+  ]);
   const initialCategory = workspace.categories.some(
     (item) => item.name === params.category,
   )
@@ -67,6 +73,7 @@ export default async function Page({
         displayName: viewer.displayName,
         isDemo: viewer.isDemo,
       }}
+      dupeDismissals={dupeDismissals}
       viewerId={viewer.id}
       workspace={workspace}
       importEvidence={importEvidence}

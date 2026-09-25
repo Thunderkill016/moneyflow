@@ -56,6 +56,7 @@ import {
   reconciliationImportEvidenceLabel,
   type ReconciliationImportEvidenceData,
 } from "@/lib/reconciliation-import-evidence";
+import { dismissPatternKeysAction } from "@/app/actions/dismissals";
 import {
   dismissLedgerDupePatterns,
   readLedgerDupeDismissals,
@@ -175,6 +176,12 @@ type TransactionsWorkspaceData = {
 type TransactionsWorkspaceProps = {
   viewer: ViewerSummary;
   /**
+   * Server-persisted "Bỏ qua" keys for the duplicate strip, loaded with the
+   * page. `null`/absent means the viewer is demo (or the read path is
+   * unavailable) and the component falls back to device-local storage.
+   */
+  dupeDismissals?: string[] | null;
+  /**
    * Stable viewer id (Supabase sub; "demo-user" in demo) — scopes the
    * device-local saved-filter presets so a later sign-in on the same
    * browser cannot read or mutate the previous viewer's presets.
@@ -248,6 +255,7 @@ function formatDayMonth(occurredOn: string) {
 
 export function TransactionsWorkspace({
   viewer,
+  dupeDismissals,
   viewerId,
   workspace,
   importEvidence,
@@ -353,22 +361,26 @@ export function TransactionsWorkspace({
   /*
    * Ledger-duplicate review strip. Detection runs over the loaded transaction
    * list — demo and authenticated modes share `transactions`, so both work
-   * unchanged. Dismissals are device-local and keyed on the flagged pattern
-   * (account|kind|amount|note), matching the recurring-dismissal convention:
-   * `null` until localStorage is read so already-dismissed groups never flash.
+   * unchanged. Dismissals are keyed on the flagged pattern
+   * (account|kind|amount|note), matching the recurring-dismissal convention.
+   * Authenticated viewers get server-persisted keys via `dupeDismissals`, so a
+   * dismissal on one device suppresses the group everywhere; demo viewers keep
+   * the device-local localStorage path, read after mount so dismissed groups
+   * never flash and the server render cannot disagree.
    * The strip is advisory only — the sole mutation it offers is the existing
    * soft-delete path (handleDelete → confirm → 8s undo).
    */
   const [dismissedDupeKeys, setDismissedDupeKeys] = useState<Set<string> | null>(
-    null,
+    () => (dupeDismissals == null ? null : new Set(dupeDismissals)),
   );
   const [dupeReviewOpen, setDupeReviewOpen] = useState(false);
   useEffect(() => {
+    if (dupeDismissals != null) return;
     const frame = window.requestAnimationFrame(() => {
       setDismissedDupeKeys(new Set(readLedgerDupeDismissals()));
     });
     return () => window.cancelAnimationFrame(frame);
-  }, []);
+  }, [dupeDismissals]);
 
   /*
    * Named filter presets — a device-local convenience in localStorage, the
@@ -1268,11 +1280,40 @@ export function TransactionsWorkspace({
    * Dismiss one duplicate pattern (or every flagged pattern from the strip).
    * Keys are bucket-level, so a dismissed "Cà phê 30k" pattern stays quiet even
    * when new rows join it — see ledger-duplicate-dismissals.ts.
+   * Demo stays device-local; authenticated viewers persist through the server
+   * action, optimistically hiding first and reverting on failure so the strip
+   * never claims a dismissal the account did not store.
    */
   function dismissDupeGroups(keys: string[]) {
     if (keys.length === 0) return;
-    setDismissedDupeKeys(new Set(dismissLedgerDupePatterns(keys)));
-    showNotice("Đã bỏ qua gợi ý trùng.", "success", NOTICE_MS, true);
+    if (dupeDismissals == null) {
+      setDismissedDupeKeys(new Set(dismissLedgerDupePatterns(keys)));
+      showNotice("Đã bỏ qua gợi ý trùng.", "success", NOTICE_MS, true);
+      return;
+    }
+    const before = dismissedDupeKeys ?? new Set<string>();
+    const next = new Set(before);
+    for (const key of keys) next.add(key);
+    setDismissedDupeKeys(next);
+    void dismissPatternKeysAction("ledger_dupe", keys).then((result) => {
+      if (result.ok) {
+        showNotice("Đã bỏ qua gợi ý trùng.", "success", NOTICE_MS, true);
+        return;
+      }
+      setDismissedDupeKeys((current) => {
+        const reverted = new Set(current ?? next);
+        for (const key of keys) {
+          if (!before.has(key)) reverted.delete(key);
+        }
+        return reverted;
+      });
+      showNotice(
+        "Chưa lưu được trạng thái bỏ qua — gợi ý sẽ hiện lại. Thử lại nhé.",
+        "error",
+        NOTICE_MS,
+        true,
+      );
+    });
   }
 
   /**
