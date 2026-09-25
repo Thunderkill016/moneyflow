@@ -108,7 +108,10 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
         showNotice("Đã xóa dữ liệu demo trên thiết bị này.", "success");
         setReviewOpen(false);
         window.setTimeout(() => {
-          router.replace("/?deleted=1&scope=demo-local");
+          // The receipt page understands `scope=demo-local`; the landing page
+          // does not read `deleted` params at all, so routing through `/`
+          // silently dropped the outcome.
+          router.replace("/account-deletion-result?deleted=1&scope=demo-local");
           router.refresh();
         }, 400);
         return;

@@ -12,6 +12,10 @@ const HUB = join(ROOT, "src/components/settings-hub-page.tsx");
 const PRIVACY = join(ROOT, "src/components/privacy-settings-page.tsx");
 const EXPORT = join(ROOT, "src/components/export-settings-page.tsx");
 const DELETE = join(ROOT, "src/components/delete-account-page.tsx");
+const LEDGER_WORKSPACE = join(
+  ROOT,
+  "src/components/transactions/transactions-workspace.tsx",
+);
 const RECEIPT = join(ROOT, "src/app/account-deletion-result/page.tsx");
 const EXPORT_LIB = join(ROOT, "src/lib/export-data.ts");
 const DELETE_LIB = join(ROOT, "src/lib/delete-account.ts");
@@ -100,6 +104,35 @@ test("delete account preserves server-first order, final review and explicit rec
   assert.match(receipt, /data-slot="account-deletion-receipt"/);
   assert.match(receipt, /cleanup chưa xác minh đầy đủ/);
   assert.match(receipt, /Chỉ dọn được một phần/);
+});
+
+test("demo deletion lands on the receipt route, not a landing page that drops the params", () => {
+  const page = read(DELETE);
+  // `/` reads no `deleted` params at all — routing there claimed success
+  // while rendering the plain landing and discarding the outcome.
+  assert.match(
+    page,
+    /router\.replace\("\/account-deletion-result\?deleted=1&scope=demo-local"\)/,
+  );
+  assert.doesNotMatch(page, /router\.replace\("\/\?deleted=/);
+});
+
+test("a completed ledger delete stamps the device privacy log", () => {
+  const workspace = read(LEDGER_WORKSPACE);
+  // "Xóa dữ liệu gần nhất" on the privacy page reads `lastDeleteAt`, which
+  // `recordPrivacyDelete` writes — without this call the log always said
+  // "Chưa có" even right after a delete.
+  assert.match(workspace, /import \{ recordPrivacyDelete \} from "@\/lib\/privacy-prefs"/);
+  assert.match(workspace, /recordPrivacyDelete\(\);/);
+});
+
+test("settings hub offers the password change route to authenticated viewers only", () => {
+  const source = read(HUB);
+  assert.match(source, /href: "\/update-password"/);
+  // Demo has no server identity or password — showing the link there would
+  // land on a form that can only fail.
+  assert.match(source, /authOnly: true/);
+  assert.match(source, /!item\.authOnly \|\| !viewer\.isDemo/);
 });
 
 test("Settings trust presentation is locally owned", () => {
