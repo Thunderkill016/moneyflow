@@ -170,6 +170,7 @@ const TABLES = new Set([
   "categories",
   "account_balances",
   "savings_goals",
+  "pattern_dismissals",
 ]);
 
 /**
@@ -290,10 +291,51 @@ const server = createServer(async (req, res) => {
   /* ---- PostgREST tables and views ---- */
   if (path.startsWith("/rest/v1/rpc/")) {
     const fn = path.slice("/rest/v1/rpc/".length);
-    await readBody(req);
+    const body = await readBody(req);
     if (fn === "get_dashboard_bundle") {
       served.push(path);
       json(res, 200, state.dashboard_bundle ?? null);
+      return;
+    }
+    /*
+     * Mirror the real dismiss_pattern_keys contract: validated scope + key
+     * shape + batch bound, caller-scoped rows, idempotent ON CONFLICT
+     * DO NOTHING — returns the count of newly stored keys.
+     */
+    if (fn === "dismiss_pattern_keys") {
+      const { p_scope, p_keys } = body ?? {};
+      const valid =
+        ["ledger_dupe", "recurring"].includes(p_scope) &&
+        Array.isArray(p_keys) &&
+        p_keys.length > 0 &&
+        p_keys.length <= 500 &&
+        p_keys.every(
+          (key) => typeof key === "string" && /^[0-9a-f]{8}$/.test(key),
+        );
+      if (!valid) {
+        json(res, 400, { message: "invalid_dismissal_keys" });
+        return;
+      }
+      state.pattern_dismissals ??= [];
+      const seen = new Set(
+        state.pattern_dismissals.map(
+          (row) => `${row.scope}|${row.pattern_key}`,
+        ),
+      );
+      let inserted = 0;
+      for (const key of p_keys) {
+        const id = `${p_scope}|${key}`;
+        if (seen.has(id)) continue;
+        seen.add(id);
+        state.pattern_dismissals.push({
+          user_id: state.user.id,
+          scope: p_scope,
+          pattern_key: key,
+        });
+        inserted += 1;
+      }
+      served.push(path);
+      json(res, 200, inserted);
       return;
     }
     miss(`unimplemented RPC ${fn}`);
