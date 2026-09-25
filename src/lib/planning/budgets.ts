@@ -191,15 +191,20 @@ export function budgetRemaining(budget: Pick<BudgetSummary, "spent" | "limit">) 
 }
 
 /**
- * Threshold from progress %:
- * - ok: under 50%
- * - watch: 50–79%
- * - near: 80–99% → UI "Gần hạn mức"
- * - over: 100%+ → UI "Đã vượt X"
+ * Threshold bands:
+ * - over: `spent > limit` on raw integer đồng → UI "Đã vượt X". The rounded
+ *   percent must not decide this: 99.8% rounds to 100 while 10.000 ₫ still
+ *   remain, and "vượt" may only claim an overshoot the ledger shows. Exactly
+ *   at the limit nothing has been exceeded, so a fully spent budget stays
+ *   "near" — the same convention `budgetEffectiveThreshold` already uses
+ *   (`available < 0`).
+ * - near: rounded progress ≥ 80% → UI "Gần hạn mức"
+ * - watch: rounded progress ≥ 50%
+ * - ok: below that
  */
 export function budgetThreshold(budget: Pick<BudgetSummary, "spent" | "limit">): BudgetThreshold {
+  if (budget.spent > budget.limit) return "over";
   const progress = budgetProgress(budget);
-  if (progress >= 100) return "over";
   if (progress >= 80) return "near";
   if (progress >= 50) return "watch";
   return "ok";
