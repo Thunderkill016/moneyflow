@@ -214,14 +214,19 @@
     display: grid;
   }
 
+  /* Two-up on phones instead of one full-width row per action: four stacked
+     44px+ controls pushed real content ~250px below the fold. `min-content`
+     keeps a long nowrap label from overflowing its half-row — it takes a
+     full row instead. Single column returns only at ≤340px. */
   .actions,
   .sectionAction {
-    justify-content: stretch;
+    justify-content: flex-start;
   }
 
   .actions > *,
   .sectionAction > * {
-    flex: 1 1 180px;
+    flex: 1 1 45%;
+    min-width: min-content;
   }
 }
 
@@ -233,5 +238,19 @@
   .reviewRow {
     grid-template-columns: 1fr;
     gap: 4px;
+  }
+}
+
+@media (max-width: 340px) {
+  .actions,
+  .sectionAction {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .actions > *,
+  .sectionAction > * {
+    width: 100%;
+    min-width: 0;
   }
 }
