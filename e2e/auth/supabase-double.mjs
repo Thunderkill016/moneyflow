@@ -69,6 +69,7 @@ function emptyState() {
     accounts: [],
     categories: [],
     account_balances: [],
+    pattern_dismissals: [],
     dashboard_bundle: null,
   };
 }
