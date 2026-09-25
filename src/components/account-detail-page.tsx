@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { Icon, type IconName } from "@/components/icons";
+import { Button } from "@/components/ui/button";
 import { AppShell } from "@/components/layout/app-shell";
 import { MoneyValue } from "@/components/money-value";
 import type { ViewerSummary } from "@/components/user-chip";
@@ -13,10 +14,13 @@ import {
 } from "@/lib/accounts";
 import type {
   AccountRegisterEntry,
+  AccountRegisterFilter,
   AccountRegisterSummary,
 } from "@/lib/account-register";
 import {
+  accountRegisterDailyImpacts,
   buildAccountRegister,
+  filterAccountRegisterEntries,
   reconcileAccountBalanceSnapshot,
   summarizeAccountRegister,
 } from "@/lib/account-register";
@@ -42,26 +46,43 @@ function displayDate(date: string) {
   return year && month && day ? `${day}/${month}/${year}` : date;
 }
 
+// Same order as the transactions toolbar: all → expense → income → transfer.
+const REGISTER_KIND_FILTERS = [
+  "all",
+  "expense",
+  "income",
+  "transfer",
+] as const;
+
+function registerKindLabel(value: AccountRegisterFilter["kind"]) {
+  if (value === "income") return "Khoản thu";
+  if (value === "expense") return "Khoản chi";
+  if (value === "transfer") return "Chuyển tiền";
+  return "Tất cả";
+}
+
 function entrySubtitle(entry: AccountRegisterEntry) {
   const { transaction } = entry;
+  // Payee is part of the search index, so it must stay visible on the row —
+  // otherwise a payee search match would look unexplained.
+  const payee = transaction.payee ? `${transaction.payee} · ` : "";
   if (transaction.kind === "transfer") {
     const counterparty = entry.transferCounterparty ?? "tài khoản khác";
     return entry.direction === "in"
-      ? `Nhận từ ${counterparty} · không tính thu nhập`
-      : `Chuyển đến ${counterparty} · không tính chi tiêu`;
+      ? `${payee}Nhận từ ${counterparty} · không tính thu nhập`
+      : `${payee}Chuyển đến ${counterparty} · không tính chi tiêu`;
   }
 
   const splitDetail = transaction.splits?.length
     ? ` · ${transaction.splits.map((line) => line.category).join(" · ")}`
     : "";
-  return `${transaction.category}${splitDetail}`;
+  return `${payee}${transaction.category}${splitDetail}`;
 }
 
 type AccountRegisterGroup = {
   date: string;
   relativeDate: string;
   entries: AccountRegisterEntry[];
-  dailyImpact: number;
 };
 
 function groupEntries(entries: AccountRegisterEntry[]): AccountRegisterGroup[] {
@@ -74,12 +95,10 @@ function groupEntries(entries: AccountRegisterEntry[]): AccountRegisterGroup[] {
         date: transaction.occurredOn,
         relativeDate: transaction.relativeDate,
         entries: [],
-        dailyImpact: 0,
       };
       groups.push(group);
     }
     group.entries.push(entry);
-    group.dailyImpact += entry.impact;
   }
   return groups;
 }
@@ -102,6 +121,10 @@ export function AccountDetailPage({
     entries: AccountRegisterEntry[];
     summary: AccountRegisterSummary;
   } | null>(null);
+  const [registerFilter, setRegisterFilter] = useState<AccountRegisterFilter>({
+    kind: "all",
+    query: "",
+  });
 
   useEffect(() => {
     if (!viewer.isDemo || !account) return;
@@ -139,7 +162,16 @@ export function AccountDetailPage({
   const displaySummary = matchingDemoDetail?.summary ?? summary;
   const demoLedgerPending =
     viewer.isDemo && !dataError && Boolean(account) && !matchingDemoDetail;
-  const groups = groupEntries(displayEntries);
+  // Filtering narrows only the visible rows; `displaySummary` and every
+  // "Biến động ngày" header stay register-wide so totals are never bent.
+  const filteredEntries = filterAccountRegisterEntries(
+    displayEntries,
+    registerFilter,
+  );
+  const registerFilterActive =
+    registerFilter.kind !== "all" || registerFilter.query.trim() !== "";
+  const groups = groupEntries(filteredEntries);
+  const dailyImpacts = accountRegisterDailyImpacts(displayEntries);
   const registerAvailable = !dataError;
 
   return (
@@ -326,6 +358,72 @@ export function AccountDetailPage({
                   </div>
                 </div>
 
+                {displayEntries.length ? (
+                  <div className={styles.registerControls}>
+                    <label className={styles.searchField}>
+                      <span>Tìm trong sổ</span>
+                      <div className={styles.searchControl}>
+                        <Icon name="search" />
+                        <input
+                          value={registerFilter.query}
+                          onChange={(event) =>
+                            setRegisterFilter((filter) => ({
+                              ...filter,
+                              query: event.target.value,
+                            }))
+                          }
+                          placeholder="Ghi chú, người nhận, danh mục..."
+                        />
+                      </div>
+                    </label>
+
+                    <div
+                      className={styles.kindFilter}
+                      role="group"
+                      aria-label="Lọc theo loại biến động"
+                    >
+                      {REGISTER_KIND_FILTERS.map((value) => (
+                        <Button
+                          type="button"
+                          unstyled
+                          targetSize="important"
+                          key={value}
+                          className={`${styles.kindButton}${
+                            registerFilter.kind === value
+                              ? ` ${styles.kindButtonActive}`
+                              : ""
+                          }`}
+                          onClick={() =>
+                            setRegisterFilter((filter) => ({
+                              ...filter,
+                              kind: value,
+                            }))
+                          }
+                          aria-pressed={registerFilter.kind === value}
+                        >
+                          {registerKindLabel(value)}
+                        </Button>
+                      ))}
+                    </div>
+
+                    {registerFilterActive ? (
+                      <p className={styles.registerFilterMeta}>
+                        Đang hiển thị {filteredEntries.length}/
+                        {displayEntries.length} giao dịch
+                        <button
+                          type="button"
+                          className={styles.resetFilter}
+                          onClick={() =>
+                            setRegisterFilter({ kind: "all", query: "" })
+                          }
+                        >
+                          Xoá lọc
+                        </button>
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 {groups.length ? (
                   <div className={styles.registerList}>
                     {groups.map((group) => (
@@ -335,7 +433,7 @@ export function AccountDetailPage({
                             {group.relativeDate}, {displayDate(group.date)}
                           </span>
                           <MoneyValue
-                            amount={group.dailyImpact}
+                            amount={dailyImpacts.get(group.date) ?? 0}
                             mode="signed"
                             currencyCode={displayAccount.currencyCode}
                             label={`Biến động ngày ${displayDate(group.date)}`}
@@ -373,6 +471,20 @@ export function AccountDetailPage({
                         </div>
                       </section>
                     ))}
+                  </div>
+                ) : displayEntries.length ? (
+                  <div className={styles.filteredEmpty} role="status">
+                    <p>Không có biến động nào khớp bộ lọc đang dùng.</p>
+                    <Button
+                      type="button"
+                      intent="secondary"
+                      targetSize="important"
+                      onClick={() =>
+                        setRegisterFilter({ kind: "all", query: "" })
+                      }
+                    >
+                      Xoá bộ lọc
+                    </Button>
                   </div>
                 ) : (
                   <EmptyState

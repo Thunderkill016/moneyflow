@@ -40,6 +40,7 @@ export default async function Page({
 
   return (
     <AccountDetailPage
+      key={accountId}
       viewer={{
         email: viewer.email,
         displayName: viewer.displayName,

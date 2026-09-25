@@ -1126,12 +1126,17 @@
     font-size: 27px;
   }
 
+  /* Two-up on phones instead of one full-width row per action — same
+     density contract as the shared secondary-layout header. `min-content`
+     lets a long nowrap label take a full row instead of overflowing. */
   .headingActions {
+    justify-content: flex-start;
     width: 100%;
   }
 
   .headingActions > * {
-    flex: 1 1 180px;
+    flex: 1 1 45%;
+    min-width: min-content;
   }
 
   .toolbar,
@@ -1279,11 +1284,6 @@
     border-top: 0;
   }
 
-  .headingActions > * {
-    flex-basis: 100%;
-    width: 100%;
-  }
-
   .dayHeader {
     align-items: flex-start;
     flex-direction: column;
@@ -1291,6 +1291,18 @@
 
   .dayTotal {
     margin-left: 0;
+  }
+}
+
+@media (max-width: 340px) {
+  .headingActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .headingActions > * {
+    width: 100%;
+    min-width: 0;
   }
 }
 
