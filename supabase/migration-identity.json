@@ -354,6 +354,11 @@
       "version": "20260925150000",
       "name": "20260925150000_pattern_dismissals.sql",
       "hash": "c665d729568b60c25e8de902835e653b"
+    },
+    {
+      "version": "20260926120000",
+      "name": "20260926120000_account_identity.sql",
+      "hash": "6294a50af8e0b042f5bf35a0489f515f"
     }
   ]
 }
