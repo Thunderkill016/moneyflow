@@ -26,12 +26,17 @@ export type {
 export {
   categories,
   CATEGORY_COLORS,
+  CATEGORY_ICON_NAMES,
   categoryMeta,
   categoryMetaFor,
   categoryMetaIndex,
   isCategoryColor,
+  isCategoryIconName,
+  PICKABLE_CATEGORY_ICONS,
   resolveCategoryMeta,
   type CategoryColor,
+  type CategoryIconName,
   type CategoryMetaIndex,
   type CategoryPresentationMeta,
+  type PickableCategoryIcon,
 } from "./transactions/category-presentation.ts";

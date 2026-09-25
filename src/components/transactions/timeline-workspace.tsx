@@ -28,6 +28,8 @@ type TimelineWorkspaceData = {
   transactions: Transaction[];
   accounts: AccountOption[];
   categories: CategoryOption[];
+  /** Same all-categories presentation set as the ledger workspace. */
+  metaCategories?: CategoryOption[];
   totalBalance: number;
   today: string;
   dataError: string | null;
@@ -96,8 +98,8 @@ export function TimelineWorkspace({
   }, [filtered]);
 
   const categoryMetaByName = useMemo(
-    () => categoryMetaIndex(workspace.categories),
-    [workspace.categories],
+    () => categoryMetaIndex(workspace.metaCategories ?? workspace.categories),
+    [workspace.metaCategories, workspace.categories],
   );
 
   const grouped = useMemo<DayGroup[]>(() => {

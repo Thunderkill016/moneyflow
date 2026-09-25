@@ -53,7 +53,7 @@ import {
 import type { RecurringCommitment } from "@/lib/planning/commitments";
 import { buildMonthReview } from "@/lib/planning/month-review";
 import { budgetToneToCard } from "@/lib/planning-pages";
-import { categoryMetaFor, categoryMetaIndex, type CategoryOption } from "@/lib/sample-data";
+import { resolveCategoryMeta, type CategoryOption } from "@/lib/sample-data";
 
 const BudgetDialog = dynamic(
   () => import("@/components/planning/budget-dialog").then((module) => module.BudgetDialog),
@@ -148,10 +148,6 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
   }
 
   const totals = useMemo(() => sumBudgetTotals(budgets), [budgets]);
-  const metaIndex = useMemo(
-    () => categoryMetaIndex(workspace.categories),
-    [workspace.categories],
-  );
   /*
    * Per-category carry from prior budgeted months. Recomputed from the live
    * `budgets` state so a card added or removed mid-session immediately gains
@@ -583,11 +579,10 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
                   rollover.carry,
                 );
                 const rolloverLine = budgetRolloverLabel(rollover);
-                const meta = categoryMetaFor(
-                  metaIndex,
-                  "expense",
-                  budget.categoryName,
-                );
+                const meta = resolveCategoryMeta(budget.categoryName, {
+                  icon: budget.categoryIcon,
+                  color: budget.categoryColor,
+                });
                 const previousBudget = previousByCategory.get(budget.categoryId);
                 const transactionHref = budgetTransactionsHref(
                   workspace.monthStart,

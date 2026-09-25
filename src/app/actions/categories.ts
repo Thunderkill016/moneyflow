@@ -8,6 +8,10 @@ import {
   type CategorySummary,
   type SaveCategoryInput,
 } from "@/lib/categories";
+import {
+  CATEGORY_COLORS,
+  CATEGORY_ICON_NAMES,
+} from "@/lib/transactions/category-presentation";
 import { createClient } from "@/lib/supabase/server";
 import { mapCategoryRow } from "@/server/categories";
 import { requireViewer } from "@/server/auth";
@@ -20,8 +24,13 @@ const saveSchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().trim().min(1).max(60),
   kind: z.enum(["income", "expense"]),
-  icon: z.string().max(40).nullable().optional(),
-  color: z.string().max(40).nullable().optional(),
+  /*
+   * The palette/icon sets are the product contract — writes outside them would
+   * persist values the renderer can only degrade, so reject them here instead.
+   * Legacy stored values (e.g. seeded "plus") stay inside CATEGORY_ICON_NAMES.
+   */
+  icon: z.enum(CATEGORY_ICON_NAMES).nullable().optional(),
+  color: z.enum(CATEGORY_COLORS).nullable().optional(),
 });
 
 const archiveSchema = z.object({

@@ -207,7 +207,7 @@ export function DashboardHeaderSections({
 export function DashboardLedgerColumn({
   topCategories,
   transactions,
-  categories,
+  metaCategories,
   isEmptyLedger,
   actionsDisabled,
   today,
@@ -215,7 +215,11 @@ export function DashboardLedgerColumn({
 }: {
   topCategories: ExpenseCategory[];
   transactions: Transaction[];
-  categories: CategoryOption[];
+  /**
+   * Active + archived categories — the presentation index only. Historical
+   * rows keep their archived category's stored icon/color through this list.
+   */
+  metaCategories: readonly CategoryOption[];
   isEmptyLedger: boolean;
   actionsDisabled: boolean;
   /**
@@ -226,7 +230,7 @@ export function DashboardLedgerColumn({
   today: string;
   onAddTransaction: () => void;
 }) {
-  const metaIndex = categoryMetaIndex(categories);
+  const metaIndex = categoryMetaIndex(metaCategories);
   return (
     <div className="insights-main-stack">
       {!isEmptyLedger ? (

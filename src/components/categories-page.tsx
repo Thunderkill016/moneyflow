@@ -29,56 +29,27 @@ import {
   PAGE_EMPTY_CATEGORY,
   PAGE_EMPTY_CATEGORY_FILTER,
 } from "@/lib/planning-pages";
-import type { TransactionKind } from "@/lib/sample-data";
+import {
+  CATEGORY_ICON_NAMES,
+  isCategoryColor,
+  type TransactionKind,
+} from "@/lib/sample-data";
 import styles from "./categories-page.module.css";
 
-// Keep in sync with ICON_OPTIONS in category-dialog.tsx — every pickable icon
-// must render here, and every stored icon must stay renderable for old rows.
-const KNOWN_ICONS: IconName[] = [
-  "bowl",
-  "car",
-  "bag",
-  "home",
-  "receipt",
-  "spark",
-  "heart",
-  "book",
-  "wallet",
-  "bank",
-  "arrows",
-  "coffee",
-  "phone",
-  "gift",
-  "paw",
-  "gym",
-  "music",
-  "plane",
-  "wifi",
-  "piggy",
-  "briefcase",
-  "coins",
-  "fuel",
-  "film",
-  "shirt",
-  "baby",
-  "pill",
-  "study",
-  "bus",
-  "bike",
-  "parking",
-  "ticket",
-  "laundry",
-  "charity",
-  "tax",
-];
+/*
+ * Renderable icons = every writable icon plus "arrows" (the internal transfer
+ * glyph). The writable list already covers the legacy seeded "plus".
+ */
+const KNOWN_ICONS: IconName[] = [...CATEGORY_ICON_NAMES, "arrows"];
 
 function categoryIcon(name: string | null): IconName {
   return name && (KNOWN_ICONS as string[]).includes(name) ? (name as IconName) : "spark";
 }
 
 function categoryTone(color: string | null) {
-  const key = color && color in styles ? color : "violet";
-  return styles[key as keyof typeof styles] ?? styles.violet;
+  // Palette contract only — a stored string must never resolve to an
+  // unrelated stylesheet key just because the name happens to collide.
+  return styles[isCategoryColor(color) ? color : "violet"];
 }
 
 function CategorySection({

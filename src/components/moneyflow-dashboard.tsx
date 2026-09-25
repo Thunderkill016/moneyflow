@@ -96,6 +96,7 @@ type DashboardWorkspace = {
 export function MoneyFlowDashboard({
   viewer,
   workspace,
+  metaCategories,
   accountBalances,
   backupState,
   initialInboxCount,
@@ -107,6 +108,12 @@ export function MoneyFlowDashboard({
 }: {
   viewer: ViewerSummary;
   workspace: DashboardWorkspace;
+  /**
+   * Active + archived categories for row/icon presentation. The bundle only
+   * carries the active picker set, so the page supplies the full list — an
+   * archived category keeps its stored identity on historical rows.
+   */
+  metaCategories: readonly CategoryOption[];
   accountBalances: AccountBalanceRow[];
   backupState: BackupReminderState;
   initialInboxCount: number;
@@ -461,7 +468,7 @@ export function MoneyFlowDashboard({
         <DashboardLedgerColumn
           topCategories={topCategories}
           transactions={transactions}
-          categories={workspace.categories}
+          metaCategories={metaCategories}
           isEmptyLedger={isEmptyLedger}
           actionsDisabled={actionsDisabled}
           today={workspace.today}

@@ -158,6 +158,12 @@ type TransactionsWorkspaceData = {
   transactions: Transaction[];
   accounts: AccountOption[];
   categories: CategoryOption[];
+  /**
+   * Active + archived categories for row presentation. Historical rows keep
+   * their archived category's stored identity through this list; pickers keep
+   * using `categories`. Falls back to `categories` when absent.
+   */
+  metaCategories?: CategoryOption[];
   /** Goal picker options for the edit dialog; demo ids are strings. */
   goals?: GoalOption[];
   totalBalance: number;
@@ -713,8 +719,8 @@ export function TransactionsWorkspace({
   // Row icons resolve through the viewer's own category rows so a custom
   // icon picked in /categories shows here, not only on the manage page.
   const categoryMetaByName = useMemo(
-    () => categoryMetaIndex(workspace.categories),
-    [workspace.categories],
+    () => categoryMetaIndex(workspace.metaCategories ?? workspace.categories),
+    [workspace.metaCategories, workspace.categories],
   );
   const effectiveBulkCategoryId = bulkCategoryOptions.some(
     (item) => item.id === bulkCategoryId,

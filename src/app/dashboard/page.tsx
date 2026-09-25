@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { MoneyFlowDashboard } from "@/components/moneyflow-dashboard";
 import { countGoalPaceAttention } from "@/lib/planning/goals";
 import { requireViewer } from "@/server/auth";
+import { getCategoriesWorkspace } from "@/server/categories";
 import { getDashboardPageWorkspace } from "@/server/dashboard";
 
 export const metadata: Metadata = {
@@ -29,6 +30,12 @@ export default async function DashboardPage() {
     pendingInboxCount,
     ledgerTrust,
   } = await getDashboardPageWorkspace(viewer);
+  /*
+   * The bundle only carries active categories (pickers). Row icons resolve
+   * through this all-categories list so an archived category keeps its stored
+   * identity on historical ledger rows.
+   */
+  const { categories: metaCategories } = await getCategoriesWorkspace();
 
   /*
    * Only the count crosses into the client boundary — goal objects stay
@@ -47,6 +54,7 @@ export default async function DashboardPage() {
         isDemo: viewer.isDemo,
       }}
       workspace={workspace}
+      metaCategories={metaCategories}
       accountBalances={accountBalances}
       backupState={backupState}
       initialInboxCount={pendingInboxCount}

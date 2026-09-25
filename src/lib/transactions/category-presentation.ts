@@ -21,6 +21,65 @@ export function isCategoryColor(value: unknown): value is CategoryColor {
   return (CATEGORY_COLORS as readonly unknown[]).includes(value);
 }
 
+/*
+ * Icons the picker offers today. The write path validates against this list,
+ * so a name may only leave it when no stored row can still reference it.
+ */
+export const PICKABLE_CATEGORY_ICONS = [
+  "bowl",
+  "coffee",
+  "car",
+  "fuel",
+  "bus",
+  "bike",
+  "parking",
+  "bag",
+  "shirt",
+  "laundry",
+  "home",
+  "wifi",
+  "phone",
+  "receipt",
+  "tax",
+  "heart",
+  "pill",
+  "baby",
+  "paw",
+  "book",
+  "study",
+  "gym",
+  "music",
+  "film",
+  "plane",
+  "gift",
+  "charity",
+  "ticket",
+  "briefcase",
+  "piggy",
+  "coins",
+  "wallet",
+  "bank",
+  "spark",
+] as const;
+
+/*
+ * Stored by schema seeds ("Thu nhập khác") before the picker existed —
+ * renderable and writable so legacy rows stay editable, but not offered.
+ * "arrows" is deliberately absent: it is the internal transfer glyph.
+ */
+export const LEGACY_CATEGORY_ICONS = ["plus"] as const;
+
+export const CATEGORY_ICON_NAMES = [
+  ...PICKABLE_CATEGORY_ICONS,
+  ...LEGACY_CATEGORY_ICONS,
+] as const;
+export type CategoryIconName = (typeof CATEGORY_ICON_NAMES)[number];
+export type PickableCategoryIcon = (typeof PICKABLE_CATEGORY_ICONS)[number];
+
+export function isCategoryIconName(value: unknown): value is CategoryIconName {
+  return (CATEGORY_ICON_NAMES as readonly unknown[]).includes(value);
+}
+
 export type CategoryPresentationMeta = { icon: string; color: CategoryColor };
 
 /**
@@ -33,11 +92,12 @@ export type CategoryPresentationMeta = { icon: string; color: CategoryColor };
 export function resolveCategoryMeta(
   name: string,
   stored?: { icon?: string | null; color?: string | null } | null,
+  fallback?: CategoryPresentationMeta,
 ): CategoryPresentationMeta {
-  const fallback = categoryMeta[name] ?? categoryMeta["Thu nhập khác"];
+  const named = categoryMeta[name] ?? fallback ?? categoryMeta["Thu nhập khác"];
   return {
-    icon: stored?.icon ?? fallback.icon,
-    color: isCategoryColor(stored?.color) ? stored.color : fallback.color,
+    icon: stored?.icon ?? named.icon,
+    color: isCategoryColor(stored?.color) ? stored.color : named.color,
   };
 }
 

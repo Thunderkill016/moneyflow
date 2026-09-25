@@ -59,8 +59,7 @@ import {
 } from "@/lib/planning/recurring-dismissals";
 import { maybeNotifyDueCommitments } from "@/lib/push-client";
 import {
-  categoryMetaFor,
-  categoryMetaIndex,
+  resolveCategoryMeta,
   type AccountOption,
   type CategoryOption,
 } from "@/lib/sample-data";
@@ -184,7 +183,6 @@ export function CommitmentsPage({
     () => items.filter((item) => item.isArchived),
     [items],
   );
-  const metaIndex = useMemo(() => categoryMetaIndex(categories), [categories]);
   const visibleActive = useMemo(() => {
     if (statusFilter === "unpaid") return active.filter((item) => !item.isPaid);
     if (statusFilter === "paid") return active.filter((item) => item.isPaid);
@@ -656,10 +654,9 @@ export function CommitmentsPage({
               {visible.length ? (
                 <div className={planningStyles.grid}>
                   {visible.map((item) => {
-                    const meta = categoryMetaFor(
-                      metaIndex,
-                      "expense",
+                    const meta = resolveCategoryMeta(
                       item.categoryName,
+                      { icon: item.categoryIcon, color: item.categoryColor },
                       { icon: "receipt", color: "cyan" },
                     );
                     const tone = commitmentDueTone(item, today);

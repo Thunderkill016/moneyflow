@@ -14,11 +14,16 @@ import {
   type CategorySummary,
   type SaveCategoryInput,
 } from "@/lib/categories";
-import type { CategoryColor, TransactionKind } from "@/lib/sample-data";
+import type {
+  CategoryColor,
+  PickableCategoryIcon,
+  TransactionKind,
+} from "@/lib/sample-data";
 import styles from "./category-dialog.module.css";
 
-// Keep in sync with KNOWN_ICONS in categories-page.tsx.
-const ICON_OPTIONS = [
+// Keep in sync with PICKABLE_CATEGORY_ICONS in category-presentation.ts —
+// the write schema only accepts icons from that writable set.
+const ICON_OPTIONS: readonly (readonly [PickableCategoryIcon, string])[] = [
   ["bowl", "Ăn uống"],
   ["coffee", "Cà phê & đồ uống"],
   ["car", "Di chuyển"],
