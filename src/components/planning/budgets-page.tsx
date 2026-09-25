@@ -37,11 +37,13 @@ import {
   budgetProgress,
   budgetRollover,
   budgetRolloverLabel,
+  BUDGET_SUGGESTION_MONTHS,
   budgetsToCarryForward,
   budgetTransactionsHref,
   compareBudgetAmount,
   type BudgetMonthAdjustment,
   type BudgetRollover,
+  type BudgetSuggestion,
   type BudgetSummary,
   type SaveBudgetInput,
 } from "@/lib/planning/budgets";
@@ -73,6 +75,12 @@ type BudgetPageWorkspace = {
   /** Recorded month expense — feeds the past-month review, never the pace UI. */
   monthExpense: number;
   monthCommitments: RecurringCommitment[];
+  /**
+   * Suggested limits keyed by expense categoryId, computed server-side from
+   * the trailing ledger months — the page only intersects them with the
+   * categories still missing a budget.
+   */
+  suggestions: Record<string, BudgetSuggestion>;
   categories: CategoryOption[];
   monthStart: string;
   monthEnd: string;
@@ -125,6 +133,10 @@ function monthHref(monthStart: string) {
 export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
   const [budgets, setBudgets] = useState(workspace.budgets);
   const [editing, setEditing] = useState<BudgetSummary | null>(null);
+  const [suggestionDraft, setSuggestionDraft] = useState<{
+    categoryId: string;
+    limit: number;
+  } | null>(null);
   const [reviewBudget, setReviewBudget] = useState<BudgetSummary | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogVersion, setDialogVersion] = useState(0);
@@ -235,6 +247,16 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
     (category) => !budgets.some((budget) => budget.categoryId === category.id),
   );
   /*
+   * Suggestions only ever apply to a category still missing a budget — the
+   * moment one is created (here or elsewhere) its suggestion row disappears
+   * and the real budget card takes over. Derived from the live `budgets`
+   * state, not the server payload, so a one-click apply cannot linger.
+   */
+  const suggestionRows = availableCategories.flatMap((category) => {
+    const suggestion = workspace.suggestions[category.id];
+    return suggestion ? [{ category, suggestion }] : [];
+  });
+  /*
    * Recomputed from live budget state, so the offer disappears the moment the
    * last missing category is filled — including when the user fills it by hand.
    */
@@ -282,6 +304,19 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
 
   function openDialog(budget: BudgetSummary | null) {
     setEditing(budget);
+    setSuggestionDraft(null);
+    setDialogVersion((value) => value + 1);
+    setDialogOpen(true);
+  }
+
+  /*
+   * "Tùy chỉnh" opens the same manual dialog with the suggested amount as a
+   * starting value — adjusting a suggestion stays a normal budget decision,
+   * not a second kind of write.
+   */
+  function openSuggestionDialog(draft: { categoryId: string; limit: number }) {
+    setEditing(null);
+    setSuggestionDraft(draft);
     setDialogVersion((value) => value + 1);
     setDialogOpen(true);
   }
@@ -332,6 +367,28 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
       showNotice("Đã lưu ngân sách.", "success");
     }
     return result;
+  }
+
+  /*
+   * One-click apply goes through the same `save` path as the manual dialog —
+   * same monthStart guard, same demo/authenticated split, same merge — so an
+   * applied suggestion is a normal budget row, never a second write path.
+   */
+  async function applySuggestion(category: CategoryOption, amount: number) {
+    const key = `suggestion-${category.id}`;
+    if (busyId) return;
+    setBusyId(key);
+    const result = await save({
+      categoryId: category.id,
+      monthStart: workspace.monthStart,
+      limit: amount,
+    });
+    setBusyId(null);
+    if (!result.ok) {
+      showNotice(result.message || "Chưa áp dụng được gợi ý.", "error");
+      return;
+    }
+    showNotice(`Đã áp dụng hạn mức gợi ý cho ${category.name}.`, "success");
   }
 
   function requestRemove(budget: BudgetSummary) {
@@ -516,6 +573,94 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
               ) : null}
             </dl>
           </section>
+        ) : null}
+
+        {/*
+         * Trailing-average suggestions for categories still missing a limit.
+         * Each card states its evidence window in words — never a bare number
+         * — and "Áp dụng" runs the identical save path as manual entry, so an
+         * accepted suggestion lands as an ordinary budget row.
+         */}
+        {!workspace.dataError && suggestionRows.length ? (
+          <PlanningSection
+            title="Gợi ý từ chi tiêu gần đây"
+            description={`Trung bình ${BUDGET_SUGGESTION_MONTHS} tháng hoàn tất trước ${monthLabel}, tính riêng từng danh mục — kể cả tháng không chi.`}
+            slot="budget-suggestions"
+          >
+            <div className={planningStyles.grid}>
+              {suggestionRows.map(({ category, suggestion }) => {
+                const meta = resolveCategoryMeta(category.name, {
+                  icon: category.icon,
+                  color: category.color,
+                });
+                const applying = busyId === `suggestion-${category.id}`;
+                return (
+                  <PlanningCard key={category.id} tone="ok">
+                    <div className={planningStyles.cardTop}>
+                      <span className={planningStyles.icon}>
+                        <Icon name={meta.icon as IconName} />
+                      </span>
+                      <div className={planningStyles.cardTitle}>
+                        <h3>{category.name}</h3>
+                        <p>Chưa có hạn mức trong {monthLabel}</p>
+                      </div>
+                    </div>
+
+                    <div className={planningStyles.metrics}>
+                      <div className={planningStyles.metric}>
+                        <span className={planningStyles.metricLabel}>
+                          Gợi ý hạn mức
+                        </span>
+                        <MoneyValue
+                          amount={suggestion.amount}
+                          emphasis="strong"
+                          align="start"
+                        />
+                      </div>
+                    </div>
+
+                    <p className={planningStyles.context}>
+                      {suggestion.monthsWithData === BUDGET_SUGGESTION_MONTHS
+                        ? `Có chi cả ${BUDGET_SUGGESTION_MONTHS} tháng gần nhất.`
+                        : `Có chi ${suggestion.monthsWithData}/${BUDGET_SUGGESTION_MONTHS} tháng gần nhất — tháng không chi vẫn tính vào trung bình.`}
+                    </p>
+
+                    <div
+                      className={planningStyles.actions}
+                      data-slot="planning-card-actions"
+                    >
+                      <Button
+                        type="button"
+                        intent="primary"
+                        targetSize="important"
+                        disabled={Boolean(busyId)}
+                        onClick={() =>
+                          applySuggestion(category, suggestion.amount)
+                        }
+                      >
+                        <Icon name="check" />
+                        {applying ? "Đang áp dụng…" : "Áp dụng"}
+                      </Button>
+                      <Button
+                        type="button"
+                        intent="secondary"
+                        targetSize="important"
+                        disabled={Boolean(busyId)}
+                        onClick={() =>
+                          openSuggestionDialog({
+                            categoryId: category.id,
+                            limit: suggestion.amount,
+                          })
+                        }
+                      >
+                        <Icon name="edit" /> Tùy chỉnh
+                      </Button>
+                    </div>
+                  </PlanningCard>
+                );
+              })}
+            </div>
+          </PlanningSection>
         ) : null}
 
         {!workspace.dataError && !availableCategories.length && budgets.length ? (
@@ -724,13 +869,18 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
       </PlanningWorkspace>
 
       <BudgetDialog
-        key={`${workspace.monthStart}-${editing?.id ?? "new"}-${dialogVersion}`}
+        key={`${workspace.monthStart}-${editing?.id ?? suggestionDraft?.categoryId ?? "new"}-${dialogVersion}`}
         open={dialogOpen}
         budget={editing}
+        initialLimit={suggestionDraft?.limit}
         categories={
           editing
             ? workspace.categories.filter((item) => item.id === editing.categoryId)
-            : availableCategories
+            : suggestionDraft
+              ? workspace.categories.filter(
+                  (item) => item.id === suggestionDraft.categoryId,
+                )
+              : availableCategories
         }
         monthStart={workspace.monthStart}
         onClose={() => setDialogOpen(false)}

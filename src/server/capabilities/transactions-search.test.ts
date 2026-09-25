@@ -19,7 +19,7 @@ test("transactions.search orders deterministically and cursor paging is complete
     deps,
   );
 
-  assert.equal(full.items.length, 5);
+  assert.equal(full.items.length, 10);
   assert.equal(first.items.length, 2);
   assert.ok(first.nextCursor);
   assert.equal(second.items.length, 2);

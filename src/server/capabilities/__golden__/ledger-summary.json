@@ -56,6 +56,10 @@
           "count": 3
         },
         {
+          "reason": "outside_range",
+          "count": 5
+        },
+        {
           "reason": "transfer",
           "count": 1
         }
@@ -101,6 +105,10 @@
           "count": 1
         },
         {
+          "reason": "outside_range",
+          "count": 5
+        },
+        {
           "reason": "transfer",
           "count": 1
         }
@@ -142,6 +150,10 @@
         ]
       },
       "excluded": [
+        {
+          "reason": "outside_range",
+          "count": 5
+        },
         {
           "reason": "transfer",
           "count": 1

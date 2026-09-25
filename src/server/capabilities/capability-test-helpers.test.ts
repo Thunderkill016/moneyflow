@@ -139,6 +139,7 @@ export function fixtureBudgetsWorkspace(): BudgetsWorkspace {
     monthIncome: 12_000_000,
     monthExpense: 8_400_000,
     monthCommitments: [],
+    suggestions: {},
     dataError: null,
   };
 }

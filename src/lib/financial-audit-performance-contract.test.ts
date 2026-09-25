@@ -76,6 +76,12 @@ test("budget and report reads repeat the viewer tenant predicate", () => {
     budgets,
     /\.from\("categories"\)[\s\S]*?\.eq\("user_id", viewer\.id\)/,
   );
+  // The suggestion read scans the same feed — it must stay tenant-bounded
+  // exactly like every other private financial read.
+  assert.match(
+    budgets,
+    /\.from\("transaction_feed"\)[\s\S]*?\.eq\("user_id", viewer\.id\)/,
+  );
   assert.match(
     reports,
     /\.from\("transaction_feed"\)[\s\S]*?\.eq\("user_id", viewer\.id\)/,

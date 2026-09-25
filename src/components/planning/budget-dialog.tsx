@@ -20,6 +20,7 @@ import styles from "./planning-dialog.module.css";
 export function BudgetDialog({
   open,
   budget,
+  initialLimit,
   categories,
   monthStart,
   onClose,
@@ -27,6 +28,11 @@ export function BudgetDialog({
 }: {
   open: boolean;
   budget: BudgetSummary | null;
+  /**
+   * Prefill for a new limit — used when the user adjusts a computed
+   * suggestion rather than typing from scratch. The value stays editable.
+   */
+  initialLimit?: number;
   categories: CategoryOption[];
   monthStart: string;
   onClose: () => void;
@@ -34,7 +40,13 @@ export function BudgetDialog({
 }) {
   const limitRef = useRef<HTMLInputElement>(null);
   const [categoryId, setCategoryId] = useState(budget?.categoryId ?? categories[0]?.id ?? "");
-  const [limit, setLimit] = useState(budget ? formatMoneyInput(String(budget.limit)) : "");
+  const [limit, setLimit] = useState(
+    budget
+      ? formatMoneyInput(String(budget.limit))
+      : initialLimit
+        ? formatMoneyInput(String(initialLimit))
+        : "",
+  );
   const [categoryError, setCategoryError] = useState("");
   const [limitError, setLimitError] = useState("");
   const [formError, setFormError] = useState("");

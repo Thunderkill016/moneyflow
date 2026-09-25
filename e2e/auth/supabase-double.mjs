@@ -188,6 +188,8 @@ function applyFilters(rows, url, miss) {
       out = out.filter((row) => String(row[key] ?? "") === value);
     } else if (op === "gte") {
       out = out.filter((row) => String(row[key] ?? "") >= value);
+    } else if (op === "lt") {
+      out = out.filter((row) => String(row[key] ?? "") < value);
     } else if (op === "lte") {
       out = out.filter((row) => String(row[key] ?? "") <= value);
     } else if (op === "is" && value === "null") {

@@ -2,12 +2,17 @@ import "server-only";
 
 import { z } from "zod";
 import { monthExpenseTotal } from "@/lib/finance";
+import { readAllPages } from "@/lib/paginated-read";
 import { monthIncomeTotal } from "@/lib/planning/allocation";
 import {
+  BUDGET_SUGGESTION_MONTHS,
   budgetRolloverWindowStart,
+  budgetSuggestions,
   resolveBudgetMonth,
+  shiftBudgetMonth,
   type BudgetMonthAdjustment,
   type BudgetMonthResolution,
+  type BudgetSuggestion,
   type BudgetSummary,
 } from "@/lib/planning/budgets";
 import type { RecurringCommitment } from "@/lib/planning/commitments";
@@ -17,6 +22,7 @@ import { createClient } from "@/lib/supabase/server";
 import { todayInVietnam } from "@/lib/vietnam-date";
 import { requireViewer } from "@/server/auth";
 import { mapCommitmentRow } from "@/server/commitments";
+import { mapTransactionFeedRow, TRANSACTION_FEED_COLUMNS } from "@/server/finance";
 
 export type BudgetsWorkspace = {
   budgets: BudgetSummary[];
@@ -71,6 +77,16 @@ export type BudgetsWorkspace = {
    * budget, which is the double-count this data exists to prevent.
    */
   monthCommitments: RecurringCommitment[];
+  /**
+   * Suggested monthly limits keyed by expense categoryId, derived from the
+   * trailing completed months before the viewed month (see
+   * `budgetSuggestions` for the exact window and averaging rule).
+   *
+   * Read from `transaction_feed`, not `budget_progress`: the progress view
+   * only carries categories that already have a budget row, so a suggestion
+   * built on it could never see the unbudgeted spending it exists to find.
+   */
+  suggestions: Record<string, BudgetSuggestion>;
   dataError: string | null;
 };
 
@@ -206,6 +222,10 @@ function demoWorkspace(
     ? demoRows(resolution.previousMonthStart, "previous")
     : [];
 
+  // One resolved demo ledger feeds every derived figure so the month totals,
+  // the dashboard, and the suggestions cannot disagree with each other.
+  const demoLedger = sampleTransactionsFor(todayInVietnam());
+
   return {
     ...workspaceMetadata(resolution),
     categories: demoCategories.filter((item) => item.kind === "expense"),
@@ -218,11 +238,14 @@ function demoWorkspace(
     priorBudgets: demoPriorBudgets,
     // Derived from the same demo ledger the demo dashboard reads, so the two
     // agree in demo exactly as they must in authenticated mode.
-    monthIncome: monthIncomeTotal(sampleTransactionsFor(todayInVietnam()), resolution.monthStart.slice(0, 7)),
-    monthExpense: monthExpenseTotal(sampleTransactionsFor(todayInVietnam()), resolution.monthStart.slice(0, 7)),
+    monthIncome: monthIncomeTotal(demoLedger, resolution.monthStart.slice(0, 7)),
+    monthExpense: monthExpenseTotal(demoLedger, resolution.monthStart.slice(0, 7)),
     // Demo commitment state lives in browser storage owned by the commitments
     // surface, so the server cannot resolve it here without inventing one.
     monthCommitments: [],
+    suggestions: Object.fromEntries(
+      budgetSuggestions(demoLedger, resolution.monthStart),
+    ),
     dataError: null,
   };
 }
@@ -246,6 +269,7 @@ export async function getBudgetsWorkspace(
       monthIncome: 0,
       monthExpense: 0,
       monthCommitments: [],
+      suggestions: {},
       dataError: "Không thể kết nối dữ liệu ngân sách.",
     };
   }
@@ -253,8 +277,12 @@ export async function getBudgetsWorkspace(
   // The rollover window is bounded twice — here at the read, and again inside
   // budgetRollover — so history depth can never make this scan unbounded.
   const rolloverWindowStart = budgetRolloverWindowStart(resolution.monthStart);
+  const suggestionWindowStart = shiftBudgetMonth(
+    resolution.monthStart,
+    -BUDGET_SUGGESTION_MONTHS,
+  );
 
-  const [budgetsResult, categoriesResult, incomeResult, expenseResult, commitmentsResult, occurrencesResult] =
+  const [budgetsResult, categoriesResult, incomeResult, expenseResult, commitmentsResult, occurrencesResult, suggestionResult] =
     await Promise.all([
     supabase
       .from("budget_progress")
@@ -310,6 +338,27 @@ export async function getBudgetsWorkspace(
       .from("commitment_occurrences")
       .select("commitment_id,transaction_id")
       .eq("month_start", resolution.monthStart),
+    /*
+     * Trailing expense rows for limit suggestions, straight from the ledger
+     * feed so split lines keep their per-category amounts. `budget_progress`
+     * cannot answer this — it only sees categories that already have a
+     * budget row, exactly the ones a suggestion is not needed for. Read
+     * through the shared paginator with a deterministic tie-breaker so a
+     * heavy three months cannot silently truncate the average.
+     */
+    readAllPages((from, to) =>
+      supabase
+        .from("transaction_feed")
+        .select(TRANSACTION_FEED_COLUMNS)
+        .eq("user_id", viewer.id)
+        .eq("kind", "expense")
+        .gte("occurred_on", suggestionWindowStart)
+        .lt("occurred_on", resolution.monthStart)
+        .order("occurred_on", { ascending: false })
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to),
+    ),
   ]);
 
   if (
@@ -318,7 +367,8 @@ export async function getBudgetsWorkspace(
     incomeResult.error ||
     expenseResult.error ||
     commitmentsResult.error ||
-    occurrencesResult.error
+    occurrencesResult.error ||
+    suggestionResult.error
   ) {
     return {
       ...workspaceMetadata(resolution),
@@ -329,6 +379,7 @@ export async function getBudgetsWorkspace(
       monthIncome: 0,
       monthExpense: 0,
       monthCommitments: [],
+      suggestions: {},
       dataError: "Chưa tải được ngân sách. Hãy thử lại.",
     };
   }
@@ -342,6 +393,7 @@ export async function getBudgetsWorkspace(
     const commitments = (commitmentsResult.data ?? []).map((row) =>
       mapCommitmentRow(row, resolution.monthStart, paid.get(row.id) ?? null),
     );
+    const suggestionRows = (suggestionResult.data ?? []).map(mapTransactionFeedRow);
     return {
       ...workspaceMetadata(resolution),
       budgets: monthBudgets,
@@ -355,6 +407,9 @@ export async function getBudgetsWorkspace(
       monthIncome: sumMinorAmounts(incomeResult.data ?? []),
       monthExpense: sumMinorAmounts(expenseResult.data ?? []),
       monthCommitments: commitments,
+      suggestions: Object.fromEntries(
+        budgetSuggestions(suggestionRows, resolution.monthStart),
+      ),
       dataError: null,
     };
   } catch {
@@ -367,6 +422,7 @@ export async function getBudgetsWorkspace(
       monthIncome: 0,
       monthExpense: 0,
       monthCommitments: [],
+      suggestions: {},
       dataError: "Dữ liệu ngân sách không đúng định dạng.",
     };
   }
