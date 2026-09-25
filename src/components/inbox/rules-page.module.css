@@ -212,20 +212,26 @@
 
   .actions,
   .dialogFooter {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: flex-start;
   }
 
   .actions > *,
   .dialogFooter > * {
-    width: 100%;
-    min-width: 0;
+    flex: 1 1 45%;
+    min-width: min-content;
   }
 }
 
 @media (max-width: 340px) {
   .actions,
   .dialogFooter {
+    display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .actions > *,
+  .dialogFooter > * {
+    width: 100%;
+    min-width: 0;
   }
 }

@@ -1127,16 +1127,16 @@
   }
 
   /* Two-up on phones instead of one full-width row per action — same
-     density contract as the shared secondary-layout header. */
+     density contract as the shared secondary-layout header. `min-content`
+     lets a long nowrap label take a full row instead of overflowing. */
   .headingActions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: flex-start;
     width: 100%;
   }
 
   .headingActions > * {
-    width: 100%;
-    min-width: 0;
+    flex: 1 1 45%;
+    min-width: min-content;
   }
 
   .toolbar,
@@ -1296,7 +1296,13 @@
 
 @media (max-width: 340px) {
   .headingActions {
+    display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .headingActions > * {
+    width: 100%;
+    min-width: 0;
   }
 }
 

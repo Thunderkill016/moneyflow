@@ -108,21 +108,31 @@
     border-radius: 0.875rem;
   }
 
-  .actions,
+  /* .actions is a fieldset of radios/checks — keep those stacked (better
+     touch rows); only the commit buttons go two-up. */
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .buttons {
+    justify-content: flex-start;
+  }
+
+  .buttons > * {
+    flex: 1 1 45%;
+    min-width: min-content;
+  }
+}
+
+@media (max-width: 340px) {
   .buttons {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 
   .buttons > * {
     width: 100%;
     min-width: 0;
-  }
-}
-
-@media (max-width: 340px) {
-  .actions,
-  .buttons {
-    grid-template-columns: 1fr;
   }
 }
