@@ -67,6 +67,33 @@ test("buildAttentionItems keeps the status cue when compact figures collapse", (
   );
 });
 
+test("buildAttentionItems keeps a rounded-100% under-limit budget as near", () => {
+  // Issue #714 repro: 4.990.000/5.000.000 rounds to 100% yet still holds
+  // 10.000 ₫ — the chip must read "Gần hạn mức", never "Đã vượt".
+  const items = buildAttentionItems({
+    budgets: [baseBudget({ id: "edge", spent: 4_990_000, limit: 5_000_000 })],
+    commitments: [],
+    today: "2026-07-15",
+  });
+  const chip = items.find((i) => i.id === "budget-edge");
+  assert.equal(chip?.tone, "info");
+  assert.equal(chip?.label, "Ăn uống: Gần hạn mức (5 tr/5 tr)");
+});
+
+test("buildAttentionItems treats a fully-spent budget as near, not over", () => {
+  // spent == limit leaves no overshoot — "Đã vượt 0 ₫" would be a false claim.
+  const items = buildAttentionItems({
+    budgets: [
+      baseBudget({ id: "at-limit", spent: 5_000_000, limit: 5_000_000 }),
+    ],
+    commitments: [],
+    today: "2026-07-15",
+  });
+  const chip = items.find((i) => i.id === "budget-at-limit");
+  assert.equal(chip?.tone, "info");
+  assert.equal(chip?.label, "Ăn uống: Gần hạn mức (5 tr/5 tr)");
+});
+
 test("buildAttentionItems lists due unpaid commitments", () => {
   const bill: RecurringCommitment = {
     id: "bill1",

@@ -157,8 +157,20 @@ test("budgetThreshold maps progress bands calmly", () => {
   assert.equal(budgetThreshold({ spent: 790_000, limit: 1_000_000 }), "watch"); // 79%
   assert.equal(budgetThreshold({ spent: 800_000, limit: 1_000_000 }), "near"); // 80%
   assert.equal(budgetThreshold({ spent: 990_000, limit: 1_000_000 }), "near"); // 99%
-  assert.equal(budgetThreshold({ spent: 1_000_000, limit: 1_000_000 }), "over"); // 100%
+  // Exactly at the limit nothing has been exceeded — near, not over.
+  assert.equal(budgetThreshold({ spent: 1_000_000, limit: 1_000_000 }), "near"); // 100%
   assert.equal(budgetThreshold({ spent: 1_250_000, limit: 1_000_000 }), "over"); // 125%
+});
+
+test("budgetThreshold decides over on raw đồng, never the rounded percent", () => {
+  // Issue #714: 99.8% rounds to 100 while 10.000 ₫ remains — over requires
+  // the raw spend to pass the limit, not the rounded percent to reach 100.
+  assert.equal(budgetThreshold({ spent: 4_990_000, limit: 5_000_000 }), "near"); // 99.8%
+  assert.equal(budgetThreshold({ spent: 4_995_000, limit: 5_000_000 }), "near"); // 99.9%
+  // At the limit there is no overshoot — "Đã vượt X" would be a false claim.
+  assert.equal(budgetThreshold({ spent: 5_000_000, limit: 5_000_000 }), "near"); // 100%
+  // The first đồng past the cap is a real overspend.
+  assert.equal(budgetThreshold({ spent: 5_000_001, limit: 5_000_000 }), "over");
 });
 
 test("budgetStatusLabel uses calm copy: Gần hạn mức / Đã vượt X / Còn X", () => {
@@ -170,6 +182,25 @@ test("budgetStatusLabel uses calm copy: Gần hạn mức / Đã vượt X / Cò
   const over = budgetStatusLabel({ spent: 1_100_000, limit: 1_000_000 }, format);
   assert.match(over, /^Đã vượt /);
   assert.doesNotMatch(over, /lãng phí|sai|tệ|tội|phải/i);
+});
+
+test("budgetStatusLabel never claims vượt while đồng remain", () => {
+  const format = (n: number) => `${n}`;
+  // Issue #714 repro: 99.8% rounds to 100, but 10.000 ₫ remain — the label
+  // must stay near-limit, not "Đã vượt 10.000 ₫".
+  assert.equal(
+    budgetStatusLabel({ spent: 4_990_000, limit: 5_000_000 }, format),
+    "Gần hạn mức",
+  );
+  // Fully spent with zero overshoot is still not a vượt claim.
+  assert.equal(
+    budgetStatusLabel({ spent: 5_000_000, limit: 5_000_000 }, format),
+    "Gần hạn mức",
+  );
+  assert.equal(
+    budgetStatusLabel({ spent: 5_010_000, limit: 5_000_000 }, format),
+    "Đã vượt 10000",
+  );
 });
 
 test("budgetBarColor returns distinct tokens per threshold (pair with text)", () => {

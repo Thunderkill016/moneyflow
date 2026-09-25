@@ -145,11 +145,23 @@
   }
 
   .actions {
+    justify-content: flex-start;
+  }
+
+  .actions > * {
+    flex: 1 1 45%;
+    min-width: min-content;
+  }
+}
+
+@media (max-width: 340px) {
+  .actions {
     display: grid;
     grid-template-columns: 1fr;
   }
 
   .actions > * {
     width: 100%;
+    min-width: 0;
   }
 }
