@@ -111,6 +111,75 @@ const DEMO_SEEDS: DemoSeed[] = [
     daysAgo: 4,
     timeUtc: "02:00:00.000Z",
   },
+  /*
+   * Trailing-month rows on categories the demo has not budgeted, so the
+   * budgets page can show a suggestion computed from the same ledger the
+   * demo dashboard reports — a suggestion that could only appear on data
+   * nobody can see would be the same lie as a fixed "Hôm nay".
+   */
+  {
+    id: "sample-bill-1",
+    kind: "expense",
+    categoryId: "demo-category-expense-Hóa đơn",
+    category: "Hóa đơn",
+    note: (monthLabel) => `Điện nước ${monthLabel}`,
+    payee: "EVN + Nước",
+    accountId: "demo-account-mb",
+    account: "MB Bank",
+    amount: 890_000,
+    daysAgo: 35,
+    timeUtc: "09:20:00.000Z",
+  },
+  {
+    id: "sample-bill-2",
+    kind: "expense",
+    categoryId: "demo-category-expense-Hóa đơn",
+    category: "Hóa đơn",
+    note: (monthLabel) => `Điện nước ${monthLabel}`,
+    payee: "EVN + Nước",
+    accountId: "demo-account-mb",
+    account: "MB Bank",
+    amount: 830_000,
+    daysAgo: 65,
+    timeUtc: "09:25:00.000Z",
+  },
+  {
+    id: "sample-bill-3",
+    kind: "expense",
+    categoryId: "demo-category-expense-Hóa đơn",
+    category: "Hóa đơn",
+    note: (monthLabel) => `Điện nước ${monthLabel}`,
+    payee: "EVN + Nước",
+    accountId: "demo-account-mb",
+    account: "MB Bank",
+    amount: 920_000,
+    daysAgo: 95,
+    timeUtc: "09:30:00.000Z",
+  },
+  {
+    id: "sample-fun-1",
+    kind: "expense",
+    categoryId: "demo-category-expense-Giải trí",
+    category: "Giải trí",
+    note: () => "Vé phim",
+    accountId: "demo-account-momo",
+    account: "MoMo",
+    amount: 350_000,
+    daysAgo: 45,
+    timeUtc: "13:10:00.000Z",
+  },
+  {
+    id: "sample-fun-2",
+    kind: "expense",
+    categoryId: "demo-category-expense-Giải trí",
+    category: "Giải trí",
+    note: () => "Nhạc số",
+    accountId: "demo-account-momo",
+    account: "MoMo",
+    amount: 280_000,
+    daysAgo: 100,
+    timeUtc: "14:00:00.000Z",
+  },
 ];
 
 const DAY_MS = 86_400_000;

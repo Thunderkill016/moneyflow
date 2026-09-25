@@ -178,6 +178,78 @@ export type SaveBudgetInput = {
   limit: number;
 };
 
+/** Completed months looked back when suggesting a limit. */
+export const BUDGET_SUGGESTION_MONTHS = 3;
+
+/*
+ * Averages below this floor produce no suggestion: a monthly limit under
+ * ~10.000 ₫ adds bookkeeping rows, not signal — any real VN spending
+ * category costs far more than that per month.
+ */
+export const BUDGET_SUGGESTION_MIN_AMOUNT = 10_000;
+
+export type BudgetSuggestion = {
+  /** Suggested monthly limit: window total smoothed over every month, đồng. */
+  amount: number;
+  /** Trailing months that recorded at least one đồng for the category. */
+  monthsWithData: number;
+};
+
+/**
+ * Suggested monthly limits from the `windowMonths` completed months before
+ * `monthStart`, keyed by expense categoryId.
+ *
+ * The window total is divided by the whole window, not just the months that
+ * happened to record spend: a monthly limit has to cover quiet months too,
+ * so a zero-spend month is real evidence ("the category usually costs
+ * nothing"), not missing data. `monthsWithData` is kept so the UI can
+ * disclose how much of the window actually saw spend instead of hiding it
+ * inside the average.
+ *
+ * Split rows attribute each line to its own categoryId — the same per-entry
+ * accounting `budget_progress.spent_minor` uses — so a suggestion cannot
+ * disagree with the "Đã chi" figure a saved budget later reports.
+ * Transfers and income never feed a suggestion.
+ */
+export function budgetSuggestions(
+  transactions: Transaction[],
+  monthStart: string,
+  windowMonths: number = BUDGET_SUGGESTION_MONTHS,
+): Map<string, BudgetSuggestion> {
+  const windowStart = shiftBudgetMonth(monthStart, -windowMonths);
+  const totals = new Map<string, { total: number; months: Set<string> }>();
+  const addLine = (categoryId: string, monthKey: string, amount: number) => {
+    if (!categoryId) return;
+    if (!Number.isSafeInteger(amount) || amount <= 0) return;
+    let entry = totals.get(categoryId);
+    if (!entry) {
+      entry = { total: 0, months: new Set() };
+      totals.set(categoryId, entry);
+    }
+    const next = entry.total + amount;
+    if (!Number.isSafeInteger(next)) return;
+    entry.total = next;
+    entry.months.add(monthKey);
+  };
+  for (const item of transactions) {
+    if (item.kind !== "expense") continue;
+    if (item.occurredOn < windowStart || item.occurredOn >= monthStart) continue;
+    const monthKey = item.occurredOn.slice(0, 7);
+    if (item.splits && item.splits.length >= 2) {
+      for (const line of item.splits) addLine(line.categoryId, monthKey, line.amount);
+      continue;
+    }
+    addLine(item.categoryId, monthKey, item.amount);
+  }
+  const suggestions = new Map<string, BudgetSuggestion>();
+  for (const [categoryId, entry] of totals) {
+    const amount = Math.round(entry.total / windowMonths);
+    if (amount < BUDGET_SUGGESTION_MIN_AMOUNT) continue;
+    suggestions.set(categoryId, { amount, monthsWithData: entry.months.size });
+  }
+  return suggestions;
+}
+
 /** Calm threshold bands — colors must pair with text, never color alone. */
 export type BudgetThreshold = "ok" | "watch" | "near" | "over";
 
