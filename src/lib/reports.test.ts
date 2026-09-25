@@ -617,7 +617,7 @@ test("nav unit survives custom hops: month and week chains", () => {
   // eat the days it hid — prev of Sep 21–25 under nav=week is Sep 14–20,
   // not a 5-day slide.
   const runningWeek = reportRange(today, "week"); // Mon Sep 21 → Fri 25
-  let wStep = adjacentReportRanges(runningWeek, today, "week");
+  const wStep = adjacentReportRanges(runningWeek, today, "week");
   assert.deepEqual(wStep.prev, { from: "2026-09-14", to: "2026-09-20" });
   const pastWeek = customReportRange(wStep.prev.from, wStep.prev.to);
   const forward = adjacentReportRanges(pastWeek, today, "week");
