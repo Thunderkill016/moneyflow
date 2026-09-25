@@ -6,6 +6,7 @@
     "previousStart": "2026-06-17",
     "previousEnd": "2026-06-30"
   },
+  "expenseChangePercent": null,
   "totals": {
     "income": {
       "amount": 15000000,
@@ -27,6 +28,10 @@
           {
             "reason": "other_kind",
             "count": 3
+          },
+          {
+            "reason": "outside_range",
+            "count": 5
           },
           {
             "reason": "transfer",
@@ -62,6 +67,10 @@
             "count": 1
           },
           {
+            "reason": "outside_range",
+            "count": 5
+          },
+          {
             "reason": "transfer",
             "count": 1
           }
@@ -92,6 +101,10 @@
         },
         "excluded": [
           {
+            "reason": "outside_range",
+            "count": 5
+          },
+          {
             "reason": "transfer",
             "count": 1
           }
@@ -108,210 +121,6 @@
     "expense": 0,
     "net": 0
   },
-  "expenseChangePercent": null,
-  "categories": [
-    {
-      "name": "Mua sắm",
-      "amount": {
-        "amount": 286000,
-        "currency": "VND",
-        "basis": {
-          "formula": "sum(expense category \"Mua sắm\")",
-          "range": {
-            "from": "2026-07-01",
-            "to": "2026-07-14",
-            "timeZone": "Asia/Ho_Chi_Minh"
-          },
-          "included": {
-            "count": 1,
-            "transactionIds": [
-              "sample-3"
-            ]
-          },
-          "excluded": [
-            {
-              "reason": "other_kind",
-              "count": 3
-            },
-            {
-              "reason": "transfer",
-              "count": 1
-            }
-          ],
-          "trust": null,
-          "computedAt": "2026-07-14T12:00:00.000Z",
-          "capabilityVersion": "reports.financial@1"
-        }
-      },
-      "share": 73,
-      "trend": [
-        {
-          "key": "2026-02",
-          "label": "Thg 2",
-          "amount": 0
-        },
-        {
-          "key": "2026-03",
-          "label": "Thg 3",
-          "amount": 0
-        },
-        {
-          "key": "2026-04",
-          "label": "Thg 4",
-          "amount": 0
-        },
-        {
-          "key": "2026-05",
-          "label": "Thg 5",
-          "amount": 0
-        },
-        {
-          "key": "2026-06",
-          "label": "Thg 6",
-          "amount": 0
-        },
-        {
-          "key": "2026-07",
-          "label": "Thg 7",
-          "amount": 286000
-        }
-      ]
-    },
-    {
-      "name": "Ăn uống",
-      "amount": {
-        "amount": 63000,
-        "currency": "VND",
-        "basis": {
-          "formula": "sum(expense category \"Ăn uống\")",
-          "range": {
-            "from": "2026-07-01",
-            "to": "2026-07-14",
-            "timeZone": "Asia/Ho_Chi_Minh"
-          },
-          "included": {
-            "count": 1,
-            "transactionIds": [
-              "sample-1"
-            ]
-          },
-          "excluded": [
-            {
-              "reason": "other_kind",
-              "count": 3
-            },
-            {
-              "reason": "transfer",
-              "count": 1
-            }
-          ],
-          "trust": null,
-          "computedAt": "2026-07-14T12:00:00.000Z",
-          "capabilityVersion": "reports.financial@1"
-        }
-      },
-      "share": 16,
-      "trend": [
-        {
-          "key": "2026-02",
-          "label": "Thg 2",
-          "amount": 0
-        },
-        {
-          "key": "2026-03",
-          "label": "Thg 3",
-          "amount": 0
-        },
-        {
-          "key": "2026-04",
-          "label": "Thg 4",
-          "amount": 0
-        },
-        {
-          "key": "2026-05",
-          "label": "Thg 5",
-          "amount": 0
-        },
-        {
-          "key": "2026-06",
-          "label": "Thg 6",
-          "amount": 0
-        },
-        {
-          "key": "2026-07",
-          "label": "Thg 7",
-          "amount": 63000
-        }
-      ]
-    },
-    {
-      "name": "Di chuyển",
-      "amount": {
-        "amount": 42000,
-        "currency": "VND",
-        "basis": {
-          "formula": "sum(expense category \"Di chuyển\")",
-          "range": {
-            "from": "2026-07-01",
-            "to": "2026-07-14",
-            "timeZone": "Asia/Ho_Chi_Minh"
-          },
-          "included": {
-            "count": 1,
-            "transactionIds": [
-              "sample-2"
-            ]
-          },
-          "excluded": [
-            {
-              "reason": "other_kind",
-              "count": 3
-            },
-            {
-              "reason": "transfer",
-              "count": 1
-            }
-          ],
-          "trust": null,
-          "computedAt": "2026-07-14T12:00:00.000Z",
-          "capabilityVersion": "reports.financial@1"
-        }
-      },
-      "share": 11,
-      "trend": [
-        {
-          "key": "2026-02",
-          "label": "Thg 2",
-          "amount": 0
-        },
-        {
-          "key": "2026-03",
-          "label": "Thg 3",
-          "amount": 0
-        },
-        {
-          "key": "2026-04",
-          "label": "Thg 4",
-          "amount": 0
-        },
-        {
-          "key": "2026-05",
-          "label": "Thg 5",
-          "amount": 0
-        },
-        {
-          "key": "2026-06",
-          "label": "Thg 6",
-          "amount": 0
-        },
-        {
-          "key": "2026-07",
-          "label": "Thg 7",
-          "amount": 42000
-        }
-      ]
-    }
-  ],
   "accounts": [
     {
       "name": "MB Bank",
@@ -408,6 +217,221 @@
       "label": "14/7",
       "income": 0,
       "expense": 105000
+    }
+  ],
+  "categories": [
+    {
+      "name": "Mua sắm",
+      "amount": {
+        "amount": 286000,
+        "currency": "VND",
+        "basis": {
+          "formula": "sum(expense category \"Mua sắm\")",
+          "range": {
+            "from": "2026-07-01",
+            "to": "2026-07-14",
+            "timeZone": "Asia/Ho_Chi_Minh"
+          },
+          "included": {
+            "count": 1,
+            "transactionIds": [
+              "sample-3"
+            ]
+          },
+          "excluded": [
+            {
+              "reason": "other_kind",
+              "count": 3
+            },
+            {
+              "reason": "outside_range",
+              "count": 5
+            },
+            {
+              "reason": "transfer",
+              "count": 1
+            }
+          ],
+          "trust": null,
+          "computedAt": "2026-07-14T12:00:00.000Z",
+          "capabilityVersion": "reports.financial@1"
+        }
+      },
+      "share": 73,
+      "trend": [
+        {
+          "key": "2026-02",
+          "label": "Thg 2",
+          "amount": 0
+        },
+        {
+          "key": "2026-03",
+          "label": "Thg 3",
+          "amount": 0
+        },
+        {
+          "key": "2026-04",
+          "label": "Thg 4",
+          "amount": 0
+        },
+        {
+          "key": "2026-05",
+          "label": "Thg 5",
+          "amount": 0
+        },
+        {
+          "key": "2026-06",
+          "label": "Thg 6",
+          "amount": 0
+        },
+        {
+          "key": "2026-07",
+          "label": "Thg 7",
+          "amount": 286000
+        }
+      ]
+    },
+    {
+      "name": "Ăn uống",
+      "amount": {
+        "amount": 63000,
+        "currency": "VND",
+        "basis": {
+          "formula": "sum(expense category \"Ăn uống\")",
+          "range": {
+            "from": "2026-07-01",
+            "to": "2026-07-14",
+            "timeZone": "Asia/Ho_Chi_Minh"
+          },
+          "included": {
+            "count": 1,
+            "transactionIds": [
+              "sample-1"
+            ]
+          },
+          "excluded": [
+            {
+              "reason": "other_kind",
+              "count": 3
+            },
+            {
+              "reason": "outside_range",
+              "count": 5
+            },
+            {
+              "reason": "transfer",
+              "count": 1
+            }
+          ],
+          "trust": null,
+          "computedAt": "2026-07-14T12:00:00.000Z",
+          "capabilityVersion": "reports.financial@1"
+        }
+      },
+      "share": 16,
+      "trend": [
+        {
+          "key": "2026-02",
+          "label": "Thg 2",
+          "amount": 0
+        },
+        {
+          "key": "2026-03",
+          "label": "Thg 3",
+          "amount": 0
+        },
+        {
+          "key": "2026-04",
+          "label": "Thg 4",
+          "amount": 0
+        },
+        {
+          "key": "2026-05",
+          "label": "Thg 5",
+          "amount": 0
+        },
+        {
+          "key": "2026-06",
+          "label": "Thg 6",
+          "amount": 0
+        },
+        {
+          "key": "2026-07",
+          "label": "Thg 7",
+          "amount": 63000
+        }
+      ]
+    },
+    {
+      "name": "Di chuyển",
+      "amount": {
+        "amount": 42000,
+        "currency": "VND",
+        "basis": {
+          "formula": "sum(expense category \"Di chuyển\")",
+          "range": {
+            "from": "2026-07-01",
+            "to": "2026-07-14",
+            "timeZone": "Asia/Ho_Chi_Minh"
+          },
+          "included": {
+            "count": 1,
+            "transactionIds": [
+              "sample-2"
+            ]
+          },
+          "excluded": [
+            {
+              "reason": "other_kind",
+              "count": 3
+            },
+            {
+              "reason": "outside_range",
+              "count": 5
+            },
+            {
+              "reason": "transfer",
+              "count": 1
+            }
+          ],
+          "trust": null,
+          "computedAt": "2026-07-14T12:00:00.000Z",
+          "capabilityVersion": "reports.financial@1"
+        }
+      },
+      "share": 11,
+      "trend": [
+        {
+          "key": "2026-02",
+          "label": "Thg 2",
+          "amount": 0
+        },
+        {
+          "key": "2026-03",
+          "label": "Thg 3",
+          "amount": 0
+        },
+        {
+          "key": "2026-04",
+          "label": "Thg 4",
+          "amount": 0
+        },
+        {
+          "key": "2026-05",
+          "label": "Thg 5",
+          "amount": 0
+        },
+        {
+          "key": "2026-06",
+          "label": "Thg 6",
+          "amount": 0
+        },
+        {
+          "key": "2026-07",
+          "label": "Thg 7",
+          "amount": 42000
+        }
+      ]
     }
   ]
 }

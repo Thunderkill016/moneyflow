@@ -17,6 +17,7 @@ import {
   budgetRemaining,
   budgetsToCarryForward,
   budgetStatusLabel,
+  budgetSuggestions,
   budgetThreshold,
   budgetTransactionsHref,
   compareBudgetAmount,
@@ -580,4 +581,111 @@ test("budgetRolloverLabel explains the carry in plain Vietnamese", () => {
 test("budgetRolloverLabel stays silent when nothing carried", () => {
   assert.equal(budgetRolloverLabel({ carry: 0, monthsIncluded: 0 }), null);
   assert.equal(budgetRolloverLabel({ carry: 0, monthsIncluded: 3 }), null);
+});
+
+function suggestionRow(
+  overrides: Partial<Transaction> & { occurredOn: string },
+): Transaction {
+  return { ...foodExpense, ...overrides, id: overrides.id ?? crypto.randomUUID() };
+}
+
+test("budgetSuggestions averages the trailing window per expense category", () => {
+  // Viewing September: the window is Jun+Jul+Aug. Spend in months that
+  // recorded nothing still counts toward the average — a monthly budget
+  // must cover quiet months too, not just the ones with receipts.
+  const suggestions = budgetSuggestions(
+    [
+      suggestionRow({ occurredOn: "2026-06-10", amount: 600_000 }),
+      suggestionRow({ occurredOn: "2026-07-12", amount: 900_000 }),
+      suggestionRow({ occurredOn: "2026-08-05", amount: 1_200_000 }),
+      suggestionRow({
+        id: "transport-aug",
+        categoryId: "cat-transport",
+        category: "Di chuyển",
+        occurredOn: "2026-08-15",
+        amount: 660_000,
+      }),
+      // Rows inside the viewed month never feed the suggestion.
+      suggestionRow({ occurredOn: "2026-09-01", amount: 9_999_000 }),
+      // A zero-spend category produces no suggestion at all.
+    ],
+    "2026-09-01",
+  );
+  assert.deepEqual(suggestions.get("cat-food"), {
+    amount: 900_000, // (600k + 900k + 1.2M) / 3 months
+    monthsWithData: 3,
+  });
+  assert.deepEqual(suggestions.get("cat-transport"), {
+    amount: 220_000, // 660k spread over the 3-month window
+    monthsWithData: 1,
+  });
+  assert.equal(suggestions.has("cat-none"), false);
+});
+
+test("budgetSuggestions distributes split lines and ignores non-expense rows", () => {
+  const split: Transaction = {
+    ...foodExpense,
+    id: "split-1",
+    amount: 300_000,
+    occurredOn: "2026-07-10",
+    splits: [
+      { categoryId: "cat-food", category: "Ăn uống", amount: 200_000 },
+      { categoryId: "cat-transport", category: "Di chuyển", amount: 100_000 },
+    ],
+  };
+  const suggestions = budgetSuggestions(
+    [
+      split,
+      { ...transferOut, occurredOn: "2026-07-11" },
+      { ...income, occurredOn: "2026-07-25" },
+    ],
+    "2026-09-01",
+  );
+  // Split lines land on their own categories — the same per-entry
+  // attribution `budget_progress.spent_minor` uses — so the suggestion and
+  // the eventual "Đã chi" figure cannot disagree.
+  assert.deepEqual(suggestions.get("cat-food"), {
+    amount: 66_667, // 200k / 3
+    monthsWithData: 1,
+  });
+  assert.deepEqual(suggestions.get("cat-transport"), {
+    amount: 33_333, // 100k / 3
+    monthsWithData: 1,
+  });
+  assert.equal(suggestions.has("cat-salary"), false);
+});
+
+test("budgetSuggestions anchors the window on the viewed month", () => {
+  // Viewing June back: only Mar+Apr+May feed the average — June and later
+  // rows are the viewer's "future" and must not leak in.
+  const rows = [
+    suggestionRow({ occurredOn: "2026-04-10", amount: 300_000 }),
+    suggestionRow({ occurredOn: "2026-05-10", amount: 600_000 }),
+    suggestionRow({ occurredOn: "2026-06-02", amount: 999_000 }),
+    suggestionRow({ occurredOn: "2026-08-02", amount: 999_000 }),
+  ];
+  const suggestions = budgetSuggestions(rows, "2026-06-01");
+  assert.deepEqual(suggestions.get("cat-food"), {
+    amount: 300_000, // (300k + 600k) / 3
+    monthsWithData: 2,
+  });
+});
+
+test("budgetSuggestions refuses noise averages and blank categories", () => {
+  const suggestions = budgetSuggestions(
+    [
+      // 3₫ across the window → a suggested limit of 1₫, pure noise.
+      suggestionRow({ occurredOn: "2026-07-10", amount: 3 }),
+      suggestionRow({
+        id: "blank-cat",
+        categoryId: "",
+        category: "Chưa phân loại",
+        occurredOn: "2026-07-10",
+        amount: 500_000,
+      }),
+    ],
+    "2026-09-01",
+  );
+  assert.equal(suggestions.get("cat-food"), undefined);
+  assert.equal(suggestions.has(""), false);
 });
