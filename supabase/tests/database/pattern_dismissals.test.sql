@@ -1,5 +1,5 @@
 begin;
-select plan(11);
+select plan(12);
 
 -- Cross-device advisory dismissals: viewer-scoped rows behind RLS, writes only
 -- through the security-definer RPC that derives user_id from auth.uid().
@@ -120,14 +120,28 @@ select is(
   'auth user deletion cascades dismissals'
 );
 
--- 7. Unauthenticated calls fail closed.
+-- 7. The anon role cannot even invoke the RPC — no EXECUTE grant, so the
+--    permission boundary (42501) fires before the function body runs.
 reset role;
 set local role anon;
 select throws_ok(
   $$ select public.dismiss_pattern_keys('ledger_dupe', array['abcd1234']) $$,
+  '42501',
+  null,
+  'anonymous role has no EXECUTE on the dismissal RPC'
+);
+
+-- 8. An authenticated role carrying no JWT sub reaches the in-body identity
+--    guard: auth.uid() is null and the RPC fails closed rather than writing
+--    an unowned row.
+reset role;
+set local request.jwt.claims = '{"role":"authenticated"}';
+set local role authenticated;
+select throws_ok(
+  $$ select public.dismiss_pattern_keys('ledger_dupe', array['abcd1234']) $$,
   'P0001',
   'authentication_required',
-  'anonymous dismissal is refused'
+  'a claim-less authenticated call is refused by the identity guard'
 );
 
 select * from finish();

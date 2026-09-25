@@ -257,29 +257,55 @@ export function CommitmentsPage({
     const next = new Set(before);
     next.add(key);
     setDismissed(next);
-    void dismissPatternKeysAction("recurring", [key]).then((result) => {
-      if (result.ok) return;
+    void (async () => {
+      let stored = false;
+      try {
+        stored = (await dismissPatternKeysAction("recurring", [key])).ok;
+      } catch {
+        // Rejected action = refused write — revert + notice below.
+      }
+      if (stored) return;
       setDismissed((current) => {
         const reverted = new Set(current ?? next);
         if (!before.has(key)) reverted.delete(key);
         return reverted;
       });
       showNotice("Chưa lưu được trạng thái bỏ qua — thử lại.", "error");
-    });
+    })();
   }
 
   /**
    * A suggestion the user saved (even renamed) counts as handled — the new
-   * commitment covers the pattern by name only when names still match.
+   * commitment covers the pattern by name only when names still match. The
+   * commitment itself is already stored at this point; if the dismissal write
+   * fails we still revert the local hide so a still-detected pattern does not
+   * pretend to be dismissed on this device alone.
    */
   function markSuggestionHandled() {
     if (!draftKey) return;
+    const handledKey = draftKey;
     if (dismissedPatternKeys == null) {
-      dismissRecurringPattern(draftKey);
+      dismissRecurringPattern(handledKey);
       setDismissed(new Set(readRecurringDismissals()));
     } else {
-      setDismissed((current) => new Set(current ?? []).add(draftKey));
-      void dismissPatternKeysAction("recurring", [draftKey]);
+      const before = dismissed ?? new Set<string>();
+      setDismissed((current) => new Set(current ?? []).add(handledKey));
+      void (async () => {
+        let stored = false;
+        try {
+          stored = (await dismissPatternKeysAction("recurring", [handledKey]))
+            .ok;
+        } catch {
+          // Rejected action = refused write — revert + notice below.
+        }
+        if (stored) return;
+        setDismissed((current) => {
+          const reverted = new Set(current ?? []);
+          if (!before.has(handledKey)) reverted.delete(handledKey);
+          return reverted;
+        });
+        showNotice("Chưa lưu được trạng thái bỏ qua — thử lại.", "error");
+      })();
     }
     setDraftKey(null);
     setDraft(null);

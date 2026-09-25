@@ -38,9 +38,11 @@ where n.nspname = 'public'
 -- CSV candidate set and any exact explicit rule evidence before batch approval.
 -- #567 removes `reconciliation_snapshot_for_user` after proving this read-only
 -- helper can run with caller privileges while RLS remains authoritative.
+-- #720 adds one reviewed viewer-state boundary: caller-scoped advisory
+-- dismissals where the RPC derives user_id from auth.uid().
 select is(
   (select count(*)::integer from flagged_security_definer_functions),
-  42,
+  43,
   'the reviewed authenticated SECURITY DEFINER inventory stays explicit'
 );
 

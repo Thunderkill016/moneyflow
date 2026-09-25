@@ -1295,8 +1295,15 @@ export function TransactionsWorkspace({
     const next = new Set(before);
     for (const key of keys) next.add(key);
     setDismissedDupeKeys(next);
-    void dismissPatternKeysAction("ledger_dupe", keys).then((result) => {
-      if (result.ok) {
+    void (async () => {
+      let stored = false;
+      try {
+        stored = (await dismissPatternKeysAction("ledger_dupe", keys)).ok;
+      } catch {
+        // A rejected action (offline, transport error) is the same refused
+        // write — fall through to revert + notice, never claim dismissal.
+      }
+      if (stored) {
         showNotice("Đã bỏ qua gợi ý trùng.", "success", NOTICE_MS, true);
         return;
       }
@@ -1313,7 +1320,7 @@ export function TransactionsWorkspace({
         NOTICE_MS,
         true,
       );
-    });
+    })();
   }
 
   /**
