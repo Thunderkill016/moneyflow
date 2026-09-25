@@ -6,7 +6,9 @@
  */
 
 .workspace {
-  max-width: 640px;
+  /* 760px joins the settings/detail-page width cluster — the four-option
+     chooser reads as a cramped 640px column on desktop. */
+  max-width: 760px;
   min-width: 0;
   padding-bottom: 88px;
 }
@@ -80,6 +82,14 @@
 .menuActions {
   display: grid;
   gap: 10px;
+}
+
+/* Four options stack on phones; at tablet widths they go two-up so the
+   desktop page stops looking like a phone-sized strip. */
+@media (min-width: 720px) {
+  .menuActions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .option {
