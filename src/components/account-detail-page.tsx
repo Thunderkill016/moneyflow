@@ -18,6 +18,7 @@ import type {
   AccountRegisterSummary,
 } from "@/lib/account-register";
 import {
+  accountRegisterDailyImpacts,
   buildAccountRegister,
   filterAccountRegisterEntries,
   reconcileAccountBalanceSnapshot,
@@ -62,24 +63,26 @@ function registerKindLabel(value: AccountRegisterFilter["kind"]) {
 
 function entrySubtitle(entry: AccountRegisterEntry) {
   const { transaction } = entry;
+  // Payee is part of the search index, so it must stay visible on the row —
+  // otherwise a payee search match would look unexplained.
+  const payee = transaction.payee ? `${transaction.payee} · ` : "";
   if (transaction.kind === "transfer") {
     const counterparty = entry.transferCounterparty ?? "tài khoản khác";
     return entry.direction === "in"
-      ? `Nhận từ ${counterparty} · không tính thu nhập`
-      : `Chuyển đến ${counterparty} · không tính chi tiêu`;
+      ? `${payee}Nhận từ ${counterparty} · không tính thu nhập`
+      : `${payee}Chuyển đến ${counterparty} · không tính chi tiêu`;
   }
 
   const splitDetail = transaction.splits?.length
     ? ` · ${transaction.splits.map((line) => line.category).join(" · ")}`
     : "";
-  return `${transaction.category}${splitDetail}`;
+  return `${payee}${transaction.category}${splitDetail}`;
 }
 
 type AccountRegisterGroup = {
   date: string;
   relativeDate: string;
   entries: AccountRegisterEntry[];
-  dailyImpact: number;
 };
 
 function groupEntries(entries: AccountRegisterEntry[]): AccountRegisterGroup[] {
@@ -92,12 +95,10 @@ function groupEntries(entries: AccountRegisterEntry[]): AccountRegisterGroup[] {
         date: transaction.occurredOn,
         relativeDate: transaction.relativeDate,
         entries: [],
-        dailyImpact: 0,
       };
       groups.push(group);
     }
     group.entries.push(entry);
-    group.dailyImpact += entry.impact;
   }
   return groups;
 }
@@ -161,7 +162,8 @@ export function AccountDetailPage({
   const displaySummary = matchingDemoDetail?.summary ?? summary;
   const demoLedgerPending =
     viewer.isDemo && !dataError && Boolean(account) && !matchingDemoDetail;
-  // Filtering narrows only the visible rows; `displaySummary` stays register-wide.
+  // Filtering narrows only the visible rows; `displaySummary` and every
+  // "Biến động ngày" header stay register-wide so totals are never bent.
   const filteredEntries = filterAccountRegisterEntries(
     displayEntries,
     registerFilter,
@@ -169,6 +171,7 @@ export function AccountDetailPage({
   const registerFilterActive =
     registerFilter.kind !== "all" || registerFilter.query.trim() !== "";
   const groups = groupEntries(filteredEntries);
+  const dailyImpacts = accountRegisterDailyImpacts(displayEntries);
   const registerAvailable = !dataError;
 
   return (
@@ -370,13 +373,13 @@ export function AccountDetailPage({
                             }))
                           }
                           placeholder="Ghi chú, người nhận, danh mục..."
-                          aria-label="Tìm trong biến động tài khoản"
                         />
                       </div>
                     </label>
 
                     <div
                       className={styles.kindFilter}
+                      role="group"
                       aria-label="Lọc theo loại biến động"
                     >
                       {REGISTER_KIND_FILTERS.map((value) => (
@@ -430,7 +433,7 @@ export function AccountDetailPage({
                             {group.relativeDate}, {displayDate(group.date)}
                           </span>
                           <MoneyValue
-                            amount={group.dailyImpact}
+                            amount={dailyImpacts.get(group.date) ?? 0}
                             mode="signed"
                             currencyCode={displayAccount.currencyCode}
                             label={`Biến động ngày ${displayDate(group.date)}`}

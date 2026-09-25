@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { Transaction } from "./transactions/contracts.ts";
 import {
+  accountRegisterDailyImpacts,
   accountTransactionImpact,
   buildAccountRegister,
   filterAccountRegisterEntries,
@@ -303,6 +304,49 @@ test("filterAccountRegisterEntries composes kind and query", () => {
     result.map((entry) => entry.transaction.id),
     ["expense-match"],
   );
+});
+
+test("accountRegisterDailyImpacts keeps the real per-day movement independent of the visible filter", () => {
+  const register = buildAccountRegister(
+    [
+      transaction({
+        id: "day-income",
+        kind: "income",
+        amount: 1_000_000,
+        occurredOn: "2026-08-02",
+      }),
+      transaction({
+        id: "day-expense",
+        kind: "expense",
+        amount: 50_000,
+        occurredOn: "2026-08-02",
+        occurredAt: "2026-08-02T08:00:00.000Z",
+      }),
+      transaction({
+        id: "other-day",
+        kind: "expense",
+        amount: 70_000,
+        occurredOn: "2026-08-01",
+      }),
+    ],
+    "account-a",
+  );
+
+  const dailyImpacts = accountRegisterDailyImpacts(register);
+  assert.equal(dailyImpacts.get("2026-08-02"), 950_000);
+  assert.equal(dailyImpacts.get("2026-08-01"), -70_000);
+
+  // Narrowing visible rows to expenses must not bend the day header: the real
+  // movement of 2026-08-02 stays +950.000 even though only -50.000 is visible.
+  const expenseOnly = filterAccountRegisterEntries(register, {
+    kind: "expense",
+    query: "",
+  });
+  assert.deepEqual(
+    expenseOnly.map((entry) => entry.transaction.id),
+    ["day-expense", "other-day"],
+  );
+  assert.equal(dailyImpacts.get("2026-08-02"), 950_000);
 });
 
 test("demo ledger reconciliation replaces a differing snapshot with exact income, expense, and transfer legs", () => {

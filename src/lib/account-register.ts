@@ -111,6 +111,19 @@ export function filterAccountRegisterEntries(
   });
 }
 
+/** Real account movement per register day. Day headers read from this map so a
+ * visible-row filter can never bend the labelled daily total. */
+export function accountRegisterDailyImpacts(
+  entries: AccountRegisterEntry[],
+): Map<string, number> {
+  const impacts = new Map<string, number>();
+  for (const entry of entries) {
+    const day = entry.transaction.occurredOn;
+    impacts.set(day, (impacts.get(day) ?? 0) + entry.impact);
+  }
+  return impacts;
+}
+
 export function summarizeAccountRegister(
   entries: AccountRegisterEntry[],
 ): AccountRegisterSummary {
