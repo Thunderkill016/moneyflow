@@ -572,6 +572,13 @@
 .exportNote a {
   color: var(--mf-brand-text);
   font-weight: 700;
+  /* Inline prose links are exempt from the 44px WCAG target-size rule, but the
+     raw ~96×16px box was flagged in the UI audit. Padding expands the tap area
+     while matching negative margins keep the paragraph flow identical. */
+  display: inline-block;
+  margin: -12px -6px;
+  padding: 12px 6px;
+  border-radius: 6px;
 }
 
 @media (max-width: 920px) {
