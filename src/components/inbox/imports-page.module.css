@@ -163,11 +163,12 @@
 
   .actions {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .actions > * {
     width: 100%;
+    min-width: 0;
   }
 
   .body strong {
@@ -175,5 +176,11 @@
     text-overflow: clip;
     white-space: normal;
     overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 340px) {
+  .actions {
+    grid-template-columns: 1fr;
   }
 }

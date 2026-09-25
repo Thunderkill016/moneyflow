@@ -111,10 +111,18 @@
   .actions,
   .buttons {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .buttons > * {
     width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 340px) {
+  .actions,
+  .buttons {
+    grid-template-columns: 1fr;
   }
 }

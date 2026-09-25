@@ -1126,12 +1126,17 @@
     font-size: 27px;
   }
 
+  /* Two-up on phones instead of one full-width row per action — same
+     density contract as the shared secondary-layout header. */
   .headingActions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     width: 100%;
   }
 
   .headingActions > * {
-    flex: 1 1 180px;
+    width: 100%;
+    min-width: 0;
   }
 
   .toolbar,
@@ -1279,11 +1284,6 @@
     border-top: 0;
   }
 
-  .headingActions > * {
-    flex-basis: 100%;
-    width: 100%;
-  }
-
   .dayHeader {
     align-items: flex-start;
     flex-direction: column;
@@ -1291,6 +1291,12 @@
 
   .dayTotal {
     margin-left: 0;
+  }
+}
+
+@media (max-width: 340px) {
+  .headingActions {
+    grid-template-columns: 1fr;
   }
 }
 
