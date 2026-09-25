@@ -46,7 +46,7 @@ select is(
   (select (icon, color) from public.accounts
    where user_id = 'a1d4e07a-22f8-4f09-bb55-0f0f6b1b7c10'
      and name = 'Ví chính'),
-  row('spark', 'violet'),
+  row('spark'::text, 'violet'::text),
   'stored icon and color survive the create RPC'
 );
 
@@ -81,7 +81,7 @@ select lives_ok(
 select is(
   (select (icon, color) from public.accounts
    where id = (select account_id from identity_ctx)),
-  row('coins', 'amber'),
+  row('coins'::text, 'amber'::text),
   'stored icon and color survive the update RPC'
 );
 
