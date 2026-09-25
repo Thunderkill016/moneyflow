@@ -32,6 +32,8 @@ import {
 import type { TransactionKind } from "@/lib/sample-data";
 import styles from "./categories-page.module.css";
 
+// Keep in sync with ICON_OPTIONS in category-dialog.tsx — every pickable icon
+// must render here, and every stored icon must stay renderable for old rows.
 const KNOWN_ICONS: IconName[] = [
   "bowl",
   "car",
@@ -44,6 +46,30 @@ const KNOWN_ICONS: IconName[] = [
   "wallet",
   "bank",
   "arrows",
+  "coffee",
+  "phone",
+  "gift",
+  "paw",
+  "gym",
+  "music",
+  "plane",
+  "wifi",
+  "piggy",
+  "briefcase",
+  "coins",
+  "fuel",
+  "film",
+  "shirt",
+  "baby",
+  "pill",
+  "study",
+  "bus",
+  "bike",
+  "parking",
+  "ticket",
+  "laundry",
+  "charity",
+  "tax",
 ];
 
 function categoryIcon(name: string | null): IconName {

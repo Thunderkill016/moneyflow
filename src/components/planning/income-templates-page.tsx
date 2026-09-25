@@ -48,7 +48,7 @@ import {
   type RecurringIncomeTemplate,
   type SaveIncomeTemplateInput,
 } from "@/lib/planning/income-templates";
-import { categoryMeta, type AccountOption, type CategoryOption } from "@/lib/sample-data";
+import { categoryMetaFor, categoryMetaIndex, type AccountOption, type CategoryOption } from "@/lib/sample-data";
 import { readStoredTransactions, writeStoredTransactions } from "@/lib/transaction-store";
 
 function daysBetween(from: string, to: string) {
@@ -143,6 +143,7 @@ export function IncomeTemplatesPage({
     [items],
   );
   const archived = useMemo(() => items.filter((item) => item.isArchived), [items]);
+  const metaIndex = useMemo(() => categoryMetaIndex(categories), [categories]);
   const visible = showArchived ? archived : active;
   const totals = incomeTemplateTotals(items);
   const pendingCount = pendingActiveCount(items);
@@ -400,10 +401,12 @@ export function IncomeTemplatesPage({
               {visible.length ? (
                 <div className={planningStyles.grid}>
                   {visible.map((item) => {
-                    const meta = categoryMeta[item.categoryName] ?? {
-                      icon: "wallet",
-                      color: "green",
-                    };
+                    const meta = categoryMetaFor(
+                      metaIndex,
+                      "income",
+                      item.categoryName,
+                      { icon: "wallet", color: "green" },
+                    );
                     const tone = incomeTone(item, today);
                     const statusText = dueLabel(item, today);
 

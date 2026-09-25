@@ -33,7 +33,8 @@ import {
   type Countdown,
 } from "@/lib/pausable-countdown";
 import {
-  categoryMeta,
+  categoryMetaFor,
+  categoryMetaIndex,
   type AccountOption,
   type CategoryOption,
   type CreateSplitExpenseInput,
@@ -708,6 +709,12 @@ export function TransactionsWorkspace({
           )
         : [],
     [bulkCategorySelection, workspace.categories],
+  );
+  // Row icons resolve through the viewer's own category rows so a custom
+  // icon picked in /categories shows here, not only on the manage page.
+  const categoryMetaByName = useMemo(
+    () => categoryMetaIndex(workspace.categories),
+    [workspace.categories],
   );
   const effectiveBulkCategoryId = bulkCategoryOptions.some(
     (item) => item.id === bulkCategoryId,
@@ -2277,8 +2284,11 @@ export function TransactionsWorkspace({
 
                   {group.transactions.map((transaction) => {
                     const meta =
-                      categoryMeta[transaction.category] ??
-                      categoryMeta["Thu nhập khác"];
+                      categoryMetaFor(
+                        categoryMetaByName,
+                        transaction.kind,
+                        transaction.category,
+                      );
                     const reviewStatus =
                       getTransactionReviewStatus(transaction);
                     const balance = runningBalance?.balanceAfter.get(

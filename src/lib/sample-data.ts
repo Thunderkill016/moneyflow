@@ -23,4 +23,15 @@ export type {
   UpdateTransferInput,
 } from "./transactions/contracts.ts";
 
-export { categories, categoryMeta } from "./transactions/category-presentation.ts";
+export {
+  categories,
+  CATEGORY_COLORS,
+  categoryMeta,
+  categoryMetaFor,
+  categoryMetaIndex,
+  isCategoryColor,
+  resolveCategoryMeta,
+  type CategoryColor,
+  type CategoryMetaIndex,
+  type CategoryPresentationMeta,
+} from "./transactions/category-presentation.ts";

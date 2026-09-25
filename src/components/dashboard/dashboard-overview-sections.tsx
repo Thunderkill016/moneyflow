@@ -16,7 +16,12 @@ import type { AccountBalanceRow } from "@/lib/dashboard-accounts";
 import { groupRecentTransactionsByDay } from "@/lib/dashboard-recent-groups";
 import { isTransactionStatusLabel } from "@/lib/transaction-status";
 import type { MonthStatementDetail } from "@/lib/dashboard-month";
-import { categoryMeta, type Transaction } from "@/lib/sample-data";
+import {
+  categoryMetaFor,
+  categoryMetaIndex,
+  type CategoryOption,
+  type Transaction,
+} from "@/lib/sample-data";
 import { transferRowSubtitle } from "@/lib/transfers";
 import styles from "./dashboard.module.css";
 import { DashboardStatement } from "./statement";
@@ -202,6 +207,7 @@ export function DashboardHeaderSections({
 export function DashboardLedgerColumn({
   topCategories,
   transactions,
+  categories,
   isEmptyLedger,
   actionsDisabled,
   today,
@@ -209,6 +215,7 @@ export function DashboardLedgerColumn({
 }: {
   topCategories: ExpenseCategory[];
   transactions: Transaction[];
+  categories: CategoryOption[];
   isEmptyLedger: boolean;
   actionsDisabled: boolean;
   /**
@@ -219,6 +226,7 @@ export function DashboardLedgerColumn({
   today: string;
   onAddTransaction: () => void;
 }) {
+  const metaIndex = categoryMetaIndex(categories);
   return (
     <div className="insights-main-stack">
       {!isEmptyLedger ? (
@@ -242,8 +250,7 @@ export function DashboardLedgerColumn({
             {topCategories.length ? (
               <ul className="insights-category-list">
                 {topCategories.map((item) => {
-                  const meta =
-                    categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
+                  const meta = categoryMetaFor(metaIndex, "expense", item.name);
                   /*
                    * Null when the category name cannot be carried — `/transactions`
                    * resolves it by name and falls back to every transaction when it
@@ -356,8 +363,11 @@ export function DashboardLedgerColumn({
                     </p>
                     {group.rows.map((transaction) => {
                       const meta =
-                        categoryMeta[transaction.category] ??
-                        categoryMeta["Thu nhập khác"];
+                        categoryMetaFor(
+                          metaIndex,
+                          transaction.kind,
+                          transaction.category,
+                        );
                       return (
                         <div className="transaction-row" key={transaction.id}>
                           <span className={`transaction-icon ${meta.color}`}>

@@ -461,6 +461,7 @@ export function MoneyFlowDashboard({
         <DashboardLedgerColumn
           topCategories={topCategories}
           transactions={transactions}
+          categories={workspace.categories}
           isEmptyLedger={isEmptyLedger}
           actionsDisabled={actionsDisabled}
           today={workspace.today}

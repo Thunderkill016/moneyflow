@@ -35,7 +35,11 @@ import {
   reportPeriodHref,
   reportTrendGranularity,
 } from "@/lib/reports";
-import { categoryMeta } from "@/lib/sample-data";
+import {
+  categoryMetaFor,
+  categoryMetaIndex,
+  type CategoryOption,
+} from "@/lib/sample-data";
 import type { ReportsWorkspace } from "@/server/reports";
 import styles from "./reports-page.module.css";
 
@@ -108,13 +112,16 @@ function balanceChartGeometry(points: BalanceSeriesPoint[]) {
 export function ReportsPage({
   viewer,
   workspace,
+  categories,
   period,
 }: {
   viewer: ViewerSummary;
   workspace: ReportsWorkspace;
+  categories: CategoryOption[];
   period: ReportPeriod;
 }) {
   const { report } = workspace;
+  const metaIndex = categoryMetaIndex(categories);
   const expenseChange = report.expenseChangePercent;
   /*
    * The trend buckets are days or months depending on the window's span, so the
@@ -674,8 +681,7 @@ export function ReportsPage({
               {report.categories.length ? (
                 <div className={styles.categories}>
                   {report.categories.map((item) => {
-                    const meta =
-                      categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
+                    const meta = categoryMetaFor(metaIndex, "expense", item.name);
                     const href = reportCategoryDrilldownHref(report.range, item.name);
                     const categoryTrendMax = Math.max(
                       1,

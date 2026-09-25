@@ -14,23 +14,48 @@ import {
   type CategorySummary,
   type SaveCategoryInput,
 } from "@/lib/categories";
-import type { TransactionKind } from "@/lib/sample-data";
+import type { CategoryColor, TransactionKind } from "@/lib/sample-data";
 import styles from "./category-dialog.module.css";
 
+// Keep in sync with KNOWN_ICONS in categories-page.tsx.
 const ICON_OPTIONS = [
   ["bowl", "Ăn uống"],
+  ["coffee", "Cà phê & đồ uống"],
   ["car", "Di chuyển"],
+  ["fuel", "Xăng & nhiên liệu"],
+  ["bus", "Xe buýt & công cộng"],
+  ["bike", "Xe đạp & xe máy"],
+  ["parking", "Gửi xe"],
   ["bag", "Mua sắm"],
+  ["shirt", "Quần áo & giày dép"],
+  ["laundry", "Giặt ủi"],
   ["home", "Nhà ở"],
+  ["wifi", "Internet & truyền thông"],
+  ["phone", "Điện thoại"],
   ["receipt", "Hóa đơn"],
-  ["spark", "Linh hoạt"],
+  ["tax", "Thuế & phí"],
   ["heart", "Sức khỏe"],
+  ["pill", "Thuốc & dược phẩm"],
+  ["baby", "Con cái & gia đình"],
+  ["paw", "Thú cưng"],
   ["book", "Giáo dục"],
+  ["study", "Khóa học & nâng cấp"],
+  ["gym", "Thể thao & gym"],
+  ["music", "Âm nhạc"],
+  ["film", "Phim ảnh & giải trí"],
+  ["plane", "Du lịch"],
+  ["gift", "Quà tặng & biếu"],
+  ["charity", "Từ thiện & cúng dường"],
+  ["ticket", "Vé & khuyến mãi"],
+  ["briefcase", "Công việc & kinh doanh"],
+  ["piggy", "Tiết kiệm"],
+  ["coins", "Cho vay & thu hồi"],
   ["wallet", "Thu nhập"],
   ["bank", "Tài chính"],
+  ["spark", "Linh hoạt"],
 ] as const;
 
-const COLOR_OPTIONS = [
+const COLOR_OPTIONS: readonly (readonly [CategoryColor, string])[] = [
   ["blue", "Xanh dương"],
   ["green", "Xanh lá"],
   ["violet", "Tím"],
@@ -39,7 +64,7 @@ const COLOR_OPTIONS = [
   ["coral", "San hô"],
   ["pink", "Hồng"],
   ["red", "Đỏ"],
-] as const;
+];
 
 export function CategoryDialog({
   open,

@@ -5,7 +5,85 @@ export const categories = {
   income: ["Lương", "Thưởng", "Thu nhập khác"],
 } satisfies Record<TransactionKind, string[]>;
 
-export const categoryMeta: Record<string, { icon: string; color: string }> = {
+export const CATEGORY_COLORS = [
+  "amber",
+  "blue",
+  "coral",
+  "cyan",
+  "green",
+  "pink",
+  "red",
+  "violet",
+] as const;
+export type CategoryColor = (typeof CATEGORY_COLORS)[number];
+
+export function isCategoryColor(value: unknown): value is CategoryColor {
+  return (CATEGORY_COLORS as readonly unknown[]).includes(value);
+}
+
+export type CategoryPresentationMeta = { icon: string; color: CategoryColor };
+
+/**
+ * Resolve the visible identity of one category. A stored icon/color on the
+ * user's own category row always wins over the name-keyed defaults — the icon
+ * picked in the category dialog must be the icon shown everywhere else.
+ * Unknown names degrade to the generic meta, never to a missing glyph; a stored
+ * color outside the known palette degrades to the name-keyed default.
+ */
+export function resolveCategoryMeta(
+  name: string,
+  stored?: { icon?: string | null; color?: string | null } | null,
+): CategoryPresentationMeta {
+  const fallback = categoryMeta[name] ?? categoryMeta["Thu nhập khác"];
+  return {
+    icon: stored?.icon ?? fallback.icon,
+    color: isCategoryColor(stored?.color) ? stored.color : fallback.color,
+  };
+}
+
+/**
+ * Index is keyed `kind:name` — category names are only unique per kind, so a
+ * user may legitimately hold "Quà tặng" as both an expense and an income
+ * category with different identities.
+ */
+export type CategoryMetaIndex = ReadonlyMap<string, CategoryPresentationMeta>;
+
+export function categoryMetaIndex(
+  categories: readonly {
+    name: string;
+    kind: TransactionKind | string;
+    icon: string | null;
+    color: string | null;
+  }[],
+): CategoryMetaIndex {
+  const index = new Map<string, CategoryPresentationMeta>();
+  for (const category of categories) {
+    index.set(
+      `${category.kind}:${category.name}`,
+      resolveCategoryMeta(category.name, category),
+    );
+  }
+  return index;
+}
+
+/** Look a stored icon/color up by kind+name; falls back to the name-keyed
+ * defaults for categories the index does not carry (e.g. the virtual
+ * "Chuyển tiền" row or surfaces without a categories list). */
+export function categoryMetaFor(
+  index: CategoryMetaIndex | undefined,
+  kind: TransactionKind | string,
+  name: string,
+  fallback?: CategoryPresentationMeta,
+): CategoryPresentationMeta {
+  return (
+    index?.get(`${kind}:${name}`) ??
+    categoryMeta[name] ??
+    fallback ??
+    categoryMeta["Thu nhập khác"]
+  );
+}
+
+export const categoryMeta: Record<string, CategoryPresentationMeta> = {
   "Ăn uống": { icon: "bowl", color: "coral" },
   "Di chuyển": { icon: "car", color: "blue" },
   "Mua sắm": { icon: "bag", color: "violet" },
