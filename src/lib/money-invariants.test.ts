@@ -84,6 +84,8 @@ const accounts: AccountSummary[] = [
     initialBalance: 0,
     balance: 2_000_000,
     isArchived: false,
+    icon: null,
+    color: null,
   },
   {
     id: "bank",
@@ -93,6 +95,8 @@ const accounts: AccountSummary[] = [
     initialBalance: 0,
     balance: 1_000_000,
     isArchived: false,
+    icon: null,
+    color: null,
   },
 ];
 

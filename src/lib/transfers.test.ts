@@ -14,9 +14,9 @@ test("TRANSFER_LIST_HINT is calm Firefly-style not-expense copy", () => {
 });
 
 const accounts: AccountSummary[] = [
-  { id: "source", name: "Ngân hàng", kind: "bank", currencyCode: "VND", initialBalance: 0, balance: 2_000_000, isArchived: false },
-  { id: "destination", name: "Tiết kiệm", kind: "savings", currencyCode: "VND", initialBalance: 0, balance: 500_000, isArchived: false },
-  { id: "usd-wallet", name: "USD du lịch", kind: "cash", currencyCode: "USD", initialBalance: 0, balance: 20_000, isArchived: false },
+  { id: "source", name: "Ngân hàng", kind: "bank", currencyCode: "VND", initialBalance: 0, balance: 2_000_000, isArchived: false, icon: null, color: null },
+  { id: "destination", name: "Tiết kiệm", kind: "savings", currencyCode: "VND", initialBalance: 0, balance: 500_000, isArchived: false, icon: null, color: null },
+  { id: "usd-wallet", name: "USD du lịch", kind: "cash", currencyCode: "USD", initialBalance: 0, balance: 20_000, isArchived: false, icon: null, color: null },
 ];
 
 test("transfer changes both accounts while preserving total assets", () => {

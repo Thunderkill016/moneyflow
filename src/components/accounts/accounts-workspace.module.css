@@ -209,6 +209,46 @@
   height: 21px;
 }
 
+/*
+ * Identity palette — mirrors categories-page.module.css tone classes; the
+ * css-ownership baseline tracks each name emitted from styles[color].
+ */
+.amber {
+  background: color-mix(in srgb, var(--mf-warning) 14%, var(--mf-surface));
+  color: var(--mf-warning-text);
+}
+
+.blue {
+  background: var(--mf-info-subtle);
+  color: var(--mf-info-text);
+}
+
+.coral,
+.red {
+  background: color-mix(in srgb, var(--mf-expense) 14%, var(--mf-surface));
+  color: var(--mf-expense-text);
+}
+
+.cyan {
+  background: color-mix(in srgb, var(--mf-transfer) 14%, var(--mf-surface));
+  color: var(--mf-transfer);
+}
+
+.green {
+  background: color-mix(in srgb, var(--mf-income) 14%, var(--mf-surface));
+  color: var(--mf-income-text);
+}
+
+.pink {
+  background: color-mix(in srgb, var(--mf-expense) 8%, var(--mf-surface));
+  color: var(--mf-expense-text);
+}
+
+.violet {
+  background: color-mix(in srgb, var(--mf-brand) 9%, var(--mf-surface));
+  color: var(--mf-brand-text);
+}
+
 .bank,
 .savings {
   background: var(--mf-info-subtle);
