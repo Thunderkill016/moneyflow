@@ -3,8 +3,14 @@ import { expect, test, type Locator } from "@playwright/test";
 const UNIQUE_AMOUNT = "777000";
 const UNIQUE_AMOUNT_DISPLAY = "777.000";
 const UNIQUE_NOTE = "E2E cafe autopilot TASK-200";
-const OPENING_BALANCE_LABEL = "Bạn đang có 1.126.000 ₫";
-const AFTER_EXPENSE_BALANCE_LABEL = "Bạn đang có 349.000 ₫";
+/*
+ * These labels are anchored at the demo account snapshots minus the net of
+ * DEMO_SEEDS in src/lib/demo/transaction-fixtures.ts (the test empties the
+ * live ledger, so the reconciled strip shows snapshot − seeds). Adding a seed
+ * moves both figures — update them together with the fixture.
+ */
+const OPENING_BALANCE_LABEL = "Bạn đang có 4.396.000 ₫";
+const AFTER_EXPENSE_BALANCE_LABEL = "Bạn đang có 3.619.000 ₫";
 const KEEP_OPEN_NOTE = "E2E keep-open first";
 const CLOSE_AFTER_SAVE_NOTE = "E2E close after save";
 
