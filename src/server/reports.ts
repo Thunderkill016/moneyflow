@@ -144,7 +144,7 @@ export async function getReportsWorkspace(
     ),
     supabase
       .from("accounts")
-      .select("id,name,kind,currency_code,initial_balance_minor,is_archived")
+      .select("id,name,kind,currency_code,initial_balance_minor,is_archived,icon,color")
       .eq("user_id", viewer.id)
       .order("is_archived")
       .order("created_at"),

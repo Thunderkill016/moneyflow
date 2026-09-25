@@ -8,7 +8,12 @@ import { Dialog } from "@/components/ui/dialog";
 import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
 import {
+  ACCOUNT_COLORS,
+  ACCOUNT_KIND_DEFAULT_ICONS,
+  PICKABLE_ACCOUNT_ICONS,
   accountKindLabels,
+  type AccountColor,
+  type AccountIconName,
   type AccountKind,
   type AccountSummary,
   type SaveAccountInput,
@@ -28,6 +33,28 @@ import {
 } from "@/lib/money";
 import styles from "./accounts/account-dialog.module.css";
 
+const ACCOUNT_ICON_OPTIONS: Record<AccountIconName, string> = {
+  wallet: "Ví tiền",
+  bank: "Ngân hàng",
+  card: "Thẻ",
+  piggy: "Heo tiết kiệm",
+  coins: "Tiền xu",
+  briefcase: "Công việc",
+  receipt: "Hóa đơn",
+  spark: "Linh hoạt",
+};
+
+const ACCOUNT_COLOR_OPTIONS: Record<AccountColor, string> = {
+  blue: "Xanh dương",
+  green: "Xanh lá",
+  violet: "Tím",
+  amber: "Hổ phách",
+  cyan: "Xanh ngọc",
+  coral: "San hô",
+  pink: "Hồng",
+  red: "Đỏ",
+};
+
 export function AccountDialog({
   open,
   account,
@@ -43,6 +70,10 @@ export function AccountDialog({
   const amountRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(account?.name ?? "");
   const [kind, setKind] = useState<AccountKind>(account?.kind ?? "cash");
+  const [icon, setIcon] = useState<AccountIconName>(
+    account?.icon ?? ACCOUNT_KIND_DEFAULT_ICONS[account?.kind ?? "cash"],
+  );
+  const [color, setColor] = useState<AccountColor | "">(account?.color ?? "");
   const [currencyCode, setCurrencyCode] = useState(
     normalizeCurrencyCode(account?.currencyCode ?? "VND"),
   );
@@ -93,6 +124,8 @@ export function AccountDialog({
         kind,
         currencyCode: isEdit ? account?.currencyCode : currencyCode,
         initialBalance: kind === "credit_card" ? -parsedAmount : parsedAmount,
+        icon,
+        color: color || null,
       });
     } catch {
       result = { ok: false, message: "Mất kết nối khi lưu tài khoản." };
@@ -169,7 +202,15 @@ export function AccountDialog({
             targetSize="important"
             disabled={submitting}
             onChange={(event) => {
-              setKind(event.target.value as AccountKind);
+              const nextKind = event.target.value as AccountKind;
+              setKind(nextKind);
+              // Re-seed the icon only while the picker still holds the
+              // default of the kind being left — an explicit pick survives.
+              setIcon((current) =>
+                current === ACCOUNT_KIND_DEFAULT_ICONS[kind]
+                  ? ACCOUNT_KIND_DEFAULT_ICONS[nextKind]
+                  : current,
+              );
               clearErrors();
             }}
           >
@@ -210,6 +251,35 @@ export function AccountDialog({
               ))}
             </SelectField>
           )}
+
+          <SelectField
+            label="Biểu tượng"
+            value={icon}
+            targetSize="important"
+            disabled={submitting}
+            onChange={(event) => setIcon(event.target.value as AccountIconName)}
+          >
+            {PICKABLE_ACCOUNT_ICONS.map((value) => (
+              <option value={value} key={value}>
+                {ACCOUNT_ICON_OPTIONS[value]}
+              </option>
+            ))}
+          </SelectField>
+
+          <SelectField
+            label="Màu sắc"
+            value={color}
+            targetSize="important"
+            disabled={submitting}
+            onChange={(event) => setColor(event.target.value as AccountColor | "")}
+          >
+            <option value="">Mặc định theo loại</option>
+            {ACCOUNT_COLORS.map((value) => (
+              <option value={value} key={value}>
+                {ACCOUNT_COLOR_OPTIONS[value]}
+              </option>
+            ))}
+          </SelectField>
 
           <TextField
             inputRef={amountRef}

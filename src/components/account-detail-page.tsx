@@ -9,7 +9,9 @@ import { AppShell } from "@/components/layout/app-shell";
 import { MoneyValue } from "@/components/money-value";
 import type { ViewerSummary } from "@/components/user-chip";
 import {
+  ACCOUNT_KIND_DEFAULT_ICONS,
   accountKindLabels,
+  isAccountColor,
   type AccountSummary,
 } from "@/lib/accounts";
 import type {
@@ -35,10 +37,14 @@ import {
 } from "@/lib/transaction-store";
 import styles from "./account-detail-page.module.css";
 
-function accountIcon(kind: AccountSummary["kind"]): IconName {
-  if (kind === "bank" || kind === "savings") return "bank";
-  if (kind === "credit_card") return "card";
-  return "wallet";
+/* Stored picker choice wins; absent or stale values fall back to the
+ * kind-derived identity — mirrors the accounts workspace contract. */
+function accountIcon(account: AccountSummary): IconName {
+  return account.icon ?? ACCOUNT_KIND_DEFAULT_ICONS[account.kind];
+}
+
+function accountToneClassName(account: AccountSummary) {
+  return isAccountColor(account.color) ? styles[account.color] : "";
 }
 
 function displayDate(date: string) {
@@ -218,8 +224,8 @@ export function AccountDetailPage({
           <>
             <section className={styles.heading}>
               <div className={styles.identity}>
-                <span className={styles.accountIcon}>
-                  <Icon name={accountIcon(displayAccount.kind)} />
+                <span className={`${styles.accountIcon} ${accountToneClassName(displayAccount)}`}>
+                  <Icon name={accountIcon(displayAccount)} />
                 </span>
                 <div>
                   <p className="eyebrow">Sổ tài khoản</p>

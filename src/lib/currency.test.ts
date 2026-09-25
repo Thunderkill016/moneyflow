@@ -14,6 +14,8 @@ const base = (partial: Partial<AccountSummary> & Pick<AccountSummary, "id" | "cu
   kind: partial.kind ?? "cash",
   initialBalance: partial.initialBalance ?? partial.balance,
   isArchived: partial.isArchived ?? false,
+  icon: partial.icon ?? null,
+  color: partial.color ?? null,
   ...partial,
 });
 

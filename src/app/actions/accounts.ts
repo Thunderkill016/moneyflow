@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import type { AccountSummary, SaveAccountInput } from "@/lib/accounts";
+import {
+  ACCOUNT_COLORS,
+  ACCOUNT_ICON_NAMES,
+  type AccountSummary,
+  type SaveAccountInput,
+} from "@/lib/accounts";
 import { SUPPORTED_CURRENCY_CODES, normalizeCurrencyCode } from "@/lib/currency";
 import { requireViewer } from "@/server/auth";
 import { mapAccountRow } from "@/server/accounts";
@@ -23,6 +28,10 @@ const saveSchema = z.object({
     .refine((value) => (SUPPORTED_CURRENCY_CODES as readonly string[]).includes(value), "unsupported_currency")
     .optional(),
   initialBalance: z.number().int().min(-Number.MAX_SAFE_INTEGER).max(Number.MAX_SAFE_INTEGER),
+  /* The palette/icon sets are the product contract — writes outside them
+   * would emit an unowned tone or glyph the UI cannot render. */
+  icon: z.enum(ACCOUNT_ICON_NAMES).nullable().optional(),
+  color: z.enum(ACCOUNT_COLORS).nullable().optional(),
 });
 const archiveSchema = z.object({ id: z.string().uuid(), archived: z.boolean() });
 
@@ -55,6 +64,8 @@ export async function saveAccountAction(input: SaveAccountInput): Promise<Accoun
       p_name: parsed.data.name,
       p_kind: parsed.data.kind,
       p_initial_balance_minor: parsed.data.initialBalance,
+      p_icon: parsed.data.icon ?? null,
+      p_color: parsed.data.color ?? null,
     });
     if (error) return { ok: false, message: accountError(error.message) };
     if (data !== true) return { ok: false, message: "Không tìm thấy tài khoản." };
@@ -65,6 +76,8 @@ export async function saveAccountAction(input: SaveAccountInput): Promise<Accoun
       p_kind: parsed.data.kind,
       p_initial_balance_minor: parsed.data.initialBalance,
       p_currency_code: currencyCode,
+      p_icon: parsed.data.icon ?? null,
+      p_color: parsed.data.color ?? null,
     });
     if (error || typeof data !== "string") {
       return { ok: false, message: accountError(error?.message ?? "create_failed") };
@@ -75,7 +88,7 @@ export async function saveAccountAction(input: SaveAccountInput): Promise<Accoun
   const [accountResult, balanceResult] = await Promise.all([
     supabase
       .from("accounts")
-      .select("id,name,kind,currency_code,initial_balance_minor,is_archived")
+      .select("id,name,kind,currency_code,initial_balance_minor,is_archived,icon,color")
       .eq("id", accountId)
       .single(),
     supabase.from("account_balances").select("balance_minor").eq("account_id", accountId).single(),

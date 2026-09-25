@@ -14,7 +14,9 @@ import type { ViewerSummary } from "@/components/user-chip";
 import { saveAccountAction, setAccountArchivedAction } from "@/app/actions/accounts";
 import { executeTransferMutation } from "@/hooks/transfer-mutation";
 import {
+  ACCOUNT_KIND_DEFAULT_ICONS,
   accountKindLabels,
+  isAccountColor,
   type AccountKind,
   type AccountSummary,
   type SaveAccountInput,
@@ -46,10 +48,10 @@ const TransferDialog = dynamic(
   { ssr: false },
 );
 
-function accountIcon(kind: AccountSummary["kind"]): IconName {
-  if (kind === "bank" || kind === "savings") return "bank";
-  if (kind === "credit_card") return "card";
-  return "wallet";
+/* Stored picker choice wins; absent or stale values fall back to the
+ * kind-derived identity — mirrors the category-presentation contract. */
+function accountIcon(account: AccountSummary): IconName {
+  return account.icon ?? ACCOUNT_KIND_DEFAULT_ICONS[account.kind];
 }
 
 function kindClassName(kind: AccountKind) {
@@ -58,6 +60,10 @@ function kindClassName(kind: AccountKind) {
   if (kind === "e_wallet") return styles.eWallet;
   if (kind === "credit_card") return styles.creditCard;
   return "";
+}
+
+function accountToneClassName(account: AccountSummary): string {
+  return isAccountColor(account.color) ? styles[account.color] : kindClassName(account.kind);
 }
 
 export function AccountsWorkspace({
@@ -152,6 +158,8 @@ export function AccountsWorkspace({
         initialBalance: input.initialBalance,
         balance: input.initialBalance,
         isArchived: false,
+        icon: input.icon ?? null,
+        color: input.color ?? null,
       };
       setAccounts((current) =>
         input.id
@@ -377,10 +385,10 @@ export function AccountsWorkspace({
                   key={account.id}
                 >
                   <div
-                    className={`${styles.kindIcon} ${kindClassName(account.kind)}`}
+                    className={`${styles.kindIcon} ${accountToneClassName(account)}`}
                     aria-hidden="true"
                   >
-                    <Icon name={accountIcon(account.kind)} />
+                    <Icon name={accountIcon(account)} />
                   </div>
                   <div className={styles.cardBody}>
                     <div className={styles.cardTitleRow}>
@@ -535,10 +543,10 @@ export function AccountsWorkspace({
                   key={account.id}
                 >
                   <span
-                    className={`${styles.kindIcon} ${kindClassName(account.kind)}`}
+                    className={`${styles.kindIcon} ${accountToneClassName(account)}`}
                     aria-hidden="true"
                   >
-                    <Icon name={accountIcon(account.kind)} />
+                    <Icon name={accountIcon(account)} />
                   </span>
                   <div className={styles.archivedIdentity}>
                     <strong>{account.name}</strong>

@@ -88,6 +88,8 @@ export function fixtureAccountsWorkspace(): AccountsWorkspace {
         initialBalance: 1_000_000,
         balance: 15_454_000,
         isArchived: false,
+        icon: null,
+        color: null,
       },
       {
         id: "acc-cash",
@@ -97,6 +99,8 @@ export function fixtureAccountsWorkspace(): AccountsWorkspace {
         initialBalance: 0,
         balance: 239_000,
         isArchived: false,
+        icon: null,
+        color: null,
       },
       {
         id: "acc-old",
@@ -106,6 +110,8 @@ export function fixtureAccountsWorkspace(): AccountsWorkspace {
         initialBalance: 0,
         balance: 0,
         isArchived: true,
+        icon: null,
+        color: null,
       },
     ],
     dataError: null,

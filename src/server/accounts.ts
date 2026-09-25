@@ -1,50 +1,22 @@
 import "server-only";
 
-import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import type { AccountKind, AccountSummary } from "@/lib/accounts";
+import { mapAccountRow, type AccountSummary } from "@/lib/accounts";
 import { requireViewer } from "@/server/auth";
+
+export { mapAccountRow };
 
 export type AccountsWorkspace = {
   accounts: AccountSummary[];
   dataError: string | null;
 };
 
-const accountRowSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string().min(1),
-  kind: z.enum(["cash", "bank", "e_wallet", "credit_card", "savings"]),
-  currency_code: z.string().length(3),
-  initial_balance_minor: z.union([z.number(), z.string()]),
-  is_archived: z.boolean(),
-});
-
-function safeMoney(value: unknown) {
-  const amount = Number(value);
-  if (!Number.isSafeInteger(amount)) throw new Error("invalid_money");
-  return amount;
-}
-
-export function mapAccountRow(value: unknown, balanceValue?: unknown): AccountSummary {
-  const row = accountRowSchema.parse(value);
-  const initialBalance = safeMoney(row.initial_balance_minor);
-  return {
-    id: row.id,
-    name: row.name,
-    kind: row.kind as AccountKind,
-    currencyCode: row.currency_code,
-    initialBalance,
-    balance: balanceValue === undefined ? initialBalance : safeMoney(balanceValue),
-    isArchived: row.is_archived,
-  };
-}
-
 export const demoAccountRows: AccountSummary[] = [
-  { id: "demo-account-mb", name: "MB Bank", kind: "bank", currencyCode: "VND", initialBalance: 1_126_000, balance: 15_454_000, isArchived: false },
-  { id: "demo-account-cash", name: "Tiền mặt", kind: "cash", currencyCode: "VND", initialBalance: 0, balance: 239_000, isArchived: false },
-  { id: "demo-account-momo", name: "MoMo", kind: "e_wallet", currencyCode: "VND", initialBalance: 0, balance: 42_000, isArchived: false },
+  { id: "demo-account-mb", name: "MB Bank", kind: "bank", currencyCode: "VND", initialBalance: 1_126_000, balance: 15_454_000, isArchived: false, icon: "bank", color: "blue" },
+  { id: "demo-account-cash", name: "Tiền mặt", kind: "cash", currencyCode: "VND", initialBalance: 0, balance: 239_000, isArchived: false, icon: "wallet", color: "green" },
+  { id: "demo-account-momo", name: "MoMo", kind: "e_wallet", currencyCode: "VND", initialBalance: 0, balance: 42_000, isArchived: false, icon: "spark", color: "pink" },
   /** 200.00 USD in minor units (cents) — display only; no cross-currency transfer. */
-  { id: "demo-account-usd", name: "USD du lịch", kind: "cash", currencyCode: "USD", initialBalance: 20_000, balance: 20_000, isArchived: false },
+  { id: "demo-account-usd", name: "USD du lịch", kind: "cash", currencyCode: "USD", initialBalance: 20_000, balance: 20_000, isArchived: false, icon: "coins", color: "amber" },
 ];
 
 export async function getAccountsWorkspace(): Promise<AccountsWorkspace> {
@@ -57,7 +29,7 @@ export async function getAccountsWorkspace(): Promise<AccountsWorkspace> {
   const [accountsResult, balancesResult] = await Promise.all([
     supabase
       .from("accounts")
-      .select("id,name,kind,currency_code,initial_balance_minor,is_archived")
+      .select("id,name,kind,currency_code,initial_balance_minor,is_archived,icon,color")
       .order("is_archived")
       .order("created_at"),
     supabase.from("account_balances").select("account_id,balance_minor"),
