@@ -1,4 +1,5 @@
 import type { Transaction } from "./transactions/contracts.ts";
+import { normalizeSearchText } from "./search-text.ts";
 
 export type AccountRegisterEntry = {
   transaction: Transaction;
@@ -75,6 +76,52 @@ export function buildAccountRegister(
     .map((transaction) => accountTransactionImpact(transaction, accountId))
     .filter((entry): entry is AccountRegisterEntry => entry !== null)
     .sort(newestFirst);
+}
+
+export type AccountRegisterFilter = {
+  kind: "all" | Transaction["kind"];
+  query: string;
+};
+
+/** Narrow the register rows for display; the register summary always stays
+ * register-wide so totals are never bent by the visible filter. */
+export function filterAccountRegisterEntries(
+  entries: AccountRegisterEntry[],
+  filter: AccountRegisterFilter,
+): AccountRegisterEntry[] {
+  const normalizedQuery = normalizeSearchText(filter.query);
+
+  return entries.filter((entry) => {
+    const { transaction } = entry;
+    const matchesKind =
+      filter.kind === "all" || transaction.kind === filter.kind;
+    const matchesQuery =
+      !normalizedQuery ||
+      normalizeSearchText(
+        [
+          transaction.payee ?? "",
+          transaction.note,
+          transaction.category,
+          entry.transferCounterparty ?? "",
+          ...(transaction.splits?.map((line) => line.category) ?? []),
+        ].join(" "),
+      ).includes(normalizedQuery);
+
+    return matchesKind && matchesQuery;
+  });
+}
+
+/** Real account movement per register day. Day headers read from this map so a
+ * visible-row filter can never bend the labelled daily total. */
+export function accountRegisterDailyImpacts(
+  entries: AccountRegisterEntry[],
+): Map<string, number> {
+  const impacts = new Map<string, number>();
+  for (const entry of entries) {
+    const day = entry.transaction.occurredOn;
+    impacts.set(day, (impacts.get(day) ?? 0) + entry.impact);
+  }
+  return impacts;
 }
 
 export function summarizeAccountRegister(
