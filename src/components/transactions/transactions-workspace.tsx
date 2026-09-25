@@ -32,6 +32,7 @@ import {
   startCountdown,
   type Countdown,
 } from "@/lib/pausable-countdown";
+import { recordPrivacyDelete } from "@/lib/privacy-prefs";
 import {
   categoryMetaFor,
   categoryMetaIndex,
@@ -1240,6 +1241,7 @@ export function TransactionsWorkspace({
     const snapshots = review.eligible.filter((transaction) =>
       deletedIds.has(transaction.id),
     );
+    if (snapshots.length) recordPrivacyDelete();
     showDeleteNotice(
       snapshots.length
         ? result.skipped.length
@@ -1371,6 +1373,7 @@ export function TransactionsWorkspace({
       return;
     }
     setDeleteTarget(null);
+    recordPrivacyDelete();
     showDeleteNotice(`Đã xóa ${transaction.note}.`, [transaction]);
   }
 

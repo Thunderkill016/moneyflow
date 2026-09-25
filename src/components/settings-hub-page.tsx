@@ -21,6 +21,8 @@ type SettingsLink = {
   description: string;
   icon: IconName;
   danger?: boolean;
+  /** Only meaningful with a server identity — hidden in demo. */
+  authOnly?: boolean;
 };
 
 const SETTINGS_LINKS: SettingsLink[] = [
@@ -77,6 +79,13 @@ const SETTINGS_LINKS: SettingsLink[] = [
     title: "Bảo mật",
     description: "Cách MoneyFlow và nền tảng bảo vệ dữ liệu của bạn.",
     icon: "lock",
+  },
+  {
+    href: "/update-password",
+    title: "Đổi mật khẩu",
+    description: "Đặt mật khẩu mới cho tài khoản đăng nhập MoneyFlow.",
+    icon: "lock",
+    authOnly: true,
   },
   {
     href: "/settings/delete-account",
@@ -194,7 +203,7 @@ export function SettingsHubPage({ viewer }: { viewer: ViewerSummary }) {
           >
             <nav aria-label="Mục cài đặt">
               <ul className={styles.hubList}>
-                {SETTINGS_LINKS.map((item) => (
+                {SETTINGS_LINKS.filter((item) => !item.authOnly || !viewer.isDemo).map((item) => (
                   <li key={item.href}>
                     <Link
                       href={item.href}
