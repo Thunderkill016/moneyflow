@@ -186,7 +186,7 @@ Other blockers resume only when their required boundary becomes available: owner
 
 Drafted by the agent from merged evidence; the go/no-go itself (PBT-AC15) and every provider/legal/limitation disposition remain owner-only. This assessment reconciles what the merged record actually shows — the blocker list is shorter than the stale status lines suggested.
 
-**Verdict: NO-GO for public beta today. NO-GO for closed beta until the remaining P1 entry gates pass — but two of them now have merged evidence awaiting owner disposition.**
+**Verdict: NO-GO for public beta today. For closed beta, the owner rescoped the entry gates on 2026-09-21 (see `docs/operations/beta-owner-action-pack.md`): minimum set = RRB-08 phone smoke + minimal provider check + RRB-05/02/03 dispositions + proportionate legal read. The full RRB-04 read-back, RRB-06 formal legal review and RRB-09 Supabase half are deferred to the pre-public-beta review — recorded here as an explicit owner risk acceptance, not a claim that the obligations disappeared.**
 
 #### Evidence since the last status update
 
