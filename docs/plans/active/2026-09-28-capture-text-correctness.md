@@ -1,11 +1,11 @@
 # Capture text: calendar dates and payment versus internal transfer
 
-**Status:** evaluating  
-**Execution state:** evaluating  
-**Active role:** evaluator  
-**Permission scope:** branch_write; owner requested deployment on 2026-09-28; merge instruction pending  
-**Owner:** Codex, user-requested current MF development  
-**Issue/PR:** https://github.com/Thunderkill016/moneyflow/pull/728  
+**Status:** evaluating\
+**Execution state:** evaluating\
+**Active role:** evaluator\
+**Permission scope:** branch_write; owner requested deployment on 2026-09-28; merge instruction pending\
+**Owner:** Codex, user-requested current MF development\
+**Issue/PR:** https://github.com/Thunderkill016/moneyflow/pull/728\
 **Last updated:** 2026-09-28
 
 ## Outcome and canon objective
