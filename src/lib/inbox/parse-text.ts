@@ -3,6 +3,7 @@
  * Money amounts are integer VND đồng (minor units). No float.
  */
 
+import { normalizeStrictSourceDate } from "./source-adapter.ts";
 import { todayInVietnam } from "../vietnam-date.ts";
 import type {
   CandidateConfidence,
@@ -46,12 +47,22 @@ export type ParseTextResult = {
   error?: string;
 };
 
+// Match folded Vietnamese text: JavaScript word boundaries do not treat
+// accented Vietnamese letters as word characters.
 const INCOME_HINT =
-  /\b(luong|lương|salary|thu\s*nhập|thu nhap|nhận|nhan|cộng|cong|hoàn\s*tiền|hoan tien|refund|\+)\b/i;
-const TRANSFER_HINT =
-  /\b(ck|chuyen|chuyển|transfer|nội\s*bộ|noi bo|chuyển\s*khoản|chuyen khoan)\b/i;
+  /\b(luong|salary|thu\s+nhap|nhan|cong|hoan\s+tien|refund)\b/i;
+const TRANSFER_HINT = /\b(ck|chuyen|transfer)\b/i;
+const INTERNAL_TRANSFER_HINT =
+  /\b(noi\s+bo|giua\s+(?:cac\s+)?tai\s+khoan\s+cua\s+minh)\b/i;
 const EXPENSE_HINT =
-  /\b(chi|thanh\s*toan|thanh toan|mua|cafe|cà\s*phê|ca phe|grab|an\s*uong|ăn uống)\b/i;
+  /\b(chi|thanh\s+toan|mua|cafe|ca\s+phe|grab|an\s+uong|tien\s+an|do\s+xang)\b/i;
+
+function foldVietnamese(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/gi, "d");
+}
 
 const KNOWN_MERCHANTS: { pattern: RegExp; name: string }[] = [
   { pattern: /\bhighlands?\b/i, name: "Highlands Coffee" },
@@ -88,12 +99,23 @@ export function parseVndAmountToken(
   if (!cleaned) return null;
 
   // Multiplier units first (k / tr) — may include decimal: 1.5tr, 45k
-  if (unitNorm === "k" || unitNorm === "nghìn" || unitNorm === "nghin" || unitNorm === "ngàn" || unitNorm === "ngan") {
+  if (
+    unitNorm === "k" ||
+    unitNorm === "nghìn" ||
+    unitNorm === "nghin" ||
+    unitNorm === "ngàn" ||
+    unitNorm === "ngan"
+  ) {
     const base = parseDecimalLoose(cleaned);
     if (base === null) return null;
     return toSafeInt(Math.round(base * 1_000));
   }
-  if (unitNorm === "tr" || unitNorm === "triệu" || unitNorm === "trieu" || unitNorm === "m") {
+  if (
+    unitNorm === "tr" ||
+    unitNorm === "triệu" ||
+    unitNorm === "trieu" ||
+    unitNorm === "m"
+  ) {
     const base = parseDecimalLoose(cleaned);
     if (base === null) return null;
     return toSafeInt(Math.round(base * 1_000_000));
@@ -217,51 +239,85 @@ export function selectPrimaryAmount(
   return { primary: tier[0]!, ambiguous: tier.length > 1 };
 }
 
-function extractDate(line: string, today: string): { date: string; found: boolean } {
-  // ISO
-  const iso = line.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/);
-  if (iso) {
-    return { date: `${iso[1]}-${iso[2]}-${iso[3]}`, found: true };
+type ExtractedDate = {
+  date: string;
+  issue?: "missing" | "invalid" | "conflicting" | "inferred-year";
+};
+
+function extractDate(line: string, today: string): ExtractedDate {
+  const anchor = normalizeStrictSourceDate({
+    value: today,
+    format: "iso-date",
+    calendarSemantics: "date-only",
+  });
+  if (!anchor.ok) throw new Error("invalid_paste_date_anchor");
+  const dates: string[] = [];
+  let invalid = false;
+  let inferredYear = false;
+  // Consume the full date, including unsupported two-digit years, so a bad
+  // year cannot be silently discarded and reinterpreted as day/month.
+  const tokens = line.matchAll(
+    /\b(\d{4}-\d{1,2}-\d{1,2}|\d{1,2}([/.\-])\d{1,2}(?:\2\d{2,4})?)\b/g,
+  );
+  for (const match of tokens) {
+    const raw = match[1]!;
+    const iso = /^\d{4}-/.test(raw);
+    const parts = raw.split(/[/.\-]/);
+    const missingYear = !iso && parts.length === 2;
+    const value = iso
+      ? raw
+      : `${parts[0]}/${parts[1]}/${missingYear ? today.slice(0, 4) : parts[2]}`;
+    const result = normalizeStrictSourceDate({
+      value,
+      format: iso ? "iso-date" : "dmy-date",
+      calendarSemantics: "date-only",
+    });
+    if (!result.ok) invalid = true;
+    else dates.push(result.date);
+    inferredYear ||= missingYear;
   }
-  // DD/MM/YYYY or DD-MM-YYYY
-  const dmyFull = line.match(/\b(\d{1,2})[/.](\d{1,2})[/.](20\d{2})\b/);
-  if (dmyFull) {
-    const dd = dmyFull[1]!.padStart(2, "0");
-    const mm = dmyFull[2]!.padStart(2, "0");
-    return { date: `${dmyFull[3]}-${mm}-${dd}`, found: true };
+  for (const match of foldVietnamese(line).matchAll(
+    /\bhom\s+(nay|qua|kia)\b/gi,
+  )) {
+    const daysAgo = { nay: 0, qua: 1, kia: 2 }[match[1]!.toLowerCase()]!;
+    const date = new Date(`${today}T00:00:00Z`);
+    // Shift calendar days rather than local instants; the anchor already uses
+    // the Vietnam day and must not depend on the host timezone.
+    date.setUTCDate(date.getUTCDate() - daysAgo);
+    dates.push(date.toISOString().slice(0, 10));
   }
-  // DD/MM (assume current year from today)
-  const dmy = line.match(/\b(\d{1,2})[/.](\d{1,2})\b/);
-  if (dmy) {
-    const year = today.slice(0, 4);
-    const dd = dmy[1]!.padStart(2, "0");
-    const mm = dmy[2]!.padStart(2, "0");
-    return { date: `${year}-${mm}-${dd}`, found: true };
-  }
-  return { date: today, found: false };
+  if (invalid) return { date: today, issue: "invalid" };
+  if (new Set(dates).size > 1) return { date: today, issue: "conflicting" };
+  if (!dates.length) return { date: today, issue: "missing" };
+  return {
+    date: dates[0]!,
+    ...(inferredYear ? { issue: "inferred-year" as const } : {}),
+  };
 }
 
 function detectKind(
   line: string,
   signedNegative: boolean,
-  sourceHint: PasteSourceHint,
 ): { kind: CandidateKind; uncertain: boolean } {
-  if (TRANSFER_HINT.test(line)) return { kind: "transfer", uncertain: false };
-  if (INCOME_HINT.test(line) || (line.includes("+") && !signedNegative)) {
-    return { kind: "income", uncertain: false };
-  }
-  if (signedNegative || EXPENSE_HINT.test(line)) {
-    return { kind: "expense", uncertain: false };
-  }
-  // Bank SMS often expenses when no +
-  if (sourceHint === "sms" || sourceHint === "wallet") {
-    return { kind: "expense", uncertain: true };
-  }
-  // Default spend (most paste notes are expenses)
+  const folded = foldVietnamese(line);
+  const internal = INTERNAL_TRANSFER_HINT.test(folded);
+  const expense = EXPENSE_HINT.test(folded);
+  const income =
+    INCOME_HINT.test(folded) || (line.includes("+") && !signedNegative);
+  if (internal) return { kind: "transfer", uncertain: expense || income };
+  if (expense && !income) return { kind: "expense", uncertain: false };
+  if (income && !expense) return { kind: "income", uncertain: signedNegative };
+  if (TRANSFER_HINT.test(folded)) return { kind: "expense", uncertain: true };
+  if (signedNegative && !income) return { kind: "expense", uncertain: false };
+  // Source labels do not establish the economic meaning of an unsigned row.
+  // Keep the existing expense suggestion, but require the user to review it.
   return { kind: "expense", uncertain: true };
 }
 
-function extractMerchant(line: string): { merchant: string; uncertain: boolean } {
+function extractMerchant(line: string): {
+  merchant: string;
+  uncertain: boolean;
+} {
   for (const entry of KNOWN_MERCHANTS) {
     if (entry.pattern.test(line)) {
       return { merchant: entry.name, uncertain: false };
@@ -295,7 +351,8 @@ function extractMerchant(line: string): { merchant: string; uncertain: boolean }
 
   // Title-case short merchant phrases
   const merchant = rest.length > 48 ? rest.slice(0, 48).trim() : rest;
-  const looksGeneric = /^(chi|thu|giao dich|giao dịch|note|ghi chu|ghi chú)$/i.test(merchant);
+  const looksGeneric =
+    /^(chi|thu|giao dich|giao dịch|note|ghi chu|ghi chú)$/i.test(merchant);
   return {
     merchant: capitalizeWords(merchant),
     uncertain: looksGeneric || merchant.length < 2,
@@ -317,12 +374,16 @@ function capitalizeWords(value: string): string {
 function scoreConfidence(uncertain: UncertainField[]): CandidateConfidence {
   if (uncertain.length === 0) return "high";
   if (uncertain.length === 1 && uncertain[0] === "date") return "medium";
-  if (uncertain.includes("amount") || uncertain.includes("merchant")) return "low";
+  if (uncertain.includes("amount") || uncertain.includes("merchant"))
+    return "low";
   if (uncertain.length >= 2) return "low";
   return "medium";
 }
 
-function buildExplanations(fields: UncertainField[]): string[] {
+function buildExplanations(
+  fields: UncertainField[],
+  dateIssue?: ExtractedDate["issue"],
+): string[] {
   const tips: string[] = [];
   if (fields.includes("amount")) {
     tips.push("Không chắc số tiền — kiểm tra trước khi duyệt.");
@@ -331,10 +392,21 @@ function buildExplanations(fields: UncertainField[]): string[] {
     tips.push("Chưa rõ nơi chi / người nhận — bổ sung khi duyệt.");
   }
   if (fields.includes("date")) {
-    tips.push("Không thấy ngày trong text — dùng hôm nay.");
+    const dateTips = {
+      missing: "Không thấy ngày trong text — dùng hôm nay.",
+      invalid:
+        "Ngày trong text không hợp lệ hoặc chưa xác định — tạm dùng hôm nay, hãy sửa trước khi duyệt.",
+      conflicting:
+        "Các ngày trong text mâu thuẫn — tạm dùng hôm nay, hãy chọn ngày đúng trước khi duyệt.",
+      "inferred-year":
+        "Text chưa có năm — tạm dùng năm hiện tại, hãy kiểm tra trước khi duyệt.",
+    };
+    tips.push(dateTips[dateIssue ?? "missing"]);
   }
   if (fields.includes("kind")) {
-    tips.push("Chưa chắc chi / thu / chuyển khoản — mặc định khoản chi.");
+    tips.push(
+      "Chưa chắc chi / thu / chuyển khoản — kiểm tra loại giao dịch trước khi duyệt.",
+    );
   }
   return tips;
 }
@@ -350,7 +422,6 @@ export function parsePasteLine(
   if (!trimmed) return null;
 
   const today = options.today ?? todayInHoChiMinh();
-  const sourceHint = options.sourceHint ?? "auto";
   const selected = selectPrimaryAmount(extractAmounts(trimmed));
   if (!selected) return null;
 
@@ -361,13 +432,12 @@ export function parsePasteLine(
     uncertainFields.push("amount");
   }
 
-  const { date, found: dateFound } = extractDate(trimmed, today);
-  if (!dateFound) uncertainFields.push("date");
+  const { date, issue: dateIssue } = extractDate(trimmed, today);
+  if (dateIssue) uncertainFields.push("date");
 
   const { kind, uncertain: kindUncertain } = detectKind(
     trimmed,
     primary.signedNegative,
-    sourceHint,
   );
   if (kindUncertain) uncertainFields.push("kind");
 
@@ -376,7 +446,13 @@ export function parsePasteLine(
 
   // Dedupe uncertain fields
   const unique = [...new Set(uncertainFields)];
-  const confidence = scoreConfidence(unique);
+  // Field explanations are preview-only; low confidence persists into Inbox
+  // and prevents an ambiguous kind or invalid/conflicting date becoming ready
+  // because a rule supplied account/category defaults.
+  const confidence =
+    kindUncertain || (dateIssue && dateIssue !== "missing")
+      ? "low"
+      : scoreConfidence(unique);
 
   return {
     kind,
@@ -386,7 +462,7 @@ export function parsePasteLine(
     occurredOn: date,
     confidence,
     uncertainFields: unique,
-    explanations: buildExplanations(unique),
+    explanations: buildExplanations(unique, dateIssue),
     rawSnippet: trimmed.length > 160 ? `${trimmed.slice(0, 157)}…` : trimmed,
   };
 }
@@ -447,7 +523,8 @@ export function parsePasteText(
       ok: false,
       candidates: [],
       needsReviewCount: 0,
-      error: "Không tìm thấy số tiền hợp lệ. Thử dạng “cafe 45k” hoặc “45.000 VND”.",
+      error:
+        "Không tìm thấy số tiền hợp lệ. Thử dạng “cafe 45k” hoặc “45.000 VND”.",
     };
   }
 

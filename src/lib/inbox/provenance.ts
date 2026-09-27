@@ -10,10 +10,7 @@ import type {
 import { persistableSourceExternalId } from "./source-adapter.ts";
 
 export type ImportMatchStatus =
-  | "would_create"
-  | "duplicate"
-  | "suspected_transfer"
-  | "invalid";
+  "would_create" | "duplicate" | "suspected_transfer" | "invalid";
 
 export type SourceLifecycleState = "pending" | "posted" | "removed";
 
@@ -44,10 +41,11 @@ export type ImportBatchProvenance = {
 };
 
 export type PersistedInboxCandidate = InboxCandidate & CandidateProvenance;
-export type CreateCandidateWithProvenanceInput = CreateCandidateInput & CandidateProvenance;
+export type CreateCandidateWithProvenanceInput = CreateCandidateInput &
+  CandidateProvenance;
 export type PersistedImportBatch = ImportBatch & ImportBatchProvenance;
-export type CreateImportBatchWithProvenanceInput =
-  CreateImportBatchInput & ImportBatchProvenance;
+export type CreateImportBatchWithProvenanceInput = CreateImportBatchInput &
+  ImportBatchProvenance;
 
 export type InboxDryRunResult = {
   status: ImportMatchStatus;
@@ -97,7 +95,7 @@ const REVIEWABLE_DUPLICATE_REASONS = new Set([
 ]);
 
 const PARSER_VERSION_BY_SOURCE: Record<CandidateSource, string> = {
-  paste: "paste_text@1.0",
+  paste: "paste_text@1.1",
   csv: "csv_import@1.0",
   xlsx: "xlsx_import@1.0",
   pdf: "pdf_import@1.0",
@@ -136,8 +134,7 @@ export function candidateProvenanceFromRow(
     matchStatus: row.match_status ?? undefined,
     matchReason: row.match_reason ?? undefined,
     matchConfidence: row.match_confidence ?? undefined,
-    possibleTransfer:
-      row.possible_transfer === true ? true : undefined,
+    possibleTransfer: row.possible_transfer === true ? true : undefined,
     transferPairId: row.transfer_pair_id ?? undefined,
     approvedTransactionId: row.approved_transaction_id ?? undefined,
     approvedAt: row.approved_at ?? undefined,
@@ -162,7 +159,8 @@ export function candidateProvenanceInsertPatch(
     typeof candidate.appliedRuleId === "string" &&
     Number.isSafeInteger(candidate.appliedRuleVersion) &&
     (candidate.appliedRuleVersion ?? 0) >= 1;
-  const sourceExternalId = persistableSourceExternalId(candidate.sourceExternalId) ?? null;
+  const sourceExternalId =
+    persistableSourceExternalId(candidate.sourceExternalId) ?? null;
   const predecessor = persistableSourceExternalId(
     candidate.sourcePredecessorExternalId,
   );
@@ -171,7 +169,7 @@ export function candidateProvenanceInsertPatch(
       ? predecessor
       : null;
   const sourceLifecycleState = sourceExternalId
-    ? candidate.sourceLifecycleState ?? null
+    ? (candidate.sourceLifecycleState ?? null)
     : null;
 
   return {
@@ -182,8 +180,7 @@ export function candidateProvenanceInsertPatch(
     parser_version:
       candidate.parserVersion?.slice(0, 80) ??
       parserVersionForSource(candidate.source),
-    mapping_version:
-      candidate.mappingVersion ?? CURRENT_IMPORT_MAPPING_VERSION,
+    mapping_version: candidate.mappingVersion ?? CURRENT_IMPORT_MAPPING_VERSION,
     ...(hasRuleEvidence
       ? {
           applied_rule_id: candidate.appliedRuleId,

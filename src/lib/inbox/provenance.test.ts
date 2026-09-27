@@ -12,7 +12,7 @@ import {
 
 test("parserVersionForSource is deterministic for current capture sources", () => {
   assert.equal(parserVersionForSource("csv"), "csv_import@1.0");
-  assert.equal(parserVersionForSource("paste"), "paste_text@1.0");
+  assert.equal(parserVersionForSource("paste"), "paste_text@1.1");
 });
 
 test("candidate provenance maps nullable Supabase fields without inventing data", () => {
@@ -229,11 +229,21 @@ test("parseInboxDryRunResult accepts numeric strings from JSON boundaries", () =
 
 test("parseInboxDryRunResult rejects unsupported states and invalid confidence", () => {
   assert.throws(
-    () => parseInboxDryRunResult({ status: "would_update", reason: "x", confidence: 1 }),
+    () =>
+      parseInboxDryRunResult({
+        status: "would_update",
+        reason: "x",
+        confidence: 1,
+      }),
     /invalid_inbox_dry_run/,
   );
   assert.throws(
-    () => parseInboxDryRunResult({ status: "duplicate", reason: "x", confidence: 2 }),
+    () =>
+      parseInboxDryRunResult({
+        status: "duplicate",
+        reason: "x",
+        confidence: 2,
+      }),
     /invalid_inbox_dry_run/,
   );
 });
@@ -265,5 +275,27 @@ test("dry-run message makes lifecycle-only source changes explicit", () => {
       confidence: 1,
     }),
     /trạng thái xử lý đã thay đổi/,
+  );
+});
+
+test("paste parser upgrades preserve explicit historical candidate provenance", () => {
+  const candidate = {
+    kind: "expense" as const,
+    amount: 45_000,
+    merchant: "Cafe",
+    occurredOn: "2026-09-28",
+    source: "paste" as const,
+    confidence: "high" as const,
+  };
+  assert.equal(
+    candidateProvenanceInsertPatch(candidate).parser_version,
+    "paste_text@1.1",
+  );
+  assert.equal(
+    candidateProvenanceInsertPatch({
+      ...candidate,
+      parserVersion: "paste_text@1.0",
+    }).parser_version,
+    "paste_text@1.0",
   );
 });
