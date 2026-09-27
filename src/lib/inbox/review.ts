@@ -19,7 +19,10 @@ import {
   type CandidateConfidence,
   type InboxCandidate,
 } from "./candidate-store.ts";
-import type { CandidateProvenance } from "./provenance.ts";
+import {
+  parserVersionForSource,
+  type CandidateProvenance,
+} from "./provenance.ts";
 
 export type ExplainLineKind = "parser" | "rule" | "source" | "raw" | "audit";
 
@@ -57,18 +60,6 @@ export type ConfirmedReviewRuleSeed = {
 
 const UNKNOWN_MERCHANT = "không rõ";
 
-const PARSER_BY_SOURCE: Record<InboxCandidate["source"], string> = {
-  paste: "paste_text@1.0",
-  csv: "csv_import@1.0",
-  xlsx: "xlsx_import@1.0",
-  pdf: "pdf_import@1.0",
-  manual: "manual_entry@1.0",
-  notification: "notification@1.0",
-  email: "email@1.0",
-  agent: "capability@1.0",
-  commitment: "commitment_schedule@1.0",
-};
-
 /** Confidence levels allowed for bulk approve without opt-in. */
 export function meetsBulkApproveThreshold(
   confidence: CandidateConfidence,
@@ -102,7 +93,8 @@ export function buildExplainLines(
   candidate: InboxCandidate & CandidateProvenance,
 ): ExplainLine[] {
   const lines: ExplainLine[] = [];
-  const parser = PARSER_BY_SOURCE[candidate.source] ?? "unknown@0";
+  const parser =
+    candidate.parserVersion ?? parserVersionForSource(candidate.source);
   lines.push({ kind: "parser", text: `Parser: ${parser}` });
 
   if (candidate.rawSnippet) {
@@ -206,7 +198,10 @@ export function buildExplainLines(
 
   if (candidate.rawSnippet) {
     // Display only — never expose STK-like digit runs in Explain raw (TASK-032).
-    lines.push({ kind: "raw", text: maskAccountLikeDigits(candidate.rawSnippet) });
+    lines.push({
+      kind: "raw",
+      text: maskAccountLikeDigits(candidate.rawSnippet),
+    });
   }
 
   return lines;
@@ -234,7 +229,8 @@ export function draftFromCandidate(
   const moneyKind: TransactionKind =
     candidate.kind === "income" ? "income" : "expense";
   const categoryId = resolveCategoryId(candidate, categories, moneyKind) ?? "";
-  const accountId = resolveAccountId(candidate, accounts) ?? accounts[0]?.id ?? "";
+  const accountId =
+    resolveAccountId(candidate, accounts) ?? accounts[0]?.id ?? "";
   const otherAccount =
     accounts.find((item) => item.id !== accountId)?.id ?? accounts[0]?.id ?? "";
 
@@ -296,7 +292,10 @@ export function buildConfirmedReviewRuleSeed(
   const category = categories.find(
     (item) => item.id === review.categoryId && item.kind === review.kind,
   );
-  if (!category || (category.kind !== "income" && category.kind !== "expense")) {
+  if (
+    !category ||
+    (category.kind !== "income" && category.kind !== "expense")
+  ) {
     return null;
   }
 
@@ -382,11 +381,14 @@ export function buildLedgerPost(
     return { ok: false, message: "Ngày không hợp lệ (YYYY-MM-DD)." };
   }
 
-  const noteBase = draft.note.trim() || draft.merchant.trim() || "Giao dịch Inbox";
+  const noteBase =
+    draft.note.trim() || draft.merchant.trim() || "Giao dịch Inbox";
 
   if (draft.kind === "transfer") {
     const source = accounts.find((item) => item.id === draft.accountId);
-    const destination = accounts.find((item) => item.id === draft.destinationAccountId);
+    const destination = accounts.find(
+      (item) => item.id === draft.destinationAccountId,
+    );
     if (!source || !destination) {
       return { ok: false, message: "Chọn đủ hai tài khoản để chuyển." };
     }
@@ -482,10 +484,9 @@ export function applyBulkAccount(
  * Resolves a `?candidate=<id>` deep link. Only pending rows resolve —
  * approved, rejected, stale or foreign ids fail closed to null.
  */
-export function findPendingCandidateTarget<T extends { id: string; status: string }>(
-  list: T[],
-  id: string | undefined | null,
-): T | null {
+export function findPendingCandidateTarget<
+  T extends { id: string; status: string },
+>(list: T[], id: string | undefined | null): T | null {
   if (!id) return null;
   return (
     list.find((item) => item.id === id && item.status === "pending") ?? null
@@ -496,12 +497,32 @@ export function markCandidatesStatus(
   list: InboxCandidate[],
   ids: string[],
   status: "approved" | "rejected",
-  patch?: Partial<Pick<InboxCandidate, "categoryId" | "category" | "accountId" | "account" | "note" | "merchant" | "amount" | "occurredOn" | "kind" | "possibleDuplicate">>,
+  patch?: Partial<
+    Pick<
+      InboxCandidate,
+      | "categoryId"
+      | "category"
+      | "accountId"
+      | "account"
+      | "note"
+      | "merchant"
+      | "amount"
+      | "occurredOn"
+      | "kind"
+      | "possibleDuplicate"
+    >
+  >,
 ): InboxCandidate[] {
   const idSet = new Set(ids);
   return list.map((item) => {
     if (!idSet.has(item.id) || item.status !== "pending") return item;
-    return { ...item, ...patch, status, id: item.id, createdAt: item.createdAt };
+    return {
+      ...item,
+      ...patch,
+      status,
+      id: item.id,
+      createdAt: item.createdAt,
+    };
   });
 }
 

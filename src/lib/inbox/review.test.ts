@@ -87,7 +87,11 @@ test("partitionBulkApprove separates low-confidence when not included", () => {
     ["cand-1"],
   );
 
-  const withLow = partitionBulkApprove([expense, high], ["cand-1", "cand-2"], true);
+  const withLow = partitionBulkApprove(
+    [expense, high],
+    ["cand-1", "cand-2"],
+    true,
+  );
   assert.equal(withLow.eligible.length, 2);
   assert.equal(withLow.skippedLow.length, 0);
 });
@@ -100,7 +104,11 @@ test("buildExplainLines covers parser, rule, source, raw", () => {
   assert.ok(kinds.has("source"));
   assert.ok(kinds.has("raw"));
   assert.ok(lines.some((line) => line.text.includes("paste_text")));
-  assert.ok(lines.some((line) => line.kind === "raw" && line.text.includes("HIGHLANDS")));
+  assert.ok(
+    lines.some(
+      (line) => line.kind === "raw" && line.text.includes("HIGHLANDS"),
+    ),
+  );
   assert.ok(lines.some((line) => /45\.000/.test(line.text)));
 });
 
@@ -110,7 +118,9 @@ test("buildExplainLines names the proposing client for agent candidates", () => 
     source: "agent",
     sourceExternalId: "agent|client-abc|3f6b6b6c-0c5f-4d3e-9a2a-2f0d2b7a1f01",
   };
-  const source = buildExplainLines(proposed).find((line) => line.kind === "source");
+  const source = buildExplainLines(proposed).find(
+    (line) => line.kind === "source",
+  );
   assert.ok(source);
   assert.ok(source!.text.includes("đề xuất bởi client-abc"));
 
@@ -119,7 +129,9 @@ test("buildExplainLines names the proposing client for agent candidates", () => 
     source: "agent",
     sourceExternalId: "agent|first-party|3f6b6b6c-0c5f-4d3e-9a2a-2f0d2b7a1f01",
   };
-  const fallback = buildExplainLines(firstParty).find((line) => line.kind === "source");
+  const fallback = buildExplainLines(firstParty).find(
+    (line) => line.kind === "source",
+  );
   assert.ok(fallback);
   assert.ok(fallback!.text.includes("AI agent"));
   assert.ok(!fallback!.text.includes("first-party"));
@@ -234,10 +246,7 @@ test("draftWasEdited separates clean accepts from corrections", () => {
   assert.equal(draftWasEdited(expense, draft, accounts, categories), false);
 
   const corrected = { ...draft, amount: 46_000 };
-  assert.equal(
-    draftWasEdited(expense, corrected, accounts, categories),
-    true,
-  );
+  assert.equal(draftWasEdited(expense, corrected, accounts, categories), true);
 
   const recategorized = { ...draft, categoryId: "cat-salary" };
   assert.equal(
@@ -282,7 +291,11 @@ test("applyBulkCategory and markCandidatesStatus", () => {
   });
   assert.equal(withCat[0]?.categoryId, "cat-food");
 
-  const rejected = markCandidatesStatus([expense, high], ["cand-1"], "rejected");
+  const rejected = markCandidatesStatus(
+    [expense, high],
+    ["cand-1"],
+    "rejected",
+  );
   assert.equal(rejected[0]?.status, "rejected");
   assert.equal(rejected[1]?.status, "pending");
 });
@@ -295,7 +308,11 @@ test("applyBulkAccount assigns the account to selected pending candidates of any
     accountId: undefined,
     account: undefined,
   };
-  const alreadyDone: InboxCandidate = { ...expense, id: "cand-done", status: "approved" };
+  const alreadyDone: InboxCandidate = {
+    ...expense,
+    id: "cand-done",
+    status: "approved",
+  };
   const next = applyBulkAccount(
     [expense, transfer, high, alreadyDone],
     ["cand-1", "cand-t", "cand-done"],
@@ -324,4 +341,14 @@ test("findPendingCandidateTarget resolves only pending rows", async () => {
   assert.equal(findPendingCandidateTarget(list, "cand-2"), null);
   assert.equal(findPendingCandidateTarget(list, "missing"), null);
   assert.equal(findPendingCandidateTarget(list, undefined), null);
+});
+
+test("review explanations name the recorded parser rather than relabeling history", () => {
+  const current = buildExplainLines(expense);
+  assert.ok(current.some((line) => line.text === "Parser: paste_text@1.1"));
+  const historical = buildExplainLines({
+    ...expense,
+    parserVersion: "paste_text@1.0",
+  });
+  assert.ok(historical.some((line) => line.text === "Parser: paste_text@1.0"));
 });

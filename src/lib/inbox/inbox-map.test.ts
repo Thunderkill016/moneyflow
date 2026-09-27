@@ -170,7 +170,7 @@ test("buildMigratePayloads remaps ids and adds explicit provenance defaults", ()
   assert.equal(candidateRows[0]?.source_external_id, null);
   assert.equal(candidateRows[0]?.source_lifecycle_state, null);
   assert.equal(candidateRows[0]?.source_predecessor_external_id, null);
-  assert.equal(candidateRows[0]?.parser_version, "paste_text@1.0");
+  assert.equal(candidateRows[0]?.parser_version, "paste_text@1.1");
   assert.equal(candidateRows[0]?.mapping_version, 1);
 });
 
@@ -193,7 +193,10 @@ test("prepareCandidateForServer preserves bounded source lineage into insert pay
   assert.equal(isUuid(prepared.id), true);
   assert.equal(prepared.importBatchId, undefined);
   assert.equal(prepared.sourceRowIndex, 6);
-  assert.equal(prepared.sourceExternalId, "mf-src-v1|account|bank|acct|posted-6");
+  assert.equal(
+    prepared.sourceExternalId,
+    "mf-src-v1|account|bank|acct|posted-6",
+  );
   assert.equal(prepared.sourceLifecycleState, "posted");
   assert.equal(
     prepared.sourcePredecessorExternalId,

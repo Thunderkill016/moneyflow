@@ -140,7 +140,7 @@ test("parsePasteLine: simple NL cafe 45k", () => {
 });
 
 test("parsePasteLine: known merchant Highlands + date", () => {
-  const row = parsePasteLine("12/07 Highlands Coffee 45.000", {
+  const row = parsePasteLine("12/07/2026 Highlands Coffee 45.000", {
     today: "2026-07-15",
   });
   assert.ok(row);
@@ -166,12 +166,9 @@ test("parsePasteLine: transfer ck", () => {
 });
 
 test("parsePasteText multi-line → multiple candidates", () => {
-  const text = [
-    "cafe 45k",
-    "Grab 89.000",
-    "no amount here",
-    "luong 15tr",
-  ].join("\n");
+  const text = ["cafe 45k", "Grab 89.000", "no amount here", "luong 15tr"].join(
+    "\n",
+  );
   const result = parsePasteText(text, { today: "2026-07-15" });
   assert.equal(result.ok, true);
   assert.equal(result.candidates.length, 3);
@@ -203,7 +200,9 @@ test("toCreateCandidateInputs maps source paste + integer amount", () => {
 });
 
 test("toCreateCandidateInputs stamps a chosen account on every pasted candidate", () => {
-  const result = parsePasteText("Highlands 45k\nGrab 89k", { today: "2026-07-15" });
+  const result = parsePasteText("Highlands 45k\nGrab 89k", {
+    today: "2026-07-15",
+  });
   const withAccount = toCreateCandidateInputs(result.candidates, {
     account: { id: "acc-mb", name: "MB Bank" },
   });
@@ -214,4 +213,114 @@ test("toCreateCandidateInputs stamps a chosen account on every pasted candidate"
   const without = toCreateCandidateInputs(result.candidates);
   assert.equal(without[0]?.accountId, undefined);
   assert.equal(without[0]?.account, undefined);
+});
+
+test("Vietnamese relative days resolve against the supplied calendar day", () => {
+  for (const [text, today, expected] of [
+    ["đổ xăng 185k hôm qua", "2026-09-28", "2026-09-27"],
+    ["cafe 45k hôm kia", "2026-09-28", "2026-09-26"],
+    ["cafe 45k hom qua", "2026-01-01", "2025-12-31"],
+    ["cafe 45k hôm kia", "2024-03-01", "2024-02-28"],
+    ["cafe 45k hôm nay", "2026-09-28", "2026-09-28"],
+  ]) {
+    const row = parsePasteLine(text!, { today: today! });
+    assert.ok(row);
+    assert.equal(row.occurredOn, expected, text);
+    assert.ok(!row.uncertainFields.includes("date"), text);
+  }
+});
+
+test("explicit dates must be real calendar days and conflicting days require review", () => {
+  for (const text of [
+    "cafe 45k 31/02/2026",
+    "cafe 45k 2026-02-29",
+    "cafe 45k 14/08/26",
+    "cafe 45k 12/07/2026 13/07/2026",
+    "cafe 45k 28/09/2026 hôm qua",
+    "cafe 45k hôm qua hôm kia",
+  ]) {
+    const row = parsePasteLine(text, { today: "2026-09-28" });
+    assert.ok(row);
+    assert.ok(row.uncertainFields.includes("date"), text);
+    assert.notEqual(row.confidence, "high", text);
+    assert.match(
+      row.explanations.join(" "),
+      /ngày.*(hợp lệ|mâu thuẫn|xác định)/i,
+    );
+  }
+  for (const text of ["cafe 45k 29/02/2024", "cafe 45k 29-02-2024"]) {
+    const row = parsePasteLine(text, { today: "2026-09-28" });
+    assert.equal(row?.occurredOn, "2024-02-29");
+    assert.ok(!row?.uncertainFields.includes("date"));
+  }
+});
+
+test("a day/month without a year retains review for the inferred year", () => {
+  const row = parsePasteLine("Highlands 45k 12/07", { today: "2026-09-28" });
+  assert.equal(row?.occurredOn, "2026-07-12");
+  assert.ok(row?.uncertainFields.includes("date"));
+  assert.match(row!.explanations.join(" "), /năm/);
+});
+
+test("payment transfers are expenses while ownership-unknown transfers stay reviewable", () => {
+  for (const text of [
+    "chuyển khoản tiền ăn 50k cho quán",
+    "chuyen khoan thanh toan 50k cho quan",
+    "CK mua đồ 50k",
+  ]) {
+    const row = parsePasteLine(text, { today: "2026-09-28" });
+    assert.equal(row?.kind, "expense", text);
+    assert.ok(!row?.uncertainFields.includes("kind"), text);
+  }
+  for (const text of ["chuyển khoản 50k", "CK cho bạn 50k", "transfer 50k"]) {
+    const row = parsePasteLine(text, { today: "2026-09-28" });
+    assert.ok(row?.uncertainFields.includes("kind"), text);
+  }
+  for (const text of ["CK nội bộ 50k", "chuyển giữa tài khoản của mình 50k"]) {
+    const row = parsePasteLine(text, { today: "2026-09-28" });
+    assert.equal(row?.kind, "transfer", text);
+    assert.ok(!row?.uncertainFields.includes("kind"), text);
+  }
+});
+
+test("repeated equivalent date cues agree while contradictory financial cues stay uncertain", () => {
+  const date = parsePasteLine("cafe 45k 27/09/2026 hôm qua", {
+    today: "2026-09-28",
+  });
+  assert.equal(date?.occurredOn, "2026-09-27");
+  assert.ok(!date?.uncertainFields.includes("date"));
+  for (const text of [
+    "chuyển nội bộ mua đồ 50k",
+    "thu nhập mua đồ 50k",
+    "lương -50k",
+  ]) {
+    assert.ok(parsePasteLine(text)?.uncertainFields.includes("kind"), text);
+  }
+  assert.throws(
+    () => parsePasteLine("cafe 45k hôm qua", { today: "2026-02-31" }),
+    /invalid_paste_date_anchor/,
+  );
+});
+
+test("invalid source dates retain low confidence when persisted as candidate drafts", () => {
+  const parsed = parsePasteText("Highlands 45k 31/02/2026", {
+    today: "2026-09-28",
+  });
+  assert.equal(parsed.needsReviewCount, 1);
+  assert.equal(parsed.candidates[0]?.confidence, "low");
+  const inputs = toCreateCandidateInputs(parsed.candidates);
+  assert.equal(inputs[0]?.confidence, "low");
+  assert.equal(inputs[0]?.occurredOn, "2026-09-28");
+  assert.equal(inputs[0]?.status, "pending");
+});
+
+test("generic transfer wording remains review-required after candidate conversion", () => {
+  const parsed = parsePasteText("transfer Highlands 45k 27/09/2026", {
+    today: "2026-09-28",
+  });
+  assert.equal(parsed.candidates[0]?.confidence, "low");
+  assert.equal(
+    toCreateCandidateInputs(parsed.candidates)[0]?.confidence,
+    "low",
+  );
 });
