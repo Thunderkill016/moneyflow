@@ -5,7 +5,7 @@
 **Active role:** evaluator  
 **Permission scope:** branch_write; owner requested deployment on 2026-09-28; merge instruction pending  
 **Owner:** Codex, user-requested current MF development  
-**Issue/PR:** pending focused PR creation  
+**Issue/PR:** https://github.com/Thunderkill016/moneyflow/pull/728  
 **Last updated:** 2026-09-28
 
 ## Outcome and canon objective
@@ -87,12 +87,14 @@ Permission is local branch development. Merge, production deploy, provider/accou
 | Demo candidate→Inbox→review                     | All three pending; invalid-date row stays low confidence, source retained, review displays `paste_text@1.1`; no approval into ledger performed | pass                                     |
 | Browser console                                 | 0 errors;4 unused CSS/font preload warnings on existing routes                                                                                 | warning, no claim of warning-free app    |
 | DB / RLS / authenticated flow / physical device | Not changed or not exercised in this slice                                                                                                     | not applicable or unverified, not a pass |
-| Provider exact-head CI / PR / production        | No remote branch/PR publication, merge or deploy in this task                                                                                  | unverified                               |
+| Provider exact-head CI / PR / production        | PR #728 published; exact-head CI pending; no merge or new deployment                                                                           | unverified                               |
 
 Local logs are under `/tmp/mf-capture-*`; demo snapshots are ignored `.playwright-cli/page-2026-09-27T18-42-02-350Z.yml` (preview), `page-2026-09-27T18-42-24-811Z.yml` (Inbox) and `page-2026-09-27T18-42-44-755Z.yml` (review). They are local evidence, not durable provider certification. No new production dependency was added. The task-owned demo browser/server were stopped after inspection. Generated Next AGENTS changes were removed from the diff.
 
-**Current handoff:** local implementation and acceptance completed on `agent/capture-text-correctness`. This packet remains `evaluating` because repository `ready_for_review` requires a PR and exact-head provider evidence; neither is claimed. Next allowed action is review of this bounded diff and normal PR delivery. Merge/deployment/data writes remain separate owner decisions.
+**Current handoff:** local implementation and acceptance completed on `agent/capture-text-correctness`. This packet remains `evaluating` until exact-head provider CI completes; PR #728 exists but passing provider checks are not yet claimed. Next allowed action is review of this bounded diff and normal PR delivery. Merge/deployment/data writes remain separate owner decisions.
 
 ## Deployment handoff
 
 Owner requested deployment on 2026-09-28. Existing project is MoneyFlow on Vercel; repository deployment policy permits only `main` and forbids feature preview deployments. AGENTS.md requires an explicit merge instruction separately from provider deployment authorization. Prepare the focused PR and exact-head CI before requesting that final instruction. No provider settings, Auth, database, deployment branch policy or real financial data will change. Rollback is a focused revert via the same checked main-only delivery path.
+
+Post-format verification: Node22 typecheck and all59 focused regression tests passed; formatter changes are whitespace/layout only. Full lint completion is checked separately. Existing Vercel production is READY on base commit `025cf42dbda34b3b4584b9509d5ea2164e5cd2e2`, not this fix.
