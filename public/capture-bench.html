@@ -206,13 +206,13 @@ const TASKS = [
     id: "D2", group: "description", route: "/capture/paste",
     title: "Text có ngày",
     desc: "Dán/nhập text: \"đổ xăng 185k hôm qua\". Đi hết preview → candidate → approve nếu được.",
-    expect: { kind: "expense", amount: 185000 },
+    expect: { kind: "expense", amount: 185000, occurredOn: "yesterday-vn" },
   },
   {
     id: "D3", group: "description", route: "/capture/paste",
     title: "Dán SMS ngân hàng (giả)",
     desc: "Dán text giả: \"TK xxxx1234 GD -250.000VND 21/09/2026 TTTM GRAB. SDU 1.500.000VND\". Đi hết pipeline.",
-    expect: { kind: "expense", amount: 250000 },
+    expect: { kind: "expense", amount: 250000, occurredOn: "2026-09-21" },
   },
   {
     id: "P1", group: "pattern", route: "/capture/quick", pattern: true,
@@ -331,7 +331,22 @@ document.getElementById("unseed").addEventListener("click", () => {
   seedMsg("Đã gỡ lịch sử bench.");
 });
 
-function matchExpect(t, rec) {
+function expectedOccurredOn(task, now) {
+  const expected = task.expect?.occurredOn;
+  if (expected !== "yesterday-vn") return expected;
+  // Anchor "hôm qua" when the task starts, even if the run crosses midnight.
+  // UTC calendar arithmetic avoids the browser's local timezone/DST rules.
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit",
+    }).formatToParts(now).map(({ type, value }) => [type, value]),
+  );
+  return new Date(Date.UTC(
+    Number(parts.year), Number(parts.month) - 1, Number(parts.day) - 1,
+  )).toISOString().slice(0, 10);
+}
+
+function matchExpect(t, rec, expectedOn) {
   if (!t.expect) return "?";
   const kindOk = rec.kind === t.expect.kind;
   const amtOk = t.expect.amount === undefined || rec.amount === t.expect.amount;
@@ -339,7 +354,8 @@ function matchExpect(t, rec) {
   // lands on the intended account+category — picking the wrong chip is a miss.
   const accOk = t.expect.accountId === undefined || rec.accountId === t.expect.accountId;
   const catOk = t.expect.categoryId === undefined || rec.categoryId === t.expect.categoryId;
-  return kindOk && amtOk && accOk && catOk ? "đúng" : "khác-kỳ-vọng";
+  const dateOk = expectedOn === undefined || rec.occurredOn === expectedOn;
+  return kindOk && amtOk && accOk && catOk && dateOk ? "đúng" : "khác-kỳ-vọng";
 }
 
 function stopActive(reason) {
@@ -395,10 +411,14 @@ document.querySelectorAll("[data-start]").forEach((btn) => {
     active = {
       task,
       t0: performance.now(),
+      expectedOccurredOn: expectedOccurredOn(task, new Date()),
       txBefore: new Set(readIds(TX_KEY).map((r) => r.id)),
       candBefore: new Set(readIds(CANDIDATE_KEY).map((r) => r.id)),
     };
-    results[task.id] = { id: task.id, group: task.group, route: task.route };
+    results[task.id] = {
+      id: task.id, group: task.group, route: task.route,
+      expectedOccurredOn: active.expectedOccurredOn,
+    };
     document.getElementById("task-" + task.id).classList.add("task-active");
     document.getElementById("res-" + task.id).textContent = "đang đo… mở " + task.route + " ở tab app";
     liveField.style.display = "block";
@@ -436,7 +456,8 @@ window.addEventListener("storage", (e) => {
     const news = findNew(arr, active.txBefore);
     if (news.length && r.ledgerMs === undefined) {
       r.ledgerMs = Math.round(now - active.t0);
-      r.match = matchExpect(active.task, news[news.length - 1]);
+      r.observedOccurredOn = news[news.length - 1].occurredOn;
+      r.match = matchExpect(active.task, news[news.length - 1], active.expectedOccurredOn);
       correctionWatch = {
         resultId: active.task.id,
         until: now + CORRECTION_WINDOW_MS,
@@ -491,6 +512,14 @@ fetch("/api/health")
   });
 
 // ---- report ----
+function trustedTotalsFor(group, tasks, measured) {
+  return tasks.filter((task) => task.group === group)
+    .map((task) => measured[task.id])
+    .filter((result) => result && Number.isFinite(result.ms) && !result.skipped && result.match === "đúng")
+    .map((result) => result.ms)
+    .sort((a, b) => a - b);
+}
+
 document.getElementById("gen").addEventListener("click", () => {
   const lines = [];
   lines.push("CAPTURE V2 BENCHMARK — TTLT");
@@ -514,6 +543,7 @@ document.getElementById("gen").addEventListener("click", () => {
       r.candidateMs !== undefined ? "candidate " + (r.candidateMs / 1000).toFixed(1) + "s" : "-",
       r.ledgerMs !== undefined ? "ledger " + (r.ledgerMs / 1000).toFixed(1) + "s" : "-",
       r.match || "-",
+      r.expectedOccurredOn ? "date:" + (r.observedOccurredOn || "missing") + "/expected:" + r.expectedOccurredOn : "-",
       "stop:" + r.stopReason,
       r.taps ? "taps:" + r.taps : "-",
       r.pattern ? "pattern:" + r.pattern : "-",
@@ -524,15 +554,12 @@ document.getElementById("gen").addEventListener("click", () => {
   }
   lines.push("");
   for (const g of ["amount-first", "description", "pattern"]) {
-    const ms = TASKS.filter((t) => t.group === g)
-      .map((t) => results[t.id])
-      .filter((r) => r && r.ms && !r.skipped)
-      .map((r) => r.ms)
-      .sort((a, b) => a - b);
-    if (ms.length) {
-      const med = ms[Math.floor(ms.length / 2)];
-      lines.push("Median total — " + g + ": " + (med / 1000).toFixed(1) + "s (n=" + ms.length + ")");
-    }
+    const attempted = TASKS.filter(
+      (task) => task.group === g && results[task.id] && !results[task.id].skipped,
+    ).length;
+    const ms = trustedTotalsFor(g, TASKS, results);
+    const median = ms.length ? (ms[Math.floor(ms.length / 2)] / 1000).toFixed(1) + "s" : "n/a";
+    lines.push("Median total — " + g + ": " + median + " (trusted=" + ms.length + "/" + attempted + ")");
   }
   lines.push("");
   lines.push("Caveat: TTLT gồm độ trễ đổi tab (~1–3s). So sánh tương đối giữa mode là hợp lệ.");
