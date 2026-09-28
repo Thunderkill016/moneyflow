@@ -23,7 +23,7 @@ product runtime, schema, or acquisition behavior.
 
 The Capture V2 spec's Slice 0 requires TTLT, taps, and correction evidence for
 first-time, weak-history, and stable-history cohorts. A same-origin static page
-can observe demo-mode commits via the `storage` event — which fires in *other*
+can observe demo-mode commits via the `storage` event — which fires in _other_
 tabs of the same origin when a tab writes localStorage — giving precise
 commit timestamps without any product instrumentation.
 
@@ -54,7 +54,10 @@ and physical-device runs remain the strongest evidence tier (RRB-08 pattern).
   authenticated mode and bail-outs.
 - Result verification: committed record's `kind`/`amount` checked against the
   task's expectation; tasks that declare `accountId`/`categoryId` (pattern
-  cohort) must also land on that context → `đúng` / `khác-kỳ-vọng`.
+  cohort) must also land on that context. D2 checks "hôm qua" relative to the
+  Vietnam calendar day at task start; D3 checks its explicit statement date.
+  A wrong/missing date reads `khác-kỳ-vọng`. Only verified `đúng` saves enter
+  the trusted-TTLT median; attempted count remains visible.
 - Correction detection: after a ledger commit, same-id rewrites inside a 60 s
   window flag `autoCorrected`; a manual self-report field also exists.
 - Report: per-task lines (total/candidate/ledger ms, match, taps, corrections,
@@ -138,7 +141,7 @@ browser except the same-origin `/api/health` fetch.
 2. Reload tab B (`/capture/quick`) — the app reads storage on mount only.
 3. **P1** (clear pattern): run the task; expect the food/cash chip.
 4. **P2** (competing patterns): both chips appear; the saved row must land
-   on the *tasked* account+category or the run is marked `khác-kỳ-vọng` —
+   on the _tasked_ account+category or the run is marked `khác-kỳ-vọng` —
    this verifies the user picked the right chip, not just any chip.
 5. **P3** (weak history): run in a **clean profile** (fresh browser profile
    or `localStorage` cleared, no seed). Expected: **no chip**. If a chip
@@ -181,3 +184,16 @@ Evaluate per cohort, not pooled:
   stable-history, not a true longitudinal cohort.
 - Correction auto-detection only works in demo mode.
 - Chip usage is self-reported in the followup, not instrumented in-app.
+
+## 2026-09-28 evaluation-oracle repair
+
+The Stage 0/1 audit found that D2 and D3 previously passed on kind/amount even
+when `occurredOn` was wrong. After PR #728 corrected text-date parsing, the
+benchmark still could not detect a regression. This focused change checks the
+saved ledger date, freezes D2's expected Vietnam day at task start across
+midnight, and excludes wrong/unverified saves from the trusted TTLT median.
+Tests exercise the actual inline oracle at the Vietnam midnight and leap/year
+boundaries; they do not substitute for a real owner run. No product capture,
+posting, schema, provider or personal financial data path changes. Rollback is
+reverting the harness and its focused contract test. The owner/device benchmark
+run above remains open; this repair does not claim a capture-time improvement.
