@@ -297,6 +297,16 @@ No new dependency, provider, financial payload collection, schema or license-bea
 - **Evaluation and exit:** transfer-domain tests reject non-UUID authenticated/mismatched keys; desktop/mobile browser tests prove one exact transfer after destination selection. Full verification and CI must pass before merge; no claim of live authenticated or physical-device acceptance.
 - **Ownership and rollback:** existing transfer validator/hook and Inbox review own the change; revert this PR. No schema, provider configuration, new store or automatic posting. The preceding field-choice PR remains separately reviewed.
 
+### Recorded-month confirmation — 2026-10-01
+
+**Execution state:** implementing. **Active role:** implementer. **Permission scope:** branch_write. **Owner instruction:** continue development according to this plan. **Canon:** Stage 0/1 trustworthy, understandable capture feedback.
+
+- **Observed failure:** the confirmation sums rows within the saved transaction's month but calls that period “tháng này”, including backdated and future transactions.
+- **Specification:** identify the actual recorded month and year in the total, independently of wall-clock timezone. Invalid dates receive the plain confirmation without a misleading period total. Keep first-entry and transfer confirmations short.
+- **Reuse/research:** internal defect; reuse existing date-only validator, category calculation and shared confirmation helper. No new external technology or financial guidance, so external research is not required.
+- **Implementation plan/tasks:** update the existing helper, add December/January and malformed-date regressions, strengthen browser confirmation assertions, then run Node 22 typecheck, full verification and focused desktop/mobile browser tests plus required CI.
+- **Exit/rollback:** saved-month labels agree with the summed ledger window; revert this bounded PR. No schema, provider, pattern learning, new analytics or ledger persistence change. Real-user capture speed remains unmeasured.
+
 ### Image/OCR experiment boundary
 
 Image support is a later separately approved experiment. It must:

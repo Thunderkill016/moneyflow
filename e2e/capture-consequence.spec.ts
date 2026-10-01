@@ -17,7 +17,10 @@ import { expect, test } from "@playwright/test";
  */
 const CATEGORY = "Giải trí";
 
-async function quickSave(page: import("@playwright/test").Page, amount: string) {
+async function quickSave(
+  page: import("@playwright/test").Page,
+  amount: string,
+) {
   await page.goto("/capture/quick");
   const dialog = page.getByRole("dialog", { name: "Ghi giao dịch" });
   await expect(dialog).toBeVisible();
@@ -44,19 +47,23 @@ async function quickSave(page: import("@playwright/test").Page, amount: string) 
   await save.click();
 }
 
-test("the second save in a category reports what it adds up to", async ({ page }) => {
+test("the second save in a category reports what it adds up to", async ({
+  page,
+}) => {
   await quickSave(page, "100000");
 
   // The first entry is the whole total, so repeating it back would be noise.
   const firstNotice = page.getByText(/Đã ghi khoản chi/u).first();
   await expect(firstNotice).toBeVisible();
-  await expect(firstNotice).not.toContainText("tháng này");
+  await expect(firstNotice).not.toContainText(`${CATEGORY} tháng`);
 
   await quickSave(page, "50000");
 
   const secondNotice = page.getByText(/Đã ghi khoản chi/u).first();
   await expect(secondNotice).toBeVisible();
-  await expect(secondNotice).toContainText(`${CATEGORY} tháng này`);
+  await expect(secondNotice).toContainText(
+    new RegExp(`${CATEGORY} tháng \\d{1,2}/\\d{4}`),
+  );
   // 100.000 + 50.000, and the figure has to be the total rather than the entry.
   await expect(secondNotice).toContainText("150.000");
 });

@@ -56,7 +56,7 @@ test("the line states what was recorded and what it adds up to", () => {
   });
 
   assert.match(line, /^Đã ghi khoản chi/u);
-  assert.match(line, /Ăn uống tháng này/u);
+  assert.match(line, /Ăn uống tháng 7\/2026/u);
   // 100k + 50k this month; June's 900k must not be counted.
   assert.ok(line.includes("150.000"), line);
   assert.ok(!line.includes("900.000"), line);
@@ -139,7 +139,7 @@ test("transfers get a plain confirmation and never a category total", () => {
 
   assert.equal(line, "Đã chuyển tiền 2.000.000 ₫.");
   assert.ok(
-    !line.includes("tháng này"),
+    !line.includes("tháng "),
     "a transfer belongs to no category total",
   );
 });
@@ -149,7 +149,7 @@ test("the first entry in a category says nothing redundant", () => {
 
   assert.equal(line, "Đã ghi khoản chi 100.000 ₫.");
   assert.ok(
-    !line.includes("tháng này"),
+    !line.includes("tháng "),
     "repeating the same number back as a total is noise, not payoff",
   );
 });
@@ -203,5 +203,33 @@ test("the line never gives advice, only what the user recorded", () => {
     // No safe-to-spend figure may appear: that stays withdrawn until MoneyFlow can
     // prove a complete income-based or next-payday plan.
     assert.doesNotMatch(line, /có thể (chi|tiêu)|còn được|an toàn để/iu, line);
+  }
+});
+
+test("confirmation names the recorded month across years, independently of the clock", () => {
+  for (const occurredOn of ["2025-12-31", "2027-01-01"]) {
+    const saved = { ...second, occurredOn };
+    const prior = { ...base, occurredOn };
+    const line = captureConsequence({
+      saved,
+      transactions: [prior, saved, base],
+    });
+    const [year, month] = occurredOn.split("-");
+    assert.equal(
+      line,
+      `Đã ghi khoản chi 50.000 ₫. Ăn uống tháng ${Number(month)}/${year}: 150.000 ₫.`,
+    );
+    assert.ok(!line.includes("tháng này"));
+  }
+});
+
+test("an invalid recorded date cannot produce a misleading period total", () => {
+  for (const occurredOn of ["2026-02-30", "2026-13-01", "", "2026-07"]) {
+    const saved = { ...second, occurredOn };
+    const prior = { ...base, occurredOn };
+    assert.equal(
+      captureConsequence({ saved, transactions: [prior, saved] }),
+      "Đã ghi khoản chi 50.000 ₫.",
+    );
   }
 });
