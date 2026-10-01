@@ -82,11 +82,16 @@ export function InboxReviewPanel({
   isDemo: boolean;
   busy?: boolean;
   onClose: () => void;
-  onApprove: (payload: ReviewSubmitPayload) => Promise<{ ok: boolean; message?: string }>;
+  onApprove: (
+    payload: ReviewSubmitPayload,
+  ) => Promise<{ ok: boolean; message?: string }>;
   onReject: (candidateId: string) => void;
   onMarkDuplicate: (candidateId: string) => void;
 }) {
   const merchantRef = useRef<HTMLInputElement>(null);
+  const accountRef = useRef<HTMLSelectElement>(null);
+  const categoryRef = useRef<HTMLSelectElement>(null);
+  const destinationRef = useRef<HTMLSelectElement>(null);
   const seed = initialDraft(candidate, accounts, categories);
   const [draft, setDraft] = useState<CandidateReviewDraft | null>(seed);
   const [amountText, setAmountText] = useState(() =>
@@ -144,7 +149,9 @@ export function InboxReviewPanel({
     serverPlan?.status === "duplicate" &&
     !allowsExplicitDuplicateOverride(serverPlan);
   const planUnavailable =
-    shouldLoadServerPlan && activeServerPlanState !== null && serverPlan === null;
+    shouldLoadServerPlan &&
+    activeServerPlanState !== null &&
+    serverPlan === null;
   const blockSeparateApproval =
     hardServerDuplicate || planLoading || planUnavailable;
   const showDuplicateOverride =
@@ -200,7 +207,10 @@ export function InboxReviewPanel({
 
   const activeCandidate = candidate;
   const activeDraft = draft;
-  const confirmedRuleSeed = buildConfirmedReviewRuleSeed(activeDraft, categories);
+  const confirmedRuleSeed = buildConfirmedReviewRuleSeed(
+    activeDraft,
+    categories,
+  );
   const confirmedRuleKey = confirmedRuleSeed
     ? JSON.stringify({
         contains: confirmedRuleSeed.contains,
@@ -209,6 +219,15 @@ export function InboxReviewPanel({
     : null;
   const ruleAlreadySaved =
     confirmedRuleKey !== null && savedRuleKey === confirmedRuleKey;
+  const needsAccountChoice = !accounts.some(
+    (item) => item.id === draft.accountId,
+  );
+  const needsCategoryChoice =
+    draft.kind !== "transfer" &&
+    !availableCategories.some((item) => item.id === draft.categoryId);
+  const needsDestinationChoice =
+    draft.kind === "transfer" &&
+    !accounts.some((item) => item.id === draft.destinationAccountId);
 
   function patchDraft(partial: Partial<CandidateReviewDraft>) {
     setDraft((current) => (current ? { ...current, ...partial } : current));
@@ -216,12 +235,12 @@ export function InboxReviewPanel({
   }
 
   function changeKind(kind: InboxCandidate["kind"]) {
-    const nextMoneyKind = kind === "income" ? "income" : "expense";
-    const nextCategory =
-      kind === "transfer"
-        ? activeDraft.categoryId
-        : categories.find((item) => item.kind === nextMoneyKind)?.id ?? "";
-    patchDraft({ kind, categoryId: nextCategory });
+    patchDraft({
+      kind,
+      categoryId: kind === activeDraft.kind ? activeDraft.categoryId : "",
+      destinationAccountId:
+        kind === activeDraft.kind ? activeDraft.destinationAccountId : "",
+    });
   }
 
   async function refreshServerPlanOrKeepCurrent() {
@@ -376,7 +395,9 @@ export function InboxReviewPanel({
 
   const parsedAmount = parseMoneyInput(amountText);
   const displayAmount =
-    Number.isSafeInteger(parsedAmount) && parsedAmount > 0 ? parsedAmount : draft.amount;
+    Number.isSafeInteger(parsedAmount) && parsedAmount > 0
+      ? parsedAmount
+      : draft.amount;
   const formId = `inbox-review-form-${candidate.id}`;
 
   return (
@@ -388,7 +409,15 @@ export function InboxReviewPanel({
       title="Duyệt giao dịch"
       description="Kiểm tra ứng viên rồi chọn gắn nguồn, ghi nhận cập nhật/thay thế nguồn, khôi phục giao dịch đã xóa hoặc tạo một giao dịch riêng khi được phép."
       dismissible={!isBusy}
-      initialFocusRef={merchantRef}
+      initialFocusRef={
+        needsAccountChoice
+          ? accountRef
+          : needsCategoryChoice
+            ? categoryRef
+            : needsDestinationChoice
+              ? destinationRef
+              : merchantRef
+      }
       className={styles.dialog}
       contentClassName={styles.content}
       footer={
@@ -432,32 +461,38 @@ export function InboxReviewPanel({
             emphasis="strong"
             align="start"
           />
-          <span className={`${styles.confidence} ${confidenceTone(candidate.confidence)}`}>
-            {CONFIDENCE_LABELS[candidate.confidence]} · {confidenceScoreLabel(candidate.confidence)}
+          <span
+            className={`${styles.confidence} ${confidenceTone(candidate.confidence)}`}
+          >
+            {CONFIDENCE_LABELS[candidate.confidence]} ·{" "}
+            {confidenceScoreLabel(candidate.confidence)}
           </span>
         </section>
 
         {candidate.confidence === "low" ? (
           <Alert tone="warning" live="polite">
             <AlertDescription>
-              Độ tin thấp. MoneyFlow không tự ghi; giao dịch chỉ được tạo sau khi bạn
-              kiểm tra và bấm “Duyệt vào sổ”.
+              Độ tin thấp. MoneyFlow không tự ghi; giao dịch chỉ được tạo sau
+              khi bạn kiểm tra và bấm “Duyệt vào sổ”.
             </AlertDescription>
           </Alert>
         ) : null}
 
         {planLoading ? (
           <Alert tone="info" live="polite">
-            <AlertDescription>Đang đối chiếu với giao dịch đã có…</AlertDescription>
+            <AlertDescription>
+              Đang đối chiếu với giao dịch đã có…
+            </AlertDescription>
           </Alert>
         ) : null}
 
         {planUnavailable ? (
           <Alert tone="warning" live="assertive">
             <AlertDescription>
-              Chưa tải được kết quả đối chiếu từ máy chủ. MoneyFlow tạm khóa “Duyệt vào
-              sổ” để tránh tạo giao dịch riêng khi quyết định nguồn chưa được xác nhận.
-              Hãy đóng rồi mở lại mục này hoặc tải lại trang để thử đối chiếu lại.
+              Chưa tải được kết quả đối chiếu từ máy chủ. MoneyFlow tạm khóa
+              “Duyệt vào sổ” để tránh tạo giao dịch riêng khi quyết định nguồn
+              chưa được xác nhận. Hãy đóng rồi mở lại mục này hoặc tải lại trang
+              để thử đối chiếu lại.
             </AlertDescription>
           </Alert>
         ) : null}
@@ -467,12 +502,13 @@ export function InboxReviewPanel({
             <AlertDescription>
               <p>{dryRunUserMessage(serverPlan)}</p>
               <p>
-                Nguồn đã cung cấp liên kết rõ ràng từ mã giao dịch mới tới mã nguồn trước
-                đó. MoneyFlow luôn lưu quan sát thay thế mà không ghi đè loại, ngày, số
-                tiền, tài khoản, danh mục hay ghi chú. Nếu nguồn báo đã posted và loại,
-                ngày, tài khoản, số tiền vẫn khớp chính xác với sổ hiện tại, thao tác này
-                chỉ có thể đưa account leg từ “chờ” sang “đã ghi sổ”; nó không bao giờ tự
-                đánh dấu “đã đối soát”.
+                Nguồn đã cung cấp liên kết rõ ràng từ mã giao dịch mới tới mã
+                nguồn trước đó. MoneyFlow luôn lưu quan sát thay thế mà không
+                ghi đè loại, ngày, số tiền, tài khoản, danh mục hay ghi chú. Nếu
+                nguồn báo đã posted và loại, ngày, tài khoản, số tiền vẫn khớp
+                chính xác với sổ hiện tại, thao tác này chỉ có thể đưa account
+                leg từ “chờ” sang “đã ghi sổ”; nó không bao giờ tự đánh dấu “đã
+                đối soát”.
               </p>
               <Button
                 type="button"
@@ -494,8 +530,9 @@ export function InboxReviewPanel({
             <AlertDescription>
               <p>{dryRunUserMessage(serverPlan)}</p>
               <p>
-                Giữ giao dịch MoneyFlow đã xóa ở nguyên trạng. Không có nút khôi phục hoặc
-                đường vòng tạo riêng cho mã nguồn thay thế trong bước này.
+                Giữ giao dịch MoneyFlow đã xóa ở nguyên trạng. Không có nút khôi
+                phục hoặc đường vòng tạo riêng cho mã nguồn thay thế trong bước
+                này.
               </p>
             </AlertDescription>
           </Alert>
@@ -506,11 +543,12 @@ export function InboxReviewPanel({
             <AlertDescription>
               <p>{dryRunUserMessage(serverPlan)}</p>
               <p>
-                MoneyFlow ghi nhận cập nhật nguồn nhưng không ghi đè loại, ngày, số tiền,
-                tài khoản, danh mục hay ghi chú của giao dịch đã có. Nếu nguồn báo đã
-                posted và loại, ngày, tài khoản, số tiền vẫn khớp chính xác với sổ hiện
-                tại, thao tác này chỉ có thể đưa account leg từ “chờ” sang “đã ghi sổ”.
-                Trạng thái “đã đối soát” vẫn chỉ đến từ quy trình đối chiếu sao kê.
+                MoneyFlow ghi nhận cập nhật nguồn nhưng không ghi đè loại, ngày,
+                số tiền, tài khoản, danh mục hay ghi chú của giao dịch đã có.
+                Nếu nguồn báo đã posted và loại, ngày, tài khoản, số tiền vẫn
+                khớp chính xác với sổ hiện tại, thao tác này chỉ có thể đưa
+                account leg từ “chờ” sang “đã ghi sổ”. Trạng thái “đã đối soát”
+                vẫn chỉ đến từ quy trình đối chiếu sao kê.
               </p>
               <Button
                 type="button"
@@ -532,10 +570,10 @@ export function InboxReviewPanel({
             <AlertDescription>
               <p>{dryRunUserMessage(serverPlan)}</p>
               <p>
-                Khôi phục sẽ dùng lại chính giao dịch MoneyFlow đã xóa và giữ nguyên loại,
-                ngày, số tiền, tài khoản, danh mục, ghi chú và trạng thái đối soát đang lưu.
-                Dữ liệu mới trong nguồn và các chỉnh sửa trong form này không được áp dụng
-                khi khôi phục.
+                Khôi phục sẽ dùng lại chính giao dịch MoneyFlow đã xóa và giữ
+                nguyên loại, ngày, số tiền, tài khoản, danh mục, ghi chú và
+                trạng thái đối soát đang lưu. Dữ liệu mới trong nguồn và các
+                chỉnh sửa trong form này không được áp dụng khi khôi phục.
               </p>
               <Button
                 type="button"
@@ -557,8 +595,8 @@ export function InboxReviewPanel({
             <AlertDescription>
               <p>{dryRunUserMessage(serverPlan)}</p>
               <p>
-                Giữ giao dịch đã xóa ở nguyên trạng. Không có nút khôi phục hoặc đường
-                vòng tạo riêng cho cùng mã nguồn trong bước này.
+                Giữ giao dịch đã xóa ở nguyên trạng. Không có nút khôi phục hoặc
+                đường vòng tạo riêng cho cùng mã nguồn trong bước này.
               </p>
             </AlertDescription>
           </Alert>
@@ -569,9 +607,9 @@ export function InboxReviewPanel({
             <AlertDescription>
               <p>{dryRunUserMessage(serverPlan)}</p>
               <p>
-                Gắn nguồn sẽ giữ nguyên loại, ngày, số tiền, tài khoản, danh mục, ghi chú
-                và trạng thái đối soát của giao dịch đã có. Các chỉnh sửa trong form này
-                không được áp dụng khi gắn nguồn.
+                Gắn nguồn sẽ giữ nguyên loại, ngày, số tiền, tài khoản, danh
+                mục, ghi chú và trạng thái đối soát của giao dịch đã có. Các
+                chỉnh sửa trong form này không được áp dụng khi gắn nguồn.
               </p>
               <Button
                 type="button"
@@ -598,7 +636,9 @@ export function InboxReviewPanel({
           <SelectField
             label="Loại"
             value={draft.kind}
-            onChange={(event) => changeKind(event.target.value as InboxCandidate["kind"])}
+            onChange={(event) =>
+              changeKind(event.target.value as InboxCandidate["kind"])
+            }
             disabled={isBusy}
             targetSize="important"
           >
@@ -648,66 +688,69 @@ export function InboxReviewPanel({
 
           {draft.kind !== "transfer" ? (
             <SelectField
+              ref={categoryRef}
               label="Danh mục"
-              value={
-                availableCategories.some((item) => item.id === draft.categoryId)
-                  ? draft.categoryId
-                  : availableCategories[0]?.id ?? ""
+              value={needsCategoryChoice ? "" : draft.categoryId}
+              onChange={(event) =>
+                patchDraft({ categoryId: event.target.value })
               }
-              onChange={(event) => patchDraft({ categoryId: event.target.value })}
               disabled={isBusy || availableCategories.length === 0}
               required
               targetSize="important"
+              placeholder="Chọn danh mục"
+              description={
+                needsCategoryChoice
+                  ? "Chọn danh mục trước khi duyệt vào sổ."
+                  : undefined
+              }
             >
-              {availableCategories.length === 0 ? (
-                <option value="">Chưa có danh mục</option>
-              ) : (
-                availableCategories.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))
-              )}
+              {availableCategories.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
             </SelectField>
           ) : null}
 
           <SelectField
+            ref={accountRef}
             label={draft.kind === "transfer" ? "Từ tài khoản" : "Tài khoản"}
-            value={
-              accounts.some((item) => item.id === draft.accountId)
-                ? draft.accountId
-                : accounts[0]?.id ?? ""
-            }
+            value={needsAccountChoice ? "" : draft.accountId}
             onChange={(event) => patchDraft({ accountId: event.target.value })}
             disabled={isBusy || accounts.length === 0}
             required
             targetSize="important"
+            placeholder="Chọn tài khoản"
+            description={
+              needsAccountChoice
+                ? "Chọn tài khoản trước khi duyệt vào sổ."
+                : undefined
+            }
           >
-            {accounts.length === 0 ? (
-              <option value="">Chưa có tài khoản</option>
-            ) : (
-              accounts.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))
-            )}
+            {accounts.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
           </SelectField>
 
           {draft.kind === "transfer" ? (
             <SelectField
+              ref={destinationRef}
               label="Đến tài khoản"
-              value={
-                accounts.some((item) => item.id === draft.destinationAccountId)
-                  ? draft.destinationAccountId
-                  : accounts.find((item) => item.id !== draft.accountId)?.id ??
-                    accounts[0]?.id ??
-                    ""
+              value={needsDestinationChoice ? "" : draft.destinationAccountId}
+              onChange={(event) =>
+                patchDraft({ destinationAccountId: event.target.value })
               }
-              onChange={(event) => patchDraft({ destinationAccountId: event.target.value })}
               disabled={isBusy || accounts.length < 2}
               required
               targetSize="important"
+              placeholder="Chọn tài khoản nhận"
+              description={
+                needsDestinationChoice
+                  ? "Chọn tài khoản nhận trước khi duyệt chuyển khoản."
+                  : undefined
+              }
             >
               {accounts.map((item) => (
                 <option key={item.id} value={item.id}>
@@ -734,15 +777,16 @@ export function InboxReviewPanel({
             <AlertDescription>
               {ruleAlreadySaved ? (
                 <p>
-                  Đã lưu quy tắc “{confirmedRuleSeed.contains}” → {confirmedRuleSeed.category}.
-                  Ứng viên này vẫn chờ bạn duyệt vào sổ riêng.
+                  Đã lưu quy tắc “{confirmedRuleSeed.contains}” →{" "}
+                  {confirmedRuleSeed.category}. Ứng viên này vẫn chờ bạn duyệt
+                  vào sổ riêng.
                 </p>
               ) : (
                 <>
                   <p>
                     Lưu xác nhận này cho các ứng viên sau: nơi giao dịch chứa “
-                    {confirmedRuleSeed.contains}” → {confirmedRuleSeed.category}. Quy tắc chỉ
-                    chuẩn hóa ứng viên chờ duyệt, không tự ghi sổ.
+                    {confirmedRuleSeed.contains}” → {confirmedRuleSeed.category}
+                    . Quy tắc chỉ chuẩn hóa ứng viên chờ duyệt, không tự ghi sổ.
                   </p>
                   <Button
                     type="button"
@@ -774,8 +818,8 @@ export function InboxReviewPanel({
             <span>
               <strong>Tôi đã kiểm tra giao dịch tương tự.</strong>
               <small>
-                Bật mục này nếu bạn cố ý muốn tạo một giao dịch riêng thay vì gắn nguồn
-                vào giao dịch đã có.
+                Bật mục này nếu bạn cố ý muốn tạo một giao dịch riêng thay vì
+                gắn nguồn vào giao dịch đã có.
               </small>
             </span>
           </label>

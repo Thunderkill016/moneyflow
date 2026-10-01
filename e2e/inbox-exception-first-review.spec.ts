@@ -142,7 +142,9 @@ test("mixed batch selects and posts only Ready candidates after explicit confirm
   await expect(page.getByText("Cần xem lại").first()).toBeVisible();
   // Ready count is dynamic: a due unpaid demo commitment adds a reviewable
   // suggestion row on top of the seeded candidates (e.g. Internet due day 18).
-  const selectReady = page.getByRole("button", { name: /Chọn Sẵn sàng \(\d+\)/ });
+  const selectReady = page.getByRole("button", {
+    name: /Chọn Sẵn sàng \(\d+\)/,
+  });
   await expect(selectReady).toBeEnabled();
   const readyCount = Number(
     (await selectReady.textContent())?.match(/\((\d+)\)/)?.[1],
@@ -159,17 +161,23 @@ test("mixed batch selects and posts only Ready candidates after explicit confirm
     bulkBar.getByText(`Đã chọn ${readyCount} ứng viên`, { exact: true }),
   ).toBeVisible();
   await bulkBar.getByRole("button", { name: "Xem lại", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Xác nhận hành động hàng loạt" });
+  const dialog = page.getByRole("dialog", {
+    name: "Xác nhận hành động hàng loạt",
+  });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText(`${readyCount} giao dịch`)).toBeVisible();
   await expect(dialog.getByText("0 ứng viên")).toBeVisible();
 
   await dialog.getByRole("button", { name: "Duyệt vào sổ" }).click();
-  await expect(page.getByText(new RegExp(`Đã duyệt ${readyCount}`))).toBeVisible();
+  await expect(
+    page.getByText(new RegExp(`Đã duyệt ${readyCount}`)),
+  ).toBeVisible();
 
   const state = await page.evaluate(
     ({ candidateKey, transactionKey }) => {
-      const savedCandidates = JSON.parse(localStorage.getItem(candidateKey) ?? "[]") as Array<{
+      const savedCandidates = JSON.parse(
+        localStorage.getItem(candidateKey) ?? "[]",
+      ) as Array<{
         id: string;
         status: string;
       }>;
@@ -201,7 +209,9 @@ test("mixed batch selects and posts only Ready candidates after explicit confirm
   expect(state.notes).not.toContain("ATTENTION_TRANSFER");
 
   await page.getByRole("button", { name: "Cần xem lại", exact: true }).click();
-  await expect(page.locator('[data-slot="inbox-candidate-row"]')).toHaveCount(3);
+  await expect(page.locator('[data-slot="inbox-candidate-row"]')).toHaveCount(
+    3,
+  );
 });
 
 test("a Ready row confirms in one tap; Cần xem lại rows keep review only", async ({
@@ -264,6 +274,178 @@ test("a Ready row confirms in one tap; Cần xem lại rows keep review only", a
   expect(state.notes).not.toContain("ATTENTION_LOW");
 });
 
+test("an unresolved account cannot be posted until the reviewer selects it", async ({
+  page,
+}) => {
+  await page.addInitScript(
+    ({ candidateKey, transactionKey, occurrenceKey, occurrences, seed }) => {
+      localStorage.setItem(candidateKey, JSON.stringify(seed));
+      localStorage.removeItem(transactionKey);
+      localStorage.setItem(occurrenceKey, JSON.stringify(occurrences));
+    },
+    {
+      candidateKey: CANDIDATE_KEY,
+      transactionKey: TRANSACTION_KEY,
+      occurrenceKey: OCCURRENCE_KEY,
+      occurrences: paidDemoCommitments(vietnamMonthStart()),
+      seed: [
+        {
+          ...candidates[0],
+          id: "unresolved-account",
+          accountId: undefined,
+          account: undefined,
+        },
+      ],
+    },
+  );
+
+  await page.goto("/inbox");
+  await page.getByRole("button", { name: "Duyệt Ready Coffee" }).click();
+  const dialog = page.getByRole("dialog", { name: "Duyệt giao dịch" });
+  const account = dialog.getByLabel("Tài khoản", { exact: true });
+  await expect(account).toHaveValue("");
+  await expect(account).toBeFocused();
+  await expect(
+    dialog.getByText("Chọn tài khoản trước khi duyệt vào sổ."),
+  ).toBeVisible();
+
+  await dialog.getByRole("button", { name: "Duyệt vào sổ" }).click();
+  await expect(
+    dialog.getByText("Chọn tài khoản trước khi duyệt."),
+  ).toBeVisible();
+  const pending = await page.evaluate(
+    ({ candidateKey, transactionKey }) => ({
+      candidates: JSON.parse(
+        localStorage.getItem(candidateKey) ?? "[]",
+      ) as Array<{
+        status: string;
+      }>,
+      transactions: JSON.parse(
+        localStorage.getItem(transactionKey) ?? "[]",
+      ) as Array<{
+        accountId: string;
+        note: string;
+      }>,
+    }),
+    { candidateKey: CANDIDATE_KEY, transactionKey: TRANSACTION_KEY },
+  );
+  expect(pending.candidates[0]?.status).toBe("pending");
+  expect(pending.transactions).toHaveLength(0);
+
+  await account.selectOption("demo-account-cash");
+  await dialog.getByRole("button", { name: "Duyệt vào sổ" }).click();
+  await expect(page.getByText(/Đã duyệt .+ vào sổ\./)).toBeVisible();
+  const posted = await page.evaluate(
+    ({ candidateKey, transactionKey }) => ({
+      candidates: JSON.parse(
+        localStorage.getItem(candidateKey) ?? "[]",
+      ) as Array<{
+        status: string;
+      }>,
+      transactions: JSON.parse(
+        localStorage.getItem(transactionKey) ?? "[]",
+      ) as Array<{
+        accountId: string;
+        note: string;
+      }>,
+    }),
+    { candidateKey: CANDIDATE_KEY, transactionKey: TRANSACTION_KEY },
+  );
+  expect(posted.candidates[0]?.status).toBe("approved");
+  expect(
+    posted.transactions.find((item) => item.note === "READY_ONE")?.accountId,
+  ).toBe("demo-account-cash");
+});
+
+test("an unresolved category stays blank until the reviewer selects it", async ({
+  page,
+}) => {
+  await page.addInitScript(
+    ({ candidateKey, transactionKey, occurrenceKey, occurrences, seed }) => {
+      localStorage.setItem(candidateKey, JSON.stringify(seed));
+      localStorage.removeItem(transactionKey);
+      localStorage.setItem(occurrenceKey, JSON.stringify(occurrences));
+    },
+    {
+      candidateKey: CANDIDATE_KEY,
+      transactionKey: TRANSACTION_KEY,
+      occurrenceKey: OCCURRENCE_KEY,
+      occurrences: paidDemoCommitments(vietnamMonthStart()),
+      seed: [
+        {
+          ...candidates[0],
+          id: "unresolved-category",
+          categoryId: undefined,
+          category: undefined,
+        },
+      ],
+    },
+  );
+
+  await page.goto("/inbox");
+  await page.getByRole("button", { name: "Duyệt Ready Coffee" }).click();
+  const dialog = page.getByRole("dialog", { name: "Duyệt giao dịch" });
+  const category = dialog.getByLabel("Danh mục", { exact: true });
+  await expect(category).toHaveValue("");
+  await expect(category).toBeFocused();
+  await expect(dialog.getByLabel("Tài khoản", { exact: true })).toHaveValue(
+    "demo-account-cash",
+  );
+
+  await dialog.getByRole("button", { name: "Duyệt vào sổ" }).click();
+  await expect(
+    dialog.getByText("Chọn danh mục khớp loại thu/chi."),
+  ).toBeVisible();
+  await category.selectOption("demo-category-expense-Ăn uống");
+  await dialog.getByRole("button", { name: "Duyệt vào sổ" }).click();
+  await expect(page.getByText(/Đã duyệt .+ vào sổ\./)).toBeVisible();
+});
+
+test("a transfer destination is never chosen from account order", async ({
+  page,
+}) => {
+  await page.addInitScript(
+    ({ candidateKey, transactionKey, occurrenceKey, occurrences, seed }) => {
+      localStorage.setItem(candidateKey, JSON.stringify(seed));
+      localStorage.removeItem(transactionKey);
+      localStorage.setItem(occurrenceKey, JSON.stringify(occurrences));
+    },
+    {
+      candidateKey: CANDIDATE_KEY,
+      transactionKey: TRANSACTION_KEY,
+      occurrenceKey: OCCURRENCE_KEY,
+      occurrences: paidDemoCommitments(vietnamMonthStart()),
+      seed: [candidates[5]],
+    },
+  );
+
+  await page.goto("/inbox");
+  await page.getByRole("button", { name: "Duyệt Internal Transfer" }).click();
+  const dialog = page.getByRole("dialog", { name: "Duyệt giao dịch" });
+  await expect(dialog.getByLabel("Từ tài khoản")).toHaveValue(
+    "demo-account-mb",
+  );
+  const destination = dialog.getByLabel("Đến tài khoản");
+  await expect(destination).toHaveValue("");
+  await expect(destination).toBeFocused();
+
+  await destination.selectOption("demo-account-cash");
+  await expect(destination).toHaveValue("demo-account-cash");
+  const stored = await page.evaluate(
+    ({ candidateKey, transactionKey }) => ({
+      candidates: JSON.parse(
+        localStorage.getItem(candidateKey) ?? "[]",
+      ) as Array<{
+        status: string;
+      }>,
+      transactions: localStorage.getItem(transactionKey),
+    }),
+    { candidateKey: CANDIDATE_KEY, transactionKey: TRANSACTION_KEY },
+  );
+  expect(stored.candidates[0]?.status).toBe("pending");
+  expect(stored.transactions).toBeNull();
+});
+
 test("a fully cleared inbox shows the done state, not a bare empty list", async ({
   page,
 }) => {
@@ -289,9 +471,7 @@ test("a fully cleared inbox shows the done state, not a bare empty list", async 
   await expect(
     page.getByText(/Không còn ứng viên nào chờ duyệt/),
   ).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Dán nội dung" }),
-  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Dán nội dung" })).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Nạp dữ liệu mẫu" }),
   ).toBeVisible();
