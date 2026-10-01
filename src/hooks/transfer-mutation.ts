@@ -45,14 +45,16 @@ export async function executeTransferMutation({
   isDemo: boolean;
   dependencies?: TransferMutationDependencies;
 }): Promise<TransferMutationResult> {
-  const prepared = prepareTransferMutation(accounts, input);
+  const prepared = prepareTransferMutation(accounts, input, { isDemo });
   if (!prepared.ok) return prepared;
 
   const { source, destination } = prepared.value;
   if (isDemo) {
     try {
-      const readTransactions = dependencies.readTransactions ?? readStoredTransactions;
-      const writeTransactions = dependencies.writeTransactions ?? writeStoredTransactions;
+      const readTransactions =
+        dependencies.readTransactions ?? readStoredTransactions;
+      const writeTransactions =
+        dependencies.writeTransactions ?? writeStoredTransactions;
       const current = readTransactions();
       const existing = current.find(
         (transaction) => transaction.id === prepared.value.input.idempotencyKey,
@@ -73,7 +75,10 @@ export async function executeTransferMutation({
         isNew: !existing,
       };
     } catch {
-      return { ok: false, message: "Không lưu được giao dịch demo. Hãy thử lại." };
+      return {
+        ok: false,
+        message: "Không lưu được giao dịch demo. Hãy thử lại.",
+      };
     }
   }
 

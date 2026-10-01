@@ -279,6 +279,15 @@ No new dependency, provider, financial payload collection, schema or license-bea
 - **Files/ownership:** `src/lib/inbox/review.ts` owns draft resolution, `src/components/inbox/inbox-review-panel.tsx` owns visible choices, their existing tests and Inbox browser test own evidence. No schema, parser version, provider, RLS, automatic posting or new store.
 - **Rollback:** revert this branch/PR; candidate and ledger persistence formats are unchanged. Real user/device TTLT and correction impact remain unmeasured, so this slice cannot claim a general UX win.
 
+### Demo transfer follow-up — 2026-10-01
+
+**Execution state:** implementing. **Permission scope:** branch_write; owner requested merge and continued product development. **Canon:** Stage 0/1 trustworthy capture, explicit demo provenance.
+
+- **Observed failure:** a readable demo Inbox candidate ID is reused as its stable approval key, but transfer validation rejects every non-UUID key. UUID demo candidates instead trigger an authenticated source-plan action and are blocked by its unavailable response.
+- **Expected behavior:** explicit demo review uses browser-local data only. A readable transfer key is valid only when it equals the nonempty Inbox candidate ID and the caller is in demo mode. Authenticated transfer validation retains its UUID requirement. Explicit destination selection posts one neutral transfer and preserves retry identity.
+- **Evaluation and exit:** transfer-domain tests reject non-UUID authenticated/mismatched keys; desktop/mobile browser tests prove one exact transfer after destination selection. Full verification and CI must pass before merge; no claim of live authenticated or physical-device acceptance.
+- **Ownership and rollback:** existing transfer validator/hook and Inbox review own the change; revert this PR. No schema, provider configuration, new store or automatic posting. The preceding field-choice PR remains separately reviewed.
+
 ### Image/OCR experiment boundary
 
 Image support is a later separately approved experiment. It must:

@@ -56,7 +56,8 @@ test("prepareTransferMutation rejects invalid account and currency combinations"
     }),
     {
       ok: false,
-      message: "Chỉ chuyển được giữa hai tài khoản cùng loại tiền. Chưa hỗ trợ đổi ngoại tệ.",
+      message:
+        "Chỉ chuyển được giữa hai tài khoản cùng loại tiền. Chưa hỗ trợ đổi ngoại tệ.",
     },
   );
 });
@@ -101,6 +102,39 @@ test("buildDemoTransferTransaction creates one neutral ledger transfer", () => {
     relativeDate: "Vừa xong",
   });
   assert.equal(netTransactionEffect([transaction]), 0);
+});
+
+test("readable Inbox identity is accepted only in explicit demo mode", () => {
+  const input = {
+    ...validInput,
+    inboxCandidateId: "candidate-readable",
+    idempotencyKey: "candidate-readable",
+  };
+  assert.equal(prepareTransferMutation(accounts, input).ok, false);
+  assert.equal(
+    prepareTransferMutation(accounts, input, { isDemo: false }).ok,
+    false,
+  );
+  assert.equal(
+    prepareTransferMutation(accounts, input, { isDemo: true }).ok,
+    true,
+  );
+  assert.equal(
+    prepareTransferMutation(
+      accounts,
+      { ...input, idempotencyKey: "other" },
+      { isDemo: true },
+    ).ok,
+    false,
+  );
+  assert.equal(
+    prepareTransferMutation(
+      accounts,
+      { ...input, inboxCandidateId: undefined },
+      { isDemo: true },
+    ).ok,
+    false,
+  );
 });
 
 test("account and ledger surfaces delegate creation to one transfer mutation owner", () => {
