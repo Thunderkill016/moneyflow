@@ -307,6 +307,16 @@ No new dependency, provider, financial payload collection, schema or license-bea
 - **Implementation plan/tasks:** update the existing helper, add December/January and malformed-date regressions, strengthen browser confirmation assertions, then run Node 22 typecheck, full verification and focused desktop/mobile browser tests plus required CI.
 - **Exit/rollback:** saved-month labels agree with the summed ledger window; revert this bounded PR. No schema, provider, pattern learning, new analytics or ledger persistence change. Real-user capture speed remains unmeasured.
 
+### Valid-date confirmation totals — 2026-10-01
+
+**Execution state:** implementing. **Active role:** implementer. **Permission scope:** branch_write. **Owner instruction:** continue product development. **Canon:** Stage 0/1 trustworthy capture feedback.
+
+- **Observed failure:** categoryMonthTotal accepts every date with the matching YYYY-MM prefix, including malformed or calendar-rollover dates from invalid history. Saved-date validation alone does not protect the total.
+- **Specification:** only valid ISO calendar dates contribute to the recorded-month total. Preserve valid leap days, kind/category/split rules and idempotent-save handling. Skip malformed rows without altering or repairing their stored data.
+- **Reuse/research:** internal deterministic defect; reuse isValidDateOnly and the existing total loop. No new dependency or external financial rule; external research is not required.
+- **Implementation plan/tasks:** add malformed history and leap-day regression cases; run focused tests, Node 22 typecheck, full verification and the existing capture browser flow; require exact-head CI.
+- **Exit/rollback:** invalid date fixtures cannot inflate totals while valid history is preserved; revert this bounded PR. No schema/provider/persistence or UX-performance claim.
+
 ### Image/OCR experiment boundary
 
 Image support is a later separately approved experiment. It must:

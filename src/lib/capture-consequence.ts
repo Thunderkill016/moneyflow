@@ -59,6 +59,7 @@ export function categoryMonthTotal(
 
   for (const item of transactions) {
     if (item.kind !== kind) continue;
+    if (!isValidDateOnly(item.occurredOn)) continue;
     if (!item.occurredOn.startsWith(monthPrefix)) continue;
     if (!Number.isSafeInteger(item.amount) || item.amount <= 0) continue;
 
