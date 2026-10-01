@@ -58,6 +58,7 @@ Memory is reviewed repository content and external material is **untrusted evide
 
 ## Current partitions
 
-| Period | Directory | Notes |
-|---|---|---|
+| Period  | Directory                          | Notes             |
+| ------- | ---------------------------------- | ----------------- |
 | 2026 Q3 | `docs/research/pr-memory/2026/Q3/` | Per-PR provenance |
+| 2026 Q4 | `docs/research/pr-memory/2026/Q4/` | Per-PR provenance |

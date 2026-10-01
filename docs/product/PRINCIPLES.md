@@ -28,6 +28,24 @@ The first market wedge to validate is digitally banked Vietnamese adults with en
 - Data quality and coverage are explicit; unknown activity is never presented as known completeness.
 - The product remains usable when no bank/provider connection is available.
 
+## Experience promise — owner direction, 2026-10-01
+
+MoneyFlow should feel simple to use, easy to understand and dependable in daily life. The standard is the **quality of the completed money task**, not visual resemblance to Apple or the smallest possible number of controls. This direction serves Canon Stage 0/1: a trustworthy financial reality maintained with decreasing effort.
+
+The binding design authorities remain the [MoneyFlow canon](./CANON.md): GOV.UK Design Principles and Service Standard for user needs and iteration, and WCAG 2.2 AA for accessibility. Apple's [design principles](https://developer.apple.com/design/human-interface-guidelines/design-principles), [writing guidance](https://developer.apple.com/design/human-interface-guidelines/writing) and [data-entry guidance](https://developer.apple.com/design/human-interface-guidelines/entering-data) are supporting craft references, not a mandate to copy Apple layouts, branding or platform controls. GOV.UK's [Design Principles](https://www.gov.uk/guidance/government-design-principles) likewise distinguish making a service *look* simple from doing the work to make it *use* simple. Apple guidance does not establish that a specific MoneyFlow screen works for Vietnamese users; observation must do that.
+
+For the current Stage 0/1 flows:
+
+1. **Make the next action obvious.** A screen has one primary user job and one prominent next action. Use everyday Vietnamese labels for jobs such as `Ghi` and `Nhập sao kê`; keep acquisition technologies and expert settings behind the job they serve. A proposed navigation change still needs the active Capture V2 benchmark and user evidence.
+2. **Show what is known.** Present money, account, period and source/reconciliation coverage together when they affect interpretation. Distinguish a draft or Inbox candidate from a posted transaction; never make incomplete data look final to simplify a screen.
+3. **Reduce work without fabricating facts.** Parse explicit evidence and offer inspectable defaults or suggestions from reviewed history, paste or import where useful. A user may save a complete, checked manual entry directly; uncertain source-derived fields can stay in an Inbox candidate until resolved. Keep amount, kind, date, account and transfer semantics correct. Ask for review of the uncertain decision, not every already-known field.
+4. **Make mistakes easy to understand and repair.** State what saved, what needs review and what failed in plain language near the action. Provide a clear path to correct or reverse a financial record. Loading, empty, offline and error states are part of the same flow, not finishing touches.
+5. **Craft the whole interaction.** Keep text legible, touch and keyboard controls reachable, focus visible, layout stable and feedback timely across real phone and desktop use. Motion and decoration earn their place only when they help comprehension or feedback.
+
+Evaluate the experience through representative tasks: without coaching, can a first-time user find `Ghi`, save a simple expense and a transfer correctly, locate each record, tell what is confirmed versus unresolved, and repair a mistake? Compare with the released flow on the same tasks and devices. Record task completion, Time to Trusted Ledger Transaction including correction, wrong-field and duplicate rates, abandonment, and what users understood. Do not claim an "Apple-quality" experience, set arbitrary speed targets, or promote a new capture mode from a polished screenshot or synthetic benchmark alone.
+
+This promise does not select a new visual direction, authorize a redesign or new feature system, relax financial trust gates, or change the Stage 0/1 roadmap order.
+
 ## Acquisition law
 
 MoneyFlow's **current released MVP** is still predominantly manual/import-assisted. That is current capability, not the long-term workflow target.
