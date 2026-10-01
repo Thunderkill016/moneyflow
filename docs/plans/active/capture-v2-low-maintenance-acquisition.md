@@ -457,6 +457,34 @@ Begin phase A with one frozen six-task journey: create represented accounts → 
 
 Deliverables: reproducible scripted baseline; explicit physical-user protocol; unverified-evidence list; Stage 0/1 gap ranking; and a selected phase B package. Recruitment/device/provider approval dependencies may stay open while synthetic and repository-level work proceeds, but those tiers must remain visibly distinct.
 
+### Phase A execution contract — 2026-10-01
+
+**Execution state:** implementing. **Active role:** evaluator. **Permission scope:** branch_write. **Owner instruction:** merge the delivery program and execute it. Planning PR #742 merged at 739e9e43. This package owns baseline evidence, not a new feature system.
+
+Run `npm run test:journey:baseline` under Node 22 for the frozen automated demo baseline on desktop/mobile Chromium. It composes existing suites rather than duplicating domain implementations. Each test owns isolated synthetic demo state; passing them is not a single authenticated end-to-end journey or real-user timing. Run `npm run test:e2e:auth` separately for the existing loopback ownership/recovery contract; that double is not deployed Supabase evidence. Existing script `scripts/capture-bench-driver.mjs` remains an optional machine-floor timing tool, not user TTLT.
+
+| Frozen job                                      | Existing evidence                                                                                                               | Current limitation to preserve                                                                                    |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Find Ghi, record cash, locate record and export | expense-path, global-pfm-ux; export now checks downloaded row content and exact integer/sign/category rather than filename only | Register navigation is not successful account provisioning; seeded accounts are not first-time setup acceptance   |
+| Transfer correctly                              | accounts-transfer and Inbox transfer/retry cases                                                                                | Account dialog review alone is not posting; Inbox demo posting is separate from authenticated provider acceptance |
+| Acquire digital activity                        | direct-csv-remembered-mapping                                                                                                   | Mapping preview is not full persisted statement import/re-import; source file is synthetic                        |
+| Resolve exceptions/correct                      | Inbox exception-first and expense correction cases                                                                              | Synthetic unresolved/mixed candidates; no claim of real bank parser precision                                     |
+| Reconcile represented account                   | account-reconciliation-workspace                                                                                                | Explicit demo statement fixtures; no evidence that a real statement agrees with actual bank balance               |
+| Understand period, trace and export             | global-pfm-ux, reports-custom-range and expense-path export content                                                             | Scripted assertions do not prove user comprehension                                                               |
+| Interrupted/offline maintenance                 | connectivity-awareness and Inbox persisted retry                                                                                | Readability/reconnect and retry contracts, not offline authenticated posting or physical network reliability      |
+
+#### Human baseline protocol
+
+Research owner recruits consented participants across first-time, stable-history and multi-account cohorts, with actual phone/browser recorded. No participants are claimed yet. Use the same frozen jobs; avoid coaching, let users stop, and include correction in completion/time. Use synthetic statements first; real financial records remain participant-controlled and are not copied into analytics or PR artifacts. Observe whether the user can distinguish a posted record, unresolved candidate, expected commitment and reconciled/partial coverage.
+
+For each task record: anonymous participant/session code, build, device/browser, cohort, completion/abandonment, start-to-trusted-finish duration, interventions by type, material wrong fields/duplicates, correction effort, and the user's explanation of the result. Keep raw private observations outside repo under a consented retention policy. Report timing by task/cohort; automated execution duration is never substituted for human TTLT. Agree effect-size targets after baseline and before a subsequent prototype, using the program's measurement contract.
+
+#### Baseline exit and next decision
+
+Exit this repository package when the command is reproducible, all selected cases have results, export checks actual saved facts, and gaps/prerequisites are named. Stage 0/1 maturity remains unproven until the separate participant/device/provider evidence exists. Rank next experiments by observed failure and whole-journey maintenance burden; do not automatically add patterns or another confirmation change.
+
+Initial inspection gap: existing mapping evidence stops before a full import/re-import → exception review → reconciliation workflow. After the baseline run, select that integration gap if no higher-severity runtime failure emerges. First-time account provisioning and comprehension also remain explicit external acceptance gaps. No measured claim about which friction is largest for real users is available yet.
+
 ### Slice 0 — Baseline released Ghi
 
 - measure #596 amount-first TTLT, taps and correction on representative physical phones;
