@@ -1,6 +1,6 @@
 # Dependency and verification error repair
 
-**Execution state:** implementing. **Active role:** implementer. **Permission scope:** branch_write. **Owner:** Thunderkill016. **Issue/PR:** owner request to resolve all observed errors, PR pending. **Last updated:** 2026-10-01.
+**Execution state:** implementing. **Active role:** implementer. **Permission scope:** branch_write. **Owner:** Thunderkill016. **Issue/PR:** owner request to resolve all observed errors, PR #737. **Last updated:** 2026-10-01.
 
 ## Outcome and scope
 
@@ -42,4 +42,4 @@ Existing financial, capture, capability and provider-boundary tests guard behavi
 - [x] Update compatible dependencies and confirm zero audit findings.
 - [x] Preserve the missing-review-metadata test while removing its lint warning.
 - [ ] Complete final local and exact-head CI verification.
-- [ ] Record PR provenance and owner handoff.
+- [x] Record PR provenance; owner handoff follows verification.
