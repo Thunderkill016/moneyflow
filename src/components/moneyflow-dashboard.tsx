@@ -13,7 +13,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { ToastTone } from "@/components/ui/toast";
 import { useTransactions } from "@/hooks/use-transactions";
 import { buildAttentionItems, type BackupReminderState } from "@/lib/attention";
-import { captureConsequence } from "@/lib/capture-consequence";
+import {
+  captureConsequence,
+  ledgerAfterCapture,
+} from "@/lib/capture-consequence";
 import {
   reconcileAccountBalances,
   type AccountBalanceRow,
@@ -149,7 +152,9 @@ export function MoneyFlowDashboard({
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [recentSaved, setRecentSaved] = useState<Transaction | null>(null);
   const [notice, setNotice] = useState("");
-  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(
+    undefined,
+  );
   const [demoInboxCount, setDemoInboxCount] = useState(0);
   const [demoCommitments, setDemoCommitments] = useState<
     RecurringCommitment[] | null
@@ -370,7 +375,7 @@ export function MoneyFlowDashboard({
       showNotice(
         captureConsequence({
           saved: result.transaction,
-          transactions: [result.transaction, ...transactions],
+          transactions: ledgerAfterCapture(result.transaction, transactions),
         }),
         "success",
       );

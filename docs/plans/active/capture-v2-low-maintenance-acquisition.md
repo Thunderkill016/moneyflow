@@ -279,6 +279,15 @@ No new dependency, provider, financial payload collection, schema or license-bea
 - **Files/ownership:** `src/lib/inbox/review.ts` owns draft resolution, `src/components/inbox/inbox-review-panel.tsx` owns visible choices, their existing tests and Inbox browser test own evidence. No schema, parser version, provider, RLS, automatic posting or new store.
 - **Rollback:** revert this branch/PR; candidate and ledger persistence formats are unchanged. Real user/device TTLT and correction impact remain unmeasured, so this slice cannot claim a general UX win.
 
+### Save confirmation total — 2026-10-01
+
+**Execution state:** evaluating in PR #736. **Permission scope:** branch_write; owner requested continued product development. **Canon:** Stage 0/1 truthful, understandable capture feedback.
+
+- **Observed failure:** Dashboard and Quick Capture prepend the returned saved transaction even if an idempotent retry returned a row already in current state. The confirmation's monthly category total can then count the same transaction twice.
+- **Expected behavior:** construct the confirmation ledger with the confirmed transaction once by ID. Preserve distinct transactions even when their amount/date/category match. Do not mutate the actual ledger or weaken save idempotency.
+- **Evaluation/exit:** reproduce the replay overcount with a unit regression, verify confirmed-row precedence and distinct equal-value entries, run affected browser save flows, typecheck, full verification and required CI. No real-user speed improvement is claimed.
+- **Ownership/rollback:** existing capture-consequence domain module and its two callers; revert this PR. No schema, provider, analytics payload or ledger-persistence change.
+
 ### Demo transfer follow-up — 2026-10-01
 
 **Execution state:** evaluating in PR #735. **Permission scope:** branch_write; owner requested merge and continued product development. **Canon:** Stage 0/1 trustworthy capture, explicit demo provenance.
