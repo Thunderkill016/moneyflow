@@ -243,6 +243,32 @@ Reuse requirements:
 - reuse Inbox candidate creation; no second assisted-capture store;
 - never send raw financial text to a new AI/provider merely because the mode is described as smart/assisted.
 
+### Uncertainty without mandatory friction — research decision, 2026-10-01
+
+The owner clarified that "do not guess financial data" must not become a blanket review step or a ban on useful assistance. For Canon Stage 0/1, the boundary is **what may be presented as a posted fact**, not whether MoneyFlow may parse, suggest, prefill or prototype. The present quick-save and Inbox paths already provide two distinct outcomes; this decision uses them rather than introducing another store, universal confirmation screen or permission system.
+
+| Input and evidence | Allowed next step | Ledger effect |
+| --- | --- | --- |
+| User deliberately enters/accepts a complete amount, kind, date and account in Ghi; current validation succeeds. | Save through the existing manual mutation, show the exact result and immediate correction. | Posted user assertion; do not label it bank-reconciled. |
+| Parser extracts explicit values from pasted/imported text, but a required field is missing, contradictory or only inferred (for example year, account ownership or transfer kind). | Keep source text and proposed values in the existing candidate; show the specific field and a short way to resolve it. | None until the existing review/approved-automation contract permits posting. |
+| Reviewed history or an inspectable rule suggests category, payee or account. | Offer a visible, editable default or suggestion; let the user accept/change it as part of the ordinary Save. Leave amount/note empty by default for learned patterns. | Only the user's saved choice or a separately approved rule becomes a posted attribute. |
+| Source identity proves an exact replay, or a near duplicate/transfer match is merely plausible. | Apply proven idempotency; put ambiguous matches in the existing exception review with source comparison. | No duplicate posting or transfer reclassification from similarity alone. |
+
+The decision is field- and consequence-specific. A parseable `45k` may populate an amount proposal, but an absent amount is not zero. An explicit `hôm qua` may resolve against a valid Vietnam calendar anchor; a missing/invalid/conflicting date must not silently become a final "today" fact. A merchant/category hint is lower consequence than the wrong amount, account, expense/income kind, transfer pair or duplicate. A confidence label is diagnostic, never standalone permission to post. Preserve raw source provenance and corrections so suggestions can be evaluated without treating them as facts.
+
+For future development, prototype parsers and suggestions with fixtures and demo data; compare against the released flow before promotion. The smallest next runtime experiment is a **field-specific review** inside the existing candidate/preview path: show only unresolved material fields, keep known fields prefilled, and return to the same save/review task after correction. Do not introduce an extra confirmation step for every complete manual Ghi entry. Do not bypass current server validation, tenant ownership, idempotency, transfer neutrality or the separate approval required for any new automatic posting behavior.
+
+Evaluate with the same task and device cohorts already listed below: correct posted amount/kind/date/account/transfer, wrong-default and duplicate rates, TTLT including later correction, number of fields touched, unresolved/abandoned candidates, and whether users can explain what is saved versus pending. A faster candidate creation time alone is insufficient. No performance threshold or successful human outcome is claimed by this research.
+
+Focused external evidence (accessed 2026-10-01):
+
+- [W3C WCAG 2.2 SC 3.3.4](https://www.w3.org/WAI/WCAG22/Understanding/error-prevention-legal-financial-data.html) allows reversibility, input checking/correction **or** pre-submit review for important data actions; its guidance explicitly does not require confirming every simple save. This supports a quick checked-and-correctable manual path, not skipping MoneyFlow's financial invariants.
+- [GOV.UK Check answers](https://design-system.service.gov.uk/patterns/check-answers/) gives users a way to review and change submitted information where a separate check step helps. It supports targeted review for consequential ambiguity; it does not prove every MoneyFlow transaction needs another page.
+- [Actual Budget Importing Transactions](https://actualbudget.org/docs/transactions/importing/) distinguishes manual entry, file mapping and identifier-first duplicate matching with fallback similarity. Actual's choice to favor imported dates is a product-specific policy, **not** permission for MoneyFlow to overwrite a user-confirmed date silently.
+- [Actual Budget Rules](https://actualbudget.org/docs/budgeting/rules/) shows editable, user-owned categorization/payee rules based on prior behavior. Reuse the pattern of inspectable learning; its broad rule power and automatic mutation are not adopted without MoneyFlow-specific error evidence and authorization.
+
+No new dependency, provider, financial payload collection, schema or license-bearing code is proposed. The existing capture, candidate, review and correction owners remain responsible; a prototype can be reverted without rewriting posted ledger history. Open uncertainty: physical-phone and first-time-user evidence has not established whether field-specific review reduces total work or confusion.
+
 ### Image/OCR experiment boundary
 
 Image support is a later separately approved experiment. It must:
