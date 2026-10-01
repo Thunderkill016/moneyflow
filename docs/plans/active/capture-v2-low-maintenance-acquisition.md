@@ -299,7 +299,7 @@ No new dependency, provider, financial payload collection, schema or license-bea
 
 ### Recorded-month confirmation — 2026-10-01
 
-**Execution state:** implementing. **Active role:** implementer. **Permission scope:** branch_write. **Owner instruction:** continue development according to this plan. **Canon:** Stage 0/1 trustworthy, understandable capture feedback.
+**Execution state:** evaluating in PR #740. **Active role:** evaluator. **Permission scope:** branch_write. **Owner instruction:** continue development according to this plan. **Canon:** Stage 0/1 trustworthy, understandable capture feedback.
 
 - **Observed failure:** the confirmation sums rows within the saved transaction's month but calls that period “tháng này”, including backdated and future transactions.
 - **Specification:** identify the actual recorded month and year in the total, independently of wall-clock timezone. Invalid dates receive the plain confirmation without a misleading period total. Keep first-entry and transfer confirmations short.
