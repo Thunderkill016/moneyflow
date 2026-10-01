@@ -317,11 +317,10 @@ export function resolveAccountId(
   }
   const normalized = candidate.account?.trim().toLocaleLowerCase("vi");
   if (!normalized) return null;
-  return (
-    accounts.find(
-      (item) => item.name.trim().toLocaleLowerCase("vi") === normalized,
-    )?.id ?? null
+  const matches = accounts.filter(
+    (item) => item.name.trim().toLocaleLowerCase("vi") === normalized,
   );
+  return matches.length === 1 ? matches[0].id : null;
 }
 
 export function resolveCategoryId(
@@ -335,10 +334,10 @@ export function resolveCategoryId(
   }
   const normalized = candidate.category?.trim().toLocaleLowerCase("vi");
   if (!normalized) return null;
-  return (
-    pool.find((item) => item.name.trim().toLocaleLowerCase("vi") === normalized)
-      ?.id ?? null
+  const matches = pool.filter(
+    (item) => item.name.trim().toLocaleLowerCase("vi") === normalized,
   );
+  return matches.length === 1 ? matches[0].id : null;
 }
 
 export type LedgerPostResult =

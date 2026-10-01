@@ -39,19 +39,28 @@ function resolveExplicitAccount(
   }
   if (!candidate.account?.trim()) return null;
   const wanted = normalizeLabel(candidate.account);
-  return accounts.find((item) => normalizeLabel(item.name) === wanted) ?? null;
+  const matches = accounts.filter(
+    (item) => normalizeLabel(item.name) === wanted,
+  );
+  return matches.length === 1 ? matches[0] : null;
 }
 
 function resolveExplicitCategory(
   candidate: InboxCandidate,
   categories: CategoryOption[],
+  kind: "income" | "expense",
 ): CategoryOption | null {
   if (candidate.categoryId) {
     return categories.find((item) => item.id === candidate.categoryId) ?? null;
   }
   if (!candidate.category?.trim()) return null;
   const wanted = normalizeLabel(candidate.category);
-  return categories.find((item) => normalizeLabel(item.name) === wanted) ?? null;
+  const matches = categories.filter(
+    (item) => normalizeLabel(item.name) === wanted,
+  );
+  const matchingKind = matches.filter((item) => item.kind === kind);
+  if (matchingKind.length === 1) return matchingKind[0];
+  return matches.length === 1 ? matches[0] : null;
 }
 
 export function classifyCandidateReadiness(
@@ -78,7 +87,11 @@ export function classifyCandidateReadiness(
 
   if (candidate.kind !== "transfer") {
     const account = resolveExplicitAccount(candidate, accounts);
-    const category = resolveExplicitCategory(candidate, categories);
+    const category = resolveExplicitCategory(
+      candidate,
+      categories,
+      candidate.kind,
+    );
 
     if (!account) reasons.push("account_missing_or_unresolved");
     if (!category) {
@@ -125,7 +138,11 @@ export function partitionPendingCandidates(
 
   for (const candidate of candidates) {
     if (candidate.status !== "pending") continue;
-    const readiness = classifyCandidateReadiness(candidate, accounts, categories);
+    const readiness = classifyCandidateReadiness(
+      candidate,
+      accounts,
+      categories,
+    );
     if (readiness.state === "ready") {
       ready.push(candidate);
     } else {

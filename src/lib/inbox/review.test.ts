@@ -210,6 +210,41 @@ test("stale IDs and partial account labels never become a review default", () =>
   );
 });
 
+test("ambiguous account or category names need an explicit ID or reviewer choice", () => {
+  const duplicateAccounts = [
+    ...accounts,
+    { id: "acc-other-cash", name: "tiền mặt" },
+  ];
+  const duplicateCategories = [
+    ...categories,
+    { ...categories[0], id: "cat-other-food", name: "ăn uống" },
+  ];
+  assert.equal(resolveAccountId(expense, duplicateAccounts), null);
+  assert.equal(
+    resolveCategoryId(expense, duplicateCategories, "expense"),
+    null,
+  );
+  const draft = draftFromCandidate(
+    expense,
+    duplicateAccounts,
+    duplicateCategories,
+  );
+  assert.equal(draft.accountId, "");
+  assert.equal(draft.categoryId, "");
+  assert.equal(
+    resolveAccountId({ ...expense, accountId: "acc-cash" }, duplicateAccounts),
+    "acc-cash",
+  );
+  assert.equal(
+    resolveCategoryId(
+      { ...expense, categoryId: "cat-food" },
+      duplicateCategories,
+      "expense",
+    ),
+    "cat-food",
+  );
+});
+
 test("transfer review requires an explicitly chosen destination", () => {
   const draft = draftFromCandidate(
     { ...expense, kind: "transfer", category: undefined },
