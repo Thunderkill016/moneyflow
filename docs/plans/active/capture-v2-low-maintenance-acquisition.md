@@ -281,7 +281,7 @@ No new dependency, provider, financial payload collection, schema or license-bea
 
 ### Save confirmation total — 2026-10-01
 
-**Execution state:** implementing. **Permission scope:** branch_write; owner requested continued product development. **Canon:** Stage 0/1 truthful, understandable capture feedback.
+**Execution state:** evaluating in PR #736. **Permission scope:** branch_write; owner requested continued product development. **Canon:** Stage 0/1 truthful, understandable capture feedback.
 
 - **Observed failure:** Dashboard and Quick Capture prepend the returned saved transaction even if an idempotent retry returned a row already in current state. The confirmation's monthly category total can then count the same transaction twice.
 - **Expected behavior:** construct the confirmation ledger with the confirmed transaction once by ID. Preserve distinct transactions even when their amount/date/category match. Do not mutate the actual ledger or weaken save idempotency.
