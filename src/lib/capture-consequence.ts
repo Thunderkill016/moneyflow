@@ -1,4 +1,5 @@
 import { formatMoney } from "./money.ts";
+import { isValidDateOnly } from "./date-only.ts";
 import type { Transaction } from "./sample-data.ts";
 
 /*
@@ -100,6 +101,7 @@ export function captureConsequence({
   // transfer-neutrality the whole ledger depends on.
   if (saved.kind === "transfer") return confirmation;
   if (!saved.category.trim()) return confirmation;
+  if (!isValidDateOnly(saved.occurredOn)) return confirmation;
 
   const total = categoryMonthTotal(
     transactions,
@@ -111,5 +113,7 @@ export function captureConsequence({
   // Nothing to add when this row is the whole total.
   if (total <= saved.amount) return confirmation;
 
-  return `${confirmation} ${saved.category} tháng này: ${formatMoney(total)}.`;
+  // Use the recorded month, including its year, for backdated and future entries.
+  const [year, month] = saved.occurredOn.split("-");
+  return `${confirmation} ${saved.category} tháng ${Number(month)}/${year}: ${formatMoney(total)}.`;
 }
