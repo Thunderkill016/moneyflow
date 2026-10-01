@@ -229,10 +229,7 @@ export function draftFromCandidate(
   const moneyKind: TransactionKind =
     candidate.kind === "income" ? "income" : "expense";
   const categoryId = resolveCategoryId(candidate, categories, moneyKind) ?? "";
-  const accountId =
-    resolveAccountId(candidate, accounts) ?? accounts[0]?.id ?? "";
-  const otherAccount =
-    accounts.find((item) => item.id !== accountId)?.id ?? accounts[0]?.id ?? "";
+  const accountId = resolveAccountId(candidate, accounts) ?? "";
 
   return {
     candidateId: candidate.id,
@@ -243,7 +240,9 @@ export function draftFromCandidate(
     occurredOn: candidate.occurredOn,
     categoryId,
     accountId,
-    destinationAccountId: otherAccount,
+    // A candidate identifies its source account only. Its transfer destination
+    // must be selected by the reviewer rather than inferred from account order.
+    destinationAccountId: "",
     possibleDuplicate: candidate.possibleDuplicate === true,
     allowHeuristicDuplicate: false,
   };
@@ -314,21 +313,14 @@ export function resolveAccountId(
   accounts: AccountOption[],
 ): string | null {
   if (candidate.accountId) {
-    const byId = accounts.find((item) => item.id === candidate.accountId);
-    if (byId) return byId.id;
+    return accounts.find((item) => item.id === candidate.accountId)?.id ?? null;
   }
-  if (candidate.account) {
-    const normalized = candidate.account.trim().toLocaleLowerCase("vi");
-    const byName = accounts.find(
-      (item) => item.name.trim().toLocaleLowerCase("vi") === normalized,
-    );
-    if (byName) return byName.id;
-    const partial = accounts.find((item) =>
-      item.name.trim().toLocaleLowerCase("vi").includes(normalized),
-    );
-    if (partial) return partial.id;
-  }
-  return accounts[0]?.id ?? null;
+  const normalized = candidate.account?.trim().toLocaleLowerCase("vi");
+  if (!normalized) return null;
+  const matches = accounts.filter(
+    (item) => item.name.trim().toLocaleLowerCase("vi") === normalized,
+  );
+  return matches.length === 1 ? matches[0].id : null;
 }
 
 export function resolveCategoryId(
@@ -338,17 +330,14 @@ export function resolveCategoryId(
 ): string | null {
   const pool = categories.filter((item) => item.kind === kind);
   if (candidate.categoryId) {
-    const byId = pool.find((item) => item.id === candidate.categoryId);
-    if (byId) return byId.id;
+    return pool.find((item) => item.id === candidate.categoryId)?.id ?? null;
   }
-  if (candidate.category) {
-    const normalized = candidate.category.trim().toLocaleLowerCase("vi");
-    const byName = pool.find(
-      (item) => item.name.trim().toLocaleLowerCase("vi") === normalized,
-    );
-    if (byName) return byName.id;
-  }
-  return pool[0]?.id ?? null;
+  const normalized = candidate.category?.trim().toLocaleLowerCase("vi");
+  if (!normalized) return null;
+  const matches = pool.filter(
+    (item) => item.name.trim().toLocaleLowerCase("vi") === normalized,
+  );
+  return matches.length === 1 ? matches[0].id : null;
 }
 
 export type LedgerPostResult =

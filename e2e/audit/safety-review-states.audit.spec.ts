@@ -320,7 +320,9 @@ test.describe("Phase B safety and review states", () => {
     }, CANDIDATES_KEY);
     await page.goto("/inbox", { waitUntil: "domcontentloaded" });
 
-    const review = page.getByRole("button", { name: /^Duyệt Highlands Coffee/ });
+    const review = page.getByRole("button", {
+      name: /^Duyệt Highlands Coffee/,
+    });
     await expect(review).toBeVisible();
     await review.click();
     await expect(
@@ -332,13 +334,9 @@ test.describe("Phase B safety and review states", () => {
 
     const source = page.getByLabel("Từ tài khoản");
     const destination = page.getByLabel("Đến tài khoản");
-    const firstAccountId = await source
-      .locator("option")
-      .first()
-      .getAttribute("value");
-    expect(firstAccountId).toBeTruthy();
-    await source.selectOption(firstAccountId!);
-    await destination.selectOption(firstAccountId!);
+    await expect(source).toHaveValue("demo-account-cash");
+    await expect(destination).toHaveValue("");
+    await destination.selectOption(await source.inputValue());
     await page
       .getByRole("button", { name: "Duyệt vào sổ", exact: true })
       .click();

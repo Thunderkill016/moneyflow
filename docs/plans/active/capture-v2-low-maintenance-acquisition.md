@@ -74,18 +74,18 @@ That old implementation is not authority. In particular, automatically copying a
 
 ### Market evidence
 
-| Source | Evidence | MoneyFlow applicability |
-|---|---|---|
-| YNAB `Adding Transactions Without Direct Import`, accessed 2026-09-14: https://support.ynab.com/en_us/adding-transactions-without-direct-import-B1kBALVaxx | Transaction entry can start from app-icon long press, category long press, widgets, lock-screen/Home Screen shortcuts and Siri/Spotlight. | Reducing access cost and reusing known context can matter as much as changing the form. |
-| YNAB `Shortcuts on iOS`, accessed 2026-09-14: https://support.ynab.com/en_us/shortcuts-on-ios-a-guide-Bk_lHa5Aq | Add Transaction shortcuts may prefill amount, payee, category and account for regular transactions. | Supports testing favorites/Frequent Patterns and future OS shortcuts. It does not require MoneyFlow to auto-copy amount by default. |
-| YNAB `Scheduled Transactions`, accessed 2026-09-14: https://support.ynab.com/scheduled-transactions-a-guide-BygrAIFA9 | Known repeating transactions are modeled explicitly and can later match imports. | Supports separating recurring commitments from ad-hoc frequent patterns. |
-| Actual Budget `Payees`, accessed 2026-09-14: https://actualbudget.org/docs/transactions/payees/ | Payees may be favorited, normalize imported names and carry a default category. | Strong evidence for testing Counterparty/Payee as a durable context primitive. |
-| Actual Budget `Rules`, accessed 2026-09-14: https://actualbudget.org/docs/budgeting/rules/ | Actual can create/update inspectable rules from repeated payee renaming/categorization behavior. | Supports deterministic, correctable learning anchored on counterparty context before probabilistic guessing. |
-| Lunch Money `Rules`, accessed 2026-09-14: https://support.lunchmoney.app/setup/rules | Payee, account, amount, category, notes and date can drive explicit rules across manual/imported transactions. | Supports one deterministic rule model across acquisition paths. |
-| Wallet by BudgetBakers `Using Templates`, updated 2026-03-31: https://support.budgetbakers.com/hc/en-us/articles/7077050225042-Using-Templates | Templates preserve account, category, amount, type, payee and note for repetitive records. | Supports testing explicit reusable patterns while deciding separately which fields are safe to prefill. |
-| Copilot `Quick Start Guide` and `Copilot Intelligence for Spending`, accessed 2026-09-14: https://help.copilot.money/en/articles/11157550-quick-start-guide and https://help.copilot.money/en/articles/8182433-copilot-intelligence-for-spending | Copilot waits until at least 30 reviewed transactions before surfacing ML type/category suggestions and learns from corrections. | Supports requiring meaningful reviewed history/confidence before probabilistic suggestions; it is not justification for zero-history AI defaults. |
-| MoMo `Quản lý chi tiêu`, accessed 2026-09-14: https://www.momo.vn/quan-ly-chi-tieu | MoMo transactions can be recorded/classified automatically because MoMo owns the payment evidence; outside transactions still have a manual Add Transaction path. | Vietnam-specific evidence that direct evidence acquisition can reduce more maintenance than adding intelligence to a manual form. |
-| MDN `share_target`, accessed 2026-09-14: https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Manifest/Reference/share_target | Installed PWAs may receive shared text/files, but support is Limited Availability and inputs must be validated. | Keep Share Target optional transport, not a primary product concept. |
+| Source                                                                                                                                                                                                                                           | Evidence                                                                                                                                                          | MoneyFlow applicability                                                                                                                           |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| YNAB `Adding Transactions Without Direct Import`, accessed 2026-09-14: https://support.ynab.com/en_us/adding-transactions-without-direct-import-B1kBALVaxx                                                                                       | Transaction entry can start from app-icon long press, category long press, widgets, lock-screen/Home Screen shortcuts and Siri/Spotlight.                         | Reducing access cost and reusing known context can matter as much as changing the form.                                                           |
+| YNAB `Shortcuts on iOS`, accessed 2026-09-14: https://support.ynab.com/en_us/shortcuts-on-ios-a-guide-Bk_lHa5Aq                                                                                                                                  | Add Transaction shortcuts may prefill amount, payee, category and account for regular transactions.                                                               | Supports testing favorites/Frequent Patterns and future OS shortcuts. It does not require MoneyFlow to auto-copy amount by default.               |
+| YNAB `Scheduled Transactions`, accessed 2026-09-14: https://support.ynab.com/scheduled-transactions-a-guide-BygrAIFA9                                                                                                                            | Known repeating transactions are modeled explicitly and can later match imports.                                                                                  | Supports separating recurring commitments from ad-hoc frequent patterns.                                                                          |
+| Actual Budget `Payees`, accessed 2026-09-14: https://actualbudget.org/docs/transactions/payees/                                                                                                                                                  | Payees may be favorited, normalize imported names and carry a default category.                                                                                   | Strong evidence for testing Counterparty/Payee as a durable context primitive.                                                                    |
+| Actual Budget `Rules`, accessed 2026-09-14: https://actualbudget.org/docs/budgeting/rules/                                                                                                                                                       | Actual can create/update inspectable rules from repeated payee renaming/categorization behavior.                                                                  | Supports deterministic, correctable learning anchored on counterparty context before probabilistic guessing.                                      |
+| Lunch Money `Rules`, accessed 2026-09-14: https://support.lunchmoney.app/setup/rules                                                                                                                                                             | Payee, account, amount, category, notes and date can drive explicit rules across manual/imported transactions.                                                    | Supports one deterministic rule model across acquisition paths.                                                                                   |
+| Wallet by BudgetBakers `Using Templates`, updated 2026-03-31: https://support.budgetbakers.com/hc/en-us/articles/7077050225042-Using-Templates                                                                                                   | Templates preserve account, category, amount, type, payee and note for repetitive records.                                                                        | Supports testing explicit reusable patterns while deciding separately which fields are safe to prefill.                                           |
+| Copilot `Quick Start Guide` and `Copilot Intelligence for Spending`, accessed 2026-09-14: https://help.copilot.money/en/articles/11157550-quick-start-guide and https://help.copilot.money/en/articles/8182433-copilot-intelligence-for-spending | Copilot waits until at least 30 reviewed transactions before surfacing ML type/category suggestions and learns from corrections.                                  | Supports requiring meaningful reviewed history/confidence before probabilistic suggestions; it is not justification for zero-history AI defaults. |
+| MoMo `Quản lý chi tiêu`, accessed 2026-09-14: https://www.momo.vn/quan-ly-chi-tieu                                                                                                                                                               | MoMo transactions can be recorded/classified automatically because MoMo owns the payment evidence; outside transactions still have a manual Add Transaction path. | Vietnam-specific evidence that direct evidence acquisition can reduce more maintenance than adding intelligence to a manual form.                 |
+| MDN `share_target`, accessed 2026-09-14: https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Manifest/Reference/share_target                                                                                                       | Installed PWAs may receive shared text/files, but support is Limited Availability and inputs must be validated.                                                   | Keep Share Target optional transport, not a primary product concept.                                                                              |
 
 ### Market interpretation
 
@@ -247,12 +247,12 @@ Reuse requirements:
 
 The owner clarified that "do not guess financial data" must not become a blanket review step or a ban on useful assistance. For Canon Stage 0/1, the boundary is **what may be presented as a posted fact**, not whether MoneyFlow may parse, suggest, prefill or prototype. The present quick-save and Inbox paths already provide two distinct outcomes; this decision uses them rather than introducing another store, universal confirmation screen or permission system.
 
-| Input and evidence | Allowed next step | Ledger effect |
-| --- | --- | --- |
-| User deliberately enters/accepts a complete amount, kind, date and account in Ghi; current validation succeeds. | Save through the existing manual mutation, show the exact result and immediate correction. | Posted user assertion; do not label it bank-reconciled. |
-| Parser extracts explicit values from pasted/imported text, but a required field is missing, contradictory or only inferred (for example year, account ownership or transfer kind). | Keep source text and proposed values in the existing candidate; show the specific field and a short way to resolve it. | None until the existing review/approved-automation contract permits posting. |
-| Reviewed history or an inspectable rule suggests category, payee or account. | Offer a visible, editable default or suggestion; let the user accept/change it as part of the ordinary Save. Leave amount/note empty by default for learned patterns. | Only the user's saved choice or a separately approved rule becomes a posted attribute. |
-| Source identity proves an exact replay, or a near duplicate/transfer match is merely plausible. | Apply proven idempotency; put ambiguous matches in the existing exception review with source comparison. | No duplicate posting or transfer reclassification from similarity alone. |
+| Input and evidence                                                                                                                                                                 | Allowed next step                                                                                                                                                     | Ledger effect                                                                          |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| User deliberately enters/accepts a complete amount, kind, date and account in Ghi; current validation succeeds.                                                                    | Save through the existing manual mutation, show the exact result and immediate correction.                                                                            | Posted user assertion; do not label it bank-reconciled.                                |
+| Parser extracts explicit values from pasted/imported text, but a required field is missing, contradictory or only inferred (for example year, account ownership or transfer kind). | Keep source text and proposed values in the existing candidate; show the specific field and a short way to resolve it.                                                | None until the existing review/approved-automation contract permits posting.           |
+| Reviewed history or an inspectable rule suggests category, payee or account.                                                                                                       | Offer a visible, editable default or suggestion; let the user accept/change it as part of the ordinary Save. Leave amount/note empty by default for learned patterns. | Only the user's saved choice or a separately approved rule becomes a posted attribute. |
+| Source identity proves an exact replay, or a near duplicate/transfer match is merely plausible.                                                                                    | Apply proven idempotency; put ambiguous matches in the existing exception review with source comparison.                                                              | No duplicate posting or transfer reclassification from similarity alone.               |
 
 The decision is field- and consequence-specific. A parseable `45k` may populate an amount proposal, but an absent amount is not zero. An explicit `hôm qua` may resolve against a valid Vietnam calendar anchor; a missing/invalid/conflicting date must not silently become a final "today" fact. A merchant/category hint is lower consequence than the wrong amount, account, expense/income kind, transfer pair or duplicate. A confidence label is diagnostic, never standalone permission to post. Preserve raw source provenance and corrections so suggestions can be evaluated without treating them as facts.
 
@@ -268,6 +268,16 @@ Focused external evidence (accessed 2026-10-01):
 - [Actual Budget Rules](https://actualbudget.org/docs/budgeting/rules/) shows editable, user-owned categorization/payee rules based on prior behavior. Reuse the pattern of inspectable learning; its broad rule power and automatic mutation are not adopted without MoneyFlow-specific error evidence and authorization.
 
 No new dependency, provider, financial payload collection, schema or license-bearing code is proposed. The existing capture, candidate, review and correction owners remain responsible; a prototype can be reverted without rewriting posted ledger history. Open uncertainty: physical-phone and first-time-user evidence has not established whether field-specific review reduces total work or confusion.
+
+### Bounded implementation slice — unresolved account and category, 2026-10-01
+
+**Execution state:** evaluating in PR. **Permission scope:** branch_write. **Owner instruction:** merge PR #733 and begin product development. This slice serves Canon Stage 0/1 trustworthy, low-maintenance reality; it addresses an observed conflict between Inbox readiness and its review form.
+
+- **Observed failure:** readiness marks an absent or invalid account/category as needing attention, while `draftFromCandidate` and the review form fall back to the first available option. A reviewer can then post a value that no source or user selected. Transfer review also preselects a destination account absent from the candidate.
+- **Expected behavior:** retain exact, valid candidate account/category values. Leave unresolved account, category and transfer destination unselected; show a plain-language choice prompt in the existing form. Existing `buildLedgerPost` validation blocks Save until the user chooses valid values. Do not add another confirmation step to a complete, valid candidate.
+- **Evaluation:** unit regressions cover absent, stale, partially matching and ambiguous account/category labels, valid exact IDs/names and transfer destination. Demo browser flows on desktop/mobile prove unresolved account and category cannot post before choice and can post after selection; they retain the existing Ready and commitment paths. Transfer browser evidence proves the destination stays blank and selection alone does not mutate the ledger; its separate approval remains unavailable when source reconciliation cannot be loaded, so this slice does not claim an end-to-end transfer post.
+- **Files/ownership:** `src/lib/inbox/review.ts` owns draft resolution, `src/components/inbox/inbox-review-panel.tsx` owns visible choices, their existing tests and Inbox browser test own evidence. No schema, parser version, provider, RLS, automatic posting or new store.
+- **Rollback:** revert this branch/PR; candidate and ledger persistence formats are unchanged. Real user/device TTLT and correction impact remain unmeasured, so this slice cannot claim a general UX win.
 
 ### Image/OCR experiment boundary
 
@@ -316,10 +326,10 @@ A future Counterparty foundation may normalize imported descriptions while raw s
 
 Compare the current Capture hub against this candidate rather than assuming either is correct:
 
-| Candidate action | Description | Job |
-|---|---|---|
-| **Ghi** | `Ghi một khoản — nhập số tiền hoặc dùng cách nhập khác khi cần` | Single transaction |
-| **Nhập sao kê** | `CSV, Excel hoặc PDF sao kê để đưa nhiều giao dịch vào` | Bulk acquisition |
+| Candidate action | Description                                                     | Job                |
+| ---------------- | --------------------------------------------------------------- | ------------------ |
+| **Ghi**          | `Ghi một khoản — nhập số tiền hoặc dùng cách nhập khác khi cần` | Single transaction |
+| **Nhập sao kê**  | `CSV, Excel hoặc PDF sao kê để đưa nhiều giao dịch vào`         | Bulk acquisition   |
 
 Inside `Ghi`, the working hierarchy is:
 
@@ -368,8 +378,8 @@ The ledger already owns a first-class `payee` end to end; Slice 2 must not
 re-propose it. Chain of evidence:
 
 - **Source/evidence layer:** `inbox_candidates.merchant` (≤200, editable in
-  review) is raw evidence; it is *not* destroyed at commit anymore.
-- **Candidate → ledger:** `approve_inbox_candidate` persists the *reviewed*
+  review) is raw evidence; it is _not_ destroyed at commit anymore.
+- **Candidate → ledger:** `approve_inbox_candidate` persists the _reviewed_
   merchant into `financial_transactions.payee`
   (`src/lib/inbox/review.ts:433`); batch path falls back to the stored
   candidate merchant.
@@ -380,7 +390,7 @@ re-propose it. Chain of evidence:
   `record_recurring_income_template` stamp the commitment/template name;
   transfers keep `''`. Reconciled-guard excludes `payee` — it is editable
   metadata, not reconciliation truth.
-- **Rules engine:** merchant-field rules evaluate the *typed* payee to fill
+- **Rules engine:** merchant-field rules evaluate the _typed_ payee to fill
   the draft category with attribution; rules never rewrite payee text
   (`src/lib/inbox/apply-rules.ts:220`).
 - **Search:** folded-diacritic haystack includes `payee` in both the UI filter
@@ -388,7 +398,7 @@ re-propose it. Chain of evidence:
   capability + golden.
 - **Reports:** page-facing `payees` breakdown exists — expense grouped by the
   **exact trimmed spelling** (`src/lib/reports.ts:425-441`). The code comment
-  pins the design rule: *search folds; a ledger breakdown does not*. The
+  pins the design rule: _search folds; a ledger breakdown does not_. The
   field is deliberately projected out of the capability contract pending a
   schema/version decision (`src/server/capabilities/reports-financial.ts:127`).
 - **Capture-time assists:** `derivePayeeSuggestions` (datalist),
@@ -422,7 +432,7 @@ What does **not** exist:
 2. "How do I file X next time?" — payee→category suggestion + merchant-field
    rules already reduce the recurring filing decision.
 3. "Keep spellings consistent going forward" — the canonical-spelling offer
-   plus datalist cover the *incoming* edge.
+   plus datalist cover the _incoming_ edge.
 
 **Gaps with real evidence:**
 
@@ -430,7 +440,7 @@ What does **not** exist:
   split `grab`/`Grab`/`GRAB Vietnam` into separate rows and there is no
   merge tool. Evidence: grouping is exact-spelling by design; no rename
   RPC exists.
-- Pattern chips cannot express "coffee at *this* shop" — Slice 1 keys
+- Pattern chips cannot express "coffee at _this_ shop" — Slice 1 keys
   exclude payee by design; whether users actually need payee-scoped
   patterns is a hypothesis for Slice 3, contingent on H2/H3 benchmark
   survival — not yet evidenced.
@@ -441,8 +451,8 @@ What does **not** exist:
 
 1. Is historical spelling drift a real user pain (worth a merge/rename
    feature) or cosmetic (exact-spelling reports are honest and fine)?
-2. Should counterparty become a *canonical entity* (id + alias table +
-   retro-merge + favorites) or stay *raw evidence + capture-time offers*?
+2. Should counterparty become a _canonical entity_ (id + alias table +
+   retro-merge + favorites) or stay _raw evidence + capture-time offers_?
    The entity path is a Class 3 schema decision with RLS/backup/rollback
    obligations; the evidence path may only need a merge tool + surfacing
    `payees` in the capability contract.

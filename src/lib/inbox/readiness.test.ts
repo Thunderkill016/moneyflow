@@ -73,22 +73,32 @@ test("well-formed high/medium money candidates are ready", () => {
 
 test("readiness blocks low confidence, duplicate and transfer states", () => {
   assert.ok(reasonsFor({ confidence: "low" }).includes("low_confidence"));
-  assert.ok(reasonsFor({ possibleDuplicate: true }).includes("possible_duplicate"));
-  assert.ok(reasonsFor({ possibleTransfer: true }).includes("possible_transfer"));
+  assert.ok(
+    reasonsFor({ possibleDuplicate: true }).includes("possible_duplicate"),
+  );
+  assert.ok(
+    reasonsFor({ possibleTransfer: true }).includes("possible_transfer"),
+  );
   assert.ok(reasonsFor({ kind: "transfer" }).includes("transfer_kind"));
 });
 
 test("readiness enforces existing amount/date posting constraints", () => {
   assert.ok(reasonsFor({ amount: 0 }).includes("invalid_amount"));
-  assert.ok(reasonsFor({ amount: Number.MAX_SAFE_INTEGER + 1 }).includes("invalid_amount"));
+  assert.ok(
+    reasonsFor({ amount: Number.MAX_SAFE_INTEGER + 1 }).includes(
+      "invalid_amount",
+    ),
+  );
   assert.ok(reasonsFor({ occurredOn: "28/08/2026" }).includes("invalid_date"));
 });
 
 test("readiness never uses first account/category fallback", () => {
-  const noAccount = { ...readyExpense, accountId: undefined, account: undefined };
-  assert.ok(
-    reasonsFor(noAccount).includes("account_missing_or_unresolved"),
-  );
+  const noAccount = {
+    ...readyExpense,
+    accountId: undefined,
+    account: undefined,
+  };
+  assert.ok(reasonsFor(noAccount).includes("account_missing_or_unresolved"));
 
   const unknownAccount = {
     ...readyExpense,
@@ -99,10 +109,12 @@ test("readiness never uses first account/category fallback", () => {
     reasonsFor(unknownAccount).includes("account_missing_or_unresolved"),
   );
 
-  const noCategory = { ...readyExpense, categoryId: undefined, category: undefined };
-  assert.ok(
-    reasonsFor(noCategory).includes("category_missing_or_unresolved"),
-  );
+  const noCategory = {
+    ...readyExpense,
+    categoryId: undefined,
+    category: undefined,
+  };
+  assert.ok(reasonsFor(noCategory).includes("category_missing_or_unresolved"));
 
   const unknownCategory = {
     ...readyExpense,
@@ -112,6 +124,42 @@ test("readiness never uses first account/category fallback", () => {
   assert.ok(
     reasonsFor(unknownCategory).includes("category_missing_or_unresolved"),
   );
+});
+
+test("duplicate normalized labels cannot make a candidate Ready", () => {
+  const accountByName = {
+    ...readyExpense,
+    accountId: undefined,
+    account: "Vietcombank",
+  };
+  const duplicateAccounts = [
+    ...accounts,
+    { id: "acc-bank-other", name: "vietcombank" },
+  ];
+  const accountResult = classifyCandidateReadiness(
+    accountByName,
+    duplicateAccounts,
+    categories,
+  );
+  assert.equal(accountResult.state, "needs_attention");
+  assert.ok(accountResult.reasons.includes("account_missing_or_unresolved"));
+
+  const categoryByName = {
+    ...readyExpense,
+    categoryId: undefined,
+    category: "Ăn uống",
+  };
+  const duplicateCategories = [
+    ...categories,
+    { ...categories[0], id: "cat-food-other", name: "ăn uống" },
+  ];
+  const categoryResult = classifyCandidateReadiness(
+    categoryByName,
+    accounts,
+    duplicateCategories,
+  );
+  assert.equal(categoryResult.state, "needs_attention");
+  assert.ok(categoryResult.reasons.includes("category_missing_or_unresolved"));
 });
 
 test("explicit names can resolve exactly but category kind must match", () => {
@@ -152,7 +200,10 @@ test("partition contains only pending candidates and preserves attention reasons
     categories,
   );
 
-  assert.deepEqual(partition.ready.map((item) => item.id), ["cand-ready"]);
+  assert.deepEqual(
+    partition.ready.map((item) => item.id),
+    ["cand-ready"],
+  );
   assert.deepEqual(
     partition.needsAttention.map((item) => item.candidate.id),
     ["cand-low", "cand-duplicate"],

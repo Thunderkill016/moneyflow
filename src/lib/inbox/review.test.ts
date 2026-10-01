@@ -159,6 +159,111 @@ test("resolve account and category by name", () => {
   );
 });
 
+test("unresolved candidate fields stay empty until the reviewer chooses them", () => {
+  const unresolved: InboxCandidate = {
+    ...expense,
+    accountId: undefined,
+    account: undefined,
+    categoryId: undefined,
+    category: undefined,
+  };
+  assert.equal(resolveAccountId(unresolved, accounts), null);
+  assert.equal(resolveCategoryId(unresolved, categories, "expense"), null);
+
+  const draft = draftFromCandidate(unresolved, accounts, categories);
+  assert.equal(draft.accountId, "");
+  assert.equal(draft.categoryId, "");
+  assert.equal(
+    buildLedgerPost(draft, accounts, categories, "unresolved").ok,
+    false,
+  );
+
+  draft.accountId = "acc-cash";
+  assert.equal(
+    buildLedgerPost(draft, accounts, categories, "missing-category").ok,
+    false,
+  );
+  draft.categoryId = "cat-food";
+  assert.equal(
+    buildLedgerPost(draft, accounts, categories, "reviewed").ok,
+    true,
+  );
+  assert.equal(draftWasEdited(unresolved, draft, accounts, categories), true);
+});
+
+test("stale IDs and partial account labels never become a review default", () => {
+  const stale = {
+    ...expense,
+    accountId: "deleted-account",
+    account: "Tiền mặt",
+    categoryId: "deleted-category",
+    category: "Ăn uống",
+  };
+  assert.equal(resolveAccountId(stale, accounts), null);
+  assert.equal(resolveCategoryId(stale, categories, "expense"), null);
+  assert.equal(draftFromCandidate(stale, accounts, categories).accountId, "");
+  assert.equal(draftFromCandidate(stale, accounts, categories).categoryId, "");
+  assert.equal(resolveAccountId({ account: "Tiền" }, accounts), null);
+  assert.equal(
+    resolveAccountId({ account: " tiền mặt " }, accounts),
+    "acc-cash",
+  );
+});
+
+test("ambiguous account or category names need an explicit ID or reviewer choice", () => {
+  const duplicateAccounts = [
+    ...accounts,
+    { id: "acc-other-cash", name: "tiền mặt" },
+  ];
+  const duplicateCategories = [
+    ...categories,
+    { ...categories[0], id: "cat-other-food", name: "ăn uống" },
+  ];
+  assert.equal(resolveAccountId(expense, duplicateAccounts), null);
+  assert.equal(
+    resolveCategoryId(expense, duplicateCategories, "expense"),
+    null,
+  );
+  const draft = draftFromCandidate(
+    expense,
+    duplicateAccounts,
+    duplicateCategories,
+  );
+  assert.equal(draft.accountId, "");
+  assert.equal(draft.categoryId, "");
+  assert.equal(
+    resolveAccountId({ ...expense, accountId: "acc-cash" }, duplicateAccounts),
+    "acc-cash",
+  );
+  assert.equal(
+    resolveCategoryId(
+      { ...expense, categoryId: "cat-food" },
+      duplicateCategories,
+      "expense",
+    ),
+    "cat-food",
+  );
+});
+
+test("transfer review requires an explicitly chosen destination", () => {
+  const draft = draftFromCandidate(
+    { ...expense, kind: "transfer", category: undefined },
+    accounts,
+    categories,
+  );
+  assert.equal(draft.accountId, "acc-cash");
+  assert.equal(draft.destinationAccountId, "");
+  assert.equal(
+    buildLedgerPost(draft, accounts, categories, "no-destination").ok,
+    false,
+  );
+  draft.destinationAccountId = "acc-bank";
+  assert.equal(
+    buildLedgerPost(draft, accounts, categories, "reviewed-transfer").ok,
+    true,
+  );
+});
+
 test("buildConfirmedReviewRuleSeed preserves an explicit money review as a merchant rule", () => {
   const seed = buildConfirmedReviewRuleSeed(
     {
