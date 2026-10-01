@@ -309,7 +309,7 @@ No new dependency, provider, financial payload collection, schema or license-bea
 
 ### Valid-date confirmation totals — 2026-10-01
 
-**Execution state:** implementing. **Active role:** implementer. **Permission scope:** branch_write. **Owner instruction:** continue product development. **Canon:** Stage 0/1 trustworthy capture feedback.
+**Execution state:** evaluating in PR #741. **Active role:** evaluator. **Permission scope:** branch_write. **Owner instruction:** continue product development. **Canon:** Stage 0/1 trustworthy capture feedback.
 
 - **Observed failure:** categoryMonthTotal accepts every date with the matching YYYY-MM prefix, including malformed or calendar-rollover dates from invalid history. Saved-date validation alone does not protect the total.
 - **Specification:** only valid ISO calendar dates contribute to the recorded-month total. Preserve valid leap days, kind/category/split rules and idempotent-save handling. Skip malformed rows without altering or repairing their stored data.
