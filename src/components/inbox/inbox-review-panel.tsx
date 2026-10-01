@@ -110,7 +110,8 @@ export function InboxReviewPanel({
     plan: InboxDryRunResult | null;
   } | null>(null);
   const candidateId = candidate?.id ?? "";
-  const shouldLoadServerPlan = open && UUID_PATTERN.test(candidateId);
+  const shouldLoadServerPlan =
+    !isDemo && open && UUID_PATTERN.test(candidateId);
   const activeServerPlanState =
     shouldLoadServerPlan && serverPlanState?.candidateId === candidateId
       ? serverPlanState

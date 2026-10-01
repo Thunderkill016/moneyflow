@@ -271,7 +271,7 @@ No new dependency, provider, financial payload collection, schema or license-bea
 
 ### Bounded implementation slice — unresolved account and category, 2026-10-01
 
-**Execution state:** evaluating in PR. **Permission scope:** branch_write. **Owner instruction:** merge PR #733 and begin product development. This slice serves Canon Stage 0/1 trustworthy, low-maintenance reality; it addresses an observed conflict between Inbox readiness and its review form.
+**Execution state:** merged in PR #734 at `0afb5cd0` after all required CI checks passed. **Permission scope:** owner-authorized merge. **Owner instruction:** merge PR #733 and begin product development, then merge the implementation and continue. This slice serves Canon Stage 0/1 trustworthy, low-maintenance reality; it addresses an observed conflict between Inbox readiness and its review form.
 
 - **Observed failure:** readiness marks an absent or invalid account/category as needing attention, while `draftFromCandidate` and the review form fall back to the first available option. A reviewer can then post a value that no source or user selected. Transfer review also preselects a destination account absent from the candidate.
 - **Expected behavior:** retain exact, valid candidate account/category values. Leave unresolved account, category and transfer destination unselected; show a plain-language choice prompt in the existing form. Existing `buildLedgerPost` validation blocks Save until the user chooses valid values. Do not add another confirmation step to a complete, valid candidate.
@@ -287,6 +287,15 @@ No new dependency, provider, financial payload collection, schema or license-bea
 - **Expected behavior:** construct the confirmation ledger with the confirmed transaction once by ID. Preserve distinct transactions even when their amount/date/category match. Do not mutate the actual ledger or weaken save idempotency.
 - **Evaluation/exit:** reproduce the replay overcount with a unit regression, verify confirmed-row precedence and distinct equal-value entries, run affected browser save flows, typecheck, full verification and required CI. No real-user speed improvement is claimed.
 - **Ownership/rollback:** existing capture-consequence domain module and its two callers; revert this PR. No schema, provider, analytics payload or ledger-persistence change.
+
+### Demo transfer follow-up — 2026-10-01
+
+**Execution state:** evaluating in PR #735. **Permission scope:** branch_write; owner requested merge and continued product development. **Canon:** Stage 0/1 trustworthy capture, explicit demo provenance.
+
+- **Observed failure:** a readable demo Inbox candidate ID is reused as its stable approval key, but transfer validation rejects every non-UUID key. UUID demo candidates instead trigger an authenticated source-plan action and are blocked by its unavailable response.
+- **Expected behavior:** explicit demo review uses browser-local data only. A readable transfer key is valid only when it equals the nonempty Inbox candidate ID and the caller is in demo mode. Authenticated transfer validation retains its UUID requirement. Explicit destination selection posts one neutral transfer and preserves retry identity.
+- **Evaluation and exit:** transfer-domain tests reject non-UUID authenticated/mismatched keys; desktop/mobile browser tests prove one exact transfer after destination selection. Full verification and CI must pass before merge; no claim of live authenticated or physical-device acceptance.
+- **Ownership and rollback:** existing transfer validator/hook and Inbox review own the change; revert this PR. No schema, provider configuration, new store or automatic posting. The preceding field-choice PR remains separately reviewed.
 
 ### Image/OCR experiment boundary
 

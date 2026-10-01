@@ -1,4 +1,7 @@
-import { normalizeCurrencyCode, transferCurrencyMismatchMessage } from "./currency.ts";
+import {
+  normalizeCurrencyCode,
+  transferCurrencyMismatchMessage,
+} from "./currency.ts";
 import { TRANSACTION_STATUS } from "./transaction-status.ts";
 import type { CreateTransferInput, Transaction } from "./sample-data.ts";
 
@@ -16,8 +19,7 @@ export type PreparedTransfer = {
 };
 
 export type PrepareTransferResult =
-  | { ok: true; value: PreparedTransfer }
-  | { ok: false; message: string };
+  { ok: true; value: PreparedTransfer } | { ok: false; message: string };
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -26,20 +28,29 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 export function prepareTransferMutation(
   accounts: readonly TransferAccount[],
   input: CreateTransferInput,
+  options: { isDemo?: boolean } = {},
 ): PrepareTransferResult {
   const note = input.note.trim();
+  // Browser-local Inbox IDs can be readable strings. Keep that same identity
+  // for replay protection only in explicit demo mode; server keys stay UUIDs.
+  const isDemoCandidateKey =
+    options.isDemo === true &&
+    Boolean(input.inboxCandidateId?.trim()) &&
+    input.idempotencyKey === input.inboxCandidateId;
   if (
     !Number.isSafeInteger(input.amount) ||
     input.amount <= 0 ||
     note.length > 500 ||
     !DATE_PATTERN.test(input.occurredOn) ||
-    !UUID_PATTERN.test(input.idempotencyKey)
+    (!UUID_PATTERN.test(input.idempotencyKey) && !isDemoCandidateKey)
   ) {
     return { ok: false, message: "Thông tin chuyển tiền chưa hợp lệ." };
   }
 
   const source = accounts.find((item) => item.id === input.sourceAccountId);
-  const destination = accounts.find((item) => item.id === input.destinationAccountId);
+  const destination = accounts.find(
+    (item) => item.id === input.destinationAccountId,
+  );
   if (
     !source ||
     !destination ||
