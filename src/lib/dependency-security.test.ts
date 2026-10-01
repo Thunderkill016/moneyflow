@@ -23,10 +23,10 @@ const MIN_POSTCSS = "8.5.23"; // GHSA-6g55-p6wh-862q incomplete-fix follow-up
 const MIN_NANOID = "3.3.18"; // nanoid: custom generators can loop indefinitely
 const MIN_BROWSERLIST = "4.28.7"; // GHSA-c83g-rgw3-j3cx + GHSA-73wf-gq98-2v4g
 const MIN_QS = "6.16.0"; // GHSA-x5fp-wj9c-mxmx + GHSA-4mjr-xmp4-gh2g
-const MIN_FAST_URI = "3.1.6"; // 2026-08 fast-uri host-confusion / SSRF advisories
-const MIN_HONO = "4.13.5"; // path traversal, parser exhaustion and URL interpretation advisories
+const MIN_FAST_URI = "3.1.8"; // GHSA-hrr3-gc8f-f4qj host normalization fix
+const MIN_HONO = "4.13.7"; // GHSA-hxh3-vqpv-xpqv JSX attribute escaping fix
 const MIN_JS_YAML = "4.3.2"; // GHSA-2883-xcg3-v3hh merge-key CPU exhaustion
-const VETTED_NEXT = "16.3.4"; // >= 16.3.3 patched floor for the 2026-08-25 Critical advisories
+const VETTED_NEXT = "16.3.8"; // Includes the 16.3.6 fix for GHSA-vcvr-r3jv-pc5j
 const VETTED_SHARP = "0.35.4";
 
 function isAtLeast(version: string, minimum: string): boolean {
