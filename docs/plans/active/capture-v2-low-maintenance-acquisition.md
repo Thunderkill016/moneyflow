@@ -379,6 +379,84 @@ Existing routes remain backward-compatible during any future experiment:
 
 Implementation requires separate explicit authorization. The order below is a hypothesis-testing sequence, not automatic permission.
 
+### Owner-requested delivery program — 2026-10-01
+
+**Execution state:** planned; candidate for owner review. **Active role:** planner. **Permission scope:** branch_write for planning. **Owner instruction:** develop a sustained plan rather than a sequence of isolated fixes. This section translates the existing product strategy into coordinated delivery; it does not replace CANON, PRODUCT_STRATEGY or PRODUCT_METRICS. GitHub milestones/issues own execution status. Calendars below are capacity assumptions, not promised delivery dates or automatic release gates.
+
+#### Program outcome and horizon
+
+Within a proposed 12-week cycle, make one complete daily/weekly money workflow dependable and cheaper to maintain: set up represented accounts → record cash or acquire statement activity → resolve exceptions → reconcile → understand the period → correct/export. A user should understand what is known and what still needs attention without learning accounting or the implementation pipeline.
+
+The primary cohort remains digitally banked Vietnamese individuals using multiple payment channels. First-time users, cash-heavy users, mixed-account users and users returning after a gap must all be represented in evaluation. This cohort is a working product hypothesis; recruit and verify fit rather than implying interviews have occurred.
+
+Product character: one clear primary action per screen, Vietnamese language, amount-first manual capture, progressively disclosed detail, explicit unresolved financial facts, correction and recovery in the same task. “Apple-like” means coherent, understandable, dependable interaction; it does not authorize visual imitation or a second design system.
+
+#### Delivery phases
+
+| Phase / proposed window                          | User outcome                                                                                   | Connected work package                                                                                                                                                                                                 | Acceptance / decision                                                                                                                                                                                                  | Dependencies                                                                                                     |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| A — weeks 1–2: baseline and release contract     | A new user can establish represented accounts, save an expense/transfer and recover a mistake  | Freeze representative end-to-end journeys and release candidate; inspect current onboarding, capture, Inbox, reconciliation and export; run existing benchmark harness and observe consented physical-phone sessions   | Document actual task completion, errors, abandonment, TTLT and coverage comprehension; identify the largest failing journey; any financial/ownership/recovery failure is release-blocking in its affected path         | Current main and provider read access; real-user/device evidence must be collected, not simulated                |
+| B — weeks 3–4: complete daily Ghi                | Recording a routine expense and correcting it requires little work and no coaching             | Improve the largest measured friction across access, existing frequent patterns/payee assists, amount/account/category/date entry, save/correction, offline/failure states; one coherent journey per package           | Same frozen tasks/devices versus phase A: less end-to-end effort, no new material wrong-field/duplicate errors; first-time users remain usable; explain uncertain results                                              | Phase A baseline; reuse released patterns rather than build another inference system                             |
+| C — weeks 5–7: statement-to-reconciled-period    | Digital activity can be imported and trusted without retyping every row                        | Connect existing CSV/Excel mapping memory, provenance, deterministic rules, duplicate/transfer matching, exception review, retry and account reconciliation; test repeat import and interrupted review as one workflow | Repeated import produces no extra ledger facts; cross-account transfer stays neutral; mapping/correction work falls on repeated tasks; unresolved coverage is visible; account reconciliation is reachable and correct | Trustworthy mutation/RLS contracts; approved or visibly synthetic source fixtures                                |
+| D — weeks 8–9: understand and maintain the month | The user can explain where money went, inspect the underlying records and resolve what remains | Connect current dashboard, reports/drill-down, review state, account coverage, existing budgets/commitments/goals and export; improve comprehension of existing facts before adding new planning models                | Totals match the filtered ledger; transfers excluded; unknown sources/obligations remain unknown; user can trace a number to records and correct it; report-to-export meets existing MVP contract                      | Phase C representative period; existing planning capabilities remain facts/expectations with explicit boundaries |
+| E — weeks 10–12: controlled beta and maintenance | A returning user can maintain another trustworthy period with less work                        | Run a consented repeated-use pilot, verify current authenticated isolation/export/restore and release operations, observe low-end phone/accessibility/performance; fix release blockers in batches                     | Stage 0/1 scorecard with real evidence, limitations, support and rollback readiness; publish keep/change/kill decisions and owner beta decision                                                                        | Provider/production changes require their separate authority; a build is not deployed acceptance                 |
+
+Week boundaries may move when evidence or capacity changes. Do not skip phase A because code already exists. Do not call a stage complete from automated browser tests alone. Each phase produces a reviewable journey, acceptance evidence and an owner handoff, not a list of disconnected merged files.
+
+#### Packages and existing owners
+
+| Package                             | Existing implementation to reuse                                                                                      | Evidence to extend                                                                                 |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| New-user-to-first-record            | src/components/onboarding-flow.tsx, src/lib/onboarding.ts, shared add-transaction dialog, capture quick page          | Existing onboarding/audit and expense-path browser journeys, first-time observation                |
+| Fast manual capture and correction  | src/lib/quick-add-defaults.ts, shared Ghi form, capture-consequence.ts, existing edit mutation                        | Capture benchmark harness/driver, capture consequence and correction browser cases                 |
+| Acquire and review digital activity | existing direct CSV/import pages; inbox direct-csv-mapping-preset, import-batch-store, apply-rules and review modules | Remembered mapping, Inbox review, retry/idempotency and source fixture evidence                    |
+| Reconcile and explain               | existing account-reconciliation-page, report/transaction workspaces and planning/month-review.ts                      | Account reconciliation browser journey, report-to-ledger parity and export acceptance              |
+| Operational readiness               | existing CI, RLS/pgTAP, archive/export/restore and deployment runbooks                                                | Exact release candidate, authenticated flow, recovery drill and provider read-back when authorized |
+
+These are work-package owners, not permission to rewrite entire modules. Refresh current paths/contracts before each issue. Existing payee, frequent patterns, rules, reconciliation and planning functionality are baseline to validate and connect, not “missing features” to reimplement.
+
+#### Measurement and experiment contract
+
+Use PRODUCT_METRICS as the definition owner. Phase A records denominators, cohort, device, version and evidence tier for:
+
+- **Task completion:** completed trusted workflow / started eligible workflows; report abandonment and failures separately.
+- **TTLT:** intentional capture start to trustworthy saved transaction including needed correction; report distribution and task/cohort, not only fastest machine time.
+- **Maintenance burden:** mapping, categorization, duplicate resolution, transfer confirmation, correction and reconciliation interventions per 100 observed transactions; also total maintenance time per represented period.
+- **Trust:** amount/account/kind/date errors, duplicates, unexplained balance discrepancies, unresolved items by type and reconciliation/coverage comprehension.
+- **Repeated value:** whether the same participant can maintain the next period and explain its records with less work; active app use alone is not success.
+
+Set an effect-size target and acceptance protocol after baseline but before each experiment starts; do not move the threshold to fit results. Compare the same tasks and devices with the released control, including correction and failure recovery. A small pilot exposes usability failures; it does not prove population-wide improvement. Missing participants/devices are pending evidence, never zero errors or synthetic user success.
+
+The existing automated capture driver measures a scripted machine floor only. Consent-based research should avoid uploading balances, payee text, notes or statement content into analytics; use bounded timings, field-change classes and aggregate outcomes. Reuse existing event/measurement contracts; changing collection or retention requires a scoped privacy review. No financial-data telemetry is authorized by this plan.
+
+#### Working cadence, capacity and prioritization
+
+- One active product journey at a time. Plan with a single implementation lane unless actual staffing is supplied; no parallel-agent assumption. Each cycle ends with a usable end-to-end result, evidence and a decision.
+- Weekly review: current phase outcome, actual user failure, baseline comparison, release blockers, scope/capacity adjustment and next bounded package. Engineering status remains in GitHub; this packet is the contract, not another status dashboard.
+- Prioritize correctness/ownership/data-loss blockers immediately, then the measured bottleneck in the active journey. Small copy/fixture/edge-case issues are batched into maintenance; they do not become the next roadmap by default.
+- Reserve one maintenance batch per cycle. If blockers consume the cycle, show the program impact and reschedule explicitly; do not portray many small PRs as delivery of a phase.
+- A product package includes design/copy, domain/UI implementation, tests, offline/error/empty states, correction and acceptance together. Smaller PRs are allowed for review safety, but every PR belongs to one package and its exit criterion.
+- Before coding each package: issue with user failure, milestone, expected behavior, evaluation, reuse, boundaries and rollback. Before release: exact-head CI, relevant authenticated/data/browser evidence, approved deployment, read-back and rollback under the existing operating policy.
+- Keep/change/kill: keep only when the user outcome improves under the trust contract; change when friction moves elsewhere; stop a prototype when it increases total effort or complexity. Revert safely rather than leave every experiment permanently visible.
+
+#### Next six-to-twelve-month direction
+
+These are conditional capability horizons, not concurrent work or fixed release promises:
+
+| Horizon after Stage 0/1                            | Outcome                                                              | Candidate scope                                                                                                                                                                  | Gate before implementation                                                                                                                                                 |
+| -------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Next 3–6 months: Resilience                        | Understand upcoming obligations, irregular income, reserves and debt | Audit and connect existing commitments/income first; define debt balances, principal/interest/fees, schedules, partial payments and overdue semantics; model user-owned reserves | Stage 0/1 evidence; explicit assumptions and missing-input behavior; reviewed domain specification, financial/RLS/migration/restore contracts and owner scope decision     |
+| Next 6–9 months: Progress                          | Track savings/debt goals and plan versus actual                      | Extend existing goals and contribution links; plans depend on verified actuals and explicit user assumptions                                                                     | Resilience evidence and user demand; no invented universal targets or projected certainty                                                                                  |
+| Next 9–12 months: Choice and selective acquisition | Compare choices or reduce acquisition work further                   | Scenarios; selected provider/native acquisition only if current manual/import maintenance remains the measured bottleneck and feasibility is demonstrated                        | Source access/coverage, legal/privacy/security/operating costs, authority and rollback; AI can explain grounded facts but cannot invent or silently mutate financial truth |
+
+Provider connectivity, OCR, native apps, household sharing, investment/wealth and AI advice remain separate decisions. Research questions should be raised ahead of their stage; speculative features must not displace the current maintenance bottleneck. Financial domain study is done just in time for each defined contract, with primary sources and applicability limits; this planning revision makes no new legal or financial-guidance claims.
+
+#### Immediate next package
+
+Begin phase A with one frozen six-task journey: create represented accounts → record cash expense → record neutral transfer → import/re-import a statement → resolve an exception and reconcile → inspect the period, correct and export. Include interruption/offline recovery and first-time/stable-history variants. Inventory existing tests/harness first, write the smallest missing journey evidence, then identify the dominant friction. This is the next product package after open maintenance work, not another speculative feature or isolated confirmation fix.
+
+Deliverables: reproducible scripted baseline; explicit physical-user protocol; unverified-evidence list; Stage 0/1 gap ranking; and a selected phase B package. Recruitment/device/provider approval dependencies may stay open while synthetic and repository-level work proceeds, but those tiers must remain visibly distinct.
+
 ### Slice 0 — Baseline released Ghi
 
 - measure #596 amount-first TTLT, taps and correction on representative physical phones;
@@ -633,4 +711,4 @@ The later exact-head check on `3ebb5ece820f55a28b016763f1ec2d5a89d9f68f` confirm
 
 ### Next allowed action
 
-Owner reviews/edits this specification. After explicit implementation authorization, begin with baseline measurement and the smallest reversible Frequent Patterns experiment. Counterparty schema work, permanent IA changes, OCR/STT/provider work require separate bounded authority.
+Use the owner-requested delivery program above: begin Phase A with the frozen complete money journey, collect baseline and choose the largest measured friction. Existing technical slices remain reusable experiments within a selected work package; they are not an automatic next-feature queue. Counterparty schema work, permanent IA changes, OCR/STT/provider work require separate bounded authority.
