@@ -349,7 +349,11 @@ test("requires explicit reviewed metadata instead of assuming legacy rows are tr
       categoryId: "travel",
       occurredAt: "2026-09-12T09:00:00.000Z",
     }),
-  ].map(({ reviewStatus: _reviewStatus, ...row }) => row as Transaction);
+  ].map((transaction) => {
+    const row: Partial<Transaction> = { ...transaction };
+    delete row.reviewStatus;
+    return row as Transaction;
+  });
 
   assert.equal(derive(rows), null);
 });
