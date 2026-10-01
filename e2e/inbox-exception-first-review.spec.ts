@@ -401,50 +401,105 @@ test("an unresolved category stays blank until the reviewer selects it", async (
   await expect(page.getByText(/Đã duyệt .+ vào sổ\./)).toBeVisible();
 });
 
-test("a transfer destination is never chosen from account order", async ({
-  page,
-}) => {
-  await page.addInitScript(
-    ({ candidateKey, transactionKey, occurrenceKey, occurrences, seed }) => {
-      localStorage.setItem(candidateKey, JSON.stringify(seed));
-      localStorage.removeItem(transactionKey);
-      localStorage.setItem(occurrenceKey, JSON.stringify(occurrences));
-    },
-    {
-      candidateKey: CANDIDATE_KEY,
-      transactionKey: TRANSACTION_KEY,
-      occurrenceKey: OCCURRENCE_KEY,
-      occurrences: paidDemoCommitments(vietnamMonthStart()),
-      seed: [candidates[5]],
-    },
-  );
+for (const candidateId of [
+  "attention-transfer",
+  "9a20255a-1882-480d-aea1-a07e10b6dc27",
+]) {
+  test(`a demo transfer keeps explicit destination and retry identity (${candidateId})`, async ({
+    page,
+  }) => {
+    await page.addInitScript(
+      ({ candidateKey, transactionKey, occurrenceKey, occurrences, seed }) => {
+        localStorage.setItem(candidateKey, JSON.stringify(seed));
+        localStorage.removeItem(transactionKey);
+        localStorage.setItem(occurrenceKey, JSON.stringify(occurrences));
+      },
+      {
+        candidateKey: CANDIDATE_KEY,
+        transactionKey: TRANSACTION_KEY,
+        occurrenceKey: OCCURRENCE_KEY,
+        occurrences: paidDemoCommitments(vietnamMonthStart()),
+        seed: [{ ...candidates[5], id: candidateId }],
+      },
+    );
 
-  await page.goto("/inbox");
-  await page.getByRole("button", { name: "Duyệt Internal Transfer" }).click();
-  const dialog = page.getByRole("dialog", { name: "Duyệt giao dịch" });
-  await expect(dialog.getByLabel("Từ tài khoản")).toHaveValue(
-    "demo-account-mb",
-  );
-  const destination = dialog.getByLabel("Đến tài khoản");
-  await expect(destination).toHaveValue("");
-  await expect(destination).toBeFocused();
+    await page.goto("/inbox");
+    await page.getByRole("button", { name: "Duyệt Internal Transfer" }).click();
+    const dialog = page.getByRole("dialog", { name: "Duyệt giao dịch" });
+    await expect(dialog.getByLabel("Từ tài khoản")).toHaveValue(
+      "demo-account-mb",
+    );
+    const destination = dialog.getByLabel("Đến tài khoản");
+    await expect(destination).toHaveValue("");
+    await expect(destination).toBeFocused();
 
-  await destination.selectOption("demo-account-cash");
-  await expect(destination).toHaveValue("demo-account-cash");
-  const stored = await page.evaluate(
-    ({ candidateKey, transactionKey }) => ({
-      candidates: JSON.parse(
-        localStorage.getItem(candidateKey) ?? "[]",
-      ) as Array<{
-        status: string;
-      }>,
-      transactions: localStorage.getItem(transactionKey),
-    }),
-    { candidateKey: CANDIDATE_KEY, transactionKey: TRANSACTION_KEY },
-  );
-  expect(stored.candidates[0]?.status).toBe("pending");
-  expect(stored.transactions).toBeNull();
-});
+    await destination.selectOption("demo-account-cash");
+    await expect(destination).toHaveValue("demo-account-cash");
+    const stored = await page.evaluate(
+      ({ candidateKey, transactionKey }) => ({
+        candidates: JSON.parse(
+          localStorage.getItem(candidateKey) ?? "[]",
+        ) as Array<{
+          status: string;
+        }>,
+        transactions: localStorage.getItem(transactionKey),
+      }),
+      { candidateKey: CANDIDATE_KEY, transactionKey: TRANSACTION_KEY },
+    );
+    expect(stored.candidates[0]?.status).toBe("pending");
+    expect(stored.transactions).toBeNull();
+    await dialog.getByRole("button", { name: "Duyệt vào sổ" }).click();
+    await expect(page.getByText(/Đã duyệt .+ vào sổ\./)).toBeVisible();
+    const posted = await page.evaluate(
+      (key) =>
+        JSON.parse(localStorage.getItem(key) ?? "[]") as Array<{
+          id: string;
+          kind: string;
+          accountId: string;
+          destinationAccountId: string;
+          amount: number;
+        }>,
+      TRANSACTION_KEY,
+    );
+    expect(posted.filter((item) => item.id === candidateId)).toEqual([
+      expect.objectContaining({
+        kind: "transfer",
+        accountId: "demo-account-mb",
+        destinationAccountId: "demo-account-cash",
+        amount: 75_000,
+      }),
+    ]);
+    // Simulate a lost candidate-status write after the ledger save. A new page
+    // avoids this test's initial seed script and exercises the persisted retry.
+    await page.evaluate((key) => {
+      const rows = JSON.parse(localStorage.getItem(key) ?? "[]");
+      rows[0].status = "pending";
+      localStorage.setItem(key, JSON.stringify(rows));
+    }, CANDIDATE_KEY);
+    const retryPage = await page.context().newPage();
+    await retryPage.goto("/inbox");
+    await retryPage
+      .getByRole("button", { name: "Duyệt Internal Transfer" })
+      .click();
+    const retryDialog = retryPage.getByRole("dialog", {
+      name: "Duyệt giao dịch",
+    });
+    await retryDialog
+      .getByLabel("Đến tài khoản")
+      .selectOption("demo-account-cash");
+    await retryDialog.getByRole("button", { name: "Duyệt vào sổ" }).click();
+    await expect(retryPage.getByText(/Đã duyệt .+ vào sổ\./)).toBeVisible();
+    const retryIds = await retryPage.evaluate(
+      (key) =>
+        (
+          JSON.parse(localStorage.getItem(key) ?? "[]") as Array<{ id: string }>
+        ).map((item) => item.id),
+      TRANSACTION_KEY,
+    );
+    expect(retryIds.filter((id) => id === candidateId)).toHaveLength(1);
+    await retryPage.close();
+  });
+}
 
 test("a fully cleared inbox shows the done state, not a bare empty list", async ({
   page,
