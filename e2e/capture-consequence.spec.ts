@@ -20,6 +20,7 @@ const CATEGORY = "Giải trí";
 async function quickSave(
   page: import("@playwright/test").Page,
   amount: string,
+  occurredOn?: string,
 ) {
   await page.goto("/capture/quick");
   const dialog = page.getByRole("dialog", { name: "Ghi giao dịch" });
@@ -42,9 +43,18 @@ async function quickSave(
     if (await option.count()) await option.click();
   }
 
+  const details = dialog.locator('[data-slot="capture-optional-details"]');
+  if ((await details.getAttribute("open")) === null) {
+    await details.locator("summary").click();
+  }
+  const date = dialog.getByLabel("Ngày", { exact: true });
+  if (occurredOn) await date.fill(occurredOn);
+  const recordedDate = await date.inputValue();
+
   const save = dialog.getByRole("button", { name: "Lưu", exact: true });
   await expect(save).toBeEnabled({ timeout: 15_000 });
   await save.click();
+  return recordedDate;
 }
 
 test("the second save in a category reports what it adds up to", async ({
@@ -57,13 +67,27 @@ test("the second save in a category reports what it adds up to", async ({
   await expect(firstNotice).toBeVisible();
   await expect(firstNotice).not.toContainText(`${CATEGORY} tháng`);
 
-  await quickSave(page, "50000");
+  const date = await quickSave(page, "50000");
 
   const secondNotice = page.getByText(/Đã ghi khoản chi/u).first();
   await expect(secondNotice).toBeVisible();
+  const [year, month] = date.split("-");
   await expect(secondNotice).toContainText(
-    new RegExp(`${CATEGORY} tháng \\d{1,2}/\\d{4}`),
+    `${CATEGORY} tháng ${Number(month)}/${year}`,
   );
   // 100.000 + 50.000, and the figure has to be the total rather than the entry.
   await expect(secondNotice).toContainText("150.000");
+});
+
+// Explicit old dates make this independent of the current clock and demo carryover.
+test("backdated saves show the recorded year and exclude another month", async ({
+  page,
+}) => {
+  await quickSave(page, "900000", "2024-12-31");
+  await quickSave(page, "100000", "2025-01-05");
+  await quickSave(page, "50000", "2025-01-09");
+  const notice = page.getByText(/Đã ghi khoản chi/u).first();
+  await expect(notice).toContainText(`${CATEGORY} tháng 1/2025: 150.000`);
+  await expect(notice).not.toContainText("tháng này");
+  await expect(notice).not.toContainText("1.050.000");
 });
