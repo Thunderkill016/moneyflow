@@ -459,7 +459,7 @@ Deliverables: reproducible scripted baseline; explicit physical-user protocol; u
 
 ### Phase A execution contract — 2026-10-01
 
-**Execution state:** implementing. **Active role:** evaluator. **Permission scope:** branch_write. **Owner instruction:** merge the delivery program and execute it. Planning PR #742 merged at 739e9e43. This package owns baseline evidence, not a new feature system.
+**Execution state:** evaluating in PR #743. **Active role:** evaluator. **Permission scope:** branch_write. **Owner instruction:** merge the delivery program and execute it. Planning PR #742 merged at 739e9e43. This package owns baseline evidence, not a new feature system.
 
 Run `npm run test:journey:baseline` under Node 22 for the frozen automated demo baseline on desktop/mobile Chromium. It composes existing suites rather than duplicating domain implementations. Each test owns isolated synthetic demo state; passing them is not a single authenticated end-to-end journey or real-user timing. Run `npm run test:e2e:auth` separately for the existing loopback ownership/recovery contract; that double is not deployed Supabase evidence. Existing script `scripts/capture-bench-driver.mjs` remains an optional machine-floor timing tool, not user TTLT.
 
@@ -478,6 +478,12 @@ Run `npm run test:journey:baseline` under Node 22 for the frozen automated demo 
 Research owner recruits consented participants across first-time, stable-history and multi-account cohorts, with actual phone/browser recorded. No participants are claimed yet. Use the same frozen jobs; avoid coaching, let users stop, and include correction in completion/time. Use synthetic statements first; real financial records remain participant-controlled and are not copied into analytics or PR artifacts. Observe whether the user can distinguish a posted record, unresolved candidate, expected commitment and reconciled/partial coverage.
 
 For each task record: anonymous participant/session code, build, device/browser, cohort, completion/abandonment, start-to-trusted-finish duration, interventions by type, material wrong fields/duplicates, correction effort, and the user's explanation of the result. Keep raw private observations outside repo under a consented retention policy. Report timing by task/cohort; automated execution duration is never substituted for human TTLT. Agree effect-size targets after baseline and before a subsequent prototype, using the program's measurement contract.
+
+#### Automated baseline evidence — 2026-10-01
+
+At this package's local Node 22 tree: demo baseline 60/60 pass on desktop/mobile Chromium; separate authenticated loopback suite 30 pass and one configured performance-attribution diagnostic skip. Lint, typecheck, production build through the authenticated harness, 191 CI-policy cases, formatting and project-knowledge checks pass. The demo run took 5.9 minutes and the authenticated run 3.9 minutes; these are machine suite durations, not participant timing or product speed targets. Exact-head provider CI remains required after final documentation.
+
+No observed failure in these frozen scripted cases warrants another isolated capture patch. The next connected package should close the statement import/re-import → exception review → reconciliation evidence gap, with first-time setup and human comprehension as separately unverified baselines. This selects an engineering evidence gap; it does not establish the biggest real-user friction without the human protocol above.
 
 #### Baseline exit and next decision
 
