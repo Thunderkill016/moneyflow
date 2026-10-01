@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { captureConsequence, categoryMonthTotal } from "./capture-consequence.ts";
+import {
+  captureConsequence,
+  categoryMonthTotal,
+  ledgerAfterCapture,
+} from "./capture-consequence.ts";
 import { topExpenseCategories } from "./finance.ts";
 import type { Transaction } from "./sample-data.ts";
 
@@ -18,14 +22,24 @@ const base: Transaction = {
   relativeDate: "5 tháng 7",
 };
 
-const second: Transaction = { ...base, id: "b", amount: 50_000, occurredOn: "2026-07-09" };
+const second: Transaction = {
+  ...base,
+  id: "b",
+  amount: 50_000,
+  occurredOn: "2026-07-09",
+};
 const otherCategory: Transaction = {
   ...base,
   id: "c",
   category: "Di chuyển",
   amount: 30_000,
 };
-const lastMonth: Transaction = { ...base, id: "d", amount: 900_000, occurredOn: "2026-06-30" };
+const lastMonth: Transaction = {
+  ...base,
+  id: "d",
+  amount: 900_000,
+  occurredOn: "2026-06-30",
+};
 const transfer: Transaction = {
   ...base,
   id: "e",
@@ -46,6 +60,34 @@ test("the line states what was recorded and what it adds up to", () => {
   // 100k + 50k this month; June's 900k must not be counted.
   assert.ok(line.includes("150.000"), line);
   assert.ok(!line.includes("900.000"), line);
+});
+
+test("an idempotent save replay cannot inflate the displayed category total", () => {
+  const stored = [base, second, otherCategory];
+  const replayLedger = ledgerAfterCapture(second, stored);
+  assert.equal(replayLedger.filter((item) => item.id === second.id).length, 1);
+  assert.equal(
+    categoryMonthTotal(replayLedger, "Ăn uống", "expense", second.occurredOn),
+    150_000,
+  );
+  assert.ok(
+    captureConsequence({ saved: second, transactions: replayLedger }).includes(
+      "150.000",
+    ),
+  );
+  assert.deepEqual(stored, [base, second, otherCategory]);
+});
+
+test("the confirmed save replaces a stale same-ID row but preserves distinct equal-value rows", () => {
+  const stale = { ...second, amount: 10_000 };
+  const distinct = { ...second, id: "different-transaction" };
+  const ledger = ledgerAfterCapture(second, [base, stale, distinct]);
+  assert.equal(
+    categoryMonthTotal(ledger, "Ăn uống", "expense", second.occurredOn),
+    200_000,
+  );
+  assert.equal(ledger[0], second);
+  assert.equal(ledger.length, 3);
 });
 
 test("the running total agrees with the dashboard's own category figure", () => {
@@ -79,15 +121,27 @@ test("a split row contributes only its own line, as the dashboard counts it", ()
     (item) => item.name === "Ăn uống",
   );
   assert.ok(share);
-  assert.equal(categoryMonthTotal(ledger, "Ăn uống", "expense", "2026-07-14"), share.amount);
-  assert.equal(categoryMonthTotal(ledger, "Ăn uống", "expense", "2026-07-14"), 300_000);
+  assert.equal(
+    categoryMonthTotal(ledger, "Ăn uống", "expense", "2026-07-14"),
+    share.amount,
+  );
+  assert.equal(
+    categoryMonthTotal(ledger, "Ăn uống", "expense", "2026-07-14"),
+    300_000,
+  );
 });
 
 test("transfers get a plain confirmation and never a category total", () => {
-  const line = captureConsequence({ saved: transfer, transactions: [base, transfer] });
+  const line = captureConsequence({
+    saved: transfer,
+    transactions: [base, transfer],
+  });
 
   assert.equal(line, "Đã chuyển tiền 2.000.000 ₫.");
-  assert.ok(!line.includes("tháng này"), "a transfer belongs to no category total");
+  assert.ok(
+    !line.includes("tháng này"),
+    "a transfer belongs to no category total",
+  );
 });
 
 test("the first entry in a category says nothing redundant", () => {
@@ -108,12 +162,23 @@ test("income is summed against income, never mixed with expense", () => {
     category: "Lương",
     amount: 10_000_000,
   };
-  const bonus: Transaction = { ...salary, id: "s2", amount: 2_000_000, occurredOn: "2026-07-20" };
-  const line = captureConsequence({ saved: bonus, transactions: [base, salary, bonus] });
+  const bonus: Transaction = {
+    ...salary,
+    id: "s2",
+    amount: 2_000_000,
+    occurredOn: "2026-07-20",
+  };
+  const line = captureConsequence({
+    saved: bonus,
+    transactions: [base, salary, bonus],
+  });
 
   assert.match(line, /^Đã ghi khoản thu/u);
   assert.ok(line.includes("12.000.000"), line);
-  assert.ok(!line.includes("100.000"), "the expense must not leak into an income total");
+  assert.ok(
+    !line.includes("100.000"),
+    "the expense must not leak into an income total",
+  );
 });
 
 /*

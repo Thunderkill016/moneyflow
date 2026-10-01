@@ -31,6 +31,14 @@ export type CaptureConsequenceInput = {
   transactions: Transaction[];
 };
 
+/** Include the confirmed row exactly once, including an idempotent save replay. */
+export function ledgerAfterCapture(
+  saved: Transaction,
+  transactions: readonly Transaction[],
+): Transaction[] {
+  return [saved, ...transactions.filter((item) => item.id !== saved.id)];
+}
+
 /**
  * Running total for one category within the month of a given date.
  *

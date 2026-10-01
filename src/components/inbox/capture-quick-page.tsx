@@ -6,17 +6,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AddTransactionDialog } from "@/components/add-transaction-dialog";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { ToastTone } from "@/components/ui/toast";
 import type { ViewerSummary } from "@/components/user-chip";
 import { useTransactions } from "@/hooks/use-transactions";
-import { captureConsequence } from "@/lib/capture-consequence";
+import {
+  captureConsequence,
+  ledgerAfterCapture,
+} from "@/lib/capture-consequence";
 import {
   deriveFrequentLedgerPatterns,
   derivePayeeSuggestions,
@@ -45,7 +44,8 @@ import type {
 import styles from "./capture-quick-page.module.css";
 
 const TransferDialog = dynamic(
-  () => import("@/components/transfer-dialog").then((mod) => mod.TransferDialog),
+  () =>
+    import("@/components/transfer-dialog").then((mod) => mod.TransferDialog),
   { ssr: false },
 );
 const EditTransactionDialog = dynamic(
@@ -99,7 +99,9 @@ export function CaptureQuickPage({
     isDemo: viewer.isDemo,
   });
   const [notice, setNotice] = useState("");
-  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(
+    undefined,
+  );
   const [recentSaved, setRecentSaved] = useState<Transaction | null>(null);
   const recentSavedRef = useRef<Transaction | null>(null);
   const [editing, setEditing] = useState<Transaction | null>(null);
@@ -136,7 +138,8 @@ export function CaptureQuickPage({
   }, [viewer.isDemo]);
 
   useEffect(() => {
-    if (!formOpen || !hasQuickSetup || captureStartedAtRef.current !== null) return;
+    if (!formOpen || !hasQuickSetup || captureStartedAtRef.current !== null)
+      return;
     captureStartedAtRef.current = performance.now();
   }, [formOpen, hasQuickSetup]);
 
@@ -221,7 +224,7 @@ export function CaptureQuickPage({
       result.transaction
         ? captureConsequence({
             saved: result.transaction,
-            transactions: [result.transaction, ...transactions],
+            transactions: ledgerAfterCapture(result.transaction, transactions),
           })
         : "Đã lưu giao dịch.",
       "success",
@@ -338,7 +341,10 @@ export function CaptureQuickPage({
       }
     >
       <main className={styles.workspace} data-slot="capture-quick-workspace">
-        <section className={styles.titleRow} aria-labelledby="capture-quick-title">
+        <section
+          className={styles.titleRow}
+          aria-labelledby="capture-quick-title"
+        >
           <div className={styles.titleCopy}>
             <LinkButton
               className={styles.eyebrow}
@@ -351,15 +357,12 @@ export function CaptureQuickPage({
             <h1 id="capture-quick-title">Thêm nhanh</h1>
             <p>
               Nhập số tiền trước. MoneyFlow dùng lựa chọn ổn định từ sổ gần đây;
-              nếu chưa đủ chắc chắn, lựa chọn gần nhất trên thiết bị vẫn là dự phòng.
+              nếu chưa đủ chắc chắn, lựa chọn gần nhất trên thiết bị vẫn là dự
+              phòng.
             </p>
           </div>
           <div className={styles.headingActions}>
-            <LinkButton
-              href="/inbox"
-              intent="secondary"
-              targetSize="important"
-            >
+            <LinkButton href="/inbox" intent="secondary" targetSize="important">
               <Icon name="inbox" /> Về Inbox
             </LinkButton>
           </div>
@@ -395,7 +398,9 @@ export function CaptureQuickPage({
                 intent="primary"
                 targetSize="important"
               >
-                {workspace.accounts.length ? "Quản lý danh mục" : "Quản lý tài khoản"}
+                {workspace.accounts.length
+                  ? "Quản lý danh mục"
+                  : "Quản lý tài khoản"}
               </LinkButton>
             }
             secondaryAction={
@@ -415,8 +420,8 @@ export function CaptureQuickPage({
           <Alert tone="success" live="polite" className={styles.state}>
             <AlertTitle>Đã lưu vào sổ</AlertTitle>
             <AlertDescription>
-              Nếu vừa nhận ra tài khoản, danh mục hay ghi chú chưa đúng, chọn Sửa ngay;
-              hoặc ghi tiếp một khoản khác.
+              Nếu vừa nhận ra tài khoản, danh mục hay ghi chú chưa đúng, chọn
+              Sửa ngay; hoặc ghi tiếp một khoản khác.
             </AlertDescription>
             <div>
               <Button
