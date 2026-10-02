@@ -339,6 +339,9 @@ jobs:
         if: needs.classify.outputs.database == 'true' && steps.database-tests.outcome == 'success'
         shell: bash
         run: |
+          # db start created a database-only stack; full start must begin from
+          # a fresh disposable stack rather than treating that DB as running API.
+          supabase stop --no-backup
           supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor > /tmp/mf-statement-start.log 2>&1
           supabase status -o json > /tmp/mf-statement-status.json
           node --input-type=module <<'JS'
