@@ -33,14 +33,6 @@ test("real authenticated CSV posting, re-import and reconciliation preserve one 
   }
   const owner = await newTenant();
   const other = await newTenant();
-  const account = await owner.client.rpc("create_financial_account", {
-    p_name: "Synthetic statement bank",
-    p_kind: "bank",
-    p_initial_balance_minor: OPENING_BALANCE,
-    p_currency_code: "VND",
-  });
-  expect(account.error).toBeNull();
-  const accountId = account.data as string;
   const category = await owner.client
     .from("categories")
     .select("id")
@@ -60,6 +52,50 @@ test("real authenticated CSV posting, re-import and reconciliation preserve one 
   await page.getByRole("button", { name: "Đăng nhập" }).click();
   await page.waitForURL((url) => !url.pathname.startsWith("/login"));
   await expect(page.getByText("Chế độ demo", { exact: false })).toHaveCount(0);
+
+  // Exercise first-account provisioning through the UI, not a fixture RPC.
+  const accountName = "Synthetic statement bank";
+  await page.goto("/accounts");
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-moneyflow-shell",
+    "mounted",
+  );
+  await page
+    .getByRole("button", { name: "Thêm tài khoản", exact: true })
+    .filter({ visible: true })
+    .click();
+  const accountDialog = page.getByRole("dialog", { name: "Thêm tài khoản" });
+  await accountDialog.getByLabel("Tên tài khoản").fill(accountName);
+  await accountDialog.getByLabel("Loại tài khoản").selectOption("bank");
+  await accountDialog.getByLabel("Số dư ban đầu").fill(String(OPENING_BALANCE));
+  await accountDialog
+    .getByRole("button", { name: "Thêm tài khoản", exact: true })
+    .click();
+  await expect(
+    page.getByText("Đã thêm tài khoản.", { exact: true }),
+  ).toBeVisible();
+  const account = await owner.client
+    .from("accounts")
+    .select("id,user_id,name,kind,currency_code,initial_balance_minor")
+    .eq("name", accountName)
+    .single();
+  expect(account.error).toBeNull();
+  expect(account.data).toMatchObject({
+    user_id: owner.id,
+    name: accountName,
+    kind: "bank",
+    currency_code: "VND",
+    initial_balance_minor: OPENING_BALANCE,
+  });
+  const accountId = account.data!.id;
+  await page.reload();
+  await expect(page.getByText(accountName, { exact: true })).toBeVisible();
+  const hiddenAccount = await other.client
+    .from("accounts")
+    .select("id")
+    .eq("id", accountId);
+  expect(hiddenAccount.error).toBeNull();
+  expect(hiddenAccount.data).toEqual([]);
 
   async function upload() {
     await page.goto("/capture/upload");
