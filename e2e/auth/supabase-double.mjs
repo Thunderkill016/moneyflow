@@ -348,6 +348,15 @@ const server = createServer(async (req, res) => {
 
   if (path.startsWith("/rest/v1/")) {
     const table = path.slice("/rest/v1/".length);
+    // Table fixtures implement reads only. A write must not receive a read
+    // response and falsely appear persisted to the authenticated client.
+    if (!["GET", "HEAD"].includes(req.method)) {
+      miss(`unimplemented table mutation ${req.method} ${table}`);
+      json(res, 501, {
+        message: `harness double has no mutation for ${table}`,
+      });
+      return;
+    }
     if (!TABLES.has(table)) {
       miss(`unimplemented table ${table}`);
       json(res, 501, { message: `harness double has no table ${table}` });
@@ -378,5 +387,7 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT, "127.0.0.1", () => {
-  console.log(`[supabase-double] listening on http://127.0.0.1:${PORT}`);
+  console.log(
+    `[supabase-double] listening on http://127.0.0.1:${server.address().port}`,
+  );
 });
