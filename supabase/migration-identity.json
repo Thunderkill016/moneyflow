@@ -359,6 +359,16 @@
       "version": "20260926120000",
       "name": "20260926120000_account_identity.sql",
       "hash": "6294a50af8e0b042f5bf35a0489f515f"
+    },
+    {
+      "version": "20261002120000",
+      "name": "20261002120000_oauth_mutation_boundary.sql",
+      "hash": "0fe8df7e6b7a7216f70deac0a066dd99"
+    },
+    {
+      "version": "20261002121000",
+      "name": "20261002121000_agent_proposal_identity.sql",
+      "hash": "cf2605f81c2399da223865a65d720c18"
     }
   ]
 }

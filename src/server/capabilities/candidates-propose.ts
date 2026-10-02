@@ -128,6 +128,10 @@ async function defaultInsertAgentCandidate(
     .select(INBOX_CANDIDATE_COLUMNS)
     .single();
   if (error || !data) {
+    if (error?.code === "23505" && candidate.sourceExternalId) {
+      const replay = await defaultFindAgentCandidate(viewerId, candidate.sourceExternalId);
+      if (replay) return replay;
+    }
     throw new CapabilityError("internal", "Candidate insert failed", { cause: error });
   }
   return mapCandidateRow(data);
@@ -225,7 +229,7 @@ export async function run(
     candidate: toProposedCandidate(inserted),
     oauthClientId: ctx.clientId,
     plan: await safePlan(plan, inserted.id),
-    deduplicated: false,
+    deduplicated: inserted.id !== candidate.id,
   };
 }
 

@@ -1,6 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
+import { useTransactionLedgerState } from "@/hooks/use-transaction-ledger";
+import { useDemoAccountSummaries } from "@/hooks/use-demo-accounts";
+import {
+  buildAccountRegister,
+  reconcileAccountBalanceSnapshot,
+} from "@/lib/account-register";
+import { readDemoTransactionBaseline } from "@/lib/transaction-store";
+import { balanceEntriesFromTransactions, buildBalanceSeries } from "@/lib/balance-series";
 import {
   reportAccountDrilldownHref,
   reportCategoryDrilldownHref,
@@ -36,6 +45,7 @@ import {
   REPORT_PERIOD_OPTIONS,
   reportPeriodHref,
   reportTrendGranularity,
+  buildFinancialReport,
 } from "@/lib/reports";
 import {
   categoryMetaFor,
@@ -113,7 +123,7 @@ function balanceChartGeometry(points: BalanceSeriesPoint[]) {
 
 export function ReportsPage({
   viewer,
-  workspace,
+  workspace: initialWorkspace,
   categories,
   period,
 }: {
@@ -122,6 +132,34 @@ export function ReportsPage({
   categories: CategoryOption[];
   period: ReportPeriod;
 }) {
+  const ledger = useTransactionLedgerState({
+    initialTransactions: initialWorkspace.transactions,
+    isDemo: viewer.isDemo,
+  });
+  const demoAccounts = useDemoAccountSummaries(viewer.isDemo);
+  const workspace = useMemo(() => {
+    if (!viewer.isDemo) return initialWorkspace;
+    const range = initialWorkspace.report.range;
+    const transactions = ledger.transactions.filter((item) => item.occurredOn <= range.currentEnd);
+    const baseline = readDemoTransactionBaseline();
+    const accounts = demoAccounts.accounts.map((account) => ({
+      ...account,
+      balance: reconcileAccountBalanceSnapshot(
+        account.balance,
+        buildAccountRegister(baseline, account.id),
+        buildAccountRegister(ledger.transactions, account.id),
+      ),
+    }));
+    return {
+      ...initialWorkspace,
+      transactions,
+      report: buildFinancialReport(transactions, range),
+      balanceSeries: demoAccounts.error ? null : buildBalanceSeries(accounts, balanceEntriesFromTransactions(ledger.transactions), {
+        start: range.currentStart, end: range.currentEnd,
+      }),
+      dataError: initialWorkspace.dataError ?? demoAccounts.error,
+    };
+  }, [viewer.isDemo, initialWorkspace, ledger.transactions, demoAccounts.accounts, demoAccounts.error]);
   const { report } = workspace;
   const metaIndex = categoryMetaIndex(categories);
   const expenseChange = report.expenseChangePercent;
@@ -181,6 +219,11 @@ export function ReportsPage({
     ? balanceChartGeometry(netWorthPoints)
     : null;
 
+  // Demo hydrates the browser ledger in place (same pattern as /transactions):
+  // first paint may show server seeds, then reconciles to stored rows. The
+  // export link keeps its server href contract so the CSV route stays the
+  // single download owner; demo CSV content therefore still reflects the
+  // server seeds, documented as a remaining gap below.
   return (
     <AppShell
       viewer={viewer}

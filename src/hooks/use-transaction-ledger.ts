@@ -19,7 +19,7 @@ function withReviewStatus(transaction: Transaction): Transaction {
  * local ledger used by `useTransactions` without importing mutation actions or
  * exposing write methods to a read-only route.
  */
-export function useTransactionLedger({
+export function useTransactionLedgerState({
   initialTransactions,
   isDemo,
 }: {
@@ -29,14 +29,23 @@ export function useTransactionLedger({
   const [transactions, setTransactions] = useState(() =>
     initialTransactions.map(withReviewStatus),
   );
+  const [isHydrated, setIsHydrated] = useState(!isDemo);
 
   useEffect(() => {
     if (!isDemo) return;
     const frame = window.requestAnimationFrame(() => {
       setTransactions(readStoredTransactions().map(withReviewStatus));
+      setIsHydrated(true);
     });
     return () => window.cancelAnimationFrame(frame);
   }, [isDemo]);
 
-  return transactions;
+  return { transactions, isHydrated };
+}
+
+export function useTransactionLedger(options: {
+  initialTransactions: Transaction[];
+  isDemo: boolean;
+}) {
+  return useTransactionLedgerState(options).transactions;
 }
