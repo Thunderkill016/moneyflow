@@ -65,9 +65,10 @@ class FakeResponse {
   clone() {
     return new FakeResponse(this.body, { status: this.status });
   }
+  async text() { return String(this.body); }
 }
 
-function loadServiceWorker(options: { online?: boolean } = {}) {
+function loadServiceWorker(options: { online?: boolean; fetch?: () => Promise<FakeResponse> } = {}) {
   const handlers = new Map<string, WorkerHandler>();
   const cacheStorage = fakeCacheStorage();
   const online = options.online ?? true;
@@ -93,10 +94,10 @@ function loadServiceWorker(options: { online?: boolean } = {}) {
     Promise,
     caches: cacheStorage.api,
     Response: FakeResponse,
-    fetch: async () => {
+    fetch: options.fetch ?? (async () => {
       if (!online) throw new Error("offline");
       return new FakeResponse("<html>rendered</html>", { status: 200 });
-    },
+    }),
   });
   vm.runInContext(readFileSync("public/sw.js", "utf8"), context, {
     filename: "public/sw.js",
@@ -194,4 +195,20 @@ test("offline navigation to an uncached path gets the notice, never foreign cont
   const body = typeof response.body === "string" ? response.body : "";
   assert.match(body, /ngoại tuyến/i);
   assert.doesNotMatch(body, /Bạn đang có/, "never fabricates dashboard content");
+});
+
+test("session rotation rejects an old response completing after logout", async () => {
+  let complete!: (response: FakeResponse) => void;
+  const response = new Promise<FakeResponse>((resolve) => { complete = resolve; });
+  const worker = loadServiceWorker({ fetch: () => response });
+  const pending = worker.dispatchFetch({ url: DASHBOARD_URL, ...NAV });
+  // Let the navigation capture the previous session before changing metadata.
+  await new Promise((resolve) => setImmediate(resolve));
+  const metadata = await worker.cacheStorage.api.open("moneyflow-offline-session-v1");
+  await metadata.put("/__moneyflow_offline_session", new FakeResponse("new-session"));
+  await worker.cacheStorage.api.delete("moneyflow-offline-v1");
+  complete(new FakeResponse("previous-user-financial-html"));
+  await pending;
+  assert.equal(worker.cacheStorage.stored("moneyflow-offline-v1", "/dashboard"), undefined);
+  assert.equal(worker.cacheStorage.stored("moneyflow-offline-v1:new-session", "/dashboard"), undefined);
 });

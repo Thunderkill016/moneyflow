@@ -73,14 +73,12 @@ export function EditTransactionDialog({
     () => categories.filter((item) => item.kind === kind),
     [categories, kind],
   );
-  const selectedAccount = accounts.some((item) => item.id === accountId)
-    ? accountId
-    : (accounts[0]?.id ?? "");
-  const selectedCategory = availableCategories.some(
-    (item) => item.id === categoryId,
-  )
-    ? categoryId
-    : (availableCategories[0]?.id ?? "");
+  // Historical references are never replaced merely because a picker excludes
+  // archived records. The user must explicitly choose an available replacement.
+  const selectedAccount = accountId;
+  const selectedCategory = categoryId;
+  const accountAvailable = accounts.some((item) => item.id === accountId);
+  const categoryAvailable = availableCategories.some((item) => item.id === categoryId);
   const destinationOptions = accounts.filter(
     (item) => item.id !== selectedAccount,
   );
@@ -94,11 +92,8 @@ export function EditTransactionDialog({
     const tagged = goals.find((goal) => goal.id === goalId);
     return tagged && tagged.isArchived ? [...active, tagged] : active;
   }, [goals, goalId]);
-  const selectedDestination = destinationOptions.some(
-    (item) => item.id === destinationId,
-  )
-    ? destinationId
-    : (destinationOptions[0]?.id ?? "");
+  const selectedDestination = destinationId;
+  const destinationAvailable = destinationOptions.some((item) => item.id === destinationId);
 
   function changed() {
     setError("");
@@ -134,6 +129,14 @@ export function EditTransactionDialog({
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(occurredOn)) {
       setError("Chọn ngày giao dịch hợp lệ.");
+      return;
+    }
+    if (!accountAvailable || (isTransfer && !destinationAvailable)) {
+      setError("Tài khoản cũ không còn hoạt động. Hãy chọn tài khoản thay thế để lưu thay đổi.");
+      return;
+    }
+    if (!isTransfer && !categoryAvailable) {
+      setError("Danh mục cũ không còn hoạt động. Hãy chọn danh mục thay thế để lưu thay đổi.");
       return;
     }
 
@@ -307,6 +310,9 @@ export function EditTransactionDialog({
                 changed();
               }}
             >
+              {!accountAvailable ? (
+                <option value={accountId} disabled>{transaction.account} — không còn hoạt động</option>
+              ) : null}
               {accounts.map((item) => (
                 <option value={item.id} key={item.id}>
                   {item.name}
@@ -333,6 +339,11 @@ export function EditTransactionDialog({
                 changed();
               }}
             >
+              {!destinationAvailable ? (
+                <option value={destinationId} disabled>
+                  {transaction.destinationAccount ?? "Tài khoản cũ"} — không còn hoạt động
+                </option>
+              ) : null}
               {destinationOptions.map((item) => (
                 <option value={item.id} key={item.id}>
                   {item.name}
@@ -343,6 +354,7 @@ export function EditTransactionDialog({
         ) : (
           <fieldset className={styles.categoryFieldset}>
             <legend>Danh mục</legend>
+            {!categoryAvailable ? <p>{transaction.category} — không còn hoạt động. Chọn danh mục thay thế để lưu.</p> : null}
             <div className={styles.categoryGrid}>
               {availableCategories.map((item) => {
                 const meta =
@@ -387,6 +399,9 @@ export function EditTransactionDialog({
                 changed();
               }}
             >
+              {!accountAvailable ? (
+                <option value={accountId} disabled>{transaction.account} — không còn hoạt động</option>
+              ) : null}
               {accounts.map((item) => (
                 <option value={item.id} key={item.id}>
                   {item.name}

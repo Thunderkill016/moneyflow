@@ -72,6 +72,14 @@ self.addEventListener("activate", (event) => {
  */
 const OFFLINE_CACHE = "moneyflow-offline-v1";
 const OFFLINE_PAGE_KEY = "/dashboard";
+const OFFLINE_SESSION_CACHE = "moneyflow-offline-session-v1";
+const OFFLINE_SESSION_KEY = "/__moneyflow_offline_session";
+
+async function offlineCacheName() {
+  const metadata = await caches.open(OFFLINE_SESSION_CACHE);
+  const session = await metadata.match(OFFLINE_SESSION_KEY);
+  return session ? `${OFFLINE_CACHE}:${await session.text()}` : OFFLINE_CACHE;
+}
 
 function offlineNoticeHtml(hasCachedDashboard) {
   const tail = hasCachedDashboard
@@ -98,16 +106,23 @@ function offlineNotice(hasCachedDashboard) {
 }
 
 async function handleNavigation(request, url) {
+  const cacheName = await offlineCacheName();
   if (url.pathname === OFFLINE_PAGE_KEY) {
     try {
       const response = await fetch(request);
       if (response.ok) {
-        const cache = await caches.open(OFFLINE_CACHE);
-        await cache.put(OFFLINE_PAGE_KEY, response.clone());
+        if (cacheName === await offlineCacheName()) {
+          const cache = await caches.open(cacheName);
+          await cache.put(OFFLINE_PAGE_KEY, response.clone());
+          // Cleanup raced writes too; generation-scoped reads make even a
+          // delayed old put inaccessible while cleanup completes.
+          if (cacheName !== await offlineCacheName()) await caches.delete(cacheName);
+        }
       }
       return response;
     } catch {
-      const cached = await caches.match(OFFLINE_PAGE_KEY);
+      const cache = await caches.open(await offlineCacheName());
+      const cached = await cache.match(OFFLINE_PAGE_KEY);
       return cached ?? offlineNotice(false);
     }
   }
@@ -115,7 +130,8 @@ async function handleNavigation(request, url) {
   try {
     return await fetch(request);
   } catch {
-    const cached = await caches.match(OFFLINE_PAGE_KEY);
+    const cache = await caches.open(await offlineCacheName());
+    const cached = await cache.match(OFFLINE_PAGE_KEY);
     return offlineNotice(Boolean(cached));
   }
 }

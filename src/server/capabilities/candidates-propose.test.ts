@@ -45,7 +45,6 @@ function proposeDeps(candidate: PersistedInboxCandidate): CapabilityDeps {
     findAgentCandidate: async () => null,
     insertAgentCandidate: async (_viewerId, proposed) => ({
       ...proposed,
-      id: candidate.id,
       createdAt: candidate.createdAt,
     }),
     planInboxCandidate: async () => ({
@@ -85,7 +84,10 @@ test("candidates.propose stores an agent-sourced candidate with client provenanc
       findAgentCandidate: async () => null,
       insertAgentCandidate: async (_viewerId, proposed) => {
         inserted = proposed;
-        return persistedCandidate();
+        return {
+          ...proposed,
+          createdAt: "2026-07-14T12:00:00.000Z",
+        };
       },
       planInboxCandidate: async () => ({
         status: "would_create",
@@ -96,13 +98,12 @@ test("candidates.propose stores an agent-sourced candidate with client provenanc
   }) as CandidatesProposeOutput;
 
   assert.equal(output.deduplicated, false);
-  assert.equal(output.candidate.id, "cand-1");
+  assert.ok(inserted);
+  const saved = inserted as unknown as PersistedInboxCandidate;
+  assert.equal(output.candidate.id, saved.id);
   assert.equal(output.candidate.source, "agent");
   assert.equal(output.oauthClientId, "client-abc");
   assert.equal(output.plan?.status, "would_create");
-
-  assert.ok(inserted);
-  const saved = inserted as unknown as PersistedInboxCandidate;
   assert.equal(saved.source, "agent");
   assert.equal(
     saved.sourceExternalId,
@@ -140,6 +141,20 @@ test("candidates.propose replays the same idempotency key without a second inser
   assert.equal(output.deduplicated, true);
   assert.equal(output.candidate.id, "cand-1");
   assert.equal(output.plan?.status, "duplicate");
+});
+
+test("a concurrent insert replay reports the existing proposal identity", async () => {
+  const winner = persistedCandidate();
+  const output = await runCapability("candidates.propose", VALID_INPUT, {
+    context: AGENT_CONTEXT,
+    deps: {
+      findAgentCandidate: async () => null,
+      insertAgentCandidate: async () => winner,
+      planInboxCandidate: async () => ({ status: "would_create", reason: "no_match", confidence: 1 }),
+    },
+  }) as CandidatesProposeOutput;
+  assert.equal(output.candidate.id, winner.id);
+  assert.equal(output.deduplicated, true);
 });
 
 test("candidates.propose degrades to plan:null when matching is unavailable", async () => {

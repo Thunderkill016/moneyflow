@@ -13,7 +13,13 @@ import { PUSH_SERVICE_WORKER_URL } from "./push-client.ts";
 
 export const OFFLINE_CACHE_NAME = "moneyflow-offline-v1";
 
-type CachesLike = { delete(name: string): Promise<boolean> };
+type CachesLike = {
+  delete(name: string): Promise<boolean>;
+  open?: CacheStorage["open"];
+  keys?: CacheStorage["keys"];
+};
+const OFFLINE_SESSION_CACHE = "moneyflow-offline-session-v1";
+const OFFLINE_SESSION_KEY = "/__moneyflow_offline_session";
 
 /**
  * Delete the offline page cache. Returns false when CacheStorage is absent or
@@ -26,6 +32,17 @@ export async function clearOfflineCache(
 ): Promise<boolean> {
   if (!cachesApi) return false;
   try {
+    if (cachesApi.open && cachesApi.keys) {
+      // Rotate before deleting: a response already in flight can only write an
+      // old generation, which the worker will never serve to the new session.
+      const metadata = await cachesApi.open(OFFLINE_SESSION_CACHE);
+      await metadata.put(OFFLINE_SESSION_KEY, new Response(crypto.randomUUID()));
+      const names = await cachesApi.keys();
+      await Promise.all(names.filter((name) =>
+        name === OFFLINE_CACHE_NAME || name.startsWith(`${OFFLINE_CACHE_NAME}:`)
+      ).map((name) => cachesApi.delete(name)));
+      return true;
+    }
     return await cachesApi.delete(OFFLINE_CACHE_NAME);
   } catch {
     return false;

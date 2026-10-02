@@ -1,6 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
+import { useTransactionLedgerState } from "@/hooks/use-transaction-ledger";
+import { useDemoAccountSummaries } from "@/hooks/use-demo-accounts";
+import {
+  buildAccountRegister,
+  reconcileAccountBalanceSnapshot,
+} from "@/lib/account-register";
+import { readDemoTransactionBaseline } from "@/lib/transaction-store";
+import { balanceEntriesFromTransactions, buildBalanceSeries } from "@/lib/balance-series";
 import {
   reportAccountDrilldownHref,
   reportCategoryDrilldownHref,
@@ -36,6 +45,8 @@ import {
   REPORT_PERIOD_OPTIONS,
   reportPeriodHref,
   reportTrendGranularity,
+  buildFinancialReport,
+  transactionsToCsv,
 } from "@/lib/reports";
 import {
   categoryMetaFor,
@@ -113,7 +124,7 @@ function balanceChartGeometry(points: BalanceSeriesPoint[]) {
 
 export function ReportsPage({
   viewer,
-  workspace,
+  workspace: initialWorkspace,
   categories,
   period,
 }: {
@@ -122,6 +133,34 @@ export function ReportsPage({
   categories: CategoryOption[];
   period: ReportPeriod;
 }) {
+  const ledger = useTransactionLedgerState({
+    initialTransactions: initialWorkspace.transactions,
+    isDemo: viewer.isDemo,
+  });
+  const demoAccounts = useDemoAccountSummaries(viewer.isDemo);
+  const workspace = useMemo(() => {
+    if (!viewer.isDemo) return initialWorkspace;
+    const range = initialWorkspace.report.range;
+    const transactions = ledger.transactions.filter((item) => item.occurredOn <= range.currentEnd);
+    const baseline = readDemoTransactionBaseline();
+    const accounts = demoAccounts.accounts.map((account) => ({
+      ...account,
+      balance: reconcileAccountBalanceSnapshot(
+        account.balance,
+        buildAccountRegister(baseline, account.id),
+        buildAccountRegister(ledger.transactions, account.id),
+      ),
+    }));
+    return {
+      ...initialWorkspace,
+      transactions,
+      report: buildFinancialReport(transactions, range),
+      balanceSeries: demoAccounts.error ? null : buildBalanceSeries(accounts, balanceEntriesFromTransactions(ledger.transactions), {
+        start: range.currentStart, end: range.currentEnd,
+      }),
+      dataError: initialWorkspace.dataError ?? demoAccounts.error,
+    };
+  }, [viewer.isDemo, initialWorkspace, ledger.transactions, demoAccounts.accounts, demoAccounts.error]);
   const { report } = workspace;
   const metaIndex = categoryMetaIndex(categories);
   const expenseChange = report.expenseChangePercent;
@@ -154,6 +193,15 @@ export function ReportsPage({
   const { currentStart, currentEnd } = report.range;
   const csvDownloadHref = reportCsvDownloadHref(period, currentStart, currentEnd);
   const exportDisabled = Boolean(workspace.dataError);
+  function exportDemoReport() {
+    const rows = workspace.transactions.filter((item) => item.occurredOn >= currentStart && item.occurredOn <= currentEnd);
+    const url = URL.createObjectURL(new Blob([transactionsToCsv(rows)], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `moneyflow-${currentStart}-${currentEnd}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
   const periodTitle = formatReportPeriodTitle(period, currentStart, currentEnd);
   const rangeCaption = `${dateLabel(currentStart)} – ${dateLabel(currentEnd)} · So với kỳ liền trước cùng số ngày.`;
   const rangeNotice = RANGE_NOTICES[workspace.rangeNotice ?? "none"];
@@ -181,20 +229,26 @@ export function ReportsPage({
     ? balanceChartGeometry(netWorthPoints)
     : null;
 
+  if (viewer.isDemo && (!ledger.isHydrated || !demoAccounts.ready)) {
+    return <AppShell viewer={viewer}><main role="status">Đang tải báo cáo từ sổ trên thiết bị…</main></AppShell>;
+  }
+
   return (
     <AppShell
       viewer={viewer}
       primaryAction={{
         label: EXPORT_CSV_LABEL,
-        href: csvDownloadHref,
+        href: viewer.isDemo ? undefined : csvDownloadHref,
         icon: "arrowDown",
         disabled: exportDisabled,
-        onClick: () =>
+        onClick: () => {
+          if (viewer.isDemo) exportDemoReport();
           trackProductEvent("export_downloaded", {
             surface: "reports",
             kind: "transactions",
             format: "csv",
-          }),
+          });
+        },
       }}
     >
       <SecondaryWorkspace slot="reports-workspace">
