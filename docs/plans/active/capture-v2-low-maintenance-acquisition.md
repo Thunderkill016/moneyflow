@@ -489,7 +489,7 @@ For each task record: anonymous participant/session code, build, device/browser,
 
 #### Ready-to-run physical-phone pilot — 2026-10-02
 
-**Execution:** preparing in the owner-authorized Phase A lane; Class 0 research operations/documentation. #745 merged at e63c2ca2 after its final CI passed, including two real-stack browser cases and 982 PostgreSQL assertions. Its post-merge CI must be checked separately. **Participants observed: none.** The following is a study kit, not study results. The owner may self-pilot first; mark that as owner self-report, not first-time-user validation.
+**Execution:** materials prepared in PR #746 in the owner-authorized Phase A lane; Class 0 research operations/documentation. #745 merged at e63c2ca2 after its final CI passed, including two real-stack browser cases and 982 PostgreSQL assertions. Its post-merge CI must be checked separately. **Participants observed: none.** The following is a study kit, not study results. The owner may self-pilot first; mark that as owner self-report, not first-time-user validation.
 
 Method references, accessed 2026-10-02: [GOV.UK moderated usability testing](https://www.gov.uk/service-manual/user-research/using-moderated-usability-testing) supports neutral task instructions and observing the participant's choices; [GOV.UK informed consent](https://www.gov.uk/service-manual/user-research/getting-users-consent-for-research) supports explaining purpose, collection, access, retention and voluntary withdrawal before observation. Apply these as research-method guidance; they do not establish Vietnamese legal compliance or product acceptance.
 
