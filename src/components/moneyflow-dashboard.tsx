@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  useDemoAccountSummaries,
+  useDemoFinanceWorkspace,
+} from "@/hooks/use-demo-accounts";
+
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -98,9 +103,9 @@ type DashboardWorkspace = {
 
 export function MoneyFlowDashboard({
   viewer,
-  workspace,
+  workspace: initialWorkspace,
   metaCategories,
-  accountBalances,
+  accountBalances: initialAccountBalances,
   backupState,
   initialInboxCount,
   ledgerTrust,
@@ -134,6 +139,22 @@ export function MoneyFlowDashboard({
    */
   incomeTemplates: RecurringIncomeTemplate[];
 }) {
+  const workspace = useDemoFinanceWorkspace(initialWorkspace, viewer.isDemo);
+  const demoAccounts = useDemoAccountSummaries(viewer.isDemo);
+  const accountBalances = useMemo(
+    () =>
+      viewer.isDemo
+        ? demoAccounts.accounts
+            .filter((account) => !account.isArchived)
+            .map(({ id, name, balance, currencyCode }) => ({
+              id,
+              name,
+              balance,
+              currencyCode,
+            }))
+        : initialAccountBalances,
+    [viewer.isDemo, demoAccounts.accounts, initialAccountBalances],
+  );
   const {
     transactions,
     addTransaction: addTransactionToStore,

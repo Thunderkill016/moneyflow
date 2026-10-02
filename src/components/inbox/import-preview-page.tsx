@@ -1,5 +1,7 @@
 "use client";
 
+import { useDemoAccountOptions } from "@/hooks/use-demo-accounts";
+
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/icons";
@@ -52,10 +54,12 @@ type LoadState =
 
 function amountColumnLabel(batch: ImportBatch): string {
   const { columnMap, headers } = batch;
-  if (columnMap.amount !== null) return columnHeaderLabel(headers, columnMap.amount);
+  if (columnMap.amount !== null)
+    return columnHeaderLabel(headers, columnMap.amount);
   const debit = columnHeaderLabel(headers, columnMap.debit);
   const credit = columnHeaderLabel(headers, columnMap.credit);
-  if (columnMap.debit !== null && columnMap.credit !== null) return `${debit} / ${credit}`;
+  if (columnMap.debit !== null && columnMap.credit !== null)
+    return `${debit} / ${credit}`;
   if (columnMap.debit !== null) return debit;
   if (columnMap.credit !== null) return credit;
   return "—";
@@ -64,17 +68,20 @@ function amountColumnLabel(batch: ImportBatch): string {
 export function ImportPreviewPage({
   viewer,
   batchId,
-  accounts,
+  accounts: initialAccounts,
 }: {
   viewer: ViewerSummary;
   batchId: string;
   accounts: AccountOption[];
 }) {
+  const accounts = useDemoAccountOptions(initialAccounts, viewer.isDemo);
   const router = useRouter();
   const [state, setState] = useState<LoadState>({ phase: "loading" });
   const [inboxCount, setInboxCount] = useState(0);
   const [notice, setNotice] = useState("");
-  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(
+    undefined,
+  );
   const [committing, setCommitting] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -122,7 +129,10 @@ export function ImportPreviewPage({
       }
       setState({ phase: "ready", batch, rows: draft.rows });
     } catch {
-      setState({ phase: "error", message: "Không đọc được batch import trên thiết bị này." });
+      setState({
+        phase: "error",
+        message: "Không đọc được batch import trên thiết bị này.",
+      });
     }
   }, [batchId, viewer.isDemo]);
 
@@ -153,7 +163,10 @@ export function ImportPreviewPage({
   }
 
   const previewRows = useMemo(
-    () => (state.phase === "ready" ? previewDraftRows(state.rows, PREVIEW_LIMIT) : []),
+    () =>
+      state.phase === "ready"
+        ? previewDraftRows(state.rows, PREVIEW_LIMIT)
+        : [],
     [state],
   );
   const summary =
@@ -194,7 +207,10 @@ export function ImportPreviewPage({
         setCommitting(false);
         return;
       }
-      const markResult = await markBatchCommittedForClient(viewer.isDemo, state.batch.id);
+      const markResult = await markBatchCommittedForClient(
+        viewer.isDemo,
+        state.batch.id,
+      );
       if (!markResult.ok) {
         setActionError(
           `${markResult.message} Ứng viên có thể đã được thêm; mở Inbox trước khi thử lại để tránh thao tác lặp.`,
@@ -219,7 +235,9 @@ export function ImportPreviewPage({
       );
       router.push("/inbox");
     } catch {
-      setActionError("Không lưu được vào Inbox. Hãy mở Inbox kiểm tra trước khi thử lại.");
+      setActionError(
+        "Không lưu được vào Inbox. Hãy mở Inbox kiểm tra trước khi thử lại.",
+      );
       setCommitReview(false);
       setCommitting(false);
     }
@@ -230,7 +248,10 @@ export function ImportPreviewPage({
     setCancelling(true);
     setActionError("");
     try {
-      const markResult = await markBatchCancelledForClient(viewer.isDemo, state.batch.id);
+      const markResult = await markBatchCancelledForClient(
+        viewer.isDemo,
+        state.batch.id,
+      );
       if (!markResult.ok) {
         setActionError(markResult.message);
         setCancelReview(false);
@@ -287,7 +308,11 @@ export function ImportPreviewPage({
               >
                 Tải file khác
               </LinkButton>
-              <LinkButton href="/inbox" intent="secondary" targetSize="important">
+              <LinkButton
+                href="/inbox"
+                intent="secondary"
+                targetSize="important"
+              >
                 Inbox
               </LinkButton>
             </>
@@ -295,7 +320,11 @@ export function ImportPreviewPage({
         />
 
         {state.phase === "loading" ? (
-          <section className={styles.loading} aria-busy="true" aria-label="Đang tải preview">
+          <section
+            className={styles.loading}
+            aria-busy="true"
+            aria-label="Đang tải preview"
+          >
             <span />
             <span />
             <span />
@@ -317,7 +346,11 @@ export function ImportPreviewPage({
               </LinkButton>
             }
             secondaryAction={
-              <LinkButton href="/inbox" intent="secondary" targetSize="important">
+              <LinkButton
+                href="/inbox"
+                intent="secondary"
+                targetSize="important"
+              >
                 Về Inbox
               </LinkButton>
             }
@@ -328,7 +361,12 @@ export function ImportPreviewPage({
           <Alert tone="error" live="assertive">
             <AlertDescription className={styles.alertAction}>
               <span>{state.message}</span>
-              <Button type="button" intent="secondary" targetSize="important" onClick={() => void reload()}>
+              <Button
+                type="button"
+                intent="secondary"
+                targetSize="important"
+                onClick={() => void reload()}
+              >
                 Thử lại
               </Button>
             </AlertDescription>
@@ -356,7 +394,11 @@ export function ImportPreviewPage({
               >
                 {state.kind === "committed" ? "Mở Inbox" : "Tải sao kê"}
               </LinkButton>
-              <LinkButton href="/capture" intent="secondary" targetSize="important">
+              <LinkButton
+                href="/capture"
+                intent="secondary"
+                targetSize="important"
+              >
                 Capture
               </LinkButton>
             </div>
@@ -369,8 +411,8 @@ export function ImportPreviewPage({
               title="Map cột"
               description={
                 <p>
-                  Generic import tự map {mapPct}%. Kiểm tra ba trường chính trước khi
-                  xác nhận.
+                  Generic import tự map {mapPct}%. Kiểm tra ba trường chính
+                  trước khi xác nhận.
                 </p>
               }
               contained
@@ -379,7 +421,12 @@ export function ImportPreviewPage({
               <dl className={styles.mapList}>
                 <div>
                   <dt>Ngày</dt>
-                  <dd>{columnHeaderLabel(state.batch.headers, state.batch.columnMap.date)}</dd>
+                  <dd>
+                    {columnHeaderLabel(
+                      state.batch.headers,
+                      state.batch.columnMap.date,
+                    )}
+                  </dd>
                 </div>
                 <div>
                   <dt>Số tiền</dt>
@@ -387,7 +434,12 @@ export function ImportPreviewPage({
                 </div>
                 <div>
                   <dt>Mô tả</dt>
-                  <dd>{columnHeaderLabel(state.batch.headers, state.batch.columnMap.desc)}</dd>
+                  <dd>
+                    {columnHeaderLabel(
+                      state.batch.headers,
+                      state.batch.columnMap.desc,
+                    )}
+                  </dd>
                 </div>
               </dl>
             </SecondarySection>
@@ -410,7 +462,9 @@ export function ImportPreviewPage({
                   </thead>
                   <tbody>
                     {previewRows.map((row) => {
-                      const warn = row.uncertainFields.length > 0 || row.confidence === "low";
+                      const warn =
+                        row.uncertainFields.length > 0 ||
+                        row.confidence === "low";
                       return (
                         <tr key={`${row.rowIndex}-${row.rawSnippet}`}>
                           <td>{row.occurredOn}</td>
@@ -424,8 +478,14 @@ export function ImportPreviewPage({
                             />
                           </td>
                           <td>
-                            <span className={warn ? styles.warningStatus : styles.readyStatus}>
-                              {warn ? "Cần xem trong Inbox" : "Sẵn sàng tạo ứng viên"}
+                            <span
+                              className={
+                                warn ? styles.warningStatus : styles.readyStatus
+                              }
+                            >
+                              {warn
+                                ? "Cần xem trong Inbox"
+                                : "Sẵn sàng tạo ứng viên"}
                             </span>
                           </td>
                         </tr>
@@ -436,7 +496,8 @@ export function ImportPreviewPage({
               </div>
               {state.rows.length > PREVIEW_LIMIT ? (
                 <p className={styles.hint}>
-                  Còn {state.rows.length - PREVIEW_LIMIT} dòng sẽ tạo ứng viên khi xác nhận.
+                  Còn {state.rows.length - PREVIEW_LIMIT} dòng sẽ tạo ứng viên
+                  khi xác nhận.
                 </p>
               ) : null}
 
@@ -464,8 +525,8 @@ export function ImportPreviewPage({
                 ))}
               </SelectField>
               <p className={styles.hint}>
-                Chọn đúng ví thì mọi ứng viên của batch này mang sẵn tài khoản
-                — bỏ qua bước gán từng dòng trong Inbox.
+                Chọn đúng ví thì mọi ứng viên của batch này mang sẵn tài khoản —
+                bỏ qua bước gán từng dòng trong Inbox.
               </p>
 
               <div className={styles.actions}>
@@ -505,7 +566,10 @@ export function ImportPreviewPage({
             ? [
                 { label: "File", value: state.batch.fileName },
                 { label: "Ứng viên", value: `${state.rows.length} mục` },
-                { label: "Cảnh báo", value: `${state.batch.warningCount} dòng` },
+                {
+                  label: "Cảnh báo",
+                  value: `${state.batch.warningCount} dòng`,
+                },
                 {
                   label: "Tài khoản",
                   value: selectedAccount?.name ?? "Chọn trong Inbox",

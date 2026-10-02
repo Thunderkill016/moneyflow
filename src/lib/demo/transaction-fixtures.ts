@@ -1,28 +1,83 @@
-import type { AccountOption, CategoryOption, Transaction, TransactionKind } from "../transactions/contracts.ts";
-import { categories, categoryMeta } from "../transactions/category-presentation.ts";
+import type { AccountSummary } from "../accounts.ts";
+import type {
+  AccountOption,
+  CategoryOption,
+  Transaction,
+  TransactionKind,
+} from "../transactions/contracts.ts";
+import {
+  categories,
+  categoryMeta,
+} from "../transactions/category-presentation.ts";
 import { formatRelativeDate } from "../relative-date.ts";
 
-/*
- * `balance` mirrors the demoAccountRows snapshot in src/server/accounts.ts:
- * the running-balance column anchors at the same figure the accounts page
- * shows, then reconciles against the stored demo ledger.
- */
-export const demoAccounts: AccountOption[] = [
-  { id: "demo-account-mb", name: "MB Bank", currencyCode: "VND", balance: 15_454_000 },
-  { id: "demo-account-cash", name: "Tiền mặt", currencyCode: "VND", balance: 239_000 },
-  { id: "demo-account-momo", name: "MoMo", currencyCode: "VND", balance: 42_000 },
-  { id: "demo-account-usd", name: "USD du lịch", currencyCode: "USD", balance: 20_000 },
+export const demoAccountRows: AccountSummary[] = [
+  {
+    id: "demo-account-mb",
+    name: "MB Bank",
+    kind: "bank",
+    currencyCode: "VND",
+    initialBalance: 1_126_000,
+    balance: 15_454_000,
+    isArchived: false,
+    icon: "bank",
+    color: "blue",
+  },
+  {
+    id: "demo-account-cash",
+    name: "Tiền mặt",
+    kind: "cash",
+    currencyCode: "VND",
+    initialBalance: 0,
+    balance: 239_000,
+    isArchived: false,
+    icon: "wallet",
+    color: "green",
+  },
+  {
+    id: "demo-account-momo",
+    name: "MoMo",
+    kind: "e_wallet",
+    currencyCode: "VND",
+    initialBalance: 0,
+    balance: 42_000,
+    isArchived: false,
+    icon: "spark",
+    color: "pink",
+  },
+  /** 200.00 USD in minor units (cents) — display only; no cross-currency transfer. */
+  {
+    id: "demo-account-usd",
+    name: "USD du lịch",
+    kind: "cash",
+    currencyCode: "USD",
+    initialBalance: 20_000,
+    balance: 20_000,
+    isArchived: false,
+    icon: "coins",
+    color: "amber",
+  },
 ];
 
-export const demoCategories: CategoryOption[] = Object.entries(categories).flatMap(
-  ([kind, names]) =>
-    names.map((name) => ({
-      id: `demo-category-${kind}-${name}`,
-      name,
-      kind: kind as TransactionKind,
-      icon: categoryMeta[name]?.icon ?? null,
-      color: categoryMeta[name]?.color ?? null,
-    })),
+export const demoAccounts: AccountOption[] = demoAccountRows.map(
+  ({ id, name, currencyCode, balance }) => ({
+    id,
+    name,
+    currencyCode,
+    balance,
+  }),
+);
+
+export const demoCategories: CategoryOption[] = Object.entries(
+  categories,
+).flatMap(([kind, names]) =>
+  names.map((name) => ({
+    id: `demo-category-${kind}-${name}`,
+    name,
+    kind: kind as TransactionKind,
+    icon: categoryMeta[name]?.icon ?? null,
+    color: categoryMeta[name]?.color ?? null,
+  })),
 );
 
 /*
@@ -189,8 +244,6 @@ function shiftDays(isoDate: string, days: number): string {
   if (Number.isNaN(date.getTime())) throw new Error("invalid_demo_date");
   return new Date(date.getTime() - days * DAY_MS).toISOString().slice(0, 10);
 }
-
-
 
 /**
  * The demo ledger as of `today` ("YYYY-MM-DD", already resolved in

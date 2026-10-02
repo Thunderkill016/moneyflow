@@ -1,14 +1,10 @@
 "use client";
 
+import { useDemoFinanceWorkspace } from "@/hooks/use-demo-accounts";
+
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import {
-  type FormEvent,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import { MoneyValue } from "@/components/money-value";
@@ -258,7 +254,7 @@ export function TransactionsWorkspace({
   viewer,
   dupeDismissals,
   viewerId,
-  workspace,
+  workspace: initialWorkspace,
   importEvidence,
   variant = "ledger",
   initialQuery = "",
@@ -272,6 +268,7 @@ export function TransactionsWorkspace({
   initialMaxAmount = "",
   initialOpenId,
 }: TransactionsWorkspaceProps) {
+  const workspace = useDemoFinanceWorkspace(initialWorkspace, viewer.isDemo);
   const router = useRouter();
   const isTimeline = variant === "timeline";
   const reviewFeatureAvailable =
@@ -334,7 +331,9 @@ export function TransactionsWorkspace({
   } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
   const [notice, setNotice] = useState("");
-  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(
+    undefined,
+  );
   /**
    * Live delete-undo offer: the snapshots "Hoàn tác" restores plus the message
    * the toast falls back to while the offer is open. Kept independent of the
@@ -371,9 +370,10 @@ export function TransactionsWorkspace({
    * The strip is advisory only — the sole mutation it offers is the existing
    * soft-delete path (handleDelete → confirm → 8s undo).
    */
-  const [dismissedDupeKeys, setDismissedDupeKeys] = useState<Set<string> | null>(
-    () => (dupeDismissals == null ? null : new Set(dupeDismissals)),
-  );
+  const [dismissedDupeKeys, setDismissedDupeKeys] =
+    useState<Set<string> | null>(() =>
+      dupeDismissals == null ? null : new Set(dupeDismissals),
+    );
   const [dupeReviewOpen, setDupeReviewOpen] = useState(false);
   useEffect(() => {
     if (dupeDismissals != null) return;
@@ -430,14 +430,18 @@ export function TransactionsWorkspace({
    * waits for that settled list before judging an id missing.
    */
   const mountTransactionsRef = useRef(transactions);
-  const ledgerSettled = !viewer.isDemo || transactions !== mountTransactionsRef.current;
+  const ledgerSettled =
+    !viewer.isDemo || transactions !== mountTransactionsRef.current;
   useEffect(() => {
     if (!initialOpenId || !ledgerSettled || openConsumedRef.current) return;
     clearQueryParam("open");
     const timer = window.setTimeout(() => {
       if (openConsumedRef.current) return;
       openConsumedRef.current = true;
-      const resolution = resolveTransactionOpenTarget(initialOpenId, transactions);
+      const resolution = resolveTransactionOpenTarget(
+        initialOpenId,
+        transactions,
+      );
       if (resolution.type === "edit") setEditing(resolution.transaction);
       else if (resolution.type === "notice") {
         showNotice(resolution.message, "info");
@@ -851,13 +855,13 @@ export function TransactionsWorkspace({
       : Math.min(focusedIndex, listWindow.visible.length - 1);
   const modalOpen = Boolean(
     dialogOpen ||
-      transferOpen ||
-      splitOpen ||
-      editing ||
-      deleteTarget ||
-      bulkCategoryReview ||
-      bulkDateReview ||
-      bulkDeleteReview,
+    transferOpen ||
+    splitOpen ||
+    editing ||
+    deleteTarget ||
+    bulkCategoryReview ||
+    bulkDateReview ||
+    bulkDeleteReview,
   );
 
   useEffect(() => {
@@ -921,8 +925,7 @@ export function TransactionsWorkspace({
         return;
       }
 
-      const row =
-        safeFocusedIndex >= 0 ? list[safeFocusedIndex] : undefined;
+      const row = safeFocusedIndex >= 0 ? list[safeFocusedIndex] : undefined;
       if (!row) {
         showNotice("Dùng J/K chọn một giao dịch trước.", "info");
         return;
@@ -1195,9 +1198,7 @@ export function TransactionsWorkspace({
     // Rows that were skipped keep their selection so the notice's grouped
     // reasons map back to the exact rows still waiting on the user.
     const updatedIdSet = new Set(result.updatedIds);
-    setSelectedIds((current) =>
-      current.filter((id) => !updatedIdSet.has(id)),
-    );
+    setSelectedIds((current) => current.filter((id) => !updatedIdSet.has(id)));
     setBulkDateInput("");
   }
 
@@ -1407,8 +1408,7 @@ export function TransactionsWorkspace({
         safeUserNotice(
           lastFailure,
           "Không khôi phục được hết. Một số giao dịch vẫn đang ẩn.",
-        ) +
-          ` Đã khôi phục ${restored}/${pending.snapshots.length} giao dịch.`,
+        ) + ` Đã khôi phục ${restored}/${pending.snapshots.length} giao dịch.`,
         "error",
       );
     }
@@ -1489,8 +1489,7 @@ export function TransactionsWorkspace({
    * in flight the confirm button spins and Esc dismissal stays locked — but
    * an unrelated row's mutation no longer holds the dialog hostage.
    */
-  const deleteTargetBusy =
-    deleteTarget != null && rowBusy(deleteTarget.id);
+  const deleteTargetBusy = deleteTarget != null && rowBusy(deleteTarget.id);
 
   return (
     <AppShell
@@ -1639,7 +1638,8 @@ export function TransactionsWorkspace({
                   <small className={styles.actionHint}>
                     {workspace.accounts.length < 1
                       ? "Tạo tài khoản trước để chia khoản chi hoặc chuyển tiền giữa ví."
-                      : workspace.accounts.length < 2 && expenseCategoryCount < 2
+                      : workspace.accounts.length < 2 &&
+                          expenseCategoryCount < 2
                         ? "Chuyển tiền ví cần hai tài khoản; chia khoản chi cần hai danh mục chi tiêu."
                         : workspace.accounts.length < 2
                           ? "Chuyển tiền ví cần ít nhất hai tài khoản."
@@ -1652,43 +1652,43 @@ export function TransactionsWorkspace({
         </section>
 
         {workspace.dataError ? null : (
-        <section
-          className={styles.summary}
-          aria-label="Tóm tắt theo bộ lọc"
-          aria-live="polite"
-          data-slot="ledger-summary"
-        >
-          <div className={styles.summaryItem}>
-            <p>{isTimeline ? "Đã duyệt" : "Giao dịch"}</p>
-            <strong className={styles.summaryCount}>{filtered.length}</strong>
-          </div>
-          <div className={styles.summaryItem}>
-            <p>Tiền vào</p>
-            <MoneyValue
-              amount={filteredTotals.income}
-              mode="kind"
-              kind="income"
-              label="Tiền vào"
-            />
-          </div>
-          <div className={styles.summaryItem}>
-            <p>Tiền ra</p>
-            <MoneyValue
-              amount={filteredTotals.expense}
-              mode="kind"
-              kind="expense"
-              label="Tiền ra"
-            />
-          </div>
-          <div className={styles.summaryItem}>
-            <p>Còn lại</p>
-            <MoneyValue
-              amount={filteredTotals.net}
-              mode="signed"
-              label="Còn lại"
-            />
-          </div>
-        </section>
+          <section
+            className={styles.summary}
+            aria-label="Tóm tắt theo bộ lọc"
+            aria-live="polite"
+            data-slot="ledger-summary"
+          >
+            <div className={styles.summaryItem}>
+              <p>{isTimeline ? "Đã duyệt" : "Giao dịch"}</p>
+              <strong className={styles.summaryCount}>{filtered.length}</strong>
+            </div>
+            <div className={styles.summaryItem}>
+              <p>Tiền vào</p>
+              <MoneyValue
+                amount={filteredTotals.income}
+                mode="kind"
+                kind="income"
+                label="Tiền vào"
+              />
+            </div>
+            <div className={styles.summaryItem}>
+              <p>Tiền ra</p>
+              <MoneyValue
+                amount={filteredTotals.expense}
+                mode="kind"
+                kind="expense"
+                label="Tiền ra"
+              />
+            </div>
+            <div className={styles.summaryItem}>
+              <p>Còn lại</p>
+              <MoneyValue
+                amount={filteredTotals.net}
+                mode="signed"
+                label="Còn lại"
+              />
+            </div>
+          </section>
         )}
 
         <section className={styles.manager} aria-label="Danh sách giao dịch">
@@ -1743,9 +1743,7 @@ export function TransactionsWorkspace({
                 intent="secondary"
                 targetSize="important"
                 className={`${styles.reviewChip}${
-                  review === "needs_review"
-                    ? ` ${styles.reviewChipActive}`
-                    : ""
+                  review === "needs_review" ? ` ${styles.reviewChipActive}` : ""
                 }`}
                 onClick={() =>
                   setReview(review === "needs_review" ? "all" : "needs_review")
@@ -1978,19 +1976,13 @@ export function TransactionsWorkspace({
             </details>
 
             {savedFilters.length > 0 ? (
-              <div
-                className={styles.savedFilters}
-                aria-label="Bộ lọc đã lưu"
-              >
+              <div className={styles.savedFilters} aria-label="Bộ lọc đã lưu">
                 <span className={styles.savedFiltersLabel}>Đã lưu</span>
                 <ul className={styles.savedFiltersList}>
                   {savedFilters.map((preset) => {
                     const active = activeSavedFilterName === preset.name;
                     return (
-                      <li
-                        key={preset.name}
-                        className={styles.savedFilterItem}
-                      >
+                      <li key={preset.name} className={styles.savedFilterItem}>
                         <Button
                           type="button"
                           unstyled
@@ -2243,8 +2235,8 @@ export function TransactionsWorkspace({
                 </p>
               ) : (
                 <p className={styles.bulkHint}>
-                  Chỉ danh mục của từng giao dịch thay đổi; số tiền, ngày và
-                  tài khoản giữ nguyên.
+                  Chỉ danh mục của từng giao dịch thay đổi; số tiền, ngày và tài
+                  khoản giữ nguyên.
                 </p>
               )}
 
@@ -2340,19 +2332,17 @@ export function TransactionsWorkspace({
                   </header>
 
                   {group.transactions.map((transaction) => {
-                    const meta =
-                      categoryMetaFor(
-                        categoryMetaByName,
-                        transaction.kind,
-                        transaction.category,
-                      );
+                    const meta = categoryMetaFor(
+                      categoryMetaByName,
+                      transaction.kind,
+                      transaction.category,
+                    );
                     const reviewStatus =
                       getTransactionReviewStatus(transaction);
                     const balance = runningBalance?.balanceAfter.get(
                       transaction.id,
                     );
-                    const rowIndex =
-                      rowIndexById.get(transaction.id) ?? -1;
+                    const rowIndex = rowIndexById.get(transaction.id) ?? -1;
                     const rowFocused =
                       rowIndex >= 0 && rowIndex === safeFocusedIndex;
                     const provenance =
@@ -2646,10 +2636,17 @@ export function TransactionsWorkspace({
         }}
         title="Đổi danh mục?"
         description="Kiểm tra trước khi áp dụng cho các giao dịch đã chọn."
-        details={bulkCategoryReview ? [
-          { label: "Giao dịch", value: `${selectedIds.length} mục đã chọn` },
-          { label: "Danh mục mới", value: bulkCategoryReview.name },
-        ] : []}
+        details={
+          bulkCategoryReview
+            ? [
+                {
+                  label: "Giao dịch",
+                  value: `${selectedIds.length} mục đã chọn`,
+                },
+                { label: "Danh mục mới", value: bulkCategoryReview.name },
+              ]
+            : []
+        }
         consequence="Số tiền, ngày và tài khoản của từng giao dịch giữ nguyên. Thay đổi áp dụng ngay cho tất cả mục đã chọn."
         confirmLabel="Đổi danh mục"
         pending={isMutating}
@@ -2733,10 +2730,14 @@ export function TransactionsWorkspace({
         }}
         title="Xóa giao dịch?"
         description="Kiểm tra trước khi ẩn khỏi sổ của bạn."
-        details={deleteTarget ? [
-          { label: "Giao dịch", value: deleteTarget.note },
-          { label: "Số tiền", value: formatMoney(deleteTarget.amount) },
-        ] : []}
+        details={
+          deleteTarget
+            ? [
+                { label: "Giao dịch", value: deleteTarget.note },
+                { label: "Số tiền", value: formatMoney(deleteTarget.amount) },
+              ]
+            : []
+        }
         consequence="Giao dịch sẽ được ẩn khỏi sổ của bạn. Bạn có thể hoàn tác trong 8 giây."
         confirmLabel="Xóa giao dịch"
         confirmIntent="destructive"

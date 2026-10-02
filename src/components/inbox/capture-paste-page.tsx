@@ -1,5 +1,7 @@
 "use client";
 
+import { useDemoAccountOptions } from "@/hooks/use-demo-accounts";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
@@ -64,11 +66,12 @@ function confidenceClass(confidence: ParsedCandidate["confidence"]): string {
 
 export function CapturePastePage({
   viewer,
-  accounts,
+  accounts: initialAccounts,
 }: {
   viewer: ViewerSummary;
   accounts: AccountOption[];
 }) {
+  const accounts = useDemoAccountOptions(initialAccounts, viewer.isDemo);
   const router = useRouter();
   const textareaId = useId();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -86,7 +89,9 @@ export function CapturePastePage({
   const [committing, setCommitting] = useState(false);
   const [inboxCount, setInboxCount] = useState(0);
   const [notice, setNotice] = useState("");
-  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(
+    undefined,
+  );
   const [accountId, setAccountId] = useState("");
 
   function showNotice(message: string, tone: ToastTone) {
@@ -254,8 +259,8 @@ export function CapturePastePage({
             </p>
             <h1>Dán bất cứ thứ gì</h1>
             <p>
-              Tin nhắn biến động, ghi chú tay, hoặc “cafe 45k”. Phân tích xong bạn
-              vẫn duyệt trong Inbox — không ghi thẳng vào sổ.
+              Tin nhắn biến động, ghi chú tay, hoặc “cafe 45k”. Phân tích xong
+              bạn vẫn duyệt trong Inbox — không ghi thẳng vào sổ.
             </p>
           </div>
           <div className="page-heading-actions">
@@ -266,7 +271,10 @@ export function CapturePastePage({
           </div>
         </section>
 
-        <section className="panel capture-paste-panel" aria-labelledby="paste-heading">
+        <section
+          className="panel capture-paste-panel"
+          aria-labelledby="paste-heading"
+        >
           <h2 id="paste-heading" className="sr-only">
             Dán text để phân tích
           </h2>
@@ -289,7 +297,9 @@ export function CapturePastePage({
                   }
                 }}
                 rows={8}
-                placeholder={"VD: cafe 45k tiền mặt\nhoặc nguyên tin nhắn biến động số dư"}
+                placeholder={
+                  "VD: cafe 45k tiền mặt\nhoặc nguyên tin nhắn biến động số dư"
+                }
                 disabled={analyzing}
                 aria-invalid={phase === "error"}
                 aria-describedby={error ? "paste-error" : "paste-hint"}
@@ -329,7 +339,9 @@ export function CapturePastePage({
                   disabled={analyzing || !rulesReady}
                 />
                 <span>
-                  {rulesReady ? "Áp dụng quy tắc danh mục" : "Đang tải quy tắc…"}{" "}
+                  {rulesReady
+                    ? "Áp dụng quy tắc danh mục"
+                    : "Đang tải quy tắc…"}{" "}
                   <Link className="capture-paste-rules-link" href="/rules">
                     (Quản lý)
                   </Link>
@@ -337,7 +349,11 @@ export function CapturePastePage({
               </label>
 
               {error && (
-                <p id="paste-error" className="capture-paste-error" role="alert">
+                <p
+                  id="paste-error"
+                  className="capture-paste-error"
+                  role="alert"
+                >
                   {error}
                 </p>
               )}
@@ -410,7 +426,9 @@ export function CapturePastePage({
                       >
                         {confidenceLabel(item.confidence)}
                       </span>
-                      <span className="preview-chip sm source-badge">paste</span>
+                      <span className="preview-chip sm source-badge">
+                        paste
+                      </span>
                       {item.category && (
                         <span
                           className="preview-chip sm category-badge"
@@ -479,7 +497,8 @@ export function CapturePastePage({
               <p className="capture-paste-trust">
                 <Icon name="lock" />
                 <span>
-                  Không có nút “ghi thẳng vào sổ” từ đây — mọi mục đều chờ bạn duyệt.
+                  Không có nút “ghi thẳng vào sổ” từ đây — mọi mục đều chờ bạn
+                  duyệt.
                 </span>
               </p>
             </div>

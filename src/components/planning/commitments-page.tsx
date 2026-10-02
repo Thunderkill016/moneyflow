@@ -1,5 +1,7 @@
 "use client";
 
+import { useDemoAccountOptions } from "@/hooks/use-demo-accounts";
+
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -89,7 +91,7 @@ export function CommitmentsPage({
   initialCommitments,
   initialDetectionRows,
   dismissedPatternKeys,
-  accounts,
+  accounts: initialAccounts,
   categories,
   monthStart,
   today,
@@ -110,6 +112,7 @@ export function CommitmentsPage({
   today: string;
   dataError: string | null;
 }) {
+  const accounts = useDemoAccountOptions(initialAccounts, viewer.isDemo);
   const [items, setItems] = useState(initialCommitments);
   const [hydrated, setHydrated] = useState(!viewer.isDemo);
   const [editing, setEditing] = useState<RecurringCommitment | null>(null);
@@ -122,7 +125,9 @@ export function CommitmentsPage({
   const [version, setVersion] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
-  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(
+    undefined,
+  );
   const [showArchived, setShowArchived] = useState(false);
   const [statusFilter, setStatusFilter] =
     useState<CommitmentStatusFilter>("all");
@@ -317,9 +322,7 @@ export function CommitmentsPage({
     )
       ? suggestion.categoryId!
       : (categories[0]?.id ?? "");
-    const accountId = accounts.some(
-      (item) => item.id === suggestion.accountId,
-    )
+    const accountId = accounts.some((item) => item.id === suggestion.accountId)
       ? suggestion.accountId!
       : (accounts[0]?.id ?? "");
     setEditing(null);
@@ -472,7 +475,10 @@ export function CommitmentsPage({
         }
         setItems((current) => markCommitmentUnpaid(current, item.id));
       }
-      showNotice("Đã hoàn tác thanh toán và xóa giao dịch chi liên kết.", "success");
+      showNotice(
+        "Đã hoàn tác thanh toán và xóa giao dịch chi liên kết.",
+        "success",
+      );
       return true;
     } catch {
       showNotice("Không thể hoàn tác thanh toán. Hãy thử lại.", "error");
@@ -782,8 +788,7 @@ export function CommitmentsPage({
 
                         {nextOn ? (
                           <p className={planningStyles.context}>
-                            Kỳ tới: {nextOn.slice(8, 10)}/
-                            {nextOn.slice(5, 7)}
+                            Kỳ tới: {nextOn.slice(8, 10)}/{nextOn.slice(5, 7)}
                           </p>
                         ) : null}
 
@@ -868,7 +873,9 @@ export function CommitmentsPage({
                     ) : undefined
                   }
                   secondaryAction={
-                    !showArchived && statusFilter !== "all" && active.length > 0 ? (
+                    !showArchived &&
+                    statusFilter !== "all" &&
+                    active.length > 0 ? (
                       <Button
                         type="button"
                         intent="secondary"
@@ -877,7 +884,9 @@ export function CommitmentsPage({
                       >
                         Xem tất cả
                       </Button>
-                    ) : !showArchived && !dataError && (missingAccount || missingCategory) ? (
+                    ) : !showArchived &&
+                      !dataError &&
+                      (missingAccount || missingCategory) ? (
                       <LinkButton
                         href={missingAccount ? "/accounts" : "/categories"}
                         intent="primary"
