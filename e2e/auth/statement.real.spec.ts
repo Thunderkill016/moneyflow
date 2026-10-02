@@ -63,6 +63,11 @@ test("real authenticated CSV posting, re-import and reconciliation preserve one 
 
   async function upload() {
     await page.goto("/capture/upload");
+    // File selection needs the client change handler, not only its SSR input.
+    await expect(page.locator("html")).toHaveAttribute(
+      "data-moneyflow-shell",
+      "mounted",
+    );
     await page.locator('input[type="file"]').setInputFiles({
       name: "synthetic-statement.csv",
       mimeType: "text/csv",
@@ -159,6 +164,10 @@ test("real authenticated CSV posting, re-import and reconciliation preserve one 
     .getByRole("dialog")
     .getByRole("button", { name: "Hoàn tất đối soát", exact: true })
     .click();
+  // The completed-period heading exists even while the server action is pending.
+  await expect(
+    page.getByText("Đã hoàn tất kỳ đối soát.", { exact: true }),
+  ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Các kỳ đã hoàn tất" }),
   ).toBeVisible();
