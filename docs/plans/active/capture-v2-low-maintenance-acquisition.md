@@ -763,7 +763,7 @@ Reuse the existing PostgreSQL acceptance contracts instead of reproducing financ
 
 #### Persisted statement acceptance package — 2026-10-02
 
-Execution state: implementing; role: evaluator; permission: branch_write and disposable CI evaluation. Owner authorized merge of #743 and execution of the next plan. #743 merged at d82d83c8; its final PR checks passed. Class 1 database-test-only extension; no migration, runtime, production write or deployment. Serves CANON Stage 0/1 Reality and the Phase A evidence gap.
+Execution state: evaluating in PR #744; role: evaluator; permission: branch_write and disposable CI evaluation. Owner authorized merge of #743 and execution of the next plan. #743 merged at d82d83c8; its final PR checks passed. Class 1 database-test-only extension; no migration, runtime, production write or deployment. Serves CANON Stage 0/1 Reality and the Phase A evidence gap.
 
 Extend the existing import batch atomic commit pgTAP suite, retaining its single owner book and second-tenant fixtures. After the batch commit/replay/rollback assertions, explicitly resolve account/category, post both represented statement facts, replay the same intent after approval, and reconcile against an independent synthetic 855000 VND closing balance (zero opening + 900000 salary - 45000 cafe). Require original approvals/provenance to remain intact, no extra transactions, completion blocked before clearing, zero difference after explicit clearing, two reconciled legs and no visibility to the other tenant. Reuse deployed RPC contracts; do not implement financial behavior in the HTTP double.
 
