@@ -12,6 +12,8 @@ export default defineConfig({
   workers: 1,
   fullyParallel: false,
   retries: 0,
+  forbidOnly: Boolean(process.env.CI),
+  // Two minutes covers upload, review, re-import and reconciliation mutations.
   timeout: 120_000,
   expect: { timeout: 15_000 },
   reporter: [["list"]],
@@ -43,6 +45,7 @@ export default defineConfig({
     command: `npm run build && npx next start -H 127.0.0.1 -p ${APP_PORT}`,
     url: baseURL,
     reuseExistingServer: false,
+    // Match the existing authenticated harness production-build allowance.
     timeout: 240_000,
     env: {
       ...process.env,

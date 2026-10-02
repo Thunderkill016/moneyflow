@@ -773,7 +773,7 @@ Evaluation evidence: executable head 203706c1 passed disposable PostgreSQL reset
 
 #### Real browser statement package — 2026-10-02
 
-Status/execution: planned. Role: implementer. Permission: branch_write and disposable CI fixture writes. Owner authorized the next plan and merge; #744 merged at bcd02507, #743 post-merge CI passed. Class 3 because this changes CI credential handling and authenticated write evaluation. Product authority: CANON Stage 0/1 Reality; roadmap objective: Phase A connected persisted statement journey, not feature growth.
+Status/execution: evaluating in PR #745. Role: evaluator. Permission: branch_write and disposable CI fixture writes. Owner authorized the next plan and merge; #744 merged at bcd02507, #743 post-merge CI passed. Class 3 because this changes CI credential handling and authenticated write evaluation. Product authority: CANON Stage 0/1 Reality; roadmap objective: Phase A connected persisted statement journey, not feature growth.
 
 Reconnaissance: authenticated browser coverage uses a read-only HTTP double; pgTAP independently proves database composition. Neither proves real browser server actions write via Auth/PostgREST into PostgreSQL. Existing CI database job starts and resets a disposable database, performs pgTAP and archive round trips, then stops it. Reuse this job, installed Supabase CLI 2.111.0 and Chromium, existing capture/review/reconciliation UI and RPCs. No production/schema/runtime changes are planned.
 
