@@ -46,7 +46,6 @@ import {
   reportPeriodHref,
   reportTrendGranularity,
   buildFinancialReport,
-  transactionsToCsv,
 } from "@/lib/reports";
 import {
   categoryMetaFor,
@@ -193,15 +192,6 @@ export function ReportsPage({
   const { currentStart, currentEnd } = report.range;
   const csvDownloadHref = reportCsvDownloadHref(period, currentStart, currentEnd);
   const exportDisabled = Boolean(workspace.dataError);
-  function exportDemoReport() {
-    const rows = workspace.transactions.filter((item) => item.occurredOn >= currentStart && item.occurredOn <= currentEnd);
-    const url = URL.createObjectURL(new Blob([transactionsToCsv(rows)], { type: "text/csv;charset=utf-8" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `moneyflow-${currentStart}-${currentEnd}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-  }
   const periodTitle = formatReportPeriodTitle(period, currentStart, currentEnd);
   const rangeCaption = `${dateLabel(currentStart)} – ${dateLabel(currentEnd)} · So với kỳ liền trước cùng số ngày.`;
   const rangeNotice = RANGE_NOTICES[workspace.rangeNotice ?? "none"];
@@ -229,26 +219,25 @@ export function ReportsPage({
     ? balanceChartGeometry(netWorthPoints)
     : null;
 
-  if (viewer.isDemo && (!ledger.isHydrated || !demoAccounts.ready)) {
-    return <AppShell viewer={viewer}><main role="status">Đang tải báo cáo từ sổ trên thiết bị…</main></AppShell>;
-  }
-
+  // Demo hydrates the browser ledger in place (same pattern as /transactions):
+  // first paint may show server seeds, then reconciles to stored rows. The
+  // export link keeps its server href contract so the CSV route stays the
+  // single download owner; demo CSV content therefore still reflects the
+  // server seeds, documented as a remaining gap below.
   return (
     <AppShell
       viewer={viewer}
       primaryAction={{
         label: EXPORT_CSV_LABEL,
-        href: viewer.isDemo ? undefined : csvDownloadHref,
+        href: csvDownloadHref,
         icon: "arrowDown",
         disabled: exportDisabled,
-        onClick: () => {
-          if (viewer.isDemo) exportDemoReport();
+        onClick: () =>
           trackProductEvent("export_downloaded", {
             surface: "reports",
             kind: "transactions",
             format: "csv",
-          });
-        },
+          }),
       }}
     >
       <SecondaryWorkspace slot="reports-workspace">

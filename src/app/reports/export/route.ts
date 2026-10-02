@@ -1,15 +1,7 @@
 import { normalizeReportPeriod, transactionsToCsv } from "@/lib/reports";
 import { getReportsWorkspace } from "@/server/reports";
-import { requireViewer } from "@/server/auth";
 
 export async function GET(request: Request) {
-  const viewer = await requireViewer();
-  if (viewer.isDemo) {
-    return new Response("Mở Báo cáo và xuất CSV từ sổ trên thiết bị.", {
-      status: 409,
-      headers: { "Cache-Control": "private, no-store" },
-    });
-  }
   const params = new URL(request.url).searchParams;
   const period = normalizeReportPeriod(params.get("period"));
   // The export must cover exactly the window on screen; the workspace resolves,

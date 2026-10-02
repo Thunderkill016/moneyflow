@@ -37,7 +37,10 @@ contracts remain the authorities. No dependency is introduced.
   contains the client. Provider configuration is a separately approved operation.
 - Historical editor references never silently fall back to another record.
 - Session cleanup invalidates in-flight offline cache writes.
-- Demo Reports and exports derive from the browser-owned ledger.
+- Demo Reports page derives from the browser-owned ledger; the demo CSV route
+  keeps its server href/download contract, so demo CSV content still reflects
+  server seeds (documented remaining gap — the server cannot observe
+  browser-local rows).
 - Concurrent agent requests share one durable proposal identity.
 
 ## Implementation plan
@@ -70,8 +73,11 @@ Local verification on `3c642077` plus this diff:
 - Browser probe (production build, demo): archived-account save is blocked with
   "Tài khoản cũ không còn hoạt động", stored account stays MB Bank.
 - Browser probe (production build, demo): local 777.000₫ ledger row appears in
-  Reports totals; server `/reports/export` returns 409 for demo with direction
-  to client-side export instead of seed-based CSV.
+  Reports totals. Demo CSV keeps the server href/download contract, so its
+  content still reflects server seeds; recorded below as the remaining gap.
+- CI browser smoke initially failed on the removed demo export href; the export
+  contract was restored and the page hydration kept, preserving both the fix
+  and the existing `a[href]`/download assertions.
 - `supabase/tests/database/oauth_mutation_boundary.test.sql` and the agent
   identity unique index require real pgTAP in CI; local env has no
   Docker/PostgreSQL so database evidence is still pending. Migration must not
