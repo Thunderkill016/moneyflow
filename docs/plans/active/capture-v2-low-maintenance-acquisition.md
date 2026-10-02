@@ -487,7 +487,7 @@ Research owner recruits consented participants across first-time, stable-history
 
 For each task record: anonymous participant/session code, build, device/browser, cohort, completion/abandonment, start-to-trusted-finish duration, interventions by type, material wrong fields/duplicates, correction effort, and the user's explanation of the result. Keep raw private observations outside repo under a consented retention policy. Report timing by task/cohort; automated execution duration is never substituted for human TTLT. Agree effect-size targets after baseline and before a subsequent prototype, using the program's measurement contract.
 
-#### Ready-to-run physical-phone pilot — 2026-10-02
+#### Prepared physical-phone pilot — 2026-10-02
 
 **Execution:** materials prepared in PR #746 in the owner-authorized Phase A lane; Class 0 research operations/documentation. #745 merged at e63c2ca2 after its final CI passed, including two real-stack browser cases and 982 PostgreSQL assertions. Its post-merge CI must be checked separately. **Participants observed: none. Current rehearsal status: blocked at J1 by [#748](https://github.com/Thunderkill016/moneyflow/issues/748), demo accounts disappearing after reload.** Do not run this kit as a complete first-time demo journey until that blocker is repaired and verified. The following is a study kit, not study results. The owner may self-pilot first; mark that as owner self-report, not first-time-user validation.
 
@@ -556,7 +556,7 @@ Keep raw session rows outside Git. Summarize counts and denominators by task/coh
 
 ##### Decision and handoff
 
-Release-block financial correctness, ownership or data-loss failures immediately in their affected path. Otherwise choose the next Phase B Ghi package from repeated observed inability to finish, misunderstanding or correction burden, supported by session/task references. Freeze the same tasks and define the expected improvement before a subsequent prototype; do not select the next feature from this kit's existence alone. Current handoff: materials ready after review; recruitment, phone reachability and actual observations are unverified. Next allowed action is a consented session followed by evidence review, not automated claims of human usability.
+Release-block financial correctness, ownership or data-loss failures immediately in their affected path. Otherwise choose the next Phase B Ghi package from repeated observed inability to finish, misunderstanding or correction burden, supported by session/task references. Freeze the same tasks and define the expected improvement before a subsequent prototype; do not select the next feature from this kit's existence alone. Current handoff: materials prepared; complete first-time demo execution is blocked at J1 by #748. Recruitment, phone reachability and actual observations are unverified. Resolve and verify the measured demo persistence blocker before a consented session; automated rehearsal cannot establish human usability.
 
 #### Automated baseline evidence — 2026-10-01
 
