@@ -487,6 +487,77 @@ Research owner recruits consented participants across first-time, stable-history
 
 For each task record: anonymous participant/session code, build, device/browser, cohort, completion/abandonment, start-to-trusted-finish duration, interventions by type, material wrong fields/duplicates, correction effort, and the user's explanation of the result. Keep raw private observations outside repo under a consented retention policy. Report timing by task/cohort; automated execution duration is never substituted for human TTLT. Agree effect-size targets after baseline and before a subsequent prototype, using the program's measurement contract.
 
+#### Ready-to-run physical-phone pilot — 2026-10-02
+
+**Execution:** materials prepared in PR #746 in the owner-authorized Phase A lane; Class 0 research operations/documentation. #745 merged at e63c2ca2 after its final CI passed, including two real-stack browser cases and 982 PostgreSQL assertions. Its post-merge CI must be checked separately. **Participants observed: none.** The following is a study kit, not study results. The owner may self-pilot first; mark that as owner self-report, not first-time-user validation.
+
+Method references, accessed 2026-10-02: [GOV.UK moderated usability testing](https://www.gov.uk/service-manual/user-research/using-moderated-usability-testing) supports neutral task instructions and observing the participant's choices; [GOV.UK informed consent](https://www.gov.uk/service-manual/user-research/getting-users-consent-for-research) supports explaining purpose, collection, access, retention and voluntary withdrawal before observation. Apply these as research-method guidance; they do not establish Vietnamese legal compliance or product acceptance.
+
+##### Moderator preparation
+
+- Choose a specific build and a demo-only test origin. If no reachable test build exists, record environment preparation as pending rather than ask participants to use a production financial account. No deployment is authorized by this kit.
+- For a local rehearsal, run the existing app with `NEXT_PUBLIC_APP_MODE=demo npm run dev -- --hostname 0.0.0.0 --port 3500`; first check the port is free. A physical phone needs that host to be reachable on the same trusted network. This command is an option, not evidence that a phone can reach the current workspace. Record the actual origin/build and confirm the visible demo label before starting.
+- Use a new isolated browser profile or a separate private session; do not clear an existing profile, account or local financial history. Record whether storage is temporary. Do not run the automated benchmark driver during human observation.
+- Prepare one synthetic CSV before the session, replacing `YYYY-MM-DD` with the session's Vietnam calendar date T. The participant's transactions and statement end date must also use T. Deliver the file before timing the import task; preparation time is logged separately.
+
+```csv
+Ngày,Mô tả,Số tiền
+YYYY-MM-DD,SYNTHETIC_STATEMENT_CAFE,-45000
+```
+
+- Book an initial pilot slot, allowing setup and voluntary stopping. A proposed 20-minute task budget is a scheduling assumption, not a product-speed target or mandatory completion time. A task not reached because the session ends is `not_attempted`, not user abandonment.
+- Before notes, agree who owns the study, how to contact that person, who can see observations and how long they will be retained. Start with anonymous task outcomes only; audio, video, screen recording or financial screenshots require a separate stated agreement and are off by default. Keep identifiable consent/contact records separate from task notes, outside Git. If these arrangements are missing, prepare materials but do not begin collecting participant data.
+
+Participant introduction: “Mình đang thử xem MF có dễ hiểu và dễ dùng không. Bạn có thể dừng bất cứ lúc nào. Các khoản tiền trong bài đều là dữ liệu giả. Hãy làm theo cách bạn nghĩ là đúng; nếu gặp khó khăn, cứ nói hoặc bỏ qua. Mình sẽ ghi lại cách làm, thời gian và chỗ cần trợ giúp, theo thỏa thuận vừa trao đổi.”
+
+##### Participant task cards — show one at a time
+
+Do not show the answer key or tell participants which button, tab or route to use. First-time participants perform J1 themselves; any moderator-created accounts make setup acceptance `not_observed`.
+
+| Job                        | Read to the participant                                                                                                                                       | Observe                                                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| J1 — Represent money       | “Tạo hai tài khoản dùng riêng cho bài thử: Study Cash có 500.000đ tiền mặt và Study Bank có 100.000đ tại ngân hàng.”                                          | Finding account setup; understanding opening balance and account type; actual successful creation                      |
+| J2 — Record a cash expense | “Hôm nay bạn mua cà phê bằng 45.000đ tiền mặt từ Study Cash. Ghi lại để sau này biết tiền đã đi đâu.”                                                         | Finding Ghi; account/category/date choice; posted fact versus candidate; actual saved record                           |
+| J3 — Move money            | “Hôm nay chuyển 50.000đ từ Study Cash sang Study Bank. Ghi lại việc chuyển tiền giữa hai tài khoản của bạn.”                                                  | Distinguishing transfer from income/expense; source/destination; balances                                              |
+| J4 — Import and repeat     | “File sao kê giả đã gửi có một khoản chi của Study Bank trong hôm nay. Đưa khoản đó vào MF. Sau đó nhập lại cùng file và cho biết chuyện gì xảy ra.”          | File selection and mapping; source account; unresolved category; review/post; duplicate attention without another fact |
+| J5 — Match statement       | “Sao kê giả của Study Bank chốt hôm nay ở 105.000đ. Kiểm tra tài khoản này có khớp sao kê không và hoàn tất nếu đúng.”                                        | Difference before clearing; explicit row confirmation; completed session; scope of what is and is not reconciled       |
+| J6 — Correct and retrieve  | “Bạn phát hiện cà phê tiền mặt thực tế là 40.000đ. Sửa khoản đó, tìm lại các khoản chi của hai tài khoản bài thử và xuất một bản ghi để bạn có thể kiểm tra.” | Editing the correct fact; correction effort; period/account scope; exported saved data; explanation of totals          |
+
+If a prerequisite job fails, record the failure first. The moderator may create a new controlled state to examine later jobs, but log the intervention and mark the subsequent evidence as assisted; it cannot prove an unassisted complete journey. Do not force a balancing adjustment to rescue J5.
+
+##### Moderator-only answer key
+
+Independent synthetic truth for the two study accounts only:
+
+| Checkpoint         | Study Cash | Study Bank | Expense facts                          | Transfer treatment                                   |
+| ------------------ | ---------- | ---------- | -------------------------------------- | ---------------------------------------------------- |
+| Opening            | 500000     | 100000     | none                                   | none                                                 |
+| After J2           | 455000     | 100000     | one cash expense of 45000              | none                                                 |
+| After J3           | 405000     | 150000     | unchanged                              | one 50000 movement, zero income/expense contribution |
+| After J4           | 405000     | 105000     | one cash 45000 and one bank 45000      | unchanged                                            |
+| After re-import/J5 | 405000     | 105000     | still exactly those two expenses       | no duplicate or balancing fact                       |
+| After J6           | 410000     | 105000     | cash 40000 and bank 45000; total 85000 | unchanged; combined study balance 515000             |
+
+The demo may contain other seeded accounts and history. Their totals are outside this answer key. Inspect/filter the study accounts and session date rather than equate an all-account dashboard total to 85000. Export acceptance means locating the two correct expense facts and the transfer in the actual downloaded file; a successful download filename alone is insufficient. A duplicate candidate may remain pending after J4/J5; reconciling Study Bank does not mean the entire Inbox is resolved.
+
+Ask after the relevant jobs: “Khoản nào đã được ghi vào sổ, khoản nào còn cần xử lý?” “Chuyển tiền có làm tăng thu hoặc chi của bạn không?” “Đã đối chiếu tài khoản này có nghĩa là tất cả dữ liệu đã đầy đủ chưa?” “Bạn sẽ kiểm tra hoặc sửa kết quả ở đâu?” Record meaning with `correct`, `partial`, `incorrect` or `not_observed`; do not teach the answer before recording it.
+
+##### Observation form — leave blank until an actual session
+
+Session metadata: anonymous session code; actual build/origin; evidence tier (`moderated_physical_phone`, `owner_self_report`, `emulated_automation`); participant's prior MF exposure; cohort; physical device/OS/browser; network context; app mode; agreed retention/access; consent recorded; moderator role; timing method and any same-device stopwatch/tab-switch overhead. Automated data must never enter the human cohort.
+
+| Session | Job | Outcome       | Start → trusted finish seconds | Correction seconds | Taps (counted/estimated/unknown) | Assistance | Material wrong fields/duplicates | Meaning check | Observed friction |
+| ------- | --- | ------------- | ------------------------------ | ------------------ | -------------------------------- | ---------- | -------------------------------- | ------------- | ----------------- |
+| —       | —   | not_collected | —                              | —                  | —                                | —          | —                                | —             | —                 |
+
+Outcome enum: `unassisted_success`, `assisted_success`, `failed`, `participant_stopped`, `not_attempted`. Start when the participant has understood the task and begins acting; stop at the last required correct, persisted result, including relevant correction. For J6, stop after checking the downloaded content. Revisit correctness at session end; if a later correction is needed, record its extra time separately and downgrade any previous “correct without correction” claim. Do not convert failed/abandoned durations into successful TTLT or fill missing times with zero. Human timing must not be inferred from CI durations or automatically adjusted by an assumed tab-switch delay. Existing `/capture-bench.html` is optional for narrower capture comparisons; its automated detection and tab-switch timing are not this whole-journey protocol.
+
+Keep raw session rows outside Git. Summarize counts and denominators by task/cohort/evidence tier, intervention types and the concrete failure sequence; report unknowns explicitly. With only an owner self-pilot, treat friction as a hypothesis and do not generalize to first-time users. No invented sample, threshold or measured improvement.
+
+##### Decision and handoff
+
+Release-block financial correctness, ownership or data-loss failures immediately in their affected path. Otherwise choose the next Phase B Ghi package from repeated observed inability to finish, misunderstanding or correction burden, supported by session/task references. Freeze the same tasks and define the expected improvement before a subsequent prototype; do not select the next feature from this kit's existence alone. Current handoff: materials ready after review; recruitment, phone reachability and actual observations are unverified. Next allowed action is a consented session followed by evidence review, not automated claims of human usability.
+
 #### Automated baseline evidence — 2026-10-01
 
 At this package's local Node 22 tree: demo baseline 60/60 pass on desktop/mobile Chromium; separate authenticated loopback suite 30 pass and one configured performance-attribution diagnostic skip. Lint, typecheck, production build through the authenticated harness, 191 CI-policy cases, formatting and project-knowledge checks pass. The demo run took 5.9 minutes and the authenticated run 3.9 minutes; these are machine suite durations, not participant timing or product speed targets. Exact-head provider CI remains required after final documentation.
