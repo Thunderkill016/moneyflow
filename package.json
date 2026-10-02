@@ -45,6 +45,8 @@
     "verify:archive-producer": "bash scripts/verify-archive-producer.sh",
     "verify:archive-round-trip": "bash scripts/verify-archive-producer.sh supabase/fixtures/restore_round_trip_fixture.sql",
     "test:e2e": "playwright test",
+    "test:statement:guard": "node --test e2e/auth/local-statement-env.test.mjs",
+    "test:e2e:statement": "npm run test:statement:guard && playwright test --config=playwright.statement.config.ts",
     "test:auth-double": "node --test e2e/auth/supabase-double.test.mjs",
     "test:e2e:auth": "npm run test:auth-double && playwright test --config=playwright.auth.config.ts",
     "test:e2e:install": "playwright install chromium webkit",

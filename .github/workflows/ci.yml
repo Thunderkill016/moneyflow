@@ -333,6 +333,38 @@ jobs:
         id: archive-restore-round-trip
         shell: bash
         run: npm run verify:archive-round-trip
+      # Real authenticated writes: disposable Auth + API + PostgreSQL, not the
+      # read-only ownership double. Failure blocks the existing database check.
+      - name: Start disposable statement services
+        if: needs.classify.outputs.database == 'true' && steps.database-tests.outcome == 'success'
+        shell: bash
+        run: |
+          # db start created a database-only stack; full start must begin from
+          # a fresh disposable stack rather than treating that DB as running API.
+          supabase stop --no-backup
+          supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor > /tmp/mf-statement-start.log 2>&1
+          supabase status -o json > /tmp/mf-statement-status.json
+          node --input-type=module <<'JS'
+          import { readFileSync, appendFileSync } from 'node:fs';
+          const status = JSON.parse(readFileSync('/tmp/mf-statement-status.json', 'utf8'));
+          console.log(JSON.stringify({ fields: Object.keys(status), localApi: status.API_URL === 'http://127.0.0.1:54321', anonAvailable: Boolean(status.ANON_KEY), adminAvailable: Boolean(status.SERVICE_ROLE_KEY) }));
+          if (status.API_URL !== 'http://127.0.0.1:54321' || !status.ANON_KEY || !status.SERVICE_ROLE_KEY) {
+            throw new Error('Disposable statement stack is missing local credentials');
+          }
+          for (const key of [status.ANON_KEY, status.SERVICE_ROLE_KEY]) console.log(`::add-mask::${key}`);
+          appendFileSync(process.env.GITHUB_ENV, [
+            `NEXT_PUBLIC_SUPABASE_URL=${status.API_URL}`,
+            `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${status.ANON_KEY}`,
+            `MF_STATEMENT_SERVICE_ROLE_KEY=${status.SERVICE_ROLE_KEY}`,
+            '',
+          ].join('\n'));
+          JS
+      - name: Real statement browser acceptance
+        if: needs.classify.outputs.database == 'true' && steps.database-tests.outcome == 'success'
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run test:e2e:statement
       - name: Stop local Supabase
         if: always() && needs.classify.outputs.database == 'true'
         run: supabase stop --no-backup || true
