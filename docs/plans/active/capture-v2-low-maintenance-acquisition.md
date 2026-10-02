@@ -473,6 +473,14 @@ Run `npm run test:journey:baseline` under Node 22 for the frozen automated demo 
 | Understand period, trace and export             | global-pfm-ux, reports-custom-range and expense-path export content                                                             | Scripted assertions do not prove user comprehension                                                               |
 | Interrupted/offline maintenance                 | connectivity-awareness and Inbox persisted retry                                                                                | Readability/reconnect and retry contracts, not offline authenticated posting or physical network reliability      |
 
+#### Connected statement journey extension — 2026-10-02
+
+Owner requested execution of the next Phase A integration gap. Extend the existing Inbox browser suite, preserving one synthetic book throughout: upload a CSV → select its source account in preview → explicitly confirm candidates → resolve the missing category → post once → re-upload the same source → observe duplicate attention without a new ledger row → reload → explicitly clear represented statement rows → finish reconciliation. The initial book is frozen to the represented salary period; its opening snapshot and signed rows determine the independent synthetic closing balance.
+
+Focused evaluation passed on desktop/mobile Chromium with no retry. Initial failures were harness defects: filling the SSR reconciliation input before its controlled handler hydrated, then mixing older demo history with a newer opening snapshot. The harness now uses the established retained-input wait and a scoped statement fixture. No production logic or stored balances were changed to accommodate those failures. Duplicate attention remains unresolved; this does not claim all Inbox work is complete or that every duplicate can be automatically rejected.
+
+This closes one connected demo evidence gap from the program, not authenticated persisted import/replay, real bank compatibility or human comprehension. Current authority remains existing source/candidate/ledger/reconciliation contracts; no second ingestion model, bank connection, schema or telemetry change. Next evidence priorities are authenticated statement replay/ownership and first-time user/device observation, rather than another isolated capture label fix.
+
 #### Human baseline protocol
 
 Research owner recruits consented participants across first-time, stable-history and multi-account cohorts, with actual phone/browser recorded. No participants are claimed yet. Use the same frozen jobs; avoid coaching, let users stop, and include correction in completion/time. Use synthetic statements first; real financial records remain participant-controlled and are not copied into analytics or PR artifacts. Observe whether the user can distinguish a posted record, unresolved candidate, expected commitment and reconciled/partial coverage.
