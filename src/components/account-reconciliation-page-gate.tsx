@@ -7,7 +7,9 @@ import { AccountReconciliationPage } from "./account-reconciliation-page";
 
 type AccountReconciliationPageGateProps = ComponentProps<
   typeof AccountReconciliationPage
-> & { accountId?: string };
+> & {
+  accountId?: string;
+};
 
 export function AccountReconciliationPageGate(
   props: AccountReconciliationPageGateProps,
