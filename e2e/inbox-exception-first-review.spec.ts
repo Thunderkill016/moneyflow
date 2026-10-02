@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { demoLedger, demoSalary } from "./support/demo-ledger.ts";
 
 const CANDIDATE_KEY = "moneyflow-inbox-candidates-v1";
 const TRANSACTION_KEY = "moneyflow-demo-transactions-v1";
@@ -530,4 +531,147 @@ test("a fully cleared inbox shows the done state, not a bare empty list", async 
   await expect(
     page.getByRole("button", { name: "Nạp dữ liệu mẫu" }),
   ).toBeVisible();
+});
+
+// One persistent synthetic book: the source upload, reviewer decision, replay
+// warning and reconciliation must agree without resetting state between tasks.
+test("statement upload, exception review, re-import and reconciliation share one ledger", async ({
+  page,
+}) => {
+  const merchant = "PHASE_A_SYNTHETIC_CAFE";
+  const amount = 45_000;
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+  }).format(new Date());
+  // Freeze the represented statement's starting book; historical demo rows
+  // outside this salary period must not be cleared against its opening snapshot.
+  const baseline = demoLedger().filter(
+    (row) =>
+      row.accountId !== "demo-account-mb" ||
+      row.occurredOn >= demoSalary().occurredOn,
+  );
+  const openingBalance = 1_126_000; // MB demo opening snapshot in src/server/accounts.ts.
+  const baselineBalance =
+    openingBalance +
+    baseline
+      .filter((row) => row.accountId === "demo-account-mb")
+      .reduce(
+        (sum, row) => sum + (row.kind === "income" ? row.amount : -row.amount),
+        0,
+      );
+  await page.addInitScript(
+    ({ key, paid, occurrences, ledgerKey, baseline }) => {
+      if (localStorage.getItem("__mf_statement_journey_seeded")) return;
+      localStorage.clear();
+      localStorage.setItem(key, "[]");
+      localStorage.setItem(ledgerKey, JSON.stringify(baseline));
+      localStorage.setItem(paid, JSON.stringify(occurrences));
+      localStorage.setItem("moneyflow-onboarding-done", "1");
+      localStorage.setItem("__mf_statement_journey_seeded", "1");
+    },
+    {
+      key: CANDIDATE_KEY,
+      ledgerKey: TRANSACTION_KEY,
+      baseline,
+      paid: OCCURRENCE_KEY,
+      occurrences: paidDemoCommitments(vietnamMonthStart()),
+    },
+  );
+
+  async function uploadStatement() {
+    await page.goto("/capture/upload");
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "phase-a-synthetic.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(
+        `Ngày,Mô tả,Số tiền\n${today},${merchant},-${amount}`,
+        "utf8",
+      ),
+    });
+    await expect(page).toHaveURL(/\/imports\/.+\/preview$/);
+    await page
+      .getByLabel("Sao kê này thuộc tài khoản")
+      .selectOption("demo-account-mb");
+    await page.getByRole("button", { name: "Xem lại đưa vào Inbox" }).click();
+    const confirm = page.getByRole("dialog", { name: "Đưa batch vào Inbox?" });
+    await confirm
+      .getByRole("button", { name: "Đưa vào Inbox", exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/inbox$/);
+  }
+
+  await uploadStatement();
+  await page.getByRole("button", { name: `Duyệt ${merchant}` }).click();
+  const review = page.getByRole("dialog", { name: "Duyệt giao dịch" });
+  await expect(review.getByLabel("Tài khoản", { exact: true })).toHaveValue(
+    "demo-account-mb",
+  );
+  await expect(review.getByLabel("Danh mục", { exact: true })).toHaveValue("");
+  await review
+    .getByLabel("Danh mục", { exact: true })
+    .selectOption("demo-category-expense-Ăn uống");
+  await review.getByRole("button", { name: "Duyệt vào sổ" }).click();
+  await expect(page.getByText(/Đã duyệt .+ vào sổ\./)).toBeVisible();
+
+  async function importedRows() {
+    return page.evaluate(
+      ({ key, merchant }) => {
+        const rows = JSON.parse(localStorage.getItem(key) ?? "[]") as Array<{
+          id: string;
+          note: string;
+          amount: number;
+          accountId: string;
+        }>;
+        return rows.filter((row) => row.note.includes(merchant));
+      },
+      { key: TRANSACTION_KEY, merchant },
+    );
+  }
+  const confirmed = await importedRows();
+  expect(confirmed).toHaveLength(1);
+  expect(confirmed[0]).toMatchObject({ amount, accountId: "demo-account-mb" });
+
+  await uploadStatement();
+  await expect(
+    page.getByText("Có thể trùng", { exact: true }).first(),
+  ).toBeVisible();
+  expect(await importedRows()).toEqual(confirmed);
+  await page.reload();
+  expect(await importedRows()).toEqual(confirmed);
+
+  await page.goto("/accounts/demo-account-mb/reconcile");
+  // Independent synthetic statement truth: frozen opening + baseline - imported debit.
+  const statementBalance = baselineBalance - amount;
+  const balance = page.getByLabel("Số dư cuối kỳ");
+  // The SSR field appears before its controlled client handler hydrates; use
+  // the established reconciliation harness contract to wait for retained input.
+  await expect
+    .poll(async () => {
+      await balance.fill(String(statementBalance));
+      return balance.inputValue();
+    })
+    .toBe("15.732.000");
+  await page.getByLabel("Ngày kết thúc sao kê").fill(today);
+  await page.getByRole("button", { name: "Mở kỳ đối soát" }).click();
+  const clear = page.getByRole("button", { name: /^Đánh dấu đã khớp / });
+  const expectedRows =
+    baseline.filter((row) => row.accountId === "demo-account-mb").length +
+    confirmed.length;
+  await expect(clear).toHaveCount(expectedRows);
+  for (let index = 0; index < expectedRows; index += 1)
+    await clear.first().click();
+  await expect(
+    page.getByText("Đã khớp chính xác. Có thể hoàn tất."),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Hoàn tất đối soát", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Hoàn tất đối soát", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Các kỳ đã hoàn tất" }),
+  ).toBeVisible();
+  expect(await importedRows()).toEqual(confirmed);
 });

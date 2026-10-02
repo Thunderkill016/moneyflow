@@ -1,4 +1,5 @@
 import { expect, test, type Locator } from "@playwright/test";
+import { parseCsvMatrix } from "../src/lib/inbox/parse-csv.ts";
 
 const UNIQUE_AMOUNT = "777000";
 const UNIQUE_AMOUNT_DISPLAY = "777.000";
@@ -51,7 +52,9 @@ async function stabilizeQuickExpense(
 async function openCaptureDetails(scope: Locator, slot: string) {
   const disclosure = scope.locator(`details[data-slot="${slot}"]`);
   await expect(disclosure).toBeVisible();
-  if (!(await disclosure.evaluate((element: HTMLDetailsElement) => element.open))) {
+  if (
+    !(await disclosure.evaluate((element: HTMLDetailsElement) => element.open))
+  ) {
     await disclosure.locator("summary").click();
   }
   await expect(disclosure).toHaveAttribute("open", "");
@@ -73,19 +76,11 @@ test.describe("Expense path (thu chi)", () => {
         },
       });
       try {
-        if (
-          window.localStorage.getItem("__mf_e2e_expense_seeded") === "1"
-        )
+        if (window.localStorage.getItem("__mf_e2e_expense_seeded") === "1")
           return;
         window.localStorage.clear();
-        window.localStorage.setItem(
-          "moneyflow-demo-transactions-v1",
-          "[]",
-        );
-        window.localStorage.setItem(
-          "moneyflow-inbox-candidates-v1",
-          "[]",
-        );
+        window.localStorage.setItem("moneyflow-demo-transactions-v1", "[]");
+        window.localStorage.setItem("moneyflow-inbox-candidates-v1", "[]");
         window.localStorage.setItem("moneyflow-onboarding-done", "1");
         window.localStorage.setItem("__mf_e2e_expense_seeded", "1");
       } catch {
@@ -138,9 +133,7 @@ test.describe("Expense path (thu chi)", () => {
       ? page
           .getByRole("navigation", { name: "Điều hướng di động" })
           .getByRole("button", { name: "Ghi chi tiêu" })
-      : page
-          .getByRole("banner")
-          .getByRole("button", { name: "Ghi chi tiêu" });
+      : page.getByRole("banner").getByRole("button", { name: "Ghi chi tiêu" });
     await expect(surfacedPrimaryAction).toBeVisible();
 
     if (isMobile) {
@@ -222,9 +215,9 @@ test.describe("Expense path (thu chi)", () => {
 
     await page.goto("/dashboard");
     await expect(page.locator(".safe-card-hero")).toBeHidden();
-    await expect(
-      page.getByRole("region", { name: "Bạn đang có" }),
-    ).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole("region", { name: "Bạn đang có" })).toBeVisible(
+      { timeout: 20_000 },
+    );
     await expect(
       page.getByLabel(AFTER_EXPENSE_BALANCE_LABEL, { exact: true }),
     ).toBeVisible({ timeout: 20_000 });
@@ -268,12 +261,32 @@ test.describe("Expense path (thu chi)", () => {
     const filename = download.suggestedFilename();
     expect(filename).toMatch(/\.csv$/i);
     expect(filename.toLowerCase()).toMatch(/moneyflow|giao-dich/);
+    // Download success alone does not prove the user's saved facts are portable.
+    const stream = await download.createReadStream();
+    expect(stream).not.toBeNull();
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream!) chunks.push(Buffer.from(chunk));
+    const [header, ...exported] = parseCsvMatrix(
+      Buffer.concat(chunks).toString("utf8"),
+    );
+    const noteIndex = header.indexOf("Ghi chú");
+    const amountIndex = header.indexOf("Số tiền (VND)");
+    const categoryIndex = header.indexOf("Danh mục");
+    expect(
+      [noteIndex, amountIndex, categoryIndex].every((index) => index >= 0),
+    ).toBe(true);
+    const savedRows = exported.filter((row) => row[noteIndex] === UNIQUE_NOTE);
+    expect(savedRows).toHaveLength(1);
+    expect(savedRows[0][amountIndex]).toBe(`-${UNIQUE_AMOUNT}`);
+    expect(savedRows[0][categoryIndex]).toBe("Ăn uống");
     await expect(page.getByText(/Đã tải \d+ mục/i)).toBeVisible({
       timeout: 10_000,
     });
   });
 
-  test("dashboard keeps the form open only when requested", async ({ page }) => {
+  test("dashboard keeps the form open only when requested", async ({
+    page,
+  }) => {
     await page.goto("/dashboard");
     await expect(
       page.getByLabel(OPENING_BALANCE_LABEL, { exact: true }),
@@ -284,9 +297,7 @@ test.describe("Expense path (thu chi)", () => {
       ? page
           .getByRole("navigation", { name: "Điều hướng di động" })
           .getByRole("button", { name: "Ghi chi tiêu" })
-      : page
-          .locator("header")
-          .getByRole("button", { name: "Ghi chi tiêu" });
+      : page.locator("header").getByRole("button", { name: "Ghi chi tiêu" });
     await expect(openButton).toBeVisible();
     await openButton.click();
 
@@ -295,8 +306,12 @@ test.describe("Expense path (thu chi)", () => {
 
     const amount = dialog.getByLabel(/Số tiền chi/i);
     await expect(amount).toBeFocused();
-    await expect(dialog.locator('[data-slot="capture-fast-defaults"]')).toBeVisible();
-    await expect(dialog.locator('[data-slot="capture-category-suggestions"]')).toBeVisible();
+    await expect(
+      dialog.locator('[data-slot="capture-fast-defaults"]'),
+    ).toBeVisible();
+    await expect(
+      dialog.locator('[data-slot="capture-category-suggestions"]'),
+    ).toBeVisible();
     const saveAndContinue = dialog.getByRole("button", {
       name: "Lưu & thêm tiếp",
       exact: true,
@@ -306,9 +321,7 @@ test.describe("Expense path (thu chi)", () => {
       "one-time repeated entry must not require opening optional details first",
     ).toBeVisible();
     await expect(saveAndContinue).toBeDisabled();
-    await dialog
-      .getByRole("button", { name: "Chọn danh mục Ăn uống" })
-      .click();
+    await dialog.getByRole("button", { name: "Chọn danh mục Ăn uống" }).click();
     await amount.fill("110000");
     await expect(saveAndContinue).toBeEnabled();
     await saveAndContinue.click();
@@ -483,20 +496,19 @@ test.describe("Expense path (thu chi)", () => {
       .click();
     await expect(amount).toHaveValue("125.000");
     await expect(note).toHaveValue("Không được mẫu ghi đè");
-    await expect(dialog.locator('[data-slot="capture-fast-defaults"]')).toContainText(
-      "Ăn uống",
-    );
-    await expect(dialog.locator('[data-slot="capture-fast-defaults"]')).toContainText(
-      "Tiền mặt",
-    );
+    await expect(
+      dialog.locator('[data-slot="capture-fast-defaults"]'),
+    ).toContainText("Ăn uống");
+    await expect(
+      dialog.locator('[data-slot="capture-fast-defaults"]'),
+    ).toContainText("Tiền mặt");
 
     await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
     await expect(page.getByText("Đã lưu vào sổ")).toBeVisible();
     const analyticsCalls = await page.evaluate(
       () =>
-        (
-          window as typeof window & { __mfAnalyticsEvents: AnalyticsCall[] }
-        ).__mfAnalyticsEvents,
+        (window as typeof window & { __mfAnalyticsEvents: AnalyticsCall[] })
+          .__mfAnalyticsEvents,
     );
     const saveEvent = analyticsCalls.find(
       (call) => call[1]?.name === "quick_capture_save",
@@ -538,9 +550,7 @@ test.describe("Expense path (thu chi)", () => {
       ? page
           .getByRole("navigation", { name: "Điều hướng di động" })
           .getByRole("button", { name: "Ghi chi tiêu" })
-      : page
-          .locator("header")
-          .getByRole("button", { name: "Ghi chi tiêu" });
+      : page.locator("header").getByRole("button", { name: "Ghi chi tiêu" });
     await openButton.click();
     await expect(
       page

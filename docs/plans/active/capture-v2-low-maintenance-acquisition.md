@@ -457,6 +457,48 @@ Begin phase A with one frozen six-task journey: create represented accounts → 
 
 Deliverables: reproducible scripted baseline; explicit physical-user protocol; unverified-evidence list; Stage 0/1 gap ranking; and a selected phase B package. Recruitment/device/provider approval dependencies may stay open while synthetic and repository-level work proceeds, but those tiers must remain visibly distinct.
 
+### Phase A execution contract — 2026-10-01
+
+**Execution state:** evaluating in PR #743. **Active role:** evaluator. **Permission scope:** branch_write. **Owner instruction:** merge the delivery program and execute it. Planning PR #742 merged at 739e9e43. This package owns baseline evidence, not a new feature system.
+
+Run `npm run test:journey:baseline` under Node 22 for the frozen automated demo baseline on desktop/mobile Chromium. It composes existing suites rather than duplicating domain implementations. Each test owns isolated synthetic demo state; passing them is not a single authenticated end-to-end journey or real-user timing. Run `npm run test:e2e:auth` separately for the existing loopback ownership/recovery contract; that double is not deployed Supabase evidence. Existing script `scripts/capture-bench-driver.mjs` remains an optional machine-floor timing tool, not user TTLT.
+
+| Frozen job                                      | Existing evidence                                                                                                               | Current limitation to preserve                                                                                    |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Find Ghi, record cash, locate record and export | expense-path, global-pfm-ux; export now checks downloaded row content and exact integer/sign/category rather than filename only | Register navigation is not successful account provisioning; seeded accounts are not first-time setup acceptance   |
+| Transfer correctly                              | accounts-transfer and Inbox transfer/retry cases                                                                                | Account dialog review alone is not posting; Inbox demo posting is separate from authenticated provider acceptance |
+| Acquire digital activity                        | direct-csv-remembered-mapping                                                                                                   | Mapping preview is not full persisted statement import/re-import; source file is synthetic                        |
+| Resolve exceptions/correct                      | Inbox exception-first and expense correction cases                                                                              | Synthetic unresolved/mixed candidates; no claim of real bank parser precision                                     |
+| Reconcile represented account                   | account-reconciliation-workspace                                                                                                | Explicit demo statement fixtures; no evidence that a real statement agrees with actual bank balance               |
+| Understand period, trace and export             | global-pfm-ux, reports-custom-range and expense-path export content                                                             | Scripted assertions do not prove user comprehension                                                               |
+| Interrupted/offline maintenance                 | connectivity-awareness and Inbox persisted retry                                                                                | Readability/reconnect and retry contracts, not offline authenticated posting or physical network reliability      |
+
+#### Connected statement journey extension — 2026-10-02
+
+Owner requested execution of the next Phase A integration gap. Extend the existing Inbox browser suite, preserving one synthetic book throughout: upload a CSV → select its source account in preview → explicitly confirm candidates → resolve the missing category → post once → re-upload the same source → observe duplicate attention without a new ledger row → reload → explicitly clear represented statement rows → finish reconciliation. The initial book is frozen to the represented salary period; its opening snapshot and signed rows determine the independent synthetic closing balance.
+
+Focused evaluation passed on desktop/mobile Chromium with no retry. Initial failures were harness defects: filling the SSR reconciliation input before its controlled handler hydrated, then mixing older demo history with a newer opening snapshot. The harness now uses the established retained-input wait and a scoped statement fixture. No production logic or stored balances were changed to accommodate those failures. Duplicate attention remains unresolved; this does not claim all Inbox work is complete or that every duplicate can be automatically rejected.
+
+This closes one connected demo evidence gap from the program, not authenticated persisted import/replay, real bank compatibility or human comprehension. Current authority remains existing source/candidate/ledger/reconciliation contracts; no second ingestion model, bank connection, schema or telemetry change. Next evidence priorities are authenticated statement replay/ownership and first-time user/device observation, rather than another isolated capture label fix.
+
+#### Human baseline protocol
+
+Research owner recruits consented participants across first-time, stable-history and multi-account cohorts, with actual phone/browser recorded. No participants are claimed yet. Use the same frozen jobs; avoid coaching, let users stop, and include correction in completion/time. Use synthetic statements first; real financial records remain participant-controlled and are not copied into analytics or PR artifacts. Observe whether the user can distinguish a posted record, unresolved candidate, expected commitment and reconciled/partial coverage.
+
+For each task record: anonymous participant/session code, build, device/browser, cohort, completion/abandonment, start-to-trusted-finish duration, interventions by type, material wrong fields/duplicates, correction effort, and the user's explanation of the result. Keep raw private observations outside repo under a consented retention policy. Report timing by task/cohort; automated execution duration is never substituted for human TTLT. Agree effect-size targets after baseline and before a subsequent prototype, using the program's measurement contract.
+
+#### Automated baseline evidence — 2026-10-01
+
+At this package's local Node 22 tree: demo baseline 60/60 pass on desktop/mobile Chromium; separate authenticated loopback suite 30 pass and one configured performance-attribution diagnostic skip. Lint, typecheck, production build through the authenticated harness, 191 CI-policy cases, formatting and project-knowledge checks pass. The demo run took 5.9 minutes and the authenticated run 3.9 minutes; these are machine suite durations, not participant timing or product speed targets. Exact-head provider CI remains required after final documentation.
+
+No observed failure in these frozen scripted cases warrants another isolated capture patch. The next connected package should close the statement import/re-import → exception review → reconciliation evidence gap, with first-time setup and human comprehension as separately unverified baselines. This selects an engineering evidence gap; it does not establish the biggest real-user friction without the human protocol above.
+
+#### Baseline exit and next decision
+
+Exit this repository package when the command is reproducible, all selected cases have results, export checks actual saved facts, and gaps/prerequisites are named. Stage 0/1 maturity remains unproven until the separate participant/device/provider evidence exists. Rank next experiments by observed failure and whole-journey maintenance burden; do not automatically add patterns or another confirmation change.
+
+Initial inspection gap: existing mapping evidence stops before a full import/re-import → exception review → reconciliation workflow. After the baseline run, select that integration gap if no higher-severity runtime failure emerges. First-time account provisioning and comprehension also remain explicit external acceptance gaps. No measured claim about which friction is largest for real users is available yet.
+
 ### Slice 0 — Baseline released Ghi
 
 - measure #596 amount-first TTLT, taps and correction on representative physical phones;
@@ -712,3 +754,9 @@ The later exact-head check on `3ebb5ece820f55a28b016763f1ec2d5a89d9f68f` confirm
 ### Next allowed action
 
 Use the owner-requested delivery program above: begin Phase A with the frozen complete money journey, collect baseline and choose the largest measured friction. Existing technical slices remain reusable experiments within a selected work package; they are not an automatic next-feature queue. Counterparty schema work, permanent IA changes, OCR/STT/provider work require separate bounded authority.
+
+#### Authenticated harness boundary — 2026-10-02
+
+Class 1 test-tooling correction within Phase A: table fixtures previously returned HTTP 200 even for unimplemented POST/PATCH/DELETE requests. Reject table mutations with 501 and record misses; preserve supported reads. A process-level regression checks all unsupported write methods, an unknown financial RPC, unchanged seeded data and the request report. Run it before the authenticated browser suite. This prevents false persistence acceptance; it does not implement import writes, SQL idempotency, RLS or reconciliation. Those remain a connected real-database evaluation prerequisite, not a mocked financial engine.
+
+Reuse the existing PostgreSQL acceptance contracts instead of reproducing financial logic inside the double: `import_batch_atomic_commit.test.sql` covers exact-intent replay and changed-replay rejection; `import_provenance_invariants.test.sql` covers another tenant being unable to plan/approve and source-ID/fingerprint duplicate precedence; `manual_import_reconciliation.test.sql` covers linking imported evidence to manual facts; account reconciliation workspace/locking tests cover completion boundaries. These files are inspected contracts, not new run results. The current machine has neither Docker nor psql on PATH, so no local real-database run is claimed. The next connected write journey requires a disposable real Supabase/PostgreSQL environment; production data must not be used as its fixture.
