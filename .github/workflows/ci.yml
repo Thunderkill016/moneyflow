@@ -344,6 +344,7 @@ jobs:
           node --input-type=module <<'JS'
           import { readFileSync, appendFileSync } from 'node:fs';
           const status = JSON.parse(readFileSync('/tmp/mf-statement-status.json', 'utf8'));
+          console.log(JSON.stringify({ fields: Object.keys(status), localApi: status.API_URL === 'http://127.0.0.1:54321', anonAvailable: Boolean(status.ANON_KEY), adminAvailable: Boolean(status.SERVICE_ROLE_KEY) }));
           if (status.API_URL !== 'http://127.0.0.1:54321' || !status.ANON_KEY || !status.SERVICE_ROLE_KEY) {
             throw new Error('Disposable statement stack is missing local credentials');
           }
