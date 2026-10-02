@@ -25,7 +25,8 @@ function realImportsFrom(filePath, forbiddenPrefixes) {
     const match = line.match(/from\s+["']([^"']+)["']/);
     if (!match) continue;
     const source = match[1];
-    if (!forbiddenPrefixes.some((prefix) => source.startsWith(prefix))) continue;
+    if (!forbiddenPrefixes.some((prefix) => source.startsWith(prefix)))
+      continue;
     if (/^\s*import\s+type\s/.test(line)) continue;
     hits.push({ line: line.trim(), source });
   }
@@ -84,7 +85,11 @@ for (const path of transactionAuthorityFiles) {
 const legacySamplePath = join(root, "src", "lib", "sample-data.ts");
 try {
   const legacySample = readFileSync(legacySamplePath, "utf8");
-  if (/from\s+["'][^"']*demo\/transaction-fixtures(?:\.ts)?["']/u.test(legacySample)) {
+  if (
+    /from\s+["'][^"']*demo\/transaction-fixtures(?:\.ts)?["']/u.test(
+      legacySample,
+    )
+  ) {
     failures.push(
       "src/lib/sample-data.ts must not export demo fixtures; runtime demo values belong only to src/lib/demo/transaction-fixtures.ts.",
     );
@@ -99,6 +104,10 @@ try {
 }
 
 const allowedDemoFixtureImporters = new Set([
+  // Explicit browser-demo account adapter and demo-aware account loader (#748).
+  "src/lib/demo-account-store.ts",
+  "src/hooks/use-demo-accounts.ts",
+  "src/server/accounts.ts",
   "src/lib/transaction-store.ts",
   "src/server/budgets.ts",
   "src/server/categories.ts",
@@ -115,7 +124,8 @@ for (const file of listFiles(srcRoot)) {
     content.includes("@/lib/demo/transaction-fixtures") ||
     /from\s+["'][^"']*demo\/transaction-fixtures\.ts["']/u.test(content);
   if (!importsDemoFixtures) continue;
-  if (path.startsWith("src/lib/demo/") || /\.test\.(ts|tsx)$/u.test(path)) continue;
+  if (path.startsWith("src/lib/demo/") || /\.test\.(ts|tsx)$/u.test(path))
+    continue;
   if (allowedDemoFixtureImporters.has(path)) continue;
   failures.push(
     `${path}: demo fixture import is not owned by an approved demo boundary.\n  Production/core modules must use transaction contracts or real loaders, not demo values.`,

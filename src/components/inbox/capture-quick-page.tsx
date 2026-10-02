@@ -1,5 +1,7 @@
 "use client";
 
+import { useDemoFinanceWorkspace } from "@/hooks/use-demo-accounts";
+
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -76,13 +78,14 @@ export type QuickCaptureMode = TransactionKind | "transfer";
  */
 export function CaptureQuickPage({
   viewer,
-  workspace,
+  workspace: initialWorkspace,
   initialMode,
 }: {
   viewer: ViewerSummary;
   workspace: QuickWorkspace;
   initialMode?: QuickCaptureMode;
 }) {
+  const workspace = useDemoFinanceWorkspace(initialWorkspace, viewer.isDemo);
   const router = useRouter();
   const canTransfer = workspace.accounts.length >= 2;
   const {

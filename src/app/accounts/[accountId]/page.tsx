@@ -26,12 +26,13 @@ export default async function Page({
     getFinanceWorkspace(),
   ]);
 
-  const account = accountsWorkspace.accounts.find((item) => item.id === accountId) ?? null;
+  const account =
+    accountsWorkspace.accounts.find((item) => item.id === accountId) ?? null;
   const dataError = accountsWorkspace.dataError ?? financeWorkspace.dataError;
 
   // The account list is already viewer-scoped. Returning the same not-found state
   // for invalid, missing and other-tenant IDs avoids revealing ownership details.
-  if (!account && !dataError) notFound();
+  if (!viewer.isDemo && !account && !dataError) notFound();
 
   const entries = account
     ? buildAccountRegister(financeWorkspace.transactions, account.id)
@@ -46,6 +47,7 @@ export default async function Page({
         displayName: viewer.displayName,
         isDemo: viewer.isDemo,
       }}
+      accountId={accountId}
       account={account}
       entries={entries}
       summary={summary}

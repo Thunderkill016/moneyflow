@@ -1,5 +1,7 @@
 "use client";
 
+import { useDemoFinanceWorkspace } from "@/hooks/use-demo-accounts";
+
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
@@ -132,7 +134,7 @@ function confidenceTone(confidence: InboxCandidate["confidence"]) {
 
 export function InboxPage({
   viewer,
-  workspace,
+  workspace: initialWorkspace,
   initialCandidateId,
 }: {
   viewer: ViewerSummary;
@@ -140,6 +142,7 @@ export function InboxPage({
   /** `?candidate=<id>` deep link — resolves only while the row is pending. */
   initialCandidateId?: string;
 }) {
+  const workspace = useDemoFinanceWorkspace(initialWorkspace, viewer.isDemo);
   const router = useRouter();
   const { addTransaction, addTransfer, isMutating } = useTransactions({
     initialTransactions: workspace.transactions,

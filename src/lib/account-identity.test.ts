@@ -66,7 +66,9 @@ test("account identity constants stay inside the writable contract", () => {
 test("every account kind has a default icon so fallback never renders blank", () => {
   for (const kind of ["cash", "bank", "e_wallet", "credit_card", "savings"]) {
     assert.ok(
-      ACCOUNT_KIND_DEFAULT_ICONS[kind as keyof typeof ACCOUNT_KIND_DEFAULT_ICONS],
+      ACCOUNT_KIND_DEFAULT_ICONS[
+        kind as keyof typeof ACCOUNT_KIND_DEFAULT_ICONS
+      ],
       `missing kind default for ${kind}`,
     );
   }
@@ -115,8 +117,14 @@ test("the RPC signatures keep existing positional params and append identity", (
   );
   assert.match(migration, /p_currency_code text default 'VND'/);
   // Direct row mutation stays revoked — the RPC remains the only write path.
-  assert.match(migration, /grant execute on function public\.update_financial_account/);
-  assert.match(migration, /grant execute on function public\.create_financial_account/);
+  assert.match(
+    migration,
+    /grant execute on function public\.update_financial_account/,
+  );
+  assert.match(
+    migration,
+    /grant execute on function public\.create_financial_account/,
+  );
 });
 
 test("the server action accepts only palette icons and colors", () => {
@@ -134,11 +142,23 @@ test("the dialog offers a picker for every writable icon and color", () => {
 });
 
 test("stored identity wins over the kind fallback on every render surface", () => {
-  assert.match(workspace, /account\.icon \?\? ACCOUNT_KIND_DEFAULT_ICONS\[account\.kind\]/);
-  assert.match(detailPage, /account\.icon \?\? ACCOUNT_KIND_DEFAULT_ICONS\[account\.kind\]/);
+  assert.match(
+    workspace,
+    /account\.icon \?\? ACCOUNT_KIND_DEFAULT_ICONS\[account\.kind\]/,
+  );
+  assert.match(
+    detailPage,
+    /account\.icon \?\? ACCOUNT_KIND_DEFAULT_ICONS\[account\.kind\]/,
+  );
   // Stored colors degrade to the kind tone, never to an unowned class.
-  assert.match(workspace, /isAccountColor\(account\.color\) \? styles\[account\.color\]/);
-  assert.match(detailPage, /isAccountColor\(account\.color\) \? styles\[account\.color\]/);
+  assert.match(
+    workspace,
+    /isAccountColor\(account\.color\)\s*\? styles\[account\.color\]/,
+  );
+  assert.match(
+    detailPage,
+    /isAccountColor\(account\.color\)\s*\? styles\[account\.color\]/,
+  );
 });
 
 test("every palette color has a CSS tone class on both render surfaces", () => {

@@ -30,7 +30,7 @@ export default async function Page({
     accountsWorkspace.accounts.find((item) => item.id === accountId) ?? null;
   const dataError = accountsWorkspace.dataError ?? financeWorkspace.dataError;
 
-  if (!account && !dataError) notFound();
+  if (!viewer.isDemo && !account && !dataError) notFound();
 
   const entries = account
     ? buildAccountRegister(financeWorkspace.transactions, account.id)
@@ -59,6 +59,7 @@ export default async function Page({
         displayName: viewer.displayName,
         isDemo: viewer.isDemo,
       }}
+      accountId={accountId}
       account={account}
       registerEntries={entries}
       initialState={reconciliationState}

@@ -1,6 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useDemoAccountSummaries } from "@/hooks/use-demo-accounts";
+import { saveDemoAccount, archiveDemoAccount } from "@/lib/demo-account-store";
 import { useEffect, useMemo, useState } from "react";
 import { AccountArchiveDialog } from "@/components/accounts/account-archive-dialog";
 import { Icon, type IconName } from "@/components/icons";
@@ -11,7 +13,10 @@ import { Button, LinkButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { ToastTone } from "@/components/ui/toast";
 import type { ViewerSummary } from "@/components/user-chip";
-import { saveAccountAction, setAccountArchivedAction } from "@/app/actions/accounts";
+import {
+  saveAccountAction,
+  setAccountArchivedAction,
+} from "@/app/actions/accounts";
 import { executeTransferMutation } from "@/hooks/transfer-mutation";
 import {
   ACCOUNT_KIND_DEFAULT_ICONS,
@@ -25,11 +30,7 @@ import {
   buildAccountRegister,
   reconcileAccountBalanceSnapshot,
 } from "@/lib/account-register";
-import {
-  canTransferSameCurrency,
-  normalizeCurrencyCode,
-  totalsByCurrency,
-} from "@/lib/currency";
+import { canTransferSameCurrency, totalsByCurrency } from "@/lib/currency";
 import { formatMoney } from "@/lib/money";
 import type { CreateTransferInput } from "@/lib/sample-data";
 import {
@@ -40,11 +41,17 @@ import { applyTransferBalances } from "@/lib/transfers";
 import styles from "./accounts-workspace.module.css";
 
 const AccountDialog = dynamic(
-  () => import("@/components/account-dialog").then((module) => module.AccountDialog),
+  () =>
+    import("@/components/account-dialog").then(
+      (module) => module.AccountDialog,
+    ),
   { ssr: false },
 );
 const TransferDialog = dynamic(
-  () => import("@/components/transfer-dialog").then((module) => module.TransferDialog),
+  () =>
+    import("@/components/transfer-dialog").then(
+      (module) => module.TransferDialog,
+    ),
   { ssr: false },
 );
 
@@ -63,29 +70,42 @@ function kindClassName(kind: AccountKind) {
 }
 
 function accountToneClassName(account: AccountSummary): string {
-  return isAccountColor(account.color) ? styles[account.color] : kindClassName(account.kind);
+  return isAccountColor(account.color)
+    ? styles[account.color]
+    : kindClassName(account.kind);
 }
 
 export function AccountsWorkspace({
   viewer,
-  initialAccounts,
-  dataError,
+  initialAccounts: serverAccounts,
+  dataError: initialDataError,
 }: {
   viewer: ViewerSummary;
   initialAccounts: AccountSummary[];
   dataError: string | null;
 }) {
+  const demoAccounts = useDemoAccountSummaries(viewer.isDemo);
+  const initialAccounts = viewer.isDemo
+    ? demoAccounts.accounts
+    : serverAccounts;
+  const dataError =
+    initialDataError ?? (viewer.isDemo ? demoAccounts.error : null);
   const [accounts, setAccounts] = useState(initialAccounts);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [editing, setEditing] = useState<AccountSummary | null>(null);
   const [dialogVersion, setDialogVersion] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [archiveTarget, setArchiveTarget] = useState<AccountSummary | null>(null);
+  const [archiveTarget, setArchiveTarget] = useState<AccountSummary | null>(
+    null,
+  );
   const [notice, setNotice] = useState("");
-  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
-  const [reconciledDemoSource, setReconciledDemoSource] =
-    useState<AccountSummary[] | null>(viewer.isDemo ? null : initialAccounts);
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(
+    undefined,
+  );
+  const [reconciledDemoSource, setReconciledDemoSource] = useState<
+    AccountSummary[] | null
+  >(viewer.isDemo ? null : initialAccounts);
 
   const activeAccounts = accounts.filter((item) => !item.isArchived);
   const archivedAccounts = accounts.filter((item) => item.isArchived);
@@ -106,6 +126,7 @@ export function AccountsWorkspace({
 
   useEffect(() => {
     if (!viewer.isDemo) return;
+    if (!demoAccounts.ready) return;
     const frame = window.requestAnimationFrame(() => {
       const storedTransactions = readStoredTransactions();
       const baselineTransactions = readDemoTransactionBaseline();
@@ -122,10 +143,11 @@ export function AccountsWorkspace({
       setReconciledDemoSource(initialAccounts);
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [initialAccounts, viewer.isDemo]);
+  }, [initialAccounts, viewer.isDemo, demoAccounts.ready]);
 
   const demoLedgerPending =
-    viewer.isDemo && reconciledDemoSource !== initialAccounts;
+    viewer.isDemo &&
+    (!demoAccounts.ready || reconciledDemoSource !== initialAccounts);
 
   useEffect(() => {
     if (!notice) return;
@@ -149,39 +171,22 @@ export function AccountsWorkspace({
 
   async function saveAccount(input: SaveAccountInput) {
     if (viewer.isDemo) {
-      const currencyCode = normalizeCurrencyCode(input.currencyCode ?? "VND");
-      const next: AccountSummary = {
-        id: input.id ?? crypto.randomUUID(),
-        name: input.name,
-        kind: input.kind,
-        currencyCode,
-        initialBalance: input.initialBalance,
-        balance: input.initialBalance,
-        isArchived: false,
-        icon: input.icon ?? null,
-        color: input.color ?? null,
-      };
-      setAccounts((current) =>
-        input.id
-          ? current.map((item) =>
-              item.id === input.id
-                ? {
-                    ...next,
-                    currencyCode: item.currencyCode,
-                    balance:
-                      next.initialBalance + (item.balance - item.initialBalance),
-                    isArchived: item.isArchived,
-                  }
-                : item,
-            )
-          : [...current, next],
-      );
-      setDialogOpen(false);
-      showNotice(
-        input.id ? "Đã cập nhật tài khoản demo." : "Đã thêm tài khoản demo.",
-        "success",
-      );
-      return { ok: true };
+      try {
+        const saved = saveDemoAccount(input, window.localStorage);
+        if (saved.error) return { ok: false, message: saved.error };
+        setDialogOpen(false);
+        showNotice(
+          input.id ? "Đã cập nhật tài khoản demo." : "Đã thêm tài khoản demo.",
+          "success",
+        );
+        return { ok: true };
+      } catch {
+        // localStorage access itself may be denied before the store is called.
+        return {
+          ok: false,
+          message: "Không lưu được tài khoản demo. Hãy thử lại.",
+        };
+      }
     }
 
     const result = await saveAccountAction(input);
@@ -189,9 +194,7 @@ export function AccountsWorkspace({
       setAccounts((current) =>
         input.id
           ? current.map((item) =>
-              item.id === input.id
-                ? (result.account as AccountSummary)
-                : item,
+              item.id === input.id ? (result.account as AccountSummary) : item,
             )
           : [...current, result.account as AccountSummary],
       );
@@ -206,9 +209,24 @@ export function AccountsWorkspace({
 
   async function setArchived(account: AccountSummary, archived: boolean) {
     setBusyId(account.id);
-    const result = viewer.isDemo
-      ? { ok: true as const }
-      : await setAccountArchivedAction(account.id, archived);
+    let result;
+    if (viewer.isDemo) {
+      try {
+        const saved = archiveDemoAccount(
+          account.id,
+          archived,
+          window.localStorage,
+        );
+        result = saved.error
+          ? { ok: false as const, message: saved.error }
+          : { ok: true as const };
+      } catch {
+        result = {
+          ok: false as const,
+          message: "Không lưu được tài khoản demo. Hãy thử lại.",
+        };
+      }
+    } else result = await setAccountArchivedAction(account.id, archived);
     setBusyId(null);
 
     if (!result.ok) {
@@ -296,77 +314,87 @@ export function AccountsWorkspace({
               intent="secondary"
               targetSize="important"
               onClick={() => setTransferOpen(true)}
-              disabled={Boolean(dataError) || demoLedgerPending || !canOpenTransfer}
+              disabled={
+                Boolean(dataError) || demoLedgerPending || !canOpenTransfer
+              }
             >
               <Icon name="arrows" /> Chuyển tiền
             </Button>
             {dataError || demoLedgerPending || canOpenTransfer ? null : (
               <small className={styles.actionHint}>
-                Cần ít nhất hai tài khoản đang hoạt động cùng loại tiền để chuyển.
+                Cần ít nhất hai tài khoản đang hoạt động cùng loại tiền để
+                chuyển.
               </small>
             )}
           </div>
         </header>
 
         {dataError ? null : (
-        <section
-          data-slot="accounts-summary"
-          className={styles.summary}
-          aria-label="Tổng quan tài khoản đang hoạt động"
-        >
-          <div className={styles.summaryTotals}>
-            <span className={styles.summaryLabel}>
+          <section
+            data-slot="accounts-summary"
+            className={styles.summary}
+            aria-label="Tổng quan tài khoản đang hoạt động"
+          >
+            <div className={styles.summaryTotals}>
+              <span className={styles.summaryLabel}>
+                {hasFx
+                  ? "Số dư tài khoản đang hoạt động theo loại tiền"
+                  : "Tổng số dư tài khoản đang hoạt động"}
+              </span>
+              {demoLedgerPending ? (
+                <p
+                  className={styles.ledgerPending}
+                  role="status"
+                  aria-live="polite"
+                >
+                  Đang đối soát số dư từ sổ giao dịch trên thiết bị…
+                </p>
+              ) : activeCurrencyTotals.length === 0 ? (
+                <MoneyValue
+                  amount={0}
+                  mode="plain"
+                  currencyCode="VND"
+                  emphasis="strong"
+                  align="start"
+                  label="Tổng số dư tài khoản đang hoạt động"
+                />
+              ) : (
+                <ul className={styles.currencyTotals}>
+                  {activeCurrencyTotals.map((row) => (
+                    <li className={styles.currencyTotal} key={row.currencyCode}>
+                      <MoneyValue
+                        amount={row.total}
+                        mode="plain"
+                        currencyCode={row.currencyCode}
+                        emphasis="strong"
+                        align="start"
+                        label={`Tổng số dư đang hoạt động ${row.currencyCode}`}
+                      />
+                      <small>
+                        {row.currencyCode}
+                        {row.count > 1 ? ` · ${row.count} tài khoản` : ""}
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <small className={styles.summaryCount}>
+                {activeAccounts.length} tài khoản đang hoạt động
+                {hasFx ? " · không cộng gộp ngoại tệ" : ""}
+              </small>
+            </div>
+            <p className={styles.summaryNote}>
               {hasFx
-                ? "Số dư tài khoản đang hoạt động theo loại tiền"
-                : "Tổng số dư tài khoản đang hoạt động"}
-            </span>
-            {demoLedgerPending ? (
-              <p className={styles.ledgerPending} role="status" aria-live="polite">
-                Đang đối soát số dư từ sổ giao dịch trên thiết bị…
-              </p>
-            ) : activeCurrencyTotals.length === 0 ? (
-              <MoneyValue
-                amount={0}
-                mode="plain"
-                currencyCode="VND"
-                emphasis="strong"
-                align="start"
-                label="Tổng số dư tài khoản đang hoạt động"
-              />
-            ) : (
-              <ul className={styles.currencyTotals}>
-                {activeCurrencyTotals.map((row) => (
-                  <li className={styles.currencyTotal} key={row.currencyCode}>
-                    <MoneyValue
-                      amount={row.total}
-                      mode="plain"
-                      currencyCode={row.currencyCode}
-                      emphasis="strong"
-                      align="start"
-                      label={`Tổng số dư đang hoạt động ${row.currencyCode}`}
-                    />
-                    <small>
-                      {row.currencyCode}
-                      {row.count > 1 ? ` · ${row.count} tài khoản` : ""}
-                    </small>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <small className={styles.summaryCount}>
-              {activeAccounts.length} tài khoản đang hoạt động
-              {hasFx ? " · không cộng gộp ngoại tệ" : ""}
-            </small>
-          </div>
-          <p className={styles.summaryNote}>
-            {hasFx
-              ? "Mỗi loại tiền được theo dõi riêng. MoneyFlow chưa chuyển chéo loại tiền hoặc quy đổi theo tỷ giá."
-              : "Tổng này chỉ gồm tài khoản đang hoạt động. Tài khoản đã lưu trữ vẫn giữ lịch sử và số dư trong nhóm riêng bên dưới."}
-          </p>
-        </section>
+                ? "Mỗi loại tiền được theo dõi riêng. MoneyFlow chưa chuyển chéo loại tiền hoặc quy đổi theo tỷ giá."
+                : "Tổng này chỉ gồm tài khoản đang hoạt động. Tài khoản đã lưu trữ vẫn giữ lịch sử và số dư trong nhóm riêng bên dưới."}
+            </p>
+          </section>
         )}
 
-        <section className={styles.section} aria-labelledby="active-accounts-title">
+        <section
+          className={styles.section}
+          aria-labelledby="active-accounts-title"
+        >
           <div className={styles.sectionHeading}>
             <div>
               <h2 id="active-accounts-title">Đang hoạt động</h2>
@@ -395,7 +423,8 @@ export function AccountsWorkspace({
                       <div className={styles.cardTitle}>
                         <h3>{account.name}</h3>
                         <p className={styles.cardMeta}>
-                          {accountKindLabels[account.kind]} · {account.currencyCode}
+                          {accountKindLabels[account.kind]} ·{" "}
+                          {account.currencyCode}
                           {account.currencyCode !== "VND"
                             ? " · chỉ theo dõi"
                             : ""}
@@ -482,7 +511,11 @@ export function AccountsWorkspace({
               }
               primaryAction={
                 dataError ? (
-                  <LinkButton href="/dashboard" intent="secondary" targetSize="important">
+                  <LinkButton
+                    href="/dashboard"
+                    intent="secondary"
+                    targetSize="important"
+                  >
                     Về Tổng quan
                   </LinkButton>
                 ) : (
@@ -516,7 +549,8 @@ export function AccountsWorkspace({
             </div>
             {demoLedgerPending ? (
               <p className={styles.archivedTotals}>
-                Đang đối soát số dư tài khoản đã lưu trữ từ sổ giao dịch trên thiết bị…
+                Đang đối soát số dư tài khoản đã lưu trữ từ sổ giao dịch trên
+                thiết bị…
               </p>
             ) : (
               <p className={styles.archivedTotals}>
@@ -535,7 +569,10 @@ export function AccountsWorkspace({
                 ))}
               </p>
             )}
-            <div data-slot="accounts-archived-list" className={styles.archivedList}>
+            <div
+              data-slot="accounts-archived-list"
+              className={styles.archivedList}
+            >
               {archivedAccounts.map((account) => (
                 <article
                   data-slot="archived-account-row"

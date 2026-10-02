@@ -1,5 +1,7 @@
 "use client";
 
+import { useDemoFinanceWorkspace } from "@/hooks/use-demo-accounts";
+
 import { useRouter } from "next/navigation";
 import {
   useCallback,
@@ -119,13 +121,14 @@ function indexFromSelect(value: string): number | null {
 
 export function DirectCsvImportPage({
   viewer,
-  workspace,
+  workspace: initialWorkspace,
   rules,
 }: {
   viewer: ViewerSummary;
   workspace: DirectImportWorkspace;
   rules: DirectImportRules;
 }) {
+  const workspace = useDemoFinanceWorkspace(initialWorkspace, viewer.isDemo);
   const router = useRouter();
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -150,7 +153,9 @@ export function DirectCsvImportPage({
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(
+    undefined,
+  );
   const [dragOver, setDragOver] = useState(false);
   const [fileName, setFileName] = useState("");
   const [fileSize, setFileSize] = useState(0);
@@ -172,15 +177,16 @@ export function DirectCsvImportPage({
   const [skipDuplicates, setSkipDuplicates] = useState(true);
   const [activeRules, setActiveRules] = useState<InboxRule[]>(rules.rules);
   const [importProgress, setImportProgress] = useState({ done: 0, total: 0 });
-  const [committedLedgerRows, setCommittedLedgerRows] = useState<LedgerLike[]>([]);
+  const [committedLedgerRows, setCommittedLedgerRows] = useState<LedgerLike[]>(
+    [],
+  );
   const [resultSummary, setResultSummary] = useState<{
     created: number;
     failed: number;
     skipped: number;
   } | null>(null);
-  const [recovery, setRecovery] = useState<ReturnType<
-    typeof retainedDirectImportRecovery
-  >>(null);
+  const [recovery, setRecovery] =
+    useState<ReturnType<typeof retainedDirectImportRecovery>>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
 
   useEffect(() => {
@@ -236,7 +242,10 @@ export function DirectCsvImportPage({
 
   const reparseWithMap = useCallback(
     (text: string, name: string, map: CsvColumnMap) => {
-      const result = parseCsvStatement(text, { fileName: name, columnMap: map });
+      const result = parseCsvStatement(text, {
+        fileName: name,
+        columnMap: map,
+      });
       setParseResult(result);
       if (!result.ok) {
         setPhase("error");
@@ -260,7 +269,10 @@ export function DirectCsvImportPage({
       setFileName(file.name);
       setFileSize(file.size);
 
-      if (!file.name.toLowerCase().endsWith(".csv") && file.type !== "text/csv") {
+      if (
+        !file.name.toLowerCase().endsWith(".csv") &&
+        file.type !== "text/csv"
+      ) {
         setPhase("error");
         setError("Chỉ hỗ trợ CSV. Dùng Capture → Tải lên cho Excel hoặc PDF.");
         return;
@@ -379,7 +391,8 @@ export function DirectCsvImportPage({
   }
 
   async function runImport() {
-    if (!plan || !parseResult || plan.readyCount === 0 || phase === "importing") return;
+    if (!plan || !parseResult || plan.readyCount === 0 || phase === "importing")
+      return;
     if (workspace.dataError) {
       setError(workspace.dataError);
       setReviewOpen(false);
@@ -397,7 +410,8 @@ export function DirectCsvImportPage({
     setRecovery(null);
     setImportProgress({ done: 0, total: plan.readyCount });
 
-    const skipped = plan.duplicateCount + plan.transferSkipped + plan.invalidSkipped;
+    const skipped =
+      plan.duplicateCount + plan.transferSkipped + plan.invalidSkipped;
 
     if (viewer.isDemo) {
       const posts = toDirectImportPosts(plan.ready, () => crypto.randomUUID());
@@ -473,20 +487,25 @@ export function DirectCsvImportPage({
 
     const selectedAccountName =
       accounts.find((account) => account.id === accountId)?.name ?? "Tài khoản";
-    const newlyCommitted: LedgerLike[] = result.transactionIds.map((id, index) => {
-      const row = plan.ready[index]!;
-      return {
-        id,
-        kind: row.kind,
-        amount: row.amount,
-        occurredOn: row.occurredOn,
-        note: row.note,
-        accountId: row.accountId,
-        account: selectedAccountName,
-      };
-    });
+    const newlyCommitted: LedgerLike[] = result.transactionIds.map(
+      (id, index) => {
+        const row = plan.ready[index]!;
+        return {
+          id,
+          kind: row.kind,
+          amount: row.amount,
+          occurredOn: row.occurredOn,
+          note: row.note,
+          accountId: row.accountId,
+          account: selectedAccountName,
+        };
+      },
+    );
     setCommittedLedgerRows((current) => [...newlyCommitted, ...current]);
-    setImportProgress({ done: result.transactionIds.length, total: plan.readyCount });
+    setImportProgress({
+      done: result.transactionIds.length,
+      total: plan.readyCount,
+    });
     setResultSummary({
       created: result.transactionIds.length,
       failed: 0,
@@ -511,7 +530,8 @@ export function DirectCsvImportPage({
   const mapOptions = headerOptions(headers);
   const previewRows = plan?.rows.slice(0, PREVIEW_LIMIT) ?? [];
   const noAccounts = accounts.length === 0;
-  const noCategories = expenseCategories.length === 0 || incomeCategories.length === 0;
+  const noCategories =
+    expenseCategories.length === 0 || incomeCategories.length === 0;
   const selectedAccount = accounts.find((account) => account.id === accountId);
   const selectedExpense = expenseCategories.find(
     (category) => category.id === expenseCategoryId,
@@ -520,7 +540,8 @@ export function DirectCsvImportPage({
     (category) => category.id === incomeCategoryId,
   );
   const busy = phase === "importing" || (viewer.isDemo && isMutating);
-  const ruleNormalizedCount = plan?.ready.filter((row) => row.appliedRuleId).length ?? 0;
+  const ruleNormalizedCount =
+    plan?.ready.filter((row) => row.appliedRuleId).length ?? 0;
 
   return (
     <AppShell viewer={viewer} notice={notice} noticeTone={noticeTone}>
@@ -530,9 +551,10 @@ export function DirectCsvImportPage({
           title="Import CSV thẳng vào sổ"
           description={
             <p>
-              Review và dry-run ngay tại đây, không cần qua màn hình Inbox. Khi đã
-              đăng nhập, các dòng được ghi qua cùng contract provenance và theo một
-              lượt all-or-nothing; chuyển khoản vẫn cần Inbox để ghép hai tài khoản.
+              Review và dry-run ngay tại đây, không cần qua màn hình Inbox. Khi
+              đã đăng nhập, các dòng được ghi qua cùng contract provenance và
+              theo một lượt all-or-nothing; chuyển khoản vẫn cần Inbox để ghép
+              hai tài khoản.
             </p>
           }
           actions={
@@ -558,9 +580,10 @@ export function DirectCsvImportPage({
 
         <Alert tone="warning" live="polite">
           <AlertDescription>
-            Đây là đường nâng cao. Hãy kiểm tra map cột, dry-run và số dòng bỏ qua.
-            Tài khoản đăng nhập ghi cả lượt hoặc không ghi dòng nào nếu một dòng lỗi;
-            thao tác undo sau khi đã commit vẫn theo lifecycle của từng giao dịch.
+            Đây là đường nâng cao. Hãy kiểm tra map cột, dry-run và số dòng bỏ
+            qua. Tài khoản đăng nhập ghi cả lượt hoặc không ghi dòng nào nếu một
+            dòng lỗi; thao tác undo sau khi đã commit vẫn theo lifecycle của
+            từng giao dịch.
           </AlertDescription>
         </Alert>
 
@@ -583,8 +606,8 @@ export function DirectCsvImportPage({
         {!workspace.dataError && rules.dataError ? (
           <Alert tone="warning" live="polite">
             <AlertDescription>
-              Chưa tải được quy tắc đã lưu; CSV vẫn dùng danh mục mặc định và cần
-              review như bình thường.
+              Chưa tải được quy tắc đã lưu; CSV vẫn dùng danh mục mặc định và
+              cần review như bình thường.
             </AlertDescription>
           </Alert>
         ) : null}
@@ -593,7 +616,11 @@ export function DirectCsvImportPage({
           <Alert tone="warning" live="polite">
             <AlertDescription className={styles.alertAction}>
               <span>Chưa có tài khoản để nhận giao dịch import.</span>
-              <LinkButton href="/accounts" intent="primary" targetSize="important">
+              <LinkButton
+                href="/accounts"
+                intent="primary"
+                targetSize="important"
+              >
                 Mở Tài khoản
               </LinkButton>
             </AlertDescription>
@@ -604,7 +631,11 @@ export function DirectCsvImportPage({
           <Alert tone="warning" live="polite">
             <AlertDescription className={styles.alertAction}>
               <span>Cần ít nhất một danh mục chi và một danh mục thu.</span>
-              <LinkButton href="/categories" intent="primary" targetSize="important">
+              <LinkButton
+                href="/categories"
+                intent="primary"
+                targetSize="important"
+              >
                 Mở Danh mục
               </LinkButton>
             </AlertDescription>
@@ -620,8 +651,9 @@ export function DirectCsvImportPage({
                 title="1. Chọn CSV"
                 description={
                   <p>
-                    File được đọc trên thiết bị. Giới hạn {formatBytes(MAX_UPLOAD_BYTES)};
-                    Excel/PDF dùng Capture → Tải lên.
+                    File được đọc trên thiết bị. Giới hạn{" "}
+                    {formatBytes(MAX_UPLOAD_BYTES)}; Excel/PDF dùng Capture →
+                    Tải lên.
                   </p>
                 }
                 contained
@@ -646,9 +678,13 @@ export function DirectCsvImportPage({
                 >
                   <Icon name="upload" />
                   <strong>
-                    {phase === "reading" ? "Đang phân tích…" : "Kéo thả CSV hoặc chọn file"}
+                    {phase === "reading"
+                      ? "Đang phân tích…"
+                      : "Kéo thả CSV hoặc chọn file"}
                   </strong>
-                  <span>CSV UTF-8 · tối đa {formatBytes(MAX_UPLOAD_BYTES)}</span>
+                  <span>
+                    CSV UTF-8 · tối đa {formatBytes(MAX_UPLOAD_BYTES)}
+                  </span>
                   <label className={styles.fileButton} htmlFor={inputId}>
                     Chọn CSV
                   </label>
@@ -690,8 +726,8 @@ export function DirectCsvImportPage({
                   title="2. Map cột và đích ghi"
                   description={
                     <p>
-                      {fileName} {fileSize ? `· ${formatBytes(fileSize)}` : ""} ·{" "}
-                      {parseResult.rows.length} dòng parse hợp lệ
+                      {fileName} {fileSize ? `· ${formatBytes(fileSize)}` : ""}{" "}
+                      · {parseResult.rows.length} dòng parse hợp lệ
                       {parseResult.skippedRows
                         ? ` · ${parseResult.skippedRows} dòng bỏ qua khi parse`
                         : ""}
@@ -713,13 +749,22 @@ export function DirectCsvImportPage({
                       <SelectField
                         key={role}
                         label={label}
-                        value={columnMap[role] === null ? "" : String(columnMap[role])}
-                        onChange={(event) => updateMapField(role, event.target.value)}
+                        value={
+                          columnMap[role] === null
+                            ? ""
+                            : String(columnMap[role])
+                        }
+                        onChange={(event) =>
+                          updateMapField(role, event.target.value)
+                        }
                         disabled={busy || phase === "done"}
                         targetSize="important"
                       >
                         {mapOptions.map((option) => (
-                          <option key={`${role}-${option.value}`} value={option.value}>
+                          <option
+                            key={`${role}-${option.value}`}
+                            value={option.value}
+                          >
                             {option.label}
                           </option>
                         ))}
@@ -734,8 +779,8 @@ export function DirectCsvImportPage({
                       <Alert tone="info" live="polite">
                         <AlertDescription className={styles.alertAction}>
                           <span>
-                            Đã tìm thấy mapping bạn từng nhớ cho cấu trúc cột này. Chỉ
-                            dùng khi bạn đã kiểm tra lại preview.
+                            Đã tìm thấy mapping bạn từng nhớ cho cấu trúc cột
+                            này. Chỉ dùng khi bạn đã kiểm tra lại preview.
                           </span>
                           <Button
                             type="button"
@@ -770,7 +815,8 @@ export function DirectCsvImportPage({
                       {accounts.map((account) => (
                         <option key={account.id} value={account.id}>
                           {account.name}
-                          {account.currencyCode && account.currencyCode !== "VND"
+                          {account.currencyCode &&
+                          account.currencyCode !== "VND"
                             ? ` (${account.currencyCode})`
                             : ""}
                         </option>
@@ -779,7 +825,9 @@ export function DirectCsvImportPage({
                     <SelectField
                       label="Danh mục chi"
                       value={expenseCategoryId}
-                      onChange={(event) => setExpenseCategoryId(event.target.value)}
+                      onChange={(event) =>
+                        setExpenseCategoryId(event.target.value)
+                      }
                       disabled={busy || phase === "done"}
                       targetSize="important"
                     >
@@ -792,7 +840,9 @@ export function DirectCsvImportPage({
                     <SelectField
                       label="Danh mục thu"
                       value={incomeCategoryId}
-                      onChange={(event) => setIncomeCategoryId(event.target.value)}
+                      onChange={(event) =>
+                        setIncomeCategoryId(event.target.value)
+                      }
                       disabled={busy || phase === "done"}
                       targetSize="important"
                     >
@@ -807,14 +857,17 @@ export function DirectCsvImportPage({
                     <input
                       type="checkbox"
                       checked={skipDuplicates}
-                      onChange={(event) => setSkipDuplicates(event.target.checked)}
+                      onChange={(event) =>
+                        setSkipDuplicates(event.target.checked)
+                      }
                       disabled={busy || phase === "done"}
                     />
                     <span>
                       <strong>Bỏ qua dòng trùng</strong>
                       <small>
-                        So cùng tài khoản, ngày, số tiền và mô tả với sổ hiện tại hoặc
-                        trong file. Tắt tùy chọn làm tăng nguy cơ tạo bản sao.
+                        So cùng tài khoản, ngày, số tiền và mô tả với sổ hiện
+                        tại hoặc trong file. Tắt tùy chọn làm tăng nguy cơ tạo
+                        bản sao.
                       </small>
                     </span>
                   </label>
@@ -851,8 +904,10 @@ export function DirectCsvImportPage({
                                     Quy tắc đã áp dụng
                                   </span>
                                 ) : (
-                                  categories.find((category) => category.id === row.categoryId)
-                                    ?.name ?? "—"
+                                  (categories.find(
+                                    (category) =>
+                                      category.id === row.categoryId,
+                                  )?.name ?? "—")
                                 )}
                               </td>
                               <td>
@@ -886,7 +941,11 @@ export function DirectCsvImportPage({
                     ) : null}
 
                     {phase === "importing" ? (
-                      <p className={styles.progress} role="status" aria-live="polite">
+                      <p
+                        className={styles.progress}
+                        role="status"
+                        aria-live="polite"
+                      >
                         {viewer.isDemo
                           ? `Đang ghi ${importProgress.done}/${importProgress.total}…`
                           : `Đang ghi trọn lượt ${importProgress.total} giao dịch…`}
@@ -894,11 +953,19 @@ export function DirectCsvImportPage({
                     ) : null}
 
                     {resultSummary && phase === "done" ? (
-                      <Alert tone={resultSummary.failed ? "warning" : "success"} live="polite">
+                      <Alert
+                        tone={resultSummary.failed ? "warning" : "success"}
+                        live="polite"
+                      >
                         <AlertDescription>
                           Đã ghi {resultSummary.created} giao dịch
-                          {resultSummary.failed ? ` · ${resultSummary.failed} lỗi` : ""}
-                          {resultSummary.skipped ? ` · ${resultSummary.skipped} bỏ qua` : ""}.
+                          {resultSummary.failed
+                            ? ` · ${resultSummary.failed} lỗi`
+                            : ""}
+                          {resultSummary.skipped
+                            ? ` · ${resultSummary.skipped} bỏ qua`
+                            : ""}
+                          .
                         </AlertDescription>
                       </Alert>
                     ) : null}

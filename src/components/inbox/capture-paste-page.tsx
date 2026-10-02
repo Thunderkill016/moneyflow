@@ -1,5 +1,7 @@
 "use client";
 
+import { useDemoAccountOptions } from "@/hooks/use-demo-accounts";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
@@ -7,14 +9,8 @@ import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import type { ToastTone } from "@/components/ui/toast";
 import type { ViewerSummary } from "@/components/user-chip";
-import {
-  addCandidatesForClient,
-  getPendingCountForClient,
-} from "@/hooks/client-inbox";
-import {
-  loadRulesForClient,
-  persistCandidateRuleEvidenceForClient,
-} from "@/hooks/client-rules";
+import { addCandidatesForClient, getPendingCountForClient } from "@/hooks/client-inbox";
+import { loadRulesForClient, persistCandidateRuleEvidenceForClient } from "@/hooks/client-rules";
 import { applyRulesToParsed } from "@/lib/inbox/apply-rules";
 import {
   SOURCE_HINT_LABELS,
@@ -64,11 +60,12 @@ function confidenceClass(confidence: ParsedCandidate["confidence"]): string {
 
 export function CapturePastePage({
   viewer,
-  accounts,
+  accounts: initialAccounts,
 }: {
   viewer: ViewerSummary;
   accounts: AccountOption[];
 }) {
+  const accounts = useDemoAccountOptions(initialAccounts, viewer.isDemo);
   const router = useRouter();
   const textareaId = useId();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -106,10 +103,7 @@ export function CapturePastePage({
       if (ruleResult.ok) {
         setRules(ruleResult.rules);
       } else {
-        showNotice(
-          "Chưa tải được quy tắc; bạn vẫn có thể phân tích và duyệt thủ công.",
-          "warning",
-        );
+        showNotice("Chưa tải được quy tắc; bạn vẫn có thể phân tích và duyệt thủ công.", "warning");
       }
       setRulesReady(true);
     });
@@ -129,8 +123,7 @@ export function CapturePastePage({
 
   const summary = useMemo(() => {
     if (candidates.length === 0) return "";
-    const reviewPart =
-      needsReviewCount > 0 ? ` · ${needsReviewCount} cần xem` : "";
+    const reviewPart = needsReviewCount > 0 ? ` · ${needsReviewCount} cần xem` : "";
     return `Tìm thấy ${candidates.length} giao dịch${reviewPart}`;
   }, [candidates.length, needsReviewCount]);
 
@@ -210,9 +203,7 @@ export function CapturePastePage({
           });
         }),
       );
-      const evidenceFailureCount = evidenceResults.filter(
-        (item) => !item.ok,
-      ).length;
+      const evidenceFailureCount = evidenceResults.filter((item) => !item.ok).length;
 
       const pending = await getPendingCountForClient(viewer.isDemo);
       setInboxCount(pending);
@@ -254,8 +245,8 @@ export function CapturePastePage({
             </p>
             <h1>Dán bất cứ thứ gì</h1>
             <p>
-              Tin nhắn biến động, ghi chú tay, hoặc “cafe 45k”. Phân tích xong bạn
-              vẫn duyệt trong Inbox — không ghi thẳng vào sổ.
+              Tin nhắn biến động, ghi chú tay, hoặc “cafe 45k”. Phân tích xong bạn vẫn duyệt trong
+              Inbox — không ghi thẳng vào sổ.
             </p>
           </div>
           <div className="page-heading-actions">
@@ -364,24 +355,18 @@ export function CapturePastePage({
                 {summary}
               </p>
               <p className="capture-paste-preview-lead">
-                Đây chỉ là gợi ý. Các trường không chắc được đánh dấu — kiểm tra
-                trong Inbox trước khi duyệt vào sổ.
+                Đây chỉ là gợi ý. Các trường không chắc được đánh dấu — kiểm tra trong Inbox trước
+                khi duyệt vào sổ.
               </p>
 
               <ul className="capture-paste-preview-list">
                 {candidates.map((item, index) => (
-                  <li
-                    key={`${item.rawSnippet}-${index}`}
-                    className="capture-paste-preview-row"
-                  >
+                  <li key={`${item.rawSnippet}-${index}`} className="capture-paste-preview-row">
                     <div className="capture-paste-preview-main">
                       <span className="capture-paste-preview-merchant">
                         {item.merchant}
                         {item.uncertainFields.includes("merchant") && (
-                          <span
-                            className="capture-paste-uncertain-tag"
-                            title="Không chắc merchant"
-                          >
+                          <span className="capture-paste-uncertain-tag" title="Không chắc merchant">
                             ⚠
                           </span>
                         )}
@@ -390,10 +375,7 @@ export function CapturePastePage({
                         className={`font-mono capture-paste-preview-amount ${moneyClass(item.kind)}`}
                       >
                         {item.uncertainFields.includes("amount") && (
-                          <span
-                            className="capture-paste-uncertain-tag"
-                            title="Không chắc số tiền"
-                          >
+                          <span className="capture-paste-uncertain-tag" title="Không chắc số tiền">
                             ⚠{" "}
                           </span>
                         )}
@@ -402,9 +384,7 @@ export function CapturePastePage({
                       </span>
                     </div>
                     <div className="capture-paste-preview-meta">
-                      <span className="font-mono capture-paste-date">
-                        {item.occurredOn}
-                      </span>
+                      <span className="font-mono capture-paste-date">{item.occurredOn}</span>
                       <span
                         className={`preview-chip sm confidence-badge ${confidenceClass(item.confidence)}`}
                       >
@@ -417,9 +397,7 @@ export function CapturePastePage({
                           title={item.matchedRuleSummary}
                         >
                           {item.category}
-                          {item.matchedRuleVersion
-                            ? ` · v${item.matchedRuleVersion}`
-                            : ""}
+                          {item.matchedRuleVersion ? ` · v${item.matchedRuleVersion}` : ""}
                         </span>
                       )}
                     </div>
@@ -478,9 +456,7 @@ export function CapturePastePage({
               </div>
               <p className="capture-paste-trust">
                 <Icon name="lock" />
-                <span>
-                  Không có nút “ghi thẳng vào sổ” từ đây — mọi mục đều chờ bạn duyệt.
-                </span>
+                <span>Không có nút “ghi thẳng vào sổ” từ đây — mọi mục đều chờ bạn duyệt.</span>
               </p>
             </div>
           )}

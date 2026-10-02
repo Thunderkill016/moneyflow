@@ -1,5 +1,7 @@
 "use client";
 
+import { useDemoFinanceWorkspace } from "@/hooks/use-demo-accounts";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { MoneyValue } from "@/components/money-value";
@@ -94,7 +96,8 @@ function emptyMessage(
   if (filter === "attention" && !attentionCoverageKnown) {
     return {
       title: "Chưa xác định đầy đủ việc cần xử lý",
-      detail: "Một phần trạng thái review đang không khả dụng. Danh sách này có thể chưa đầy đủ.",
+      detail:
+        "Một phần trạng thái review đang không khả dụng. Danh sách này có thể chưa đầy đủ.",
     };
   }
   if (filter === "attention") {
@@ -106,7 +109,8 @@ function emptyMessage(
   if (filter === "incoming") {
     return {
       title: "Không có mục chờ vào sổ",
-      detail: "Dữ liệu từ paste hoặc import sẽ xuất hiện ở đây trước khi được ghi vào sổ.",
+      detail:
+        "Dữ liệu từ paste hoặc import sẽ xuất hiện ở đây trước khi được ghi vào sổ.",
     };
   }
   if (filter === "posted") {
@@ -117,7 +121,8 @@ function emptyMessage(
   }
   return {
     title: "Chưa có hoạt động",
-    detail: "Ghi giao dịch hoặc đưa dữ liệu vào Cần xem để bắt đầu một dòng hoạt động thống nhất.",
+    detail:
+      "Ghi giao dịch hoặc đưa dữ liệu vào Cần xem để bắt đầu một dòng hoạt động thống nhất.",
   };
 }
 
@@ -135,12 +140,16 @@ function ActivityRow({ item }: { item: ActivityItem }) {
       <div className={styles.rowMain}>
         <div className={styles.rowStateLine}>
           <span
-            className={item.attention ? styles.stateAttention : styles.stateNeutral}
+            className={
+              item.attention ? styles.stateAttention : styles.stateNeutral
+            }
           >
             {item.stateLabel}
           </span>
           {item.type === "inbox_candidate" ? (
-            <span className={styles.sourceLabel}>Nguồn: {item.sourceLabel}</span>
+            <span className={styles.sourceLabel}>
+              Nguồn: {item.sourceLabel}
+            </span>
           ) : null}
         </div>
         <strong className={styles.rowTitle}>{item.primaryLabel}</strong>
@@ -179,11 +188,12 @@ function ActivityRow({ item }: { item: ActivityItem }) {
 
 export function ActivityWorkspace({
   viewer,
-  workspace,
+  workspace: initialWorkspace,
 }: {
   viewer: ViewerSummary;
   workspace: ActivityWorkspaceData;
 }) {
+  const workspace = useDemoFinanceWorkspace(initialWorkspace, viewer.isDemo);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<ActivityFilter>("all");
   const [candidateState, setCandidateState] =
@@ -293,7 +303,8 @@ export function ActivityWorkspace({
             <span className={styles.eyebrow}>Activity 2.0 · MVP</span>
             <h1>Hoạt động</h1>
             <p>
-              Một dòng công việc cho giao dịch đã vào sổ và dữ liệu đang chờ bạn xử lý.
+              Một dòng công việc cho giao dịch đã vào sổ và dữ liệu đang chờ bạn
+              xử lý.
             </p>
           </div>
           <LinkButton href="/capture" variant="outline" targetSize="important">
@@ -320,7 +331,8 @@ export function ActivityWorkspace({
           <Alert tone="error" live="polite">
             <AlertTitle>Phần giao dịch đã vào sổ chưa tải được</AlertTitle>
             <AlertDescription>
-              {workspace.dataError} Các mục chờ vào sổ bên dưới không đại diện cho toàn bộ hoạt động tài chính.
+              {workspace.dataError} Các mục chờ vào sổ bên dưới không đại diện
+              cho toàn bộ hoạt động tài chính.
             </AlertDescription>
           </Alert>
         ) : null}
@@ -329,7 +341,8 @@ export function ActivityWorkspace({
           <Alert tone="warning" live="polite">
             <AlertTitle>Trạng thái cần xem lại chưa tải được</AlertTitle>
             <AlertDescription>
-              Giao dịch đã vào sổ vẫn được hiển thị, nhưng số “Cần xử lý” và bộ lọc tương ứng có thể chưa đầy đủ.
+              Giao dịch đã vào sổ vẫn được hiển thị, nhưng số “Cần xử lý” và bộ
+              lọc tương ứng có thể chưa đầy đủ.
             </AlertDescription>
           </Alert>
         ) : null}
@@ -339,7 +352,8 @@ export function ActivityWorkspace({
             <AlertTitle>Nguồn chờ vào sổ chưa tải được</AlertTitle>
             <AlertDescription className={styles.alertBody}>
               <span>
-                {candidateError} Giao dịch đã vào sổ vẫn được hiển thị, nhưng danh sách Hoạt động hiện chưa đầy đủ.
+                {candidateError} Giao dịch đã vào sổ vẫn được hiển thị, nhưng
+                danh sách Hoạt động hiện chưa đầy đủ.
               </span>
               <Button
                 type="button"
@@ -353,11 +367,17 @@ export function ActivityWorkspace({
           </Alert>
         ) : null}
 
-        <section className={styles.manager} aria-labelledby="activity-list-heading">
+        <section
+          className={styles.manager}
+          aria-labelledby="activity-list-heading"
+        >
           <div className={styles.managerHeader}>
             <div>
               <h2 id="activity-list-heading">Dòng hoạt động</h2>
-              <p>Phân biệt rõ việc còn chờ với dữ liệu đã thành giao dịch trong sổ.</p>
+              <p>
+                Phân biệt rõ việc còn chờ với dữ liệu đã thành giao dịch trong
+                sổ.
+              </p>
             </div>
             <div className={styles.filters} aria-label="Lọc hoạt động">
               {FILTERS.map((item) => (
@@ -378,7 +398,10 @@ export function ActivityWorkspace({
           {candidateState === "loading" ? (
             <div className={styles.loading} role="status" aria-live="polite">
               <strong>Đang ghép dòng hoạt động…</strong>
-              <span>MoneyFlow đang kiểm tra cả giao dịch trong sổ và dữ liệu chờ xử lý.</span>
+              <span>
+                MoneyFlow đang kiểm tra cả giao dịch trong sổ và dữ liệu chờ xử
+                lý.
+              </span>
             </div>
           ) : visibleItems.length === 0 ? (
             <div className={styles.empty}>
@@ -406,10 +429,15 @@ export function ActivityWorkspace({
           )}
         </section>
 
-        <aside className={styles.boundaryNote} aria-label="Ranh giới dữ liệu Activity">
+        <aside
+          className={styles.boundaryNote}
+          aria-label="Ranh giới dữ liệu Activity"
+        >
           <strong>Activity không tạo một sổ thứ hai.</strong>
           <span>
-            “Chờ vào sổ” là bằng chứng/candidate. “Đã vào sổ” là giao dịch MoneyFlow. Trạng thái nguồn chỉ xuất hiện khi dữ liệu hiện có chứng minh được nó.
+            “Chờ vào sổ” là bằng chứng/candidate. “Đã vào sổ” là giao dịch
+            MoneyFlow. Trạng thái nguồn chỉ xuất hiện khi dữ liệu hiện có chứng
+            minh được nó.
           </span>
         </aside>
       </main>

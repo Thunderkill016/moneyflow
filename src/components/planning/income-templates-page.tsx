@@ -1,5 +1,7 @@
 "use client";
 
+import { useDemoAccountOptions } from "@/hooks/use-demo-accounts";
+
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -48,12 +50,20 @@ import {
   type RecurringIncomeTemplate,
   type SaveIncomeTemplateInput,
 } from "@/lib/planning/income-templates";
-import { resolveCategoryMeta, type AccountOption, type CategoryOption } from "@/lib/sample-data";
-import { readStoredTransactions, writeStoredTransactions } from "@/lib/transaction-store";
+import {
+  resolveCategoryMeta,
+  type AccountOption,
+  type CategoryOption,
+} from "@/lib/sample-data";
+import {
+  readStoredTransactions,
+  writeStoredTransactions,
+} from "@/lib/transaction-store";
 
 function daysBetween(from: string, to: string) {
   return Math.round(
-    (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000,
+    (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) /
+      86_400_000,
   );
 }
 
@@ -82,7 +92,7 @@ type IncomeReview = {
 export function IncomeTemplatesPage({
   viewer,
   initialTemplates,
-  accounts,
+  accounts: initialAccounts,
   categories,
   monthStart,
   today,
@@ -96,6 +106,7 @@ export function IncomeTemplatesPage({
   today: string;
   dataError: string | null;
 }) {
+  const accounts = useDemoAccountOptions(initialAccounts, viewer.isDemo);
   const [items, setItems] = useState(initialTemplates);
   const [hydrated, setHydrated] = useState(!viewer.isDemo);
   const [editing, setEditing] = useState<RecurringIncomeTemplate | null>(null);
@@ -104,7 +115,9 @@ export function IncomeTemplatesPage({
   const [version, setVersion] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
-  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(
+    undefined,
+  );
   const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
@@ -139,10 +152,16 @@ export function IncomeTemplatesPage({
     () =>
       items
         .filter((item) => !item.isArchived)
-        .sort((a, b) => Number(a.isReceived) - Number(b.isReceived) || a.dueDay - b.dueDay),
+        .sort(
+          (a, b) =>
+            Number(a.isReceived) - Number(b.isReceived) || a.dueDay - b.dueDay,
+        ),
     [items],
   );
-  const archived = useMemo(() => items.filter((item) => item.isArchived), [items]);
+  const archived = useMemo(
+    () => items.filter((item) => item.isArchived),
+    [items],
+  );
   const visible = showArchived ? archived : active;
   const totals = incomeTemplateTotals(items);
   const pendingCount = pendingActiveCount(items);
@@ -164,7 +183,10 @@ export function IncomeTemplatesPage({
         return { ok: false, message: "Tài khoản hoặc danh mục không hợp lệ." };
       }
       if (category.kind !== "income") {
-        return { ok: false, message: "Chỉ dùng danh mục thu cho khoản thu định kỳ." };
+        return {
+          ok: false,
+          message: "Chỉ dùng danh mục thu cho khoản thu định kỳ.",
+        };
       }
       const existing = items.find((item) => item.id === input.id);
       const dueDate = dueDateForMonth(monthStart, input.dueDay);
@@ -189,7 +211,9 @@ export function IncomeTemplatesPage({
       });
       setDialogOpen(false);
       showNotice(
-        existing ? "Đã cập nhật khoản thu định kỳ demo." : "Đã thêm khoản thu định kỳ demo.",
+        existing
+          ? "Đã cập nhật khoản thu định kỳ demo."
+          : "Đã thêm khoản thu định kỳ demo.",
         "success",
       );
       return { ok: true };
@@ -214,25 +238,34 @@ export function IncomeTemplatesPage({
     if (viewer.isDemo) {
       setItems((current) => {
         const updated = current.map((value) =>
-          value.id === item.id ? { ...value, isArchived: !value.isArchived } : value,
+          value.id === item.id
+            ? { ...value, isArchived: !value.isArchived }
+            : value,
         );
         writeStoredIncomeTemplates(updated);
         return updated;
       });
     } else {
-      const result = await archiveIncomeTemplateAction(item.id, !item.isArchived);
+      const result = await archiveIncomeTemplateAction(
+        item.id,
+        !item.isArchived,
+      );
       if (!result.ok) {
         showNotice(result.message, "error");
         return false;
       }
       setItems((current) =>
         current.map((value) =>
-          value.id === item.id ? { ...value, isArchived: !value.isArchived } : value,
+          value.id === item.id
+            ? { ...value, isArchived: !value.isArchived }
+            : value,
         ),
       );
     }
     showNotice(
-      item.isArchived ? "Đã khôi phục khoản thu định kỳ." : "Đã lưu trữ khoản thu định kỳ.",
+      item.isArchived
+        ? "Đã khôi phục khoản thu định kỳ."
+        : "Đã lưu trữ khoản thu định kỳ.",
       "success",
     );
     return true;
@@ -244,9 +277,13 @@ export function IncomeTemplatesPage({
       if (viewer.isDemo) {
         const transactionId = crypto.randomUUID();
         const income = buildIncomeTemplateReceipt(item, today, transactionId);
-        writeStoredTransactions(appendIncomeReceipt(readStoredTransactions(), income));
+        writeStoredTransactions(
+          appendIncomeReceipt(readStoredTransactions(), income),
+        );
         persistIncomeReceiptOccurrence(monthStart, item.id, transactionId);
-        setItems((current) => markIncomeReceived(current, item.id, transactionId));
+        setItems((current) =>
+          markIncomeReceived(current, item.id, transactionId),
+        );
       } else {
         const result = await recordIncomeTemplateAction(
           item.id,
@@ -259,7 +296,11 @@ export function IncomeTemplatesPage({
           return false;
         }
         setItems((current) =>
-          markIncomeReceived(current, item.id, result.transactionId ?? "received"),
+          markIncomeReceived(
+            current,
+            item.id,
+            result.transactionId ?? "received",
+          ),
         );
       }
       showNotice(
@@ -277,18 +318,26 @@ export function IncomeTemplatesPage({
     if (!item.isReceived) return false;
     try {
       if (viewer.isDemo) {
-        writeStoredTransactions(removeIncomeReceipt(readStoredTransactions(), item.transactionId));
+        writeStoredTransactions(
+          removeIncomeReceipt(readStoredTransactions(), item.transactionId),
+        );
         persistUndoIncomeReceipt(monthStart, item.id);
         setItems((current) => markIncomeUnreceived(current, item.id));
       } else {
-        const result = await undoIncomeTemplateReceiptAction(item.id, monthStart);
+        const result = await undoIncomeTemplateReceiptAction(
+          item.id,
+          monthStart,
+        );
         if (!result.ok) {
           showNotice(result.message, "error");
           return false;
         }
         setItems((current) => markIncomeUnreceived(current, item.id));
       }
-      showNotice("Đã hoàn tác ghi nhận thu và xóa giao dịch thu liên kết.", "success");
+      showNotice(
+        "Đã hoàn tác ghi nhận thu và xóa giao dịch thu liên kết.",
+        "success",
+      );
       return true;
     } catch {
       showNotice("Không thể hoàn tác ghi nhận thu. Hãy thử lại.", "error");
@@ -300,9 +349,11 @@ export function IncomeTemplatesPage({
     if (!review) return;
     setBusyId(review.item.id);
     let succeeded = false;
-    if (review.action === "record") succeeded = await performRecord(review.item);
+    if (review.action === "record")
+      succeeded = await performRecord(review.item);
     if (review.action === "undo") succeeded = await performUndo(review.item);
-    if (review.action === "archive") succeeded = await performArchive(review.item);
+    if (review.action === "archive")
+      succeeded = await performArchive(review.item);
     setBusyId(null);
     if (succeeded) setReview(null);
   }
@@ -325,7 +376,11 @@ export function IncomeTemplatesPage({
   return (
     <AppShell
       viewer={viewer}
-      primaryAction={{ label: "Thêm khoản thu định kỳ", onClick: () => open(null), disabled: !canAdd }}
+      primaryAction={{
+        label: "Thêm khoản thu định kỳ",
+        onClick: () => open(null),
+        disabled: !canAdd,
+      }}
       showPrimaryActionOnMobile
       notice={notice}
       noticeTone={noticeTone}
@@ -350,13 +405,21 @@ export function IncomeTemplatesPage({
             title="Không tải được khoản thu định kỳ"
             description="Dữ liệu của bạn vẫn được bảo vệ. Thử tải lại trang hoặc quay lại Tổng quan."
             primaryAction={
-              <LinkButton href="/dashboard" intent="secondary" targetSize="important">
+              <LinkButton
+                href="/dashboard"
+                intent="secondary"
+                targetSize="important"
+              >
                 Về Tổng quan
               </LinkButton>
             }
           />
         ) : !hydrated ? (
-          <section className={planningStyles.loadingGrid} aria-busy="true" aria-label="Đang tải khoản thu định kỳ">
+          <section
+            className={planningStyles.loadingGrid}
+            aria-busy="true"
+            aria-label="Đang tải khoản thu định kỳ"
+          >
             {Array.from({ length: 2 }, (_, index) => (
               <div className={planningStyles.loadingCard} key={index} />
             ))}
@@ -368,10 +431,18 @@ export function IncomeTemplatesPage({
                 label="Dự kiến chưa nhận"
                 meta="Không nằm trong số dư hoặc tổng thu đã ghi."
               >
-                <MoneyValue amount={totals.expected} emphasis="strong" align="start" />
+                <MoneyValue
+                  amount={totals.expected}
+                  emphasis="strong"
+                  align="start"
+                />
               </PlanningSummaryItem>
               <PlanningSummaryItem label="Đã ghi nhận vào sổ">
-                <MoneyValue amount={totals.received} emphasis="strong" align="start" />
+                <MoneyValue
+                  amount={totals.received}
+                  emphasis="strong"
+                  align="start"
+                />
               </PlanningSummaryItem>
               <PlanningSummaryItem label="Chưa nhận">
                 <strong>{pendingCount} khoản</strong>
@@ -382,7 +453,8 @@ export function IncomeTemplatesPage({
               title={showArchived ? "Đã lưu trữ" : "Lịch thu tháng này"}
               description={
                 <>
-                  Khoản thu chỉ đi vào sổ sau review. Hóa đơn xem tại <Link href="/commitments">Khoản định kỳ</Link>.
+                  Khoản thu chỉ đi vào sổ sau review. Hóa đơn xem tại{" "}
+                  <Link href="/commitments">Khoản định kỳ</Link>.
                 </>
               }
               slot="income-template-list"
@@ -393,7 +465,9 @@ export function IncomeTemplatesPage({
                   targetSize="important"
                   onClick={() => setShowArchived((value) => !value)}
                 >
-                  {showArchived ? "Xem đang hoạt động" : `Đã lưu trữ (${archived.length})`}
+                  {showArchived
+                    ? "Xem đang hoạt động"
+                    : `Đã lưu trữ (${archived.length})`}
                 </Button>
               }
             >
@@ -416,50 +490,78 @@ export function IncomeTemplatesPage({
                           </span>
                           <div className={planningStyles.cardTitle}>
                             <h3>{item.name}</h3>
-                            <p>{item.categoryName} · {item.accountName} · ngày {item.dueDay}</p>
+                            <p>
+                              {item.categoryName} · {item.accountName} · ngày{" "}
+                              {item.dueDay}
+                            </p>
                           </div>
-                          <span className={planningStyles.status} data-slot="planning-card-status">
+                          <span
+                            className={planningStyles.status}
+                            data-slot="planning-card-status"
+                          >
                             {statusText}
                           </span>
                         </div>
 
                         <div className={planningStyles.metrics}>
                           <div className={planningStyles.metric}>
-                            <span className={planningStyles.metricLabel}>Số tiền</span>
-                            <MoneyValue amount={item.amount} emphasis="strong" align="start" />
+                            <span className={planningStyles.metricLabel}>
+                              Số tiền
+                            </span>
+                            <MoneyValue
+                              amount={item.amount}
+                              emphasis="strong"
+                              align="start"
+                            />
                           </div>
                           <div className={planningStyles.metric}>
-                            <span className={planningStyles.metricLabel}>Tài khoản nhận</span>
+                            <span className={planningStyles.metricLabel}>
+                              Tài khoản nhận
+                            </span>
                             <strong>{item.accountName}</strong>
                           </div>
                           <div className={planningStyles.metric}>
-                            <span className={planningStyles.metricLabel}>Trạng thái sổ</span>
-                            <strong>{item.isReceived ? "Đã có giao dịch thu" : "Chưa ghi giao dịch"}</strong>
+                            <span className={planningStyles.metricLabel}>
+                              Trạng thái sổ
+                            </span>
+                            <strong>
+                              {item.isReceived
+                                ? "Đã có giao dịch thu"
+                                : "Chưa ghi giao dịch"}
+                            </strong>
                           </div>
                         </div>
 
-                        <div className={planningStyles.actions} data-slot="planning-card-actions">
-                          {!item.isArchived && (item.isReceived ? (
-                            <Button
-                              type="button"
-                              intent="secondary"
-                              targetSize="important"
-                              disabled={busyId === item.id}
-                              onClick={() => setReview({ item, action: "undo" })}
-                            >
-                              <Icon name="restore" /> Hoàn tác ghi nhận
-                            </Button>
-                          ) : (
-                            <Button
-                              type="button"
-                              intent="primary"
-                              targetSize="important"
-                              disabled={busyId === item.id}
-                              onClick={() => setReview({ item, action: "record" })}
-                            >
-                              <Icon name="check" /> Ghi đã nhận
-                            </Button>
-                          ))}
+                        <div
+                          className={planningStyles.actions}
+                          data-slot="planning-card-actions"
+                        >
+                          {!item.isArchived &&
+                            (item.isReceived ? (
+                              <Button
+                                type="button"
+                                intent="secondary"
+                                targetSize="important"
+                                disabled={busyId === item.id}
+                                onClick={() =>
+                                  setReview({ item, action: "undo" })
+                                }
+                              >
+                                <Icon name="restore" /> Hoàn tác ghi nhận
+                              </Button>
+                            ) : (
+                              <Button
+                                type="button"
+                                intent="primary"
+                                targetSize="important"
+                                disabled={busyId === item.id}
+                                onClick={() =>
+                                  setReview({ item, action: "record" })
+                                }
+                              >
+                                <Icon name="check" /> Ghi đã nhận
+                              </Button>
+                            ))}
                           {!item.isArchived ? (
                             <Button
                               type="button"
@@ -476,9 +578,13 @@ export function IncomeTemplatesPage({
                             intent="quiet"
                             targetSize="important"
                             disabled={busyId === item.id}
-                            onClick={() => setReview({ item, action: "archive" })}
+                            onClick={() =>
+                              setReview({ item, action: "archive" })
+                            }
                           >
-                            <Icon name={item.isArchived ? "restore" : "archive"} />
+                            <Icon
+                              name={item.isArchived ? "restore" : "archive"}
+                            />
                             {item.isArchived ? "Khôi phục" : "Lưu trữ"}
                           </Button>
                         </div>
@@ -489,7 +595,11 @@ export function IncomeTemplatesPage({
               ) : (
                 <EmptyState
                   icon={<Icon name="wallet" />}
-                  title={showArchived ? "Không có khoản đã lưu trữ" : "Chưa có khoản thu định kỳ"}
+                  title={
+                    showArchived
+                      ? "Không có khoản đã lưu trữ"
+                      : "Chưa có khoản thu định kỳ"
+                  }
                   description={
                     showArchived
                       ? "Các khoản được lưu trữ sẽ xuất hiện tại đây."
@@ -501,10 +611,17 @@ export function IncomeTemplatesPage({
                   }
                   primaryAction={
                     !showArchived && canAdd ? (
-                      <Button type="button" intent="primary" targetSize="important" onClick={() => open(null)}>
+                      <Button
+                        type="button"
+                        intent="primary"
+                        targetSize="important"
+                        onClick={() => open(null)}
+                      >
                         <Icon name="plus" /> Thêm khoản thu đầu tiên
                       </Button>
-                    ) : !showArchived && !dataError && (missingAccount || missingCategory) ? (
+                    ) : !showArchived &&
+                      !dataError &&
+                      (missingAccount || missingCategory) ? (
                       <LinkButton
                         href={missingAccount ? "/accounts" : "/categories"}
                         intent="primary"
@@ -540,8 +657,14 @@ export function IncomeTemplatesPage({
         details={[
           { label: "Khoản", value: review?.item.name ?? "" },
           { label: "Tài khoản nhận", value: review?.item.accountName ?? "" },
-          { label: "Số tiền", value: review ? formatMoney(review.item.amount) : "" },
-          { label: "Ngày dự kiến", value: review ? String(review.item.dueDay) : "" },
+          {
+            label: "Số tiền",
+            value: review ? formatMoney(review.item.amount) : "",
+          },
+          {
+            label: "Ngày dự kiến",
+            value: review ? String(review.item.dueDay) : "",
+          },
         ]}
         consequence={reviewConsequence}
         confirmLabel={

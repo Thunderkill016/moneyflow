@@ -14,10 +14,10 @@ This is a deliberate current fit, not a temporary failure to adopt microservices
 
 ## Runtime modes
 
-| Mode | Source of truth | Purpose |
-|---|---|---|
-| `authenticated` | Supabase Auth + PostgreSQL | Real user data with RLS isolation |
-| `demo` | Browser-local stores and seeded data | Product exploration without credentials |
+| Mode            | Source of truth                      | Purpose                                 |
+| --------------- | ------------------------------------ | --------------------------------------- |
+| `authenticated` | Supabase Auth + PostgreSQL           | Real user data with RLS isolation       |
+| `demo`          | Browser-local stores and seeded data | Product exploration without credentials |
 
 Runtime mode is explicit through `NEXT_PUBLIC_APP_MODE`. Missing configuration must fail validation; it must not silently switch modes.
 
@@ -77,24 +77,24 @@ Demo storage is not a fallback for authenticated failures. Production contracts 
 
 ## Repository map
 
-| Area | Responsibility |
-|---|---|
-| `src/app/` | Routes, layouts, Server Actions and route-specific composition |
-| `src/components/` | Reusable UI, dialogs, shells and feature presentation |
-| `src/hooks/` | Shared client orchestration around runtime adapters and mutations |
-| `src/server/` | Server-only viewer-aware workspace loaders and persistence mapping |
-| `src/server/capabilities/` | Typed, viewer-scoped read capabilities and explainable financial outputs for future UI/agent transports |
-| `src/lib/` | Financial domain rules, contracts, formatting, validation and pure calculations |
-| `src/lib/transactions/contracts.ts` | Stable transaction, account/category option and mutation-input contracts shared by authenticated and demo runtimes |
-| `src/lib/transactions/category-presentation.ts` | Category labels, icons and colors used by presentation surfaces |
-| `src/lib/demo/transaction-fixtures.ts` | Seeded demo accounts, categories and transactions; never a production contract owner |
-| `src/lib/sample-data.ts` | Deprecated compatibility re-export for contracts/presentation only; it must never export demo fixtures or own runtime constants |
-| `src/lib/*-store*` | Browser/demo persistence and hydration helpers |
-| `supabase/migrations/` | Versioned database schema, constraints, policies, RPCs and indexes |
-| `supabase/tests/` | pgTAP database invariants and tenant-isolation checks |
-| `tests/` and Playwright configs | Browser smoke, responsive, accessibility and visual evidence |
-| `scripts/` | Repeatable verification and repository automation |
-| `docs/` | Product truth, research, decisions, plans and operating procedures |
+| Area                                            | Responsibility                                                                                                                  |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app/`                                      | Routes, layouts, Server Actions and route-specific composition                                                                  |
+| `src/components/`                               | Reusable UI, dialogs, shells and feature presentation                                                                           |
+| `src/hooks/`                                    | Shared client orchestration around runtime adapters and mutations                                                               |
+| `src/server/`                                   | Server-only viewer-aware workspace loaders and persistence mapping                                                              |
+| `src/server/capabilities/`                      | Typed, viewer-scoped read capabilities and explainable financial outputs for future UI/agent transports                         |
+| `src/lib/`                                      | Financial domain rules, contracts, formatting, validation and pure calculations                                                 |
+| `src/lib/transactions/contracts.ts`             | Stable transaction, account/category option and mutation-input contracts shared by authenticated and demo runtimes              |
+| `src/lib/transactions/category-presentation.ts` | Category labels, icons and colors used by presentation surfaces                                                                 |
+| `src/lib/demo/transaction-fixtures.ts`          | Seeded demo accounts, categories and transactions; never a production contract owner                                            |
+| `src/lib/sample-data.ts`                        | Deprecated compatibility re-export for contracts/presentation only; it must never export demo fixtures or own runtime constants |
+| `src/lib/*-store*`                              | Browser/demo persistence and hydration helpers                                                                                  |
+| `supabase/migrations/`                          | Versioned database schema, constraints, policies, RPCs and indexes                                                              |
+| `supabase/tests/`                               | pgTAP database invariants and tenant-isolation checks                                                                           |
+| `tests/` and Playwright configs                 | Browser smoke, responsive, accessibility and visual evidence                                                                    |
+| `scripts/`                                      | Repeatable verification and repository automation                                                                               |
+| `docs/`                                         | Product truth, research, decisions, plans and operating procedures                                                              |
 
 ## Dependency and ownership rules
 
@@ -118,6 +118,7 @@ The capability layer is a typed seam over existing server workspace loaders and 
 - `transactions/contracts.ts` is the neutral source for transaction types and mutation inputs.
 - `transactions/category-presentation.ts` owns display defaults only and contains no ledger or persistence behavior.
 - `demo/transaction-fixtures.ts` owns seeded values used by explicit demo adapters, demo-aware server workspaces and tests.
+- `demo-account-store.ts` owns versioned browser-demo account metadata; `hooks/use-demo-accounts.ts` adapts its immutable snapshot to demo-only client readers. Live balances remain projections of the existing transaction ledger. `server/accounts.ts` is a demo-aware seed loader and authenticated SQL loader, never a reader of browser storage. These three exact seed importers are registered in `scripts/check-architecture.mjs`; other core imports remain forbidden.
 - `sample-data.ts` is a temporary compatibility surface. It may re-export contracts/presentation while old imports migrate, but it cannot own constants or expose demo fixtures.
 
 This split follows reason-to-change and dependency direction inside the existing modular monolith. It does not introduce repositories, services, packages or a new domain framework.
@@ -167,20 +168,20 @@ If the evidence is only “the file is long” or “another project has this la
 
 ## Change map
 
-| Desired change | Start here | Verify with |
-|---|---|---|
-| Transaction contract/input shape | `src/lib/transactions/contracts.ts` | typecheck + domain tests + affected adapter tests |
-| Category icon/color defaults | `src/lib/transactions/category-presentation.ts` | component/browser evidence |
-| Demo seed values | `src/lib/demo/transaction-fixtures.ts` + explicit demo adapter/workspace | unit + reload/recovery browser test |
-| Financial calculation | relevant `src/lib/*.ts` and tests | unit tests + counterexamples |
-| Ledger mutation | shared client owner + Server Action + RPC constraints | unit + pgTAP + browser smoke |
-| Server read model | route page + relevant `src/server/*.ts` workspace | schema parsing + route/browser evidence |
-| Demo persistence | shared client owner + `src/lib/*-store*` | unit + reload/recovery browser test |
-| New authenticated table | migration, RLS policy, ownership FK | local reset + pgTAP |
-| UI hierarchy/style | design system + affected component | responsive audit + screenshots |
-| Form behavior | dialog/component + validation schema | mobile browser flow + validation states |
-| Auth callback/config | `docs/configuration.md` and provider settings | deployment contract + real callback check |
-| Import/export | parser/serializer and security rules | fixture tests + spreadsheet/manual verification |
+| Desired change                   | Start here                                                               | Verify with                                       |
+| -------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------- |
+| Transaction contract/input shape | `src/lib/transactions/contracts.ts`                                      | typecheck + domain tests + affected adapter tests |
+| Category icon/color defaults     | `src/lib/transactions/category-presentation.ts`                          | component/browser evidence                        |
+| Demo seed values                 | `src/lib/demo/transaction-fixtures.ts` + explicit demo adapter/workspace | unit + reload/recovery browser test               |
+| Financial calculation            | relevant `src/lib/*.ts` and tests                                        | unit tests + counterexamples                      |
+| Ledger mutation                  | shared client owner + Server Action + RPC constraints                    | unit + pgTAP + browser smoke                      |
+| Server read model                | route page + relevant `src/server/*.ts` workspace                        | schema parsing + route/browser evidence           |
+| Demo persistence                 | shared client owner + `src/lib/*-store*`                                 | unit + reload/recovery browser test               |
+| New authenticated table          | migration, RLS policy, ownership FK                                      | local reset + pgTAP                               |
+| UI hierarchy/style               | design system + affected component                                       | responsive audit + screenshots                    |
+| Form behavior                    | dialog/component + validation schema                                     | mobile browser flow + validation states           |
+| Auth callback/config             | `docs/configuration.md` and provider settings                            | deployment contract + real callback check         |
+| Import/export                    | parser/serializer and security rules                                     | fixture tests + spreadsheet/manual verification   |
 
 ## Verification layers
 

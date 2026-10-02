@@ -66,10 +66,7 @@ test("Accounts workspace composes Phase 2 primitives and stable evidence slots",
   assert.match(workspace, /data-slot="accounts-archived-list"/);
   assert.match(workspace, /data-slot="archived-account-row"/);
   assert.match(workspace, /targetSize="important"/);
-  assert.match(
-    workspace,
-    /primaryAction=\{\{[\s\S]*label: "Thêm tài khoản"/,
-  );
+  assert.match(workspace, /primaryAction=\{\{[\s\S]*label: "Thêm tài khoản"/);
 });
 
 test("active Accounts workspace does not register retired global presentation classes", () => {
@@ -92,22 +89,46 @@ test("active and archived totals remain explicit and currency-safe", () => {
 
 test("demo Accounts recomputes the account snapshot from the stored ledger", () => {
   assert.match(workspace, /reconcileAccountBalanceSnapshot/);
-  assert.match(workspace, /buildAccountRegister\(storedTransactions, account\.id\)/);
+  assert.match(
+    workspace,
+    /buildAccountRegister\(storedTransactions, account\.id\)/,
+  );
   assert.match(accountDetail, /readStoredTransactions/);
   assert.match(accountDetail, /reconcileAccountBalanceSnapshot/);
   assert.match(accountDetail, /summarizeAccountRegister\(liveEntries\)/);
 });
 
 test("demo first paint withholds stale financial snapshots until the browser ledger is reconciled", () => {
-  assert.match(workspace, /useState<AccountSummary\[\] \| null>\(viewer\.isDemo \? null : initialAccounts\)/);
-  assert.match(workspace, /const demoLedgerPending =\s*viewer\.isDemo && reconciledDemoSource !== initialAccounts/);
-  assert.match(workspace, /demoLedgerPending \? \(\s*<p className=\{styles\.ledgerPending\}/);
+  assert.match(
+    workspace,
+    /useState<\s*AccountSummary\[\] \| null\s*>\(viewer\.isDemo \? null : initialAccounts\)/,
+  );
+  assert.match(
+    workspace,
+    /const demoLedgerPending =\s*viewer\.isDemo &&\s*\(\!demoAccounts\.ready \|\| reconciledDemoSource !== initialAccounts\)/,
+  );
+  assert.match(
+    workspace,
+    /demoLedgerPending \? \(\s*<p\s+className=\{styles\.ledgerPending\}/,
+  );
   assert.match(workspace, /Đang đối soát số dư từ sổ giao dịch trên thiết bị/);
-  assert.match(workspace, /demoLedgerPending \? \(\s*<span className=\{styles\.cardLedgerPending\}/);
+  assert.match(
+    workspace,
+    /demoLedgerPending \? \(\s*<span className=\{styles\.cardLedgerPending\}/,
+  );
   assert.match(accountDetail, /const matchingDemoDetail =/);
-  assert.match(accountDetail, /const demoLedgerPending =\s*viewer\.isDemo && !dataError/);
-  assert.match(accountDetail, /demoLedgerPending \? \(\s*<section\s*className=\{styles\.ledgerPending\}/);
-  assert.match(accountDetail, /Số dư, tổng biến động và lịch sử sẽ hiển thị sau khi/);
+  assert.match(
+    accountDetail,
+    /const demoLedgerPending =\s*viewer\.isDemo && !dataError/,
+  );
+  assert.match(
+    accountDetail,
+    /demoLedgerPending \? \(\s*<section\s*className=\{styles\.ledgerPending\}/,
+  );
+  assert.match(
+    accountDetail,
+    /Số dư, tổng biến động và lịch sử sẽ hiển thị sau khi/,
+  );
 });
 
 test("authenticated Accounts remains server-owned while only demo reads browser ledger", () => {
@@ -138,7 +159,10 @@ test("account form uses shared field lifecycle and field-specific focus recovery
   assert.match(accountDialog, /amountRef\.current\?\.focus\(\)/);
   assert.match(accountDialog, /dismissible=\{!submitting\}/);
   assert.match(accountDialog, /Math\.abs\(account\?\.initialBalance/);
-  assert.match(accountDialog, /kind === "credit_card" \? -parsedAmount : parsedAmount/);
+  assert.match(
+    accountDialog,
+    /kind === "credit_card" \? -parsedAmount : parsedAmount/,
+  );
   assert.doesNotMatch(
     accountDialog,
     /<dialog\b|className="account-dialog"|account-form-hint/,
@@ -164,6 +188,9 @@ test("Transfer has a dedicated presentation owner and preserves domain mutation 
 test("Phase 6 completed packet records accepted delivery and separate closing depth", () => {
   assert.match(packet, /Status:\*\* accepted/);
   assert.match(packet, /Implementation PR:\*\* #307/);
-  assert.match(packet, /Production:\*\* `dpl_GD5hVfLXh66rmrJnZiiADN8f4HK9` READY/);
+  assert.match(
+    packet,
+    /Production:\*\* `dpl_GD5hVfLXh66rmrJnZiiADN8f4HK9` READY/,
+  );
   assert.match(packet, /separate product\/financial specification/);
 });
