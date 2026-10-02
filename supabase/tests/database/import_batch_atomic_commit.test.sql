@@ -1,5 +1,5 @@
 begin;
-select plan(20);
+select plan(35);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -320,6 +320,137 @@ select is(
    where user_id = '63000000-0000-4000-8000-000000000001'::uuid),
   0,
   'atomic import commit never creates ledger transactions'
+);
+
+-- Phase A connected persisted statement journey: reuse the committed batch
+-- above, resolve its unmapped fields explicitly, then reconcile the same book.
+-- Synthetic statement closing balance is 0 opening + 900000 salary - 45000 cafe.
+create temporary table statement_journey_ids (
+  key text primary key,
+  id uuid not null
+) on commit drop;
+
+insert into statement_journey_ids (key, id)
+select 'account', id from public.accounts
+where user_id = auth.uid() order by created_at, id limit 1;
+
+select lives_ok(
+  $$
+    insert into statement_journey_ids (key, id)
+    select 'expense', public.approve_inbox_candidate(
+      '63020000-0000-4000-8000-000000000001'::uuid,
+      'expense'::public.transaction_kind,
+      (select id from statement_journey_ids where key = 'account'),
+      (select id from public.categories where user_id = auth.uid()
+       and kind = 'expense' order by created_at, id limit 1),
+      null, 45000, '2026-09-09', 'Synthetic cafe',
+      '63030000-0000-4000-8000-000000000001'::uuid, false
+    )
+  $$,
+  'statement review resolves expense account and category before posting'
+);
+select lives_ok(
+  $$
+    insert into statement_journey_ids (key, id)
+    select 'income', public.approve_inbox_candidate(
+      '63020000-0000-4000-8000-000000000002'::uuid,
+      'income'::public.transaction_kind,
+      (select id from statement_journey_ids where key = 'account'),
+      (select id from public.categories where user_id = auth.uid()
+       and kind = 'income' order by created_at, id limit 1),
+      null, 900000, '2026-09-08', 'Synthetic salary',
+      '63030000-0000-4000-8000-000000000002'::uuid, false
+    )
+  $$,
+  'statement review posts salary to the same represented account'
+);
+select is(
+  (select count(*)::integer from public.transaction_import_provenance
+   where import_batch_id = '63010000-0000-4000-8000-000000000001'::uuid),
+  2, 'both posted facts retain their statement provenance'
+);
+select is(
+  (public.commit_import_batch_candidates(
+    '63010000-0000-4000-8000-000000000001'::uuid, repeat('a', 64),
+    jsonb_build_array(
+      jsonb_build_object('id', '63020000-0000-4000-8000-000000000001',
+        'kind', 'expense', 'amount_minor', 45000, 'merchant', 'Highlands',
+        'occurred_on', '2026-09-09', 'source', 'csv', 'confidence', 'high'),
+      jsonb_build_object('id', '63020000-0000-4000-8000-000000000002',
+        'kind', 'income', 'amount_minor', 900000, 'merchant', 'Salary',
+        'occurred_on', '2026-09-08', 'source', 'csv', 'confidence', 'medium')
+    )
+  ) ->> 'replayed')::boolean,
+  true, 'replaying the committed statement after posting returns its durable outcome'
+);
+select is(
+  (select count(*)::integer from public.inbox_candidates
+   where import_batch_id = '63010000-0000-4000-8000-000000000001'::uuid
+     and status = 'approved'),
+  2, 'statement replay does not reset reviewed candidates to pending'
+);
+select is(
+  (select count(*)::integer from public.financial_transactions where user_id = auth.uid()),
+  2, 'statement replay creates no additional posted facts'
+);
+
+insert into statement_journey_ids (key, id)
+select 'reconciliation', public.start_account_reconciliation(
+  (select id from statement_journey_ids where key = 'account'),
+  '2026-09-30', 855000
+);
+select throws_ok(
+  $$select public.complete_account_reconciliation(
+    (select id from statement_journey_ids where key = 'reconciliation'))$$,
+  'P0001', 'reconciliation_difference_nonzero',
+  'uncleared statement cannot silently complete by inventing an adjustment'
+);
+select is(
+  public.set_account_entry_reconciliation_state(
+    (select id from public.transaction_entries
+     where transaction_id = (select id from statement_journey_ids where key = 'expense')),
+    'cleared'),
+  'cleared'::public.entry_reconciliation_state, 'reviewed expense leg is explicitly cleared'
+);
+select is(
+  public.set_account_entry_reconciliation_state(
+    (select id from public.transaction_entries
+     where transaction_id = (select id from statement_journey_ids where key = 'income')),
+    'cleared'),
+  'cleared'::public.entry_reconciliation_state, 'reviewed salary leg is explicitly cleared'
+);
+select is(
+  (select difference_minor from public.account_reconciliation_summaries
+   where id = (select id from statement_journey_ids where key = 'reconciliation')),
+  0::bigint, 'represented source facts match the independent synthetic closing balance'
+);
+select is(
+  public.complete_account_reconciliation(
+    (select id from statement_journey_ids where key = 'reconciliation')),
+  true, 'same persisted statement completes with zero difference'
+);
+select is(
+  (select count(*)::integer from public.transaction_entries
+   where reconciliation_id = (select id from statement_journey_ids where key = 'reconciliation')
+     and reconciliation_state = 'reconciled'),
+  2, 'completion locks both source-linked account legs'
+);
+
+set local request.jwt.claims = '{"sub":"63000000-0000-4000-8000-000000000002","role":"authenticated"}';
+select is(
+  (select count(*)::integer from public.account_reconciliations
+   where id = (select id from statement_journey_ids where key = 'reconciliation')),
+  0, 'another tenant cannot read the completed statement session'
+);
+select is(
+  (select count(*)::integer from public.transaction_import_provenance
+   where import_batch_id = '63010000-0000-4000-8000-000000000001'::uuid),
+  0, 'another tenant cannot read its imported financial provenance'
+);
+set local request.jwt.claims = '{"sub":"63000000-0000-4000-8000-000000000001","role":"authenticated"}';
+select is(
+  (select count(*)::integer from public.financial_transactions where user_id = auth.uid()),
+  2, 'completion and tenant switching never create a balancing transaction'
 );
 
 select * from finish();
