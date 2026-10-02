@@ -33,10 +33,13 @@ insert into auth.users (
 set local request.jwt.claims = '{"sub":"75200000-0000-4000-8000-000000000001","role":"authenticated","client_id":"75200000-0000-4000-8000-000000000002"}';
 set local role authenticated;
 
+-- Direct table writes to accounts are already denied by RLS before any
+-- trigger fires, so the direct-path guard is proven on inbox_candidates
+-- where the insert policy passes and the trigger is the deciding boundary.
 select throws_ok(
-  $$ insert into public.accounts(user_id, name, kind, currency_code)
-     values ('75200000-0000-4000-8000-000000000001', 'OAuth forbidden', 'cash', 'VND') $$,
-  '42501', 'oauth_mutation_forbidden', 'OAuth cannot write even through the table owner');
+  $$ insert into public.inbox_candidates(user_id, kind, amount_minor, merchant, occurred_on, source, confidence, status)
+     values ('75200000-0000-4000-8000-000000000001', 'expense', 45000, 'OAuth direct', current_date, 'manual', 'medium', 'pending') $$,
+  '42501', 'oauth_mutation_forbidden', 'OAuth cannot write directly even where RLS would allow');
 
 select throws_ok(
   $$ select public.create_financial_account('OAuth RPC forbidden', 'cash', 0, 'VND') $$,
