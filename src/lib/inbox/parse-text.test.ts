@@ -128,6 +128,112 @@ test("a single marked amount is not flagged ambiguous", () => {
   assert.ok(!row!.uncertainFields.includes("amount"));
 });
 
+test("explicit transaction amount is invariant to balance and fee field order", () => {
+  // Synthetic grammar fixtures: these do not establish any bank's format support.
+  for (const sign of ["-", "+"]) {
+    const fields = [
+      `GD: ${sign}250.000 VND`,
+      "Số dư: 3.450.000 VND",
+      "Phí giao dịch: 2.000 VND",
+    ];
+    for (const order of [
+      [0, 1, 2],
+      [0, 2, 1],
+      [1, 0, 2],
+      [1, 2, 0],
+      [2, 0, 1],
+      [2, 1, 0],
+    ]) {
+      const text = `${order.map((index) => fields[index]).join(" | ")} | 03/10/2026 | ND: CIRCLE K`;
+      const row = parsePasteLine(text, { today: "2026-10-03" });
+      assert.equal(row?.amount, 250_000, text);
+      assert.equal(row?.kind, sign === "+" ? "income" : "expense", text);
+      assert.ok(!row?.uncertainFields.includes("amount"), text);
+      assert.equal(row?.rawSnippet, text, "source evidence remains unchanged");
+    }
+  }
+});
+
+test("labelled transaction amount tolerates folded labels and bare identifiers", () => {
+  for (const label of [
+    "GD",
+    "Giao dịch",
+    "So tien giao dich",
+    "SỐ TIỀN GIAO DỊCH",
+  ]) {
+    const row = parsePasteLine(
+      `TK 0011004567890 | SD: 3,450,000VND | ${label}=-250,000VND | 03/10/2026`,
+      { today: "2026-10-03" },
+    );
+    assert.equal(row?.amount, 250_000, label);
+    assert.ok(!row?.uncertainFields.includes("amount"), label);
+  }
+});
+
+test("explicit transaction labels retain review for unknown or repeated money", () => {
+  for (const extra of ["100.000 VND", "GD: -100.000 VND", "GD: -250.000 VND"]) {
+    const row = parsePasteLine(
+      `SD: 3.450.000 VND | GD: -250.000 VND | ${extra} | 03/10/2026`,
+      { today: "2026-10-03" },
+    );
+    assert.equal(row?.amount, 250_000, extra);
+    assert.ok(row?.uncertainFields.includes("amount"), extra);
+    assert.equal(row?.confidence, "low", extra);
+  }
+});
+
+test("note labels cannot resolve a competing transaction amount", () => {
+  const row = parsePasteLine(
+    "SD: 3.450.000 VND | GD: -250.000 VND | ND: ghi lai GD: -100.000 VND | 03/10/2026",
+    { today: "2026-10-03" },
+  );
+  assert.equal(row?.amount, 250_000);
+  assert.ok(row?.uncertainFields.includes("amount"));
+  const noteOnly = parsePasteLine(
+    "SD: 3.450.000 VND | ND: ghi lai GD: -250.000 VND | 03/10/2026",
+    { today: "2026-10-03" },
+  );
+  assert.equal(
+    noteOnly?.amount,
+    3_450_000,
+    "note must not override the existing fallback",
+  );
+  assert.ok(noteOnly?.uncertainFields.includes("amount"));
+});
+
+test("amount labels do not remove missing-date or unknown-kind review", () => {
+  const row = parsePasteLine(
+    "SD: 3.450.000 VND | GD: 250.000 VND | ND: CIRCLE K",
+    { today: "2026-10-03" },
+  );
+  assert.equal(row?.amount, 250_000);
+  assert.ok(!row?.uncertainFields.includes("amount"));
+  assert.ok(row?.uncertainFields.includes("date"));
+  assert.ok(row?.uncertainFields.includes("kind"));
+  assert.equal(row?.confidence, "low");
+});
+
+test("amount roles require a complete field label and a money marker", () => {
+  for (const extra of [
+    "Mã giao dịch: -100.000 VND",
+    "Hạn mức số dư: 100.000 VND",
+  ]) {
+    const row = parsePasteLine(
+      `SD: 3.450.000 VND | GD: -250.000 VND | ${extra}`,
+      { today: "2026-10-03" },
+    );
+    assert.equal(row?.amount, 250_000);
+    assert.ok(row?.uncertainFields.includes("amount"), extra);
+  }
+  const text = "SD: 3.450.000 VND | GD: 123456";
+  const selected = selectPrimaryAmount(extractAmounts(text), text);
+  assert.equal(
+    selected?.primary.amount,
+    3_450_000,
+    "an unmarked identifier is not an explicit money field",
+  );
+});
+
 test("parsePasteLine: simple NL cafe 45k", () => {
   const row = parsePasteLine("cafe 45k tiền mặt", { today: "2026-07-15" });
   assert.ok(row);

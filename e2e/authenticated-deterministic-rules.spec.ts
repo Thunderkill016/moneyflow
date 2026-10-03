@@ -32,7 +32,9 @@ async function createDemoRule(
     const addRule = await firstVisibleLocator(addRuleButtons);
     expect(addRule).not.toBeNull();
     if (!(await dialog.isVisible())) await addRule!.click();
-    await expect(dialog).toBeVisible({ timeout: RULE_DIALOG_ATTEMPT_TIMEOUT_MS });
+    await expect(dialog).toBeVisible({
+      timeout: RULE_DIALOG_ATTEMPT_TIMEOUT_MS,
+    });
   }).toPass({ timeout: RULE_DIALOG_HYDRATION_TIMEOUT_MS });
   await dialog.getByLabel("Nếu chứa").fill(input.contains);
   await dialog
@@ -89,7 +91,9 @@ test.describe("Deterministic rules workspace", () => {
       .getByRole("status")
       .filter({ hasText: "Khớp quy tắc ưu tiên v1:" });
     await expect(preview).toContainText("Highlands Coffee");
-    await expect(page.getByText(/không tự tạo giao dịch trong sổ/i)).toBeVisible();
+    await expect(
+      page.getByText(/không tự tạo giao dịch trong sổ/i),
+    ).toBeVisible();
 
     await rule.getByRole("button", { name: "Tắt", exact: true }).click();
     await expect(rule).toContainText("Đã tắt");
@@ -132,6 +136,53 @@ test.describe("Deterministic rules workspace", () => {
     expect(evidence.merchant).toBe("Highlands Coffee");
     expect(evidence.category).toBe("Ăn uống");
   });
+
+  for (const ambiguous of [false, true]) {
+    test(`pasted labelled amount stays correct and pending (${ambiguous ? "competing money" : "balance and fee"})`, async ({
+      page,
+    }) => {
+      // Synthetic source grammar, not a supported-bank or real-device claim.
+      const text = `MB: SD: 3.450.000 VND | GD: -250.000 VND | ${ambiguous ? "100.000 VND" : "Phí: 2.000 VND"} | 03/10/2026 | ND: CIRCLE K`;
+      await page.goto("/capture/paste", { waitUntil: "domcontentloaded" });
+      await page.getByLabel("Nội dung").fill(text);
+      await page
+        .getByRole("button", { name: "Phân tích", exact: true })
+        .click();
+      const preview = page.locator(".capture-paste-preview-row");
+      await expect(preview).toHaveCount(1);
+      await expect(
+        preview.locator(".capture-paste-preview-amount"),
+      ).toContainText("250.000");
+      await expect(preview.locator('[title="Không chắc số tiền"]')).toHaveCount(
+        ambiguous ? 1 : 0,
+      );
+      await page
+        .getByRole("button", { name: "Vào Inbox", exact: true })
+        .click();
+      await expect(page).toHaveURL(/\/inbox$/);
+      const evidence = await page.evaluate(
+        (storageKey) => ({
+          candidates: JSON.parse(
+            window.localStorage.getItem(storageKey) ?? "[]",
+          ),
+          transactions: JSON.parse(
+            window.localStorage.getItem("moneyflow-demo-transactions-v1") ??
+              "[]",
+          ),
+        }),
+        CANDIDATES_KEY,
+      );
+      expect(evidence.candidates).toHaveLength(1);
+      expect(evidence.candidates[0]).toMatchObject({
+        amount: 250_000,
+        kind: "expense",
+        status: "pending",
+        rawSnippet: text,
+      });
+      if (ambiguous) expect(evidence.candidates[0].confidence).toBe("low");
+      expect(evidence.transactions).toHaveLength(0);
+    });
+  }
 
   test("retains the exact demo rule revision on a shared candidate without posting", async ({
     page,
@@ -189,7 +240,10 @@ test.describe("Deterministic rules workspace", () => {
         "date,description,amount\n2026-08-25,HIGHLANDS Q1,-45000\n",
       ),
     };
-    const dryRun = page.getByRole("heading", { name: "3. Dry-run", exact: true });
+    const dryRun = page.getByRole("heading", {
+      name: "3. Dry-run",
+      exact: true,
+    });
 
     /*
      * `setInputFiles` dispatches `change` on the input, and React attaches that
@@ -206,7 +260,9 @@ test.describe("Deterministic rules workspace", () => {
     }).toPass({ timeout: 30_000 });
     const dryRunSection = page.locator('[data-slot="direct-import-preview"]');
     await expect(dryRun).toBeVisible();
-    await expect(dryRunSection.getByText("Highlands Coffee", { exact: true })).toBeVisible();
+    await expect(
+      dryRunSection.getByText("Highlands Coffee", { exact: true }),
+    ).toBeVisible();
     await expect(
       dryRunSection.getByText("Quy tắc đã áp dụng", { exact: true }),
     ).toBeVisible();
@@ -217,10 +273,14 @@ test.describe("Deterministic rules workspace", () => {
     });
     await expect(review).toContainText("Quy tắc đã áp dụng");
     await expect(review).toContainText("1 dòng");
-    await expect(review.getByRole("button", { name: "Ghi 1 giao dịch" })).toBeVisible();
+    await expect(
+      review.getByRole("button", { name: "Ghi 1 giao dịch" }),
+    ).toBeVisible();
 
     const transactions = await page.evaluate(() =>
-      JSON.parse(window.localStorage.getItem("moneyflow-demo-transactions-v1") ?? "[]"),
+      JSON.parse(
+        window.localStorage.getItem("moneyflow-demo-transactions-v1") ?? "[]",
+      ),
     );
     expect(transactions).toHaveLength(0);
   });
@@ -260,17 +320,22 @@ test.describe("Deterministic rules workspace", () => {
       /nơi giao dịch chứa “Highlands Coffee” → Ăn uống/i,
     );
     await review.getByRole("button", { name: "Lưu thành quy tắc" }).click();
-    await expect(review).toContainText(/Ứng viên này vẫn chờ bạn duyệt vào sổ riêng/i);
+    await expect(review).toContainText(
+      /Ứng viên này vẫn chờ bạn duyệt vào sổ riêng/i,
+    );
 
-    const persisted = await page.evaluate(({ candidatesKey, rulesKey }) => {
-      const candidates = JSON.parse(
-        window.localStorage.getItem(candidatesKey) ?? "[]",
-      ) as Array<Record<string, unknown>>;
-      const rules = JSON.parse(
-        window.localStorage.getItem(rulesKey) ?? "[]",
-      ) as Array<Record<string, unknown>>;
-      return { candidate: candidates[0], rule: rules[0] };
-    }, { candidatesKey: CANDIDATES_KEY, rulesKey: RULES_KEY });
+    const persisted = await page.evaluate(
+      ({ candidatesKey, rulesKey }) => {
+        const candidates = JSON.parse(
+          window.localStorage.getItem(candidatesKey) ?? "[]",
+        ) as Array<Record<string, unknown>>;
+        const rules = JSON.parse(
+          window.localStorage.getItem(rulesKey) ?? "[]",
+        ) as Array<Record<string, unknown>>;
+        return { candidate: candidates[0], rule: rules[0] };
+      },
+      { candidatesKey: CANDIDATES_KEY, rulesKey: RULES_KEY },
+    );
 
     expect(persisted.candidate?.status).toBe("pending");
     expect(persisted.rule).toMatchObject({
@@ -301,9 +366,7 @@ test.describe("Deterministic rules workspace", () => {
       .filter({ hasText: "Khớp quy tắc ưu tiên" });
     await expect(initialPreview).toContainText("Ăn uống");
 
-    await page
-      .getByRole("button", { name: /Tăng ưu tiên.*Mua sắm/ })
-      .click();
+    await page.getByRole("button", { name: /Tăng ưu tiên.*Mua sắm/ }).click();
     const reorderedPreview = page
       .locator("main")
       .getByRole("status")
