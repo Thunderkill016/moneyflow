@@ -89,7 +89,11 @@ test("real authenticated CSV posting, re-import and reconciliation preserve one 
   });
   const accountId = account.data!.id;
   await page.reload();
-  await expect(page.getByText(accountName, { exact: true })).toBeVisible();
+  // Desktop also repeats the name in transfer options and account summaries.
+  // Verify the persisted account card, not an arbitrary text occurrence.
+  await expect(
+    page.getByRole("heading", { level: 3, name: accountName, exact: true }),
+  ).toBeVisible();
   const hiddenAccount = await other.client
     .from("accounts")
     .select("id")
