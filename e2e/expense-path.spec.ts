@@ -576,3 +576,68 @@ test.describe("Expense path (thu chi)", () => {
     await expect(transferDialog.getByLabel("Số tiền chuyển")).toBeFocused();
   });
 });
+
+test("complete category choices and persistent continuous entry are visible without optional details", async ({
+  page,
+  context,
+}) => {
+  await context.addInitScript(() => {
+    if (localStorage.getItem("synthetic-continuous-seeded")) return;
+    localStorage.setItem("moneyflow-demo-transactions-v1", "[]");
+    localStorage.setItem("moneyflow-onboarding-done", "1");
+    localStorage.setItem("synthetic-continuous-seeded", "1");
+  });
+  await page.goto("/capture/quick");
+  const dialog = page.getByRole("dialog", { name: "Ghi giao dịch" });
+  const optional = dialog.locator(
+    'details[data-slot="capture-optional-details"]',
+  );
+  await expect(optional).not.toHaveAttribute("open", "");
+  const continuous = dialog.getByRole("checkbox", {
+    name: /Lưu xong thêm tiếp/,
+  });
+  await expect(continuous).toBeVisible();
+  const choices = dialog.locator(
+    'details[data-slot="capture-category-choice"]',
+  );
+  await expect(choices.locator("summary")).toHaveText("Tất cả danh mục");
+  await choices.locator("summary").click();
+  await choices.getByRole("button", { name: "Sức khỏe", exact: true }).click();
+  await continuous.check();
+  const amount = dialog.getByLabel(/Số tiền (chi|thu)/);
+  await amount.fill("90000");
+  await dialog
+    .getByRole("button", { name: "Lưu & thêm tiếp", exact: true })
+    .click();
+  await expect(amount).toHaveValue("");
+  await expect(amount).toBeFocused();
+  await expect(
+    dialog.locator('[data-slot="capture-fast-defaults"]'),
+  ).toContainText("Sức khỏe");
+  await expect(continuous).toBeChecked();
+  await amount.fill("50000");
+  await dialog
+    .getByRole("button", { name: "Lưu & thêm tiếp", exact: true })
+    .click();
+  await expect(amount).toHaveValue("");
+  await page.reload();
+  await expect(
+    dialog.getByRole("checkbox", { name: /Lưu xong thêm tiếp/ }),
+  ).toBeChecked();
+  await expect(
+    dialog.locator('[data-slot="capture-fast-defaults"]'),
+  ).toContainText("Sức khỏe");
+  await expect(amount).toHaveValue("");
+  const saved = await page.evaluate(
+    () =>
+      JSON.parse(
+        localStorage.getItem("moneyflow-demo-transactions-v1") ?? "[]",
+      ) as Array<{ amount: number; category: string }>,
+  );
+  expect(
+    saved
+      .filter((row) => row.category === "Sức khỏe")
+      .map((row) => row.amount)
+      .sort((a, b) => a - b),
+  ).toEqual([50_000, 90_000]);
+});

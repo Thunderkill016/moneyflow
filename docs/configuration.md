@@ -41,6 +41,29 @@ Rules:
 9. The Turnstile **site key** is public; the Turnstile **secret key** belongs only in Supabase Auth provider settings.
 10. `NEXT_PUBLIC_AUTH_CAPTCHA_ENABLED=true` without a site key fails deployment validation.
 
+## Third-party OAuth proposal authorization
+
+`candidates.propose` creates a pending agent Inbox candidate, never a posted ledger fact. A third-party client must be approved in **both** controls:
+
+| Control | Owner | Required value |
+| --- | --- | --- |
+| `CAPABILITY_WRITE_CLIENT_IDS` | Private application environment, never `NEXT_PUBLIC_*` | Comma-separated approved OAuth client IDs |
+| `moneyflow.oauth_proposal_client_ids` | PostgreSQL database setting | The same approved IDs, enforced by migration `20261002120000_oauth_mutation_boundary.sql` |
+
+Missing/empty database configuration denies third-party proposals even when the application allowlist contains the client. First-party sessions without `client_id` retain their existing ownership checks. An allowed OAuth client can insert only its own pending `source=agent` candidate; approval, ledger mutation and other owned-table writes remain denied.
+
+Owner-operated activation (requires separate provider/production approval):
+
+1. Verify the deployed application commit, the actual target database and the applied migration. Keep the selected client IDs in a private operational record.
+2. Set the application allowlist and the persistent database setting to those approved IDs. Read the database identity with `SELECT current_database()`; use that verified identifier in `ALTER DATABASE <verified_database> SET moneyflow.oauth_proposal_client_ids = '<approved_client_ids>'`. Placeholders must be replaced by reviewed private values; this is not an executable repository default.
+3. Redeploy the environment-dependent application and ensure fresh database/API connections use the updated database setting. A transaction-local `set_config(..., true)` is only a test fixture, not durable configuration. Read back the setting from a fresh connection, without publishing client IDs or tokens.
+4. Using synthetic data and approved test identities, verify an allowed client creates one pending candidate and replay creates no second candidate. Verify a non-allowlisted client is denied, and both clients cannot approve candidates, write ledger facts or touch another tenant. Verify the first-party path still works.
+5. Record redacted status and read-back evidence. SQL/CI success does not prove hosted configuration or the live OAuth flow.
+
+Rollback: remove the client from the application allowlist and persistent database allowlist, redeploy/recycle affected connections and verify denial. Clearing either control denies new proposals once the affected runtime observes the setting; do not remove mutation guards or broaden permissions to repair availability.
+
+Current provider configuration is not established by this document. [Supabase OAuth token security](https://supabase.com/docs/guides/auth/oauth-server/token-security) explains why database authorization must enforce `client_id` regardless of requested OAuth scopes.
+
 ## Supabase Auth URL configuration
 
 In **Authentication → URL Configuration**:

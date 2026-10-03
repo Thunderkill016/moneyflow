@@ -2,10 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 
-const transactionsRoute = readFileSync(
-  "src/app/transactions/page.tsx",
-  "utf8",
-);
+const transactionsRoute = readFileSync("src/app/transactions/page.tsx", "utf8");
 const timelineRoute = readFileSync("src/app/timeline/page.tsx", "utf8");
 const rootLayout = readFileSync("src/app/layout.tsx", "utf8");
 const workspace = readFileSync(
@@ -32,10 +29,7 @@ const quickCapture = readFileSync(
   "src/components/inbox/capture-quick-page.tsx",
   "utf8",
 );
-const emptyState = readFileSync(
-  "src/components/ui/empty-state.tsx",
-  "utf8",
-);
+const emptyState = readFileSync("src/components/ui/empty-state.tsx", "utf8");
 const dialogSources = [
   "src/components/add-transaction-dialog.tsx",
   "src/components/edit-transaction-dialog.tsx",
@@ -74,7 +68,10 @@ test("transactions and timeline routes use explicit Phase 5 owners", () => {
   assert.doesNotMatch(timelineRoute, /<TransactionsWorkspace/);
   assert.doesNotMatch(timelineRoute, /@\/components\/transactions-page/);
   assert.equal(existsSync("src/components/transactions-page.tsx"), false);
-  assert.equal(existsSync("src/components/transactions-page.module.css"), false);
+  assert.equal(
+    existsSync("src/components/transactions-page.module.css"),
+    false,
+  );
 });
 
 test("ledger presentation composes Phase 2 primitives and stable evidence slots", () => {
@@ -96,7 +93,10 @@ test("timeline is a read-only approved-ledger boundary", () => {
   assert.match(timelineWorkspace, /getTransactionReviewStatus/);
   assert.match(timelineWorkspace, /=== "reviewed"/);
   assert.doesNotMatch(timelineWorkspace, /useTransactions/);
-  assert.doesNotMatch(timelineWorkspace, /AddTransactionDialog|EditTransactionDialog/);
+  assert.doesNotMatch(
+    timelineWorkspace,
+    /AddTransactionDialog|EditTransactionDialog/,
+  );
   assert.doesNotMatch(
     timelineWorkspace,
     /deleteTransaction|updateTransaction|bulkSetReviewStatus|bulkUpdateCategory/,
@@ -124,7 +124,10 @@ test("filtered summary keeps transfer exclusion and complete integer money flow"
     workspace,
     /filter\(\(item\) => item\.kind === "income"\)[\s\S]*filter\(\(item\) => item\.kind === "expense"\)/,
   );
-  assert.match(workspace, /return \{ income, expense, net: income - expense \}/);
+  assert.match(
+    workspace,
+    /return \{ income, expense, net: income - expense \}/,
+  );
   assert.doesNotMatch(
     workspace,
     /filteredTotals[\s\S]*item\.kind === "transfer"/,
@@ -160,7 +163,10 @@ test("undo window pauses on toast hold and survives unrelated notices", () => {
   // WCAG 2.2.1: the undo toast holds the only recovery path, so hover/focus
   // on the toast region must pause the countdown rather than run it out.
   assert.match(toast, /onHoldChange\?: \(held: boolean\) => void/);
-  assert.match(toast, /onMouseEnter[\s\S]*onMouseLeave[\s\S]*onFocus[\s\S]*onBlur/);
+  assert.match(
+    toast,
+    /onMouseEnter[\s\S]*onMouseLeave[\s\S]*onFocus[\s\S]*onBlur/,
+  );
   assert.match(shell, /onNoticeHoldChange\?: \(held: boolean\) => void/);
   assert.match(shell, /onHoldChange=\{onNoticeHoldChange\}/);
   assert.match(workspace, /onNoticeHoldChange=\{handleNoticeHold\}/);
@@ -233,12 +239,19 @@ test("bulk edit stays on the single-row RPC path with confirmed skip reporting",
 
 test("Phase 5 add, edit and split dialogs use the shared lifecycle and local transaction form owner", () => {
   for (const { path, source } of dialogSources) {
-    assert.match(source, /@\/components\/ui\/dialog/, `${path} must use Dialog`);
+    assert.match(
+      source,
+      /@\/components\/ui\/dialog/,
+      `${path} must use Dialog`,
+    );
     assert.match(source, /transaction-form\.module\.css/);
     assert.match(source, /dismissible=\{!submitting\}/);
     assert.match(source, /targetSize="important"/);
     assert.doesNotMatch(source, /<dialog\b/);
-    assert.doesNotMatch(source, /transaction-dialog|dialog-heading|dialog-footer-actions/);
+    assert.doesNotMatch(
+      source,
+      /transaction-dialog|dialog-heading|dialog-footer-actions/,
+    );
     assert.doesNotMatch(source, /primary-button|secondary-button|icon-button/);
   }
   assert.match(dialogSources[0].source, /initialFocusRef=\{amountInputRef\}/);
@@ -254,8 +267,14 @@ test("Transfer keeps the shared lifecycle while later phases may own its present
   assert.match(transferDialog, /initialFocusRef=\{amountRef\}/);
   assert.match(transferDialog, /targetSize="important"/);
   assert.doesNotMatch(transferDialog, /<dialog\b/);
-  assert.doesNotMatch(transferDialog, /transaction-dialog|dialog-heading|dialog-footer-actions/);
-  assert.doesNotMatch(transferDialog, /primary-button|secondary-button|icon-button/);
+  assert.doesNotMatch(
+    transferDialog,
+    /transaction-dialog|dialog-heading|dialog-footer-actions/,
+  );
+  assert.doesNotMatch(
+    transferDialog,
+    /primary-button|secondary-button|icon-button/,
+  );
 });
 
 test("direct quick capture reuses the shared dialog and its phone geometry", () => {
@@ -263,7 +282,10 @@ test("direct quick capture reuses the shared dialog and its phone geometry", () 
   assert.match(quickCapture, /data-slot="capture-quick-workspace"/);
   assert.match(quickCapture, /<AddTransactionDialog[\s\S]*open=\{formOpen\}/);
   assert.match(quickCapture, /title="Ghi giao dịch"/);
-  assert.match(quickCapture, /onTransferRequested=\{canTransfer \? openTransfer : undefined\}/);
+  assert.match(
+    quickCapture,
+    /onTransferRequested=\{canTransfer \? openTransfer : undefined\}/,
+  );
   assert.match(transactionFormCss, /max-height: calc\(100svh - 24px\)/);
   assert.doesNotMatch(transactionFormCss, /dvh/u);
   assert.match(transactionFormCss, /@media \(max-width: 360px\)/);
@@ -279,13 +301,16 @@ test("quick capture keeps amount first and makes correction compact", () => {
   assert.match(addDialog, /data-slot="capture-category-suggestions"/);
   assert.match(addDialog, /aria-label="Đổi nhanh danh mục"/);
   assert.match(addDialog, /data-slot="capture-category-choice"/);
-  assert.match(addDialog, />Khác</);
+  assert.match(addDialog, />Tất cả danh mục</);
   assert.match(addDialog, /Ghi chú \(không bắt buộc\)/);
   assert.match(addDialog, /pushRecentPreset/);
   assert.match(addDialog, /\.slice\(0, 2\)/);
   assert.match(fastCaptureCss, /\.categoryActions/);
   assert.match(fastCaptureCss, /\.morePanel\s*\{[\s\S]*display: none/);
-  assert.match(fastCaptureCss, /\.moreDisclosure\[open\] > \.morePanel\s*\{[\s\S]*display: grid/);
+  assert.match(
+    fastCaptureCss,
+    /\.moreDisclosure\[open\] > \.morePanel\s*\{[\s\S]*display: grid/,
+  );
   assert.doesNotMatch(fastCaptureCss, /overflow-x:\s*auto/u);
   assert.doesNotMatch(
     fastCaptureCss,
@@ -324,6 +349,9 @@ test("local ledger owner defines narrow reflow and forced-colors behavior", () =
 test("Phase 5 completed packet records accepted delivery and production evidence", () => {
   assert.match(packet, /Status:\*\* accepted/);
   assert.match(packet, /Implementation PR:\*\* #306/);
-  assert.match(packet, /Production:\*\* `dpl_GCYtqTVBnRuKLrEd3k7G7TnTkbbt` READY/);
+  assert.match(
+    packet,
+    /Production:\*\* `dpl_GCYtqTVBnRuKLrEd3k7G7TnTkbbt` READY/,
+  );
   assert.match(packet, /Current program closure/);
 });

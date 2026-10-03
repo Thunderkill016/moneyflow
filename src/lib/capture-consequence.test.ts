@@ -233,3 +233,45 @@ test("an invalid recorded date cannot produce a misleading period total", () => 
     );
   }
 });
+
+test("malformed stored dates cannot inflate an otherwise valid capture month", () => {
+  const invalidDates = [
+    "2026-07-99",
+    "2026-07-00",
+    "2026-07-09-extra",
+    "2026-02-30",
+  ];
+  const invalidRows = invalidDates.map((occurredOn, index) => ({
+    ...base,
+    id: `invalid-${index}`,
+    amount: 900_000,
+    occurredOn,
+  }));
+  const ledger = [base, second, ...invalidRows];
+  assert.equal(
+    categoryMonthTotal(ledger, base.category, "expense", second.occurredOn),
+    150_000,
+  );
+  assert.equal(
+    captureConsequence({ saved: second, transactions: ledger }),
+    "Đã ghi khoản chi 50.000 ₫. Ăn uống tháng 7/2026: 150.000 ₫.",
+  );
+  assert.equal(
+    categoryMonthTotal(invalidRows, base.category, "expense", "2026-02-15"),
+    0,
+  );
+});
+
+test("valid leap-day history remains included while rollover dates are excluded", () => {
+  const leapDay = { ...base, occurredOn: "2024-02-29" };
+  const rollover = { ...second, occurredOn: "2024-02-30" };
+  assert.equal(
+    categoryMonthTotal(
+      [leapDay, rollover],
+      base.category,
+      "expense",
+      "2024-02-29",
+    ),
+    base.amount,
+  );
+});

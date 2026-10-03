@@ -1,11 +1,11 @@
 # Audit remediation — 2026-10-02
 
-**Status:** implementing
-**Execution state:** implementing
-**Active role:** implementer
+**Status:** evaluating
+**Execution state:** evaluating
+**Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
-**Issue/PR:** owner request to fix the five current-project audit findings; PR pending
+**Issue/PR:** #751 merged; owner request 2026-10-03 authorizes the remaining audit repairs on a focused branch; follow-up PR pending
 
 ## Outcome
 
@@ -88,3 +88,43 @@ Local verification on `3c642077` plus this diff:
 Owner → implementer: fixes authorized on a focused branch. Next allowed action:
 implementation and local/CI verification. Deployment/provider writes require a
 separate owner decision. No destructive cleanup of historical candidates.
+
+
+## Follow-up specification — 2026-10-03
+
+Current execution: implementing, branch_write, branch `fix/audit-consistency-20261003`, baseline `ca8a6516`. Owner: fix all issues identified by the current audit. The earlier implementation is merged as #751; its exact-main CI 37029015644 passed (989 SQL assertions, 2 real Auth/database browser cases). Earlier pending statements above describe that historical snapshot.
+
+Class 3: financial presentation/export plus operational documentation. Serves CANON Reality, trustworthy recorded money and the GOV.UK whole-service/iteration gate. Scope: remaining report/CSV mismatch, malformed history (#741), overflow recovery, OAuth configuration documentation and accurate study handoff. No new feature, schema, dependency, provider write, main push, merge or production deployment.
+
+Research: local Next.js server/client and route-handler guides confirm browser storage belongs to client code; existing export-data helper already downloads a text Blob. Supabase OAuth token-security docs, read 2026-10-03, confirm client_id enforcement belongs in database policies, irrespective of OAuth scopes; changelog index checked. Sources: https://supabase.com/docs/guides/auth/oauth-server/token-security and installed Next.js docs. These sources do not prove current production configuration. No code copied or new provider/library adopted.
+
+Specification before implementation:
+- Demo report export uses the existing shell mobile visibility option so the action is reachable on phone as well as desktop. Demo report download reads exactly the hydrated browser ledger for the resolved report window, using the existing formula-safe CSV encoder and browser downloader. Authenticated export remains server-owned. Demo export is disabled until hydration; directly requesting the server export in demo returns an explicit conflict instead of seed financial rows.
+- Regression tests assert file contents, not only href/download existence: same ledger records and amounts after add/edit/delete/reload (the existing CSV schema has no ID column), current period boundaries, repeats and empty ledger.
+- Reuse the #741 validator and regression cases without altering its published branch/history. Invalid history cannot contribute to a capture monthly total; valid leap days remain included.
+- A shared guarded transaction-balance projection handles only known validation/overflow errors, including demo anchor reconciliation. Unexpected programming errors remain visible. Overflow renders an explicit unavailable balance section, retains valid report/CSV and never supplies zero as a computed total.
+- docs/configuration.md owns the application plus database proposal allowlist contract, activation/read-back and rollback. Other operator docs link to it. No allowlist is set by this task.
+- Existing human study remains pending actual consented observation. Correct technical prerequisites and execution instructions; synthetic browser results cannot become participant evidence.
+
+Verification: regression units, existing desktop/mobile custom-report browser specs with content assertions, overflow browser case, authenticated export ownership regression where available; lint/typecheck/build, knowledge/architecture/capabilities/migration/CSS and CI policy checks. Exact-head CI selected by policy. Database behavior is unchanged; no local Docker, and no production/provider validation claim. Rollback: revert this focused application/docs diff; persisted financial data is not changed.
+
+Acceptance: report/CSV parity; invalid history excluded; unsafe balances unavailable with usable report/export and retained data; OAuth docs name both controls and deny-by-default; study evidence truthfully pending. A real participant or physical-device result cannot be produced by an agent acting as the user.
+
+Tasks: implement shared financial guard and demo download; reuse date repair; update browser/domain regressions; reconcile operation/study docs; run selected local and exact-head CI; create PR provenance and handoff. Next allowed action after verification: owner review of concrete PR. Production and human study remain distinct evidence needs.
+
+
+### Owner observation and bounded capture repair — 2026-10-03
+
+The owner reports actual expense-recording use: entry feels short, category choices feel incomplete, and each transaction repeats the same process. This is qualitative first-party feedback, not a timed participant study or a physical-device acceptance result. No retention or speed percentage is claimed.
+
+Reconnaissance: the fast form shows only two category alternatives, while the full active set is behind a visually ambiguous “Khác” disclosure. The existing persistent keep-open preference is buried in optional details, although it already retains selected kind/account/category and re-focuses amount after successful saves. First repair: label the disclosure “Tất cả danh mục” and expose the existing “Lưu xong thêm tiếp” preference beside required choices, using the same handler and layout owner. Do not silently reuse amount/date/note, add a universal category list or fabricate user financial choices. Browser regression must prove a non-quick category is reachable, the next entry retains choices, and preference survives reopening. The owner clarified that current categories feel overly broad and asked how they are constructed. Current model: flat, 8 default expense + 3 income categories, user-owned custom categories, no subcategory hierarchy. This repair improves access to the full current set; it does not claim to solve taxonomy granularity or change category/report/budget semantics.
+
+
+Evaluation discovered a real hydration defect in continuous-entry preferences: the one-shot ref was marked complete before its animation frame ran. React development Strict Mode cancels the first effect/frame and re-runs the effect, which then skipped hydration entirely. Move completion into the executed frame; the new browser regression must show a checked keep-open preference and the chosen category surviving reload. This is a dev-effect reproduction, not evidence of the same symptom on deployed production. Initial new report test also used the wrong accessible label (“Chi” rather than the existing “Chi trừ”); corrected the test. Formatter-induced source-contract failures are repaired to tolerate whitespace while preserving the same compact-money/draft assertions, not waived or weakened.
+
+
+### Follow-up local evaluation snapshot
+
+Final domain suite: 1975/1975 pass on Node 22, no skipped tests. Typecheck and lint pass; 191 CI-policy checks pass; knowledge, architecture, capability manifest, 74 pinned migration identities and CSS ownership pass. Initial formatter-sensitive source contracts failed; assertions were made whitespace-tolerant and the entire suite reran clean. A browser run proved report/CSV parity and overflow recovery but exposed the development hydration defect above; the corrected tree is under a fresh zero-retry desktop/mobile run. Production build, authenticated export browser proof, responsive audit and required exact-head CI remain pending at this snapshot.
+
+Evaluator scope: no schema/migration change and no provider configuration changed; CI path classifier selects application verify/browser/UI/CodeQL and marks database reset not applicable. Required merge/production review is an owner decision after the concrete PR. No claim that human-study or production acceptance is complete.

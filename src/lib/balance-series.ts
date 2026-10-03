@@ -1,3 +1,7 @@
+import {
+  buildAccountRegister,
+  reconcileAccountBalanceSnapshot,
+} from "./account-register.ts";
 import { normalizeCurrencyCode } from "./currency.ts";
 import { TREND_DAILY_MAX_DAYS } from "./reports.ts";
 import type { Transaction } from "./transactions/contracts.ts";
@@ -98,7 +102,10 @@ function shiftDay(value: string, days: number) {
 }
 
 function daysBetween(start: string, end: string) {
-  return Math.round((parseDay(end).getTime() - parseDay(start).getTime()) / DAY_MS) + 1;
+  return (
+    Math.round((parseDay(end).getTime() - parseDay(start).getTime()) / DAY_MS) +
+    1
+  );
 }
 
 /** A real calendar date, not merely `YYYY-MM-DD`-shaped — rejects 2026-02-31. */
@@ -203,7 +210,10 @@ export function balanceEntriesFromTransactions(
     entries.push({
       accountId: transaction.accountId,
       occurredOn: transaction.occurredOn,
-      amount: transaction.kind === "income" ? transaction.amount : -transaction.amount,
+      amount:
+        transaction.kind === "income"
+          ? transaction.amount
+          : -transaction.amount,
     });
   }
   return entries;
@@ -214,7 +224,11 @@ export function buildBalanceSeries(
   entries: BalanceSeriesEntry[],
   window: BalanceSeriesWindow,
 ): BalanceSeries {
-  if (!isRealDay(window.start) || !isRealDay(window.end) || window.start > window.end) {
+  if (
+    !isRealDay(window.start) ||
+    !isRealDay(window.end) ||
+    window.start > window.end
+  ) {
     throw new Error("invalid_balance_window");
   }
   const { granularity, buckets } = seriesBuckets(window);
@@ -222,9 +236,14 @@ export function buildBalanceSeries(
   // Signed deltas per account per day — the only part of an entry the replay uses.
   const deltasByAccount = new Map<string, Map<string, number>>();
   for (const entry of entries) {
-    if (!Number.isSafeInteger(entry.amount)) throw new Error("unsafe_balance_entry");
-    const deltas = deltasByAccount.get(entry.accountId) ?? new Map<string, number>();
-    deltas.set(entry.occurredOn, safeAdd(deltas.get(entry.occurredOn) ?? 0, entry.amount));
+    if (!Number.isSafeInteger(entry.amount))
+      throw new Error("unsafe_balance_entry");
+    const deltas =
+      deltasByAccount.get(entry.accountId) ?? new Map<string, number>();
+    deltas.set(
+      entry.occurredOn,
+      safeAdd(deltas.get(entry.occurredOn) ?? 0, entry.amount),
+    );
     deltasByAccount.set(entry.accountId, deltas);
   }
 
@@ -246,7 +265,10 @@ export function buildBalanceSeries(
         after = safeAdd(after, deltas.get(datesDesc[cursor]) ?? 0);
         cursor += 1;
       }
-      points[index] = { ...buckets[index], value: safeSubtract(account.balance, after) };
+      points[index] = {
+        ...buckets[index],
+        value: safeSubtract(account.balance, after),
+      };
     }
     // Opening = balance at the day before the window: also subtract everything
     // dated inside the window itself (d ≥ start, all of it still unconsumed).
@@ -265,10 +287,15 @@ export function buildBalanceSeries(
     };
   });
 
-  const vndSeries = accountSeries.filter((series) => series.currencyCode === "VND");
+  const vndSeries = accountSeries.filter(
+    (series) => series.currencyCode === "VND",
+  );
   const netWorthVnd = vndSeries.length
     ? {
-        opening: vndSeries.reduce((sum, series) => safeAdd(sum, series.opening), 0),
+        opening: vndSeries.reduce(
+          (sum, series) => safeAdd(sum, series.opening),
+          0,
+        ),
         points: buckets.map((bucket, index) => ({
           ...bucket,
           value: vndSeries.reduce(
@@ -293,4 +320,47 @@ export function buildBalanceSeries(
     netWorthVnd,
     foreignCurrencyCodes,
   };
+}
+
+/** Known financial validation failures degrade only the balance section.
+ * Unexpected exceptions still surface rather than masquerading as unavailable data.
+ * Demo anchors include baseline transactions, so reconcile them with the live ledger.
+ */
+export function buildTransactionBalanceSeries(
+  accounts: BalanceSeriesAccount[],
+  transactions: Transaction[],
+  window: BalanceSeriesWindow,
+  baseline?: Transaction[],
+): BalanceSeries | null {
+  try {
+    const anchors =
+      baseline === undefined
+        ? accounts
+        : accounts.map((account) => ({
+            ...account,
+            balance: reconcileAccountBalanceSnapshot(
+              account.balance,
+              buildAccountRegister(baseline, account.id),
+              buildAccountRegister(transactions, account.id),
+            ),
+          }));
+    return buildBalanceSeries(
+      anchors,
+      balanceEntriesFromTransactions(transactions),
+      window,
+    );
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      [
+        "unsafe_balance_total",
+        "unsafe_balance_entry",
+        "invalid_balance_window",
+        "invalid_account_balance_snapshot",
+        "unsafe_account_balance_snapshot",
+      ].includes(error.message)
+    )
+      return null;
+    throw error;
+  }
 }

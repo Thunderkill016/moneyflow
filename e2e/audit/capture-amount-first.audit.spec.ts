@@ -9,7 +9,9 @@ async function measureCapture(page: Page) {
       width: document.documentElement.clientWidth,
       height: document.documentElement.clientHeight,
     };
-    const dialog = document.querySelector("dialog[open]") as HTMLDialogElement | null;
+    const dialog = document.querySelector(
+      "dialog[open]",
+    ) as HTMLDialogElement | null;
     const amount = document.querySelector(
       'dialog[open] input[id="add-tx-amount"]',
     ) as HTMLInputElement | null;
@@ -101,7 +103,9 @@ test.describe("Capture 4 compact keyboard-first phone", () => {
     page,
   }, testInfo: TestInfo) => {
     await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
-    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+    await page
+      .waitForLoadState("networkidle", { timeout: 5_000 })
+      .catch(() => undefined);
 
     const nav = page.getByRole("navigation", { name: "Điều hướng di động" });
     await nav.getByRole("button", { name: "Ghi chi tiêu" }).click();
@@ -114,15 +118,19 @@ test.describe("Capture 4 compact keyboard-first phone", () => {
     await amount.fill("85000");
 
     const defaults = dialog.locator('[data-slot="capture-fast-defaults"]');
-    const suggestions = dialog.locator('[data-slot="capture-category-suggestions"]');
+    const suggestions = dialog.locator(
+      '[data-slot="capture-category-suggestions"]',
+    );
     await expect(defaults).toBeVisible();
     await expect(defaults).toContainText("Ăn uống");
     await expect(defaults).toContainText("MB Bank");
     await expect(suggestions).toBeVisible();
     await expect(suggestions.locator(":scope > button")).toHaveCount(2);
     await expect(
-      suggestions.locator('details[data-slot="capture-category-choice"] > summary'),
-    ).toContainText("Khác");
+      suggestions.locator(
+        'details[data-slot="capture-category-choice"] > summary',
+      ),
+    ).toContainText("Tất cả danh mục");
     await expect(
       dialog.locator('details[data-slot="capture-category-choice"]'),
     ).not.toHaveAttribute("open", "");
@@ -149,7 +157,9 @@ test.describe("Capture 4 compact keyboard-first phone", () => {
     });
 
     expect(measurement.viewport).toEqual(CONSTRAINED_PHONE);
-    expect(measurement.documentWidth).toBeLessThanOrEqual(CONSTRAINED_PHONE.width + 1);
+    expect(measurement.documentWidth).toBeLessThanOrEqual(
+      CONSTRAINED_PHONE.width + 1,
+    );
     expect(measurement.dialog).not.toBeNull();
     expect(measurement.amount).not.toBeNull();
     expect(measurement.defaults).not.toBeNull();
@@ -158,9 +168,15 @@ test.describe("Capture 4 compact keyboard-first phone", () => {
     expect(measurement.fullChoicesOpen).toBe(false);
     expect(measurement.optionalOpen).toBe(false);
     expect(measurement.activeId).toBe("add-tx-amount");
-    expect(measurement.save!.bottom).toBeLessThanOrEqual(CONSTRAINED_PHONE.height + 1);
+    expect(measurement.save!.bottom).toBeLessThanOrEqual(
+      CONSTRAINED_PHONE.height + 1,
+    );
     expect(measurement.save!.top).toBeGreaterThanOrEqual(-1);
-    expect(measurement.defaults!.right).toBeLessThanOrEqual(CONSTRAINED_PHONE.width + 1);
-    expect(measurement.suggestions!.right).toBeLessThanOrEqual(CONSTRAINED_PHONE.width + 1);
+    expect(measurement.defaults!.right).toBeLessThanOrEqual(
+      CONSTRAINED_PHONE.width + 1,
+    );
+    expect(measurement.suggestions!.right).toBeLessThanOrEqual(
+      CONSTRAINED_PHONE.width + 1,
+    );
   });
 });

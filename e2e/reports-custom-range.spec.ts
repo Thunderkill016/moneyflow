@@ -1,3 +1,7 @@
+import { readFile } from "node:fs/promises";
+import { parseCsvMatrix } from "../src/lib/inbox/parse-csv.ts";
+import { demoAccountRows } from "../src/lib/demo/transaction-fixtures.ts";
+import type { Transaction } from "../src/lib/transactions/contracts.ts";
 import { expect, test } from "@playwright/test";
 import { formatReportPeriodTitle } from "../src/lib/reports.ts";
 import { todayInVietnam } from "../src/lib/vietnam-date.ts";
@@ -14,7 +18,9 @@ import { todayInVietnam } from "../src/lib/vietnam-date.ts";
  */
 function shiftDays(isoDate: string, days: number): string {
   const date = new Date(`${isoDate}T00:00:00.000Z`);
-  return new Date(date.getTime() - days * 86_400_000).toISOString().slice(0, 10);
+  return new Date(date.getTime() - days * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
 }
 
 const TODAY = todayInVietnam();
@@ -29,11 +35,10 @@ function reportPeriodTitle(page: import("@playwright/test").Page) {
   return page.locator("#report-period-title > span").first();
 }
 
-function reportExport(
-  page: import("@playwright/test").Page,
-  href: string,
-) {
-  return page.locator(`a[href="${href}"]`).first();
+function reportExport(page: import("@playwright/test").Page) {
+  return page
+    .getByRole("banner")
+    .getByRole("button", { name: "Xuất CSV", exact: true });
 }
 
 async function transactionCount(
@@ -69,8 +74,7 @@ test.describe("reports custom range", () => {
     );
     await expect(reportPeriodTitle(page)).toHaveText(RANGE_TITLE);
 
-    const href = `/reports/export?period=custom&from=${RANGE.from}&to=${RANGE.to}`;
-    await expect(reportExport(page, href)).toHaveAttribute("href", href);
+    await expect(reportExport(page)).toBeEnabled();
 
     const customCount = await transactionCount(page);
     expect(customCount).toBeGreaterThan(0);
@@ -109,8 +113,7 @@ test.describe("reports custom range", () => {
       `/reports?period=custom&from=${RANGE.from}&to=${RANGE.to}`,
       { waitUntil: "domcontentloaded" },
     );
-    const href = `/reports/export?period=custom&from=${RANGE.from}&to=${RANGE.to}`;
-    const exportLink = reportExport(page, href);
+    const exportLink = reportExport(page);
     await expect(exportLink).toBeVisible();
     const [download] = await Promise.all([
       page.waitForEvent("download"),
@@ -120,4 +123,155 @@ test.describe("reports custom range", () => {
       `moneyflow-${RANGE.from}-${RANGE.to}.csv`,
     );
   });
+});
+
+test("demo report CSV follows added, corrected and removed ledger rows after reload", async ({
+  page,
+}) => {
+  const expense: Transaction = {
+    id: "synthetic-report-expense",
+    kind: "expense",
+    categoryId: "cat-food",
+    category: "Ăn uống",
+    note: "Synthetic report parity",
+    accountId: "demo-account-cash",
+    account: "Tiền mặt",
+    amount: 777_000,
+    occurredOn: RANGE.to,
+    occurredAt: `${RANGE.to}T05:00:00.000Z`,
+    relativeDate: "Ngày thử nghiệm",
+  };
+  const income: Transaction = {
+    ...expense,
+    id: "synthetic-income",
+    kind: "income",
+    categoryId: "cat-salary",
+    category: "Lương",
+    note: "Synthetic income",
+    amount: 900_000,
+  };
+  const transfer: Transaction = {
+    ...expense,
+    id: "synthetic-transfer",
+    kind: "transfer",
+    category: "Chuyển tiền",
+    note: "Synthetic transfer",
+    amount: 50_000,
+    destinationAccountId: "demo-account-mb",
+    destinationAccount: "MB Bank",
+  };
+  const outside: Transaction = {
+    ...expense,
+    id: "outside-window",
+    note: "Outside report window",
+    occurredOn: TODAY,
+  };
+  const phases = [
+    {
+      ledger: [expense, income, transfer, outside],
+      expense: 777_000,
+      count: 3,
+    },
+    {
+      ledger: [
+        { ...expense, amount: 40_000, note: "Corrected synthetic report" },
+        income,
+        transfer,
+        outside,
+      ],
+      expense: 40_000,
+      count: 3,
+    },
+    { ledger: [income, transfer, outside], expense: 0, count: 2 },
+    { ledger: [], expense: 0, count: 0 },
+  ];
+  await page.goto(`/reports?period=custom&from=${RANGE.from}&to=${RANGE.to}`);
+  for (const phase of phases) {
+    await page.evaluate(
+      (ledger) =>
+        localStorage.setItem(
+          "moneyflow-demo-transactions-v1",
+          JSON.stringify(ledger),
+        ),
+      phase.ledger,
+    );
+    await page.reload();
+    const button = reportExport(page);
+    await expect(button).toBeEnabled();
+    await expect.poll(() => transactionCount(page)).toBe(phase.count);
+    const expenseLabel = `Tiền ra Chi trừ ${new Intl.NumberFormat("vi-VN").format(phase.expense)} ₫`;
+    await expect(
+      page
+        .locator('[data-slot="report-metrics"]')
+        .getByLabel(expenseLabel, { exact: true }),
+    ).toBeVisible();
+    const expected = phase.ledger.filter(
+      (row) => row.occurredOn >= RANGE.from && row.occurredOn <= RANGE.to,
+    );
+    // Two independent clicks must each download the current hydrated snapshot.
+    for (let repeat = 0; repeat < 2; repeat += 1) {
+      const [download] = await Promise.all([
+        page.waitForEvent("download"),
+        button.click(),
+      ]);
+      expect(download.suggestedFilename()).toBe(
+        `moneyflow-${RANGE.from}-${RANGE.to}.csv`,
+      );
+      const path = await download.path();
+      expect(path).not.toBeNull();
+      const rows = parseCsvMatrix(await readFile(path!, "utf8")).slice(1);
+      expect(rows.map((row) => [row[0], row[2], Number(row[6])])).toEqual(
+        expected.map((row) => [
+          row.occurredOn,
+          row.note,
+          row.kind === "expense" ? -row.amount : row.amount,
+        ]),
+      );
+      const expenseTotal = rows
+        .filter((row) => row[1] === "Chi tiêu")
+        .reduce((sum, row) => sum - Number(row[6]), 0);
+      expect(expenseTotal).toBe(phase.expense);
+    }
+  }
+  const direct = await page.request.get("/reports/export?period=month");
+  expect(direct.status()).toBe(409);
+  expect(await direct.text()).toContain("Dữ liệu demo nằm trên thiết bị");
+});
+
+test("unsafe demo net worth keeps reports and CSV usable without changing stored balances", async ({
+  page,
+}) => {
+  await page.goto(`/reports?period=custom&from=${RANGE.from}&to=${RANGE.to}`);
+  const accounts = demoAccountRows.map(({ balance, ...metadata }) => {
+    void balance;
+    return metadata;
+  });
+  accounts.push({
+    ...accounts[0],
+    id: "11111111-1111-4111-8111-111111111111",
+    name: "Synthetic maximum balance",
+    initialBalance: Number.MAX_SAFE_INTEGER,
+  });
+  const raw = JSON.stringify({ version: 1, accounts });
+  await page.evaluate(
+    (value) => localStorage.setItem("moneyflow-demo-accounts-v1", value),
+    raw,
+  );
+  await page.reload();
+  await expect(page.locator('[data-slot="report-balance"]')).toContainText(
+    "Không thể tính hoặc tải dữ liệu số dư",
+  );
+  await expect(page.locator('[data-slot="report-metrics"]')).toBeVisible();
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    reportExport(page).click(),
+  ]);
+  expect(download.suggestedFilename()).toBe(
+    `moneyflow-${RANGE.from}-${RANGE.to}.csv`,
+  );
+  expect(
+    await page.evaluate(() =>
+      localStorage.getItem("moneyflow-demo-accounts-v1"),
+    ),
+  ).toBe(raw);
 });
