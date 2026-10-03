@@ -208,33 +208,12 @@ export function extractAmounts(line: string): ExtractedAmount[] {
   return results;
 }
 
-/**
- * Choose which extracted token is the transaction amount.
- *
- * Document order is the wrong rule for the format this product actually
- * receives. Every Vietnamese bank SMS opens with the account number, so the
- * leftmost token is systematically the account, not the amount:
- *
- *   TK 0011004567890 | GD: -250,000VND | SD: 3,450,000VND
- *      ^ leftmost                ^ the amount
- *
- * A bare account number clears the guards in `extractAmounts` — it is over
- * 1000, outside the year window, unmasked, and long enough to skip the grouped
- * check — so filtering cannot fix this. What separates the two is that the
- * amount carries a money marker and the account number never does.
- *
- * Marked tokens therefore outrank bare ones. With source text, explicit field
- * labels can distinguish transaction money from balances and fees. Otherwise
- * order remains the fallback and competing amounts stay review-required.
- */
 function labelledAmountRole(line: string, amount: ExtractedAmount) {
   if (!amount.hasMoneyMarker) return "unknown";
   const prefix = foldVietnamese(line.slice(0, amount.index));
-  const fieldPrefix = prefix.split(/[|;\n]/).at(-1) ?? "";
-  // Quoted labels in a description are evidence text, not a transaction field.
-  if (
-    /\b(?:nd|noi\s+dung|ghi\s+chu|description|note)\s*[:=]/i.test(fieldPrefix)
-  ) {
+  // A note can itself contain separators and quoted labels. Conservatively
+  // treat the rest of the line as note evidence, rather than promote its labels.
+  if (/\b(?:nd|noi\s+dung|ghi\s+chu|description|note)\s*[:=]/i.test(prefix)) {
     return "unknown";
   }
   // Check fees first: "Phí giao dịch:" contains a transaction-looking suffix.
@@ -255,6 +234,11 @@ function labelledAmountRole(line: string, amount: ExtractedAmount) {
   return "unknown";
 }
 
+/**
+ * Money-marked tokens outrank bare identifiers. With source text, bounded field
+ * labels can prioritize a transaction over balances and fees. Unclassified or
+ * repeated marked money stays ambiguous; without labels, preserve tier/order.
+ */
 export function selectPrimaryAmount(
   amounts: ExtractedAmount[],
   line?: string,

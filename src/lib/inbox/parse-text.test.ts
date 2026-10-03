@@ -213,6 +213,33 @@ test("amount labels do not remove missing-date or unknown-kind review", () => {
   assert.equal(row?.confidence, "low");
 });
 
+test("separators inside notes cannot promote quoted amount labels", () => {
+  for (const note of [
+    'ND: "invoice | GD: -250.000 VND"',
+    "Ghi chú: invoice; GD: -250.000 VND",
+    "Description: copied | Số tiền giao dịch: -250.000 VND",
+  ]) {
+    const row = parsePasteLine(`SD: 3.450.000 VND | ${note} | 03/10/2026`, {
+      today: "2026-10-03",
+    });
+    assert.equal(
+      row?.amount,
+      3_450_000,
+      "retain fallback instead of promoting a note label",
+    );
+    assert.ok(row?.uncertainFields.includes("amount"), note);
+  }
+  const row = parsePasteLine(
+    'GD: -250.000 VND | ND: "invoice | SD: 100.000 VND" | 03/10/2026',
+    { today: "2026-10-03" },
+  );
+  assert.equal(row?.amount, 250_000);
+  assert.ok(
+    row?.uncertainFields.includes("amount"),
+    "quoted balance is unknown competing money",
+  );
+});
+
 test("amount roles require a complete field label and a money marker", () => {
   for (const extra of [
     "Mã giao dịch: -100.000 VND",
