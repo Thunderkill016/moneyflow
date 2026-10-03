@@ -415,6 +415,12 @@ Risks: mistaking a note for a field → note guard and adversarial regressions; 
 
 Tasks: pin failures → implement contextual selection → run frozen/domain/browser evidence → independent diff review → exact-head verification → owner handoff. Next allowed action: bounded branch implementation and PR delivery. Further source adapters and merge/deployment of the next PR require their applicable scope decisions.
 
+### Post-merge statement selector repair — 2026-10-04
+
+Execution state: evaluating; active role: verifier; scope: bounded test repair supporting the owner-authorized #754/#756 merge. Both are merged; final main `7a1d4bff` CI `37149210543` failed the desktop statement assertion before CSV upload. Log evidence: `getByText(accountName, exact)` resolves to the account h3, two transfer options and a summary strong. Phone completed the actual statement journey; reset/pgTAP and archive producer/restore passed. This is an unchanged pre-existing selector ambiguity, not a demonstrated parser/ledger regression.
+
+Class 1, test-only. Reuse the existing account-card h3 and statement test. Replace only the broad name assertion with role heading, level 3, exact account name. Preserve strictness (no first()/catch/retry), account persistence/other-tenant isolation, CSV posting, re-import, provenance, balance, reconciliation and corruption checks. No application/schema/CI/provider change. Exit: clean typecheck/lint, own PR provenance, exact-head PR CI plus a fail-safe manual CI run on this branch selecting the real disposable database/statement suite; then owner-authorized integration and fresh main read-back. Local Docker/Supabase are unavailable; never replace real database acceptance with a synthetic double. Rollback: revert only the assertion and bounded documentation. Main's earlier 1440px onboarding retry remains a separate observed issue; this repair does not claim to fix it.
+
 ### Owner direction — broad acquisition without paid AI or bank partnerships, 2026-10-03
 
 The owner explicitly prioritizes practical ways to collect spending from many sources with a simple, understandable interface. No paid AI or bank partnership is available as a foundation. This updates the research priority, not the authority to implement a native service, change financial posting policy or deploy. CANON authority: CFPB day-to-day control, Stage 0/1 Low-maintenance Reality; GOV.UK whole-service simplicity and measured iteration. Maintain one acquisition/review/ledger path and upgrade existing surfaces.
