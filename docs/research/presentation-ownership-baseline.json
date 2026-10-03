@@ -222,26 +222,12 @@
       "status": "debt"
     },
     {
-      "class": "capture-paste-apply-rules",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
       "class": "capture-paste-back",
       "owner": "src/components/inbox/capture-paste-page.tsx",
       "alsoEmittedBy": [
         "src/components/inbox/capture-share-page.tsx",
         "src/components/inbox/capture-upload-page.tsx"
       ],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-paste-date",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
       "reason": "semantic class with no active stylesheet owner",
       "status": "debt"
     },
@@ -256,77 +242,7 @@
       "status": "debt"
     },
     {
-      "class": "capture-paste-explanations",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-paste-hint",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-paste-label",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-paste-panel",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-paste-preview",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
       "class": "capture-paste-preview-amount",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-paste-preview-lead",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-paste-preview-list",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-paste-preview-main",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-paste-preview-merchant",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-paste-preview-meta",
       "owner": "src/components/inbox/capture-paste-page.tsx",
       "alsoEmittedBy": [],
       "reason": "semantic class with no active stylesheet owner",
@@ -340,35 +256,7 @@
       "status": "debt"
     },
     {
-      "class": "capture-paste-raw",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-paste-rules-link",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-paste-source",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
       "class": "capture-paste-source-option",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-paste-source-options",
       "owner": "src/components/inbox/capture-paste-page.tsx",
       "alsoEmittedBy": [],
       "reason": "semantic class with no active stylesheet owner",
@@ -383,27 +271,6 @@
     },
     {
       "class": "capture-paste-textarea",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-paste-trust",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-paste-uncertain-tag",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "capture-paste-workspace",
       "owner": "src/components/inbox/capture-paste-page.tsx",
       "alsoEmittedBy": [],
       "reason": "semantic class with no active stylesheet owner",
@@ -604,13 +471,6 @@
       "status": "debt"
     },
     {
-      "class": "category-badge",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
       "class": "class",
       "owner": "src/components/ui/button.tsx",
       "alsoEmittedBy": [],
@@ -641,13 +501,6 @@
       "status": "debt"
     },
     {
-      "class": "confidence-badge",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
       "class": "coral",
       "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
       "alsoEmittedBy": [],
@@ -659,13 +512,6 @@
       "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
       "alsoEmittedBy": [],
       "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .transaction-icon.blue,.dashboard-module___vDUZq__dashboard .transaction-icon.cyan))",
-      "status": "debt"
-    },
-    {
-      "class": "danger",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": ["src/components/user-chip.tsx"],
-      "reason": "bare token, ownership not provable without reading the call site",
       "status": "debt"
     },
     {
@@ -1124,13 +970,6 @@
       "status": "debt"
     },
     {
-      "class": "negative",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "bare token, ownership not provable without reading the call site",
-      "status": "debt"
-    },
-    {
       "class": "not",
       "owner": "src/components/ui/button.tsx",
       "alsoEmittedBy": [],
@@ -1231,20 +1070,6 @@
       "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
       "alsoEmittedBy": [],
       "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .planning-card-empty-inline)",
-      "status": "debt"
-    },
-    {
-      "class": "positive",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "bare token, ownership not provable without reading the call site",
-      "status": "debt"
-    },
-    {
-      "class": "preview-chip",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
       "status": "debt"
     },
     {
@@ -1503,13 +1328,6 @@
       "status": "debt"
     },
     {
-      "class": "source-badge",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
       "class": "text-",
       "owner": "src/components/ui/button.tsx",
       "alsoEmittedBy": [],
@@ -1595,13 +1413,6 @@
       "class": "w-",
       "owner": "src/components/ui/dialog.tsx",
       "alsoEmittedBy": ["src/components/ui/toast.tsx"],
-      "reason": "bare token, ownership not provable without reading the call site",
-      "status": "debt"
-    },
-    {
-      "class": "warning",
-      "owner": "src/components/inbox/capture-paste-page.tsx",
-      "alsoEmittedBy": [],
       "reason": "bare token, ownership not provable without reading the call site",
       "status": "debt"
     },

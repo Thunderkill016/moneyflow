@@ -12,8 +12,18 @@ test.describe("keyboard navigation audit", () => {
     await assertKeyboardFocusVisible(page, testInfo);
   });
 
-  test("quick capture exposes visible keyboard focus", async ({ page }, testInfo) => {
+  test("quick capture exposes visible keyboard focus", async ({
+    page,
+  }, testInfo) => {
     await page.goto("/capture/quick", { waitUntil: "domcontentloaded" });
+    await assertKeyboardFocusVisible(page, testInfo);
+  });
+
+  test("paste capture exposes visible keyboard focus", async ({
+    page,
+  }, testInfo) => {
+    await page.goto("/capture/paste", { waitUntil: "domcontentloaded" });
+    await page.getByText("Tùy chọn phân tích", { exact: true }).click();
     await assertKeyboardFocusVisible(page, testInfo);
   });
 });

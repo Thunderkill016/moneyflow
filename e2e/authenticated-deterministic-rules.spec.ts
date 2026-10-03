@@ -112,7 +112,10 @@ test.describe("Deterministic rules workspace", () => {
     });
 
     await page.goto("/capture/paste", { waitUntil: "domcontentloaded" });
-    await expect(page.getByText("Áp dụng quy tắc danh mục")).toBeVisible();
+    await expect(page.getByText("Áp dụng quy tắc danh mục")).toBeHidden();
+    await page.getByText("Tùy chọn phân tích", { exact: true }).click();
+    await expect(page.getByLabel("Áp dụng quy tắc danh mục")).toBeChecked();
+    await page.getByText("Tùy chọn phân tích", { exact: true }).click();
     await page.getByLabel("Nội dung").fill("HIGHLANDS 45k");
     await page.getByRole("button", { name: "Phân tích", exact: true }).click();
     await expect(page.getByText("Ăn uống · v1", { exact: true })).toBeVisible();
