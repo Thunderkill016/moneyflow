@@ -52,10 +52,21 @@ test("locked MVP core route files and browser gate remain present", () => {
   assert.ok(existsSync(join(root, specPath)), `${specPath} must exist`);
   const spec = read(specPath);
   for (const route of CORE_ROUTES) {
-    assert.ok(spec.includes(`"${route}"`), `${route} must stay in the browser release gate`);
+    assert.ok(
+      spec.includes(`"${route}"`),
+      `${route} must stay in the browser release gate`,
+    );
   }
   assert.match(spec, /exactly one visible primary action/);
-  assert.match(spec, /\/reports\/export\?period=/);
+  // Demo exports use browser-owned rows; authenticated exports stay server-owned.
+  assert.match(spec, /page\.waitForEvent\("download"\)/);
+  assert.match(spec, /directCsv\.click\(\)/);
+  const authenticatedExport = read(
+    "e2e/auth/financial-truth.mobile.auth.spec.ts",
+  );
+  assert.match(authenticatedExport, /\/reports\/export\?period=/);
+  assert.match(authenticatedExport, /page\.request\.get/);
+  assert.match(authenticatedExport, /parseCsvMatrix\(csv\)/);
   assert.match(spec, /\/settings\/export/);
 });
 
@@ -124,9 +135,14 @@ test("core action-bearing empty states do not reintroduce duplicate direct actio
   );
 
   const reports = read("src/components/reports-page.tsx");
-  const start = reports.indexOf('<EmptyState\n            icon={<Icon name="chart" />}');
-  const end = reports.indexOf('        {!exportDisabled ? (', start);
-  assert.ok(start >= 0 && end > start, "Reports EmptyState branch must remain discoverable");
+  const start = reports.indexOf(
+    '<EmptyState\n            icon={<Icon name="chart" />}',
+  );
+  const end = reports.indexOf("        {!exportDisabled ? (", start);
+  assert.ok(
+    start >= 0 && end > start,
+    "Reports EmptyState branch must remain discoverable",
+  );
   const reportEmptyBranch = reports.slice(start, end);
   assert.equal(
     (reportEmptyBranch.match(/primaryAction=/g) ?? []).length,

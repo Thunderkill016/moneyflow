@@ -4,11 +4,14 @@ import test from "node:test";
 import {
   balanceEntriesFromTransactions,
   buildBalanceSeries,
+  buildTransactionBalanceSeries,
   type BalanceSeriesAccount,
 } from "./balance-series.ts";
 import type { Transaction } from "./transactions/contracts.ts";
 
-const account = (overrides: Partial<BalanceSeriesAccount>): BalanceSeriesAccount => ({
+const account = (
+  overrides: Partial<BalanceSeriesAccount>,
+): BalanceSeriesAccount => ({
   id: "acc-a",
   name: "MB Bank",
   currencyCode: "VND",
@@ -82,8 +85,14 @@ test("transfers move balance between accounts but net to zero in net worth", () 
   );
   const [a, b] = series.accounts;
   // Source drops by 200k on the 11th; destination rises by the same.
-  assert.deepEqual(a?.points.map((point) => point.value), [1_000_000, 800_000, 800_000]);
-  assert.deepEqual(b?.points.map((point) => point.value), [1_000_000, 1_200_000, 1_200_000]);
+  assert.deepEqual(
+    a?.points.map((point) => point.value),
+    [1_000_000, 800_000, 800_000],
+  );
+  assert.deepEqual(
+    b?.points.map((point) => point.value),
+    [1_000_000, 1_200_000, 1_200_000],
+  );
   // Net worth is flat — a transfer cannot create or destroy wealth.
   assert.deepEqual(
     series.netWorthVnd?.points.map((point) => point.value),
@@ -94,13 +103,26 @@ test("transfers move balance between accounts but net to zero in net worth", () 
 
 test("FX accounts keep their own series but never fold into VND net worth", () => {
   const entries = balanceEntriesFromTransactions([
-    transaction({ accountId: "acc-usd", amount: 500, occurredOn: "2026-07-11" }),
-    transaction({ accountId: "acc-a", amount: 50_000, occurredOn: "2026-07-11" }),
+    transaction({
+      accountId: "acc-usd",
+      amount: 500,
+      occurredOn: "2026-07-11",
+    }),
+    transaction({
+      accountId: "acc-a",
+      amount: 50_000,
+      occurredOn: "2026-07-11",
+    }),
   ]);
   const series = buildBalanceSeries(
     [
       account({ id: "acc-a", balance: 1_000_000 }),
-      account({ id: "acc-usd", name: "USD du lịch", currencyCode: "USD", balance: 20_000 }),
+      account({
+        id: "acc-usd",
+        name: "USD du lịch",
+        currencyCode: "USD",
+        balance: 20_000,
+      }),
     ],
     entries,
     { start: "2026-07-10", end: "2026-07-12" },
@@ -131,7 +153,10 @@ test("an FX-only ledger has no VND net worth — not a fake zero line", () => {
 });
 
 test("empty ledger returns an honest empty result", () => {
-  const series = buildBalanceSeries([], [], { start: "2026-07-10", end: "2026-07-12" });
+  const series = buildBalanceSeries([], [], {
+    start: "2026-07-10",
+    end: "2026-07-12",
+  });
   assert.deepEqual(series.accounts, []);
   assert.equal(series.netWorthVnd, null);
   assert.deepEqual(series.foreignCurrencyCodes, []);
@@ -245,7 +270,11 @@ test("a single-day window yields one point and a real opening", () => {
 
 test("entries on unknown accounts are ignored rather than guessed", () => {
   const entries = balanceEntriesFromTransactions([
-    transaction({ accountId: "acc-ghost", amount: 999_000, occurredOn: "2026-07-11" }),
+    transaction({
+      accountId: "acc-ghost",
+      amount: 999_000,
+      occurredOn: "2026-07-11",
+    }),
   ]);
   const series = buildBalanceSeries([account({})], entries, {
     start: "2026-07-10",
@@ -315,7 +344,11 @@ test("unsafe integer money throws instead of producing a wrong chart", () => {
       buildBalanceSeries(
         [account({})],
         [
-          { accountId: "acc-a", occurredOn: "2026-07-11", amount: Number.MAX_SAFE_INTEGER },
+          {
+            accountId: "acc-a",
+            occurredOn: "2026-07-11",
+            amount: Number.MAX_SAFE_INTEGER,
+          },
           { accountId: "acc-a", occurredOn: "2026-07-11", amount: 1 },
         ],
         { start: "2026-07-10", end: "2026-07-12" },
@@ -330,11 +363,95 @@ test("unsafe integer money throws instead of producing a wrong chart", () => {
 
 test("invalid or reversed windows are rejected", () => {
   assert.throws(
-    () => buildBalanceSeries([account({})], [], { start: "2026-07-12", end: "2026-07-10" }),
+    () =>
+      buildBalanceSeries([account({})], [], {
+        start: "2026-07-12",
+        end: "2026-07-10",
+      }),
     /invalid/,
   );
   assert.throws(
-    () => buildBalanceSeries([account({})], [], { start: "2026-13-01", end: "2026-13-10" }),
+    () =>
+      buildBalanceSeries([account({})], [], {
+        start: "2026-13-01",
+        end: "2026-13-10",
+      }),
     /invalid/,
+  );
+});
+
+test("guarded report balance rejects aggregate overflow without inventing zero", () => {
+  const accounts = [
+    account({ balance: Number.MAX_SAFE_INTEGER }),
+    account({ id: "acc-b", balance: 1 }),
+  ];
+  assert.equal(
+    buildTransactionBalanceSeries(accounts, [], {
+      start: "2026-07-10",
+      end: "2026-07-12",
+    }),
+    null,
+  );
+  assert.equal(
+    accounts[0].balance,
+    Number.MAX_SAFE_INTEGER,
+    "source balances remain intact",
+  );
+});
+
+test("guarded report balance reconciles the demo baseline and catches anchor overflow", () => {
+  const baseline = [transaction({ amount: 100_000 })];
+  const window = { start: "2026-07-10", end: "2026-07-12" };
+  assert.equal(
+    buildTransactionBalanceSeries([account({})], [], window, baseline)
+      ?.netWorthVnd?.points[0].value,
+    1_100_000,
+  );
+  assert.equal(
+    buildTransactionBalanceSeries(
+      [account({ balance: Number.MAX_SAFE_INTEGER })],
+      [],
+      window,
+      baseline,
+    ),
+    null,
+  );
+  assert.equal(
+    buildTransactionBalanceSeries(
+      [account({})],
+      [transaction({ amount: 2 ** 53 })],
+      window,
+    ),
+    null,
+  );
+});
+
+test("guarded report balance preserves valid transfers and exposes unexpected exceptions", () => {
+  const accounts = [account({}), account({ id: "acc-b", balance: 200_000 })];
+  const transfers = [
+    transaction({
+      kind: "transfer",
+      destinationAccountId: "acc-b",
+      amount: 50_000,
+    }),
+  ];
+  const window = { start: "2026-07-10", end: "2026-07-12" };
+  assert.deepEqual(
+    buildTransactionBalanceSeries(accounts, transfers, window),
+    buildBalanceSeries(
+      accounts,
+      balanceEntriesFromTransactions(transfers),
+      window,
+    ),
+  );
+  const broken = account({});
+  Object.defineProperty(broken, "balance", {
+    get() {
+      throw new Error("unexpected_projection_bug");
+    },
+  });
+  assert.throws(
+    () => buildTransactionBalanceSeries([broken], [], window),
+    /unexpected_projection_bug/,
   );
 });

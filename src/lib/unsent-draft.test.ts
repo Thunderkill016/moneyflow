@@ -61,19 +61,16 @@ test("draft validator accepts a well-formed failed capture", () => {
 test("draft validator rejects malformed values", () => {
   assert.equal(isUnsentCaptureDraft(null), false);
   assert.equal(isUnsentCaptureDraft("draft"), false);
-  assert.equal(isUnsentCaptureDraft({ ...validDraft, kind: "transfer" }), false);
+  assert.equal(
+    isUnsentCaptureDraft({ ...validDraft, kind: "transfer" }),
+    false,
+  );
   // Money must stay an integer đồng greater than zero.
   assert.equal(isUnsentCaptureDraft({ ...validDraft, amount: 0 }), false);
   assert.equal(isUnsentCaptureDraft({ ...validDraft, amount: -5 }), false);
   assert.equal(isUnsentCaptureDraft({ ...validDraft, amount: 12.5 }), false);
-  assert.equal(
-    isUnsentCaptureDraft({ ...validDraft, amount: "65000" }),
-    false,
-  );
-  assert.equal(
-    isUnsentCaptureDraft({ ...validDraft, categoryId: "" }),
-    false,
-  );
+  assert.equal(isUnsentCaptureDraft({ ...validDraft, amount: "65000" }), false);
+  assert.equal(isUnsentCaptureDraft({ ...validDraft, categoryId: "" }), false);
   assert.equal(
     isUnsentCaptureDraft({ ...validDraft, accountId: undefined }),
     false,
@@ -124,7 +121,11 @@ test("write → read → clear round-trips the draft", () => {
 test("a second failed save overwrites the older draft", () => {
   const { storage } = mockStorage();
   writeUnsentCaptureDraft(validDraft, storage);
-  const newer = { ...validDraft, amount: 12_000, savedAt: "2026-09-23T04:00:00.000Z" };
+  const newer = {
+    ...validDraft,
+    amount: 12_000,
+    savedAt: "2026-09-23T04:00:00.000Z",
+  };
   writeUnsentCaptureDraft(newer, storage);
   assert.deepEqual(readUnsentCaptureDraft(storage), newer);
 });
@@ -143,10 +144,7 @@ test("malformed stored value is dropped instead of restored", () => {
 
 test("write refuses an invalid draft and absent storage no-ops", () => {
   const { storage, map } = mockStorage();
-  writeUnsentCaptureDraft(
-    { ...validDraft, amount: 0 },
-    storage,
-  );
+  writeUnsentCaptureDraft({ ...validDraft, amount: 0 }, storage);
   assert.equal(map.has(UNSENT_DRAFT_STORAGE_KEY), false);
 
   assert.equal(readUnsentCaptureDraft(null), null);
@@ -190,6 +188,6 @@ test("capture dialog retains and restores the goal tag with the draft", () => {
   // goal archived since the failure is dropped rather than resurrected.
   assert.match(
     dialog,
-    /draft\.goalId && goals\.some\(\(g\) => g\.id === draft\.goalId && !g\.isArchived\)/,
+    /draft\.goalId\s*&&\s*goals\.some\(\(g\) => g\.id === draft\.goalId && !g\.isArchived\)/,
   );
 });

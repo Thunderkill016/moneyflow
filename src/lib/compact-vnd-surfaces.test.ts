@@ -35,7 +35,7 @@ const inboxPage = readFileSync("src/components/inbox/inbox-page.tsx", "utf8");
  * reconcile, inbox, export — keeps exact đồng. These tests pin both halves.
  */
 
-const COMPACT_ARG = /\/\* compact \*\/ true\)/g;
+const COMPACT_ARG = /\/\* compact \*\/\s*true,?\s*\)/g;
 const COMPACT_PROP = /\n\s+compact\n/g;
 
 function count(source: string, pattern: RegExp): number {
@@ -48,7 +48,10 @@ test("formatMoney compact renders 'tr' only at ≥ 1.000.000 ₫ and stays VND",
   assert.equal(formatMoney(999_999, true), "999.999 ₫");
   assert.equal(formatMoney(12_500_000, false), "12.500.000 ₫");
   // Compact is a VND contract only — other currencies keep full formatting.
-  assert.equal(formatMoney(2_000_000, true, "USD"), formatMoney(2_000_000, false, "USD"));
+  assert.equal(
+    formatMoney(2_000_000, true, "USD"),
+    formatMoney(2_000_000, false, "USD"),
+  );
 });
 
 test("dashboard attention chips carry compact money, not full đồng", () => {
@@ -72,10 +75,7 @@ test("dashboard trend card and category bars render compact", () => {
   assert.equal(count(statement, COMPACT_PROP), 1);
 
   // Top-category bar rows share one line with the category name.
-  assert.match(
-    overview,
-    /amount=\{item\.amount\}[^>]*\bcompact\b/,
-  );
+  assert.match(overview, /amount=\{item\.amount\}[^>]*\bcompact\b/);
   assert.equal(count(overview, COMPACT_PROP), 1);
 });
 
@@ -84,18 +84,12 @@ test("reports chart labels use compact; the summary totals stay exact", () => {
   // two chart-header stat chips.
   assert.match(
     reports,
-    /formatMoney\(item\.expense, \/\* compact \*\/ true\)/,
+    /formatMoney\(\s*item\.expense,\s*\/\* compact \*\/\s*true,?\s*\)/,
   );
   assert.equal(count(reports, COMPACT_ARG), 5);
   assert.equal(count(reports, COMPACT_PROP), 2);
-  assert.match(
-    reports,
-    /amount=\{netWorthDelta\}[^>]*\bcompact\b/,
-  );
-  assert.match(
-    reports,
-    /amount=\{averageExpense\}[^>]*\bcompact\b/,
-  );
+  assert.match(reports, /amount=\{netWorthDelta\}[^>]*\bcompact\b/);
+  assert.match(reports, /amount=\{averageExpense\}[^>]*\bcompact\b/);
 
   // The four summary chips and every breakdown amount are cross-checkable
   // totals — compact must never appear inside their MoneyValue tags.
@@ -123,7 +117,7 @@ test("reports chart labels use compact; the summary totals stay exact", () => {
   );
   assert.match(
     reports,
-    /formatSignedMoney\(delta, false, seriesAccount\.currencyCode\)/,
+    /formatSignedMoney\(\s*delta,\s*false,\s*seriesAccount\.currencyCode,?\s*\)/,
     "per-account period delta stays exact",
   );
 });
@@ -174,7 +168,7 @@ test("forbidden surfaces contain no compact usage at all", () => {
     "transactions workspace": transactionsWorkspace,
     "account reconciliation": reconciliation,
     "account detail": accountDetail,
-    "inbox": inboxPage,
+    inbox: inboxPage,
   };
   for (const [name, source] of Object.entries(forbidden)) {
     assert.equal(

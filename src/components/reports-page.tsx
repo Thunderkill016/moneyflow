@@ -4,12 +4,8 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { useTransactionLedgerState } from "@/hooks/use-transaction-ledger";
 import { useDemoAccountSummaries } from "@/hooks/use-demo-accounts";
-import {
-  buildAccountRegister,
-  reconcileAccountBalanceSnapshot,
-} from "@/lib/account-register";
 import { readDemoTransactionBaseline } from "@/lib/transaction-store";
-import { balanceEntriesFromTransactions, buildBalanceSeries } from "@/lib/balance-series";
+import { buildTransactionBalanceSeries } from "@/lib/balance-series";
 import {
   reportAccountDrilldownHref,
   reportCategoryDrilldownHref,
@@ -34,6 +30,7 @@ import {
   EXPORT_CSV_LABEL,
   EXPORT_SETTINGS_HREF,
   reportCsvDownloadHref,
+  downloadTextFile,
 } from "@/lib/export-data";
 import type { BalanceSeriesPoint } from "@/lib/balance-series";
 import { formatMoney, formatSignedMoney } from "@/lib/money";
@@ -46,6 +43,7 @@ import {
   reportPeriodHref,
   reportTrendGranularity,
   buildFinancialReport,
+  transactionsToCsv,
 } from "@/lib/reports";
 import {
   categoryMetaFor,
@@ -59,7 +57,8 @@ const RANGE_NOTICES: Record<string, string | null> = {
   none: null,
   invalid: "Khoảng ngày không hợp lệ nên báo cáo đang hiển thị tháng này.",
   swapped: "Đã đổi thứ tự hai ngày cho đúng chiều.",
-  future: "Khoảng ngày có mốc trong tương lai nên báo cáo đã giới hạn đến hôm nay.",
+  future:
+    "Khoảng ngày có mốc trong tương lai nên báo cáo đã giới hạn đến hôm nay.",
   clamped: "Khoảng ngày quá dài nên đã rút lại còn 3 năm gần nhất.",
 };
 
@@ -83,7 +82,13 @@ function expenseChangeLabel(value: number | null) {
  * Fixed viewBox; the SVG scales uniformly to the section width via CSS, so
  * strokes and point dots keep their shape at every viewport.
  */
-const BALANCE_CHART = { width: 720, height: 220, padX: 12, padTop: 20, padBottom: 14 };
+const BALANCE_CHART = {
+  width: 720,
+  height: 220,
+  padX: 12,
+  padTop: 20,
+  padBottom: 14,
+};
 
 /**
  * Net worth is a level, not a flow — a line chart is the honest shape (bars
@@ -99,7 +104,8 @@ function balanceChartGeometry(points: BalanceSeriesPoint[]) {
   const lo = rawLo - pad;
   const hi = rawHi + pad;
   const innerW = BALANCE_CHART.width - BALANCE_CHART.padX * 2;
-  const innerH = BALANCE_CHART.height - BALANCE_CHART.padTop - BALANCE_CHART.padBottom;
+  const innerH =
+    BALANCE_CHART.height - BALANCE_CHART.padTop - BALANCE_CHART.padBottom;
   const x = (index: number) =>
     points.length === 1
       ? BALANCE_CHART.padX + innerW / 2
@@ -140,26 +146,30 @@ export function ReportsPage({
   const workspace = useMemo(() => {
     if (!viewer.isDemo) return initialWorkspace;
     const range = initialWorkspace.report.range;
-    const transactions = ledger.transactions.filter((item) => item.occurredOn <= range.currentEnd);
-    const baseline = readDemoTransactionBaseline();
-    const accounts = demoAccounts.accounts.map((account) => ({
-      ...account,
-      balance: reconcileAccountBalanceSnapshot(
-        account.balance,
-        buildAccountRegister(baseline, account.id),
-        buildAccountRegister(ledger.transactions, account.id),
-      ),
-    }));
+    const transactions = ledger.transactions.filter(
+      (item) => item.occurredOn <= range.currentEnd,
+    );
     return {
       ...initialWorkspace,
       transactions,
       report: buildFinancialReport(transactions, range),
-      balanceSeries: demoAccounts.error ? null : buildBalanceSeries(accounts, balanceEntriesFromTransactions(ledger.transactions), {
-        start: range.currentStart, end: range.currentEnd,
-      }),
+      balanceSeries: demoAccounts.error
+        ? null
+        : buildTransactionBalanceSeries(
+            demoAccounts.accounts,
+            ledger.transactions,
+            { start: range.currentStart, end: range.currentEnd },
+            readDemoTransactionBaseline(),
+          ),
       dataError: initialWorkspace.dataError ?? demoAccounts.error,
     };
-  }, [viewer.isDemo, initialWorkspace, ledger.transactions, demoAccounts.accounts, demoAccounts.error]);
+  }, [
+    viewer.isDemo,
+    initialWorkspace,
+    ledger.transactions,
+    demoAccounts.accounts,
+    demoAccounts.error,
+  ]);
   const { report } = workspace;
   const metaIndex = categoryMetaIndex(categories);
   const expenseChange = report.expenseChangePercent;
@@ -168,7 +178,8 @@ export function ReportsPage({
    * unit label is derived from the same rule — never keyed on the period name,
    * which would call a 63-day custom window's monthly bars "ngày".
    */
-  const trendUnit = reportTrendGranularity(report.range) === "month" ? "tháng" : "ngày";
+  const trendUnit =
+    reportTrendGranularity(report.range) === "month" ? "tháng" : "ngày";
   const expenseBuckets = report.trend.filter((item) => item.expense > 0);
   /*
    * Both series share one scale, or the two bars in a column would not be
@@ -190,8 +201,12 @@ export function ReportsPage({
     ? Math.round(report.totals.expense / expenseBuckets.length)
     : 0;
   const { currentStart, currentEnd } = report.range;
-  const csvDownloadHref = reportCsvDownloadHref(period, currentStart, currentEnd);
-  const exportDisabled = Boolean(workspace.dataError);
+  const csvDownloadHref = reportCsvDownloadHref(
+    period,
+    currentStart,
+    currentEnd,
+  );
+  const exportDisabled = Boolean(workspace.dataError) || !ledger.isHydrated;
   const periodTitle = formatReportPeriodTitle(period, currentStart, currentEnd);
   const rangeCaption = `${dateLabel(currentStart)} – ${dateLabel(currentEnd)} · So với kỳ liền trước cùng số ngày.`;
   const rangeNotice = RANGE_NOTICES[workspace.rangeNotice ?? "none"];
@@ -202,12 +217,24 @@ export function ReportsPage({
    * rather than re-deriving the unit from a possibly clamped window.
    * `next` disappears when the whole following window is still in the future.
    */
-  const adjacent = adjacentReportRanges(report.range, workspace.todayIso, workspace.navUnit);
+  const adjacent = adjacentReportRanges(
+    report.range,
+    workspace.todayIso,
+    workspace.navUnit,
+  );
   const prevHref = reportPeriodHref(
-    "custom", adjacent.prev.from, adjacent.prev.to, workspace.navUnit,
+    "custom",
+    adjacent.prev.from,
+    adjacent.prev.to,
+    workspace.navUnit,
   );
   const nextHref = adjacent.next
-    ? reportPeriodHref("custom", adjacent.next.from, adjacent.next.to, workspace.navUnit)
+    ? reportPeriodHref(
+        "custom",
+        adjacent.next.from,
+        adjacent.next.to,
+        workspace.navUnit,
+      )
     : null;
 
   const balanceSeries = workspace.balanceSeries;
@@ -219,25 +246,37 @@ export function ReportsPage({
     ? balanceChartGeometry(netWorthPoints)
     : null;
 
-  // Demo hydrates the browser ledger in place (same pattern as /transactions):
-  // first paint may show server seeds, then reconciles to stored rows. The
-  // export link keeps its server href contract so the CSV route stays the
-  // single download owner; demo CSV content therefore still reflects the
-  // server seeds, documented as a remaining gap below.
+  // Demo financial rows live on this device. Download the same hydrated snapshot
+  // used by the report; authenticated downloads remain owned by the server route.
   return (
     <AppShell
       viewer={viewer}
+      showPrimaryActionOnMobile
       primaryAction={{
         label: EXPORT_CSV_LABEL,
-        href: csvDownloadHref,
+        href: viewer.isDemo ? undefined : csvDownloadHref,
         icon: "arrowDown",
         disabled: exportDisabled,
-        onClick: () =>
+        onClick: () => {
+          if (exportDisabled) return;
+          if (viewer.isDemo) {
+            const rows = workspace.transactions.filter(
+              (item) =>
+                item.occurredOn >= currentStart &&
+                item.occurredOn <= currentEnd,
+            );
+            downloadTextFile(
+              `moneyflow-${currentStart}-${currentEnd}.csv`,
+              transactionsToCsv(rows),
+              "text/csv;charset=utf-8",
+            );
+          }
           trackProductEvent("export_downloaded", {
             surface: "reports",
             kind: "transactions",
             format: "csv",
-          }),
+          });
+        },
       }}
     >
       <SecondaryWorkspace slot="reports-workspace">
@@ -255,8 +294,9 @@ export function ReportsPage({
           title="Báo cáo"
           description={
             <p>
-              Đọc tiền vào, tiền ra và xu hướng theo khoảng ngày đã được MoneyFlow
-              kiểm tra. Chuyển tiền giữa các tài khoản không được tính là thu hoặc chi.
+              Đọc tiền vào, tiền ra và xu hướng theo khoảng ngày đã được
+              MoneyFlow kiểm tra. Chuyển tiền giữa các tài khoản không được tính
+              là thu hoặc chi.
             </p>
           }
           actions={
@@ -271,8 +311,15 @@ export function ReportsPage({
           }
         />
 
-        <section className={styles.periodBlock} aria-labelledby="report-period-title">
-          <div className={styles.periodTitle} id="report-period-title" data-period={period}>
+        <section
+          className={styles.periodBlock}
+          aria-labelledby="report-period-title"
+        >
+          <div
+            className={styles.periodTitle}
+            id="report-period-title"
+            data-period={period}
+          >
             <span className={styles.periodNav}>
               <Link
                 className={styles.periodLink}
@@ -303,7 +350,11 @@ export function ReportsPage({
               <Link
                 key={item.value}
                 href={reportPeriodHref(item.value)}
-                className={period === item.value ? styles.periodActive : styles.periodLink}
+                className={
+                  period === item.value
+                    ? styles.periodActive
+                    : styles.periodLink
+                }
                 aria-current={period === item.value ? "page" : undefined}
               >
                 {item.label}
@@ -311,7 +362,9 @@ export function ReportsPage({
             ))}
             <Link
               href={reportPeriodHref("custom", currentStart, currentEnd)}
-              className={period === "custom" ? styles.periodActive : styles.periodLink}
+              className={
+                period === "custom" ? styles.periodActive : styles.periodLink
+              }
               aria-current={period === "custom" ? "page" : undefined}
             >
               Tự chọn
@@ -357,278 +410,294 @@ export function ReportsPage({
         ) : null}
 
         {workspace.dataError ? null : (
-        <SecondarySummary label="Tổng quan kỳ báo cáo" slot="report-metrics">
-          <SecondarySummaryItem
-            label="Tiền vào"
-            value={
-              <MoneyValue
-                amount={report.totals.income}
-                mode="kind"
-                kind="income"
-                label="Tiền vào"
-                emphasis="strong"
-                align="start"
-              />
-            }
-            meta={`${report.totals.transactions} giao dịch trong kỳ`}
-          />
-          <SecondarySummaryItem
-            label="Tiền ra"
-            value={
-              <MoneyValue
-                amount={report.totals.expense}
-                mode="kind"
-                kind="expense"
-                label="Tiền ra"
-                emphasis="strong"
-                align="start"
-              />
-            }
-            meta={
-              <span
-                className={
-                  expenseChange !== null && expenseChange > 0
-                    ? styles.changeWarning
-                    : styles.changeCalm
-                }
-              >
-                {expenseChangeLabel(expenseChange)}
-              </span>
-            }
-          />
-          <SecondarySummaryItem
-            label="Còn lại"
-            value={
-              <MoneyValue
-                amount={report.totals.net}
-                mode="signed"
-                label="Còn lại"
-                emphasis="strong"
-                align="start"
-              />
-            }
-            meta={
-              report.savingsRatePercent === null
-                ? "Tiền vào trừ tiền ra"
-                : `Giữ lại ${report.savingsRatePercent}% tiền vào`
-            }
-          />
-          <SecondarySummaryItem
-            label="Kỳ trước"
-            value={
-              <MoneyValue
-                amount={report.previous.expense}
-                label="Chi tiêu kỳ trước"
-                emphasis="strong"
-                align="start"
-              />
-            }
-            meta="Chi tiêu cùng số ngày"
-          />
-        </SecondarySummary>
+          <SecondarySummary label="Tổng quan kỳ báo cáo" slot="report-metrics">
+            <SecondarySummaryItem
+              label="Tiền vào"
+              value={
+                <MoneyValue
+                  amount={report.totals.income}
+                  mode="kind"
+                  kind="income"
+                  label="Tiền vào"
+                  emphasis="strong"
+                  align="start"
+                />
+              }
+              meta={`${report.totals.transactions} giao dịch trong kỳ`}
+            />
+            <SecondarySummaryItem
+              label="Tiền ra"
+              value={
+                <MoneyValue
+                  amount={report.totals.expense}
+                  mode="kind"
+                  kind="expense"
+                  label="Tiền ra"
+                  emphasis="strong"
+                  align="start"
+                />
+              }
+              meta={
+                <span
+                  className={
+                    expenseChange !== null && expenseChange > 0
+                      ? styles.changeWarning
+                      : styles.changeCalm
+                  }
+                >
+                  {expenseChangeLabel(expenseChange)}
+                </span>
+              }
+            />
+            <SecondarySummaryItem
+              label="Còn lại"
+              value={
+                <MoneyValue
+                  amount={report.totals.net}
+                  mode="signed"
+                  label="Còn lại"
+                  emphasis="strong"
+                  align="start"
+                />
+              }
+              meta={
+                report.savingsRatePercent === null
+                  ? "Tiền vào trừ tiền ra"
+                  : `Giữ lại ${report.savingsRatePercent}% tiền vào`
+              }
+            />
+            <SecondarySummaryItem
+              label="Kỳ trước"
+              value={
+                <MoneyValue
+                  amount={report.previous.expense}
+                  label="Chi tiêu kỳ trước"
+                  emphasis="strong"
+                  align="start"
+                />
+              }
+              meta="Chi tiêu cùng số ngày"
+            />
+          </SecondarySummary>
         )}
 
         {workspace.dataError ? null : (
-        <SecondarySection
-          title="Tài sản ròng"
-          description={
-            <p>
-              Số dư cuối mỗi{" "}
-              {balanceSeries?.granularity === "month" ? "tháng" : "ngày"}, suy ra
-              từ số dư hiện tại trừ các giao dịch đã ghi sau đó · {periodTitle}.
-              Chuyển tiền giữa các tài khoản không làm đổi tổng.
-              {balanceSeries?.foreignCurrencyCodes.length
-                ? ` Tài khoản ${balanceSeries.foreignCurrencyCodes.join(", ")} giữ nguyên loại tiền, không gộp vào tổng này.`
-                : ""}
-            </p>
-          }
-          action={
-            netWorth && netWorthPoints.length ? (
-              <div className={styles.chartStat}>
-                <span>Thay đổi trong kỳ</span>
-                <MoneyValue
-                  amount={netWorthDelta}
-                  mode="signed"
-                  compact
-                  label="Thay đổi tài sản ròng trong kỳ"
-                  emphasis="strong"
-                />
-              </div>
-            ) : undefined
-          }
-          contained
-          slot="report-balance"
-        >
-          {balanceSeries === null ? (
-            <div className={styles.subEmpty}>
-              <Icon name="chart" />
-              <p>Chưa tải được dữ liệu số dư.</p>
-            </div>
-          ) : balanceSeries.accounts.length === 0 ? (
-            <div className={styles.subEmpty}>
-              <Icon name="wallet" />
-              <p>Chưa có tài khoản nào để tính tài sản ròng.</p>
-            </div>
-          ) : (
-            <>
-              {netWorth && balanceGeometry ? (
-                <>
-                  {/*
-                    * One series, named in text as well as drawn — money must not
-                    * rely on colour alone.
-                    */}
-                  <p className={styles.trendLegend}>
-                    <span className={styles.legendBalance}>Tài sản ròng (VND)</span>
-                  </p>
-                  <div className={styles.trendScroll} tabIndex={0}>
-                    <svg
-                      className={styles.balanceChart}
-                      viewBox={`0 0 ${BALANCE_CHART.width} ${BALANCE_CHART.height}`}
-                      role="img"
-                      aria-label={`Biểu đồ tài sản ròng ${periodTitle}`}
-                      aria-describedby="report-balance-data"
-                    >
-                      {balanceGeometry.zeroY !== null ? (
-                        <line
-                          className={styles.balanceZero}
-                          x1={BALANCE_CHART.padX}
-                          x2={BALANCE_CHART.width - BALANCE_CHART.padX}
-                          y1={balanceGeometry.zeroY}
-                          y2={balanceGeometry.zeroY}
-                        />
-                      ) : null}
-                      {netWorthPoints.length > 1 ? (
-                        <polygon
-                          className={styles.balanceArea}
-                          points={balanceGeometry.areaPoints}
-                        />
-                      ) : null}
-                      <polyline
-                        className={styles.balanceLine}
-                        points={balanceGeometry.linePoints}
-                        vectorEffect="non-scaling-stroke"
-                      />
-                      {netWorthPoints.map((point, index) => (
-                        <circle
-                          key={point.key}
-                          className={styles.balanceDot}
-                          cx={balanceGeometry.cx(index)}
-                          cy={balanceGeometry.cy(point.value)}
-                          r={4}
-                        >
-                          <title>{`${point.label}: ${formatMoney(point.value)}`}</title>
-                        </circle>
-                      ))}
-                    </svg>
-                    <div className={styles.balanceAxis} aria-hidden="true">
-                      {netWorthPoints.map((point, index) => {
-                        const show =
-                          netWorthPoints.length <= 14 ||
-                          index === 0 ||
-                          index === netWorthPoints.length - 1 ||
-                          (index + 1) % 5 === 0;
-                        if (!show) return null;
-                        const left =
-                          (balanceGeometry.cx(index) / BALANCE_CHART.width) * 100;
-                        return (
-                          <span
-                            key={point.key}
-                            style={{
-                              left: `${left}%`,
-                              transform:
-                                index === 0
-                                  ? "none"
-                                  : index === netWorthPoints.length - 1
-                                    ? "translateX(-100%)"
-                                    : "translateX(-50%)",
-                            }}
-                          >
-                            {point.label}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <ul className={styles.srTrendData} id="report-balance-data">
-                    {netWorthPoints.map((point) => (
-                      <li key={point.key}>
-                        {point.label}: {formatMoney(point.value)}
-                      </li>
-                    ))}
-                  </ul>
-                  {/*
-                    * The axis-scale line carries four values in one caption —
-                    * compact keeps each readable on one line. Per-account exact
-                    * balances stay in the rows below.
-                    */}
-                  <p className={styles.balanceScale}>
-                    Đầu kỳ {formatMoney(netWorth.opening, /* compact */ true)} · Cuối kỳ{" "}
-                    {formatMoney(netWorthLast, /* compact */ true)} · Thấp nhất{" "}
-                    {formatMoney(balanceGeometry.lo, /* compact */ true)} · Cao nhất{" "}
-                    {formatMoney(balanceGeometry.hi, /* compact */ true)}
-                  </p>
-                </>
-              ) : (
-                <div className={styles.subEmpty}>
-                  <Icon name="chart" />
-                  <p>
-                    Chưa có tài khoản VND — tài sản ròng chỉ cộng các tài khoản
-                    đồng Việt Nam.
-                  </p>
+          <SecondarySection
+            title="Tài sản ròng"
+            description={
+              <p>
+                Số dư cuối mỗi{" "}
+                {balanceSeries?.granularity === "month" ? "tháng" : "ngày"}, suy
+                ra từ số dư hiện tại trừ các giao dịch đã ghi sau đó ·{" "}
+                {periodTitle}. Chuyển tiền giữa các tài khoản không làm đổi
+                tổng.
+                {balanceSeries?.foreignCurrencyCodes.length
+                  ? ` Tài khoản ${balanceSeries.foreignCurrencyCodes.join(", ")} giữ nguyên loại tiền, không gộp vào tổng này.`
+                  : ""}
+              </p>
+            }
+            action={
+              netWorth && netWorthPoints.length ? (
+                <div className={styles.chartStat}>
+                  <span>Thay đổi trong kỳ</span>
+                  <MoneyValue
+                    amount={netWorthDelta}
+                    mode="signed"
+                    compact
+                    label="Thay đổi tài sản ròng trong kỳ"
+                    emphasis="strong"
+                  />
                 </div>
-              )}
-
-              <h3 className={styles.balanceAccountsTitle}>
-                Số dư theo tài khoản · cuối kỳ
-              </h3>
-              <ul className={styles.balanceAccounts}>
-                {balanceSeries.accounts.map((seriesAccount) => {
-                  const endValue =
-                    seriesAccount.points[seriesAccount.points.length - 1]?.value ??
-                    seriesAccount.opening;
-                  const delta = endValue - seriesAccount.opening;
-                  const meta = [
-                    seriesAccount.currencyCode !== "VND"
-                      ? `${seriesAccount.currencyCode} · ngoài tài sản ròng`
-                      : null,
-                    seriesAccount.isArchived ? "Đã lưu trữ" : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ");
-                  return (
-                    <li className={styles.category} key={seriesAccount.accountId}>
-                      <span
-                        className={`${styles.categoryIcon} ${styles.balanceIcon}`}
-                        aria-hidden="true"
+              ) : undefined
+            }
+            contained
+            slot="report-balance"
+          >
+            {balanceSeries === null ? (
+              <div className={styles.subEmpty}>
+                <Icon name="chart" />
+                <p>
+                  Không thể tính hoặc tải dữ liệu số dư. Giao dịch vẫn được giữ
+                  nguyên.
+                </p>
+              </div>
+            ) : balanceSeries.accounts.length === 0 ? (
+              <div className={styles.subEmpty}>
+                <Icon name="wallet" />
+                <p>Chưa có tài khoản nào để tính tài sản ròng.</p>
+              </div>
+            ) : (
+              <>
+                {netWorth && balanceGeometry ? (
+                  <>
+                    {/*
+                     * One series, named in text as well as drawn — money must not
+                     * rely on colour alone.
+                     */}
+                    <p className={styles.trendLegend}>
+                      <span className={styles.legendBalance}>
+                        Tài sản ròng (VND)
+                      </span>
+                    </p>
+                    <div className={styles.trendScroll} tabIndex={0}>
+                      <svg
+                        className={styles.balanceChart}
+                        viewBox={`0 0 ${BALANCE_CHART.width} ${BALANCE_CHART.height}`}
+                        role="img"
+                        aria-label={`Biểu đồ tài sản ròng ${periodTitle}`}
+                        aria-describedby="report-balance-data"
                       >
-                        <Icon name="wallet" />
-                      </span>
-                      <span className={styles.balanceAccountName}>
-                        <strong>{seriesAccount.name}</strong>
-                        {meta ? <small>{meta}</small> : null}
-                      </span>
-                      <span className={styles.categoryAmount}>
-                        <MoneyValue
-                          amount={endValue}
-                          currencyCode={seriesAccount.currencyCode}
-                          label={`Số dư cuối kỳ của ${seriesAccount.name}`}
-                          emphasis="strong"
+                        {balanceGeometry.zeroY !== null ? (
+                          <line
+                            className={styles.balanceZero}
+                            x1={BALANCE_CHART.padX}
+                            x2={BALANCE_CHART.width - BALANCE_CHART.padX}
+                            y1={balanceGeometry.zeroY}
+                            y2={balanceGeometry.zeroY}
+                          />
+                        ) : null}
+                        {netWorthPoints.length > 1 ? (
+                          <polygon
+                            className={styles.balanceArea}
+                            points={balanceGeometry.areaPoints}
+                          />
+                        ) : null}
+                        <polyline
+                          className={styles.balanceLine}
+                          points={balanceGeometry.linePoints}
+                          vectorEffect="non-scaling-stroke"
                         />
-                        <small
-                          aria-label={`Thay đổi trong kỳ của ${seriesAccount.name}`}
+                        {netWorthPoints.map((point, index) => (
+                          <circle
+                            key={point.key}
+                            className={styles.balanceDot}
+                            cx={balanceGeometry.cx(index)}
+                            cy={balanceGeometry.cy(point.value)}
+                            r={4}
+                          >
+                            <title>{`${point.label}: ${formatMoney(point.value)}`}</title>
+                          </circle>
+                        ))}
+                      </svg>
+                      <div className={styles.balanceAxis} aria-hidden="true">
+                        {netWorthPoints.map((point, index) => {
+                          const show =
+                            netWorthPoints.length <= 14 ||
+                            index === 0 ||
+                            index === netWorthPoints.length - 1 ||
+                            (index + 1) % 5 === 0;
+                          if (!show) return null;
+                          const left =
+                            (balanceGeometry.cx(index) / BALANCE_CHART.width) *
+                            100;
+                          return (
+                            <span
+                              key={point.key}
+                              style={{
+                                left: `${left}%`,
+                                transform:
+                                  index === 0
+                                    ? "none"
+                                    : index === netWorthPoints.length - 1
+                                      ? "translateX(-100%)"
+                                      : "translateX(-50%)",
+                              }}
+                            >
+                              {point.label}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <ul className={styles.srTrendData} id="report-balance-data">
+                      {netWorthPoints.map((point) => (
+                        <li key={point.key}>
+                          {point.label}: {formatMoney(point.value)}
+                        </li>
+                      ))}
+                    </ul>
+                    {/*
+                     * The axis-scale line carries four values in one caption —
+                     * compact keeps each readable on one line. Per-account exact
+                     * balances stay in the rows below.
+                     */}
+                    <p className={styles.balanceScale}>
+                      Đầu kỳ {formatMoney(netWorth.opening, /* compact */ true)}{" "}
+                      · Cuối kỳ {formatMoney(netWorthLast, /* compact */ true)}{" "}
+                      · Thấp nhất{" "}
+                      {formatMoney(balanceGeometry.lo, /* compact */ true)} ·
+                      Cao nhất{" "}
+                      {formatMoney(balanceGeometry.hi, /* compact */ true)}
+                    </p>
+                  </>
+                ) : (
+                  <div className={styles.subEmpty}>
+                    <Icon name="chart" />
+                    <p>
+                      Chưa có tài khoản VND — tài sản ròng chỉ cộng các tài
+                      khoản đồng Việt Nam.
+                    </p>
+                  </div>
+                )}
+
+                <h3 className={styles.balanceAccountsTitle}>
+                  Số dư theo tài khoản · cuối kỳ
+                </h3>
+                <ul className={styles.balanceAccounts}>
+                  {balanceSeries.accounts.map((seriesAccount) => {
+                    const endValue =
+                      seriesAccount.points[seriesAccount.points.length - 1]
+                        ?.value ?? seriesAccount.opening;
+                    const delta = endValue - seriesAccount.opening;
+                    const meta = [
+                      seriesAccount.currencyCode !== "VND"
+                        ? `${seriesAccount.currencyCode} · ngoài tài sản ròng`
+                        : null,
+                      seriesAccount.isArchived ? "Đã lưu trữ" : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ");
+                    return (
+                      <li
+                        className={styles.category}
+                        key={seriesAccount.accountId}
+                      >
+                        <span
+                          className={`${styles.categoryIcon} ${styles.balanceIcon}`}
+                          aria-hidden="true"
                         >
-                          {delta === 0
-                            ? "Không đổi"
-                            : formatSignedMoney(delta, false, seriesAccount.currencyCode)}
-                        </small>
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
-          )}
-        </SecondarySection>
+                          <Icon name="wallet" />
+                        </span>
+                        <span className={styles.balanceAccountName}>
+                          <strong>{seriesAccount.name}</strong>
+                          {meta ? <small>{meta}</small> : null}
+                        </span>
+                        <span className={styles.categoryAmount}>
+                          <MoneyValue
+                            amount={endValue}
+                            currencyCode={seriesAccount.currencyCode}
+                            label={`Số dư cuối kỳ của ${seriesAccount.name}`}
+                            emphasis="strong"
+                          />
+                          <small
+                            aria-label={`Thay đổi trong kỳ của ${seriesAccount.name}`}
+                          >
+                            {delta === 0
+                              ? "Không đổi"
+                              : formatSignedMoney(
+                                  delta,
+                                  false,
+                                  seriesAccount.currencyCode,
+                                )}
+                          </small>
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            )}
+          </SecondarySection>
         )}
 
         {report.totals.transactions ? (
@@ -637,8 +706,8 @@ export function ReportsPage({
               title="Nhịp chi tiêu"
               description={
                 <p>
-                  Mức chi theo từng {trendUnit}; chuyển
-                  tiền giữa các tài khoản được loại trừ.
+                  Mức chi theo từng {trendUnit}; chuyển tiền giữa các tài khoản
+                  được loại trừ.
                 </p>
               }
               action={
@@ -658,10 +727,10 @@ export function ReportsPage({
               {trendHasActivity ? (
                 <>
                   {/*
-                    * Money must not rely on colour alone, so the two series are
-                    * named in text here as well as being drawn in different
-                    * colours.
-                    */}
+                   * Money must not rely on colour alone, so the two series are
+                   * named in text here as well as being drawn in different
+                   * colours.
+                   */}
                   <p className={styles.trendLegend}>
                     <span className={styles.legendIncome}>Thu</span>
                     <span className={styles.legendExpense}>Chi</span>
@@ -692,7 +761,10 @@ export function ReportsPage({
                               style={{
                                 height: `${
                                   item.income
-                                    ? Math.max(7, (item.income / trendMax) * 100)
+                                    ? Math.max(
+                                        7,
+                                        (item.income / trendMax) * 100,
+                                      )
                                     : 0
                                 }%`,
                               }}
@@ -702,7 +774,10 @@ export function ReportsPage({
                               style={{
                                 height: `${
                                   item.expense
-                                    ? Math.max(7, (item.expense / trendMax) * 100)
+                                    ? Math.max(
+                                        7,
+                                        (item.expense / trendMax) * 100,
+                                      )
                                     : 0
                                 }%`,
                               }}
@@ -715,7 +790,12 @@ export function ReportsPage({
                                  * neighbour. Exact values stay in the column
                                  * tooltip and the data list below.
                                  */
-                                <b>{formatMoney(item.expense, /* compact */ true)}</b>
+                                <b>
+                                  {formatMoney(
+                                    item.expense,
+                                    /* compact */ true,
+                                  )}
+                                </b>
                               ) : null}
                             </span>
                           </div>
@@ -762,24 +842,34 @@ export function ReportsPage({
               {report.categories.length ? (
                 <div className={styles.categories}>
                   {report.categories.map((item) => {
-                    const meta = categoryMetaFor(metaIndex, "expense", item.name);
-                    const href = reportCategoryDrilldownHref(report.range, item.name);
+                    const meta = categoryMetaFor(
+                      metaIndex,
+                      "expense",
+                      item.name,
+                    );
+                    const href = reportCategoryDrilldownHref(
+                      report.range,
+                      item.name,
+                    );
                     const categoryTrendMax = Math.max(
                       1,
                       ...item.trend.map((month) => month.amount),
                     );
                     return (
                       <article className={styles.category} key={item.name}>
-                        <span className={styles.categoryIcon} aria-hidden="true">
+                        <span
+                          className={styles.categoryIcon}
+                          aria-hidden="true"
+                        >
                           <Icon name={meta.icon as IconName} />
                         </span>
                         <div className={styles.categoryBody}>
                           {/*
-                            * Plain text when the name cannot be carried: an
-                            * unresolvable category falls back to `all` at
-                            * /transactions and would open the whole ledger while
-                            * looking like one slice.
-                            */}
+                           * Plain text when the name cannot be carried: an
+                           * unresolvable category falls back to `all` at
+                           * /transactions and would open the whole ledger while
+                           * looking like one slice.
+                           */}
                           {href ? (
                             <Link className={styles.categoryLink} href={href}>
                               {item.name}
@@ -797,13 +887,18 @@ export function ReportsPage({
                             className={styles.categoryTrend}
                             role="img"
                             aria-label={`${item.name} 6 tháng gần nhất: ${item.trend
-                              .map((month) => `${month.label} ${formatMoney(month.amount)}`)
+                              .map(
+                                (month) =>
+                                  `${month.label} ${formatMoney(month.amount)}`,
+                              )
                               .join(", ")}`}
                           >
                             {item.trend.map((month) => (
                               <i
                                 key={month.key}
-                                className={month.amount ? undefined : styles.trendEmpty}
+                                className={
+                                  month.amount ? undefined : styles.trendEmpty
+                                }
                                 title={`${month.label}: ${formatMoney(month.amount)}`}
                                 style={{
                                   height: month.amount
@@ -850,15 +945,25 @@ export function ReportsPage({
               {report.incomeCategories.length ? (
                 <div className={styles.categories}>
                   {report.incomeCategories.map((item) => {
-                    const meta = categoryMetaFor(metaIndex, "income", item.name);
-                    const href = reportIncomeCategoryDrilldownHref(report.range, item.name);
+                    const meta = categoryMetaFor(
+                      metaIndex,
+                      "income",
+                      item.name,
+                    );
+                    const href = reportIncomeCategoryDrilldownHref(
+                      report.range,
+                      item.name,
+                    );
                     const categoryTrendMax = Math.max(
                       1,
                       ...item.trend.map((month) => month.amount),
                     );
                     return (
                       <article className={styles.category} key={item.name}>
-                        <span className={styles.categoryIcon} aria-hidden="true">
+                        <span
+                          className={styles.categoryIcon}
+                          aria-hidden="true"
+                        >
                           <Icon name={meta.icon as IconName} />
                         </span>
                         <div className={styles.categoryBody}>
@@ -879,13 +984,18 @@ export function ReportsPage({
                             className={styles.categoryTrend}
                             role="img"
                             aria-label={`${item.name} 6 tháng gần nhất: ${item.trend
-                              .map((month) => `${month.label} ${formatMoney(month.amount)}`)
+                              .map(
+                                (month) =>
+                                  `${month.label} ${formatMoney(month.amount)}`,
+                              )
                               .join(", ")}`}
                           >
                             {item.trend.map((month) => (
                               <i
                                 key={month.key}
-                                className={month.amount ? undefined : styles.trendEmpty}
+                                className={
+                                  month.amount ? undefined : styles.trendEmpty
+                                }
                                 title={`${month.label}: ${formatMoney(month.amount)}`}
                                 style={{
                                   height: month.amount
@@ -922,8 +1032,8 @@ export function ReportsPage({
               title="Chi theo tài khoản"
               description={
                 <p>
-                  Tiền rời khỏi ví nào · {periodTitle}. Chuyển khoản giữa ví của bạn
-                  không tính là chi.
+                  Tiền rời khỏi ví nào · {periodTitle}. Chuyển khoản giữa ví của
+                  bạn không tính là chi.
                 </p>
               }
               contained
@@ -932,38 +1042,44 @@ export function ReportsPage({
               {report.accounts.length ? (
                 <div className={styles.categories}>
                   {report.accounts.map((item) => {
-                    const href = reportAccountDrilldownHref(report.range, item.name);
+                    const href = reportAccountDrilldownHref(
+                      report.range,
+                      item.name,
+                    );
                     return (
-                    <article className={styles.category} key={item.name}>
-                      <span className={styles.categoryIcon} aria-hidden="true">
-                        <Icon name="wallet" />
-                      </span>
-                      <div className={styles.categoryBody}>
-                        {href ? (
-                          <Link className={styles.categoryLink} href={href}>
-                            {item.name}
-                          </Link>
-                        ) : (
-                          <strong>{item.name}</strong>
-                        )}
+                      <article className={styles.category} key={item.name}>
                         <span
-                          className={styles.categoryTrack}
+                          className={styles.categoryIcon}
                           aria-hidden="true"
                         >
-                          <i style={{ width: `${item.share}%` }} />
+                          <Icon name="wallet" />
                         </span>
-                      </div>
-                      <div className={styles.categoryAmount}>
-                        <MoneyValue
-                          amount={item.amount}
-                          mode="kind"
-                          kind="expense"
-                          label={`Chi từ ${item.name}`}
-                          emphasis="strong"
-                        />
-                        <small>{item.share}%</small>
-                      </div>
-                    </article>
+                        <div className={styles.categoryBody}>
+                          {href ? (
+                            <Link className={styles.categoryLink} href={href}>
+                              {item.name}
+                            </Link>
+                          ) : (
+                            <strong>{item.name}</strong>
+                          )}
+                          <span
+                            className={styles.categoryTrack}
+                            aria-hidden="true"
+                          >
+                            <i style={{ width: `${item.share}%` }} />
+                          </span>
+                        </div>
+                        <div className={styles.categoryAmount}>
+                          <MoneyValue
+                            amount={item.amount}
+                            mode="kind"
+                            kind="expense"
+                            label={`Chi từ ${item.name}`}
+                            emphasis="strong"
+                          />
+                          <small>{item.share}%</small>
+                        </div>
+                      </article>
                     );
                   })}
                 </div>
@@ -989,38 +1105,44 @@ export function ReportsPage({
               {report.payees.length ? (
                 <div className={styles.categories}>
                   {report.payees.map((item) => {
-                    const href = reportPayeeDrilldownHref(report.range, item.name);
+                    const href = reportPayeeDrilldownHref(
+                      report.range,
+                      item.name,
+                    );
                     return (
-                    <article className={styles.category} key={item.name}>
-                      <span className={styles.categoryIcon} aria-hidden="true">
-                        <Icon name="receipt" />
-                      </span>
-                      <div className={styles.categoryBody}>
-                        {href ? (
-                          <Link className={styles.categoryLink} href={href}>
-                            {item.name}
-                          </Link>
-                        ) : (
-                          <strong>{item.name}</strong>
-                        )}
+                      <article className={styles.category} key={item.name}>
                         <span
-                          className={styles.categoryTrack}
+                          className={styles.categoryIcon}
                           aria-hidden="true"
                         >
-                          <i style={{ width: `${item.share}%` }} />
+                          <Icon name="receipt" />
                         </span>
-                      </div>
-                      <div className={styles.categoryAmount}>
-                        <MoneyValue
-                          amount={item.amount}
-                          mode="kind"
-                          kind="expense"
-                          label={`Chi tại ${item.name}`}
-                          emphasis="strong"
-                        />
-                        <small>{item.share}%</small>
-                      </div>
-                    </article>
+                        <div className={styles.categoryBody}>
+                          {href ? (
+                            <Link className={styles.categoryLink} href={href}>
+                              {item.name}
+                            </Link>
+                          ) : (
+                            <strong>{item.name}</strong>
+                          )}
+                          <span
+                            className={styles.categoryTrack}
+                            aria-hidden="true"
+                          >
+                            <i style={{ width: `${item.share}%` }} />
+                          </span>
+                        </div>
+                        <div className={styles.categoryAmount}>
+                          <MoneyValue
+                            amount={item.amount}
+                            mode="kind"
+                            kind="expense"
+                            label={`Chi tại ${item.name}`}
+                            emphasis="strong"
+                          />
+                          <small>{item.share}%</small>
+                        </div>
+                      </article>
                     );
                   })}
                 </div>
@@ -1047,11 +1169,19 @@ export function ReportsPage({
             }
             primaryAction={
               workspace.dataError ? (
-                <LinkButton href="/dashboard" intent="secondary" targetSize="important">
+                <LinkButton
+                  href="/dashboard"
+                  intent="secondary"
+                  targetSize="important"
+                >
                   Về Tổng quan
                 </LinkButton>
               ) : (
-                <LinkButton href="/transactions" intent="primary" targetSize="important">
+                <LinkButton
+                  href="/transactions"
+                  intent="primary"
+                  targetSize="important"
+                >
                   <Icon name="plus" />
                   Thêm giao dịch
                 </LinkButton>
@@ -1073,9 +1203,9 @@ export function ReportsPage({
 
         {!exportDisabled ? (
           <p className={styles.exportNote}>
-            Nút xuất nhanh tải CSV của đúng kỳ đang xem. Dữ liệu Inbox và JSON nằm
-            trong <Link href={EXPORT_SETTINGS_HREF}>Tùy chọn xuất</Link>; đây không
-            phải bản sao lưu có thể khôi phục toàn bộ tài khoản.
+            Nút xuất nhanh tải CSV của đúng kỳ đang xem. Dữ liệu Inbox và JSON
+            nằm trong <Link href={EXPORT_SETTINGS_HREF}>Tùy chọn xuất</Link>;
+            đây không phải bản sao lưu có thể khôi phục toàn bộ tài khoản.
           </p>
         ) : null}
       </SecondaryWorkspace>

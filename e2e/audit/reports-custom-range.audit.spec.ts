@@ -22,7 +22,9 @@ import { todayInVietnam } from "../../src/lib/vietnam-date.ts";
  */
 function shiftDays(isoDate: string, days: number): string {
   const date = new Date(`${isoDate}T00:00:00.000Z`);
-  return new Date(date.getTime() - days * 86_400_000).toISOString().slice(0, 10);
+  return new Date(date.getTime() - days * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
 }
 
 const TODAY = todayInVietnam();
@@ -44,12 +46,16 @@ function reportPeriodTitle(page: import("@playwright/test").Page) {
 }
 
 /** The export anchor carrying exactly the href the page resolved. */
-function reportExport(page: import("@playwright/test").Page, href: string) {
-  return page.locator(`a[href="${href}"]`).first();
+function reportExport(page: import("@playwright/test").Page) {
+  return page
+    .getByRole("banner")
+    .getByRole("button", { name: "Xuất CSV", exact: true });
 }
 
 /** Transactions counted inside the rendered window, from the metrics region. */
-async function transactionCount(page: import("@playwright/test").Page): Promise<number> {
+async function transactionCount(
+  page: import("@playwright/test").Page,
+): Promise<number> {
   const text = await page.locator('[data-slot="report-metrics"]').innerText();
   const match = text.match(/(\d+)\s+giao dịch/);
   expect(match, `expected a transaction count in: ${text}`).not.toBeNull();
@@ -57,7 +63,9 @@ async function transactionCount(page: import("@playwright/test").Page): Promise<
 }
 
 test.describe("reports custom range", () => {
-  test("choosing a window changes the heading, the totals and the export link", async ({ page }) => {
+  test("choosing a window changes the heading, the totals and the export link", async ({
+    page,
+  }) => {
     await page.goto("/reports?period=month", { waitUntil: "domcontentloaded" });
 
     // The preset view must not show the custom form until it is asked for.
@@ -73,10 +81,11 @@ test.describe("reports custom range", () => {
     await form.getByRole("button", { name: "Áp dụng" }).click();
 
     // The window the reader chose is what the URL, the heading and the export carry.
-    await expect(page).toHaveURL(new RegExp(`period=custom.*from=${RANGE.from}.*to=${RANGE.to}`));
+    await expect(page).toHaveURL(
+      new RegExp(`period=custom.*from=${RANGE.from}.*to=${RANGE.to}`),
+    );
     await expect(reportPeriodTitle(page)).toHaveText(RANGE_TITLE);
-    const exportHref = `/reports/export?period=custom&from=${RANGE.from}&to=${RANGE.to}`;
-    await expect(reportExport(page, exportHref)).toHaveAttribute("href", exportHref);
+    await expect(reportExport(page)).toBeEnabled();
 
     // Totals must be recomputed from the chosen window, not merely relabelled.
     // A page that ignored the dates would show the preset's count here, and the
@@ -90,16 +99,23 @@ test.describe("reports custom range", () => {
     await expect(reportPeriodTitle(page)).toHaveText(RANGE_TITLE);
   });
 
-  test("a reversed window is repaired and the repair is stated", async ({ page }) => {
-    await page.goto(`/reports?period=custom&from=${RANGE.to}&to=${RANGE.from}`, {
-      waitUntil: "domcontentloaded",
-    });
+  test("a reversed window is repaired and the repair is stated", async ({
+    page,
+  }) => {
+    await page.goto(
+      `/reports?period=custom&from=${RANGE.to}&to=${RANGE.from}`,
+      {
+        waitUntil: "domcontentloaded",
+      },
+    );
     await expect(reportPeriodTitle(page)).toHaveText(RANGE_TITLE);
     // Silence here would show different dates than were asked for, with no reason given.
     await expect(reportNotice(page)).toContainText("đổi thứ tự");
   });
 
-  test("an unusable window falls back to the month preset and says so", async ({ page }) => {
+  test("an unusable window falls back to the month preset and says so", async ({
+    page,
+  }) => {
     await page.goto("/reports?period=custom&from=2026-02-31&to=oops", {
       waitUntil: "domcontentloaded",
     });
@@ -108,20 +124,26 @@ test.describe("reports custom range", () => {
     await expect(page.locator('[data-slot="report-metrics"]')).toBeVisible();
   });
 
-  test("the export downloads the chosen window, not the month preset", async ({ page }) => {
+  test("the export downloads the chosen window, not the month preset", async ({
+    page,
+  }) => {
     // The shell collapses the primary action on narrow viewports, so this test
     // needs a desktop width regardless of the project it runs under.
     await page.setViewportSize({ width: 1366, height: 900 });
-    await page.goto(`/reports?period=custom&from=${RANGE.from}&to=${RANGE.to}`, {
-      waitUntil: "domcontentloaded",
-    });
-    const href = `/reports/export?period=custom&from=${RANGE.from}&to=${RANGE.to}`;
-    const exportLink = reportExport(page, href);
+    await page.goto(
+      `/reports?period=custom&from=${RANGE.from}&to=${RANGE.to}`,
+      {
+        waitUntil: "domcontentloaded",
+      },
+    );
+    const exportLink = reportExport(page);
     await expect(exportLink).toBeVisible();
     const [download] = await Promise.all([
       page.waitForEvent("download"),
       exportLink.click(),
     ]);
-    expect(download.suggestedFilename()).toBe(`moneyflow-${RANGE.from}-${RANGE.to}.csv`);
+    expect(download.suggestedFilename()).toBe(
+      `moneyflow-${RANGE.from}-${RANGE.to}.csv`,
+    );
   });
 });

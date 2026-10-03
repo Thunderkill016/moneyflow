@@ -60,7 +60,7 @@ If the product ever opens public registration or imports real bank statements at
 
 ### 5 — Ops leftovers (opportunistic)
 
-- `CAPABILITY_WRITE_CLIENT_IDS` — only when a third-party MCP client is allowed to `candidates.propose`; nothing to do today.
+- Third-party MCP proposals require both the application `CAPABILITY_WRITE_CLIENT_IDS` and database `moneyflow.oauth_proposal_client_ids` allowlists. Leave both empty unless a named client is approved; follow [configuration activation/read-back/rollback](../configuration.md#third-party-oauth-proposal-authorization), never enable ledger mutation to bypass a denied proposal.
 - `/settings/apps` — sanity-test revoking the `mcp-inspector` grant once (UI live since #621).
 - `www.moneyflow.app` — **no action**: different company's product, never ours.
 

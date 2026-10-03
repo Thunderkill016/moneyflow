@@ -130,7 +130,7 @@ test("R5: saved deterministic rules fire on the capture payee field", () => {
   assert.ok(payeeWrites.length >= 2);
   for (const write of payeeWrites) {
     assert.ok(
-      write === 'setPayee(value)' || write === 'setPayee("")',
+      write === "setPayee(value)" || write === 'setPayee("")',
       `unexpected payee write: ${write}`,
     );
   }
@@ -241,12 +241,14 @@ test("R4: default dialog copy resolves to concise thu chi titles", () => {
 test("R4: local form owner supports compact corrections and secondary detail", () => {
   const src = read("src/components/add-transaction-dialog.tsx");
   const css = read("src/components/transactions/transaction-form.module.css");
-  const fastCss = read("src/components/transactions/capture-fast-path.module.css");
+  const fastCss = read(
+    "src/components/transactions/capture-fast-path.module.css",
+  );
   assert.match(src, /styles\.formStatus/);
   assert.match(src, /styles\.categoryRecent/);
   assert.match(src, /styles\.recentBadge/);
   assert.match(src, /styles\.keepOpenRow/);
-  assert.match(src, />Khác</);
+  assert.match(src, />Tất cả danh mục</);
   assert.match(src, /\+ Ghi chú/);
   assert.match(css, /\.formStatus/);
   assert.match(css, /\.categoryRecent/);
@@ -255,17 +257,19 @@ test("R4: local form owner supports compact corrections and secondary detail", (
   assert.match(fastCss, /\.categoryActions/);
   assert.match(fastCss, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
   assert.match(fastCss, /\.morePanel\s*\{[\s\S]*display: none/);
-  assert.match(fastCss, /\.moreDisclosure\[open\] > \.morePanel\s*\{[\s\S]*display: grid/);
+  assert.match(
+    fastCss,
+    /\.moreDisclosure\[open\] > \.morePanel\s*\{[\s\S]*display: grid/,
+  );
   assert.doesNotMatch(fastCss, /overflow-x:\s*auto/);
 });
 
 test("R4: constrained mobile capture compacts without removing secondary detail access", () => {
   const css = read("src/components/transactions/transaction-form.module.css");
-  const fastCss = read("src/components/transactions/capture-fast-path.module.css");
-  assert.match(
-    css,
-    /@media \(max-width: 620px\) and \(max-height: 640px\)/,
+  const fastCss = read(
+    "src/components/transactions/capture-fast-path.module.css",
   );
+  assert.match(css, /@media \(max-width: 620px\) and \(max-height: 640px\)/);
   assert.match(
     fastCss,
     /@media \(max-width: 620px\) and \(max-height: 640px\)/,

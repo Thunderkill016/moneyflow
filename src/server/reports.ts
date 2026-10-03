@@ -14,8 +14,7 @@ import {
   type ReportRangeNotice,
 } from "@/lib/report-range-notice";
 import {
-  balanceEntriesFromTransactions,
-  buildBalanceSeries,
+  buildTransactionBalanceSeries,
   type BalanceSeries,
 } from "@/lib/balance-series";
 import type { Transaction } from "@/lib/transactions/contracts";
@@ -58,26 +57,6 @@ export type ReportsWorkspace = {
   rangeNotice: ReportRangeNotice;
 };
 
-/**
- * The series never invents a balance: a malformed account row or an unsafe
- * total downgrades the section to its empty state instead of breaking the
- * report that already loaded fine.
- */
-function safeBalanceSeries(
-  accounts: Parameters<typeof buildBalanceSeries>[0],
-  transactions: Transaction[],
-  range: FinancialReport["range"],
-): BalanceSeries | null {
-  try {
-    return buildBalanceSeries(accounts, balanceEntriesFromTransactions(transactions), {
-      start: range.currentStart,
-      end: range.currentEnd,
-    });
-  } catch {
-    return null;
-  }
-}
-
 export async function getReportsWorkspace(
   period: ReportPeriod,
   custom?: CustomRangeInput,
@@ -107,13 +86,18 @@ export async function getReportsWorkspace(
     const loaded = sampleTransactionsFor(today).filter(
       (item) => item.occurredOn >= loadStart,
     );
-    const transactions = loaded.filter((item) => item.occurredOn <= range.currentEnd);
+    const transactions = loaded.filter(
+      (item) => item.occurredOn <= range.currentEnd,
+    );
     return {
       report: buildFinancialReport(transactions, range),
       transactions,
       todayIso: today,
       navUnit,
-      balanceSeries: safeBalanceSeries(demoAccountRows, loaded, range),
+      balanceSeries: buildTransactionBalanceSeries(demoAccountRows, loaded, {
+        start: range.currentStart,
+        end: range.currentEnd,
+      }),
       dataError: null,
       rangeNotice,
     };
@@ -144,7 +128,9 @@ export async function getReportsWorkspace(
     ),
     supabase
       .from("accounts")
-      .select("id,name,kind,currency_code,initial_balance_minor,is_archived,icon,color")
+      .select(
+        "id,name,kind,currency_code,initial_balance_minor,is_archived,icon,color",
+      )
       .eq("user_id", viewer.id)
       .order("is_archived")
       .order("created_at"),
@@ -175,12 +161,18 @@ export async function getReportsWorkspace(
     if (!accountsResult.error && !balancesResult.error) {
       try {
         const balances = new Map(
-          (balancesResult.data ?? []).map((item) => [item.account_id, item.balance_minor]),
+          (balancesResult.data ?? []).map((item) => [
+            item.account_id,
+            item.balance_minor,
+          ]),
         );
         const accounts = (accountsResult.data ?? []).map((row) =>
           mapAccountRow(row, balances.get(row.id)),
         );
-        balanceSeries = safeBalanceSeries(accounts, feedRows, range);
+        balanceSeries = buildTransactionBalanceSeries(accounts, feedRows, {
+          start: range.currentStart,
+          end: range.currentEnd,
+        });
       } catch {
         balanceSeries = null;
       }

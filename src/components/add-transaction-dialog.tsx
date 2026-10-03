@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  FormEvent,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { useConnectionState } from "@/hooks/use-connection-state";
 import { saveFailureMessage } from "@/lib/connectivity";
@@ -88,7 +81,9 @@ export function AddTransactionDialog({
 }: {
   open: boolean;
   onClose: () => void;
-  onAdd: (input: CreateTransactionInput) => Promise<{ ok: boolean; message?: string }>;
+  onAdd: (
+    input: CreateTransactionInput,
+  ) => Promise<{ ok: boolean; message?: string }>;
   accounts: AccountOption[];
   categories: CategoryOption[];
   /** Goal options for the annotation picker; empty hides the field. */
@@ -144,13 +139,15 @@ export function AddTransactionDialog({
   }, [categories, kind, recentCategoryIds]);
   const selectedAccountId = accounts.some((item) => item.id === accountId)
     ? accountId
-    : accounts[0]?.id ?? "";
+    : (accounts[0]?.id ?? "");
   const selectedCategoryId = availableCategories.some(
     (item) => item.id === categoryId,
   )
     ? categoryId
     : "";
-  const selectedAccount = accounts.find((item) => item.id === selectedAccountId);
+  const selectedAccount = accounts.find(
+    (item) => item.id === selectedAccountId,
+  );
   const selectedCategory = availableCategories.find(
     (item) => item.id === selectedCategoryId,
   );
@@ -273,7 +270,11 @@ export function AddTransactionDialog({
     nextKind: TransactionKind,
     prefs: Pick<
       QuickAddPrefs,
-      "accountId" | "categoryId" | "kind" | "recentCategoryIds" | "recentPresets"
+      | "accountId"
+      | "categoryId"
+      | "kind"
+      | "recentCategoryIds"
+      | "recentPresets"
     >,
   ) {
     const ledgerPreset = deriveStableLedgerPreset({
@@ -295,7 +296,10 @@ export function AddTransactionDialog({
       return;
     }
 
-    if (prefs.accountId && accounts.some((item) => item.id === prefs.accountId)) {
+    if (
+      prefs.accountId &&
+      accounts.some((item) => item.id === prefs.accountId)
+    ) {
       setAccountId(prefs.accountId);
     }
     const forKind = categories.filter((item) => item.kind === nextKind);
@@ -310,8 +314,10 @@ export function AddTransactionDialog({
 
   useEffect(() => {
     if (prefsHydratedRef.current) return;
-    prefsHydratedRef.current = true;
     const frame = window.requestAnimationFrame(() => {
+      // React may cancel/restart an effect before the scheduled frame runs.
+      // Mark hydration complete only after it actually executes.
+      prefsHydratedRef.current = true;
       const prefs = readQuickAddPrefs();
       const resolvedKind = initialKind ?? prefs.kind;
       setKind(resolvedKind);
@@ -358,7 +364,10 @@ export function AddTransactionDialog({
           setCategoryId(draft.categoryId);
         }
         /* The tag only restores when its goal is still an active option. */
-        if (draft.goalId && goals.some((g) => g.id === draft.goalId && !g.isArchived)) {
+        if (
+          draft.goalId &&
+          goals.some((g) => g.id === draft.goalId && !g.isArchived)
+        ) {
           setGoalId(draft.goalId);
         }
         setDraftRestored(true);
@@ -378,7 +387,9 @@ export function AddTransactionDialog({
 
   useEffect(() => {
     if (!effectiveOpen) return;
-    const frame = window.requestAnimationFrame(() => setRules(readStoredRules()));
+    const frame = window.requestAnimationFrame(() =>
+      setRules(readStoredRules()),
+    );
     return () => window.cancelAnimationFrame(frame);
   }, [effectiveOpen]);
 
@@ -782,7 +793,8 @@ export function AddTransactionDialog({
                 >
                   <strong>{patternCategory.name}</strong>
                   <span>
-                    {pattern.kind === "expense" ? "Chi" : "Thu"} · {patternAccount.name}
+                    {pattern.kind === "expense" ? "Chi" : "Thu"} ·{" "}
+                    {patternAccount.name}
                   </span>
                 </Button>
               );
@@ -817,7 +829,10 @@ export function AddTransactionDialog({
         data-slot="capture-required-choices"
         aria-label="Danh mục và tài khoản đang dùng"
       >
-        <div className={fastStyles.currentChoice} data-slot="capture-fast-defaults">
+        <div
+          className={fastStyles.currentChoice}
+          data-slot="capture-fast-defaults"
+        >
           <span className={fastStyles.currentCopy}>
             <strong>{selectedCategory?.name ?? "Chọn danh mục"}</strong>
             <small>{selectedAccount?.name ?? "Chưa có tài khoản"}</small>
@@ -841,9 +856,7 @@ export function AddTransactionDialog({
               unstyled
               targetSize="important"
               className={fastStyles.categoryChip}
-              onClick={() =>
-                chooseCategory(payeeCategorySuggestion.categoryId)
-              }
+              onClick={() => chooseCategory(payeeCategorySuggestion.categoryId)}
               aria-label={`Dùng danh mục gợi ý ${payeeCategorySuggestion.categoryName} cho ${payeeCategorySuggestion.matchedPayee}`}
               data-payee-suggestion="true"
             >
@@ -877,7 +890,7 @@ export function AddTransactionDialog({
               className={fastStyles.moreSummary}
               aria-label="Đổi tài khoản hoặc xem tất cả danh mục"
             >
-              <span>Khác</span>
+              <span>Tất cả danh mục</span>
               <Icon name="arrowRight" aria-hidden="true" />
             </summary>
             <div className={fastStyles.morePanel}>
@@ -905,13 +918,19 @@ export function AddTransactionDialog({
                   {autoRuleHint ? (
                     <span className={styles.legendHint}> · {autoRuleHint}</span>
                   ) : hasRecentForKind ? (
-                    <span className={styles.legendHint}> · hay dùng trước lên trước</span>
+                    <span className={styles.legendHint}>
+                      {" "}
+                      · hay dùng trước lên trước
+                    </span>
                   ) : null}
                 </legend>
                 <div className={styles.categoryGrid}>
                   {availableCategories.map((item) => {
                     const meta = resolveCategoryMeta(item.name, item);
-                    const recent = isRecentCategoryId(item.id, recentCategoryIds);
+                    const recent = isRecentCategoryId(
+                      item.id,
+                      recentCategoryIds,
+                    );
                     return (
                       <Button
                         type="button"
@@ -933,7 +952,10 @@ export function AddTransactionDialog({
                         <span className={styles.categoryLabel}>
                           {item.name}
                           {recent ? (
-                            <span className={styles.recentBadge} aria-label="Gần đây">
+                            <span
+                              className={styles.recentBadge}
+                              aria-label="Gần đây"
+                            >
                               Gần đây
                             </span>
                           ) : null}
@@ -946,13 +968,36 @@ export function AddTransactionDialog({
             </div>
           </details>
         </div>
+        <label className={styles.keepOpenRow} htmlFor="add-tx-keep-open">
+          <input
+            id="add-tx-keep-open"
+            type="checkbox"
+            checked={keepOpen}
+            onChange={(event) => {
+              const next = event.target.checked;
+              setKeepOpen(next);
+              persistPrefs({
+                kind,
+                accountId: selectedAccountId,
+                categoryId: selectedCategoryId,
+                keepOpen: next,
+              });
+            }}
+          />
+          <span className={styles.keepOpenCopy}>
+            <strong>Lưu xong thêm tiếp</strong>
+            <span>Giữ form mở, focus lại số tiền sau mỗi lần lưu</span>
+          </span>
+        </label>
       </section>
 
       <details
         className={`${styles.optionalDisclosure} ${fastStyles.secondaryDisclosure}`}
         data-slot="capture-optional-details"
       >
-        <summary className={`${styles.optionalSummary} ${fastStyles.secondarySummary}`}>
+        <summary
+          className={`${styles.optionalSummary} ${fastStyles.secondarySummary}`}
+        >
           <span>{dateSummary}</span>
           <span className={fastStyles.secondaryAction}>
             {note.trim() ? "Sửa ghi chú" : "+ Ghi chú"}
@@ -1064,28 +1109,6 @@ export function AddTransactionDialog({
               </SelectField>
             ) : null}
           </div>
-
-          <label className={styles.keepOpenRow} htmlFor="add-tx-keep-open">
-            <input
-              id="add-tx-keep-open"
-              type="checkbox"
-              checked={keepOpen}
-              onChange={(event) => {
-                const next = event.target.checked;
-                setKeepOpen(next);
-                persistPrefs({
-                  kind,
-                  accountId: selectedAccountId,
-                  categoryId: selectedCategoryId,
-                  keepOpen: next,
-                });
-              }}
-            />
-            <span className={styles.keepOpenCopy}>
-              <strong>Lưu xong thêm tiếp</strong>
-              <span>Giữ form mở, focus lại số tiền sau mỗi lần lưu</span>
-            </span>
-          </label>
         </div>
       </details>
 

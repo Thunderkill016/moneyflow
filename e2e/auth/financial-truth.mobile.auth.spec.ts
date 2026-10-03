@@ -1,3 +1,4 @@
+import { parseCsvMatrix } from "../../src/lib/inbox/parse-csv.ts";
 import { expect, test, type Page } from "@playwright/test";
 import {
   assertAuthenticatedMode,
@@ -31,7 +32,10 @@ test.describe("authenticated financial truth", () => {
     await assertAuthenticatedMode(page);
 
     await expect(
-      moneyValue(page, `Bạn đang có ${formatVnd(FINANCIAL_TRUTH_EXPECTED.balance)}`),
+      moneyValue(
+        page,
+        `Bạn đang có ${formatVnd(FINANCIAL_TRUTH_EXPECTED.balance)}`,
+      ),
       "total balance must equal the two seeded server account balances",
     ).toBeVisible();
 
@@ -110,6 +114,38 @@ test.describe("authenticated financial truth", () => {
       report.served,
       "the account proof must use the authenticated balance read path",
     ).toContain("/rest/v1/account_balances");
+  });
+
+  test("authenticated report CSV stays server-owned despite stale demo rows", async ({
+    page,
+  }) => {
+    await page.goto("/reports?period=month");
+    await assertAuthenticatedMode(page);
+    await page.evaluate(() =>
+      localStorage.setItem(
+        "moneyflow-demo-transactions-v1",
+        JSON.stringify([{ note: "STALE-DEMO-EXPORT", amount: 999_999 }]),
+      ),
+    );
+    await expect(
+      page
+        .getByRole("banner")
+        .getByRole("link", { name: "Xuất CSV", exact: true }),
+    ).toHaveAttribute("href", "/reports/export?period=month");
+    const response = await page.request.get("/reports/export?period=month");
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toContain("text/csv");
+    const csv = await response.text();
+    expect(csv).not.toContain("STALE-DEMO-EXPORT");
+    const rows = parseCsvMatrix(csv).slice(1);
+    expect(rows.map((row) => [row[2], Number(row[6])]).sort()).toEqual(
+      [
+        ["HARNESS-INCOME", FINANCIAL_TRUTH_EXPECTED.income],
+        ["HARNESS-EXPENSE", -FINANCIAL_TRUTH_EXPECTED.expense],
+        ["HARNESS-TRANSFER", FINANCIAL_TRUTH_EXPECTED.transfer],
+      ].sort(),
+    );
+    await assertNoUnservedRequests();
   });
 });
 
