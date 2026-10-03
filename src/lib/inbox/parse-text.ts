@@ -208,33 +208,61 @@ export function extractAmounts(line: string): ExtractedAmount[] {
   return results;
 }
 
+function labelledAmountRole(line: string, amount: ExtractedAmount) {
+  if (!amount.hasMoneyMarker) return "unknown";
+  const prefix = foldVietnamese(line.slice(0, amount.index));
+  // A note can itself contain separators and quoted labels. Conservatively
+  // treat the rest of the line as note evidence, rather than promote its labels.
+  if (/\b(?:nd|noi\s+dung|ghi\s+chu|description|note)\s*[:=]/i.test(prefix)) {
+    return "unknown";
+  }
+  // Check fees first: "Phí giao dịch:" contains a transaction-looking suffix.
+  if (
+    /(?:^|[|;\n:])\s*(?:sd|so\s+du|phi(?:\s+(?:gd|giao\s+dich))?)\s*[:=]\s*$/i.test(
+      prefix,
+    )
+  ) {
+    return "non-transaction";
+  }
+  if (
+    /(?:^|[|;\n:])\s*(?:gd|giao\s+dich|so\s+tien\s+giao\s+dich)\s*[:=]\s*$/i.test(
+      prefix,
+    )
+  ) {
+    return "transaction";
+  }
+  return "unknown";
+}
+
 /**
- * Choose which extracted token is the transaction amount.
- *
- * Document order is the wrong rule for the format this product actually
- * receives. Every Vietnamese bank SMS opens with the account number, so the
- * leftmost token is systematically the account, not the amount:
- *
- *   TK 0011004567890 | GD: -250,000VND | SD: 3,450,000VND
- *      ^ leftmost                ^ the amount
- *
- * A bare account number clears the guards in `extractAmounts` — it is over
- * 1000, outside the year window, unmasked, and long enough to skip the grouped
- * check — so filtering cannot fix this. What separates the two is that the
- * amount carries a money marker and the account number never does.
- *
- * Marked tokens therefore outrank bare ones, and order decides only within a
- * tier. When several marked tokens compete (an amount plus a closing balance)
- * the caller is told the choice was ambiguous, so the candidate reaches review
- * flagged rather than silently confident.
+ * Money-marked tokens outrank bare identifiers. With source text, bounded field
+ * labels can prioritize a transaction over balances and fees. Unclassified or
+ * repeated marked money stays ambiguous; without labels, preserve tier/order.
  */
 export function selectPrimaryAmount(
   amounts: ExtractedAmount[],
+  line?: string,
 ): { primary: ExtractedAmount; ambiguous: boolean } | null {
   if (amounts.length === 0) return null;
 
   const marked = amounts.filter((item) => item.hasMoneyMarker);
   const tier = marked.length > 0 ? marked : amounts;
+
+  if (line !== undefined) {
+    const labelled = tier.map((amount) => ({
+      amount,
+      role: labelledAmountRole(line, amount),
+    }));
+    const transactions = labelled.filter((item) => item.role === "transaction");
+    if (transactions.length) {
+      return {
+        primary: transactions[0]!.amount,
+        ambiguous:
+          transactions.length > 1 ||
+          labelled.some((item) => item.role === "unknown"),
+      };
+    }
+  }
 
   return { primary: tier[0]!, ambiguous: tier.length > 1 };
 }
@@ -422,7 +450,7 @@ export function parsePasteLine(
   if (!trimmed) return null;
 
   const today = options.today ?? todayInHoChiMinh();
-  const selected = selectPrimaryAmount(extractAmounts(trimmed));
+  const selected = selectPrimaryAmount(extractAmounts(trimmed), trimmed);
   if (!selected) return null;
 
   const primary = selected.primary;

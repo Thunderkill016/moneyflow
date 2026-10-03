@@ -377,6 +377,44 @@ Existing routes remain backward-compatible during any future experiment:
 
 ## Implementation plan
 
+### Explicit amount roles in pasted evidence — issue #753, 2026-10-03
+
+**Execution state:** integration verification for PR #754. **Active role:** verifier. **Permission scope:** owner-authorized merge and bounded branch integration. On 2026-10-04 the owner requested merging #754 and #756; #756 merged first at `f72037a0`. Original #754 exact-head CI passed at `82947ba1`; updating the parser branch to released main requires fresh CI. Previous instruction: merge #752, then continue research/development. #752 is merged as `d1abf20b`; its post-merge main CI `37101966653`, CodeQL and secret scan passed. This work starts on `feat/paste-labelled-amount-20261003`. Class 3 financial parsing. Current backlog and delivery evidence: GitHub issue #753 and PR #754, not this packet's historical task lists.
+
+Outcome: users pasting a clearly labelled transaction should not need to replace an incorrectly suggested closing balance or fee. Serves CANON Stage 0/1 Low-maintenance Reality, CFPB day-to-day control and GOV.UK whole-service simplicity. This is a measured defect in an existing source, not a new acquisition channel or navigation redesign.
+
+Reconnaissance: `parse-text.ts` ranks money-marked tokens before bare identifiers and then selects the first within that tier. On three labelled synthetic probes, expected transaction amount 250000 VND: balance-first proposes 3450000; fee-first proposes 2000; transaction-first proposes 250000 but still marks amount uncertain. All results remain candidates, not ledger writes. These probes establish structural parser behavior only, not real bank format support or physical-phone effort.
+
+Reuse: the existing parser, its tests, paste preview, rules, Inbox, source matching and ledger/reconciliation. No new parser abstraction/file, dependency, service, schema, migration, provider setting, telemetry or auto-posting policy. Account/category/date/kind rules remain owned by their current modules.
+
+Research checked 2026-10-03, three focused primary sources:
+
+- [Actual import](https://actualbudget.org/docs/transactions/importing/) supports explicit mapping and manual/import coexistence. Its imported-date overwrite and deleted-row reimport policies are not adopted.
+- [W3C error prevention](https://www.w3.org/WAI/WCAG22/Understanding/error-prevention-legal-financial-data.html) supports checked/correctable or reversible important data submissions; it does not require a confirmation for every simple save. This does not authorize MF auto-posting.
+- [GOV.UK Check answers](https://design-system.service.gov.uk/patterns/check-answers/) supports clear review and correction where needed; it does not establish SMS grammar or MF usability. Exact label grammar is a bounded local specification, not inferred bank documentation.
+
+Specification before code:
+
+- Recognize money-marked tokens immediately preceded by a complete explicit `GD:`, `Giao dịch:` or `Số tiền giao dịch:` field (colon/equal sign, folded Vietnamese, case-insensitive). Unknown qualifiers such as `Mã giao dịch:` are not these fields. Do not turn a bare account/reference number into authoritative money from a suffix label alone.
+- Recognize `SD:`, `Số dư:` and `Phí:` / `Phí giao dịch:` as non-transaction amount roles. A label inside an explicitly marked note/description field is not transaction evidence. Conservatively, all text after a note marker remains note evidence even if it contains separators; later real fields do not override this boundary and retain the existing uncertain fallback.
+- If exactly one transaction-labelled token exists, select it regardless of order. Clear amount uncertainty only if all other money-marked competitors are explicitly balance/fee roles. Multiple transaction-labelled tokens or any unclassified money-marked competitor keep amount review, even if values happen to agree.
+- With no transaction-labelled amount, preserve the existing marked-token/order fallback and review behavior. Do not reinterpret amounts without evidence or promise generic supported-bank coverage.
+- Preserve original token sign and original raw evidence; kind/date/merchant uncertainty stays intact. Candidate persistence and ledger posting policy are unchanged.
+
+Evaluation: frozen synthetic transaction/balance/fee permutations including debit and credit, accented/unaccented labels, bare account/date fragments, unknown extra amount, repeated transaction labels, equal-valued separate amounts, quoted note labels, missing/conflicting dates and unchanged unlabelled text. Browser paste → preview → Inbox must preserve correct amount, raw evidence and unresolved ambiguity without automatically creating a ledger row. Compare the original and candidate on the same corpus; no human speed percentage is claimed.
+
+Evaluation snapshot: three frozen proposals improve from 1/3 correct amounts to 3/3; this is synthetic grammar behavior, not source-coverage or user-effort evidence. Final Node 22 focused parser 28/28 and full domain 1982/1982 passed; CI policy 191/191 and typecheck/lint/knowledge/architecture/capability/CSS/migration identity checks passed. Initial browser execution was interrupted for concurrent load; the subsequent cold paste test exposed input entered before React attached `onChange`, leaving the analyze button disabled. The test now observes the controlled form accepting its value; the final-tree suite passed 18/18 with zero retries. Final source review identified quoted labels across note separators; the seventh new regression now preserves uncertainty in that case. Initial draft CI correctly rejected the absent PR-number-specific memory record; it is added after PR allocation, without weakening the policy. Exact-head verification remains pending.
+
+Integration specification/evidence — 2026-10-04: preserve the default-closed source/rule disclosure from merged #756 and all #754 amount/ambiguity/raw/pending cases. Git automatically retained the disclosure assertion; the only manual conflict is the renamed hydration-timeout constants in the shared rule helper. Reuse #754's existing `FORM_*` constants for both forms, with unchanged values. No parser or application change is needed for conflict resolution. Verify clean typecheck/lint, parser/domain tests, existing desktop/mobile rule journeys and paste safety matrix on the combined tree; format before the integration commit, push only the parser branch, require fresh exact-head CI before merge and final main CI after merge. No production/provider write is authorized.
+
+Separate product finding: issue #755 records the existing paste route's missing stylesheet declarations and bare control layout observed in the browser. Functional parser evidence does not establish visual quality; confirm stable rendered geometry and reuse existing UI owners in a separately scoped repair before widening acquisition.
+
+Selected gates: focused and full domain tests, typecheck/lint/build, knowledge/architecture/capability/CSS/migration identity/CI policy, zero-retry existing desktop/mobile paste browser tests, exact-head CI/CodeQL/secrets. Database truth and layout do not change, so database reset/responsive audit are not applicable to this diff; post-merge #752 main CI remains a separate full-stack prerequisite. No production write or participant outcome is produced here.
+
+Risks: mistaking a note for a field → note guard and adversarial regressions; silently treating two transactions as one → keep amount review for multiple labels; dropping known uncertainty → kind/date and unknown-competitor regressions; no-label compatibility → existing suite unchanged. Rollback: revert parser/tests; stored candidates and ledger schema stay compatible. Source input text is synthetic in repository tests; private evidence is not committed or logged.
+
+Tasks: pin failures → implement contextual selection → run frozen/domain/browser evidence → independent diff review → exact-head verification → owner handoff. Next allowed action: bounded branch implementation and PR delivery. Further source adapters and merge/deployment of the next PR require their applicable scope decisions.
+
 ### Owner direction — broad acquisition without paid AI or bank partnerships, 2026-10-03
 
 The owner explicitly prioritizes practical ways to collect spending from many sources with a simple, understandable interface. No paid AI or bank partnership is available as a foundation. This updates the research priority, not the authority to implement a native service, change financial posting policy or deploy. CANON authority: CFPB day-to-day control, Stage 0/1 Low-maintenance Reality; GOV.UK whole-service simplicity and measured iteration. Maintain one acquisition/review/ledger path and upgrade existing surfaces.
@@ -429,7 +467,7 @@ Implementation requires separate explicit authorization. The order below is a hy
 
 ### Paste workspace usability repair — issue #755, 2026-10-04
 
-**Execution state:** exact-head verification. **Active role:** verifier. **Permission scope:** branch_write. Owner continuation advances the observed #755 UX defect in the existing acquisition path. Class 2, one route; branch `fix/paste-workspace-usability-20261004` from current main. #754's financial parser stays a separate open, exact-head-verified candidate (`82947ba1`, CI `37103107323`); this UI repair does not merge or change that parser.
+**Execution state:** merged in PR #756 at `f72037a0` after CI `37147280867`, CodeQL and secrets passed at `81854ca3`. **Active role:** integrator. **Permission scope:** owner-authorized merge on 2026-10-04. The owner reviewed the phone edit screenshot and chose to keep the disclosure. Post-merge main verification remains distinct from PR-head acceptance. Original continuation advances the observed #755 UX defect in the existing acquisition path. Class 2, one route; branch `fix/paste-workspace-usability-20261004` from current main. #754's financial parser stays a separate open, exact-head-verified candidate (`82947ba1`, CI `37103107323`); this UI repair does not merge or change that parser.
 
 Outcome: paste a message, understand its preview and put it in pending Inbox using legible controls on a phone. CANON Stage 0/1 low-maintenance reality and the owner's simple/understandable product direction. Existing `capture-paste-*` markup references removed global styling; the shell remains styled but label, textarea, source choices and actions are bare. Nearby capture chooser already owns its CSS module; restore the missing route owner rather than add legacy/global overrides or redesign navigation.
 
