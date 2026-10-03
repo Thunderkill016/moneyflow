@@ -26,6 +26,7 @@ const ROUTES = [
   "/rules",
   "/imports",
   "/capture",
+  "/capture/paste",
   "/onboarding",
   "/settings",
   "/settings/backup",
@@ -43,19 +44,31 @@ type Violation = {
 
 async function violationsOn(page: Page, path: string): Promise<Violation[]> {
   const response = await page.goto(path, { waitUntil: "domcontentloaded" });
-  expect(response?.status(), `${path} must render before it can be audited`).toBeLessThan(400);
+  expect(
+    response?.status(),
+    `${path} must render before it can be audited`,
+  ).toBeLessThan(400);
   // Routes render a `<main aria-busy="true">` skeleton first; auditing that measures
   // an empty shell and passes for the wrong reason. Wait for the settled main instead
   // of `networkidle`, which never fires on link-dense routes because Next keeps
   // prefetching every visible <Link>.
-  await page.locator('main:not([aria-busy="true"])').first().waitFor({ state: "visible" });
+  await page
+    .locator('main:not([aria-busy="true"])')
+    .first()
+    .waitFor({ state: "visible" });
   await page.addScriptTag({ content: AXE_SOURCE });
   const result = await page.evaluate(
     (tags) =>
-      (window as unknown as { axe: { run: (c: Document, o: unknown) => Promise<{ violations: Violation[] }> } }).axe.run(
-        document,
-        { runOnly: { type: "tag", values: tags } },
-      ),
+      (
+        window as unknown as {
+          axe: {
+            run: (
+              c: Document,
+              o: unknown,
+            ) => Promise<{ violations: Violation[] }>;
+          };
+        }
+      ).axe.run(document, { runOnly: { type: "tag", values: tags } }),
     WCAG_AA_TAGS,
   );
   return result.violations;

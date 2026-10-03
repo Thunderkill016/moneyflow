@@ -1,7 +1,12 @@
 import { test } from "@playwright/test";
-import { auditRoute, seedUiAuditState, type AuditRoute } from "./responsive-audit";
+import {
+  auditRoute,
+  seedUiAuditState,
+  type AuditRoute,
+} from "./responsive-audit";
 
 const TEXT_SCALE_ROUTES: AuditRoute[] = [
+  { label: "paste-capture-text-200", path: "/capture/paste" },
   { label: "quick-capture-text-200", path: "/capture/quick" },
   { label: "transactions-text-200", path: "/transactions" },
 ];
@@ -23,7 +28,9 @@ test.describe("200% enlarged text smoke", () => {
   });
 
   for (const route of TEXT_SCALE_ROUTES) {
-    test(`${route.label} reflows without blocking defects`, async ({ page }, testInfo) => {
+    test(`${route.label} reflows without blocking defects`, async ({
+      page,
+    }, testInfo) => {
       await auditRoute(page, testInfo, route);
     });
   }
