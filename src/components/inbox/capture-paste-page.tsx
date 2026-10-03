@@ -9,8 +9,14 @@ import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import type { ToastTone } from "@/components/ui/toast";
 import type { ViewerSummary } from "@/components/user-chip";
-import { addCandidatesForClient, getPendingCountForClient } from "@/hooks/client-inbox";
-import { loadRulesForClient, persistCandidateRuleEvidenceForClient } from "@/hooks/client-rules";
+import {
+  addCandidatesForClient,
+  getPendingCountForClient,
+} from "@/hooks/client-inbox";
+import {
+  loadRulesForClient,
+  persistCandidateRuleEvidenceForClient,
+} from "@/hooks/client-rules";
 import { applyRulesToParsed } from "@/lib/inbox/apply-rules";
 import {
   SOURCE_HINT_LABELS,
@@ -21,10 +27,12 @@ import {
 } from "@/lib/inbox/parse-text";
 import type { InboxRule } from "@/lib/inbox/rules-store";
 import { SelectField } from "@/components/ui/select-field";
+import { Button, LinkButton } from "@/components/ui/button";
 import { maskSnippetForDisplay } from "@/lib/mask-account";
 import { formatMoney } from "@/lib/money";
 import type { AccountOption } from "@/lib/sample-data";
 import { trackProductEvent } from "@/lib/safe-analytics";
+import styles from "./capture-paste-page.module.css";
 
 type Phase = "edit" | "preview" | "error";
 type RuleAwareParsedCandidate = ParsedCandidate & {
@@ -40,22 +48,10 @@ function moneySign(kind: ParsedCandidate["kind"]): string {
   return "−";
 }
 
-function moneyClass(kind: ParsedCandidate["kind"]): string {
-  if (kind === "income") return "positive";
-  if (kind === "transfer") return "transfer";
-  return "negative";
-}
-
 function confidenceLabel(confidence: ParsedCandidate["confidence"]): string {
   if (confidence === "high") return "Khá chắc";
   if (confidence === "medium") return "Tạm ổn";
   return "Cần xem";
-}
-
-function confidenceClass(confidence: ParsedCandidate["confidence"]): string {
-  if (confidence === "high") return "ok";
-  if (confidence === "medium") return "warning";
-  return "danger";
 }
 
 export function CapturePastePage({
@@ -83,7 +79,9 @@ export function CapturePastePage({
   const [committing, setCommitting] = useState(false);
   const [inboxCount, setInboxCount] = useState(0);
   const [notice, setNotice] = useState("");
-  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(
+    undefined,
+  );
   const [accountId, setAccountId] = useState("");
 
   function showNotice(message: string, tone: ToastTone) {
@@ -103,7 +101,10 @@ export function CapturePastePage({
       if (ruleResult.ok) {
         setRules(ruleResult.rules);
       } else {
-        showNotice("Chưa tải được quy tắc; bạn vẫn có thể phân tích và duyệt thủ công.", "warning");
+        showNotice(
+          "Chưa tải được quy tắc; bạn vẫn có thể phân tích và duyệt thủ công.",
+          "warning",
+        );
       }
       setRulesReady(true);
     });
@@ -123,7 +124,8 @@ export function CapturePastePage({
 
   const summary = useMemo(() => {
     if (candidates.length === 0) return "";
-    const reviewPart = needsReviewCount > 0 ? ` · ${needsReviewCount} cần xem` : "";
+    const reviewPart =
+      needsReviewCount > 0 ? ` · ${needsReviewCount} cần xem` : "";
     return `Tìm thấy ${candidates.length} giao dịch${reviewPart}`;
   }, [candidates.length, needsReviewCount]);
 
@@ -203,7 +205,9 @@ export function CapturePastePage({
           });
         }),
       );
-      const evidenceFailureCount = evidenceResults.filter((item) => !item.ok).length;
+      const evidenceFailureCount = evidenceResults.filter(
+        (item) => !item.ok,
+      ).length;
 
       const pending = await getPendingCountForClient(viewer.isDemo);
       setInboxCount(pending);
@@ -235,42 +239,40 @@ export function CapturePastePage({
       notice={notice}
       noticeTone={noticeTone}
     >
-      <main className="dashboard capture-workspace capture-paste-workspace">
-        <section className="transactions-title-row capture-title-row">
-          <div>
-            <p className="eyebrow">
-              <Link className="capture-paste-back" href="/capture">
-                ← Capture
-              </Link>
+      <main className={styles.workspace}>
+        <section className={styles.heading}>
+          <div className={styles.headingCopy}>
+            <p className={styles.back}>
+              <Link href="/capture">← Capture</Link>
             </p>
-            <h1>Dán bất cứ thứ gì</h1>
+            <h1>Dán nội dung giao dịch</h1>
             <p>
-              Tin nhắn biến động, ghi chú tay, hoặc “cafe 45k”. Phân tích xong bạn vẫn duyệt trong
-              Inbox — không ghi thẳng vào sổ.
+              Dán tin nhắn hoặc ghi chú, ví dụ “cafe 45k”. Xem lại gợi ý rồi đưa
+              vào Inbox để duyệt.
             </p>
           </div>
-          <div className="page-heading-actions">
-            <Link className="secondary-button" href="/inbox">
+          <div>
+            <LinkButton intent="secondary" targetSize="important" href="/inbox">
               <Icon name="inbox" />
               Về Inbox
-            </Link>
+            </LinkButton>
           </div>
         </section>
 
-        <section className="panel capture-paste-panel" aria-labelledby="paste-heading">
+        <section className={styles.panel} aria-labelledby="paste-heading">
           <h2 id="paste-heading" className="sr-only">
             Dán text để phân tích
           </h2>
 
           {(phase === "edit" || phase === "error") && (
             <>
-              <label className="capture-paste-label" htmlFor={textareaId}>
+              <label className={styles.label} htmlFor={textareaId}>
                 Nội dung
               </label>
               <textarea
                 id={textareaId}
                 ref={textareaRef}
-                className="capture-paste-textarea"
+                className={`capture-paste-textarea ${styles.textarea}`}
                 value={text}
                 onChange={(event) => {
                   setText(event.target.value);
@@ -279,138 +281,177 @@ export function CapturePastePage({
                     setError("");
                   }
                 }}
-                rows={8}
-                placeholder={"VD: cafe 45k tiền mặt\nhoặc nguyên tin nhắn biến động số dư"}
+                rows={5}
+                placeholder={
+                  "VD: cafe 45k tiền mặt\nhoặc nguyên tin nhắn biến động số dư"
+                }
                 disabled={analyzing}
                 aria-invalid={phase === "error"}
-                aria-describedby={error ? "paste-error" : "paste-hint"}
+                aria-describedby={
+                  error ? "paste-hint paste-error" : "paste-hint"
+                }
               />
-              <p id="paste-hint" className="capture-paste-hint">
+              <p id="paste-hint" className={styles.hint}>
                 Mỗi dòng một giao dịch càng tốt. Số tiền: 45k, 45.000, 1.5tr…
               </p>
 
-              <fieldset className="capture-paste-source">
-                <legend>Nguồn gợi ý</legend>
-                <div
-                  className="capture-paste-source-options"
-                  role="radiogroup"
-                  aria-label="Nguồn gợi ý"
-                >
-                  {SOURCE_HINTS.map((hint) => (
-                    <label key={hint} className="capture-paste-source-option">
-                      <input
-                        type="radio"
-                        name="source-hint"
-                        value={hint}
-                        checked={sourceHint === hint}
-                        onChange={() => setSourceHint(hint)}
-                        disabled={analyzing}
-                      />
-                      <span>{SOURCE_HINT_LABELS[hint]}</span>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
+              <details className={styles.options}>
+                <summary>Tùy chọn phân tích</summary>
+                <fieldset className={styles.source}>
+                  <legend>Nguồn gợi ý</legend>
+                  <div
+                    className={styles.sourceOptions}
+                    role="radiogroup"
+                    aria-label="Nguồn gợi ý"
+                  >
+                    {SOURCE_HINTS.map((hint) => (
+                      <label
+                        key={hint}
+                        className={`capture-paste-source-option ${styles.sourceOption}`}
+                      >
+                        <input
+                          type="radio"
+                          name="source-hint"
+                          value={hint}
+                          checked={sourceHint === hint}
+                          onChange={() => setSourceHint(hint)}
+                          disabled={analyzing}
+                        />
+                        <span>{SOURCE_HINT_LABELS[hint]}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
 
-              <label className="capture-paste-apply-rules">
-                <input
-                  type="checkbox"
-                  checked={applyRules}
-                  onChange={(event) => setApplyRules(event.target.checked)}
-                  disabled={analyzing || !rulesReady}
-                />
-                <span>
-                  {rulesReady ? "Áp dụng quy tắc danh mục" : "Đang tải quy tắc…"}{" "}
-                  <Link className="capture-paste-rules-link" href="/rules">
-                    (Quản lý)
+                <div className={styles.rules}>
+                  <label className={styles.ruleOption}>
+                    <input
+                      type="checkbox"
+                      checked={applyRules}
+                      onChange={(event) => setApplyRules(event.target.checked)}
+                      disabled={analyzing || !rulesReady}
+                    />
+                    <span>
+                      {rulesReady
+                        ? "Áp dụng quy tắc danh mục"
+                        : "Đang tải quy tắc…"}
+                    </span>
+                  </label>
+                  <Link className={styles.rulesLink} href="/rules">
+                    Quản lý quy tắc
                   </Link>
-                </span>
-              </label>
+                </div>
+              </details>
 
               {error && (
-                <p id="paste-error" className="capture-paste-error" role="alert">
+                <p id="paste-error" className={styles.error} role="alert">
                   {error}
                 </p>
               )}
 
-              <div className="capture-paste-actions">
-                <button
+              <div className={styles.actions}>
+                <Button
                   type="button"
-                  className="primary-button"
+                  intent="primary"
+                  targetSize="important"
                   onClick={analyze}
                   disabled={analyzing || !text.trim()}
                 >
                   {analyzing ? "Đang phân tích…" : "Phân tích"}
-                </button>
-                <Link className="secondary-button" href="/capture">
+                </Button>
+                <LinkButton
+                  intent="secondary"
+                  targetSize="important"
+                  href="/capture"
+                >
                   Hủy
-                </Link>
+                </LinkButton>
               </div>
             </>
           )}
 
           {phase === "preview" && (
-            <div className="capture-paste-preview">
-              <p className="capture-paste-summary" role="status">
+            <div className={styles.preview}>
+              <p className={styles.summary} role="status">
                 {summary}
               </p>
-              <p className="capture-paste-preview-lead">
-                Đây chỉ là gợi ý. Các trường không chắc được đánh dấu — kiểm tra trong Inbox trước
-                khi duyệt vào sổ.
+              <p className={styles.lead}>
+                Đây chỉ là gợi ý. Các trường không chắc được đánh dấu — kiểm tra
+                trong Inbox trước khi duyệt vào sổ.
               </p>
 
-              <ul className="capture-paste-preview-list">
+              <ul className={styles.previewList}>
                 {candidates.map((item, index) => (
-                  <li key={`${item.rawSnippet}-${index}`} className="capture-paste-preview-row">
-                    <div className="capture-paste-preview-main">
-                      <span className="capture-paste-preview-merchant">
+                  <li
+                    key={`${item.rawSnippet}-${index}`}
+                    className={`capture-paste-preview-row ${styles.previewRow}`}
+                  >
+                    <div className={styles.previewMain}>
+                      <span className={styles.merchant}>
                         {item.merchant}
                         {item.uncertainFields.includes("merchant") && (
-                          <span className="capture-paste-uncertain-tag" title="Không chắc merchant">
-                            ⚠
+                          <span
+                            className={styles.uncertain}
+                            title="Không chắc merchant"
+                          >
+                            <span aria-hidden="true">⚠</span>
+                            <span className="sr-only">
+                              {" "}
+                              — Cần kiểm tra nơi giao dịch
+                            </span>
                           </span>
                         )}
                       </span>
                       <span
-                        className={`font-mono capture-paste-preview-amount ${moneyClass(item.kind)}`}
+                        className={`capture-paste-preview-amount ${styles.amount}`}
+                        data-kind={item.kind}
                       >
                         {item.uncertainFields.includes("amount") && (
-                          <span className="capture-paste-uncertain-tag" title="Không chắc số tiền">
-                            ⚠{" "}
+                          <span
+                            className={styles.uncertain}
+                            title="Không chắc số tiền"
+                          >
+                            <span aria-hidden="true">⚠ </span>
+                            <span className="sr-only">
+                              Cần kiểm tra số tiền:{" "}
+                            </span>
                           </span>
                         )}
                         {moneySign(item.kind)}
                         {formatMoney(item.amount)}
                       </span>
                     </div>
-                    <div className="capture-paste-preview-meta">
-                      <span className="font-mono capture-paste-date">{item.occurredOn}</span>
+                    <div className={styles.meta}>
+                      <span>{item.occurredOn}</span>
                       <span
-                        className={`preview-chip sm confidence-badge ${confidenceClass(item.confidence)}`}
+                        className={styles.confidence}
+                        data-confidence={item.confidence}
                       >
                         {confidenceLabel(item.confidence)}
                       </span>
-                      <span className="preview-chip sm source-badge">paste</span>
+                      <span>Nội dung dán</span>
                       {item.category && (
                         <span
-                          className="preview-chip sm category-badge"
+                          className={styles.category}
                           title={item.matchedRuleSummary}
                         >
                           {item.category}
-                          {item.matchedRuleVersion ? ` · v${item.matchedRuleVersion}` : ""}
+                          {item.matchedRuleVersion
+                            ? ` · v${item.matchedRuleVersion}`
+                            : ""}
                         </span>
                       )}
                     </div>
                     {item.explanations.length > 0 && (
-                      <ul className="capture-paste-explanations">
+                      <ul className={styles.explanations}>
                         {item.explanations.map((tip) => (
                           <li key={tip}>{tip}</li>
                         ))}
                       </ul>
                     )}
                     {item.rawSnippet && (
-                      <p className="capture-paste-raw">
-                        <span className="sr-only">Gốc: </span>
+                      <p className={styles.raw}>
+                        <span>Gốc: </span>
                         {maskSnippetForDisplay(item.rawSnippet)}
                       </p>
                     )}
@@ -436,27 +477,32 @@ export function CapturePastePage({
                 ))}
               </SelectField>
 
-              <div className="capture-paste-actions">
-                <button
+              <div className={styles.actions}>
+                <Button
                   type="button"
-                  className="primary-button"
+                  intent="primary"
+                  targetSize="important"
                   onClick={commitToInbox}
                   disabled={committing}
                 >
                   {committing ? "Đang lưu…" : "Vào Inbox"}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  className="secondary-button"
+                  intent="secondary"
+                  targetSize="important"
                   onClick={backToEdit}
                   disabled={committing}
                 >
-                  Sửa text
-                </button>
+                  Sửa nội dung
+                </Button>
               </div>
-              <p className="capture-paste-trust">
+              <p className={styles.trust}>
                 <Icon name="lock" />
-                <span>Không có nút “ghi thẳng vào sổ” từ đây — mọi mục đều chờ bạn duyệt.</span>
+                <span>
+                  Không có nút “ghi thẳng vào sổ” từ đây — mọi mục đều chờ bạn
+                  duyệt.
+                </span>
               </p>
             </div>
           )}

@@ -9,6 +9,8 @@ import { seedUiAuditState } from "./responsive-audit";
 
 const TRANSACTIONS_KEY = "moneyflow-demo-transactions-v1";
 const CANDIDATES_KEY = "moneyflow-inbox-candidates-v1";
+// MF's product target for important touch controls, beyond the WCAG AA floor.
+const IMPORTANT_TARGET_PX = 44;
 
 type StateEvidence = {
   viewport: { width: number; height: number };
@@ -255,7 +257,7 @@ test.describe("Phase B safety and review states", () => {
   }, testInfo) => {
     await page.goto("/capture/paste", { waitUntil: "domcontentloaded" });
     await expect(
-      page.getByRole("heading", { level: 1, name: "Dán bất cứ thứ gì" }),
+      page.getByRole("heading", { level: 1, name: "Dán nội dung giao dịch" }),
     ).toBeVisible();
 
     const content = page.getByLabel("Nội dung");
@@ -264,6 +266,40 @@ test.describe("Phase B safety and review states", () => {
       exact: true,
     });
     await fillHydratedControlledInput(content, analyze, "xin chào");
+    await expect(
+      page.getByRole("radio", { name: "SMS NH", exact: true }),
+    ).toBeHidden();
+    await page.screenshot({
+      path: `output/playwright/paste-755-edit-${testInfo.project.name}.png`,
+      fullPage: true,
+      animations: "disabled",
+    });
+    await page.getByText("Tùy chọn phân tích", { exact: true }).click();
+    await page.getByRole("radio", { name: "SMS NH", exact: true }).check();
+    const fieldGeometry = await content.evaluate((field) => {
+      const input = field.getBoundingClientRect();
+      const label = document
+        .querySelector(`label[for="${field.id}"]`)!
+        .getBoundingClientRect();
+      const panel = field.closest("section")!.getBoundingClientRect();
+      return {
+        labelBottom: label.bottom,
+        inputTop: input.top,
+        widthRatio: input.width / panel.width,
+      };
+    });
+    expect(fieldGeometry.labelBottom).toBeLessThanOrEqual(
+      fieldGeometry.inputTop,
+    );
+    // Allow panel padding while requiring the input to use the reading column.
+    expect(fieldGeometry.widthRatio).toBeGreaterThan(0.8);
+    for (const target of [
+      analyze,
+      ...(await page.locator(".capture-paste-source-option").all()),
+    ]) {
+      const rect = await target.boundingBox();
+      expect(rect?.height).toBeGreaterThanOrEqual(IMPORTANT_TARGET_PX);
+    }
     await analyze.click();
 
     await expect(page.locator("#paste-error")).toBeVisible();
@@ -288,6 +324,64 @@ test.describe("Phase B safety and review states", () => {
       page.getByRole("button", { name: /Duyệt vào sổ/i }),
     ).toHaveCount(0);
     await auditCurrentState(page, testInfo, "paste-review-preview");
+    await page.screenshot({
+      path: `output/playwright/paste-755-preview-${testInfo.project.name}.png`,
+      fullPage: true,
+      animations: "disabled",
+    });
+    expect(await readDemoMutationState(page)).toMatchObject({
+      transactionCount: 0,
+      candidateStatuses: [],
+    });
+    await page
+      .getByRole("button", { name: "Sửa nội dung", exact: true })
+      .click();
+    await expect(content).toHaveValue("cafe 45k");
+    await page.getByText("Tùy chọn phân tích", { exact: true }).click();
+    await expect(
+      page.getByRole("radio", { name: "SMS NH", exact: true }),
+    ).toBeChecked();
+    await analyze.click();
+    await page.getByRole("button", { name: "Vào Inbox", exact: true }).click();
+    await expect(page).toHaveURL(/\/inbox$/);
+    expect(await readDemoMutationState(page)).toMatchObject({
+      transactionCount: 0,
+      candidateStatuses: ["pending"],
+    });
+  });
+
+  test("paste long review reflows at enlarged text", async ({
+    page,
+  }, testInfo) => {
+    await page.goto("/capture/paste", { waitUntil: "domcontentloaded" });
+    // Synthetic maximal-width VND and an unbroken note exercise wrap behavior;
+    // this is not a claim about a bank format or a physical phone.
+    const text = `CIRCLE K -9.999.999.999 VND | 03/10/2026 | ${"reference".repeat(18)}`;
+    const analyze = page.getByRole("button", {
+      name: "Phân tích",
+      exact: true,
+    });
+    await fillHydratedControlledInput(
+      page.getByLabel("Nội dung"),
+      analyze,
+      text,
+    );
+    await page.addStyleTag({ content: "html { font-size: 200%; }" });
+    await analyze.click();
+    const amount = page.locator(".capture-paste-preview-amount");
+    await expect(amount).toContainText("9.999.999.999");
+    expect(
+      await amount.evaluate((node) => node.scrollWidth <= node.clientWidth + 1),
+    ).toBe(true);
+    await auditCurrentState(page, testInfo, "paste-long-review-text-200");
+    await page
+      .getByRole("button", { name: "Sửa nội dung", exact: true })
+      .click();
+    await expect(page.getByLabel("Nội dung")).toHaveValue(text);
+    expect(await readDemoMutationState(page)).toMatchObject({
+      transactionCount: 0,
+      candidateStatuses: [],
+    });
   });
 
   test("Inbox review validation leaves ledger and candidate pending", async ({
