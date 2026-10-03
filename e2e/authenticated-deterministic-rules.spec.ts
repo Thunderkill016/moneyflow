@@ -4,8 +4,8 @@ const RULES_KEY = "moneyflow-rules-v2";
 const LEGACY_RULES_KEY = "moneyflow-rules-v1";
 const CANDIDATES_KEY = "moneyflow-inbox-candidates-v1";
 const RESET_GUARD_KEY = "moneyflow-rules-e2e-reset";
-const RULE_DIALOG_ATTEMPT_TIMEOUT_MS = 1_000;
-const RULE_DIALOG_HYDRATION_TIMEOUT_MS = 15_000;
+const FORM_ATTEMPT_TIMEOUT_MS = 1_000;
+const FORM_HYDRATION_TIMEOUT_MS = 15_000;
 
 async function firstVisibleLocator(locators: Locator): Promise<Locator | null> {
   const count = await locators.count();
@@ -33,9 +33,9 @@ async function createDemoRule(
     expect(addRule).not.toBeNull();
     if (!(await dialog.isVisible())) await addRule!.click();
     await expect(dialog).toBeVisible({
-      timeout: RULE_DIALOG_ATTEMPT_TIMEOUT_MS,
+      timeout: FORM_ATTEMPT_TIMEOUT_MS,
     });
-  }).toPass({ timeout: RULE_DIALOG_HYDRATION_TIMEOUT_MS });
+  }).toPass({ timeout: FORM_HYDRATION_TIMEOUT_MS });
   await dialog.getByLabel("Nếu chứa").fill(input.contains);
   await dialog
     .getByLabel("Thì danh mục")
@@ -144,10 +144,18 @@ test.describe("Deterministic rules workspace", () => {
       // Synthetic source grammar, not a supported-bank or real-device claim.
       const text = `MB: SD: 3.450.000 VND | GD: -250.000 VND | ${ambiguous ? "100.000 VND" : "Phí: 2.000 VND"} | 03/10/2026 | ND: CIRCLE K`;
       await page.goto("/capture/paste", { waitUntil: "domcontentloaded" });
-      await page.getByLabel("Nội dung").fill(text);
-      await page
-        .getByRole("button", { name: "Phân tích", exact: true })
-        .click();
+      const analyze = page.getByRole("button", {
+        name: "Phân tích",
+        exact: true,
+      });
+      // A fill before React attaches onChange is dropped at hydration. Observe
+      // the controlled form accepting the value instead of sleeping or clicking
+      // a button that still reflects the empty SSR state.
+      await expect(async () => {
+        await page.getByLabel("Nội dung").fill(text);
+        await expect(analyze).toBeEnabled({ timeout: FORM_ATTEMPT_TIMEOUT_MS });
+      }).toPass({ timeout: FORM_HYDRATION_TIMEOUT_MS });
+      await analyze.click();
       const preview = page.locator(".capture-paste-preview-row");
       await expect(preview).toHaveCount(1);
       await expect(

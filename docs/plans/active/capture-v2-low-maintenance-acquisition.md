@@ -379,7 +379,7 @@ Existing routes remain backward-compatible during any future experiment:
 
 ### Explicit amount roles in pasted evidence — issue #753, 2026-10-03
 
-**Execution state:** implementing. **Active role:** implementer. **Permission scope:** branch_write. Owner instruction: merge #752, then continue research/development. #752 is merged as `d1abf20b`; this work starts on `feat/paste-labelled-amount-20261003`. Class 3 financial parsing. Current backlog and delivery evidence: GitHub issue #753 and its PR, not this packet's historical task lists.
+**Execution state:** evaluating. **Active role:** evaluator. **Permission scope:** branch_write. Owner instruction: merge #752, then continue research/development. #752 is merged as `d1abf20b`; its post-merge main CI `37101966653`, CodeQL and secret scan passed. This work starts on `feat/paste-labelled-amount-20261003`. Class 3 financial parsing. Current backlog and delivery evidence: GitHub issue #753 and PR #754, not this packet's historical task lists.
 
 Outcome: users pasting a clearly labelled transaction should not need to replace an incorrectly suggested closing balance or fee. Serves CANON Stage 0/1 Low-maintenance Reality, CFPB day-to-day control and GOV.UK whole-service simplicity. This is a measured defect in an existing source, not a new acquisition channel or navigation redesign.
 
@@ -395,13 +395,15 @@ Research checked 2026-10-03, three focused primary sources:
 
 Specification before code:
 
-- Recognize money-marked tokens immediately preceded by explicit `GD:`, `Giao dịch:` or `Số tiền giao dịch:` (colon/equal sign, folded Vietnamese, case-insensitive). Do not turn a bare account/reference number into authoritative money from a suffix label alone.
+- Recognize money-marked tokens immediately preceded by a complete explicit `GD:`, `Giao dịch:` or `Số tiền giao dịch:` field (colon/equal sign, folded Vietnamese, case-insensitive). Unknown qualifiers such as `Mã giao dịch:` are not these fields. Do not turn a bare account/reference number into authoritative money from a suffix label alone.
 - Recognize `SD:`, `Số dư:` and `Phí:` / `Phí giao dịch:` as non-transaction amount roles. A label inside an explicitly marked note/description field is not transaction evidence.
 - If exactly one transaction-labelled token exists, select it regardless of order. Clear amount uncertainty only if all other money-marked competitors are explicitly balance/fee roles. Multiple transaction-labelled tokens or any unclassified money-marked competitor keep amount review, even if values happen to agree.
 - With no transaction-labelled amount, preserve the existing marked-token/order fallback and review behavior. Do not reinterpret amounts without evidence or promise generic supported-bank coverage.
 - Preserve original token sign and original raw evidence; kind/date/merchant uncertainty stays intact. Candidate persistence and ledger posting policy are unchanged.
 
 Evaluation: frozen synthetic transaction/balance/fee permutations including debit and credit, accented/unaccented labels, bare account/date fragments, unknown extra amount, repeated transaction labels, equal-valued separate amounts, quoted note labels, missing/conflicting dates and unchanged unlabelled text. Browser paste → preview → Inbox must preserve correct amount, raw evidence and unresolved ambiguity without automatically creating a ledger row. Compare the original and candidate on the same corpus; no human speed percentage is claimed.
+
+Evaluation snapshot: three frozen proposals improve from 1/3 correct amounts to 3/3; this is synthetic grammar behavior, not source-coverage or user-effort evidence. Node 22 full domain 1981/1981 and CI policy 191/191 passed, with typecheck/lint and knowledge/architecture/capability/CSS/migration identity checks clean. Initial browser execution was interrupted for concurrent load; the subsequent cold paste test exposed input entered before React attached `onChange`, leaving the analyze button disabled. The test now observes the controlled form accepting its value; fresh zero-retry desktop/mobile acceptance and final exact-head CI remain pending. Initial draft CI correctly rejected the absent PR-number-specific memory record; it is added after PR allocation, without weakening the policy.
 
 Selected gates: focused and full domain tests, typecheck/lint/build, knowledge/architecture/capability/CSS/migration identity/CI policy, zero-retry existing desktop/mobile paste browser tests, exact-head CI/CodeQL/secrets. Database truth and layout do not change, so database reset/responsive audit are not applicable to this diff; post-merge #752 main CI remains a separate full-stack prerequisite. No production write or participant outcome is produced here.
 
