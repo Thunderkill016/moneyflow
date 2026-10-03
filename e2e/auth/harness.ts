@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { todayInVietnam } from "../../src/lib/vietnam-date.ts";
 
 const DOUBLE = `http://127.0.0.1:${process.env.SUPABASE_DOUBLE_PORT || 3301}`;
 
@@ -12,7 +13,8 @@ const ACCOUNT_ID = "00000000-0000-4000-8000-0000000000a1";
 const BANK_ACCOUNT_ID = "00000000-0000-4000-8000-0000000000a2";
 const CATEGORY_ID = "00000000-0000-4000-8000-0000000000c1";
 const INCOME_CATEGORY_ID = "00000000-0000-4000-8000-0000000000c2";
-const CURRENT_MONTH = new Date().toISOString().slice(0, 7);
+const TODAY = todayInVietnam();
+const CURRENT_MONTH = TODAY.slice(0, 7);
 
 type HarnessAccountRow = {
   id: string;
@@ -38,7 +40,9 @@ type HarnessBalanceRow = {
 };
 
 function currentMonthDate(day: number) {
-  return `${CURRENT_MONTH}-${String(day).padStart(2, "0")}`;
+  // Reports stop at today; keep current-month fixture rows inside that window,
+  // including the first days of the month and Vietnam/UTC midnight boundaries.
+  return `${CURRENT_MONTH}-${String(Math.min(day, Number(TODAY.slice(8)))).padStart(2, "0")}`;
 }
 
 /** A pending Inbox candidate as `inbox_candidates` returns it. */
@@ -115,7 +119,13 @@ const ACCOUNTS: HarnessAccountRow[] = [
   },
 ];
 const CATEGORIES: HarnessCategoryRow[] = [
-  { id: CATEGORY_ID, name: "Ăn uống", kind: "expense", icon: null, color: null },
+  {
+    id: CATEGORY_ID,
+    name: "Ăn uống",
+    kind: "expense",
+    icon: null,
+    color: null,
+  },
 ];
 const BALANCES: HarnessBalanceRow[] = [
   { account_id: ACCOUNT_ID, balance_minor: 925_000, currency_code: "VND" },
@@ -157,7 +167,13 @@ const FINANCIAL_TRUTH_ACCOUNTS: HarnessAccountRow[] = [
 ];
 
 const FINANCIAL_TRUTH_CATEGORIES: HarnessCategoryRow[] = [
-  { id: CATEGORY_ID, name: "Ăn uống", kind: "expense", icon: null, color: null },
+  {
+    id: CATEGORY_ID,
+    name: "Ăn uống",
+    kind: "expense",
+    icon: null,
+    color: null,
+  },
   {
     id: INCOME_CATEGORY_ID,
     name: "Lương",
@@ -263,7 +279,8 @@ export async function seedServer(input: SeedInput = {}) {
         income_templates: [],
         income_occurrences: [],
         goals: [],
-        pending_inbox_count: candidates.filter((c) => c.status === "pending").length,
+        pending_inbox_count: candidates.filter((c) => c.status === "pending")
+          .length,
       },
     }),
   });
@@ -304,7 +321,9 @@ export async function signIn(page: Page) {
   // The password label also wraps a "Quên mật khẩu?" link, so its accessible
   // name is not stable. Field names are part of the server action contract.
   await page.locator('input[name="email"]').fill(HARNESS_USER.email);
-  await page.locator('input[name="password"]').fill("harness-not-a-real-password");
+  await page
+    .locator('input[name="password"]')
+    .fill("harness-not-a-real-password");
   await page.getByRole("button", { name: "Đăng nhập" }).click();
   await page.waitForURL((url) => !url.pathname.startsWith("/login"), {
     timeout: 20_000,

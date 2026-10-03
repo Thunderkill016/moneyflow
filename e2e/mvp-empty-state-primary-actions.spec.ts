@@ -165,12 +165,12 @@ test.describe("locked MVP empty-state release gate", () => {
 
     const directCsv = page
       .getByRole("banner")
-      .getByRole("link", { name: "Xuất CSV", exact: true });
+      .getByRole("button", { name: "Xuất CSV", exact: true });
     await expect(directCsv).toBeVisible();
-    await expect(directCsv).toHaveAttribute(
-      "href",
-      "/reports/export?period=month",
-    );
+    await expect(directCsv).toBeEnabled();
+    const download = page.waitForEvent("download");
+    await directCsv.click();
+    expect((await download).suggestedFilename()).toMatch(/^moneyflow-.*\.csv$/);
 
     const advancedExport = page
       .getByRole("main")
