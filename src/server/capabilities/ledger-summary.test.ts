@@ -12,15 +12,13 @@ import {
 } from "./capability-test-helpers.test.ts";
 
 test("ledger.summary returns explainable VND totals with range exclusions", async () => {
-  const output = await run(
-    FIXED_CONTEXT,
-    { period: "month" },
-    fixtureDeps(),
-  );
+  const output = await run(FIXED_CONTEXT, { period: "month" }, fixtureDeps());
 
   const workspace = fixtureWorkspace();
   const outside = workspace.transactions.filter(
-    (item) => item.occurredOn < output.range.currentStart || item.occurredOn > output.range.currentEnd,
+    (item) =>
+      item.occurredOn < output.range.currentStart ||
+      item.occurredOn > output.range.currentEnd,
   ).length;
   const totalRows = workspace.transactions.length;
 
@@ -49,11 +47,13 @@ test("ledger.summary returns explainable VND totals with range exclusions", asyn
     totalRows,
   );
   assert.equal(
-    output.income.basis.excluded.find((item) => item.reason === "transfer")?.count,
+    output.income.basis.excluded.find((item) => item.reason === "transfer")
+      ?.count,
     1,
   );
   assert.equal(
-    output.income.basis.excluded.find((item) => item.reason === "outside_range")?.count ?? 0,
+    output.income.basis.excluded.find((item) => item.reason === "outside_range")
+      ?.count ?? 0,
     outside,
   );
   assert.ok(Number.isSafeInteger(output.net.amount));
@@ -61,11 +61,7 @@ test("ledger.summary returns explainable VND totals with range exclusions", asyn
 
 test("ledger.summary carries the injected ledger-trust summary on output and every basis", async () => {
   const trust = fixtureLedgerTrust();
-  const output = await run(
-    FIXED_CONTEXT,
-    { period: "month" },
-    fixtureDeps(),
-  );
+  const output = await run(FIXED_CONTEXT, { period: "month" }, fixtureDeps());
 
   assert.deepEqual(output.trust, trust);
   assert.deepEqual(output.totalBalance.basis.trust, trust);
@@ -86,16 +82,67 @@ test("ledger.summary withholds trust when the loader cannot provide it", async (
 });
 
 test("ledger.summary rejects invalid custom ranges", async () => {
-  await assert.rejects(
-    () => run(FIXED_CONTEXT, { period: "custom", from: "2026-02-31", to: "2026-03-01" }, fixtureDeps()),
-    (error: unknown) => error instanceof Error && "code" in error && error.code === "invalid_input",
+  const invalidRanges = [
+    {},
+    { from: "2026-02-31", to: "2026-03-01" },
+    { from: "not-a-date", to: "2026-07-01" },
+  ];
+  for (const range of invalidRanges) {
+    let workspaceReads = 0;
+    let trustReads = 0;
+    const deps = fixtureDeps();
+    await assert.rejects(
+      () =>
+        run(
+          FIXED_CONTEXT,
+          { period: "custom", ...range },
+          {
+            ...deps,
+            loadFinanceWorkspace: async () => {
+              workspaceReads += 1;
+              return deps.loadFinanceWorkspace!();
+            },
+            loadLedgerTrust: async () => {
+              trustReads += 1;
+              return deps.loadLedgerTrust!();
+            },
+          },
+        ),
+      (error: unknown) =>
+        error instanceof Error &&
+        "code" in error &&
+        error.code === "invalid_input",
+    );
+    assert.equal(
+      workspaceReads,
+      0,
+      "Invalid ranges must not trigger ledger reads",
+    );
+    assert.equal(trustReads, 0, "Invalid ranges must not trigger trust reads");
+  }
+});
+
+test("ledger.summary preserves normalization of reversed custom dates", async () => {
+  const forward = await run(
+    FIXED_CONTEXT,
+    { period: "custom", from: "2026-07-01", to: "2026-07-31" },
+    fixtureDeps(),
   );
+  const reversed = await run(
+    FIXED_CONTEXT,
+    { period: "custom", from: "2026-07-31", to: "2026-07-01" },
+    fixtureDeps(),
+  );
+  assert.deepEqual(reversed, forward);
 });
 
 test("ledger.summary golden output stays deterministic", async () => {
   const output = await run(FIXED_CONTEXT, { period: "month" }, fixtureDeps());
   const golden = JSON.parse(
-    await readFile(new URL("./__golden__/ledger-summary.json", import.meta.url), "utf8"),
+    await readFile(
+      new URL("./__golden__/ledger-summary.json", import.meta.url),
+      "utf8",
+    ),
   );
   assert.deepEqual(output, golden);
 });
