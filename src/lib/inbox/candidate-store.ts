@@ -11,6 +11,7 @@ export type CandidateSource =
   | "xlsx"
   | "pdf"
   | "manual"
+  | "voice"
   | "notification"
   | "email"
   | "agent"
@@ -87,6 +88,7 @@ export const SOURCE_LABELS: Record<CandidateSource, string> = {
   xlsx: "xlsx",
   pdf: "pdf",
   manual: "manual",
+  voice: "giọng nói",
   notification: "thông báo",
   email: "email",
   agent: "AI agent",
@@ -105,6 +107,7 @@ const SOURCES: CandidateSource[] = [
   "xlsx",
   "pdf",
   "manual",
+  "voice",
   "notification",
   "email",
   "agent",

@@ -1,13 +1,14 @@
 /**
  * Capture chooser options (wireframes-inbox CaptureMenu §0 / §24).
  * Shared by Capture sheet (AppShell) and /capture page.
- * Daily manual entry is the primary path; paste/upload remain secondary bulk or
- * assisted-capture paths and never write straight to the ledger implicitly.
+ * Voice input is the primary path (fastest: speak -> confirm -> saved);
+ * quick manual entry follows, then paste/upload bulk or assisted-capture
+ * paths, which never write straight to the ledger implicitly.
  */
 
-export type CaptureOptionId = "paste" | "upload" | "quick";
+export type CaptureOptionId = "paste" | "upload" | "quick" | "voice";
 
-export type CaptureOptionIcon = "paste" | "upload" | "plus";
+export type CaptureOptionIcon = "paste" | "upload" | "plus" | "mic";
 
 export type CaptureOption = {
   id: CaptureOptionId;
@@ -18,6 +19,13 @@ export type CaptureOption = {
 };
 
 export const CAPTURE_OPTIONS: CaptureOption[] = [
+  {
+    id: "voice",
+    label: "Nói để ghi",
+    description: "Nhập bằng giọng nói, xử lý trên máy bạn",
+    href: "/capture/voice",
+    icon: "mic",
+  },
   {
     id: "quick",
     label: "Ghi nhanh",

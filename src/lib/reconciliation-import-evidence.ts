@@ -19,6 +19,7 @@ const SOURCE_LABELS: Record<CandidateSource, string> = {
   xlsx: "XLSX",
   pdf: "PDF",
   manual: "Nhập tay",
+  voice: "Giọng nói",
   notification: "Thông báo",
   email: "Email",
   agent: "AI agent",

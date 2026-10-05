@@ -35,6 +35,7 @@ import {
   Landmark,
   ListOrdered,
   LockKeyhole,
+  Mic,
   type LucideIcon,
   type LucideProps,
   MoreHorizontal,
@@ -97,6 +98,7 @@ export type IconName =
   | "calendar"
   | "flag"
   | "lock"
+  | "mic"
   | "heart"
   | "book"
   | "inbox"
@@ -163,6 +165,7 @@ const icons: Record<IconName, LucideIcon> = {
   calendar: CalendarDays,
   flag: Flag,
   lock: LockKeyhole,
+  mic: Mic,
   heart: HeartPulse,
   book: BookOpen,
   inbox: Inbox,
