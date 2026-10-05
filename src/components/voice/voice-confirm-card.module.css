@@ -11,7 +11,7 @@
   display: flex;
   gap: 0.5rem;
   align-items: flex-start;
-  color: var(--mf-muted, #6b7280);
+  color: var(--mf-text-muted);
   font-size: 0.875rem;
 }
 
@@ -22,7 +22,7 @@
 
 .hearing q {
   font-style: italic;
-  color: var(--mf-foreground, #111827);
+  color: var(--mf-text);
 }
 
 .title {
