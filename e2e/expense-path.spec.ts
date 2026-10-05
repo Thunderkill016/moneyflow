@@ -1,5 +1,9 @@
 import { expect, test, type Locator } from "@playwright/test";
 import { parseCsvMatrix } from "../src/lib/inbox/parse-csv.ts";
+import {
+  clearKeypadAmount,
+  tapKeypadAmount,
+} from "./capture-keypad.ts";
 
 const UNIQUE_AMOUNT = "777000";
 const UNIQUE_AMOUNT_DISPLAY = "777.000";
@@ -21,6 +25,7 @@ type AnalyticsCall = [
 ];
 
 async function stabilizeQuickExpense(
+  dialog: Locator,
   amount: Locator,
   note: Locator,
   save: Locator,
@@ -29,7 +34,8 @@ async function stabilizeQuickExpense(
     .poll(
       async () => {
         if ((await amount.inputValue()) !== UNIQUE_AMOUNT_DISPLAY) {
-          await amount.fill(UNIQUE_AMOUNT);
+          await clearKeypadAmount(dialog);
+          await tapKeypadAmount(dialog, UNIQUE_AMOUNT);
         }
         if ((await note.inputValue()) !== UNIQUE_NOTE) {
           await note.fill(UNIQUE_NOTE);
@@ -161,7 +167,7 @@ test.describe("Expense path (thu chi)", () => {
 
     const amount = quickDialog.getByLabel(/Số tiền chi/i);
     await expect(amount).toBeFocused();
-    await amount.fill(UNIQUE_AMOUNT);
+    await tapKeypadAmount(quickDialog, UNIQUE_AMOUNT);
     await expect(amount).toHaveValue(UNIQUE_AMOUNT_DISPLAY);
 
     await expect(
@@ -184,7 +190,7 @@ test.describe("Expense path (thu chi)", () => {
     await note.fill(UNIQUE_NOTE);
 
     const save = quickDialog.getByRole("button", { name: "Lưu", exact: true });
-    await stabilizeQuickExpense(amount, note, save);
+    await stabilizeQuickExpense(quickDialog, amount, note, save);
     await save.click();
 
     await expect
@@ -484,7 +490,7 @@ test.describe("Expense path (thu chi)", () => {
     await expect(patterns.getByRole("button")).toHaveCount(2);
 
     const amount = dialog.getByLabel(/Số tiền chi/i);
-    await amount.fill("125000");
+    await tapKeypadAmount(dialog, "125000");
     await openCaptureDetails(dialog, "capture-optional-details");
     const note = dialog.getByPlaceholder("Ví dụ: Cơm trưa");
     await note.fill("Không được mẫu ghi đè");
@@ -605,7 +611,7 @@ test("complete category choices and persistent continuous entry are visible with
   await choices.getByRole("button", { name: "Sức khỏe", exact: true }).click();
   await continuous.check();
   const amount = dialog.getByLabel(/Số tiền (chi|thu)/);
-  await amount.fill("90000");
+  await tapKeypadAmount(dialog, "90000");
   await dialog
     .getByRole("button", { name: "Lưu & thêm tiếp", exact: true })
     .click();
@@ -615,7 +621,7 @@ test("complete category choices and persistent continuous entry are visible with
     dialog.locator('[data-slot="capture-fast-defaults"]'),
   ).toContainText("Sức khỏe");
   await expect(continuous).toBeChecked();
-  await amount.fill("50000");
+  await tapKeypadAmount(dialog, "50000");
   await dialog
     .getByRole("button", { name: "Lưu & thêm tiếp", exact: true })
     .click();
