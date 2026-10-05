@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { Transaction } from "./transactions/contracts.ts";
+import { buildFinancialReport, reportRange } from "./reports.ts";
 import {
   accountRegisterDailyImpacts,
   accountTransactionImpact,
@@ -34,6 +35,27 @@ function transaction(
     isRecurringPayment: overrides.isRecurringPayment,
   };
 }
+
+test("independent integer oracle preserves transfer neutrality at both account and report boundaries", () => {
+  const today = "2026-08-02";
+  for (const amount of [1, 45_000, 2_000_000, Number.MAX_SAFE_INTEGER]) {
+    for (const [accountId, destinationAccountId] of [["account-a", "account-b"], ["account-b", "account-a"]]) {
+      const transfer = transaction({ id: "synthetic-transfer", kind: "transfer", amount, accountId, destinationAccountId, occurredOn: today });
+      const source = accountTransactionImpact(transfer, accountId);
+      const destination = accountTransactionImpact(transfer, destinationAccountId);
+      assert.ok(source);
+      assert.ok(destination);
+      assert.equal(BigInt(source.impact), -BigInt(amount));
+      assert.equal(BigInt(destination.impact), BigInt(amount));
+      assert.equal(BigInt(source.impact) + BigInt(destination.impact), BigInt(0));
+      const report = buildFinancialReport([transfer], reportRange(today, "month"));
+      assert.equal(report.totals.income, 0);
+      assert.equal(report.totals.expense, 0);
+      assert.equal(report.totals.net, 0);
+      assert.equal(accountTransactionImpact(transfer, "unrelated"), null);
+    }
+  }
+});
 
 test("income and expense affect only their source account", () => {
   const income = transaction({ id: "income", kind: "income", amount: 500_000 });

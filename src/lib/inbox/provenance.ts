@@ -95,7 +95,7 @@ const REVIEWABLE_DUPLICATE_REASONS = new Set([
 ]);
 
 const PARSER_VERSION_BY_SOURCE: Record<CandidateSource, string> = {
-  paste: "paste_text@1.1",
+  paste: "paste_text@1.2",
   csv: "csv_import@1.0",
   xlsx: "xlsx_import@1.0",
   pdf: "pdf_import@1.0",
@@ -250,7 +250,9 @@ export function allowsExplicitDuplicateOverride(
   );
 }
 
-export function dryRunUserMessage(result: InboxDryRunResult): string {
+export function dryRunUserMessage(
+  result: Pick<InboxDryRunResult, "status" | "reason"> & Partial<InboxDryRunResult>,
+): string {
   if (result.status === "would_create") return "Sẵn sàng ghi vào sổ.";
   if (result.status === "suspected_transfer") {
     return "Có dấu hiệu chuyển khoản nội bộ. Hãy chọn đúng hai tài khoản.";
@@ -282,6 +284,12 @@ export function dryRunUserMessage(result: InboxDryRunResult): string {
     }
     if (result.reason === "existing_transaction_ambiguous") {
       return "Có nhiều giao dịch đã có cùng tài khoản, ngày và số tiền. MoneyFlow không tự chọn để tránh gắn nhầm.";
+    }
+    if (
+      result.reason === "fingerprint_transaction_match" ||
+      result.reason === "fingerprint_candidate_match"
+    ) {
+      return "Dấu vân tay dữ liệu trùng với mục đã có. Đây là dấu hiệu có thể trùng, không xác nhận hai mục là cùng một giao dịch.";
     }
     return "Có giao dịch rất giống đã tồn tại. Hãy kiểm tra trước khi duyệt.";
   }

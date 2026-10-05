@@ -325,3 +325,10 @@
 .options[open] .source {
   margin-block: 0.5rem;
 }
+
+/* Embedded Ghi owns the surrounding dialog surface and spacing. */
+.inlinePanel {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}

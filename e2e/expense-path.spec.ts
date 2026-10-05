@@ -641,3 +641,105 @@ test("complete category choices and persistent continuous entry are visible with
       .sort((a, b) => a - b),
   ).toEqual([50_000, 90_000]);
 });
+
+test.describe("Paste inside Ghi", () => {
+  test.beforeEach(async ({ context }) => {
+    // Synthetic isolated evidence, seeded once so navigation does not erase saves.
+    await context.addInitScript(() => {
+      if (localStorage.getItem("synthetic-ghi-paste-seeded")) return;
+      localStorage.clear();
+      localStorage.setItem("moneyflow-demo-transactions-v1", "[]");
+      localStorage.setItem("moneyflow-inbox-candidates-v1", "[]");
+      localStorage.setItem("moneyflow-onboarding-done", "1");
+      localStorage.setItem("synthetic-ghi-paste-seeded", "1");
+    });
+  });
+
+  for (const route of ["/dashboard", "/transactions", "/capture/quick"]) {
+    test(`Ghi on ${route} preserves both drafts and sends paste only to review`, async ({
+      page,
+    }) => {
+      await page.goto(route);
+      if (route !== "/capture/quick") {
+        const scope =
+          (page.viewportSize()?.width ?? 1000) <= 760
+            ? page.getByRole("navigation", { name: "Điều hướng di động" })
+            : page.getByRole("banner");
+        await scope
+          .getByRole("button", { name: "Ghi chi tiêu", exact: true })
+          .click();
+      }
+      const dialog = page.getByRole("dialog");
+      const amount = dialog.getByLabel(/Số tiền chi/);
+      await expect(amount).toBeFocused();
+      await amount.fill("127000");
+      const details = dialog.locator(
+        'details[data-slot="capture-optional-details"]',
+      );
+      await details.locator("summary").click();
+      await dialog
+        .getByLabel("Ghi chú (không bắt buộc)")
+        .fill("Synthetic unsaved manual draft");
+      await dialog
+        .getByRole("button", { name: "Dán giao dịch", exact: true })
+        .click();
+      await expect(amount).toBeHidden();
+      await expect(
+        dialog.getByRole("button", { name: "Lưu", exact: true }),
+      ).toHaveCount(0);
+      const text = dialog.getByLabel("Nội dung", { exact: true });
+      await expect(text).toBeFocused();
+      await text.fill("không có số tiền");
+      await dialog
+        .getByRole("button", { name: "Phân tích", exact: true })
+        .click();
+      await expect(dialog.getByRole("alert")).toBeVisible();
+      await text.fill("2026-10-05 cafe 45k");
+      await dialog
+        .getByRole("button", { name: "Phân tích", exact: true })
+        .click();
+      await expect(dialog.getByText(/Tìm thấy 1 giao dịch/)).toBeVisible();
+      await expect(dialog.getByText(/Tìm thấy 1 giao dịch/)).toBeFocused();
+      await dialog
+        .getByRole("button", { name: "Nhập số tiền", exact: true })
+        .click();
+      await expect(amount).toHaveValue("127.000");
+      await expect(amount).toBeFocused();
+      await expect(dialog.getByLabel("Ghi chú (không bắt buộc)")).toHaveValue(
+        "Synthetic unsaved manual draft",
+      );
+      await dialog
+        .getByRole("button", { name: "Dán giao dịch", exact: true })
+        .click();
+      await expect(dialog.getByText(/Tìm thấy 1 giao dịch/)).toBeVisible();
+      await dialog
+        .getByRole("button", { name: "Sửa nội dung", exact: true })
+        .click();
+      await expect(text).toHaveValue("2026-10-05 cafe 45k");
+      await expect(text).toBeFocused();
+      await dialog
+        .getByRole("button", { name: "Phân tích", exact: true })
+        .click();
+      await dialog
+        .getByRole("button", { name: "Vào Inbox", exact: true })
+        .click();
+      await expect(page).toHaveURL(/\/inbox$/);
+      const storage = await page.evaluate(() => ({
+        ledger: JSON.parse(
+          localStorage.getItem("moneyflow-demo-transactions-v1") ?? "[]",
+        ),
+        pending: JSON.parse(
+          localStorage.getItem("moneyflow-inbox-candidates-v1") ?? "[]",
+        ),
+      }));
+      expect(storage.ledger).toHaveLength(0);
+      expect(storage.pending).toHaveLength(1);
+      expect(storage.pending[0]).toMatchObject({
+        source: "paste",
+        status: "pending",
+        amount: 45000,
+      });
+      expect(storage.pending[0].accountId).toBeUndefined();
+    });
+  }
+});

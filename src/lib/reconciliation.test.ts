@@ -72,6 +72,32 @@ function demoState() {
   };
 }
 
+test("same-day cutoff and out-of-order historical reads agree with an independent integer oracle", () => {
+  const initialBalance = 100_000;
+  const register = [
+    transaction("before", -25_000, "2026-07-30"),
+    transaction("same-day-income", 500_000, "2026-07-31"),
+    transaction("same-day-expense", -30_000, "2026-07-31"),
+    transaction("after", -99_000, "2026-08-01"),
+  ];
+  const rows = buildDemoReconciliationRows(register, "account-a").map((row) => ({
+    ...row,
+    state: "cleared" as const,
+  }));
+  const workspace = mergeAccountReconciliationWorkspace(register, { ...emptyReconciliationState(), rows });
+  const original = structuredClone(workspace.entries);
+  for (const statementDate of ["2026-07-31", "2026-07-30", "2026-07-31"]) {
+    const expected = register.reduce((balance, entry) => entry.transaction.occurredOn <= statementDate ? balance + BigInt(entry.impact) : balance, BigInt(initialBalance));
+    const snapshot = calculateOpenSessionSnapshot(initialBalance, workspace.entries, statementDate);
+    assert.equal(BigInt(snapshot.clearedBalance), expected);
+    assert.equal(snapshot.pendingAccountLegCount, 0);
+    assert.deepEqual(calculateOpenSessionSnapshot(initialBalance, [...workspace.entries].reverse(), statementDate), snapshot);
+  }
+  assert.equal(calculateOpenSessionSnapshot(initialBalance, workspace.entries, "2026-07-31").clearedBalance, 545_000);
+  assert.equal(calculateOpenSessionSnapshot(initialBalance, workspace.entries, "2026-07-30").clearedBalance, 75_000);
+  assert.deepEqual(workspace.entries, original);
+});
+
 test("open snapshot counts only eligible cleared or reconciled account legs", () => {
   const state = demoState();
   state.rows[0] = { ...state.rows[0]!, state: "reconciled", reconciliationId: "older", clearedAt: "now" };

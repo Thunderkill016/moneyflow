@@ -170,7 +170,7 @@ test("buildMigratePayloads remaps ids and adds explicit provenance defaults", ()
   assert.equal(candidateRows[0]?.source_external_id, null);
   assert.equal(candidateRows[0]?.source_lifecycle_state, null);
   assert.equal(candidateRows[0]?.source_predecessor_external_id, null);
-  assert.equal(candidateRows[0]?.parser_version, "paste_text@1.1");
+  assert.equal(candidateRows[0]?.parser_version, "paste_text@1.2");
   assert.equal(candidateRows[0]?.mapping_version, 1);
 });
 

@@ -96,11 +96,12 @@ test("partitionBulkApprove separates low-confidence when not included", () => {
   assert.equal(withLow.skippedLow.length, 0);
 });
 
-test("buildExplainLines covers parser, rule, source, raw", () => {
+test("buildExplainLines covers parser, suggestions, source, raw without inventing rules", () => {
   const lines = buildExplainLines(expense);
   const kinds = new Set(lines.map((line) => line.kind));
   assert.ok(kinds.has("parser"));
-  assert.ok(kinds.has("rule"));
+  assert.ok(kinds.has("audit"));
+  assert.ok(!kinds.has("rule"));
   assert.ok(kinds.has("source"));
   assert.ok(kinds.has("raw"));
   assert.ok(lines.some((line) => line.text.includes("paste_text")));
@@ -450,10 +451,132 @@ test("findPendingCandidateTarget resolves only pending rows", async () => {
 
 test("review explanations name the recorded parser rather than relabeling history", () => {
   const current = buildExplainLines(expense);
-  assert.ok(current.some((line) => line.text === "Parser: paste_text@1.1"));
+  assert.ok(current.some((line) => line.text.includes("Parser mặc định cho nguồn: paste_text@1.2")));
   const historical = buildExplainLines({
     ...expense,
     parserVersion: "paste_text@1.0",
   });
   assert.ok(historical.some((line) => line.text === "Parser: paste_text@1.0"));
+  for (const parserVersion of ["", " "]) {
+    assert.ok(buildExplainLines({ ...expense, parserVersion }).some((line) =>
+      line.text.includes("Parser mặc định cho nguồn: paste_text@1.2")));
+  }
+});
+
+test("Explain never invents amount extraction from raw account/date digits", () => {
+  for (const source of ["paste", "csv", "xlsx", "pdf"] as const) {
+    const lines = buildExplainLines({
+      ...expense,
+      source,
+      rawSnippet: "STK 0123456789 2026-07-12 Q1 -45.000đ",
+    });
+    assert.ok(lines.every((line) => !line.text.includes("0123456789")));
+    assert.ok(lines.every((line) => !line.text.includes("regex")));
+    assert.ok(lines.some((line) => line.text === "Số tiền ứng viên: 45.000 đ"));
+    assert.ok(lines.some((line) => line.text.includes("Độ tin trích xuất:")));
+  }
+});
+
+test("Explain labels only recorded valid rule evidence as an applied rule", () => {
+  const lines = buildExplainLines({
+    ...expense,
+    appliedRuleId: "rule-food",
+    appliedRuleVersion: 2,
+  });
+  assert.deepEqual(lines.filter((line) => line.kind === "rule"), [
+    { kind: "rule", text: "Rule đã áp dụng: rule-food · phiên bản 2" },
+  ]);
+  for (const appliedRuleVersion of [undefined, 0, -1, 1.5, Number.NaN]) {
+    assert.ok(buildExplainLines({ ...expense, appliedRuleId: "rule-food", appliedRuleVersion })
+      .every((line) => line.kind !== "rule"));
+  }
+  assert.ok(buildExplainLines({ ...expense, appliedRuleId: " ", appliedRuleVersion: 1 })
+    .every((line) => line.kind !== "rule"));
+  assert.ok(buildExplainLines({ ...expense, category: undefined })
+    .some((line) => line.text === "Chưa có danh mục — hãy chọn khi duyệt"));
+});
+
+test("Explain uses recorded matching reasons rather than extraction confidence or fingerprint guesses", () => {
+  const cases = [
+    ["existing_transaction_ambiguous", "không tự chọn"],
+    ["existing_transaction_match", "gắn nguồn"],
+    ["source_external_id_match", "cùng mã nguồn"],
+    ["source_external_id_changed", "không tự ghi đè"],
+    ["source_external_id_deleted_match", "khôi phục chính giao dịch"],
+    ["source_predecessor_deleted_match", "giữ trạng thái đã xóa"],
+    ["fingerprint_transaction_match", "không xác nhận hai mục"],
+    ["fingerprint_candidate_match", "không xác nhận hai mục"],
+    ["future_unknown_reason", "kiểm tra trước khi duyệt"],
+  ];
+  for (const [matchReason, expected] of cases) {
+    const lines = buildExplainLines({
+      ...expense,
+      confidence: "high",
+      matchStatus: "duplicate",
+      matchReason,
+      matchConfidence: 0.4,
+    });
+    const matching = lines.find((line) => line.text.startsWith("Đối chiếu:"));
+    assert.ok(matching?.text.includes(expected), matchReason);
+    assert.ok(!matching?.text.includes("cùng fingerprint"));
+    assert.ok(!matching?.text.includes("Cao"));
+  }
+});
+
+test("legacy duplicate flags without match provenance do not claim a shared fingerprint", () => {
+  const lines = buildExplainLines({
+    ...expense,
+    possibleDuplicate: true,
+    fingerprint: "current-row-only",
+    duplicateOfId: "peer",
+    duplicateDayDiff: 2,
+  });
+  const matching = lines.find((line) => line.text.startsWith("Đối chiếu:"));
+  assert.ok(matching?.text.includes("Chưa lưu căn cứ đối chiếu"));
+  assert.ok(matching?.text.includes("ứng viên peer"));
+  assert.ok(matching?.text.includes("gợi ý lệch 2 ngày"));
+  assert.ok(!matching?.text.includes("cùng fingerprint"));
+});
+
+test("recorded invalid or source-lifecycle status takes precedence over legacy duplicate hints", () => {
+  const lines = buildExplainLines({
+    ...expense,
+    possibleDuplicate: true,
+    matchStatus: "invalid",
+    matchReason: "source_removed_unmatched",
+  });
+  assert.ok(lines.some((line) => line.text.includes("không được tạo thành giao dịch mới")));
+  assert.ok(!lines.some((line) => line.text.includes("rất giống")));
+  assert.ok(buildExplainLines({ ...expense, matchStatus: "would_create", matchReason: "valid" })
+    .some((line) => line.text === "Đối chiếu: Sẵn sàng ghi vào sổ."));
+});
+
+test("money and transfer approval require real calendar dates rather than date-shaped strings", () => {
+  for (const kind of ["expense", "income", "transfer"] as const) {
+    const draft = draftFromCandidate({ ...expense, kind }, accounts, categories);
+    draft.categoryId = kind === "income" ? "cat-salary" : "cat-food";
+    draft.destinationAccountId = "acc-bank";
+    for (const occurredOn of ["2026-02-29", "2026-02-30", "2026-04-31", "2026-13-01", "2026-00-01", "2026-07-00", "12/07/2026", "2026-07-12T00:00:00Z"]) {
+      assert.equal(buildLedgerPost({ ...draft, occurredOn }, accounts, categories, "invalid-date").ok, false, `${kind}: ${occurredOn}`);
+    }
+    for (const occurredOn of ["2026-02-28", "2028-02-29", "2026-12-31"]) {
+      const result = buildLedgerPost({ ...draft, occurredOn }, accounts, categories, "valid-date");
+      assert.equal(result.ok, true, `${kind}: ${occurredOn}`);
+      if (result.ok) assert.equal(result.input.occurredOn, occurredOn);
+    }
+  }
+});
+
+test("all Inbox money kinds reject non-integer, non-positive and unsafe VND without semantic fallback", () => {
+  for (const kind of ["expense", "income", "transfer"] as const) {
+    const draft = draftFromCandidate({ ...expense, kind }, accounts, categories);
+    draft.categoryId = kind === "income" ? "cat-salary" : "cat-food";
+    draft.destinationAccountId = "acc-bank";
+    for (const amount of [0, -1, 0.5, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1]) {
+      assert.equal(buildLedgerPost({ ...draft, amount }, accounts, categories, "invalid-money").ok, false, `${kind}: ${amount}`);
+    }
+    const largest = buildLedgerPost({ ...draft, amount: Number.MAX_SAFE_INTEGER }, accounts, categories, "large-money");
+    assert.equal(largest.ok, true);
+    if (largest.ok) assert.equal(largest.input.amount, Number.MAX_SAFE_INTEGER);
+  }
 });

@@ -504,6 +504,7 @@ export function MoneyFlowDashboard({
 
       {dialogOpen ? (
         <AddTransactionDialog
+          isDemo={viewer.isDemo}
           open
           onClose={() => setDialogOpen(false)}
           onAdd={addTransaction}

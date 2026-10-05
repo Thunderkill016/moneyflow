@@ -245,7 +245,11 @@ test("Phase 5 add, edit and split dialogs use the shared lifecycle and local tra
       `${path} must use Dialog`,
     );
     assert.match(source, /transaction-form\.module\.css/);
-    assert.match(source, /dismissible=\{!submitting\}/);
+    const dismissalGuard =
+      path === "src/components/add-transaction-dialog.tsx"
+        ? /dismissible=\{!submitting && !pasteBusy\}/
+        : /dismissible=\{!submitting\}/;
+    assert.match(source, dismissalGuard, `${path} must block dismissal while busy`);
     assert.match(source, /targetSize="important"/);
     assert.doesNotMatch(source, /<dialog\b/);
     assert.doesNotMatch(

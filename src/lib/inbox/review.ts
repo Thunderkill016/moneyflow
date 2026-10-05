@@ -4,6 +4,7 @@
  * Money stays integer VND đồng.
  */
 
+import { isValidDateOnly } from "../date-only.ts";
 import { maskAccountLikeDigits } from "../mask-account.ts";
 import type {
   AccountOption,
@@ -20,6 +21,7 @@ import {
   type InboxCandidate,
 } from "./candidate-store.ts";
 import {
+  dryRunUserMessage,
   parserVersionForSource,
   type CandidateProvenance,
 } from "./provenance.ts";
@@ -93,47 +95,49 @@ export function buildExplainLines(
   candidate: InboxCandidate & CandidateProvenance,
 ): ExplainLine[] {
   const lines: ExplainLine[] = [];
-  const parser =
-    candidate.parserVersion ?? parserVersionForSource(candidate.source);
-  lines.push({ kind: "parser", text: `Parser: ${parser}` });
+  const recordedParser = candidate.parserVersion?.trim();
+  const parser = recordedParser || parserVersionForSource(candidate.source);
+  lines.push({
+    kind: "parser",
+    text: recordedParser
+      ? `Parser: ${parser}`
+      : `Parser mặc định cho nguồn: ${parser} (không lưu phiên bản gốc)`,
+  });
+  lines.push({
+    kind: "parser",
+    text: `Độ tin trích xuất: ${CONFIDENCE_LABELS[candidate.confidence]}`,
+  });
+  lines.push({
+    kind: "audit",
+    text: `Số tiền ứng viên: ${new Intl.NumberFormat("vi-VN").format(candidate.amount)} đ`,
+  });
 
-  if (candidate.rawSnippet) {
-    const amountMatch = candidate.rawSnippet.match(
-      /(\d{1,3}(?:[.,]\d{3})+|\d+)\s*(k|K|đ|₫|vnd|VND)?/i,
-    );
-    if (amountMatch) {
-      lines.push({
-        kind: "parser",
-        text: `Amount regex khớp “${amountMatch[0].trim()}”`,
-      });
-    } else {
-      lines.push({
-        kind: "parser",
-        text: `Đã trích từ snippet (độ tin: ${CONFIDENCE_LABELS[candidate.confidence]})`,
-      });
-    }
-  } else {
+  if (
+    candidate.appliedRuleId?.trim() &&
+    Number.isSafeInteger(candidate.appliedRuleVersion) &&
+    (candidate.appliedRuleVersion ?? 0) > 0
+  ) {
     lines.push({
-      kind: "parser",
-      text: `Độ tin: ${CONFIDENCE_LABELS[candidate.confidence]}`,
+      kind: "rule",
+      text: `Rule đã áp dụng: ${candidate.appliedRuleId} · phiên bản ${candidate.appliedRuleVersion}`,
     });
   }
 
   if (candidate.category) {
     lines.push({
-      kind: "rule",
-      text: `Gợi ý danh mục: ${candidate.merchant || "—"} → ${candidate.category}`,
+      kind: "audit",
+      text: `Gợi ý danh mục: ${candidate.category}`,
     });
   } else {
     lines.push({
-      kind: "rule",
-      text: "Chưa có rule danh mục — hãy chọn khi duyệt",
+      kind: "audit",
+      text: "Chưa có danh mục — hãy chọn khi duyệt",
     });
   }
 
   if (candidate.account) {
     lines.push({
-      kind: "rule",
+      kind: "audit",
       text: `Gợi ý tài khoản: ${candidate.account}`,
     });
   }
@@ -161,17 +165,24 @@ export function buildExplainLines(
     });
   }
 
-  if (candidate.possibleDuplicate) {
+  if (candidate.possibleDuplicate || candidate.matchStatus) {
     const peer = candidate.duplicateOfId
       ? ` · ứng viên ${candidate.duplicateOfId}`
       : "";
-    const basis =
+    const basis = candidate.matchReason
+      ? dryRunUserMessage({
+          status: candidate.matchStatus ?? "duplicate",
+          reason: candidate.matchReason,
+        })
+      : "Chưa lưu căn cứ đối chiếu; hãy kiểm tra trước khi duyệt.";
+    const dayDifference =
+      Number.isSafeInteger(candidate.duplicateDayDiff) &&
       (candidate.duplicateDayDiff ?? 0) > 0
-        ? `cùng số tiền/mô tả · lệch ${candidate.duplicateDayDiff} ngày`
-        : "cùng fingerprint";
+        ? ` · gợi ý lệch ${candidate.duplicateDayDiff} ngày`
+        : "";
     lines.push({
       kind: "audit",
-      text: `Cảnh báo: có thể trùng (${basis})${peer}`,
+      text: `Đối chiếu: ${basis}${dayDifference}${peer}`,
     });
   }
 
@@ -366,7 +377,7 @@ export function buildLedgerPost(
   if (!Number.isSafeInteger(draft.amount) || draft.amount <= 0) {
     return { ok: false, message: "Số tiền phải là số nguyên dương (đồng)." };
   }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.occurredOn)) {
+  if (!isValidDateOnly(draft.occurredOn)) {
     return { ok: false, message: "Ngày không hợp lệ (YYYY-MM-DD)." };
   }
 
