@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { tapKeypadAmount } from "./capture-keypad.ts";
 
 /*
  * The drill-down is only worth shipping if the rows it opens are the rows behind
@@ -27,8 +28,7 @@ async function recordOneExpense(page: import("@playwright/test").Page) {
   await expect(dialog).toBeVisible();
 
   await dialog.getByRole("button", { name: "Khoản chi" }).click();
-  const amount = dialog.getByLabel(/Số tiền chi/iu);
-  await amount.fill(AMOUNT);
+  await tapKeypadAmount(dialog, AMOUNT);
 
   // Save stays disabled until a category is chosen, so the drill-down row it
   // eventually produces is always attributable to a real category.

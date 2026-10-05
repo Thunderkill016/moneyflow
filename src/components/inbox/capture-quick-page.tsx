@@ -455,6 +455,7 @@ export function CaptureQuickPage({
             eyebrow="Nhập nhanh"
             title="Ghi giao dịch"
             initialKind={initialKind}
+            keypad
             onClose={handleClose}
             onAdd={handleAdd}
             onTransferRequested={canTransfer ? openTransfer : undefined}

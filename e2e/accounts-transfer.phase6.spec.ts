@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { tapKeypadAmount } from "./capture-keypad.ts";
 
 async function firstVisible(locator: Locator): Promise<Locator | null> {
   const count = await locator.count();
@@ -193,7 +194,7 @@ test("new demo accounts survive the complete study money journey", async ({
 
   await page.goto("/capture/quick");
   const quick = page.getByRole("dialog", { name: "Ghi giao dịch" });
-  await quick.getByLabel(/Số tiền chi/).fill("45000");
+  await tapKeypadAmount(quick, "45000");
   await quick
     .locator('details[data-slot="capture-category-choice"] summary')
     .click();
