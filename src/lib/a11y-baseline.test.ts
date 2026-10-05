@@ -29,7 +29,12 @@ test("AddTransactionDialog delegates modal focus lifecycle to shared Dialog", ()
 
   assert.match(src, /import \{ Dialog \}/);
   assert.match(src, /initialFocusRef=\{amountInputRef\}/);
-  assert.match(src, /dismissible=\{!submitting\}/);
+  assert.match(src, /dismissible=\{!submitting && !pasteBusy\}/);
+  assert.match(src, /onBusyChange=\{setPasteBusy\}/);
+  assert.match(
+    src,
+    /if \(!nextOpen && !submitting && !pasteBusy\) handleRequestClose\(\);/,
+  );
   assert.match(src, /id="add-tx-amount"/);
   assert.match(src, /Số tiền/);
   assert.match(src, /Tài khoản/);

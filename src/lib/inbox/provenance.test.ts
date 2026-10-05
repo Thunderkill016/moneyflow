@@ -12,7 +12,7 @@ import {
 
 test("parserVersionForSource is deterministic for current capture sources", () => {
   assert.equal(parserVersionForSource("csv"), "csv_import@1.0");
-  assert.equal(parserVersionForSource("paste"), "paste_text@1.1");
+  assert.equal(parserVersionForSource("paste"), "paste_text@1.2");
 });
 
 test("candidate provenance maps nullable Supabase fields without inventing data", () => {
@@ -263,7 +263,11 @@ test("dry-run messages distinguish exact and heuristic duplicates", () => {
       reason: "fingerprint_transaction_match",
       confidence: 0.85,
     }),
-    /rất giống/,
+    /Dấu vân tay dữ liệu trùng/,
+  );
+  assert.match(
+    dryRunUserMessage({ status: "duplicate", reason: "fingerprint_candidate_match" }),
+    /không xác nhận hai mục là cùng một giao dịch/,
   );
 });
 
@@ -289,7 +293,7 @@ test("paste parser upgrades preserve explicit historical candidate provenance", 
   };
   assert.equal(
     candidateProvenanceInsertPatch(candidate).parser_version,
-    "paste_text@1.1",
+    "paste_text@1.2",
   );
   assert.equal(
     candidateProvenanceInsertPatch({

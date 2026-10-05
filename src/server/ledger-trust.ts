@@ -2,7 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 
-import type { LedgerTrustSummary } from "@/lib/ledger-trust";
+import { isConsistentLedgerTrust, type LedgerTrustSummary } from "@/lib/ledger-trust";
 import { createClient } from "@/lib/supabase/server";
 import { requireViewer } from "@/server/auth";
 
@@ -41,7 +41,7 @@ export function mapLedgerTrust(
   value: z.infer<typeof ledgerTrustSchema> | null | undefined,
 ): LedgerTrustSummary | null {
   if (!value) return null;
-  return {
+  const summary: LedgerTrustSummary = {
     trustedThrough: value.trusted_through,
     baseReconciliationThrough: value.base_reconciliation_through,
     status: value.status,
@@ -69,6 +69,11 @@ export function mapLedgerTrust(
     earliestUnresolvedOn: value.earliest_unresolved_on,
     coverageScope: value.coverage_scope,
   };
+  if (!isConsistentLedgerTrust(summary)) {
+    console.error("ledger_trust_summary_inconsistent_response");
+    return null;
+  }
+  return summary;
 }
 
 /**

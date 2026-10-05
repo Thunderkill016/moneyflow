@@ -451,6 +451,7 @@ export function CaptureQuickPage({
 
         {!workspace.dataError && hasQuickSetup ? (
           <AddTransactionDialog
+            isDemo={viewer.isDemo}
             open={formOpen}
             eyebrow="Nhập nhanh"
             title="Ghi giao dịch"

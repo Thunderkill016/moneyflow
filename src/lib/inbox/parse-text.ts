@@ -81,6 +81,10 @@ const KNOWN_MERCHANTS: { pattern: RegExp; name: string }[] = [
 const AMOUNT_TOKEN =
   /([+-])?\s*(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?)(\s*)(k|K|nghìn|nghin|ngàn|ngan|triệu|trieu|tr|m|M)?(\s*)(đ|d|vnd|VND|₫)?/g;
 
+const DATE_TOKEN =
+  /\b(\d{4}-\d{1,2}-\d{1,2}|\d{1,2}([/.\-])\d{1,2}(?:\2\d{2,4})?)\b/g;
+const DATE_AMOUNT_SEPARATOR = "|";
+
 // Aliased from the single owner so inbox parsers keep their local name while the
 // rule itself lives in one tested place. Re-exported as a binding rather than
 // `export … from`, because this module also calls it below.
@@ -172,9 +176,12 @@ export type ExtractedAmount = {
 
 export function extractAmounts(line: string): ExtractedAmount[] {
   const results: ExtractedAmount[] = [];
+  const amountLine = line.replace(new RegExp(DATE_TOKEN.source, "g"), (token) =>
+    /^\d{1,2}\.\d{1,2}$/.test(token) ? token : DATE_AMOUNT_SEPARATOR.repeat(token.length),
+  );
   const re = new RegExp(AMOUNT_TOKEN.source, "g");
   let match: RegExpExecArray | null;
-  while ((match = re.exec(line)) !== null) {
+  while ((match = re.exec(amountLine)) !== null) {
     const sign = match[1] ?? "";
     const num = match[2] ?? "";
     const unit = match[4] ?? "";
@@ -196,12 +203,14 @@ export function extractAmounts(line: string): ExtractedAmount[] {
       if (!looksGrouped && amount < 10_000) continue;
     }
 
+    const leadingWhitespace = match[0].length - match[0].trimStart().length;
+    const raw = match[0].trim();
     results.push({
       amount,
-      index: match.index,
-      length: match[0].length,
+      index: match.index + leadingWhitespace,
+      length: raw.length,
       signedNegative: sign === "-",
-      raw: match[0].trim(),
+      raw,
       hasMoneyMarker,
     });
   }
@@ -284,9 +293,7 @@ function extractDate(line: string, today: string): ExtractedDate {
   let inferredYear = false;
   // Consume the full date, including unsupported two-digit years, so a bad
   // year cannot be silently discarded and reinterpreted as day/month.
-  const tokens = line.matchAll(
-    /\b(\d{4}-\d{1,2}-\d{1,2}|\d{1,2}([/.\-])\d{1,2}(?:\2\d{2,4})?)\b/g,
-  );
+  const tokens = line.matchAll(new RegExp(DATE_TOKEN.source, "g"));
   for (const match of tokens) {
     const raw = match[1]!;
     const iso = /^\d{4}-/.test(raw);

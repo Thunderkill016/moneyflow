@@ -7,6 +7,7 @@ import { saveFailureMessage } from "@/lib/connectivity";
 import { trackProductEvent } from "@/lib/safe-analytics";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import dynamic from "next/dynamic";
 import { Dialog } from "@/components/ui/dialog";
 import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
@@ -62,8 +63,18 @@ const KEEP_OPEN_SUCCESS = "Đã lưu · nhập khoản tiếp";
 // crowding out the note field; the datalist still covers the long tail.
 const RECENT_PAYEE_CHIP_LIMIT = 4;
 
+// Keep the evidence parser out of the initial amount-first dialog load.
+const CapturePasteForm = dynamic(
+  () =>
+    import("@/components/inbox/capture-paste-form").then(
+      (module) => module.CapturePasteForm,
+    ),
+  { loading: () => <p role="status">Đang mở phần dán giao dịch…</p> },
+);
+
 export function AddTransactionDialog({
   open,
+  isDemo,
   onClose,
   onAdd,
   accounts,
@@ -80,6 +91,7 @@ export function AddTransactionDialog({
   showFrequentPatterns = false,
 }: {
   open: boolean;
+  isDemo: boolean;
   onClose: () => void;
   onAdd: (
     input: CreateTransactionInput,
@@ -98,6 +110,9 @@ export function AddTransactionDialog({
   onFrequentPatternSelectionChange?: (rank: 1 | 2 | null) => void;
   showFrequentPatterns?: boolean;
 }) {
+  const [captureMode, setCaptureMode] = useState<"manual" | "paste">("manual");
+  const [pasteVisited, setPasteVisited] = useState(false);
+  const [pasteBusy, setPasteBusy] = useState(false);
   const formId = useId();
   const amountInputRef = useRef<HTMLInputElement>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
@@ -378,10 +393,10 @@ export function AddTransactionDialog({
   }, []);
 
   useEffect(() => {
-    if (!effectiveOpen && !embedded) return;
+    if (captureMode !== "manual" || (!effectiveOpen && !embedded)) return;
     const frame = window.requestAnimationFrame(() => focusAmount(false));
     return () => window.cancelAnimationFrame(frame);
-  }, [effectiveOpen, embedded]);
+  }, [effectiveOpen, embedded, captureMode]);
 
   useEffect(() => () => clearSavedFlashTimer(), []);
 
@@ -437,6 +452,8 @@ export function AddTransactionDialog({
     clearSavedFlashTimer();
     setKeepOpenSession(false);
     setSavedFlash("");
+    setCaptureMode("manual");
+    setPasteVisited(false);
     onClose();
   }
 
@@ -1116,6 +1133,52 @@ export function AddTransactionDialog({
     </form>
   );
 
+  const captureContent = (
+    <>
+      <div
+        className={fastStyles.inputModes}
+        role="group"
+        aria-label="Cách ghi giao dịch"
+      >
+        <Button
+          type="button"
+          unstyled
+          targetSize="important"
+          aria-pressed={captureMode === "manual"}
+          disabled={submitting || pasteBusy}
+          onClick={() => setCaptureMode("manual")}
+        >
+          Nhập số tiền
+        </Button>
+        <Button
+          type="button"
+          unstyled
+          targetSize="important"
+          aria-pressed={captureMode === "paste"}
+          disabled={disabled || submitting || pasteBusy}
+          onClick={() => {
+            setPasteVisited(true);
+            setCaptureMode("paste");
+          }}
+        >
+          Dán giao dịch
+        </Button>
+      </div>
+      <div hidden={captureMode !== "manual"}>{form}</div>
+      {pasteVisited && (
+        <div hidden={captureMode !== "paste"}>
+          <CapturePasteForm
+            isDemo={isDemo}
+            accounts={accounts}
+            embedded
+            active={captureMode === "paste" && effectiveOpen}
+            onBusyChange={setPasteBusy}
+          />
+        </div>
+      )}
+    </>
+  );
+
   if (embedded) {
     if (!effectiveOpen) return null;
     return (
@@ -1128,7 +1191,7 @@ export function AddTransactionDialog({
           <p className={styles.embeddedEyebrow}>{eyebrow}</p>
           <h2 id="transaction-embedded-title">{resolvedTitle}</h2>
         </header>
-        {form}
+        {captureContent}
       </section>
     );
   }
@@ -1137,16 +1200,16 @@ export function AddTransactionDialog({
     <Dialog
       open={effectiveOpen}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen && !submitting) handleRequestClose();
+        if (!nextOpen && !submitting && !pasteBusy) handleRequestClose();
       }}
       title={resolvedTitle}
-      dismissible={!submitting}
+      dismissible={!submitting && !pasteBusy}
       initialFocusRef={amountInputRef}
       className={`${styles.dialog} ${fastStyles.compactDialog}`}
       contentClassName={`${styles.dialogContent} ${fastStyles.compactDialogContent}`}
-      footer={footer}
+      footer={captureMode === "manual" ? footer : undefined}
     >
-      {form}
+      {captureContent}
     </Dialog>
   );
 }

@@ -855,13 +855,13 @@ export function TransactionsWorkspace({
       : Math.min(focusedIndex, listWindow.visible.length - 1);
   const modalOpen = Boolean(
     dialogOpen ||
-    transferOpen ||
-    splitOpen ||
-    editing ||
-    deleteTarget ||
-    bulkCategoryReview ||
-    bulkDateReview ||
-    bulkDeleteReview,
+      transferOpen ||
+      splitOpen ||
+      editing ||
+      deleteTarget ||
+      bulkCategoryReview ||
+      bulkDateReview ||
+      bulkDeleteReview,
   );
 
   useEffect(() => {
@@ -2593,6 +2593,7 @@ export function TransactionsWorkspace({
       </main>
 
       <AddTransactionDialog
+        isDemo={viewer.isDemo}
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         onAdd={handleAdd}

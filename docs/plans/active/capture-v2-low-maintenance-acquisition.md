@@ -10,6 +10,51 @@
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet defines Capture V2 product hypotheses, safety boundaries, benchmark requirements and a possible delivery sequence. It does **not** authorize runtime implementation, schema changes, provider integration, production writes or merging.
 
+## Bounded execution — paste inside Ghi (2026-10-05)
+
+- **Current execution state:** evaluating on `feat/ghi-inline-paste-20261005`, based on main `aa67d59c`.
+- **Active responsibility:** implementer; scope authorized by the owner's explicit request to research and integrate paste into Ghi. Other Capture V2 experiments remain unapproved.
+- **Observed failure:** owner could not find paste in the production Ghi surface. Main opens an amount-first dialog; paste requires a separate route behind advanced navigation.
+- **Canon gate:** Stage 0/1 Financial Reality / Low-maintenance Reality, existing deterministic evidence acquisition with explicit review.
+- **Risk class:** Class 2, bounded shared Ghi UI integration. No new parser, ledger semantics, schema, bank connectivity, AI, OCR, or provider changes.
+
+### Focused research and decision
+
+1. [NN/g progressive disclosure](https://www.nngroup.com/articles/progressive-disclosure/) supports keeping the common entry path focused and exposing secondary capabilities deliberately. Application: amount-first stays default; a visible input-method switch offers paste; source/rules stay collapsed. This does not prove MF task speed or justify hiding acquisition behind another product section.
+2. [W3C error prevention](https://www.w3.org/WAI/WCAG22/Understanding/error-prevention-legal-financial-data.html) explains review/correction/reversibility for consequential submissions. Application: reuse paste preview and pending Inbox review; do not auto-post. The guidance does not demand an extra confirmation for every ordinary manual record, and this change is not a WCAG compliance claim.
+3. Repository-primary evidence: `AddTransactionDialog` is shared by dashboard, transactions and quick capture; `CapturePastePage` owns deterministic parsing and pending-candidate creation. Extract one reusable paste form and reuse its exact mutation owner in both surfaces.
+
+No new package or external runtime is required. Existing AGPL application ownership applies; sources inform design only, no third-party code is copied. Raw text remains in component state and existing explicit pending-candidate provenance; no new telemetry or draft storage collects it. Rollback restores the pre-change UI while leaving existing candidate data and standalone routes intact.
+
+### Acceptance and bounded plan
+
+- All three existing Ghi hosts expose `Nhập số tiền` / `Dán giao dịch` in the same dialog. Initial amount focus and manual save remain unchanged.
+- Switching methods preserves unsaved manual amount/details and pasted text/preview within the open session; returning to manual focuses amount.
+- Paste focuses its labelled textarea, supports malformed-input recovery, preview/correction, optional source/rules and explicit account choice. Parsed uncertainty remains visible.
+- Only the active method exposes its action. While parsing/saving, mode switches and modal dismissal are locked.
+- Parsed evidence creates pending candidates through the existing client Inbox adapter, never through the manual ledger mutation; successful save opens Inbox.
+- Existing `/capture/paste` remains compatible and reuses the same form.
+- Add browser regressions for all three hosts, draft preservation, invalid text, preview and pending-versus-ledger boundary; check constrained phone, keyboard, text scaling and WebKit with synthetic demo data.
+- Run typecheck, lint, domain/static gates, build and selected browser/audit gates; record exact evidence before PR handoff. Human physical-device speed and authenticated production remain unverified until exercised.
+
+### Tasks and evidence
+
+- [x] Verify current main, existing manual hosts and standalone paste owner.
+- [x] Focused research and bounded spec before code changes.
+- [x] Implement shared paste form and Ghi input-method switch.
+- [ ] Add/run regressions and inspect desktop/mobile visuals.
+- [ ] Record PR provenance, exact-head checks and owner handoff.
+
+### Bounded release authorization (2026-10-05)
+
+Owner approved the proposed commit/push/PR, exact-head CI, squash merge and main
+production deployment ("có sửa luôn rồi đưa lên"). This applies only to the
+implemented paste-inside-Ghi slice and the import/trust invariant release in
+`2026-10-05-import-trust-invariants.md`; the broader Capture V2 specification
+remains unapproved. No DB, secrets, Auth or protection changes. Read-only
+production verification follows deployment. Retain the ready base-main deployment
+for a separately approved rollback if a regression is found.
+
 ## Outcome
 
 Reduce the maintenance required to turn real-world financial activity into trustworthy MoneyFlow ledger facts without making users learn a growing menu of capture technologies.

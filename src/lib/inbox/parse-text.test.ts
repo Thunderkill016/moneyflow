@@ -33,6 +33,55 @@ test("extractAmounts finds signed and unit amounts", () => {
   assert.equal(sms[0]?.signedNegative, true);
 });
 
+test("calendar tokens never become signed money before the actual amount", () => {
+  for (const date of ["2026-10-05", "05-10-2026", "05/10/2026", "05.10.2026", "2026-02-30", "14-08-26"]) {
+    assert.deepEqual(extractAmounts(date), [], date);
+    for (const text of [`${date} cafe 45k`, `cafe ${date} 45k`, `cafe 45k ${date}`]) {
+      const row = parsePasteLine(text, { today: "2026-10-05" });
+      assert.equal(row?.amount, 45_000, text);
+      assert.ok(!row?.uncertainFields.includes("amount"), text);
+    }
+  }
+});
+
+test("date exclusion preserves original amount positions and labelled selection", () => {
+  const text = "2026-10-05 | SD: 3.450.000 VND | GD: -250.000 VND | ND: GRAB";
+  const amounts = extractAmounts(text);
+  assert.deepEqual(amounts.map((amount) => amount.amount), [3_450_000, 250_000]);
+  for (const amount of amounts) {
+    assert.equal(text.slice(amount.index, amount.index + amount.length).trim(), amount.raw);
+  }
+  const row = parsePasteLine(text, { today: "2026-10-05" });
+  assert.equal(row?.amount, 250_000);
+  assert.ok(!row?.uncertainFields.includes("amount"));
+});
+
+test("date exclusion retains decimal units, grouped money and standalone signs", () => {
+  for (const [text, amount] of [
+    ["2026-10-05 cafe 1.5tr", 1_500_000],
+    ["2026-10-05 cafe 1.5 tr", 1_500_000],
+    ["2026-10-05 cafe 1,5tr", 1_500_000],
+    ["2026-10-05 cafe 45.000", 45_000],
+    ["2026-10-05 cafe -45000", 45_000],
+    ["2026-10-05 lương +15000000", 15_000_000],
+  ] as const) {
+    assert.equal(parsePasteLine(text, { today: "2026-10-05" })?.amount, amount, text);
+  }
+});
+
+test("date exclusion cannot carry a sign across the removed calendar token", () => {
+  for (const prefix of ["-", "+"]) {
+    const text = `${prefix}2026-10-05 45000`;
+    const amounts = extractAmounts(text);
+    assert.equal(amounts.length, 1);
+    assert.equal(amounts[0]?.amount, 45_000);
+    assert.equal(amounts[0]?.raw, "45000");
+    assert.equal(amounts[0]?.signedNegative, false);
+    assert.equal(amounts[0]?.hasMoneyMarker, false);
+    assert.equal(text.slice(amounts[0]!.index, amounts[0]!.index + amounts[0]!.length), "45000");
+  }
+});
+
 /*
  * The eight formats below are the ones this product actually receives through
  * the PWA Share Target, and each opens with an unmasked account number.

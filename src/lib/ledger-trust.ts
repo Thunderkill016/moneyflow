@@ -1,3 +1,5 @@
+import { isValidDateOnly } from "./date-only.ts";
+
 export type LedgerTrustStatus = "trusted" | "trusted_limited" | "blocked";
 
 export type LedgerTrustReason =
@@ -25,6 +27,86 @@ export type LedgerTrustPresentation = {
   detail: string;
   action: { href: string; label: string } | null;
 };
+
+const TRUST_BOUNDARY_DAY_OFFSET = 1;
+
+export function isConsistentLedgerTrust(summary: LedgerTrustSummary): boolean {
+  const counts = [
+    summary.activeAccountCount,
+    summary.cleanReconciledAccountCount,
+    summary.pendingInboxCount,
+    summary.needsReviewTransactionCount,
+    summary.unreconciledAccountLegCount,
+  ];
+  if (!counts.every((count) => Number.isSafeInteger(count) && count >= 0)) {
+    return false;
+  }
+  if (
+    summary.coverageScope !== "known_ledger_state_only" ||
+    summary.cleanReconciledAccountCount > summary.activeAccountCount ||
+    ![
+      summary.trustedThrough,
+      summary.baseReconciliationThrough,
+      summary.earliestUnresolvedOn,
+    ].every((date) => date === null || isValidDateOnly(date))
+  ) {
+    return false;
+  }
+
+  const hasUnresolvedWork =
+    summary.pendingInboxCount > 0 ||
+    summary.needsReviewTransactionCount > 0 ||
+    summary.unreconciledAccountLegCount > 0;
+
+  if (summary.status === "blocked") {
+    if (
+      summary.trustedThrough !== null ||
+      summary.earliestUnresolvedOn !== null ||
+      hasUnresolvedWork
+    ) {
+      return false;
+    }
+    if (summary.reason === "no_active_accounts") {
+      return summary.activeAccountCount === 0 && summary.baseReconciliationThrough === null;
+    }
+    return (
+      summary.reason === "missing_clean_reconciliation" &&
+      summary.activeAccountCount > summary.cleanReconciledAccountCount &&
+      (summary.cleanReconciledAccountCount === 0
+        ? summary.baseReconciliationThrough === null
+        : summary.baseReconciliationThrough !== null)
+    );
+  }
+
+  if (
+    summary.activeAccountCount === 0 ||
+    summary.cleanReconciledAccountCount !== summary.activeAccountCount ||
+    summary.baseReconciliationThrough === null ||
+    summary.trustedThrough === null
+  ) {
+    return false;
+  }
+  if (summary.status === "trusted") {
+    return (
+      summary.reason === "clean_reconciliation_boundary" &&
+      summary.trustedThrough === summary.baseReconciliationThrough &&
+      !hasUnresolvedWork &&
+      summary.earliestUnresolvedOn === null
+    );
+  }
+  if (
+    summary.status !== "trusted_limited" ||
+    summary.reason !== "known_unresolved_work" ||
+    !hasUnresolvedWork ||
+    summary.earliestUnresolvedOn === null ||
+    summary.earliestUnresolvedOn > summary.baseReconciliationThrough
+  ) {
+    return false;
+  }
+  const boundary = new Date(`${summary.earliestUnresolvedOn}T00:00:00.000Z`);
+  boundary.setUTCDate(boundary.getUTCDate() - TRUST_BOUNDARY_DAY_OFFSET);
+  return summary.trustedThrough === boundary.toISOString().slice(0, 10);
+}
 
 function formatIsoDate(value: string | null) {
   if (!value) return null;
@@ -57,14 +139,19 @@ function limitedAction(summary: LedgerTrustSummary) {
 export function presentLedgerTrust(
   summary: LedgerTrustSummary,
 ): LedgerTrustPresentation {
+  if (!isConsistentLedgerTrust(summary)) {
+    return {
+      headline: "Chưa xác nhận được mốc tin cậy",
+      detail: "Dữ liệu mốc tin cậy chưa nhất quán. MoneyFlow không xác nhận sổ đã đối soát sạch từ dữ liệu này.",
+      action: null,
+    };
+  }
   const trustedThrough = formatIsoDate(summary.trustedThrough);
   const earliestUnresolved = formatIsoDate(summary.earliestUnresolvedOn);
 
   if (summary.status === "trusted") {
     return {
-      headline: trustedThrough
-        ? `Sổ tin cậy đến ${trustedThrough}`
-        : "Sổ đã được đối soát sạch",
+      headline: `Sổ tin cậy đến ${trustedThrough}`,
       detail:
         "Dựa trên các tài khoản đã đối soát và việc MoneyFlow đã biết; không xác nhận mọi hoạt động từ nguồn bên ngoài đã được ghi nhận.",
       action: null,
