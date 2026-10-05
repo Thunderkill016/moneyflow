@@ -42,7 +42,7 @@ No new package or external runtime is required. Existing AGPL application owners
 - [x] Verify current main, existing manual hosts and standalone paste owner.
 - [x] Focused research and bounded spec before code changes.
 - [x] Implement shared paste form and Ghi input-method switch.
-- [ ] Add/run regressions and inspect desktop/mobile visuals.
+- [x] Add/run all three host regressions on desktop/phone (six cases); inspect constrained-phone paste layout.
 - [ ] Record PR provenance, exact-head checks and owner handoff.
 
 ### Bounded release authorization (2026-10-05)
@@ -54,6 +54,15 @@ implemented paste-inside-Ghi slice and the import/trust invariant release in
 remains unapproved. No DB, secrets, Auth or protection changes. Read-only
 production verification follows deployment. Retain the ready base-main deployment
 for a separately approved rollback if a regression is found.
+
+Pre-release evidence: combined demo smoke 44/44; full unit 2000/2000, CI-policy
+191/191, clean typecheck/lint and static contracts. The parser's calendar-as-money
+defect found by the new Ghi cases was fixed with four domain regressions and
+`paste_text@1.2`; details and failed-run disposition belong to the import/trust
+packet. Embedded paste preview/focus/idle Escape is covered in the existing
+critical-browser matrix. Selected local build/responsive audit is running (86
+cases); PR #759 final-head CI and production verification remain pending. This
+does not establish authenticated production writes or physical-device usability.
 
 ## Outcome
 

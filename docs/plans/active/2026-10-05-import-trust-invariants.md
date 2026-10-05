@@ -190,6 +190,22 @@ regression close that counterexample without shifting original source offsets.
 Full static/unit/browser and selected responsive gates must be rerun on the
 corrected source before merge. No database or dependency changes are required.
 
+Combined pre-release disposition: 81/81 focused parser/provenance/map/review,
+2000/2000 full unit, 191/191 CI-policy, clean current-source typecheck and ESLint
+autofix; architecture, knowledge, CSS ownership, deployment configuration and
+migration identity passed. Desktop/phone demo smoke passed 44/44, including all
+six Ghi host cases after the final parser correction. The local smoke started
+before the separator counterexample was tightened, so hosted final-head smoke
+remains mandatory. Added embedded-paste preview/focus/Escape regression to the
+existing critical-browser audit for WebKit and dark variants. Selected local
+production-build/responsive audit has 86 cases and is running; no retry acceptance
+is inferred. There is no dedicated formatter configured; reuse existing ESLint
+autofix without adding tooling dependencies.
+
+Initial draft CI correctly failed the own-PR-record contract before PR #759 was
+recorded. Commit `7efe17e8` added the record and the next policy run passed. This
+bookkeeping failure and superseded checks do not count as final-head release proof.
+
 ### Owner-authorized follow-up: stale dismissal contracts
 
 The owner's explicit follow-up `sửa luôn` authorizes fixing the two reported
@@ -319,9 +335,8 @@ that PATH and Docker remains unavailable; no DB test/reset is claimed.
 - Branch: existing non-main capture branch; task not isolated in a new branch.
 - PR: #759 on the existing non-main branch; implementation commit `7677b69f`.
   Final-head checks, merge and deployment remain pending.
-- Local implementation finished in the bounded owned files; packet stays
-  `evaluating`, not `ready_for_review`/`accepted`, because the whole working tree
-  has no isolated PR/exact-head CI. The two stale contracts are now fixed and the
-  final full local suite is green; earlier failed-run evidence is retained above.
+- Local implementation finished in the approved combined release; packet stays
+  `evaluating`, not `accepted`, while final-head hosted checks and selected local
+  responsive evaluation remain pending. Earlier failed-run evidence is retained.
 - Next allowed action: verify the combined Ghi/import/trust release, record PR
   provenance, then require exact-head hosted checks before the approved merge.

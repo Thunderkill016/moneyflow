@@ -24,6 +24,23 @@ test.describe("critical browser compatibility audit", () => {
     });
   }
 
+  test("Ghi paste preserves date and money in the critical browser matrix", async ({ page }) => {
+    await page.goto("/capture/quick", { waitUntil: "domcontentloaded" });
+    const dialog = page.getByRole("dialog", { name: "Ghi giao dịch" });
+    await dialog.getByRole("button", { name: "Dán giao dịch", exact: true }).click();
+    const text = dialog.getByLabel("Nội dung", { exact: true });
+    await expect(text).toBeFocused();
+    await text.fill("2026-10-05 cafe 45k");
+    await dialog.getByRole("button", { name: "Phân tích", exact: true }).click();
+    await expect(dialog.getByText("Tìm thấy 1 giao dịch", { exact: true })).toBeFocused();
+    await expect(dialog.locator(".capture-paste-preview-amount")).toContainText("45.000");
+    await expect(dialog.getByText("2026-10-05", { exact: true })).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Vào Inbox", exact: true })).toBeEnabled();
+    await expect(dialog.getByRole("button", { name: "Lưu", exact: true })).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(dialog).not.toBeVisible();
+  });
+
   test("root viewport enables safe-area layout without changing public light mode", async ({
     page,
   }) => {
