@@ -10,7 +10,7 @@
 
 **Owner:** MoneyFlow human owner; Codex implements/evaluates locally
 
-**Issue/PR:** release PR pending allocation
+**Issue/PR:** #759 (draft; final-head checks and deployment pending)
 
 **Last updated:** 2026-10-05
 
@@ -317,7 +317,8 @@ that PATH and Docker remains unavailable; no DB test/reset is claimed.
 ## Delivery record
 
 - Branch: existing non-main capture branch; task not isolated in a new branch.
-- PR/commit/CI/deployment: pending; owner has now authorized the bounded release.
+- PR: #759 on the existing non-main branch; implementation commit `7677b69f`.
+  Final-head checks, merge and deployment remain pending.
 - Local implementation finished in the bounded owned files; packet stays
   `evaluating`, not `ready_for_review`/`accepted`, because the whole working tree
   has no isolated PR/exact-head CI. The two stale contracts are now fixed and the
