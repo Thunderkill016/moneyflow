@@ -32,6 +32,18 @@ const nextConfig: NextConfig = {
         source: "/:path*",
         headers: [...buildSecurityHeaders()],
       },
+      {
+        // Voice capture is the only surface that uses the microphone
+        // (on-device Vosk recognition). Every other route keeps it blocked.
+        // Later matching rules override earlier ones for the same key.
+        source: "/capture/voice",
+        headers: [
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(self), geolocation=()",
+          },
+        ],
+      },
     ];
   },
 };
