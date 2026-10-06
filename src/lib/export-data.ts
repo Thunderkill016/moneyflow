@@ -57,14 +57,6 @@ export type ExportBundle = {
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-export function isExportDataKind(value: unknown): value is ExportDataKind {
-  return value === "transactions" || value === "candidates" || value === "all";
-}
-
-export function isExportFormat(value: unknown): value is ExportFormat {
-  return value === "csv" || value === "json";
-}
-
 export function normalizeExportDate(value: string): string {
   const trimmed = value.trim();
   return DATE_RE.test(trimmed) ? trimmed : "";

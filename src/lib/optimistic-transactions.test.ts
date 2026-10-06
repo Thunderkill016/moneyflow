@@ -458,7 +458,7 @@ test("update dispatches the draft inside the transition before the RPC", () => {
     /applyOptimisticMutation\(\{\s*type: "update",\s*transaction: draft\.transaction,?\s*\}\)/u,
   );
   const awaited = Math.min(
-    updateBody.indexOf("await updateTransferAction(input)"),
+    updateBody.indexOf("await updateTransferAction("),
     updateBody.indexOf("await updateTransactionAction("),
   );
   const transition = updateBody.indexOf("startTransition(async () =>");
