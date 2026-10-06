@@ -22,7 +22,7 @@ export const CAPTURE_OPTIONS: CaptureOption[] = [
   {
     id: "voice",
     label: "Nói để ghi",
-    description: "Nhập bằng giọng nói, xử lý trên máy bạn",
+    description: "Nhập bằng giọng nói, không cần gõ",
     href: "/capture/voice",
     icon: "mic",
   },
