@@ -15,6 +15,7 @@ import { AuthTurnstile } from "@/components/auth-turnstile";
 import { BrandLockup } from "@/components/brand/brand-lockup";
 import { Icon } from "@/components/icons";
 import { getPublicAuthCaptchaConfig } from "@/lib/auth-captcha";
+import { oauthErrorMessage } from "@/lib/auth-oauth-error";
 import { POST_AUTH_REDIRECT } from "@/lib/auth-redirect";
 import { AuthPasswordField } from "./auth-password-field";
 import styles from "./auth-form.module.css";
@@ -114,11 +115,14 @@ export function AuthForm({
   next = POST_AUTH_REDIRECT,
   demoMode = false,
   reauth = false,
+  authError = null,
 }: {
   mode: Mode;
   next?: string;
   demoMode?: boolean;
   reauth?: boolean;
+  /** OAuth failure code from `/login?error=<code>`; shown as a banner. */
+  authError?: string | null;
 }) {
   const action =
     mode === "login"
@@ -199,6 +203,12 @@ export function AuthForm({
                   )}
                 </div>
               )}
+
+            {mode === "login" && authError && (
+              <div className={styles.message} role="alert">
+                {oauthErrorMessage(authError)}
+              </div>
+            )}
 
             {(mode === "login" || mode === "register") && (
               <form action={signInWithGoogle}>

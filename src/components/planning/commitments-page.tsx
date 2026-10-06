@@ -392,11 +392,16 @@ export function CommitmentsPage({
   }
 
   async function performArchive(item: RecurringCommitment) {
-    const result = viewer.isDemo
-      ? { ok: true as const }
-      : await archiveCommitmentAction(item.id, !item.isArchived);
+    let result: { ok: boolean; message?: string };
+    try {
+      result = viewer.isDemo
+        ? { ok: true as const }
+        : await archiveCommitmentAction(item.id, !item.isArchived);
+    } catch {
+      result = { ok: false, message: "Mất kết nối khi lưu trữ khoản định kỳ." };
+    }
     if (!result.ok) {
-      showNotice(result.message, "error");
+      showNotice(result.message ?? "Có lỗi xảy ra.", "error");
       return false;
     }
     setItems((current) =>

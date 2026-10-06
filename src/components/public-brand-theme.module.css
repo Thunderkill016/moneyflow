@@ -29,8 +29,9 @@
   --mf-stage-soft: #f8fafc;
   --mf-stage-text: #101828;
   --mf-stage-muted: #475467;
-  --mf-focus: #0ea5e9;
-  --mf-focus-ring: rgb(14 165 233 / 18%);
+  /* Same 3:1 focus-contrast floor as the app theme: #0ea5e9 was 2.77:1 on white. */
+  --mf-focus: #0284c7;
+  --mf-focus-ring: rgb(2 132 199 / 18%);
   --mf-shadow-md: 0 18px 48px rgb(16 24 40 / 10%);
   --mf-shadow-lg: 0 30px 80px rgb(16 24 40 / 14%);
   color-scheme: light;

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; reauth?: string }>;
+  searchParams: Promise<{ next?: string; reauth?: string; error?: string }>;
 }) {
   const params = await searchParams;
   const next = safeNextPath(params.next);
@@ -24,6 +24,7 @@ export default async function Page({
       next={next}
       demoMode={!isSupabaseConfigured()}
       reauth={reauth}
+      authError={params.error}
     />
   );
 }

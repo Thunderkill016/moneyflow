@@ -23,6 +23,7 @@ import {
   loadRulesForClient,
   reorderRulesForClient,
   saveRuleForClient,
+  type ClientRulesResult,
 } from "@/hooks/client-rules";
 import type { CategorySummary } from "@/lib/categories";
 import { previewRuleApplication } from "@/lib/inbox/apply-rules";
@@ -190,18 +191,24 @@ export function RulesPage({
     }
 
     setSaving(true);
-    const result = await saveRuleForClient(viewer.isDemo, {
-      id: form.id,
-      expectedVersion: form.expectedVersion,
-      enabled: form.enabled,
-      field: form.field,
-      contains,
-      categoryId: category.id,
-      category: category.name,
-      categoryKind: category.kind,
-      merchant: form.merchant.trim() || undefined,
-    });
-    setSaving(false);
+    let result: ClientRulesResult;
+    try {
+      result = await saveRuleForClient(viewer.isDemo, {
+        id: form.id,
+        expectedVersion: form.expectedVersion,
+        enabled: form.enabled,
+        field: form.field,
+        contains,
+        categoryId: category.id,
+        category: category.name,
+        categoryKind: category.kind,
+        merchant: form.merchant.trim() || undefined,
+      });
+    } catch {
+      result = { ok: false, message: "Mất kết nối khi lưu quy tắc." };
+    } finally {
+      setSaving(false);
+    }
 
     if (!result.ok) {
       setFormError(result.message);
@@ -219,19 +226,25 @@ export function RulesPage({
   async function toggleEnabled(rule: InboxRule) {
     if (saving) return;
     setSaving(true);
-    const result = await saveRuleForClient(viewer.isDemo, {
-      id: rule.id,
-      expectedVersion: rule.version,
-      priority: rule.priority,
-      enabled: !rule.enabled,
-      field: rule.field,
-      contains: rule.contains,
-      categoryId: rule.categoryId,
-      category: rule.category,
-      categoryKind: rule.categoryKind ?? "expense",
-      merchant: rule.merchant,
-    });
-    setSaving(false);
+    let result: ClientRulesResult;
+    try {
+      result = await saveRuleForClient(viewer.isDemo, {
+        id: rule.id,
+        expectedVersion: rule.version,
+        priority: rule.priority,
+        enabled: !rule.enabled,
+        field: rule.field,
+        contains: rule.contains,
+        categoryId: rule.categoryId,
+        category: rule.category,
+        categoryKind: rule.categoryKind ?? "expense",
+        merchant: rule.merchant,
+      });
+    } catch {
+      result = { ok: false, message: "Mất kết nối khi lưu quy tắc." };
+    } finally {
+      setSaving(false);
+    }
     if (!result.ok) {
       setError(result.message);
       return;
@@ -246,8 +259,14 @@ export function RulesPage({
   async function deleteRule(rule: InboxRule) {
     if (saving) return;
     setSaving(true);
-    const result = await deleteRuleForClient(viewer.isDemo, rule);
-    setSaving(false);
+    let result: ClientRulesResult;
+    try {
+      result = await deleteRuleForClient(viewer.isDemo, rule);
+    } catch {
+      result = { ok: false, message: "Mất kết nối khi xóa quy tắc." };
+    } finally {
+      setSaving(false);
+    }
     if (!result.ok) {
       setError(result.message);
       return;
@@ -268,8 +287,14 @@ export function RulesPage({
     const ids = orderedRules.map((rule) => rule.id);
     [ids[index], ids[target]] = [ids[target]!, ids[index]!];
     setSaving(true);
-    const result = await reorderRulesForClient(viewer.isDemo, ids);
-    setSaving(false);
+    let result: ClientRulesResult;
+    try {
+      result = await reorderRulesForClient(viewer.isDemo, ids);
+    } catch {
+      result = { ok: false, message: "Mất kết nối khi đổi thứ tự quy tắc." };
+    } finally {
+      setSaving(false);
+    }
     if (!result.ok) {
       setError(result.message);
       return;

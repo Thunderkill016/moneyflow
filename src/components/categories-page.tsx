@@ -251,8 +251,14 @@ export function CategoriesPage({
       return;
     }
 
-    const result = await setCategoryArchivedAction(category.id, archivedNext);
-    setBusyId(null);
+    let result: Awaited<ReturnType<typeof setCategoryArchivedAction>>;
+    try {
+      result = await setCategoryArchivedAction(category.id, archivedNext);
+    } catch {
+      result = { ok: false, message: "Mất kết nối khi lưu trạng thái danh mục." };
+    } finally {
+      setBusyId(null);
+    }
     if (!result.ok) {
       setArchiveReview(null);
       showNotice(result.message, "error");

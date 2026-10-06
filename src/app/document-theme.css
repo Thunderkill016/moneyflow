@@ -110,8 +110,13 @@
   --mf-stage-text: var(--mf-text);
   --mf-stage-muted: var(--mf-text-muted);
 
-  --mf-focus: var(--mf-brand-500);
-  --mf-focus-ring: rgb(14 165 233 / 18%);
+  /*
+   * Focus indicator must stay >= 3:1 against the surface (WCAG 2.2 2.4.11).
+   * --mf-brand-500 (#0ea5e9) measured 2.77:1 on white, so the focus token is
+   * pinned darker here instead of tracking the brand ramp. #0284c7 = 4.10:1.
+   */
+  --mf-focus: #0284c7;
+  --mf-focus-ring: rgb(2 132 199 / 18%);
   --mf-overlay: rgb(12 17 29 / 58%);
   --mf-shadow-sm: 0 1px 2px rgb(16 24 40 / 6%);
   --mf-shadow-md: 0 18px 48px rgb(16 24 40 / 10%);

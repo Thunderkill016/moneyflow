@@ -226,7 +226,16 @@ export function AccountsWorkspace({
           message: "Không lưu được tài khoản demo. Hãy thử lại.",
         };
       }
-    } else result = await setAccountArchivedAction(account.id, archived);
+    } else {
+      try {
+        result = await setAccountArchivedAction(account.id, archived);
+      } catch {
+        result = {
+          ok: false as const,
+          message: "Mất kết nối khi lưu trạng thái tài khoản.",
+        };
+      }
+    }
     setBusyId(null);
 
     if (!result.ok) {

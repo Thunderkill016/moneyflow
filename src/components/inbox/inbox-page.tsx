@@ -1203,6 +1203,7 @@ export function InboxPage({
                   <Button
                     type="button"
                     intent="quiet"
+                    targetSize="important"
                     disabled={carryoverBusy}
                     onClick={handleCarryoverDecline}
                   >
