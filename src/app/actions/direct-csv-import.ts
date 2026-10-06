@@ -9,7 +9,7 @@ import {
   rateLimitUserMessage,
 } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
-import { requireViewer } from "@/server/auth";
+import { authRequiredFailure, requireActionViewer } from "@/server/auth";
 
 const MAX_DIRECT_IMPORT_ROWS = 5_000;
 
@@ -64,6 +64,7 @@ export type DirectCsvCommitResult =
   | {
       ok: false;
       message: string;
+      code?: string;
       batchId?: string;
     };
 
@@ -122,7 +123,8 @@ export async function commitDirectCsvImportAction(
     return { ok: false, message: "Dữ liệu import chưa hợp lệ." };
   }
 
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) {
     return {
       ok: false,

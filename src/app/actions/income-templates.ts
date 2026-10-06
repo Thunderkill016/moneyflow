@@ -4,12 +4,12 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { RecurringIncomeTemplate, SaveIncomeTemplateInput } from "@/lib/planning/income-templates";
 import { createClient } from "@/lib/supabase/server";
-import { requireViewer } from "@/server/auth";
+import { authRequiredFailure, requireActionViewer } from "@/server/auth";
 import { mapIncomeTemplateRow } from "@/server/income-templates";
 
 export type IncomeTemplateActionResult =
   | { ok: true; template?: RecurringIncomeTemplate; transactionId?: string }
-  | { ok: false; message: string };
+  | { ok: false; message: string; code?: string };
 
 const saveSchema = z.object({
   id: z.string().uuid().optional(),
@@ -18,6 +18,7 @@ const saveSchema = z.object({
   dueDay: z.number().int().min(1).max(31),
   accountId: z.string().uuid(),
   categoryId: z.string().uuid(),
+  expectedUpdatedAt: z.string().optional(),
 });
 const idSchema = z.string().uuid();
 const monthSchema = z.string().regex(/^\d{4}-\d{2}-01$/);
@@ -38,7 +39,8 @@ export async function saveIncomeTemplateAction(
   if (!parsed.success || !monthSchema.safeParse(monthStart).success) {
     return { ok: false, message: "Thông tin lương định kỳ chưa hợp lệ." };
   }
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) return { ok: false, message: "Chế độ demo không lưu lên máy chủ." };
   const supabase = await createClient();
   if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
@@ -50,14 +52,18 @@ export async function saveIncomeTemplateAction(
     p_due_day: value.dueDay,
     p_account_id: value.accountId,
     p_category_id: value.categoryId,
+    p_expected_updated_at: value.expectedUpdatedAt ?? null,
   });
+  if (error?.message.includes("stale_write")) {
+    return { ok: false, message: "Dữ liệu đã được thay đổi ở nơi khác, hãy tải lại và thử lại." };
+  }
   if (error || typeof id !== "string") {
     return { ok: false, message: "Không thể lưu lương định kỳ." };
   }
   const { data, error: readError } = await supabase
     .from("recurring_income_template_feed")
     .select(
-      "id,name,amount_minor,due_day,account_id,account_name,category_id,category_name,category_icon,category_color,is_archived",
+      "id,name,amount_minor,due_day,account_id,account_name,category_id,category_name,category_icon,category_color,is_archived,updated_at",
     )
     .eq("id", id)
     .single();
@@ -94,7 +100,8 @@ export async function archiveIncomeTemplateAction(
   if (!idSchema.safeParse(id).success) {
     return { ok: false, message: "Mã lương định kỳ không hợp lệ." };
   }
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) return { ok: false, message: "Chế độ demo không lưu lên máy chủ." };
   const supabase = await createClient();
   if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
@@ -123,7 +130,8 @@ export async function recordIncomeTemplateAction(
   ) {
     return { ok: false, message: "Thông tin ghi nhận thu không hợp lệ." };
   }
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) return { ok: false, message: "Chế độ demo không lưu lên máy chủ." };
   const supabase = await createClient();
   if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
@@ -147,7 +155,8 @@ export async function undoIncomeTemplateReceiptAction(
   if (!idSchema.safeParse(id).success || !monthSchema.safeParse(monthStart).success) {
     return { ok: false, message: "Thông tin hoàn tác không hợp lệ." };
   }
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) return { ok: false, message: "Chế độ demo không lưu lên máy chủ." };
   const supabase = await createClient();
   if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };

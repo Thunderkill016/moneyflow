@@ -41,7 +41,7 @@ import {
   migrateLocalInboxToServer,
   type InboxListResult,
 } from "@/server/inbox";
-import { requireViewer } from "@/server/auth";
+import { authRequiredFailure, requireActionViewer } from "@/server/auth";
 
 export type InboxActionResult =
   | {
@@ -51,7 +51,7 @@ export type InboxActionResult =
       batch?: ImportBatch;
       batches?: ImportBatch[];
     }
-  | { ok: false; message: string };
+  | { ok: false; message: string; code?: string };
 
 const CANDIDATE_COLUMNS = INBOX_CANDIDATE_COLUMNS;
 
@@ -184,7 +184,8 @@ function refreshInboxPaths() {
 }
 
 async function requireAuthedClient() {
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) {
     return {
       ok: false as const,
@@ -251,7 +252,7 @@ export async function carryDemoLedgerAction(
   }
 
   const auth = await requireAuthedClient();
-  if (!auth.ok) return { ok: false, message: auth.message };
+  if (!auth.ok) return auth;
 
   const limited = checkImportRateLimit(auth.viewer.id);
   if (limited && !limited.ok) return { ok: false, message: limited.message };
@@ -351,7 +352,7 @@ export async function createInboxCandidatesAction(
   }
 
   const auth = await requireAuthedClient();
-  if (!auth.ok) return { ok: false, message: auth.message };
+  if (!auth.ok) return auth;
 
   const limited = checkImportRateLimit(auth.viewer.id);
   if (limited) return limited;
@@ -402,7 +403,7 @@ export async function updateInboxCandidateAction(
   }
 
   const auth = await requireAuthedClient();
-  if (!auth.ok) return { ok: false, message: auth.message };
+  if (!auth.ok) return auth;
 
   const patch: Record<string, unknown> = {};
   const value = parsed.data;
@@ -473,7 +474,7 @@ export async function createImportBatchAction(
   }
 
   const auth = await requireAuthedClient();
-  if (!auth.ok) return { ok: false, message: auth.message };
+  if (!auth.ok) return auth;
 
   const limited = checkImportRateLimit(auth.viewer.id);
   if (limited) return limited;
@@ -511,7 +512,7 @@ export async function updateImportBatchStatusAction(
   }
 
   const auth = await requireAuthedClient();
-  if (!auth.ok) return { ok: false, message: auth.message };
+  if (!auth.ok) return auth;
 
   const patch: Record<string, unknown> = { status };
   if (status === "committed") {
@@ -547,7 +548,7 @@ export async function deleteImportBatchAction(
   if (!isUuid(id)) return { ok: false, message: "Mã import không hợp lệ." };
 
   const auth = await requireAuthedClient();
-  if (!auth.ok) return { ok: false, message: auth.message };
+  if (!auth.ok) return auth;
 
   const { error, count } = await auth.supabase
     .from("import_batches")
@@ -572,7 +573,7 @@ export async function applyCandidateListMutationAction(
     return { ok: false, message: "Dữ liệu cập nhật không hợp lệ." };
   }
   const auth = await requireAuthedClient();
-  if (!auth.ok) return { ok: false, message: auth.message };
+  if (!auth.ok) return auth;
 
   const byId = new Map(parsed.data.nextList.filter(isCandidate).map((c) => [c.id, c]));
   const updates: UpdateCandidateInput[] = [];

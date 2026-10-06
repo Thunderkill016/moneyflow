@@ -6,7 +6,7 @@ import {
   PATTERN_KEY_SHAPE,
 } from "@/lib/pattern-dismissals";
 import { createClient } from "@/lib/supabase/server";
-import { requireViewer } from "@/server/auth";
+import { requireActionViewer } from "@/server/auth";
 import { z } from "zod";
 
 /**
@@ -23,13 +23,17 @@ const keysSchema = z
 
 export type DismissalActionResult =
   | { ok: true }
-  | { ok: false; kind: "invalid" | "capability_missing" | "write_failed" };
+  | {
+      ok: false;
+      kind: "invalid" | "capability_missing" | "write_failed" | "not_authenticated";
+    };
 
 export async function dismissPatternKeysAction(
   scope: string,
   keys: string[],
 ): Promise<DismissalActionResult> {
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return { ok: false, kind: "not_authenticated" };
   if (viewer.isDemo) return { ok: false, kind: "capability_missing" };
 
   if (!(DISMISSAL_SCOPES as readonly string[]).includes(scope)) {

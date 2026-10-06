@@ -10,12 +10,12 @@ import {
   type SaveAccountInput,
 } from "@/lib/accounts";
 import { SUPPORTED_CURRENCY_CODES, normalizeCurrencyCode } from "@/lib/currency";
-import { requireViewer } from "@/server/auth";
+import { authRequiredFailure, requireActionViewer } from "@/server/auth";
 import { mapAccountRow } from "@/server/accounts";
 
 export type AccountActionResult =
   | { ok: true; account?: AccountSummary }
-  | { ok: false; message: string };
+  | { ok: false; message: string; code?: string };
 
 const saveSchema = z.object({
   id: z.string().uuid().optional(),
@@ -52,7 +52,8 @@ export async function saveAccountAction(input: SaveAccountInput): Promise<Accoun
   const parsed = saveSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Thông tin tài khoản chưa hợp lệ." };
 
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) return { ok: false, message: "Chế độ demo không lưu tài khoản mới." };
   const supabase = await createClient();
   if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
@@ -112,7 +113,8 @@ export async function setAccountArchivedAction(id: string, archived: boolean): P
   const parsed = archiveSchema.safeParse({ id, archived });
   if (!parsed.success) return { ok: false, message: "Yêu cầu chưa hợp lệ." };
 
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) return { ok: false, message: "Chế độ demo không thay đổi tài khoản." };
   const supabase = await createClient();
   if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };

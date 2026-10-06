@@ -7,11 +7,11 @@ import type {
   BulkTransactionCategoryInput,
   BulkTransactionReviewInput,
 } from "@/lib/transactions/contracts";
-import { requireViewer } from "@/server/auth";
+import { authRequiredFailure, requireActionViewer } from "@/server/auth";
 
 export type BulkTransactionActionResult =
   | { ok: true; updatedIds: string[] }
-  | { ok: false; message: string };
+  | { ok: false; message: string; code?: string };
 
 const idsSchema = z
   .array(z.string().uuid())
@@ -113,7 +113,8 @@ export async function bulkSetTransactionReviewAction(
     return { ok: false, message: "Danh sách giao dịch đã chọn chưa hợp lệ." };
   }
 
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) {
     return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
   }
@@ -138,7 +139,8 @@ export async function bulkUpdateTransactionCategoryAction(
     return { ok: false, message: "Thông tin sửa hàng loạt chưa hợp lệ." };
   }
 
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) {
     return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
   }

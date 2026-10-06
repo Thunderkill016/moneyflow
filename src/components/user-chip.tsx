@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRef } from "react";
 import { signOut } from "@/app/(auth)/actions";
+import { broadcastAuthSignedOut } from "@/lib/auth-cross-tab";
 import { Icon } from "@/components/icons";
 import {
   DropdownMenu,
@@ -95,6 +96,10 @@ export function UserChip({ viewer }: { viewer: ViewerSummary }) {
             danger
             onSelect={(event) => {
               event.preventDefault();
+              // Notify other tabs before the logout POST navigates this one
+              // away — the 2-tab logout race. Best-effort: the banner it raises
+              // is a courtesy, never a state change.
+              broadcastAuthSignedOut();
               logoutFormRef.current?.requestSubmit();
             }}
           >
