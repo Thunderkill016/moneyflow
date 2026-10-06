@@ -108,28 +108,42 @@ select is(
 
 -- 5: a precondition on the pure insert path proceeds — there is no existing
 -- row to be stale against.
+-- NOTE: the upsert and the verification must be separate statements. A
+-- volatile function call inside the same SELECT shares the statement snapshot,
+-- so the outer query cannot see the row the function just wrote.
+select set_config(
+  'moneyflow_test.ocb_budget2',
+  public.upsert_monthly_budget(
+    current_setting('moneyflow_test.ocb_category2')::uuid,
+    '2026-10-01'::date,
+    250000,
+    '2000-01-01T00:00:00Z'::timestamptz
+  )::text,
+  true
+);
 select is(
   (select limit_minor
    from public.monthly_budgets
-   where id = public.upsert_monthly_budget(
-     current_setting('moneyflow_test.ocb_category2')::uuid,
-     '2026-10-01'::date,
-     250000,
-     '2000-01-01T00:00:00Z'::timestamptz
-   )),
+   where id = current_setting('moneyflow_test.ocb_budget2')::uuid),
   250000::bigint,
   'a precondition with no existing row inserts normally'
 );
 
 -- 6: null precondition keeps the legacy last-write-wins path.
+-- (Same statement-snapshot note as test 5: upsert first, verify after.)
+select set_config(
+  'moneyflow_test.ocb_budget3',
+  public.upsert_monthly_budget(
+    current_setting('moneyflow_test.ocb_category')::uuid,
+    '2026-10-01'::date,
+    700000
+  )::text,
+  true
+);
 select is(
   (select limit_minor
    from public.monthly_budgets
-   where id = public.upsert_monthly_budget(
-     current_setting('moneyflow_test.ocb_category')::uuid,
-     '2026-10-01'::date,
-     700000
-   )),
+   where id = current_setting('moneyflow_test.ocb_budget3')::uuid),
   700000::bigint,
   'omitting expected_updated_at preserves the legacy write path'
 );

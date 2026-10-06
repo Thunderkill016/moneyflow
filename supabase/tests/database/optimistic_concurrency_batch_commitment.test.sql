@@ -42,7 +42,7 @@ select set_config(
   'moneyflow_test.occ_category',
   (select id::text
    from public.categories
-   where user_id = '99999999-9999-4999-8999-999999999992'::uuid),
+   where user_id = '99999999-9999-4999-8999-999999999992'::uuid and name = 'Ăn uống'),
   true
 );
 -- Seed the commitment via the legacy path, then capture its version.
