@@ -66,6 +66,12 @@ export type AccountSummary = {
   icon: AccountIconName | null;
   /** Stored picker choice; null falls back to the kind-derived tone. */
   color: AccountColor | null;
+  /**
+   * The version the client read (`updated_at`), fed back as `expectedUpdatedAt`
+   * on save — the optimistic-concurrency precondition. Undefined for demo
+   * rows and older callers, which keep the legacy last-write-wins path.
+   */
+  updatedAt?: string;
 };
 
 const accountRowSchema = z.object({
@@ -77,6 +83,7 @@ const accountRowSchema = z.object({
   is_archived: z.boolean(),
   icon: z.string().nullable().optional(),
   color: z.string().nullable().optional(),
+  updated_at: z.string().optional(),
 });
 
 function safeMoney(value: unknown) {
@@ -100,6 +107,7 @@ export function mapAccountRow(value: unknown, balanceValue?: unknown): AccountSu
     // mirroring the categories guard rather than emitting an unowned tone.
     icon: isAccountIconName(row.icon) ? row.icon : null,
     color: isAccountColor(row.color) ? row.color : null,
+    updatedAt: row.updated_at,
   };
 }
 
@@ -112,6 +120,8 @@ export type SaveAccountInput = {
   initialBalance: number;
   icon?: AccountIconName | null;
   color?: AccountColor | null;
+  /** Version read when the edit started; omitted on create and in demo. */
+  expectedUpdatedAt?: string;
 };
 
 export const accountKindLabels: Record<AccountKind, string> = {

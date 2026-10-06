@@ -36,7 +36,7 @@ export type GoalsWorkspace = {
   relatedCounts: Record<string, number> | null;
   dataError: string | null;
 };
-const goalSchema = z.object({ id: z.string().uuid(), name: z.string().min(1), target_minor: z.union([z.number(), z.string()]), allocated_minor: z.union([z.number(), z.string()]), deadline: z.string().nullable(), created_at: z.string().nullish(), is_archived: z.boolean() });
+const goalSchema = z.object({ id: z.string().uuid(), name: z.string().min(1), target_minor: z.union([z.number(), z.string()]), allocated_minor: z.union([z.number(), z.string()]), deadline: z.string().nullable(), created_at: z.string().nullish(), is_archived: z.boolean(), updated_at: z.string().optional() });
 const allocationSchema = z.object({ goal_id: z.string().uuid(), amount_minor: z.union([z.number(), z.string()]), created_at: z.string() });
 
 function safeMoney(value: unknown) { const amount = Number(value); if (!Number.isSafeInteger(amount) || amount < 0) throw new Error("invalid_goal_money"); return amount; }
@@ -48,7 +48,7 @@ function vietnamDay(value: string | null | undefined): string | null {
   return Number.isNaN(instant.getTime()) ? null : dateInVietnam(instant);
 }
 
-export function mapGoalRow(value: unknown): SavingsGoal { const row = goalSchema.parse(value); const target = safeMoney(row.target_minor); const allocated = safeMoney(row.allocated_minor); if (target <= 0 || allocated > target) throw new Error("invalid_goal_progress"); return { id: row.id, name: row.name, target, allocated, deadline: row.deadline, createdAt: vietnamDay(row.created_at), isArchived: row.is_archived }; }
+export function mapGoalRow(value: unknown): SavingsGoal { const row = goalSchema.parse(value); const target = safeMoney(row.target_minor); const allocated = safeMoney(row.allocated_minor); if (target <= 0 || allocated > target) throw new Error("invalid_goal_progress"); return { id: row.id, name: row.name, target, allocated, deadline: row.deadline, createdAt: vietnamDay(row.created_at), isArchived: row.is_archived, updatedAt: row.updated_at }; }
 
 function mapAllocationRow(value: unknown): GoalAllocation { const row = allocationSchema.parse(value); const amount = Number(row.amount_minor); if (!Number.isSafeInteger(amount)) throw new Error("invalid_goal_allocation"); const createdAt = vietnamDay(row.created_at); if (!createdAt) throw new Error("invalid_goal_allocation_date"); return { goalId: row.goal_id, amount, createdAt }; }
 
@@ -74,7 +74,7 @@ export async function getGoalsWorkspace(): Promise<GoalsWorkspace> {
    */
   const monthStart = currentMonthStart();
   const [{ data, error }, allocationsResult, balancesResult, commitmentsResult, occurrencesResult, taggedResult] = await Promise.all([
-    supabase.from("savings_goals").select("id,name,target_minor,allocated_minor,deadline,created_at,is_archived").order("is_archived").order("deadline", { nullsFirst: false }),
+    supabase.from("savings_goals").select("id,name,target_minor,allocated_minor,deadline,created_at,is_archived,updated_at").order("is_archived").order("deadline", { nullsFirst: false }),
     /*
      * The adjust RPC has always written this ledger; the goals screen is the
      * first read of it. A failed or malformed read degrades to null — the

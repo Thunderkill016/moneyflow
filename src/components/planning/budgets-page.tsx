@@ -358,7 +358,11 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
       return { ok: true };
     }
 
-    const result = await saveBudgetAction(input);
+    const result = await saveBudgetAction({
+      ...input,
+      // The version the edit dialog read; a stale row fails closed in the RPC.
+      expectedUpdatedAt: editing?.updatedAt,
+    });
     if (result.ok && result.budget) {
       const next = result.budget;
       if (next.monthStart !== workspace.monthStart) {

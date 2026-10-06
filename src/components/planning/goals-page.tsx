@@ -194,7 +194,11 @@ export function GoalsPage({
       return { ok: true };
     }
 
-    const result = await saveGoalAction(input);
+    const result = await saveGoalAction({
+      ...input,
+      // The version the edit dialog read; a stale row fails closed in the RPC.
+      expectedUpdatedAt: editing?.updatedAt,
+    });
     if (result.ok && result.goal) {
       setGoals((current) =>
         current.some((goal) => goal.id === result.goal!.id)

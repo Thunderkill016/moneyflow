@@ -189,7 +189,11 @@ export function AccountsWorkspace({
       }
     }
 
-    const result = await saveAccountAction(input);
+    const result = await saveAccountAction({
+      ...input,
+      // The version the edit dialog read; a stale row fails closed in the RPC.
+      expectedUpdatedAt: editing?.updatedAt,
+    });
     if (result.ok && result.account) {
       setAccounts((current) =>
         input.id

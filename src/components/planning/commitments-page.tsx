@@ -375,7 +375,14 @@ export function CommitmentsPage({
       return { ok: true };
     }
 
-    const result = await saveCommitmentAction(input, monthStart);
+    const result = await saveCommitmentAction(
+      {
+        ...input,
+        // The version the edit dialog read; a stale row fails closed in the RPC.
+        expectedUpdatedAt: editing?.updatedAt,
+      },
+      monthStart,
+    );
     if (result.ok && result.commitment) {
       setItems((current) =>
         current.some((item) => item.id === result.commitment!.id)
