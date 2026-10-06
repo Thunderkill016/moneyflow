@@ -31,6 +31,7 @@ declare
   v_user_id uuid := auth.uid();
   v_id uuid;
   v_category_kind public.category_kind;
+  v_category_archived boolean;
   v_existing_updated_at timestamptz;
 begin
   if v_user_id is null then raise exception 'authentication_required'; end if;
@@ -40,9 +41,10 @@ begin
   if not exists (select 1 from public.accounts where id = p_account_id and user_id = v_user_id and not is_archived) then
     raise exception 'account_not_found';
   end if;
-  select kind into v_category_kind from public.categories where id = p_category_id and user_id = v_user_id;
+  select kind, is_archived into v_category_kind, v_category_archived from public.categories where id = p_category_id and user_id = v_user_id;
   if v_category_kind is null then raise exception 'category_not_found'; end if;
   if v_category_kind <> 'expense' then raise exception 'expense_category_required'; end if;
+  if v_category_archived then raise exception 'category_archived'; end if;
 
   if p_commitment_id is null then
     insert into public.recurring_commitments (user_id, name, amount_minor, due_day, account_id, category_id)

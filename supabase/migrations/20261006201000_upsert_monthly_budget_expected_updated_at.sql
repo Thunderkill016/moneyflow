@@ -27,6 +27,7 @@ as $$
 declare
   v_user_id uuid := auth.uid();
   v_category_kind public.category_kind;
+  v_category_archived boolean;
   v_budget_id uuid;
   v_existing_updated_at timestamptz;
 begin
@@ -38,11 +39,10 @@ begin
     raise exception 'invalid_budget_limit';
   end if;
 
-  select kind into v_category_kind
-  from public.categories
-  where id = p_category_id and user_id = v_user_id;
+  select kind, is_archived into v_category_kind, v_category_archived from public.categories where id = p_category_id and user_id = v_user_id;
   if v_category_kind is null then raise exception 'category_not_found'; end if;
   if v_category_kind <> 'expense' then raise exception 'expense_category_required'; end if;
+  if v_category_archived then raise exception 'category_archived'; end if;
 
   -- Optimistic concurrency: when a precondition is supplied, lock the existing
   -- row for the conflict target and fail closed before any write if the
