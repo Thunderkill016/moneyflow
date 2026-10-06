@@ -7,8 +7,7 @@
   },
   "private": true,
   "scripts": {
-    "dev": "node scripts/fetch-voice-model.mjs && next dev",
-    "prebuild": "node scripts/fetch-voice-model.mjs",
+    "dev": "next dev",
     "build": "next build",
     "analyze": "next experimental-analyze",
     "start": "next start",
