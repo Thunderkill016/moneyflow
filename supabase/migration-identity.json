@@ -383,12 +383,12 @@
     {
       "version": "20261006201000",
       "name": "20261006201000_upsert_monthly_budget_expected_updated_at.sql",
-      "hash": "8de3e69e43f3ff67f4b6d9c3ecf6e297"
+      "hash": "e6d05bd0388d27857eff1d11d23971d5"
     },
     {
       "version": "20261006202000",
       "name": "20261006202000_upsert_recurring_commitment_expected_updated_at.sql",
-      "hash": "864584b6b4db766058e4740f94ff1d66"
+      "hash": "2f4d562669e4d264fd688cd099fbc459"
     },
     {
       "version": "20261006203000",
@@ -398,7 +398,7 @@
     {
       "version": "20261006204000",
       "name": "20261006204000_upsert_recurring_income_template_expected_updated_at.sql",
-      "hash": "03139fcef12709318a849ff7a12803d7"
+      "hash": "9cb2e0bc8ee568d77a74a93ef046d981"
     }
   ]
 }
