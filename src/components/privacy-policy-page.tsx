@@ -63,10 +63,10 @@ export function PrivacyPolicyPage() {
                 không kèm nội dung sao kê thô hay số dư chi tiết trong log/analytics.
               </li>
               <li>
-                <strong>Giọng nói (tùy chọn, chỉ khi bạn bấm mic):</strong> âm thanh được nhận
-                dạng <strong>hoàn toàn trên máy bạn</strong> — không gửi đi đâu, không lưu
-                audio, chỉ giữ lại văn bản bạn xác nhận. Model nhận dạng (khoảng 32MB) được
-                tải một lần và lưu trong bộ nhớ trình duyệt.
+                <strong>Giọng nói (tùy chọn, chỉ khi bạn bấm mic):</strong> đoạn ghi âm
+                được gửi đến dịch vụ nhận dạng (Groq Whisper) để chuyển thành văn
+                bản rồi xóa ngay — không lưu audio, chỉ giữ lại văn bản bạn xác
+                nhận. Không cần tải model về máy.
               </li>
             </ul>
           </section>

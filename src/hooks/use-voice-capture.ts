@@ -10,7 +10,7 @@ import {
 
 export type VoicePhase =
   | "idle"
-  | "loading-model"
+  | "preparing"
   | "listening"
   | "confirming";
 
@@ -24,22 +24,22 @@ export type VoiceParsedResult = {
 };
 
 /**
- * Orchestrates one voice-capture turn: model load -> mic -> transcript -> parse.
- * The Vosk engine is dynamically imported so the WASM bundle never enters the
- * main chunk; it only loads when the user opens voice capture.
+ * Orchestrates one voice-capture turn: mic -> transcript -> parse.
+ * The Whisper engine is dynamically imported so it only loads when the user
+ * opens voice capture. No on-device model download: audio goes to our
+ * /api/voice/transcribe proxy (Groq Whisper).
  */
 export function useVoiceCapture() {
   // null = support not checked yet (avoids SSR/client hydration mismatch).
   const [supported, setSupported] = useState<boolean | null>(null);
   const [phase, setPhase] = useState<VoicePhase>("idle");
-  const [partial, setPartial] = useState("");
   const [parsed, setParsed] = useState<VoiceParsedResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    void import("@/lib/voice/vosk-engine").then((engine) => {
+    void import("@/lib/voice/whisper-engine").then((engine) => {
       if (!cancelled) setSupported(engine.isVoiceCaptureSupported());
     });
     return () => {
@@ -49,24 +49,22 @@ export function useVoiceCapture() {
 
   const start = useCallback(async () => {
     setError(null);
-    setPartial("");
     setParsed(null);
     const aborter = new AbortController();
     abortRef.current = aborter;
     try {
-      const engine = await import("@/lib/voice/vosk-engine");
+      const engine = await import("@/lib/voice/whisper-engine");
       if (!engine.isVoiceCaptureSupported()) {
         throw new Error(
           "Thiết bị này không hỗ trợ nhập giọng nói. Bạn nhập tay nhé.",
         );
       }
-      setPhase("loading-model");
+      setPhase("preparing");
       await engine.ensureVoiceModel();
       if (aborter.signal.aborted) return;
       setPhase("listening");
       const { text } = await engine.transcribeOnce({
         signal: aborter.signal,
-        onPartial: (value) => setPartial(value),
       });
       if (aborter.signal.aborted) return;
       const clean = text.trim();
@@ -114,15 +112,13 @@ export function useVoiceCapture() {
     abortRef.current = null;
     setPhase("idle");
     setParsed(null);
-    setPartial("");
     setError(null);
   }, []);
 
   return {
     supported,
     phase,
-    partial,
-    parsed,
+      parsed,
     error,
     start,
     stopListening,

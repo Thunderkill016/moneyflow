@@ -128,7 +128,7 @@ export function VoiceCapturePage({
   }
 
   const busy =
-    voice.phase === "loading-model" ||
+    voice.phase === "preparing" ||
     voice.phase === "listening" ||
     saving ||
     isMutating;
@@ -238,22 +238,18 @@ export function VoiceCapturePage({
             <p className={styles.privacy}>
               <Icon name="lock" />
               <span>
-                Giọng nói chỉ xử lý trên máy bạn — không gửi đi đâu, không cần
-                mạng sau lần đầu.
+                Đoạn ghi âm được gửi để nhận dạng chữ rồi xóa ngay — không lưu
+                trữ.
               </span>
             </p>
           </section>
         ) : null}
 
-        {voice.phase === "loading-model" ? (
+        {voice.phase === "preparing" ? (
           <section className={styles.statusZone} aria-live="polite">
-            <p className={styles.statusTitle}>Đang chuẩn bị giọng nói…</p>
+            <p className={styles.statusTitle}>Đang chuẩn bị…</p>
             <p className={styles.statusDetail}>
-              Đang tải model tiếng Việt (khoảng 32MB). Lần đầu hơi lâu, lần
-              sau mở là dùng ngay.
-            </p>
-            <p className={styles.statusHint}>
-              Chỉ tải một lần duy nhất — không tốn phí, không gửi dữ liệu đi.
+              Sắp xong rồi, giữ máy gần miệng nhé.
             </p>
             <Button
               type="button"
@@ -273,7 +269,7 @@ export function VoiceCapturePage({
             </p>
             <p className={styles.statusTitle}>Đang nghe…</p>
             <p className={styles.statusDetail}>
-              {voice.partial ? `“${voice.partial}”` : "Nói đi, mình đang nghe."}
+              Nói đi, mình đang nghe.
             </p>
             <Button
               type="button"
