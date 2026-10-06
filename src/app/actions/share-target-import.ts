@@ -13,7 +13,7 @@ import {
   rateLimitUserMessage,
 } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
-import { requireViewer } from "@/server/auth";
+import { authRequiredFailure, requireActionViewer } from "@/server/auth";
 
 const MAX_SHARE_CANDIDATES = 2_500;
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -93,7 +93,7 @@ export type ShareTargetIngestResult =
       batchCount: number;
       candidateCount: number;
     }
-  | { ok: false; message: string };
+  | { ok: false; message: string; code?: string };
 
 const rpcResultSchema = z.object({
   batch_ids: z.array(z.string().uuid()),
@@ -121,7 +121,8 @@ export async function ingestShareTargetAction(
     return { ok: false, message: "Nội dung chia sẻ chưa hợp lệ để lưu." };
   }
 
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) {
     return {
       ok: false,

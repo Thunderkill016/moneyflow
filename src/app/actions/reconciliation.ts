@@ -6,12 +6,12 @@ import { z } from "zod";
 import { isValidDateOnly } from "@/lib/date-only";
 import type { AccountReconciliationStateData } from "@/lib/reconciliation";
 import { createClient } from "@/lib/supabase/server";
-import { requireViewer } from "@/server/auth";
+import { authRequiredFailure, requireActionViewer } from "@/server/auth";
 import { reloadAuthenticatedAccountReconciliationState } from "@/server/reconciliation";
 
 export type ReconciliationActionResult =
   | { ok: true; stateData: AccountReconciliationStateData }
-  | { ok: false; message: string };
+  | { ok: false; message: string; code?: string };
 
 const safeMoneySchema = z
   .number()
@@ -107,9 +107,19 @@ function reconciliationError(error: RpcError) {
 }
 
 async function authenticatedClient() {
-  const viewer = await requireViewer();
-  if (viewer.isDemo) return null;
-  return createClient();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
+  if (viewer.isDemo) {
+    return {
+      ok: false as const,
+      message: "Hãy dùng bộ nhớ demo trên thiết bị.",
+    };
+  }
+  const supabase = await createClient();
+  if (!supabase) {
+    return { ok: false as const, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
+  }
+  return { ok: true as const, supabase };
 }
 
 async function verifyEntryAccountBinding(
@@ -172,8 +182,9 @@ export async function startAccountReconciliationAction(input: {
 }): Promise<ReconciliationActionResult> {
   const parsed = startSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Thông tin sao kê chưa hợp lệ." };
-  const supabase = await authenticatedClient();
-  if (!supabase) return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
+  const auth = await authenticatedClient();
+  if (!auth.ok) return auth;
+  const supabase = auth.supabase;
 
   const { error } = await supabase.rpc("start_account_reconciliation", {
     p_account_id: parsed.data.accountId,
@@ -191,8 +202,9 @@ export async function setAccountEntryReconciliationStateAction(input: {
 }): Promise<ReconciliationActionResult> {
   const parsed = entryStateSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Giao dịch đối soát chưa hợp lệ." };
-  const supabase = await authenticatedClient();
-  if (!supabase) return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
+  const auth = await authenticatedClient();
+  if (!auth.ok) return auth;
+  const supabase = auth.supabase;
 
   const bindingFailure = await verifyEntryAccountBinding(
     supabase,
@@ -217,8 +229,9 @@ export async function completeAccountReconciliationAction(input: {
 }): Promise<ReconciliationActionResult> {
   const parsed = completeSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Kỳ đối soát chưa hợp lệ." };
-  const supabase = await authenticatedClient();
-  if (!supabase) return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
+  const auth = await authenticatedClient();
+  if (!auth.ok) return auth;
+  const supabase = auth.supabase;
 
   const bindingFailure = await verifySessionAccountBinding(
     supabase,
@@ -242,8 +255,9 @@ export async function reopenAccountReconciliationAction(input: {
 }): Promise<ReconciliationActionResult> {
   const parsed = sessionSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Kỳ đối soát chưa hợp lệ." };
-  const supabase = await authenticatedClient();
-  if (!supabase) return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
+  const auth = await authenticatedClient();
+  if (!auth.ok) return auth;
+  const supabase = auth.supabase;
 
   const bindingFailure = await verifySessionAccountBinding(
     supabase,

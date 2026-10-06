@@ -14,11 +14,11 @@ import {
 } from "@/lib/transactions/category-presentation";
 import { createClient } from "@/lib/supabase/server";
 import { mapCategoryRow } from "@/server/categories";
-import { requireViewer } from "@/server/auth";
+import { authRequiredFailure, requireActionViewer } from "@/server/auth";
 
 export type CategoryActionResult =
   | { ok: true; category?: CategorySummary }
-  | { ok: false; message: string };
+  | { ok: false; message: string; code?: string };
 
 const saveSchema = z.object({
   id: z.string().uuid().optional(),
@@ -70,7 +70,8 @@ export async function saveCategoryAction(
     return { ok: false, message: "Thông tin danh mục chưa hợp lệ." };
   }
 
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) {
     return { ok: false, message: "Chế độ demo không lưu danh mục lên máy chủ." };
   }
@@ -149,7 +150,8 @@ export async function setCategoryArchivedAction(
   const parsed = archiveSchema.safeParse({ id, archived });
   if (!parsed.success) return { ok: false, message: "Yêu cầu chưa hợp lệ." };
 
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) {
     return { ok: false, message: "Chế độ demo không thay đổi danh mục máy chủ." };
   }
