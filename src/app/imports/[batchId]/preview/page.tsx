@@ -1,15 +1,20 @@
 import type { Metadata } from "next";
-import { CapturePastePage } from "@/components/inbox/capture-paste-page";
+import { ImportPreviewPage } from "@/components/inbox/import-preview-page";
 import { requireViewer } from "@/server/auth";
 import { getDashboardFinanceWorkspace } from "@/server/finance";
 
 export const metadata: Metadata = {
-  title: "Dán text — Capture — Money Flow",
+  title: "Import Preview — Money Flow",
   description:
-    "Dán tin nhắn hoặc ghi chú giao dịch, phân tích thành ứng viên trong Inbox.",
+    "Xem map cột và preview sao kê trước khi đưa giao dịch vào Inbox.",
 };
 
-export default async function Page() {
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ batchId: string }>;
+}) {
+  const { batchId } = await params;
   // This page only consumes workspace.accounts; the bounded dashboard scope
   // avoids scanning the full ledger and review feed for data it never reads.
   const [viewer, workspace] = await Promise.all([
@@ -17,7 +22,8 @@ export default async function Page() {
     getDashboardFinanceWorkspace(),
   ]);
   return (
-    <CapturePastePage
+    <ImportPreviewPage
+      batchId={batchId}
       accounts={workspace.accounts}
       viewer={{
         email: viewer.email,
