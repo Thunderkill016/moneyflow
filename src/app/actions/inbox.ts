@@ -144,6 +144,13 @@ const updateCandidateSchema = z
   })
   .strict();
 
+// A list mutation is a convenience action (approve/reject helpers), not a data
+// import: it may only persist a bounded batch per call.
+const listMutationSchema = z.object({
+  nextList: z.array(z.unknown()),
+  changedIds: z.array(z.string()).max(200),
+});
+
 const batchSourceSchema = z.enum(["csv", "xlsx", "pdf", "paste"]);
 const batchStatusSchema = z.enum(["parsed", "committed", "cancelled"]);
 
@@ -457,25 +464,6 @@ export async function updateInboxCandidateAction(
   }
 }
 
-export async function bulkUpdateInboxCandidatesAction(
-  updates: UpdateCandidateInput[],
-): Promise<InboxActionResult> {
-  if (!Array.isArray(updates) || updates.length === 0) {
-    return { ok: false, message: "Không có mục để cập nhật." };
-  }
-  if (updates.length > 200) {
-    return { ok: false, message: "Quá nhiều mục cập nhật (tối đa 200)." };
-  }
-
-  const results: InboxCandidate[] = [];
-  for (const update of updates) {
-    const result = await updateInboxCandidateAction(update);
-    if (!result.ok) return result;
-    if (result.candidate) results.push(result.candidate);
-  }
-  return { ok: true, candidates: results };
-}
-
 export async function createImportBatchAction(
   input: CreateImportBatchWithProvenanceInput,
 ): Promise<InboxActionResult> {
@@ -579,18 +567,20 @@ export async function applyCandidateListMutationAction(
   nextList: InboxCandidate[],
   changedIds: string[],
 ): Promise<InboxActionResult> {
-  if (!Array.isArray(nextList) || !Array.isArray(changedIds)) {
+  const parsed = listMutationSchema.safeParse({ nextList, changedIds });
+  if (!parsed.success) {
     return { ok: false, message: "Dữ liệu cập nhật không hợp lệ." };
   }
   const auth = await requireAuthedClient();
   if (!auth.ok) return { ok: false, message: auth.message };
 
-  const byId = new Map(nextList.filter(isCandidate).map((c) => [c.id, c]));
-  for (const id of changedIds) {
+  const byId = new Map(parsed.data.nextList.filter(isCandidate).map((c) => [c.id, c]));
+  const updates: UpdateCandidateInput[] = [];
+  for (const id of parsed.data.changedIds) {
     if (!isUuid(id)) continue;
     const item = byId.get(id);
     if (!item) continue;
-    const result = await updateInboxCandidateAction({
+    updates.push({
       id: item.id,
       kind: item.kind,
       amount: item.amount,
@@ -608,7 +598,17 @@ export async function applyCandidateListMutationAction(
       rawSnippet: item.rawSnippet,
       importBatchId: item.importBatchId,
     });
-    if (!result.ok) return result;
+  }
+
+  // Updates are independent row patches, so apply them in small bounded
+  // batches instead of one at a time. A failed patch still stops the mutation
+  // and returns its error, exactly as before — partial writes stay visible.
+  const MUTATION_BATCH_SIZE = 10;
+  for (let start = 0; start < updates.length; start += MUTATION_BATCH_SIZE) {
+    const batch = updates.slice(start, start + MUTATION_BATCH_SIZE);
+    const results = await Promise.all(batch.map((input) => updateInboxCandidateAction(input)));
+    const failed = results.find((result) => !result.ok);
+    if (failed) return failed;
   }
 
   const listed = await listInboxFromServer();

@@ -108,17 +108,6 @@ function excelEvidenceContainer(
   return null;
 }
 
-/**
- * Strict evidence mode accepts only binary Excel-family signatures that can
- * carry typed cells. This intentionally rejects SheetJS' plaintext fallback,
- * where arbitrary bytes may otherwise be interpreted as CSV/TSV.
- */
-export function hasSupportedExcelEvidenceSignature(
-  data: ArrayBuffer | Uint8Array,
-): boolean {
-  return excelEvidenceContainer(data) !== null;
-}
-
 function workbookMatchesExcelContainer(
   workbook: XLSX.WorkBook,
   container: ExcelEvidenceContainer,

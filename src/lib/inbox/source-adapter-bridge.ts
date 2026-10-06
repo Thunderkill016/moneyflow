@@ -50,9 +50,3 @@ export function sourceAdapterRowToParsedCsvRow(
     mappingVersion: row.mappingVersion,
   };
 }
-
-export function sourceAdapterRowsToParsedCsvRows(
-  rows: CanonicalSourceCandidate[],
-): ParsedCsvRow[] {
-  return rows.map(sourceAdapterRowToParsedCsvRow);
-}

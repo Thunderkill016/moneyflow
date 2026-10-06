@@ -114,28 +114,43 @@ export async function carryForwardBudgetsAction(
   const supabase = await createClient();
   if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
 
+  // Each budget needs two sequential roundtrips (upsert RPC, then read the row
+  // back from budget_progress). Budgets are independent, so run them in small
+  // bounded batches rather than one after another: up to 100 inputs went from
+  // 200 sequential roundtrips to ~10 batches. A budget that fails (RPC error,
+  // unreadable row) is skipped exactly as before — the caller already shows a
+  // partial X/Y notice from result.budgets.length, so partial results stay.
   const budgets: BudgetSummary[] = [];
-  for (const input of parsed.data) {
-    const { data: budgetId, error } = await supabase.rpc("upsert_monthly_budget", {
-      p_category_id: input.categoryId,
-      p_month_start: input.monthStart,
-      p_limit_minor: input.limit,
-    });
-    if (error || typeof budgetId !== "string") continue;
+  const CARRY_BATCH_SIZE = 10;
+  for (let start = 0; start < parsed.data.length; start += CARRY_BATCH_SIZE) {
+    const batch = parsed.data.slice(start, start + CARRY_BATCH_SIZE);
+    const summaries = await Promise.all(
+      batch.map(async (input): Promise<BudgetSummary | null> => {
+        const { data: budgetId, error } = await supabase.rpc("upsert_monthly_budget", {
+          p_category_id: input.categoryId,
+          p_month_start: input.monthStart,
+          p_limit_minor: input.limit,
+        });
+        if (error || typeof budgetId !== "string") return null;
 
-    const { data, error: readError } = await supabase
-      .from("budget_progress")
-      .select(
-        "id,category_id,category_name,category_icon,category_color,month_start,limit_minor,spent_minor",
-      )
-      .eq("id", budgetId)
-      .single();
-    if (readError || !data) continue;
+        const { data, error: readError } = await supabase
+          .from("budget_progress")
+          .select(
+            "id,category_id,category_name,category_icon,category_color,month_start,limit_minor,spent_minor",
+          )
+          .eq("id", budgetId)
+          .single();
+        if (readError || !data) return null;
 
-    try {
-      budgets.push(mapBudgetRow(data));
-    } catch {
-      continue;
+        try {
+          return mapBudgetRow(data);
+        } catch {
+          return null;
+        }
+      }),
+    );
+    for (const summary of summaries) {
+      if (summary) budgets.push(summary);
     }
   }
 

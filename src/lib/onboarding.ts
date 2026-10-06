@@ -18,13 +18,6 @@ export const ONBOARDING_DONE_HREF = "/dashboard";
 /** Optional step-3 path: ghi chi nhanh (not paste/upload). */
 export const ONBOARDING_QUICK_EXPENSE_HREF = "/capture/quick";
 
-/** Allowed post-onboarding destinations (never lab /inbox). */
-export const ONBOARDING_EXIT_HREFS = [
-  ONBOARDING_SKIP_HREF,
-  ONBOARDING_DONE_HREF,
-  ONBOARDING_QUICK_EXPENSE_HREF,
-] as const;
-
 export const DEFAULT_CASH_WALLET_NAME = "Tiền mặt";
 /** Onboarding cash wallet is always VND (đồng). */
 export const DEFAULT_CASH_WALLET_CURRENCY = "VND";

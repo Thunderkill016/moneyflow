@@ -97,6 +97,7 @@ function dateUpdateInput(
       amount: transaction.amount,
       occurredOn,
       note: transaction.note,
+      expectedUpdatedAt: transaction.updatedAt,
     };
   }
   if (transaction.kind !== "income" && transaction.kind !== "expense") {
@@ -532,7 +533,11 @@ export function useTransactions({
         try {
           const result =
             input.kind === "transfer"
-              ? await updateTransferAction(input)
+              ? await updateTransferAction(
+                  existing?.updatedAt
+                    ? { ...input, expectedUpdatedAt: existing.updatedAt }
+                    : input,
+                )
               : await updateTransactionAction(
                   existing?.updatedAt
                     ? { ...input, expectedUpdatedAt: existing.updatedAt }

@@ -205,24 +205,6 @@ function reportClientError(context: string, error: unknown): void {
 }
 
 /**
- * Safe console.warn with redacted payload (dev diagnostics only).
- * Prefer structured codes over free-form text.
- */
-export function logClientWarn(
-  context: string,
-  payload?: Record<string, unknown>,
-): void {
-  const safeContext =
-    typeof context === "string" && context.length > 0
-      ? context.slice(0, 64)
-      : "client_warn";
-  console.warn(
-    `[moneyflow:${safeContext}]`,
-    payload ? redactForLog(payload) : undefined,
-  );
-}
-
-/**
  * User-facing notice / toast copy must never embed raw statement text.
  * Returns a short Vietnamese fallback when the message looks unsafe.
  */

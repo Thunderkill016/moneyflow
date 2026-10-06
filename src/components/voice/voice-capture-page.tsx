@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
@@ -62,6 +62,24 @@ export function VoiceCapturePage({
   const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
   const [saving, setSaving] = useState(false);
 
+  // Idempotency key for the pending confirm. It survives a failed save so a
+  // retry of the SAME confirm reuses it (no duplicate row if the first
+  // request actually committed). A fresh key is minted only when a new voice
+  // capture begins: after a successful save, on cancel, or on re-record.
+  const idempotencyKeyRef = useRef<string | null>(null);
+
+  /** A new voice capture begins: drop the old key so the next confirm mints fresh. */
+  function handleNewCapture() {
+    idempotencyKeyRef.current = null;
+    voice.reset();
+  }
+
+  /** User re-records instead of confirming: the old parsed result (and its key) is gone. */
+  function handleRerecord() {
+    idempotencyKeyRef.current = null;
+    void voice.start();
+  }
+
   const hasSetup =
     workspace.accounts.length > 0 && workspace.categories.length > 0;
 
@@ -78,6 +96,8 @@ export function VoiceCapturePage({
     setSaving(true);
     try {
       const occurredOn = todayInVietnam();
+      const idempotencyKey = idempotencyKeyRef.current ?? crypto.randomUUID();
+      idempotencyKeyRef.current = idempotencyKey;
       const transactionInput: CreateTransactionInput = {
         kind: input.kind,
         amount: input.amount,
@@ -85,7 +105,7 @@ export function VoiceCapturePage({
         accountId: input.accountId,
         note: input.note,
         occurredOn,
-        idempotencyKey: crypto.randomUUID(),
+        idempotencyKey,
       };
       const result = await addTransaction(transactionInput);
       if (!result.ok) {
@@ -122,7 +142,7 @@ export function VoiceCapturePage({
       }
       setNotice("Đã lưu vào sổ.");
       setNoticeTone("success");
-      voice.reset();
+      handleNewCapture();
     } finally {
       setSaving(false);
     }
@@ -256,7 +276,7 @@ export function VoiceCapturePage({
               type="button"
               intent="secondary"
               targetSize="important"
-              onClick={voice.reset}
+              onClick={handleNewCapture}
             >
               Hủy
             </Button>
@@ -291,8 +311,8 @@ export function VoiceCapturePage({
             categories={workspace.categories}
             disabled={busy}
             onConfirm={(input) => void handleConfirm(input)}
-            onRetry={() => void voice.start()}
-            onCancel={voice.reset}
+            onRetry={handleRerecord}
+            onCancel={handleNewCapture}
           />
         ) : null}
       </main>

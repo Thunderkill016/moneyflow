@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { VoiceCapturePage } from "@/components/voice/voice-capture-page";
 import { requireViewer } from "@/server/auth";
-import { getFinanceWorkspace } from "@/server/finance";
+import { getDashboardFinanceWorkspace } from "@/server/finance";
 
 export const metadata: Metadata = {
   title: "Nói để ghi — Capture — Money Flow",
@@ -10,7 +10,10 @@ export const metadata: Metadata = {
 
 export default async function Page() {
   const viewer = await requireViewer();
-  const workspace = await getFinanceWorkspace();
+  // The voice capture UI only writes via addTransaction and never reads the
+  // seeded transaction list, so the bounded dashboard scope skips the full
+  // ledger and review-feed scans this page never needs.
+  const workspace = await getDashboardFinanceWorkspace();
 
   return (
     <VoiceCapturePage

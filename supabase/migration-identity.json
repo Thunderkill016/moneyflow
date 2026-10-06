@@ -369,6 +369,11 @@
       "version": "20261002121000",
       "name": "20261002121000_agent_proposal_identity.sql",
       "hash": "cf2605f81c2399da223865a65d720c18"
+    },
+    {
+      "version": "20261006160000",
+      "name": "20261006160000_update_account_transfer_expected_updated_at.sql",
+      "hash": "2e581f91f5d356abaa2cef67c0739702"
     }
   ]
 }

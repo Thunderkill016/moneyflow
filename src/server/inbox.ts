@@ -26,6 +26,16 @@ const BATCH_BASE_COLUMNS =
 const BATCH_MEASUREMENT_COLUMNS =
   `${BATCH_BASE_COLUMNS},commit_attempt_count,commit_replay_count,mapping_evidence`;
 
+/*
+ * Explicit row ceiling for the inbox list. PostgREST already caps at 1000 by
+ * default; stating it here makes the limit reviewable instead of accidental.
+ * The inbox UI holds the whole list in memory and has no server pagination,
+ * the export page reuses this function for its download, and the activity
+ * capability counts pending rows from it — so raising this cap must come with
+ * a real paging plan for all four callers, not a quiet number change.
+ */
+const INBOX_LIST_LIMIT = 1000;
+
 export type InboxListResult =
   | { ok: true; candidates: InboxCandidate[]; batches: ImportBatch[] }
   | { ok: false; message: string };
@@ -116,7 +126,8 @@ export async function listInboxFromServer(): Promise<InboxListResult> {
     .from("inbox_candidates")
     .select(CANDIDATE_RULE_COLUMNS)
     .order("occurred_on", { ascending: false })
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(INBOX_LIST_LIMIT);
 
   let candidateRows: unknown[] = ruleColumnResult.data ?? [];
   let candidateError: InboxQueryError = ruleColumnResult.error;
@@ -127,7 +138,8 @@ export async function listInboxFromServer(): Promise<InboxListResult> {
       .from("inbox_candidates")
       .select(CANDIDATE_BASE_COLUMNS)
       .order("occurred_on", { ascending: false })
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(INBOX_LIST_LIMIT);
     candidateRows = legacyResult.data ?? [];
     candidateError = legacyResult.error;
   }
@@ -135,7 +147,8 @@ export async function listInboxFromServer(): Promise<InboxListResult> {
   const measurementResult = await supabase
     .from("import_batches")
     .select(BATCH_MEASUREMENT_COLUMNS)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(INBOX_LIST_LIMIT);
 
   let batchRows: unknown[] = measurementResult.data ?? [];
   let batchError: InboxQueryError = measurementResult.error;
@@ -144,7 +157,8 @@ export async function listInboxFromServer(): Promise<InboxListResult> {
     const legacyBatchResult = await supabase
       .from("import_batches")
       .select(BATCH_BASE_COLUMNS)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(INBOX_LIST_LIMIT);
     batchRows = legacyBatchResult.data ?? [];
     batchError = legacyBatchResult.error;
   }

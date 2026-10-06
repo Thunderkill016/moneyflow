@@ -103,7 +103,11 @@ const updateSchema = createSchema.omit({ idempotencyKey: true }).extend({
 });
 const updateTransferSchema = transferFields
   .omit({ idempotencyKey: true })
-  .extend({ id: z.string().uuid(), kind: z.literal("transfer") })
+  .extend({
+    id: z.string().uuid(),
+    kind: z.literal("transfer"),
+    expectedUpdatedAt: z.string().optional(),
+  })
   .refine((value) => value.sourceAccountId !== value.destinationAccountId);
 const feedColumns =
   "id,kind,note,occurred_on,created_at,updated_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines,payee,goal_id,goal_name";
@@ -527,8 +531,15 @@ export async function updateTransferAction(
       p_amount_minor: value.amount,
       p_occurred_on: value.occurredOn,
       p_note: value.note,
+      p_expected_updated_at: value.expectedUpdatedAt ?? null,
     },
   );
+  if (error?.message.includes("stale_write"))
+    return {
+      ok: false,
+      code: "stale_write",
+      message: "Dữ liệu đã được thay đổi ở nơi khác, hãy tải lại và thử lại.",
+    };
   if (error?.message.includes("recurring_payment_locked"))
     return {
       ok: false,

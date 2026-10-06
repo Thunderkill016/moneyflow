@@ -1,5 +1,3 @@
-export const AUTH_CAPTCHA_ENABLED_ENV = "NEXT_PUBLIC_AUTH_CAPTCHA_ENABLED";
-export const TURNSTILE_SITE_KEY_ENV = "NEXT_PUBLIC_TURNSTILE_SITE_KEY";
 export const CAPTCHA_TOKEN_FIELD = "captchaToken";
 export const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
 export const TURNSTILE_SCRIPT_URL = `${TURNSTILE_ORIGIN}/turnstile/v0/api.js?render=explicit`;
