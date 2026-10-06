@@ -22,23 +22,24 @@ insert into auth.users (
   now(), now(), '', '', false, false
 );
 
-set local request.jwt.claims =
-  '{"sub":"99999999-9999-4999-8999-999999999997","role":"authenticated"}';
-set local role authenticated;
-
+-- Insert as the privileged test role: `authenticated` has no INSERT grant on
+-- accounts (user rows arrive via the security-definer handle_new_user
+-- trigger), so this must run before `set local role authenticated`.
 insert into public.accounts (user_id, name, kind, initial_balance_minor)
 values
   ('99999999-9999-4999-8999-999999999997'::uuid, 'OC source', 'cash', 1000000),
-  ('99999999-9999-4999-8999-999999999997'::uuid, 'OC destination', 'cash', 0)
-returning id;
+  ('99999999-9999-4999-8999-999999999997'::uuid, 'OC destination', 'cash', 0);
+
+set local request.jwt.claims =
+  '{"sub":"99999999-9999-4999-8999-999999999997","role":"authenticated"}';
+set local role authenticated;
 
 select set_config(
   'moneyflow_test.oct_source',
   (select id::text
    from public.accounts
    where user_id = '99999999-9999-4999-8999-999999999997'::uuid
-   order by created_at, id
-   limit 1),
+     and name = 'OC source'),
   true
 );
 select set_config(
@@ -46,8 +47,7 @@ select set_config(
   (select id::text
    from public.accounts
    where user_id = '99999999-9999-4999-8999-999999999997'::uuid
-   order by created_at desc, id desc
-   limit 1),
+     and name = 'OC destination'),
   true
 );
 select set_config(
