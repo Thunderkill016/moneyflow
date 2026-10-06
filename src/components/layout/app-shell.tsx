@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "@/app/(auth)/actions";
+import { AuthSessionBanner } from "@/components/auth-session-banner";
+import { broadcastAuthSignedOut } from "@/lib/auth-cross-tab";
 import { BrandLockup } from "@/components/brand/brand-lockup";
 import { Icon, type IconName } from "@/components/icons";
 import { useConnectionState } from "@/hooks/use-connection-state";
@@ -439,6 +441,15 @@ export function AppShell({
           </div>
         ) : null}
 
+        {/*
+         * Cross-tab logout notice (2-tab logout race): another tab signed out,
+         * so this tab's session is gone. Keyed by pathname so a navigation
+         * (e.g. after re-login) always starts it hidden. The banner never
+         * navigates on its own and never clears form state — drafts stay where
+         * the reader left them.
+         */}
+        <AuthSessionBanner key={pathname} />
+
         {children}
       </div>
 
@@ -652,6 +663,10 @@ function MoreSheet({
               unstyled
               targetSize="important"
               className={cx(styles.accountAction, styles.accountActionDanger)}
+              /* Notify other tabs before the logout POST navigates this one
+                 away — the 2-tab logout race. Best-effort: the banner it raises
+                 is a courtesy, never a state change. */
+              onClick={() => broadcastAuthSignedOut()}
             >
               <Icon name="arrowRight" aria-hidden="true" />
               <span>Đăng xuất</span>
