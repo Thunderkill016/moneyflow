@@ -1,1 +1,218 @@
-LyoqCiAqIFZpZXRuYW1lc2Ugc3BlZWNoIHJlY29nbml0aW9uIHZpYSB0aGUgV2ViIFNwZWVjaCBBUEkuCiAqCiAqIEJyb3dzZXItb25seSBtb2R1bGUg4oCUIGFsd2F5cyBkeW5hbWljYWxseSBpbXBvcnRlZCwgbmV2ZXIgaW4gdGhlIFNTUiBidW5kbGUuCiAqCiAqIFplcm8gZG93bmxvYWQsIHplcm8gc2lnbnVwLCB6ZXJvIHNlcnZlcjogcmVjb2duaXRpb24gc3RhcnRzIGluc3RhbnRseSB1c2luZwogKiB0aGUgYnJvd3NlcidzIGJ1aWx0LWluIHNwZWVjaCBlbmdpbmUgd2l0aCBsYW5nIHBpbm5lZCB0byB2aS1WTi4gVHJhZGUtb2ZmCiAqIHZzIG9uLWRldmljZTogdGhlIGJyb3dzZXIgdmVuZG9yIChlLmcuIEdvb2dsZSBpbiBDaHJvbWUpIHBlcmZvcm1zIHRoZQogKiB0cmFuc2NyaXB0aW9uLCBzbyBzaG9ydCBhdWRpbyBjbGlwcyBsZWF2ZSB0aGUgZGV2aWNlIOKAlCB0aGUgVUkgYW5kIHByaXZhY3kKICogcG9saWN5IHNheSBzbyBwbGFpbmx5LgogKgogKiBMaWZlY3ljbGU6CiAqICAgaXNWb2ljZUNhcHR1cmVTdXBwb3J0ZWQoKSAtPiB0cmFuc2NyaWJlT25jZSgpCiAqLwoKLyoqIE1pbmltYWwgV2ViIFNwZWVjaCBBUEkgc2hhcGVzIChubyBAdHlwZXMgZGVwZW5kZW5jeSkuICovCnR5cGUgU3BlZWNoUmVjb2duaXRpb25SZXN1bHRJdGVtID0gewogIHJlYWRvbmx5IHRyYW5zY3JpcHQ6IHN0cmluZzsKfTsKdHlwZSBTcGVlY2hSZWNvZ25pdGlvblJlc3VsdCA9IHsKICByZWFkb25seSBpc0ZpbmFsOiBib29sZWFuOwogIHJlYWRvbmx5IGxlbmd0aDogbnVtYmVyOwogIGl0ZW0oaW5kZXg6IG51bWJlcik6IFNwZWVjaFJlY29nbml0aW9uUmVzdWx0SXRlbTsKICBbaW5kZXg6IG51bWJlcl06IFNwZWVjaFJlY29nbml0aW9uUmVzdWx0SXRlbTsKfTsKdHlwZSBTcGVlY2hSZWNvZ25pdGlvblJlc3VsdExpc3QgPSB7CiAgcmVhZG9ubHkgbGVuZ3RoOiBudW1iZXI7CiAgaXRlbShpbmRleDogbnVtYmVyKTogU3BlZWNoUmVjb2duaXRpb25SZXN1bHQ7CiAgW2luZGV4OiBudW1iZXJdOiBTcGVlY2hSZWNvZ25pdGlvblJlc3VsdDsKfTsKdHlwZSBTcGVlY2hSZWNvZ25pdGlvbkV2ZW50ID0gRXZlbnQgJiB7CiAgcmVhZG9ubHkgcmVzdWx0czogU3BlZWNoUmVjb2duaXRpb25SZXN1bHRMaXN0Owp9Owp0eXBlIFNwZWVjaFJlY29nbml0aW9uRXJyb3JFdmVudCA9IEV2ZW50ICYgewogIHJlYWRvbmx5IGVycm9yOiBzdHJpbmc7Cn07CnR5cGUgU3BlZWNoUmVjb2duaXRpb25JbnN0YW5jZSA9IHsKICBsYW5nOiBzdHJpbmc7CiAgaW50ZXJpbVJlc3VsdHM6IGJvb2xlYW47CiAgY29udGludW91czogYm9vbGVhbjsKICBtYXhBbHRlcm5hdGl2ZXM6IG51bWJlcjsKICBvbnJlc3VsdDogKChldmVudDogU3BlZWNoUmVjb2duaXRpb25FdmVudCkgPT4gdm9pZCkgfCBudWxsOwogIG9uZXJyb3I6ICgoZXZlbnQ6IFNwZWVjaFJlY29nbml0aW9uRXJyb3JFdmVudCkgPT4gdm9pZCkgfCBudWxsOwogIG9uZW5kOiAoKCkgPT4gdm9pZCkgfCBudWxsOwogIHN0YXJ0KCk6IHZvaWQ7CiAgc3RvcCgpOiB2b2lkOwogIGFib3J0KCk6IHZvaWQ7Cn07CnR5cGUgU3BlZWNoUmVjb2duaXRpb25DdG9yID0gbmV3ICgpID0+IFNwZWVjaFJlY29nbml0aW9uSW5zdGFuY2U7CgpmdW5jdGlvbiBnZXRTcGVlY2hSZWNvZ25pdGlvbkN0b3IoKTogU3BlZWNoUmVjb2duaXRpb25DdG9yIHwgbnVsbCB7CiAgaWYgKHR5cGVvZiB3aW5kb3cgPT09ICJ1bmRlZmluZWQiKSByZXR1cm4gbnVsbDsKICBjb25zdCB3ID0gd2luZG93IGFzIHVua25vd24gYXMgewogICAgU3BlZWNoUmVjb2duaXRpb24/OiBTcGVlY2hSZWNvZ25pdGlvbkN0b3I7CiAgICB3ZWJraXRTcGVlY2hSZWNvZ25pdGlvbj86IFNwZWVjaFJlY29nbml0aW9uQ3RvcjsKICB9OwogIHJldHVybiB3LlNwZWVjaFJlY29nbml0aW9uID8/IHcud2Via2l0U3BlZWNoUmVjb2duaXRpb24gPz8gbnVsbDsKfQoKZXhwb3J0IHR5cGUgVHJhbnNjcmliZU9wdGlvbnMgPSB7CiAgLyoqIEhhcmQgY2FwIG9uIGxpc3RlbmluZyBsZW5ndGguIERlZmF1bHQgMjBzLiAqLwogIG1heFNlY29uZHM/OiBudW1iZXI7CiAgLyoqIExpdmUgaW50ZXJpbSB0cmFuc2NyaXB0IGNhbGxiYWNrLiAqLwogIG9uUGFydGlhbD86ICh0ZXh0OiBzdHJpbmcpID0+IHZvaWQ7Cn07CgpleHBvcnQgdHlwZSBUcmFuc2NyaWJlUmVzdWx0ID0gewogIC8qKiBGaW5hbCB0cmFuc2NyaXB0IChtYXkgYmUgZW1wdHkgd2hlbiBub3RoaW5nIHdhcyByZWNvZ25pemVkKS4gKi8KICB0ZXh0OiBzdHJpbmc7Cn07CgpleHBvcnQgZnVuY3Rpb24gaXNWb2ljZUNhcHR1cmVTdXBwb3J0ZWQoKTogYm9vbGVhbiB7CiAgaWYgKHR5cGVvZiBuYXZpZ2F0b3IgPT09ICJ1bmRlZmluZWQiIHx8IHR5cGVvZiB3aW5kb3cgPT09ICJ1bmRlZmluZWQiKSB7CiAgICByZXR1cm4gZmFsc2U7CiAgfQogIGNvbnN0IGhhc01pYyA9IEJvb2xlYW4oCiAgICBuYXZpZ2F0b3IubWVkaWFEZXZpY2VzICYmIG5hdmlnYXRvci5tZWRpYURldmljZXMuZ2V0VXNlck1lZGlhLAogICk7CiAgcmV0dXJuIGhhc01pYyAmJiBnZXRTcGVlY2hSZWNvZ25pdGlvbkN0b3IoKSAhPT0gbnVsbDsKfQoKLyoqCiAqIExpc3RlbiBvbmNlIGFuZCByZXR1cm4gdGhlIFZpZXRuYW1lc2UgdHJhbnNjcmlwdC4KICogUmVzb2x2ZXMgb246IHJlY29nbml0aW9uIGVuZCAoYXV0byBhZnRlciBhIHBhdXNlKSwgbWF4U2Vjb25kcywgb3IgdXNlcgogKiBhYm9ydCB2aWEgQWJvcnRTaWduYWwuIFJlamVjdHMgd2l0aCBhIFZpZXRuYW1lc2UgbWVzc2FnZSBvbiBmYWlsdXJlLgogKi8KZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIHRyYW5zY3JpYmVPbmNlKAogIG9wdGlvbnM6IFRyYW5zY3JpYmVPcHRpb25zICYgeyBzaWduYWw/OiBBYm9ydFNpZ25hbCB9ID0ge30sCik6IFByb21pc2U8VHJhbnNjcmliZVJlc3VsdD4gewogIGNvbnN0IHsgbWF4U2Vjb25kcyA9IDIwLCBvblBhcnRpYWwsIHNpZ25hbCB9ID0gb3B0aW9uczsKCiAgY29uc3QgQ3RvciA9IGdldFNwZWVjaFJlY29nbml0aW9uQ3RvcigpOwogIGlmICghQ3RvciB8fCAhaXNWb2ljZUNhcHR1cmVTdXBwb3J0ZWQoKSkgewogICAgdGhyb3cgbmV3IEVycm9yKAogICAgICAiVHLDrG5oIGR1eeG7h3QgbsOgeSBraMO0bmcgaOG7lyB0cuG7oyBuaOG6rXAgZ2nhu41uZyBuw7NpLiBC4bqhbiBuaOG6rXAgdGF5IG5ow6kuIiwKICAgICk7CiAgfQogIGlmIChzaWduYWw/LmFib3J0ZWQpIHsKICAgIHRocm93IG5ldyBFcnJvcigixJDDoyBo4buneSBnaGkgw6JtLiIpOwogIH0KCiAgcmV0dXJuIGF3YWl0IG5ldyBQcm9taXNlPFRyYW5zY3JpYmVSZXN1bHQ+KChyZXNvbHZlLCByZWplY3QpID0+IHsKICAgIGNvbnN0IHJlY29nbml0aW9uID0gbmV3IEN0b3IoKTsKICAgIHJlY29nbml0aW9uLmxhbmcgPSAidmktVk4iOwogICAgcmVjb2duaXRpb24uaW50ZXJpbVJlc3VsdHMgPSB0cnVlOwogICAgcmVjb2duaXRpb24uY29udGludW91cyA9IGZhbHNlOwogICAgcmVjb2duaXRpb24ubWF4QWx0ZXJuYXRpdmVzID0gMTsKCiAgICBsZXQgc2V0dGxlZCA9IGZhbHNlOwogICAgbGV0IGZpbmFsVGV4dCA9ICIiOwoKICAgIGNvbnN0IGNsZWFudXAgPSAoKSA9PiB7CiAgICAgIHdpbmRvdy5jbGVhclRpbWVvdXQobWF4VGltZXIpOwogICAgICBzaWduYWw/LnJlbW92ZUV2ZW50TGlzdGVuZXIoImFib3J0IiwgYWJvcnRIYW5kbGVyKTsKICAgICAgcmVjb2duaXRpb24ub25yZXN1bHQgPSBudWxsOwogICAgICByZWNvZ25pdGlvbi5vbmVycm9yID0gbnVsbDsKICAgICAgcmVjb2duaXRpb24ub25lbmQgPSBudWxsOwogICAgfTsKICAgIGNvbnN0IGZpbmlzaCA9ICh0ZXh0OiBzdHJpbmcpID0+IHsKICAgICAgaWYgKHNldHRsZWQpIHJldHVybjsKICAgICAgc2V0dGxlZCA9IHRydWU7CiAgICAgIGNsZWFudXAoKTsKICAgICAgcmVzb2x2ZSh7IHRleHQ6IHRleHQudHJpbSgpIH0pOwogICAgfTsKICAgIGNvbnN0IGZhaWwgPSAobWVzc2FnZTogc3RyaW5nKSA9PiB7CiAgICAgIGlmIChzZXR0bGVkKSByZXR1cm47CiAgICAgIHNldHRsZWQgPSB0cnVlOwogICAgICBjbGVhbnVwKCk7CiAgICAgIHRyeSB7CiAgICAgICAgcmVjb2duaXRpb24uYWJvcnQoKTsKICAgICAgfSBjYXRjaCB7CiAgICAgICAgLyogYWxyZWFkeSBlbmRlZCAqLwogICAgICB9CiAgICAgIHJlamVjdChuZXcgRXJyb3IobWVzc2FnZSkpOwogICAgfTsKICAgIGNvbnN0IGFib3J0SGFuZGxlciA9ICgpID0+IHsKICAgICAgLy8gU3RvcHBpbmcgKG5vdCBhYm9ydGluZykgbGV0cyBvbmVuZCBkZWxpdmVyIHdoYXQgd2FzIGhlYXJkIHNvIGZhci4KICAgICAgdHJ5IHsKICAgICAgICByZWNvZ25pdGlvbi5zdG9wKCk7CiAgICAgIH0gY2F0Y2ggewogICAgICAgIGZpbmlzaChmaW5hbFRleHQpOwogICAgICB9CiAgICB9OwoKICAgIHJlY29nbml0aW9uLm9ucmVzdWx0ID0gKGV2ZW50OiBTcGVlY2hSZWNvZ25pdGlvbkV2ZW50KSA9PiB7CiAgICAgIGxldCBpbnRlcmltID0gIiI7CiAgICAgIGZvciAobGV0IGkgPSAwOyBpIDwgZXZlbnQucmVzdWx0cy5sZW5ndGg7IGkrKykgewogICAgICAgIGNvbnN0IHJlc3VsdCA9IGV2ZW50LnJlc3VsdHNbaV0hOwogICAgICAgIGNvbnN0IHRleHQgPSByZXN1bHRbMF0/LnRyYW5zY3JpcHQgPz8gIiI7CiAgICAgICAgaWYgKHJlc3VsdC5pc0ZpbmFsKSB7CiAgICAgICAgICBmaW5hbFRleHQgPSBmaW5hbFRleHQgPyBgJHtmaW5hbFRleHR9ICR7dGV4dH1gIDogdGV4dDsKICAgICAgICB9IGVsc2UgewogICAgICAgICAgaW50ZXJpbSArPSB0ZXh0OwogICAgICAgIH0KICAgICAgfQogICAgICBjb25zdCBsaXZlID0gaW50ZXJpbSB8fCBmaW5hbFRleHQ7CiAgICAgIGlmIChsaXZlKSBvblBhcnRpYWw/LihsaXZlLnRyaW0oKSk7CiAgICB9OwoKICAgIHJlY29nbml0aW9uLm9uZXJyb3IgPSAoZXZlbnQ6IFNwZWVjaFJlY29nbml0aW9uRXJyb3JFdmVudCkgPT4gewogICAgICBzd2l0Y2ggKGV2ZW50LmVycm9yKSB7CiAgICAgICAgY2FzZSAibm90LWFsbG93ZWQiOgogICAgICAgIGNhc2UgInNlcnZpY2Utbm90LWFsbG93ZWQiOgogICAgICAgICAgZmFpbCgKICAgICAgICAgICAgIkLhuqFuIMSRw6MgdOG7qyBjaOG7kWkgcXV54buBbiBtaWNyby4gQuG6rXQgbOG6oWkgdHJvbmcgY8OgaSDEkeG6t3QgdHLDrG5oIGR1eeG7h3QsIGhv4bq3YyBuaOG6rXAgdGF5IG5ow6kuIiwKICAgICAgICAgICk7CiAgICAgICAgICBicmVhazsKICAgICAgICBjYXNlICJuby1zcGVlY2giOgogICAgICAgICAgZmFpbCgiS2jDtG5nIG5naGUgcsO1LiBUaOG7rSBs4bqhaSDhu58gY2jhu5cgecOqbiB0xKluaCBoxqFuLCBob+G6t2Mgbmjhuq1wIHRheSBuaMOpLiIpOwogICAgICAgICAgYnJlYWs7CiAgICAgICAgY2FzZSAibmV0d29yayI6CiAgICAgICAgICBmYWlsKCJD4bqnbiBt4bqhbmcgxJHhu4Mgbmjhuq1uIGThuqFuZyBnaeG7jW5nIG7Ds2kuIEtp4buDbSB0cmEgbeG6oW5nIHLhu5NpIHRo4butIGzhuqFpIG5ow6kuIik7CiAgICAgICAgICBicmVhazsKICAgICAgICBjYXNlICJhYm9ydGVkIjoKICAgICAgICAgIGZpbmlzaChmaW5hbFRleHQpOwogICAgICAgICAgYnJlYWs7CiAgICAgICAgZGVmYXVsdDoKICAgICAgICAgIGZhaWwoIk5o4bqtbiBk4bqhbmcgZ2nhu41uZyBuw7NpIHRo4bqldCBi4bqhaS4gVGjhu60gbOG6oWkgaG/hurdjIG5o4bqtcCB0YXkgbmjDqS4iKTsKICAgICAgfQogICAgfTsKCiAgICByZWNvZ25pdGlvbi5vbmVuZCA9ICgpID0+IHsKICAgICAgZmluaXNoKGZpbmFsVGV4dCk7CiAgICB9OwoKICAgIHNpZ25hbD8uYWRkRXZlbnRMaXN0ZW5lcigiYWJvcnQiLCBhYm9ydEhhbmRsZXIsIHsgb25jZTogdHJ1ZSB9KTsKICAgIGNvbnN0IG1heFRpbWVyID0gd2luZG93LnNldFRpbWVvdXQoKCkgPT4gewogICAgICB0cnkgewogICAgICAgIHJlY29nbml0aW9uLnN0b3AoKTsKICAgICAgfSBjYXRjaCB7CiAgICAgICAgZmluaXNoKGZpbmFsVGV4dCk7CiAgICAgIH0KICAgIH0sIG1heFNlY29uZHMgKiAxMDAwKTsKCiAgICB0cnkgewogICAgICByZWNvZ25pdGlvbi5zdGFydCgpOwogICAgfSBjYXRjaCB7CiAgICAgIGZhaWwoIktow7RuZyBt4bufIMSRxrDhu6NjIG1pY3JvLiBUaOG7rSBs4bqhaSBob+G6t2Mgbmjhuq1wIHRheSBuaMOpLiIpOwogICAgfQogIH0pOwp9CgovKioKICogQ29tcGF0aWJpbGl0eSBzaGltOiB0aGUgcHJldmlvdXMgZW5naW5lcyBleHBvc2VkIG1vZGVsIGxpZmVjeWNsZSBoZWxwZXJzLgogKiBXZWIgU3BlZWNoIG5lZWRzIG5vIG1vZGVsLCBzbyB0aGVzZSBhcmUgbm8tb3BzIGtlcHQgc28gY2FsbGVycyBkb24ndCBoYXZlCiAqIHRvIGJyYW5jaCBvbiB0aGUgZW5naW5lLgogKi8KZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIGVuc3VyZVZvaWNlTW9kZWwoKTogUHJvbWlzZTx2b2lkPiB7CiAgaWYgKCFpc1ZvaWNlQ2FwdHVyZVN1cHBvcnRlZCgpKSB7CiAgICB0aHJvdyBuZXcgRXJyb3IoCiAgICAgICJUcsOsbmggZHV54buHdCBuw6B5IGtow7RuZyBo4buXIHRy4bujIG5o4bqtcCBnaeG7jW5nIG7Ds2kuIELhuqFuIG5o4bqtcCB0YXkgbmjDqS4iLAogICAgKTsKICB9Cn0KCmV4cG9ydCBmdW5jdGlvbiByZWxlYXNlVm9pY2VNb2RlbCgpOiB2b2lkIHsKICAvKiBub3RoaW5nIHRvIHJlbGVhc2UgKi8KfQo=
+/**
+ * Vietnamese speech recognition via the Web Speech API.
+ *
+ * Browser-only module — always dynamically imported, never in the SSR bundle.
+ *
+ * Zero download, zero signup, zero server: recognition starts instantly using
+ * the browser's built-in speech engine with lang pinned to vi-VN. Trade-off
+ * vs on-device: the browser vendor (e.g. Google in Chrome) performs the
+ * transcription, so short audio clips leave the device — the UI and privacy
+ * policy say so plainly.
+ *
+ * Lifecycle:
+ *   isVoiceCaptureSupported() -> transcribeOnce()
+ */
+
+/** Minimal Web Speech API shapes (no @types dependency). */
+type SpeechRecognitionResultItem = {
+  readonly transcript: string;
+};
+type SpeechRecognitionResult = {
+  readonly isFinal: boolean;
+  readonly length: number;
+  item(index: number): SpeechRecognitionResultItem;
+  [index: number]: SpeechRecognitionResultItem;
+};
+type SpeechRecognitionResultList = {
+  readonly length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+};
+type SpeechRecognitionEvent = Event & {
+  readonly results: SpeechRecognitionResultList;
+};
+type SpeechRecognitionErrorEvent = Event & {
+  readonly error: string;
+};
+type SpeechRecognitionInstance = {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  maxAlternatives: number;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+  abort(): void;
+};
+type SpeechRecognitionCtor = new () => SpeechRecognitionInstance;
+
+function getSpeechRecognitionCtor(): SpeechRecognitionCtor | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as {
+    SpeechRecognition?: SpeechRecognitionCtor;
+    webkitSpeechRecognition?: SpeechRecognitionCtor;
+  };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+}
+
+export type TranscribeOptions = {
+  /** Hard cap on listening length. Default 20s. */
+  maxSeconds?: number;
+  /** Live interim transcript callback. */
+  onPartial?: (text: string) => void;
+};
+
+export type TranscribeResult = {
+  /** Final transcript (may be empty when nothing was recognized). */
+  text: string;
+};
+
+export function isVoiceCaptureSupported(): boolean {
+  if (typeof navigator === "undefined" || typeof window === "undefined") {
+    return false;
+  }
+  const hasMic = Boolean(
+    navigator.mediaDevices && navigator.mediaDevices.getUserMedia,
+  );
+  return hasMic && getSpeechRecognitionCtor() !== null;
+}
+
+/**
+ * Listen once and return the Vietnamese transcript.
+ * Resolves on: recognition end (auto after a pause), maxSeconds, or user
+ * abort via AbortSignal. Rejects with a Vietnamese message on failure.
+ */
+export async function transcribeOnce(
+  options: TranscribeOptions & { signal?: AbortSignal } = {},
+): Promise<TranscribeResult> {
+  const { maxSeconds = 20, onPartial, signal } = options;
+
+  const Ctor = getSpeechRecognitionCtor();
+  if (!Ctor || !isVoiceCaptureSupported()) {
+    throw new Error(
+      "Trình duyệt này không hỗ trợ nhập giọng nói. Bạn nhập tay nhé.",
+    );
+  }
+  if (signal?.aborted) {
+    throw new Error("Đã hủy ghi âm.");
+  }
+
+  return await new Promise<TranscribeResult>((resolve, reject) => {
+    const recognition = new Ctor();
+    recognition.lang = "vi-VN";
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognition.maxAlternatives = 1;
+
+    let settled = false;
+    let finalText = "";
+
+    const cleanup = () => {
+      window.clearTimeout(maxTimer);
+      signal?.removeEventListener("abort", abortHandler);
+      recognition.onresult = null;
+      recognition.onerror = null;
+      recognition.onend = null;
+    };
+    const finish = (text: string) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve({ text: text.trim() });
+    };
+    const fail = (message: string) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      try {
+        recognition.abort();
+      } catch {
+        /* already ended */
+      }
+      reject(new Error(message));
+    };
+    const abortHandler = () => {
+      // Stopping (not aborting) lets onend deliver what was heard so far.
+      try {
+        recognition.stop();
+      } catch {
+        finish(finalText);
+      }
+    };
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let interim = "";
+      for (let i = 0; i < event.results.length; i++) {
+        const result = event.results[i]!;
+        const text = result[0]?.transcript ?? "";
+        if (result.isFinal) {
+          finalText = finalText ? `${finalText} ${text}` : text;
+        } else {
+          interim += text;
+        }
+      }
+      const live = interim || finalText;
+      if (live) onPartial?.(live.trim());
+    };
+
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      switch (event.error) {
+        case "not-allowed":
+        case "service-not-allowed":
+          fail(
+            "Bạn đã từ chối quyền micro. Bật lại trong cài đặt trình duyệt, hoặc nhập tay nhé.",
+          );
+          break;
+        case "no-speech":
+          fail("Không nghe rõ. Thử lại ở chỗ yên tĩnh hơn, hoặc nhập tay nhé.");
+          break;
+        case "network":
+          fail("Cần mạng để nhận dạng giọng nói. Kiểm tra mạng rồi thử lại nhé.");
+          break;
+        case "aborted":
+          finish(finalText);
+          break;
+        default:
+          fail("Nhận dạng giọng nói thất bại. Thử lại hoặc nhập tay nhé.");
+      }
+    };
+
+    recognition.onend = () => {
+      finish(finalText);
+    };
+
+    signal?.addEventListener("abort", abortHandler, { once: true });
+    const maxTimer = window.setTimeout(() => {
+      try {
+        recognition.stop();
+      } catch {
+        finish(finalText);
+      }
+    }, maxSeconds * 1000);
+
+    try {
+      recognition.start();
+    } catch {
+      fail("Không mở được micro. Thử lại hoặc nhập tay nhé.");
+    }
+  });
+}
+
+/**
+ * Compatibility shim: the previous engines exposed model lifecycle helpers.
+ * Web Speech needs no model, so these are no-ops kept so callers don't have
+ * to branch on the engine.
+ */
+export async function ensureVoiceModel(): Promise<void> {
+  if (!isVoiceCaptureSupported()) {
+    throw new Error(
+      "Trình duyệt này không hỗ trợ nhập giọng nói. Bạn nhập tay nhé.",
+    );
+  }
+}
+
+export function releaseVoiceModel(): void {
+  /* nothing to release */
+}
