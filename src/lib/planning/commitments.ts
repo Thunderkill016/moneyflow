@@ -17,6 +17,12 @@ export type RecurringCommitment = {
   isPaid: boolean;
   transactionId: string | null;
   /**
+   * The version the client read (`updated_at`), fed back as `expectedUpdatedAt`
+   * on save — the optimistic-concurrency precondition. Undefined for demo
+   * rows and older callers, which keep the legacy last-write-wins path.
+   */
+  updatedAt?: string;
+  /**
    * VN calendar date the month's payment was recorded (`YYYY-MM-DD`), when
    * the occurrence row carries it. Undefined/null means "paid, date unknown"
    * (demo occurrences and older callers) — the card falls back to the
@@ -32,6 +38,8 @@ export type SaveCommitmentInput = {
   dueDay: number;
   accountId: string;
   categoryId: string;
+  /** Version read when the edit started; omitted on create and in demo. */
+  expectedUpdatedAt?: string;
 };
 
 /** monthStart (YYYY-MM-01) → commitmentId → expense transaction id */

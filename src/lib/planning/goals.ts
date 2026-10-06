@@ -12,6 +12,12 @@ export type SavingsGoal = {
    */
   createdAt: string | null;
   isArchived: boolean;
+  /**
+   * The version the client read (`updated_at`), fed back as `expectedUpdatedAt`
+   * on save — the optimistic-concurrency precondition. Undefined for demo
+   * rows and older callers, which keep the legacy last-write-wins path.
+   */
+  updatedAt?: string;
 };
 
 /**
@@ -29,7 +35,7 @@ export type GoalAllocation = {
 /** Window length for the per-card funding-history line. */
 export const GOAL_FUNDING_WINDOW_DAYS = 30;
 
-export type SaveGoalInput = { id?: string; name: string; target: number; deadline: string | null };
+export type SaveGoalInput = { id?: string; name: string; target: number; deadline: string | null; /** Version read when the edit started; omitted on create and in demo. */ expectedUpdatedAt?: string };
 
 export function goalProgress(goal: SavingsGoal) {
   if (goal.target <= 0) return 0;
