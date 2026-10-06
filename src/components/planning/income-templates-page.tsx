@@ -219,7 +219,14 @@ export function IncomeTemplatesPage({
       return { ok: true };
     }
 
-    const result = await saveIncomeTemplateAction(input, monthStart);
+    const result = await saveIncomeTemplateAction(
+      {
+        ...input,
+        // The version the edit dialog read; a stale row fails closed in the RPC.
+        expectedUpdatedAt: editing?.updatedAt,
+      },
+      monthStart,
+    );
     if (result.ok && result.template) {
       setItems((current) =>
         current.some((item) => item.id === result.template!.id)
