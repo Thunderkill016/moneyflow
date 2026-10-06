@@ -128,7 +128,7 @@ export function VoiceCapturePage({
   }
 
   const busy =
-    voice.phase === "loading-model" ||
+    voice.phase === "preparing" ||
     voice.phase === "listening" ||
     saving ||
     isMutating;
@@ -238,14 +238,14 @@ export function VoiceCapturePage({
             <p className={styles.privacy}>
               <Icon name="lock" />
               <span>
-                Giọng nói chỉ xử lý trên máy bạn — không gửi đi đâu, không cần
-                mạng sau lần đầu.
+                Đoạn ghi âm được trình duyệt gửi đi để nhận dạng chữ rồi xóa
+                ngay — không lưu trữ.
               </span>
             </p>
           </section>
         ) : null}
 
-        {voice.phase === "loading-model" ? (
+        {voice.phase === "preparing" ? (
           <section className={styles.statusZone} aria-live="polite">
             <p className={styles.statusTitle}>Đang chuẩn bị giọng nói…</p>
             <p className={styles.statusDetail}>
