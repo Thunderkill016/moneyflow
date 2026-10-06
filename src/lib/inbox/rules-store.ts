@@ -74,21 +74,6 @@ export const RULE_STAGE_LABELS: Record<RuleStage, string> = {
   candidate: "Trước khi duyệt Inbox",
 };
 
-/** Demo fallback labels. Authenticated UI uses the user's actual categories. */
-export const RULE_CATEGORY_OPTIONS = [
-  "Ăn uống",
-  "Di chuyển",
-  "Mua sắm",
-  "Nhà ở",
-  "Hóa đơn",
-  "Giải trí",
-  "Sức khỏe",
-  "Giáo dục",
-  "Lương",
-  "Thưởng",
-  "Thu nhập khác",
-] as const;
-
 export function isRuleMatchField(value: unknown): value is RuleMatchField {
   return typeof value === "string" && (FIELDS as string[]).includes(value);
 }

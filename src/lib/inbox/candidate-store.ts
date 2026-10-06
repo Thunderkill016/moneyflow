@@ -386,25 +386,6 @@ export function writeStoredCandidates(candidates: InboxCandidate[]): void {
   localStorage.setItem(CANDIDATE_STORAGE_KEY, JSON.stringify(candidates));
 }
 
-export function addStoredCandidate(input: CreateCandidateInput): InboxCandidate {
-  const candidate = createCandidate(input);
-  const next = upsertCandidate(readStoredCandidates(), candidate);
-  writeStoredCandidates(next);
-  return candidate;
-}
-
-export function updateStoredCandidate(input: UpdateCandidateInput): InboxCandidate[] {
-  const next = updateCandidateInList(readStoredCandidates(), input);
-  writeStoredCandidates(next);
-  return next;
-}
-
-export function removeStoredCandidate(id: string): InboxCandidate[] {
-  const next = removeCandidateFromList(readStoredCandidates(), id);
-  writeStoredCandidates(next);
-  return next;
-}
-
 /** Format occurredOn (YYYY-MM-DD) as DD/MM for inbox rows. */
 export function formatCandidateDate(occurredOn: string): string {
   const parts = occurredOn.split("-");
