@@ -1,30 +1,34 @@
 import type { Metadata } from "next";
-import { VoiceCapturePage } from "@/components/voice/voice-capture-page";
+import { ImportPreviewPage } from "@/components/inbox/import-preview-page";
 import { requireViewer } from "@/server/auth";
-import { getFinanceWorkspace } from "@/server/finance";
+import { getDashboardFinanceWorkspace } from "@/server/finance";
 
 export const metadata: Metadata = {
-  title: "Nói để ghi — Capture — Money Flow",
-  description: "Ghi giao dịch bằng giọng nói tiếng Việt, không cần gõ.",
+  title: "Import Preview — Money Flow",
+  description:
+    "Xem map cột và preview sao kê trước khi đưa giao dịch vào Inbox.",
 };
 
-export default async function Page() {
-  const viewer = await requireViewer();
-  const workspace = await getFinanceWorkspace();
-
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ batchId: string }>;
+}) {
+  const { batchId } = await params;
+  // This page only consumes workspace.accounts; the bounded dashboard scope
+  // avoids scanning the full ledger and review feed for data it never reads.
+  const [viewer, workspace] = await Promise.all([
+    requireViewer(),
+    getDashboardFinanceWorkspace(),
+  ]);
   return (
-    <VoiceCapturePage
+    <ImportPreviewPage
+      batchId={batchId}
+      accounts={workspace.accounts}
       viewer={{
         email: viewer.email,
         displayName: viewer.displayName,
         isDemo: viewer.isDemo,
-      }}
-      workspace={{
-        transactions: workspace.transactions,
-        accounts: workspace.accounts,
-        categories: workspace.categories,
-        goals: workspace.goals,
-        dataError: workspace.dataError,
       }}
     />
   );
