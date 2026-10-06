@@ -374,6 +374,31 @@
       "version": "20261006160000",
       "name": "20261006160000_update_account_transfer_expected_updated_at.sql",
       "hash": "2e581f91f5d356abaa2cef67c0739702"
+    },
+    {
+      "version": "20261006200000",
+      "name": "20261006200000_update_financial_account_expected_updated_at.sql",
+      "hash": "25ed9c4e6045155e7774b972431a3da7"
+    },
+    {
+      "version": "20261006201000",
+      "name": "20261006201000_upsert_monthly_budget_expected_updated_at.sql",
+      "hash": "8b507d6a452f0292ed9ca2ea3a856a8d"
+    },
+    {
+      "version": "20261006202000",
+      "name": "20261006202000_upsert_recurring_commitment_expected_updated_at.sql",
+      "hash": "864584b6b4db766058e4740f94ff1d66"
+    },
+    {
+      "version": "20261006203000",
+      "name": "20261006203000_upsert_savings_goal_expected_updated_at.sql",
+      "hash": "ca09a3db589564f88a192b9a061f420b"
+    },
+    {
+      "version": "20261006204000",
+      "name": "20261006204000_upsert_recurring_income_template_expected_updated_at.sql",
+      "hash": "03139fcef12709318a849ff7a12803d7"
     }
   ]
 }
