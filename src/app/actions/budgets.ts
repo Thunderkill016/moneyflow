@@ -4,12 +4,12 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { BudgetSummary, SaveBudgetInput } from "@/lib/planning/budgets";
 import { createClient } from "@/lib/supabase/server";
-import { requireViewer } from "@/server/auth";
+import { authRequiredFailure, requireActionViewer } from "@/server/auth";
 import { mapBudgetRow } from "@/server/budgets";
 
 export type BudgetActionResult =
   | { ok: true; budget?: BudgetSummary }
-  | { ok: false; message: string };
+  | { ok: false; message: string; code?: string };
 
 const saveSchema = z.object({
   categoryId: z.string().uuid(),
@@ -28,7 +28,8 @@ function refreshBudgetPages() {
 export async function saveBudgetAction(input: SaveBudgetInput): Promise<BudgetActionResult> {
   const parsed = saveSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Thông tin ngân sách chưa hợp lệ." };
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) return { ok: false, message: "Chế độ demo không lưu lên máy chủ." };
   const supabase = await createClient();
   if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
@@ -69,7 +70,8 @@ export async function saveBudgetAction(input: SaveBudgetInput): Promise<BudgetAc
 export async function deleteBudgetAction(id: string): Promise<BudgetActionResult> {
   const parsed = idSchema.safeParse(id);
   if (!parsed.success) return { ok: false, message: "Mã ngân sách không hợp lệ." };
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) return { ok: false, message: "Chế độ demo không xóa trên máy chủ." };
   const supabase = await createClient();
   if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
@@ -83,7 +85,7 @@ export async function deleteBudgetAction(id: string): Promise<BudgetActionResult
 
 export type CarryForwardResult =
   | { ok: true; budgets: BudgetSummary[] }
-  | { ok: false; message: string };
+  | { ok: false; message: string; code?: string };
 
 /**
  * Apply last month's limits to categories the target month has no budget for.
@@ -114,7 +116,8 @@ export async function carryForwardBudgetsAction(
     return { ok: false, message: "Một danh mục chỉ được đặt một hạn mức." };
   }
 
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) return { ok: false, message: "Chế độ demo không lưu lên máy chủ." };
   const supabase = await createClient();
   if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };

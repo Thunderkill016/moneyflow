@@ -1,0 +1,39 @@
+/* Cross-tab logout notice — same footprint as the offline banner in
+   app-shell.module.css, but with a warning tone: saving is blocked until the
+   reader signs back in, while everything they typed stays put. */
+
+.banner {
+  width: min(calc(100% - 40px), 1080px);
+  min-height: 42px;
+  margin: 18px auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 9px 14px;
+  border: 1px solid var(--mf-warning-border, var(--mf-border));
+  border-radius: var(--mf-radius-md);
+  background: var(--mf-warning-subtle, var(--mf-surface-muted));
+  color: var(--mf-text);
+  padding: 9px 14px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.copy {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: baseline;
+  justify-content: center;
+}
+
+.copy > span {
+  color: var(--mf-text-muted);
+}
+
+.actions {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}

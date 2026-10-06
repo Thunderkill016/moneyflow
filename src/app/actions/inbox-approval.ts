@@ -5,7 +5,7 @@ import { z } from "zod";
 import { parseInboxDryRunResult, type InboxDryRunResult } from "@/lib/inbox/provenance";
 import { createClient } from "@/lib/supabase/server";
 import type { Transaction } from "@/lib/transactions/contracts";
-import { requireViewer } from "@/server/auth";
+import { authRequiredFailure, requireActionViewer } from "@/server/auth";
 import { mapTransactionFeedRow } from "@/server/finance";
 
 const candidateIdSchema = z.string().uuid();
@@ -55,11 +55,11 @@ export type AtomicInboxApprovalInput = z.input<typeof approvalSchema>;
 
 export type InboxDryRunActionResult =
   | { ok: true; plan: InboxDryRunResult }
-  | { ok: false; message: string };
+  | { ok: false; message: string; code?: string };
 
 export type InboxApprovalActionResult =
   | { ok: true; transaction: Transaction }
-  | { ok: false; message: string };
+  | { ok: false; message: string; code?: string };
 
 function refreshInboxAndFinancePages() {
   revalidatePath("/inbox");
@@ -164,7 +164,8 @@ export async function planInboxCandidateAction(
   const parsedId = candidateIdSchema.safeParse(candidateId);
   if (!parsedId.success) return { ok: false, message: "Mục Inbox không hợp lệ." };
 
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) {
     return { ok: false, message: "Dry-run phía server chỉ áp dụng cho workspace đã đăng nhập." };
   }
@@ -193,7 +194,8 @@ export async function attachInboxCandidateToExistingTransactionAction(input: {
     return { ok: false, message: "Thông tin gắn nguồn chưa hợp lệ." };
   }
 
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) {
     return { ok: false, message: "Gắn nguồn phía server chỉ áp dụng cho workspace đã đăng nhập." };
   }
@@ -236,7 +238,8 @@ export async function restoreDeletedImportedTransactionAction(input: {
     return { ok: false, message: "Thông tin khôi phục giao dịch chưa hợp lệ." };
   }
 
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) {
     return { ok: false, message: "Khôi phục từ nguồn phía server chỉ áp dụng cho workspace đã đăng nhập." };
   }
@@ -279,7 +282,8 @@ export async function recordChangedSourceObservationAction(input: {
     return { ok: false, message: "Thông tin cập nhật nguồn chưa hợp lệ." };
   }
 
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) {
     return { ok: false, message: "Ghi nhận cập nhật nguồn phía server chỉ áp dụng cho workspace đã đăng nhập." };
   }
@@ -323,7 +327,8 @@ export async function approveInboxCandidateAction(
     return { ok: false, message: "Thông tin duyệt giao dịch chưa hợp lệ." };
   }
 
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) {
     return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
   }

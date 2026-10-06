@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { requireViewer } from "@/server/auth";
+import { authRequiredFailure, requireActionViewer } from "@/server/auth";
 
 const sourceReviewSchema = z.object({
   candidateId: z.string().uuid(),
@@ -12,7 +12,7 @@ const sourceReviewSchema = z.object({
 
 export type SourceReplacementActionResult =
   | { ok: true }
-  | { ok: false; message: string };
+  | { ok: false; message: string; code?: string };
 
 export type SourceLifecycleReviewActionResult =
   | {
@@ -20,7 +20,7 @@ export type SourceLifecycleReviewActionResult =
       effect: "cleared" | "unchanged" | "observation_only";
       reason: string;
     }
-  | { ok: false; message: string };
+  | { ok: false; message: string; code?: string };
 
 function lifecycleReviewErrorMessage(message: string): string {
   if (
@@ -66,7 +66,8 @@ export async function reviewSourceLifecycleObservationAction(input: {
     return { ok: false, message: "Thông tin cập nhật nguồn chưa hợp lệ." };
   }
 
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) {
     return {
       ok: false,

@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { requireViewer } from "@/server/auth";
+import { authRequiredFailure, requireActionViewer } from "@/server/auth";
 
 const inputSchema = z.object({
   batchId: z.string().uuid(),
@@ -23,7 +23,8 @@ export async function recordImportBatchMeasurementAction(input: {
   const parsed = inputSchema.safeParse(input);
   if (!parsed.success) return { ok: false };
 
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) return { ok: false };
 
   const supabase = await createClient();

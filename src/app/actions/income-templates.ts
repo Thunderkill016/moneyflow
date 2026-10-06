@@ -4,12 +4,12 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { RecurringIncomeTemplate, SaveIncomeTemplateInput } from "@/lib/planning/income-templates";
 import { createClient } from "@/lib/supabase/server";
-import { requireViewer } from "@/server/auth";
+import { authRequiredFailure, requireActionViewer } from "@/server/auth";
 import { mapIncomeTemplateRow } from "@/server/income-templates";
 
 export type IncomeTemplateActionResult =
   | { ok: true; template?: RecurringIncomeTemplate; transactionId?: string }
-  | { ok: false; message: string };
+  | { ok: false; message: string; code?: string };
 
 const saveSchema = z.object({
   id: z.string().uuid().optional(),
@@ -39,7 +39,8 @@ export async function saveIncomeTemplateAction(
   if (!parsed.success || !monthSchema.safeParse(monthStart).success) {
     return { ok: false, message: "Thông tin lương định kỳ chưa hợp lệ." };
   }
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) return { ok: false, message: "Chế độ demo không lưu lên máy chủ." };
   const supabase = await createClient();
   if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
@@ -99,7 +100,8 @@ export async function archiveIncomeTemplateAction(
   if (!idSchema.safeParse(id).success) {
     return { ok: false, message: "Mã lương định kỳ không hợp lệ." };
   }
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) return { ok: false, message: "Chế độ demo không lưu lên máy chủ." };
   const supabase = await createClient();
   if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
@@ -128,7 +130,8 @@ export async function recordIncomeTemplateAction(
   ) {
     return { ok: false, message: "Thông tin ghi nhận thu không hợp lệ." };
   }
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) return { ok: false, message: "Chế độ demo không lưu lên máy chủ." };
   const supabase = await createClient();
   if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
@@ -152,7 +155,8 @@ export async function undoIncomeTemplateReceiptAction(
   if (!idSchema.safeParse(id).success || !monthSchema.safeParse(monthStart).success) {
     return { ok: false, message: "Thông tin hoàn tác không hợp lệ." };
   }
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) return { ok: false, message: "Chế độ demo không lưu lên máy chủ." };
   const supabase = await createClient();
   if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
