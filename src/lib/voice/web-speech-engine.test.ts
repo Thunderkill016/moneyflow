@@ -68,8 +68,9 @@ function uninstallFake() {
   // Leave the redefined navigator in place; it does not affect other tests.
 }
 
-function fakeResultEvent(transcript: string, isFinal: boolean) {
+function fakeResultEvent(transcript: string, isFinal: boolean, resultIndex = 0) {
   return {
+    resultIndex,
     results: {
       length: 1,
       0: { isFinal, length: 1, 0: { transcript } },
@@ -113,6 +114,18 @@ describe("web-speech-engine", () => {
     lastInstance!.onend?.();
     await promise;
     assert.deepEqual(partials, ["cà phê"]);
+  });
+
+  it("does not duplicate final text when onresult fires twice", async () => {
+    const promise = transcribeOnce({ maxSeconds: 5 });
+    lastInstance!.onresult?.(fakeResultEvent("ăn sáng", true, 0));
+    // Browser re-fires with the same result; resultIndex=0 but the result
+    // was already counted — with correct resultIndex handling this second
+    // fire carries no NEW result (simulated here as resultIndex past the end).
+    lastInstance!.onresult?.({ resultIndex: 1, results: { length: 1, 0: { isFinal: true, length: 1, 0: { transcript: "ăn sáng" } } } });
+    lastInstance!.onend?.();
+    const { text } = await promise;
+    assert.equal(text, "ăn sáng");
   });
 
   it("rejects in vietnamese on not-allowed", async () => {
