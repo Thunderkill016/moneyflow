@@ -49,6 +49,9 @@ export function useVoiceCapture() {
   }, []);
 
   const start = useCallback(async () => {
+    // Double-tap guard: a second tap while the first start() is still in
+    // flight would orphan the first AbortController and open two mic sessions.
+    if (abortRef.current) return;
     setError(null);
     setPartial("");
     setParsed(null);
