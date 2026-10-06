@@ -42,7 +42,7 @@ select set_config(
   'moneyflow_test.oci_category',
   (select id::text
    from public.categories
-   where user_id = '99999999-9999-4999-8999-999999999994'::uuid and name = 'Ăn uống'),
+   where user_id = '99999999-9999-4999-8999-999999999994'::uuid and name = 'Lương' and kind = 'income'),
   true
 );
 -- Seed the template via the legacy path, then capture its version.
