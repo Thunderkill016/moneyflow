@@ -1,33 +1,28 @@
 import type { Metadata } from "next";
-import { VoiceCapturePage } from "@/components/voice/voice-capture-page";
+import { CapturePastePage } from "@/components/inbox/capture-paste-page";
 import { requireViewer } from "@/server/auth";
 import { getDashboardFinanceWorkspace } from "@/server/finance";
 
 export const metadata: Metadata = {
-  title: "Nói để ghi — Capture — Money Flow",
-  description: "Ghi giao dịch bằng giọng nói tiếng Việt, không cần gõ.",
+  title: "Dán text — Capture — Money Flow",
+  description:
+    "Dán tin nhắn hoặc ghi chú giao dịch, phân tích thành ứng viên trong Inbox.",
 };
 
 export default async function Page() {
-  const viewer = await requireViewer();
-  // The voice capture UI only writes via addTransaction and never reads the
-  // seeded transaction list, so the bounded dashboard scope skips the full
-  // ledger and review-feed scans this page never needs.
-  const workspace = await getDashboardFinanceWorkspace();
-
+  // This page only consumes workspace.accounts; the bounded dashboard scope
+  // avoids scanning the full ledger and review feed for data it never reads.
+  const [viewer, workspace] = await Promise.all([
+    requireViewer(),
+    getDashboardFinanceWorkspace(),
+  ]);
   return (
-    <VoiceCapturePage
+    <CapturePastePage
+      accounts={workspace.accounts}
       viewer={{
         email: viewer.email,
         displayName: viewer.displayName,
         isDemo: viewer.isDemo,
-      }}
-      workspace={{
-        transactions: workspace.transactions,
-        accounts: workspace.accounts,
-        categories: workspace.categories,
-        goals: workspace.goals,
-        dataError: workspace.dataError,
       }}
     />
   );
