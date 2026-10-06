@@ -35,7 +35,7 @@ select set_config(
   'moneyflow_test.oci_account',
   (select id::text
    from public.accounts
-   where user_id = '99999999-9999-4999-8999-999999999994'::uuid),
+   where user_id = '99999999-9999-4999-8999-999999999994'::uuid and name = 'OC account'),
   true
 );
 select set_config(
