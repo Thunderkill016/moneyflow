@@ -89,14 +89,17 @@ select
   category.color as category_color,
   budget.month_start,
   budget.limit_minor,
-  budget.updated_at,
   coalesce(sum(
     case
       when transaction_record.id is not null and entry.amount_minor < 0
         then -entry.amount_minor
       else 0
     end
-  ), 0)::bigint as spent_minor
+  ), 0)::bigint as spent_minor,
+  -- NOTE: updated_at must stay last. CREATE OR REPLACE VIEW cannot rename an
+  -- existing positional column (was: spent_minor at position 9); appending
+  -- keeps positions 1-9 name-stable.
+  budget.updated_at
 from public.monthly_budgets as budget
 join public.categories as category
   on category.id = budget.category_id and category.user_id = budget.user_id
