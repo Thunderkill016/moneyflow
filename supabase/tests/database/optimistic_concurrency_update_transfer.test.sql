@@ -92,10 +92,11 @@ select is(
 );
 
 -- 3: the entries stay balanced after the rejected write.
+-- (sum() returns numeric; cast to bigint for pgTAP's is() overload.)
 select is(
   (select sum(amount_minor)
    from public.transaction_entries
-   where transaction_id = current_setting('moneyflow_test.oct_transaction')::uuid),
+   where transaction_id = current_setting('moneyflow_test.oct_transaction')::uuid)::bigint,
   0::bigint,
   'stale write left the transfer entries balanced'
 );
