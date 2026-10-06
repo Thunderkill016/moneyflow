@@ -36,9 +36,10 @@ type VoiceWorkspace = {
 };
 
 /**
- * Capture -> Voice. One-tap mic -> on-device Vietnamese recognition ->
- * mandatory confirm card -> ledger (same trusted save path as quick add).
- * Nothing is ever saved without the explicit confirm tap.
+ * Capture -> Voice. One-tap mic -> Web Speech API (browser-native
+ * Vietnamese recognition) -> mandatory confirm card -> ledger (same trusted
+ * save path as quick add). Nothing is ever saved without the explicit
+ * confirm tap. Short audio clips leave the device for transcription.
  */
 export function VoiceCapturePage({
   viewer,
@@ -247,13 +248,9 @@ export function VoiceCapturePage({
 
         {voice.phase === "preparing" ? (
           <section className={styles.statusZone} aria-live="polite">
-            <p className={styles.statusTitle}>Đang chuẩn bị giọng nói…</p>
+            <p className={styles.statusTitle}>Đang chuẩn bị…</p>
             <p className={styles.statusDetail}>
-              Đang tải model tiếng Việt (khoảng 32MB). Lần đầu hơi lâu, lần
-              sau mở là dùng ngay.
-            </p>
-            <p className={styles.statusHint}>
-              Chỉ tải một lần duy nhất — không tốn phí, không gửi dữ liệu đi.
+              Sắp xong rồi, giữ máy gần miệng nhé.
             </p>
             <Button
               type="button"
