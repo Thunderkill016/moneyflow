@@ -29,6 +29,7 @@ type SpeechRecognitionResultList = {
   [index: number]: SpeechRecognitionResult;
 };
 type SpeechRecognitionEvent = Event & {
+  readonly resultIndex: number;
   readonly results: SpeechRecognitionResultList;
 };
 type SpeechRecognitionErrorEvent = Event & {
@@ -143,8 +144,10 @@ export async function transcribeOnce(
     };
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
+      // Only process results from resultIndex onward: re-scanning from 0
+      // would append an already-counted final result twice ("ăn sáng ăn sáng").
       let interim = "";
-      for (let i = 0; i < event.results.length; i++) {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i]!;
         const text = result[0]?.transcript ?? "";
         if (result.isFinal) {
