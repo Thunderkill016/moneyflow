@@ -264,10 +264,17 @@ export function GoalsPage({
   async function confirmArchive() {
     if (!reviewGoal) return;
     setBusyId(reviewGoal.id);
-    const result = viewer.isDemo
-      ? { ok: true as const }
-      : await archiveGoalAction(reviewGoal.id, !reviewGoal.isArchived);
-    setBusyId(null);
+    let result: Awaited<ReturnType<typeof archiveGoalAction>> | { ok: true };
+    try {
+      result =
+        viewer.isDemo
+          ? { ok: true as const }
+          : await archiveGoalAction(reviewGoal.id, !reviewGoal.isArchived);
+    } catch {
+      result = { ok: false, message: "Mất kết nối khi lưu trữ mục tiêu." };
+    } finally {
+      setBusyId(null);
+    }
     if (!result.ok) {
       notify(result.message, "error");
       return;
