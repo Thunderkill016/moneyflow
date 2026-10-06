@@ -5,8 +5,7 @@ import { getFinanceWorkspace } from "@/server/finance";
 
 export const metadata: Metadata = {
   title: "Nói để ghi — Capture — Money Flow",
-  description:
-    "Ghi giao dịch bằng giọng nói tiếng Việt, xử lý hoàn toàn trên máy bạn.",
+  description: "Ghi giao dịch bằng giọng nói tiếng Việt, không cần gõ.",
 };
 
 export default async function Page() {
