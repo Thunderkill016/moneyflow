@@ -1,1 +1,144 @@
-aW1wb3J0IGFzc2VydCBmcm9tICJub2RlOmFzc2VydC9zdHJpY3QiOwppbXBvcnQgeyBkZXNjcmliZSwgaXQsIGJlZm9yZUVhY2gsIGFmdGVyRWFjaCB9IGZyb20gIm5vZGU6dGVzdCI7CmltcG9ydCB7CiAgaXNWb2ljZUNhcHR1cmVTdXBwb3J0ZWQsCiAgdHJhbnNjcmliZU9uY2UsCn0gZnJvbSAiLi93ZWItc3BlZWNoLWVuZ2luZS50cyI7Cgp0eXBlIEZha2VSZWNvZ25pdGlvbiA9IHsKICBsYW5nOiBzdHJpbmc7CiAgaW50ZXJpbVJlc3VsdHM6IGJvb2xlYW47CiAgY29udGludW91czogYm9vbGVhbjsKICBtYXhBbHRlcm5hdGl2ZXM6IG51bWJlcjsKICBvbnJlc3VsdDogKChlOiB1bmtub3duKSA9PiB2b2lkKSB8IG51bGw7CiAgb25lcnJvcjogKChlOiB1bmtub3duKSA9PiB2b2lkKSB8IG51bGw7CiAgb25lbmQ6ICgoKSA9PiB2b2lkKSB8IG51bGw7CiAgc3RhcnRDYWxsczogbnVtYmVyOwogIHN0b3BDYWxsczogbnVtYmVyOwogIHN0YXJ0KCk6IHZvaWQ7CiAgc3RvcCgpOiB2b2lkOwogIGFib3J0KCk6IHZvaWQ7Cn07CgpsZXQgbGFzdEluc3RhbmNlOiBGYWtlUmVjb2duaXRpb24gfCBudWxsID0gbnVsbDsKCmZ1bmN0aW9uIGluc3RhbGxGYWtlU1IoKSB7CiAgbGFzdEluc3RhbmNlID0gbnVsbDsKICBjb25zdCBGYWtlQ3RvciA9IGZ1bmN0aW9uICh0aGlzOiB1bmtub3duKSB7CiAgICBjb25zdCBpbnN0OiBGYWtlUmVjb2duaXRpb24gPSB7CiAgICAgIGxhbmc6ICIiLAogICAgICBpbnRlcmltUmVzdWx0czogZmFsc2UsCiAgICAgIGNvbnRpbnVvdXM6IGZhbHNlLAogICAgICBtYXhBbHRlcm5hdGl2ZXM6IDAsCiAgICAgIG9ucmVzdWx0OiBudWxsLAogICAgICBvbmVycm9yOiBudWxsLAogICAgICBvbmVuZDogbnVsbCwKICAgICAgc3RhcnRDYWxsczogMCwKICAgICAgc3RvcENhbGxzOiAwLAogICAgICBzdGFydCgpIHsKICAgICAgICB0aGlzLnN0YXJ0Q2FsbHMgKz0gMTsKICAgICAgfSwKICAgICAgc3RvcCgpIHsKICAgICAgICB0aGlzLnN0b3BDYWxscyArPSAxOwogICAgICAgIC8vIFNpbXVsYXRlIG5hdHVyYWwgZW5kIGFmdGVyIHN0b3AuCiAgICAgICAgc2V0VGltZW91dCgoKSA9PiB0aGlzLm9uZW5kPy4oKSwgMCk7CiAgICAgIH0sCiAgICAgIGFib3J0KCkgewogICAgICAgIHNldFRpbWVvdXQoKCkgPT4gdGhpcy5vbmVuZD8uKCksIDApOwogICAgICB9LAogICAgfTsKICAgIGxhc3RJbnN0YW5jZSA9IGluc3Q7CiAgICByZXR1cm4gaW5zdDsKICB9OwogIChnbG9iYWxUaGlzIGFzIFJlY29yZDxzdHJpbmcsIHVua25vd24+KS53aW5kb3cgPSB7CiAgICBTcGVlY2hSZWNvZ25pdGlvbjogRmFrZUN0b3IsCiAgICBjbGVhclRpbWVvdXQsCiAgICBzZXRUaW1lb3V0LAogIH07CiAgLy8gTm9kZSAyMiBleHBvc2VzIG5hdmlnYXRvciBhcyBnZXR0ZXItb25seTsgcmVkZWZpbmUgaXQgaW5zdGVhZCBvZiBhc3NpZ25pbmcuCiAgT2JqZWN0LmRlZmluZVByb3BlcnR5KGdsb2JhbFRoaXMsICJuYXZpZ2F0b3IiLCB7CiAgICB2YWx1ZTogeyBtZWRpYURldmljZXM6IHsgZ2V0VXNlck1lZGlhOiBhc3luYyAoKSA9PiAoe30pIH0gfSwKICAgIGNvbmZpZ3VyYWJsZTogdHJ1ZSwKICAgIHdyaXRhYmxlOiB0cnVlLAogIH0pOwp9CgpmdW5jdGlvbiB1bmluc3RhbGxGYWtlKCkgewogIGRlbGV0ZSAoZ2xvYmFsVGhpcyBhcyBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPikud2luZG93OwogIC8vIExlYXZlIHRoZSByZWRlZmluZWQgbmF2aWdhdG9yIGluIHBsYWNlOyBpdCBkb2VzIG5vdCBhZmZlY3Qgb3RoZXIgdGVzdHMuCn0KCmZ1bmN0aW9uIGZha2VSZXN1bHRFdmVudCh0cmFuc2NyaXB0OiBzdHJpbmcsIGlzRmluYWw6IGJvb2xlYW4pIHsKICByZXR1cm4gewogICAgcmVzdWx0czogewogICAgICBsZW5ndGg6IDEsCiAgICAgIDA6IHsgaXNGaW5hbCwgbGVuZ3RoOiAxLCAwOiB7IHRyYW5zY3JpcHQgfSB9LAogICAgfSwKICB9Owp9CgpkZXNjcmliZSgid2ViLXNwZWVjaC1lbmdpbmUiLCAoKSA9PiB7CiAgYmVmb3JlRWFjaChpbnN0YWxsRmFrZVNSKTsKICBhZnRlckVhY2godW5pbnN0YWxsRmFrZSk7CgogIGl0KCJpcyBzdXBwb3J0ZWQgd2hlbiBTcGVlY2hSZWNvZ25pdGlvbiArIG1pYyBleGlzdCIsICgpID0+IHsKICAgIGFzc2VydC5lcXVhbChpc1ZvaWNlQ2FwdHVyZVN1cHBvcnRlZCgpLCB0cnVlKTsKICB9KTsKCiAgaXQoImlzIG5vdCBzdXBwb3J0ZWQgd2l0aG91dCBTcGVlY2hSZWNvZ25pdGlvbiIsICgpID0+IHsKICAgIGRlbGV0ZSAoZ2xvYmFsVGhpcy53aW5kb3cgYXMgdW5rbm93biBhcyBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPikuU3BlZWNoUmVjb2duaXRpb247CiAgICBhc3NlcnQuZXF1YWwoaXNWb2ljZUNhcHR1cmVTdXBwb3J0ZWQoKSwgZmFsc2UpOwogIH0pOwoKICBpdCgicGlucyBsYW5nIHRvIHZpLVZOIGFuZCBlbmFibGVzIGludGVyaW0gcmVzdWx0cyIsIGFzeW5jICgpID0+IHsKICAgIGNvbnN0IHByb21pc2UgPSB0cmFuc2NyaWJlT25jZSh7IG1heFNlY29uZHM6IDUgfSk7CiAgICBhc3NlcnQub2sobGFzdEluc3RhbmNlKTsKICAgIGFzc2VydC5lcXVhbChsYXN0SW5zdGFuY2UhLmxhbmcsICJ2aS1WTiIpOwogICAgYXNzZXJ0LmVxdWFsKGxhc3RJbnN0YW5jZSEuaW50ZXJpbVJlc3VsdHMsIHRydWUpOwogICAgYXNzZXJ0LmVxdWFsKGxhc3RJbnN0YW5jZSEuc3RhcnRDYWxscywgMSk7CiAgICBsYXN0SW5zdGFuY2UhLm9ucmVzdWx0Py4oZmFrZVJlc3VsdEV2ZW50KCLEg24gc8OhbmciLCBmYWxzZSkpOwogICAgbGFzdEluc3RhbmNlIS5vbnJlc3VsdD8uKGZha2VSZXN1bHRFdmVudCgixINuIHPDoW5nIGhhaSBjaOG7pWMiLCB0cnVlKSk7CiAgICBsYXN0SW5zdGFuY2UhLm9uZW5kPy4oKTsKICAgIGNvbnN0IHsgdGV4dCB9ID0gYXdhaXQgcHJvbWlzZTsKICAgIGFzc2VydC5lcXVhbCh0ZXh0LCAixINuIHPDoW5nIGhhaSBjaOG7pWMiKTsKICB9KTsKCiAgaXQoImRlbGl2ZXJzIGludGVyaW0gcGFydGlhbHMgdmlhIG9uUGFydGlhbCIsIGFzeW5jICgpID0+IHsKICAgIGNvbnN0IHBhcnRpYWxzOiBzdHJpbmdbXSA9IFtdOwogICAgY29uc3QgcHJvbWlzZSA9IHRyYW5zY3JpYmVPbmNlKHsKICAgICAgbWF4U2Vjb25kczogNSwKICAgICAgb25QYXJ0aWFsOiAodCkgPT4gcGFydGlhbHMucHVzaCh0KSwKICAgIH0pOwogICAgbGFzdEluc3RhbmNlIS5vbnJlc3VsdD8uKGZha2VSZXN1bHRFdmVudCgiY8OgIHBow6oiLCBmYWxzZSkpOwogICAgbGFzdEluc3RhbmNlIS5vbmVuZD8uKCk7CiAgICBhd2FpdCBwcm9taXNlOwogICAgYXNzZXJ0LmRlZXBFcXVhbChwYXJ0aWFscywgWyJjw6AgcGjDqiJdKTsKICB9KTsKCiAgaXQoInJlamVjdHMgaW4gdmlldG5hbWVzZSBvbiBub3QtYWxsb3dlZCIsIGFzeW5jICgpID0+IHsKICAgIGNvbnN0IHByb21pc2UgPSB0cmFuc2NyaWJlT25jZSh7IG1heFNlY29uZHM6IDUgfSk7CiAgICBsYXN0SW5zdGFuY2UhLm9uZXJyb3I/Lih7IGVycm9yOiAibm90LWFsbG93ZWQiIH0pOwogICAgYXdhaXQgYXNzZXJ0LnJlamVjdHMocHJvbWlzZSwgL3F1eeG7gW4gbWljcm8vKTsKICB9KTsKCiAgaXQoInJlamVjdHMgaW4gdmlldG5hbWVzZSBvbiBuby1zcGVlY2giLCBhc3luYyAoKSA9PiB7CiAgICBjb25zdCBwcm9taXNlID0gdHJhbnNjcmliZU9uY2UoeyBtYXhTZWNvbmRzOiA1IH0pOwogICAgbGFzdEluc3RhbmNlIS5vbmVycm9yPy4oeyBlcnJvcjogIm5vLXNwZWVjaCIgfSk7CiAgICBhd2FpdCBhc3NlcnQucmVqZWN0cyhwcm9taXNlLCAvS2jDtG5nIG5naGUgcsO1Lyk7CiAgfSk7CgogIGl0KCJyZWplY3RzIGluIHZpZXRuYW1lc2Ugb24gbmV0d29yayBlcnJvciIsIGFzeW5jICgpID0+IHsKICAgIGNvbnN0IHByb21pc2UgPSB0cmFuc2NyaWJlT25jZSh7IG1heFNlY29uZHM6IDUgfSk7CiAgICBsYXN0SW5zdGFuY2UhLm9uZXJyb3I/Lih7IGVycm9yOiAibmV0d29yayIgfSk7CiAgICBhd2FpdCBhc3NlcnQucmVqZWN0cyhwcm9taXNlLCAvQ+G6p24gbeG6oW5nLyk7CiAgfSk7CgogIGl0KCJzdG9wcyBsaXN0ZW5pbmcgd2hlbiBhYm9ydGVkIiwgYXN5bmMgKCkgPT4gewogICAgY29uc3QgY29udHJvbGxlciA9IG5ldyBBYm9ydENvbnRyb2xsZXIoKTsKICAgIGNvbnN0IHByb21pc2UgPSB0cmFuc2NyaWJlT25jZSh7IG1heFNlY29uZHM6IDMwLCBzaWduYWw6IGNvbnRyb2xsZXIuc2lnbmFsIH0pOwogICAgY29udHJvbGxlci5hYm9ydCgpOwogICAgY29uc3QgeyB0ZXh0IH0gPSBhd2FpdCBwcm9taXNlOwogICAgYXNzZXJ0LmVxdWFsKHRleHQsICIiKTsKICAgIGFzc2VydC5lcXVhbChsYXN0SW5zdGFuY2UhLnN0b3BDYWxscywgMSk7CiAgfSk7Cn0pOwo=
+import assert from "node:assert/strict";
+import { describe, it, beforeEach, afterEach } from "node:test";
+import {
+  isVoiceCaptureSupported,
+  transcribeOnce,
+} from "./web-speech-engine.ts";
+
+type FakeRecognition = {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  maxAlternatives: number;
+  onresult: ((e: unknown) => void) | null;
+  onerror: ((e: unknown) => void) | null;
+  onend: (() => void) | null;
+  startCalls: number;
+  stopCalls: number;
+  start(): void;
+  stop(): void;
+  abort(): void;
+};
+
+let lastInstance: FakeRecognition | null = null;
+
+function installFakeSR() {
+  lastInstance = null;
+  const FakeCtor = function (this: unknown) {
+    const inst: FakeRecognition = {
+      lang: "",
+      interimResults: false,
+      continuous: false,
+      maxAlternatives: 0,
+      onresult: null,
+      onerror: null,
+      onend: null,
+      startCalls: 0,
+      stopCalls: 0,
+      start() {
+        this.startCalls += 1;
+      },
+      stop() {
+        this.stopCalls += 1;
+        // Simulate natural end after stop.
+        setTimeout(() => this.onend?.(), 0);
+      },
+      abort() {
+        setTimeout(() => this.onend?.(), 0);
+      },
+    };
+    lastInstance = inst;
+    return inst;
+  };
+  (globalThis as Record<string, unknown>).window = {
+    SpeechRecognition: FakeCtor,
+    clearTimeout,
+    setTimeout,
+  };
+  // Node 22 exposes navigator as getter-only; redefine it instead of assigning.
+  Object.defineProperty(globalThis, "navigator", {
+    value: { mediaDevices: { getUserMedia: async () => ({}) } },
+    configurable: true,
+    writable: true,
+  });
+}
+
+function uninstallFake() {
+  delete (globalThis as Record<string, unknown>).window;
+  // Leave the redefined navigator in place; it does not affect other tests.
+}
+
+function fakeResultEvent(transcript: string, isFinal: boolean) {
+  return {
+    results: {
+      length: 1,
+      0: { isFinal, length: 1, 0: { transcript } },
+    },
+  };
+}
+
+describe("web-speech-engine", () => {
+  beforeEach(installFakeSR);
+  afterEach(uninstallFake);
+
+  it("is supported when SpeechRecognition + mic exist", () => {
+    assert.equal(isVoiceCaptureSupported(), true);
+  });
+
+  it("is not supported without SpeechRecognition", () => {
+    delete (globalThis.window as unknown as Record<string, unknown>).SpeechRecognition;
+    assert.equal(isVoiceCaptureSupported(), false);
+  });
+
+  it("pins lang to vi-VN and enables interim results", async () => {
+    const promise = transcribeOnce({ maxSeconds: 5 });
+    assert.ok(lastInstance);
+    assert.equal(lastInstance!.lang, "vi-VN");
+    assert.equal(lastInstance!.interimResults, true);
+    assert.equal(lastInstance!.startCalls, 1);
+    lastInstance!.onresult?.(fakeResultEvent("ăn sáng", false));
+    lastInstance!.onresult?.(fakeResultEvent("ăn sáng hai chục", true));
+    lastInstance!.onend?.();
+    const { text } = await promise;
+    assert.equal(text, "ăn sáng hai chục");
+  });
+
+  it("delivers interim partials via onPartial", async () => {
+    const partials: string[] = [];
+    const promise = transcribeOnce({
+      maxSeconds: 5,
+      onPartial: (t) => partials.push(t),
+    });
+    lastInstance!.onresult?.(fakeResultEvent("cà phê", false));
+    lastInstance!.onend?.();
+    await promise;
+    assert.deepEqual(partials, ["cà phê"]);
+  });
+
+  it("rejects in vietnamese on not-allowed", async () => {
+    const promise = transcribeOnce({ maxSeconds: 5 });
+    lastInstance!.onerror?.({ error: "not-allowed" });
+    await assert.rejects(promise, /quyền micro/);
+  });
+
+  it("rejects in vietnamese on no-speech", async () => {
+    const promise = transcribeOnce({ maxSeconds: 5 });
+    lastInstance!.onerror?.({ error: "no-speech" });
+    await assert.rejects(promise, /Không nghe rõ/);
+  });
+
+  it("rejects in vietnamese on network error", async () => {
+    const promise = transcribeOnce({ maxSeconds: 5 });
+    lastInstance!.onerror?.({ error: "network" });
+    await assert.rejects(promise, /Cần mạng/);
+  });
+
+  it("stops listening when aborted", async () => {
+    const controller = new AbortController();
+    const promise = transcribeOnce({ maxSeconds: 30, signal: controller.signal });
+    controller.abort();
+    const { text } = await promise;
+    assert.equal(text, "");
+    assert.equal(lastInstance!.stopCalls, 1);
+  });
+});
