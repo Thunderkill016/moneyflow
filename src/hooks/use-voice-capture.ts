@@ -10,7 +10,7 @@ import {
 
 export type VoicePhase =
   | "idle"
-  | "loading-model"
+  | "preparing"
   | "listening"
   | "confirming";
 
@@ -24,9 +24,10 @@ export type VoiceParsedResult = {
 };
 
 /**
- * Orchestrates one voice-capture turn: model load -> mic -> transcript -> parse.
- * The Vosk engine is dynamically imported so the WASM bundle never enters the
- * main chunk; it only loads when the user opens voice capture.
+ * Orchestrates one voice-capture turn: mic -> transcript -> parse.
+ * The Web Speech engine is dynamically imported so it only loads when the
+ * user opens voice capture. No download, no signup: the browser's built-in
+ * recognizer (lang vi-VN) transcribes; short clips leave the device.
  */
 export function useVoiceCapture() {
   // null = support not checked yet (avoids SSR/client hydration mismatch).
@@ -39,7 +40,7 @@ export function useVoiceCapture() {
 
   useEffect(() => {
     let cancelled = false;
-    void import("@/lib/voice/vosk-engine").then((engine) => {
+    void import("@/lib/voice/web-speech-engine").then((engine) => {
       if (!cancelled) setSupported(engine.isVoiceCaptureSupported());
     });
     return () => {
@@ -54,13 +55,13 @@ export function useVoiceCapture() {
     const aborter = new AbortController();
     abortRef.current = aborter;
     try {
-      const engine = await import("@/lib/voice/vosk-engine");
+      const engine = await import("@/lib/voice/web-speech-engine");
       if (!engine.isVoiceCaptureSupported()) {
         throw new Error(
           "Thiết bị này không hỗ trợ nhập giọng nói. Bạn nhập tay nhé.",
         );
       }
-      setPhase("loading-model");
+      setPhase("preparing");
       await engine.ensureVoiceModel();
       if (aborter.signal.aborted) return;
       setPhase("listening");
