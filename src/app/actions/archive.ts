@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import {
-  ARCHIVE_MAX_RESTORE_BYTES,
   classifyRestoreFailure,
   type RestoreFailureKind,
 } from "@/lib/archive/archive-backup";
@@ -107,8 +106,4 @@ export async function restoreArchiveAction(
   // the user can look at pre-restore numbers.
   revalidatePath("/", "layout");
   return { ok: true };
-}
-
-export async function archiveRestoreTransportLimit(): Promise<number> {
-  return ARCHIVE_MAX_RESTORE_BYTES;
 }
