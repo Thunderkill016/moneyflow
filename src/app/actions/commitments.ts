@@ -9,7 +9,7 @@ import { mapCommitmentRow } from "@/server/commitments";
 import { currentMonthStart } from "@/server/budgets";
 
 export type CommitmentActionResult = { ok: true; commitment?: RecurringCommitment; transactionId?: string } | { ok: false; message: string };
-const saveSchema = z.object({ id: z.string().uuid().optional(), name: z.string().trim().min(1).max(80), amount: z.number().int().positive().max(Number.MAX_SAFE_INTEGER), dueDay: z.number().int().min(1).max(31), accountId: z.string().uuid(), categoryId: z.string().uuid() });
+const saveSchema = z.object({ id: z.string().uuid().optional(), name: z.string().trim().min(1).max(80), amount: z.number().int().positive().max(Number.MAX_SAFE_INTEGER), dueDay: z.number().int().min(1).max(31), accountId: z.string().uuid(), categoryId: z.string().uuid(), expectedUpdatedAt: z.string().optional() });
 const idSchema = z.string().uuid();
 const monthSchema = z.string().regex(/^\d{4}-\d{2}-01$/);
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -21,9 +21,10 @@ export async function saveCommitmentAction(input: SaveCommitmentInput, monthStar
   const viewer = await requireViewer(); if (viewer.isDemo) return { ok: false, message: "Chế độ demo không lưu lên máy chủ." };
   const supabase = await createClient(); if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
   const value = parsed.data;
-  const { data: id, error } = await supabase.rpc("upsert_recurring_commitment", { p_commitment_id: value.id ?? null, p_name: value.name, p_amount_minor: value.amount, p_due_day: value.dueDay, p_account_id: value.accountId, p_category_id: value.categoryId });
+  const { data: id, error } = await supabase.rpc("upsert_recurring_commitment", { p_commitment_id: value.id ?? null, p_name: value.name, p_amount_minor: value.amount, p_due_day: value.dueDay, p_account_id: value.accountId, p_category_id: value.categoryId, p_expected_updated_at: value.expectedUpdatedAt ?? null });
+  if (error?.message.includes("stale_write")) return { ok: false, message: "Dữ liệu đã được thay đổi ở nơi khác, hãy tải lại và thử lại." };
   if (error || typeof id !== "string") return { ok: false, message: "Không thể lưu khoản định kỳ." };
-  const { data, error: readError } = await supabase.from("recurring_commitment_feed").select("id,name,amount_minor,due_day,account_id,account_name,category_id,category_name,category_icon,category_color,is_archived").eq("id", id).single();
+  const { data, error: readError } = await supabase.from("recurring_commitment_feed").select("id,name,amount_minor,due_day,account_id,account_name,category_id,category_name,category_icon,category_color,is_archived,updated_at").eq("id", id).single();
   if (readError || !data) { refresh(); return { ok: false, message: "Đã lưu nhưng chưa tải lại được dữ liệu." }; }
   const existingTransaction = input.id ? await supabase.from("commitment_occurrences").select("transaction_id").eq("commitment_id", id).eq("month_start", monthStart).maybeSingle() : null;
   try { const commitment = mapCommitmentRow(data, monthStart, existingTransaction?.data?.transaction_id ?? null); refresh(); return { ok: true, commitment }; }

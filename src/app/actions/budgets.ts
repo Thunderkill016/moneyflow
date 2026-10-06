@@ -15,6 +15,7 @@ const saveSchema = z.object({
   categoryId: z.string().uuid(),
   monthStart: z.string().regex(/^\d{4}-\d{2}-01$/),
   limit: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+  expectedUpdatedAt: z.string().optional(),
 });
 const idSchema = z.string().uuid();
 
@@ -36,14 +37,18 @@ export async function saveBudgetAction(input: SaveBudgetInput): Promise<BudgetAc
     p_category_id: parsed.data.categoryId,
     p_month_start: parsed.data.monthStart,
     p_limit_minor: parsed.data.limit,
+    p_expected_updated_at: parsed.data.expectedUpdatedAt ?? null,
   });
+  if (error?.message.includes("stale_write")) {
+    return { ok: false, message: "Dữ liệu đã được thay đổi ở nơi khác, hãy tải lại và thử lại." };
+  }
   if (error || typeof budgetId !== "string") {
     return { ok: false, message: "Không thể lưu ngân sách. Hãy thử lại." };
   }
 
   const { data, error: readError } = await supabase
     .from("budget_progress")
-    .select("id,category_id,category_name,category_icon,category_color,month_start,limit_minor,spent_minor")
+    .select("id,category_id,category_name,category_icon,category_color,month_start,limit_minor,spent_minor,updated_at")
     .eq("id", budgetId)
     .single();
   if (readError || !data) {

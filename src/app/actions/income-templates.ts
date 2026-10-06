@@ -18,6 +18,7 @@ const saveSchema = z.object({
   dueDay: z.number().int().min(1).max(31),
   accountId: z.string().uuid(),
   categoryId: z.string().uuid(),
+  expectedUpdatedAt: z.string().optional(),
 });
 const idSchema = z.string().uuid();
 const monthSchema = z.string().regex(/^\d{4}-\d{2}-01$/);
@@ -50,14 +51,18 @@ export async function saveIncomeTemplateAction(
     p_due_day: value.dueDay,
     p_account_id: value.accountId,
     p_category_id: value.categoryId,
+    p_expected_updated_at: value.expectedUpdatedAt ?? null,
   });
+  if (error?.message.includes("stale_write")) {
+    return { ok: false, message: "Dữ liệu đã được thay đổi ở nơi khác, hãy tải lại và thử lại." };
+  }
   if (error || typeof id !== "string") {
     return { ok: false, message: "Không thể lưu lương định kỳ." };
   }
   const { data, error: readError } = await supabase
     .from("recurring_income_template_feed")
     .select(
-      "id,name,amount_minor,due_day,account_id,account_name,category_id,category_name,category_icon,category_color,is_archived",
+      "id,name,amount_minor,due_day,account_id,account_name,category_id,category_name,category_icon,category_color,is_archived,updated_at",
     )
     .eq("id", id)
     .single();

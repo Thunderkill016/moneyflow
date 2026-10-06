@@ -32,6 +32,7 @@ const saveSchema = z.object({
    * would emit an unowned tone or glyph the UI cannot render. */
   icon: z.enum(ACCOUNT_ICON_NAMES).nullable().optional(),
   color: z.enum(ACCOUNT_COLORS).nullable().optional(),
+  expectedUpdatedAt: z.string().optional(),
 });
 const archiveSchema = z.object({ id: z.string().uuid(), archived: z.boolean() });
 
@@ -66,7 +67,11 @@ export async function saveAccountAction(input: SaveAccountInput): Promise<Accoun
       p_initial_balance_minor: parsed.data.initialBalance,
       p_icon: parsed.data.icon ?? null,
       p_color: parsed.data.color ?? null,
+      p_expected_updated_at: parsed.data.expectedUpdatedAt ?? null,
     });
+    if (error?.message.includes("stale_write")) {
+      return { ok: false, message: "Dữ liệu đã được thay đổi ở nơi khác, hãy tải lại và thử lại." };
+    }
     if (error) return { ok: false, message: accountError(error.message) };
     if (data !== true) return { ok: false, message: "Không tìm thấy tài khoản." };
   } else {
@@ -88,7 +93,7 @@ export async function saveAccountAction(input: SaveAccountInput): Promise<Accoun
   const [accountResult, balanceResult] = await Promise.all([
     supabase
       .from("accounts")
-      .select("id,name,kind,currency_code,initial_balance_minor,is_archived,icon,color")
+      .select("id,name,kind,currency_code,initial_balance_minor,is_archived,icon,color,updated_at")
       .eq("id", accountId)
       .single(),
     supabase.from("account_balances").select("balance_minor").eq("account_id", accountId).single(),

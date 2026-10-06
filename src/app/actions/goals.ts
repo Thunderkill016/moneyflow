@@ -8,7 +8,7 @@ import { requireViewer } from "@/server/auth";
 import { mapGoalRow } from "@/server/goals";
 
 export type GoalActionResult = { ok: true; goal?: SavingsGoal; allocated?: number } | { ok: false; message: string };
-const saveSchema = z.object({ id: z.string().uuid().optional(), name: z.string().trim().min(1).max(80), target: z.number().int().positive().max(Number.MAX_SAFE_INTEGER), deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable() });
+const saveSchema = z.object({ id: z.string().uuid().optional(), name: z.string().trim().min(1).max(80), target: z.number().int().positive().max(Number.MAX_SAFE_INTEGER), deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(), expectedUpdatedAt: z.string().optional() });
 const idSchema = z.string().uuid();
 function refresh() { revalidatePath("/"); revalidatePath("/goals"); revalidatePath("/insights"); }
 
@@ -16,9 +16,10 @@ export async function saveGoalAction(input: SaveGoalInput): Promise<GoalActionRe
   const parsed = saveSchema.safeParse(input); if (!parsed.success) return { ok: false, message: "Thông tin mục tiêu chưa hợp lệ." };
   const viewer = await requireViewer(); if (viewer.isDemo) return { ok: false, message: "Chế độ demo không lưu lên máy chủ." };
   const supabase = await createClient(); if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
-  const value = parsed.data; const { data: id, error } = await supabase.rpc("upsert_savings_goal", { p_goal_id: value.id ?? null, p_name: value.name, p_target_minor: value.target, p_deadline: value.deadline });
+  const value = parsed.data; const { data: id, error } = await supabase.rpc("upsert_savings_goal", { p_goal_id: value.id ?? null, p_name: value.name, p_target_minor: value.target, p_deadline: value.deadline, p_expected_updated_at: value.expectedUpdatedAt ?? null });
+  if (error?.message.includes("stale_write")) return { ok: false, message: "Dữ liệu đã được thay đổi ở nơi khác, hãy tải lại và thử lại." };
   if (error || typeof id !== "string") return { ok: false, message: "Không thể lưu mục tiêu. Mức đích không được thấp hơn tiền đã dành." };
-  const { data, error: readError } = await supabase.from("savings_goals").select("id,name,target_minor,allocated_minor,deadline,created_at,is_archived").eq("id", id).single();
+  const { data, error: readError } = await supabase.from("savings_goals").select("id,name,target_minor,allocated_minor,deadline,created_at,is_archived,updated_at").eq("id", id).single();
   if (readError || !data) { refresh(); return { ok: false, message: "Đã lưu nhưng chưa tải lại được mục tiêu." }; }
   try { const goal = mapGoalRow(data); refresh(); return { ok: true, goal }; } catch { refresh(); return { ok: false, message: "Dữ liệu mục tiêu trả về không hợp lệ." }; }
 }
