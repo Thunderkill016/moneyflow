@@ -1,5 +1,6 @@
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { auditRoute, type AuditRoute } from "./responsive-audit";
+import { tapKeypadAmount } from "../capture-keypad.ts";
 
 const LONG_EXPENSE_NOTE =
   "Thanh toán chi phí sửa chữa căn hộ và thay toàn bộ thiết bị điện trong phòng làm việc tại nhà";
@@ -239,7 +240,7 @@ test.describe("large VND and long Vietnamese responsive states", () => {
     ).toHaveAttribute("aria-pressed", "true");
     const amount = quickDialog.getByLabel(/Số tiền chi/i);
     await expect(amount).toBeVisible();
-    await amount.fill("987654321");
+    await tapKeypadAmount(quickDialog, "987654321");
 
     const categoryDisclosure = quickDialog.locator(
       'details[data-slot="capture-category-choice"]',

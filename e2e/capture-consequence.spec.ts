@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { tapKeypadAmount } from "./capture-keypad.ts";
 
 /*
  * The payoff moment, proven in a browser rather than only in a unit test.
@@ -27,7 +28,7 @@ async function quickSave(
   await expect(dialog).toBeVisible();
 
   await dialog.getByRole("button", { name: "Khoản chi" }).click();
-  await dialog.getByLabel(/Số tiền chi/iu).fill(amount);
+  await tapKeypadAmount(dialog, amount);
 
   /*
    * Choosing the category is best-effort on purpose. After the first successful
