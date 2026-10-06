@@ -410,6 +410,20 @@ export function DirectCsvImportPage({
     setRecovery(null);
     setImportProgress({ done: 0, total: plan.readyCount });
 
+    try {
+      await runImportCommit();
+    } catch {
+      // Network/transport failure: the phase must never stay "importing".
+      setImportProgress({ done: 0, total: plan.readyCount });
+      setPhase("error");
+      setError("Mất kết nối khi ghi sổ. Kiểm tra mạng rồi thử lại.");
+      return;
+    }
+  }
+
+  async function runImportCommit() {
+    if (!plan || !parseResult) return;
+
     const skipped =
       plan.duplicateCount + plan.transferSkipped + plan.invalidSkipped;
 
