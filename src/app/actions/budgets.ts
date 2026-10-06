@@ -121,7 +121,7 @@ export async function carryForwardBudgetsAction(
       p_month_start: input.monthStart,
       p_limit_minor: input.limit,
     });
-    if (error || typeof budgetId !== "string") break;
+    if (error || typeof budgetId !== "string") continue;
 
     const { data, error: readError } = await supabase
       .from("budget_progress")
@@ -130,12 +130,12 @@ export async function carryForwardBudgetsAction(
       )
       .eq("id", budgetId)
       .single();
-    if (readError || !data) break;
+    if (readError || !data) continue;
 
     try {
       budgets.push(mapBudgetRow(data));
     } catch {
-      break;
+      continue;
     }
   }
 
