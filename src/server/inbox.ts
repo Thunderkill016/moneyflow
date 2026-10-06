@@ -10,6 +10,7 @@ import {
   type InboxCandidateRow,
   type ImportBatchRow,
 } from "@/lib/inbox/inbox-map";
+import { readInboxRowsPaged } from "@/lib/inbox/inbox-paged-read";
 import { createClient } from "@/lib/supabase/server";
 import { dueDateForMonth } from "@/lib/planning/commitments";
 import { todayInVietnam } from "@/lib/vietnam-date";
@@ -27,14 +28,17 @@ const BATCH_MEASUREMENT_COLUMNS =
   `${BATCH_BASE_COLUMNS},commit_attempt_count,commit_replay_count,mapping_evidence`;
 
 /*
- * Explicit row ceiling for the inbox list. PostgREST already caps at 1000 by
- * default; stating it here makes the limit reviewable instead of accidental.
- * The inbox UI holds the whole list in memory and has no server pagination,
- * the export page reuses this function for its download, and the activity
- * capability counts pending rows from it — so raising this cap must come with
- * a real paging plan for all four callers, not a quiet number change.
+ * The inbox list has no row ceiling: candidates and batches are read page by
+ * page (`readInboxRowsPaged`), the same paging plan the transaction feeds use.
+ * This is what the settings/export download relies on — a single read
+ * capped at 1000 rows used to silently drop every candidate past row 1000.
+ * RLS (`*_select_own` policies) still restricts every page to the viewer's
+ * own rows; nothing here bypasses it.
+ *
+ * Offset pagination needs a unique final sort key. `id` is appended after
+ * the display ordering so pages neither skip nor duplicate rows; the display
+ * order itself is unchanged (ties were previously arbitrary).
  */
-const INBOX_LIST_LIMIT = 1000;
 
 export type InboxListResult =
   | { ok: true; candidates: InboxCandidate[]; batches: ImportBatch[] }
@@ -122,46 +126,40 @@ export async function listInboxFromServer(): Promise<InboxListResult> {
   const supabase = await createClient();
   if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
 
-  const ruleColumnResult = await supabase
-    .from("inbox_candidates")
-    .select(CANDIDATE_RULE_COLUMNS)
-    .order("occurred_on", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(INBOX_LIST_LIMIT);
+  const candidateResult = await readInboxRowsPaged(
+    (from, to, columns) =>
+      supabase
+        .from("inbox_candidates")
+        .select(columns)
+        .order("occurred_on", { ascending: false })
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to),
+    CANDIDATE_RULE_COLUMNS,
+    CANDIDATE_BASE_COLUMNS,
+    // Application-first rollout: old production schemas still serve the Inbox.
+    (error) => isMissingRuleProvenanceColumn(error as InboxQueryError),
+  );
 
-  let candidateRows: unknown[] = ruleColumnResult.data ?? [];
-  let candidateError: InboxQueryError = ruleColumnResult.error;
+  const candidateRows: unknown[] = candidateResult.data ?? [];
+  const candidateError: InboxQueryError =
+    candidateResult.error as InboxQueryError;
 
-  // Application-first rollout: old production schemas still serve the Inbox.
-  if (isMissingRuleProvenanceColumn(candidateError)) {
-    const legacyResult = await supabase
-      .from("inbox_candidates")
-      .select(CANDIDATE_BASE_COLUMNS)
-      .order("occurred_on", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(INBOX_LIST_LIMIT);
-    candidateRows = legacyResult.data ?? [];
-    candidateError = legacyResult.error;
-  }
+  const batchResult = await readInboxRowsPaged(
+    (from, to, columns) =>
+      supabase
+        .from("import_batches")
+        .select(columns)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to),
+    BATCH_MEASUREMENT_COLUMNS,
+    BATCH_BASE_COLUMNS,
+    (error) => isMissingMeasurementColumn(error as InboxQueryError),
+  );
 
-  const measurementResult = await supabase
-    .from("import_batches")
-    .select(BATCH_MEASUREMENT_COLUMNS)
-    .order("created_at", { ascending: false })
-    .limit(INBOX_LIST_LIMIT);
-
-  let batchRows: unknown[] = measurementResult.data ?? [];
-  let batchError: InboxQueryError = measurementResult.error;
-
-  if (isMissingMeasurementColumn(batchError)) {
-    const legacyBatchResult = await supabase
-      .from("import_batches")
-      .select(BATCH_BASE_COLUMNS)
-      .order("created_at", { ascending: false })
-      .limit(INBOX_LIST_LIMIT);
-    batchRows = legacyBatchResult.data ?? [];
-    batchError = legacyBatchResult.error;
-  }
+  const batchRows: unknown[] = batchResult.data ?? [];
+  const batchError: InboxQueryError = batchResult.error as InboxQueryError;
 
   if (candidateError || batchError) {
     return { ok: false, message: "Không tải được Inbox từ máy chủ." };
