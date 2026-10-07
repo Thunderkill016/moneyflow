@@ -80,7 +80,7 @@ export function OnboardingFlow({
   /** Active cash wallet from server/demo seed, if any. */
   initialCash?: Pick<
     AccountSummary,
-    "id" | "name" | "kind" | "initialBalance" | "isArchived"
+    "id" | "name" | "kind" | "initialBalance" | "isArchived" | "updatedAt"
   > | null;
   isDemo?: boolean;
 }) {
@@ -146,7 +146,10 @@ export function OnboardingFlow({
         return;
       }
 
-      const input = buildCashWalletInput(draft, cashId);
+      const input = {
+        ...buildCashWalletInput(draft, cashId),
+        expectedUpdatedAt: initialCash?.updatedAt,
+      };
       const result = await saveAccountAction(input);
       if (!result.ok) {
         // New users usually already have seed "Tiền mặt" — still allow continue.
