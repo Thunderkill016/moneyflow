@@ -37,6 +37,10 @@ export function useVoiceCapture() {
   const [parsed, setParsed] = useState<VoiceParsedResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // stopListening = "done, keep what was heard"; reset/cancel = "discard".
+  // Without this flag, stopListening's abort() makes start() discard the
+  // just-transcribed text and leaves the UI stuck in "listening".
+  const keepResultRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,7 +76,9 @@ export function useVoiceCapture() {
         signal: aborter.signal,
         onPartial: (value) => setPartial(value),
       });
-      if (aborter.signal.aborted) return;
+      const keepResult = keepResultRef.current;
+      keepResultRef.current = false;
+      if (aborter.signal.aborted && !keepResult) return;
       const clean = text.trim();
       if (!clean) {
         setError("Không nghe rõ. Thử lại ở chỗ yên tĩnh hơn, hoặc nhập tay nhé.");
@@ -110,10 +116,12 @@ export function useVoiceCapture() {
   }, []);
 
   const stopListening = useCallback(() => {
+    keepResultRef.current = true;
     abortRef.current?.abort();
   }, []);
 
   const reset = useCallback(() => {
+    keepResultRef.current = false;
     abortRef.current?.abort();
     abortRef.current = null;
     setPhase("idle");
