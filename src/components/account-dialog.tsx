@@ -4,6 +4,10 @@ import { FormEvent, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import {
+  isAuthRequiredResult,
+  notifyAuthSessionExpired,
+} from "@/lib/auth-cross-tab";
 import { Dialog } from "@/components/ui/dialog";
 import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
@@ -135,8 +139,11 @@ export function AccountDialog({
 
     if (!result.ok) {
       setFormError(result.message || "Không thể lưu tài khoản.");
+      if (isAuthRequiredResult(result)) notifyAuthSessionExpired();
     }
   }
+
+  const isStaleError = formError?.includes("đã được thay đổi ở nơi khác") ?? false;
 
   return (
     <Dialog
@@ -314,6 +321,15 @@ export function AccountDialog({
         {formError ? (
           <Alert tone="error" live="assertive" className={styles.formAlert}>
             <AlertDescription>{formError}</AlertDescription>
+            {isStaleError ? (
+              <Button
+                type="button"
+                intent="secondary"
+                onClick={() => window.location.reload()}
+              >
+                Tải lại dữ liệu
+              </Button>
+            ) : null}
           </Alert>
         ) : null}
       </form>

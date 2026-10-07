@@ -91,6 +91,51 @@ export function broadcastAuthSignedOut(
 }
 
 /**
+ * The stable machine code for "session missing" failures, mirroring
+ * AUTH_REQUIRED_CODE in src/server/auth.ts. Kept as a literal here so
+ * client components can compare without importing server code.
+ */
+export const AUTH_REQUIRED_CODE = "auth-required";
+
+/**
+ * True when a Server Action result signals a missing session.
+ * Use this to elevate an inline auth error into the session banner.
+ */
+export function isAuthRequiredResult(
+  result: { ok: boolean; code?: string } | null | undefined,
+): boolean {
+  return !!result && !result.ok && result.code === AUTH_REQUIRED_CODE;
+}
+
+/**
+ * Notify this tab that its own session is gone (e.g. a Server Action
+ * returned code "auth-required"). Unlike the cross-tab broadcast, this
+ * targets the current tab via a window event the banner subscribes to.
+ */
+export const AUTH_SESSION_EXPIRED_EVENT = "moneyflow:auth-session-expired";
+
+export function notifyAuthSessionExpired(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(AUTH_SESSION_EXPIRED_EVENT));
+}
+
+/**
+ * Invoke `onSignedOut` whenever the session expires in this tab
+ * (via notifyAuthSessionExpired) or another tab broadcasts a logout.
+ * Returns an unsubscribe function.
+ */
+export function subscribeAuthSessionExpired(onExpired: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const handler = () => onExpired();
+  window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, handler);
+  const unsubscribeBroadcast = subscribeAuthSignedOut(onExpired);
+  return () => {
+    window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, handler);
+    unsubscribeBroadcast();
+  };
+}
+
+/**
  * Invoke `onSignedOut` whenever another tab broadcasts a logout. The sender
  * never receives its own message (BroadcastChannel semantics). Returns an
  * unsubscribe function. Safe no-op on the server or where BroadcastChannel is

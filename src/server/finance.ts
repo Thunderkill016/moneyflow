@@ -50,7 +50,7 @@ export type FinanceWorkspace = {
 };
 
 export const TRANSACTION_FEED_COLUMNS =
-  "id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines,payee,goal_id,goal_name";
+  "id,kind,note,occurred_on,created_at,updated_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines,payee,goal_id,goal_name";
 const TRANSACTION_REVIEW_COLUMNS = "id,review_status,occurred_on,created_at";
 const DELETED_TRANSACTION_FEED_COLUMNS = `${TRANSACTION_FEED_COLUMNS},deleted_at`;
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { subscribeAuthSignedOut } from "@/lib/auth-cross-tab";
+import { subscribeAuthSessionExpired } from "@/lib/auth-cross-tab";
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import styles from "./auth-session-banner.module.css";
@@ -21,7 +21,7 @@ export function AuthSessionBanner() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    return subscribeAuthSignedOut(() => setVisible(true));
+    return subscribeAuthSessionExpired(() => setVisible(true));
   }, []);
 
   if (!visible) return null;
