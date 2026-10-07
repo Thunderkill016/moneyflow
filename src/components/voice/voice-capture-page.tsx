@@ -300,6 +300,9 @@ export function VoiceCapturePage({
             >
               <Icon name="check" /> Xong, ghi đi
             </Button>
+            <Button type="button" intent="quiet" onClick={voice.reset}>
+              Hủy
+            </Button>
           </section>
         ) : null}
 
