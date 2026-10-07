@@ -19,7 +19,7 @@ const inputSchema = z.object({
 export async function recordImportBatchMeasurementAction(input: {
   batchId: string;
   event: "commit_attempt" | "commit_replay";
-}): Promise<{ ok: true } | { ok: false }> {
+}): Promise<{ ok: true } | { ok: false; message?: string; code?: string }> {
   const parsed = inputSchema.safeParse(input);
   if (!parsed.success) return { ok: false };
 

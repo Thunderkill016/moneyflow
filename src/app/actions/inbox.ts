@@ -226,7 +226,7 @@ export async function migrateLocalInboxAction(input: {
 
 export type CarryDemoLedgerResult =
   | { ok: true; carried: number; alreadyCarried?: boolean }
-  | { ok: false; message: string; targetNotEmpty?: boolean };
+  | { ok: false; message: string; targetNotEmpty?: boolean; code?: string };
 
 const DEMO_CARRYOVER_EXTERNAL_PREFIX = "demo-tx-";
 const DEMO_CARRYOVER_BATCH_NAME = "moneyflow-demo-ledger";
