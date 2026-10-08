@@ -474,6 +474,47 @@ subject binding, production liveness of the Supabase project, owner decisions
 on password strategy/scoped tokens/real-data export. Plan B remains a
 candidate direction, NOT production approval.
 
+### Round-6 evidence — reservation sealed to subject, money BigInt, real-auth restore leg
+
+**Reservation binds the destination at reserve time** (`claim-ceremony.sql`):
+`reserve_identity_claim` now resolves the caller's LIVE session via the new
+`claim_session_subject()` and stamps `neon_user_id` immediately — a stolen
+claim token presented under a different verified session fails with
+`23505 'bound to a different subject'` (the reviewer's headline negative).
+Idempotency is same-payload-only: a recycled key with different
+legacy/token/subject data is a conflict, not a silent return. Live
+uniqueness moved to partial indexes (`status in ('reserved','completed')`);
+expired reservations are swept to `rejected` tombstones on the next reserve
+so TTL lapse never deadlocks subject or legacy. `cancel_identity_claim` +
+status guard make cancelled/rejected rows terminal (P0006) — a real bug
+fixed: previously a 'rejected' row could still complete.
+
+`claim-ceremony-e2e.mjs` → **21/21**, including the new negatives: stolen
+token (valid foreign session + unconsumed token → denied), idem-key payload
+mismatch, expired-then-freed retry, cancelled-never-completes, plus all
+prior ones (forge/wrong-iss/expired/sub-mismatch proofs, forged/expired
+sessions, cross-subject replay, RLS post-claim visibility).
+
+**Money precision**: per-owner `amount_minor` totals now accumulate in
+`BigInt` (JS `Number` silently drifts above 2^53); the integer-money column
+assertion checks BigInt/integer-string form instead of `isSafeInteger`,
+which would falsely reject legitimately huge đồng values.
+
+**Real managed-auth restore leg** (`backup-rehearsal --remap-rehearsal`):
+the stub `neon_auth.user` is no longer the only proven destination — the
+rehearsal picks the richest owner (24 rows across the schema), signs up a
+REAL managed-auth subject, deletes their legacy-keyed rows and re-inserts
+them under the real uuid in one transaction (children-first delete,
+parents-first insert — non-deferrable composite FKs leave no other order),
+then signs in and verifies every remapped account through the live Data
+API + RLS. The seeded-provisioning collision surfaced for real
+(`categories(user_id,name,kind)` unique) and is resolved by the documented
+policy: **claim restore replaces auto-provisioned seeds** — provisioned
+rows for the claiming subject are purged inside the same transaction;
+`profiles` upserts onto the provisioned row; the legacy `neon_auth.user`
+row is abandoned (old identity never migrates). Dataset is restored to
+original after the leg.
+
 ### Round-2 evidence — forced-reset cutover journey (`scripts/neon-poc/reset-e2e.mjs`)
 
 9/9 live on the scratch project (round-3 rerun), synthetic user with a

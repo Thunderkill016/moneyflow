@@ -126,7 +126,7 @@ const authCall = (path, body) =>
     body: JSON.stringify(body),
   });
 const signUp = async (email) => {
-  const res = await authCall("/sign-up/email", {
+  const res = await authCallPatient("/sign-up/email", {
     email,
     password: PASS,
     name: "Claim",
@@ -174,6 +174,7 @@ const reserve = async (
   legacyUuid,
   proofJwt,
   tokenSecret,
+  sessionToken,
   idemKey,
   ttl = 900,
 ) => {
@@ -181,10 +182,11 @@ const reserve = async (
   // a proof minted for a different identity never reaches the reservation.
   const proofHash = await verifyOldIdentity(proofJwt, legacyUuid);
   return client
-    .query(`select * from public.reserve_identity_claim($1,$2,$3,$4,$5)`, [
+    .query(`select * from public.reserve_identity_claim($1,$2,$3,$4,$5,$6)`, [
       legacyUuid,
       proofHash,
       sha(tokenSecret),
+      sessionToken,
       idemKey,
       ttl,
     ])
@@ -211,20 +213,19 @@ await step("claim WITHOUT verified email is refused at the gate", async () => {
     [neonA],
   );
   if (u.v) throw new Error("fresh sign-up unexpectedly verified");
-  // The gate is inside complete(): an unverified destination subject rejects
-  // even with a valid token + live session.
+  // The email gate is inside claim_session_subject() — an unverified subject
+  // cannot even RESERVE, let alone complete.
   const proofA = await signOldIdentity(LEGACY_A);
   const tok = randomBytes(24).toString("hex");
-  await reserve(LEGACY_A, proofA, tok, `gate-${neonA}`);
   const { sessionToken } = await signIn(emails.a);
   try {
-    await complete(tok, sessionToken);
-    throw new Error("unverified destination claimed a legacy identity");
+    await reserve(LEGACY_A, proofA, tok, sessionToken, `gate-${neonA}`);
+    throw new Error("unverified destination reserved a legacy identity");
   } catch (e) {
     if (!/email is not verified/.test(e.message)) throw e;
   }
   await client.query(`delete from public.identity_claims`);
-  return "complete() rejects unverified destination subjects in-database";
+  return "reserve() rejects unverified destination subjects in-database";
 });
 
 await step("unclaimed legacy data is absent — nothing to leak", async () => {
@@ -255,10 +256,12 @@ await step(
       ["sub≠claimed legacy", await signOldIdentity(LEGACY_B)],
     ];
     for (const [label, jwt] of checks) {
+      // Fails in verifyOldIdentity before SQL — the session arg never matters.
       const denied = await reserve(
         LEGACY_A,
         jwt,
         randomBytes(24).toString("hex"),
+        "unused-session",
         `forge-${label}`,
       )
         .then(() => false)
@@ -283,50 +286,103 @@ const markVerified = (id) =>
 
 const tokenA = randomBytes(24).toString("hex");
 await step(
-  "verified proof + verified subject → reservation binds legacy uuid",
+  "verified proof + verified subject → reservation binds BOTH ends",
   async () => {
     await markVerified(neonA);
+    const { sessionToken: sessA } = await signIn(emails.a);
     const claim = await reserve(
       LEGACY_A,
       await signOldIdentity(LEGACY_A),
       tokenA,
+      sessA,
       `claim-${neonA}`,
     );
-    if (!claim || claim.legacy_user_id !== LEGACY_A || claim.neon_user_id)
-      throw new Error("reservation malformed");
-    return `reserved ${LEGACY_A.slice(0, 8)}…`;
+    // The destination subject is bound AT RESERVE — the token is useless to
+    // any other session from this moment on.
+    if (
+      !claim ||
+      claim.legacy_user_id !== LEGACY_A ||
+      claim.neon_user_id !== neonA
+    )
+      throw new Error("reservation did not bind the session subject");
+    return `reserved ${LEGACY_A.slice(0, 8)}… → bound to neon ${neonA.slice(0, 8)}…`;
   },
 );
 
 await step(
   "idempotent retry of the same reserve returns the same row",
   async () => {
+    const { sessionToken: sessA } = await signIn(emails.a);
     const again = await reserve(
       LEGACY_A,
       await signOldIdentity(LEGACY_A),
       tokenA,
+      sessA,
       `claim-${neonA}`,
     );
-    if (again.status !== "reserved")
-      throw new Error(`unexpected status ${again.status}`);
+    if (again.status !== "reserved" || again.neon_user_id !== neonA)
+      throw new Error(`unexpected state ${again.status}`);
     return "same reservation — safe retry";
+  },
+);
+
+await step(
+  "idempotency key reused with DIFFERENT payload → conflict",
+  async () => {
+    const { sessionToken: sessA } = await signIn(emails.a);
+    try {
+      await reserve(
+        LEGACY_A,
+        await signOldIdentity(LEGACY_A),
+        randomBytes(24).toString("hex"), // different token under A's key
+        sessA,
+        `claim-${neonA}`,
+      );
+      throw new Error("recycled idempotency key accepted different data");
+    } catch (e) {
+      if (!/reused with a different payload/.test(e.message)) throw e;
+      return "23505 — idempotency is same-payload-only, not a bypass";
+    }
   },
 );
 
 await step(
   "conflicting re-reserve of the claimed legacy → rejected",
   async () => {
+    neonImpostor = await signUp(emails.impostor);
+    await markVerified(neonImpostor);
+    const { sessionToken: sessI } = await signIn(emails.impostor);
     try {
       await reserve(
         LEGACY_A,
         await signOldIdentity(LEGACY_A),
         randomBytes(24).toString("hex"),
+        sessI,
         "different-key",
       );
       throw new Error("second reservation accepted — impostor can pre-claim");
     } catch (e) {
       if (!/already has a claim record/.test(e.message)) throw e;
       return "23505 — legacy identity is single-claim";
+    }
+  },
+);
+
+await step(
+  "STOLEN TOKEN: B's valid session cannot complete A's reservation",
+  async () => {
+    // THE review scenario: tokenA is reserved-but-unconsumed and bound to A.
+    // B holds a legitimate verified session — completing with it must fail
+    // because the claim's neon_user_id was sealed at reserve time.
+    neonB = await signUp(emails.b);
+    await markVerified(neonB);
+    const { sessionToken: sessB } = await signIn(emails.b);
+    try {
+      await complete(tokenA, sessB);
+      throw new Error("B completed A's claim with a stolen token — TAKEOVER");
+    } catch (e) {
+      if (!/bound to a different subject/.test(e.message)) throw e;
+      return "23505 — token sealed to the reserving subject at reserve time";
     }
   },
 );
@@ -422,10 +478,6 @@ await step(
 await step(
   "completed token replayed by a DIFFERENT session → rejected",
   async () => {
-    neonB = await signUp(emails.b);
-    // B must be a *verified* destination or the in-DB email gate fires before
-    // the consumed-token check this step exercises.
-    await markVerified(neonB);
     const { sessionToken: sessB } = await signIn(emails.b);
     try {
       await complete(tokenA, sessB);
@@ -448,8 +500,6 @@ await step("same-session replay is an idempotent no-op", async () => {
 await step(
   "impostor with a different session cannot ride A's token",
   async () => {
-    neonImpostor = await signUp(emails.impostor);
-    await markVerified(neonImpostor);
     const { sessionToken: sessI } = await signIn(emails.impostor);
     try {
       await complete(tokenA, sessI);
@@ -465,45 +515,95 @@ await step(
   "one neon subject cannot bind a second legacy identity",
   async () => {
     const tokenB = randomBytes(24).toString("hex");
+    const { sessionToken: sessB } = await signIn(emails.b);
     await reserve(
       LEGACY_B,
       await signOldIdentity(LEGACY_B),
       tokenB,
+      sessB,
       `claim-${neonB}-legit`,
     );
-    const { sessionToken: sessB } = await signIn(emails.b);
     await complete(tokenB, sessB);
-    // Same verified subject now tries a second distinct legacy claim.
+    // Same verified subject now tries a second distinct legacy claim —
+    // rejected at RESERVE: the subject already holds a live claim.
     const extra = randomBytes(24).toString("hex");
     const legacyD = "dddddddd-4444-4444-8666-dddddddddddd";
-    await reserve(legacyD, await signOldIdentity(legacyD), extra, "extra2");
     try {
-      await complete(extra, sessB);
-      throw new Error("subject bound two legacy identities");
+      await reserve(
+        legacyD,
+        await signOldIdentity(legacyD),
+        extra,
+        sessB,
+        "extra2",
+      );
+      throw new Error("subject reserved two legacy identities");
     } catch (e) {
-      if (!/already bound/.test(e.message)) throw e;
-      return "23505 — one subject, one legacy identity";
+      if (!/already holds a claim/.test(e.message)) throw e;
+      return "23505 — one subject, one legacy identity (enforced at reserve)";
     }
   },
 );
 
-await step("expired reservation cannot complete", async () => {
-  const stale = randomBytes(24).toString("hex");
-  const legacyC = "eeeeeeee-5555-4444-8666-eeeeeeeeeeee";
-  await reserve(
-    legacyC,
-    await signOldIdentity(legacyC),
-    stale,
-    "stale-key",
-    -3600,
+await step(
+  "expired reservation cannot complete; expiry frees retry",
+  async () => {
+    const { sessionToken: sessI } = await signIn(emails.impostor);
+    const stale = randomBytes(24).toString("hex");
+    const legacyC = "eeeeeeee-5555-4444-8666-eeeeeeeeeeee";
+    await reserve(
+      legacyC,
+      await signOldIdentity(legacyC),
+      stale,
+      sessI,
+      "stale-key",
+      -3600,
+    );
+    try {
+      await complete(stale, sessI);
+      throw new Error("expired claim completed");
+    } catch (e) {
+      if (!/expired/.test(e.message)) throw e;
+    }
+    // A lapsed token must not deadlock the subject OR the legacy identity —
+    // the lazy sweep turns it into a tombstone and a fresh claim proceeds.
+    const legacyE = "55555555-6666-4444-8666-555555555555";
+    const freshTok = randomBytes(24).toString("hex");
+    const fresh = await reserve(
+      legacyE,
+      await signOldIdentity(legacyE),
+      freshTok,
+      sessI,
+      "fresh-after-expiry",
+    );
+    if (fresh.status !== "reserved")
+      throw new Error("expired claim permanently blocked the subject");
+    return "P0003 TTL enforced; expired row tombstoned, subject free to retry";
+  },
+);
+
+await step("cancelled reservation can never complete", async () => {
+  const { sessionToken: sessI } = await signIn(emails.impostor);
+  const {
+    rows: [claim],
+  } = await client.query(
+    `select claim_token_hash from public.identity_claims
+      where neon_user_id=$1 and status='reserved'`,
+    [neonImpostor],
   );
-  const { sessionToken } = await signIn(emails.a);
+  await client.query(`select * from public.cancel_identity_claim($1)`, [
+    claim.claim_token_hash,
+  ]);
+  // The raw token secret is unknown to complete() callers, but cancel only
+  // moved the tombstone — completing by hash is what the service does.
   try {
-    await complete(stale, sessionToken);
-    throw new Error("expired claim completed");
+    await client.query(`select * from public.complete_identity_claim($1,$2)`, [
+      claim.claim_token_hash,
+      sessI,
+    ]);
+    throw new Error("cancelled claim completed");
   } catch (e) {
-    if (!/expired/.test(e.message)) throw e;
-    return "P0003 — TTL enforced";
+    if (!/not in a claimable state/.test(e.message)) throw e;
+    return "P0006 — cancelled tombstones are terminal";
   }
 });
 

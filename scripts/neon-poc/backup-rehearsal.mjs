@@ -546,14 +546,23 @@ const remapValue = (v, map) => {
 const remapRowDeep = (row, map) => (map ? remapValue(row, map) : { ...row });
 
 // Money-precision invariant: any column that looks monetary must hold an
-// exact integer (VND đồng is stored as integer, never float). Numbers in the
-// dump may be JS numbers or bigint-as-strings — both must be safe integers.
+// exact integer (VND đồng is stored as integer, never float). Check by
+// BigInt parse / integer-string form — NOT Number.isSafeInteger, which would
+// falsely reject legitimately huge đồng values above 2^53.
 const MONEY_COL = /amount|balance|minor/i;
 const assertIntegerMoney = (rows, where) => {
   for (const row of rows)
-    for (const [c, v] of Object.entries(row))
-      if (v !== null && MONEY_COL.test(c) && !Number.isSafeInteger(Number(v)))
+    for (const [c, v] of Object.entries(row)) {
+      if (v === null || !MONEY_COL.test(c)) continue;
+      const int =
+        typeof v === "bigint"
+          ? true
+          : typeof v === "number"
+            ? Number.isInteger(v)
+            : /^-?\d+$/.test(String(v).trim());
+      if (!int)
         fail(`non-integer money at ${where}.${c} = ${JSON.stringify(v)}`);
+    }
 };
 
 // Proof the comparator actually detects nested mutation — a comparator that
@@ -739,26 +748,30 @@ async function remapRehearsal() {
       `${embedded} embedded legacy-uuid references survived — check jsonb/provenance columns`,
     );
 
-  // Financial invariant: per-owner amount totals preserved under the map.
-  const sumFor = (rows, oset, key = "user_id") => {
-    const sums = {};
-    for (const r of rows) {
-      const owner = map[r[key]] ?? r[key];
-      sums[owner] = (sums[owner] ?? 0) + Number(r.amount_minor ?? 0);
-    }
-    return sums;
-  };
-  const srcSums = sumFor(dump.tables["public.transaction_entries"] ?? []);
+  // Financial invariant: per-owner amount totals preserved under the map —
+  // computed in BigInt: Number() drifts silently above 2^53 and a financial
+  // migration cannot round đồng.
+  const srcSums = new Map();
+  for (const r of dump.tables["public.transaction_entries"] ?? []) {
+    const owner = map[r.user_id] ?? r.user_id;
+    srcSums.set(
+      owner,
+      (srcSums.get(owner) ?? 0n) + BigInt(r.amount_minor ?? 0),
+    );
+  }
   const { rows: dstEntries } = await client.query(
     `select user_id, amount_minor from public.transaction_entries`,
   );
-  const dstSums = {};
+  const dstSums = new Map();
   for (const r of dstEntries)
-    dstSums[r.user_id] = (dstSums[r.user_id] ?? 0) + Number(r.amount_minor);
-  for (const [owner, sum] of Object.entries(srcSums))
-    if (dstSums[owner] !== sum)
+    dstSums.set(
+      r.user_id,
+      (dstSums.get(r.user_id) ?? 0n) + BigInt(r.amount_minor),
+    );
+  for (const [owner, sum] of srcSums)
+    if (dstSums.get(owner) !== sum)
       fail(
-        `amount_minor total drifted for owner ${owner}: ${sum}→${dstSums[owner]}`,
+        `amount_minor total drifted for owner ${owner}: ${sum}→${dstSums.get(owner)}`,
       );
 
   console.log(
@@ -902,6 +915,217 @@ async function remapRehearsal() {
     if (!probeDone)
       console.log("  (no populated jsonb column to mutate — skipped)");
     await probe.end();
+  }
+
+  // --- real-subject leg: land one owner's full rowset under a REAL managed-
+  // auth subject (not the stub table). Runs in neondb — the only database
+  // the managed auth service actually serves. The victim's legacy-keyed rows
+  // are deleted and re-inserted under the real uuid inside one transaction —
+  // the exact shape of a claim-driven per-user restore.
+  const AUTH_BASE = process.env.NEON_AUTH_BASE_URL;
+  const DATA_API = process.env.NEON_DATA_API_URL;
+  if (!AUTH_BASE || !DATA_API) {
+    console.log(
+      "  (NEON_AUTH_BASE_URL/NEON_DATA_API_URL unset — real-subject leg skipped)",
+    );
+    return;
+  }
+  {
+    const authCall = (p, b) =>
+      fetch(AUTH_BASE + p, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-requested-with": "XMLHttpRequest",
+          origin: AUTH_BASE,
+        },
+        body: JSON.stringify(b),
+      });
+    const realEmail = `remap-real-${Date.now()}@moneyflow.test`;
+    const realPass = "RemapProof!Pass77";
+    let realUuid = null;
+    const ownerRowsDeleted = [];
+    try {
+      const up = await authCall("/sign-up/email", {
+        email: realEmail,
+        password: realPass,
+        name: "real remap subject",
+      });
+      const ub = await up.json();
+      if (!up.ok || !ub?.user?.id)
+        fail(`real subject sign-up failed: ${up.status} ${JSON.stringify(ub)}`);
+      realUuid = ub.user.id;
+
+      // Victim = owner with the most dump rows (richest realistic subject).
+      const perOwner = new Map();
+      for (const [t, cols] of ownerCols)
+        for (const row of dump.tables[t] ?? [])
+          for (const c of cols)
+            if (owners.has(row[c]))
+              perOwner.set(row[c], (perOwner.get(row[c]) ?? 0) + 1);
+      const victim = [...perOwner.entries()].sort((a, b) => b[1] - a[1])[0][0];
+
+      const src = await connect();
+      await src.query("set timezone to 'UTC'");
+      await src.query("begin");
+      // Claim-driven restore shape: remove legacy-keyed rows, insert the same
+      // rows keyed to the REAL neon subject — one transaction.
+      // neon_auth.user is EXCLUDED: the legacy auth row is the old identity —
+      // abandoned, never migrated. profiles upserts onto the row provisioning
+      // already created for the real subject.
+      // Pass 1 — delete victim rows CHILDREN-FIRST. `names` is sorted
+      // ancestors-first (dependency depth descending), so deletes run in
+      // reverse — non-deferrable composite FKs forbid deleting a parent
+      // while a child row still references it.
+      for (const name of [...names].reverse()) {
+        if (name === "neon_auth.user") continue;
+        const [schema, table] = name.split(".");
+        const fq = `"${schema}"."${table}"`;
+        for (const row of dump.tables[name] ?? []) {
+          const isOwnerRow = [...(ownerCols.get(name) ?? [])].some(
+            (c) => row[c] === victim,
+          );
+          if (!isOwnerRow) continue;
+          const where = Object.keys(row)
+            .map((c, i) => `"${c}" is not distinct from $${i + 1}`)
+            .join(" and ");
+          await src.query(
+            `delete from ${fq} where ${where}`,
+            Object.values(row).map((v) =>
+              v !== null && typeof v === "object" ? JSON.stringify(v) : v,
+            ),
+          );
+          ownerRowsDeleted.push({ name, row });
+        }
+        // Collision policy (packet note): a fresh sign-up gets provisioned
+        // seed rows (default categories/accounts) that collide with restored
+        // unique keys like categories(user_id,name,kind). The claim replaces
+        // the seeds — purge the real subject's auto-provisioned rows in this
+        // table inside the same transaction. profiles is exempt (upserted).
+        if (name !== "public.profiles")
+          for (const c2 of ownerCols.get(name) ?? [])
+            await src.query(`delete from ${fq} where "${c2}" = $1`, [realUuid]);
+      }
+      // Pass 2 — insert the same rows keyed to the REAL subject, parents
+      // first (the original `names` order — ancestors before children).
+      for (const name of names) {
+        if (name === "neon_auth.user") continue;
+        const [schema, table] = name.split(".");
+        const fq = `"${schema}"."${table}"`;
+        for (const { row } of ownerRowsDeleted.filter((d) => d.name === name)) {
+          const remapped = remapRowDeep(row, { [victim]: realUuid });
+          const cols = Object.keys(remapped);
+          // profiles.id IS the subject id — the real subject's provisioning
+          // already made one; claim-driven restore UPSERTs onto it.
+          const conflict =
+            name === "public.profiles"
+              ? ` on conflict (id) do update set ${cols
+                  .filter((k) => k !== "id")
+                  .map((k) => `"${k}" = excluded."${k}"`)
+                  .join(", ")}`
+              : "";
+          await src.query(
+            `insert into ${fq} (${cols.map((c) => `"${c}"`).join(",")})
+             values (${cols.map((_, i) => `$${i + 1}`).join(",")})${conflict}`,
+            cols.map((k) => {
+              const v = remapped[k];
+              return v !== null && typeof v === "object"
+                ? JSON.stringify(v)
+                : v;
+            }),
+          );
+        }
+      }
+      await src.query("commit");
+      await src.end();
+
+      // Sign in as the real subject → Data API must show ONLY their rows.
+      const res = await authCall("/sign-in/email", {
+        email: realEmail,
+        password: realPass,
+      });
+      const m = (res.headers.get("set-cookie") ?? "").match(
+        /([^=;,]*session[^=;,]*)=([^;]*)/,
+      );
+      const session = await fetch(`${AUTH_BASE}/get-session`, {
+        headers: { cookie: `${m[1]}=${decodeURIComponent(m[2])}` },
+      });
+      const jwt = session.headers.get("set-auth-jwt");
+      if (!jwt) fail(`get-session for real subject: ${session.status}`);
+      // The subject sees seeded provisioning rows AND the remapped set —
+      // assert every remapped victim row is visible through RLS.
+      const victimIds = new Set(
+        (dump.tables["public.accounts"] ?? [])
+          .filter((r) => r.user_id === victim)
+          .map((r) => r.id),
+      );
+      const got = await fetch(`${DATA_API}/accounts?select=id`, {
+        headers: { Authorization: `Bearer ${jwt}` },
+      }).then((r) => r.json());
+      if (!Array.isArray(got))
+        fail(`real subject Data API error: ${JSON.stringify(got)}`);
+      const gotIds = new Set(got.map((r) => r.id));
+      for (const id of victimIds)
+        if (!gotIds.has(id))
+          fail(`remapped account ${id} invisible to the real subject`);
+      console.log(
+        `  ✔ real managed-auth subject sees all ${victimIds.size} remapped account(s) via Data API RLS (plus ${got.length - victimIds.size} provisioned)`,
+      );
+    } finally {
+      // Restore the dataset: delete every row keyed to the real subject
+      // (remapped victim rows AND signup-provisioned seeds, children-first),
+      // re-insert the originals under the legacy uuid (parents-first), then
+      // remove the probe subject's provider rows — all in one transaction.
+      const c = await connect();
+      await c.query("set timezone to 'UTC'");
+      try {
+        await c.query("begin");
+        if (realUuid) {
+          // children first for deletes, parents first for re-inserts
+          for (const name of [...names].reverse()) {
+            if (name === "neon_auth.user") continue;
+            const [schema, table] = name.split(".");
+            const fq = `"${schema}"."${table}"`;
+            for (const c2 of ownerCols.get(name) ?? [])
+              await c.query(`delete from ${fq} where "${c2}" = $1`, [realUuid]);
+          }
+          for (const name of names) {
+            if (name === "neon_auth.user") continue;
+            const [schema, table] = name.split(".");
+            for (const { row } of ownerRowsDeleted.filter(
+              (d) => d.name === name,
+            ))
+              await c.query(
+                `insert into "${schema}"."${table}" (${Object.keys(row)
+                  .map((k) => `"${k}"`)
+                  .join(",")}) values (${Object.keys(row)
+                  .map((_, i) => `$${i + 1}`)
+                  .join(",")})`,
+                Object.values(row).map((v) =>
+                  v !== null && typeof v === "object" ? JSON.stringify(v) : v,
+                ),
+              );
+          }
+          await c.query(`delete from neon_auth.session where "userId"=$1`, [
+            realUuid,
+          ]);
+          await c.query(`delete from neon_auth.account where "userId"=$1`, [
+            realUuid,
+          ]);
+          await c.query(`delete from public.profiles where id=$1`, [realUuid]);
+          await c.query(`delete from neon_auth."user" where id=$1`, [realUuid]);
+        }
+        await c.query("commit");
+      } catch (e) {
+        await c.query("rollback").catch(() => {});
+        console.error(`  ! dataset restore failed: ${e.message}`);
+      }
+      await c.end();
+      if (ownerRowsDeleted.length)
+        console.log(
+          `  (dataset restored — ${ownerRowsDeleted.length} rows re-keyed to legacy, probe user removed)`,
+        );
+    }
   }
 }
 
