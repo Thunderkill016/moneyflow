@@ -22,10 +22,13 @@ import { join } from "node:path";
 
 const API_BASE = "https://console.neon.tech/api/v2";
 
-// Exact allowlist — the ONLY project any remote PoC script may touch.
+// Exact allowlist — the ONLY projects remote scripts may touch.
 // Key = project id, value = expected project name (both must match).
+// moneyflow-prod was added for the owner-authorized production cutover
+// (#774); it is the live production target, not a scratch project.
 const ALLOWED_PROJECTS = {
   "polished-pine-75721729": "moneyflow-neon-poc",
+  "shy-mud-72113549": "moneyflow-prod",
 };
 
 // Databases inside the scratch project the PoC may operate on. `mf_poc*` is

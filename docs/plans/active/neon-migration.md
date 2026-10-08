@@ -563,6 +563,88 @@ claim-restore time.
 - Egress measured on synthetic traffic only; production egress estimate
   pending (T9 scratch numbers above).
 
+## Production cutover record — 2026-10-08 (owner-authorized)
+
+Owner ordered direct production cutover to `mfvn.vercel.app` (no preview).
+Executed against `moneyflow-prod` (Neon project `shy-mud-72113549`,
+endpoint `ep-morning-band-b3a6dp3y`, region `aws-ap-southeast-1`).
+
+### Step 1 — backup + verify
+
+- Production Supabase is **egress-locked** (`HTTP 402 exceed_egress_quota`)
+  on every data-plane path: PostgREST, GoTrue, storage, direct-DB DNS
+  (IPv6-only host unreachable), pooler has no stored password.
+- **Working export path**: Supabase Management API
+  `POST /v1/projects/{ref}/database/query` proxies SQL server-side and is
+  NOT gated by the project egress quota. Used read-only, CLI access token
+  from the OS keyring.
+- `prod-export.mjs` dumped all 22 `public` tables + `auth.users` +
+  `auth.identities` → 735 rows → AES-256-GCM archive
+  (`out/prod-backup-2026-10-08T15-39-19-865Z.enc.json`, PBKDF2 250k;
+  passphrase in `out/prod-backup.passphrase`, gitignored).
+- Manifest digest + decrypt round-trip verified before any write.
+
+### Step 2 — schema + identity + data
+
+- `replay-migrations.mjs --remote --project-id shy-mud-72113549`:
+  80/80 generated Neon migrations OK on `neondb`.
+- `neonctl neon-auth enable` + `data-api create` on branch
+  `br-green-mud-b3hx7vm5` (managed auth + Data API live).
+- Identity strategy — Supabase Auth is dead (402), so old-JWT proofs are
+  unobtainable and the user-facing claim ceremony does not apply. Binding
+  is **owner authority + Supabase-verified-email match**: all 5 users were
+  provisioned through the real managed-auth sign-up endpoint with
+  per-user random temp passwords; `emailVerified` set in DB (all five
+  emails were confirmed on Supabase). Legacy uuids were NOT imported;
+  every row remapped to the fresh Neon subject id.
+- `prod-restore.mjs`: single transaction — purge provisioned seeds →
+  insert 725 public rows parents-first with deep uuid remap (incl.
+  `financial_mutation_audit_events.actor_user_id`, a non-FK owner column
+  found by the value sweep) → in-transaction checks: per-table counts,
+  per-owner `amount_minor` BigInt sums, zero surviving legacy uuids →
+  committed.
+
+### Step 3 — Vercel production env
+
+- `MF_BACKEND_PROVIDER=neon`, `NEON_AUTH_BASE_URL`, `NEON_DATA_API_URL`,
+  `NEON_AUTH_COOKIE_SECRET` (sensitive) set on Production.
+- `NEXT_PUBLIC_SUPABASE_*` left in place (unused under provider=neon;
+  needed for rollback).
+- Managed-auth trusted origin `https://mfvn.vercel.app` added via
+  `neonctl neon-auth domain add` (was `INVALID_ORIGIN` before).
+
+### Step 4 — deploy + verify
+
+- `vercel deploy --prod` from `feat/neon-migration-poc` @ `eaa056e2`
+  (+ uncommitted migration tooling only — no app-code delta vs the
+  reviewed head). Build green; `mfvn.vercel.app` re-aliased.
+- Signed in as owner through `/api/auth/sign-in/email` → real session +
+  JWT; `/transactions` SSR renders real VND data.
+- Tenant isolation probe: `dinhbahoang1605` session → Data API
+  `financial_transactions` returns exactly 6 rows (source count) and only
+  own accounts — zero cross-tenant bleed.
+- Per-owner money parity: `transaction_entries` −1,779,333 and
+  `inbox_candidates` 718,000 for the owner match the source exactly.
+
+### Rollback state
+
+- Supabase untouched (all access read-only). Previous prod deployment
+  `dpl_GXHNNkJ6AvaR7zp2hKiL6ADZx2hd` can be re-aliased via
+  `vercel rollback`; if rolling back to a pre-Neon build, ALSO unset
+  `MF_BACKEND_PROVIDER` (old builds will throw BackendConfigurationError
+  under `neon` without the provider code).
+
+### Known gaps / user comms
+
+- Temp passwords live in `out/prod-credentials.txt` (gitignored, mode 600) — owner distributes; users should change after first sign-in.
+- Google OAuth sign-in on Neon: shared provider enabled; whether Google
+  sign-in links to the pre-provisioned email account is unverified —
+  failure mode is an empty duplicate account (fail-safe, no data leak).
+- Shared email sender delivery is unverified — reset/verification mail
+  may not arrive; password resets may need owner relay via admin path.
+- PR #775 remains draft while production runs the feature-branch build —
+  merging to `main` is the owner's pending decision.
+
 ## Handoff record
 
 | Date       | From        | To          | State                                                                         | Artifacts                                                                                | Next allowed action                                                                                                                             |
