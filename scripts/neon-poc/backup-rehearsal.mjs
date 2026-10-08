@@ -2,9 +2,13 @@
 // end on the allowlisted scratch project — synthetic data only.
 //
 //   backup:   inventory every user table (public.* + neon_auth."user"),
-//             export rows + sha256 PK checksums + FK-orphan scan, encrypt the
+//             export rows + canonical FULL-ROW sha256 content checksums +
+//             FK-orphan scan + cross-tenant ownership invariants, encrypt the
 //             archive with the same envelope shape the app's backup
 //             encryption uses (AES-256-GCM, 12-byte IV, 250k PBKDF2 iters).
+//             NOTE: managed-auth state (neon_auth.account/session/
+//             verification, credentials, provider links) is NOT part of this
+//             rehearsal — auth-state recovery is a separate cutover blocker.
 //   restore:  create a FRESH scratch database (mf_poc, inside the DB
 //             allowlist) on the verified project, replay the generated Neon
 //             migrations, restore the archive, re-run the inventory and
@@ -79,34 +83,55 @@ const USER_TABLES_SQL = `
   order by table_schema, table_name`;
 
 async function inventory(client, label) {
+  // Canonical timestamptz rendering — row_to_json follows the session TZ, so
+  // pin UTC or identical rows would hash differently across connections.
+  await client.query("set timezone to 'UTC'");
   const { rows: tables } = await client.query(USER_TABLES_SQL);
   const result = {};
   for (const t of tables) {
     const fq = `"${t.table_schema}"."${t.table_name}"`;
-    const { rows: pkCols } = await client.query(
-      `select a.attname from pg_index i
-       join pg_attribute a on a.attrelid = i.indrelid and a.attnum = any(i.indkey)
-       where i.indrelid = $1::regclass and i.indisprimary order by a.attnum`,
-      [fq],
-    );
     const {
       rows: [{ c }],
     } = await client.query(`select count(*)::bigint as c from ${fq}`);
-    let pkHash = null;
-    if (pkCols.length) {
-      const cols = pkCols.map((p) => `"${p.attname}"`).join(",");
-      const {
-        rows: [{ h }],
-      } = await client.query(
-        `select encode(sha256(string_agg(md5((${cols})::text), '|' order by ${cols})::bytea), 'hex') as h from ${fq}`,
-      );
-      pkHash = h;
-    }
+    /*
+     * Full-row content checksum — every column, not just the PK. Each row is
+     * serialized canonically (jsonb key order normalized, timestamptz in UTC,
+     * bytea as \x-hex), hashed, and aggregated ordered by the row digest so
+     * the result is PK-independent and detects ANY value mutation.
+     */
+    const {
+      rows: [{ h }],
+    } = await client.query(
+      `select encode(sha256(string_agg(d, '|' order by d)::bytea), 'hex') as h
+       from (select encode(sha256(row_to_json(r)::text::bytea), 'hex') as d
+             from ${fq} r) x`,
+    );
     result[`${t.table_schema}.${t.table_name}`] = {
       rows: Number(c),
-      pk: pkCols.map((p) => p.attname),
-      pk_sha256: pkHash,
+      content_sha256: h,
     };
+  }
+
+  // Cross-tenant ownership invariants — a restore that scrambled row linkage
+  // would keep row counts and even PK sets intact; these must stay zero.
+  const { rows: tenantViolations } = await client.query(`
+    select 'entries_vs_accounts' as check_name, count(*)::bigint as n
+      from public.transaction_entries e
+      join public.accounts a on a.id = e.account_id
+      where e.user_id <> a.user_id
+    union all
+    select 'entries_vs_transactions', count(*)::bigint
+      from public.transaction_entries e
+      join public.financial_transactions t on t.id = e.transaction_id
+      where e.user_id <> t.user_id
+    union all
+    select 'recon_vs_accounts', count(*)::bigint
+      from public.account_reconciliations r
+      join public.accounts a on a.id = r.account_id
+      where r.user_id <> a.user_id`);
+  for (const v of tenantViolations) {
+    if (Number(v.n) > 0)
+      fail(`tenant-ownership violation ${v.check_name}: ${v.n} rows`);
   }
 
   // FK-orphan scan generated from pg_constraint — identifiers come from the
@@ -263,12 +288,22 @@ async function restore() {
   const stub = await connect(restoreUrl.toString());
   await stub.query(`
     create schema if not exists neon_auth;
+    -- Full column set of the managed mirror table so every dumped column
+    -- restores verbatim — the full-row checksum intentionally catches stubs
+    -- that silently drop managed state. Credentials/session/provider links
+    -- (neon_auth.account/session/verification) remain a separate blocker.
     create table if not exists neon_auth."user" (
       id uuid primary key,
       name text,
       email text,
-      created_at timestamptz default now(),
-      updated_at timestamptz default now()
+      "emailVerified" boolean,
+      image text,
+      "createdAt" timestamptz,
+      "updatedAt" timestamptz,
+      role text,
+      banned boolean,
+      "banReason" text,
+      "banExpires" timestamptz
     );
     -- Managed-auth stubs so policies/RPC bodies compile on a database where
     -- pg_session_jwt does not exist. Rehearsal DB is SQL-restore only; the
@@ -337,13 +372,7 @@ async function restore() {
     if (!rows.length) continue;
     const [schema, table] = name.split(".");
     const fq = `"${schema}"."${table}"`;
-    // neon_auth."user" is managed surface: the stub carries only the columns a
-    // provisioned project guarantees — restore identity ids (the FK anchors)
-    // plus name/email, not the full managed column set.
-    const managed = name === 'neon_auth."user"' || name === 'neon_auth.user';
-    const cols = managed
-      ? ["id", "name", "email"].filter((c) => c in rows[0])
-      : Object.keys(rows[0]);
+    const cols = Object.keys(rows[0]);
     const perRow = `(${cols.map((_, j) => `$${j + 1}`).join(",")})`;
     // disable trigger user — not superuser, so session_replication_role and
     // DISABLE TRIGGER ALL are denied. USER scope suppresses provisioning
@@ -362,15 +391,48 @@ async function restore() {
   await client.query("commit");
 
   const restored = await inventory(client, "restored");
-  await client.end();
   const manifest = JSON.parse(readFileSync(MANIFEST_FILE, "utf8"));
-  const mism = [];
-  for (const [t, src] of Object.entries(manifest.inventory.tables)) {
-    if (!restored.tables[t] || restored.tables[t].rows !== src.rows || restored.tables[t].pk_sha256 !== src.pk_sha256)
-      mism.push(t);
-  }
+  const compare = (inv) => {
+    const mism = [];
+    for (const [t, src] of Object.entries(manifest.inventory.tables)) {
+      if (
+        !inv.tables[t] ||
+        inv.tables[t].rows !== src.rows ||
+        inv.tables[t].content_sha256 !== src.content_sha256
+      )
+        mism.push(t);
+    }
+    return mism;
+  };
+  const mism = compare(restored);
   if (mism.length) fail(`checksum mismatch on: ${mism.join(", ")}`);
-  console.log(`  ✔ restore: ${names.length} tables rebuilt in ${RESTORE_DB}, checksums identical`);
+  console.log(
+    `  ✔ restore: ${names.length} tables rebuilt in ${RESTORE_DB}, full-row checksums identical`,
+  );
+
+  /*
+   * Mutation-negative: corrupt ONE financial value while keeping its PK and
+   * the row count stable. The inventory MUST flag it — proves the checksum
+   * actually covers row content, not just keys (review round-1 requirement).
+   */
+  const {
+    rows: [victim],
+  } = await client.query(
+    `select id from public.transaction_entries order by id limit 1`,
+  );
+  if (victim) {
+    await client.query(
+      `update public.transaction_entries set amount_minor = amount_minor + 1 where id = $1`,
+      [victim.id],
+    );
+    const mutated = await inventory(client, "mutated");
+    if (!compare(mutated).includes("public.transaction_entries"))
+      fail("mutation-negative failed: corrupted amount went undetected");
+    console.log(
+      "  ✔ mutation-negative: +1 amount_minor flagged by content checksum",
+    );
+  }
+  await client.end();
 }
 
 async function freezeRehearsal() {

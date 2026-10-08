@@ -5,6 +5,8 @@
 //   A: register → dashboard (SSR getViewer + RLS-scoped loaders) → create a
 //      transaction through the real dialog → transactions list reflects it →
 //      logout → protected route bounces to /login (session-expired negative)
+//   login: wrong-password rejected → fresh-context login after logout
+//      reaches the dashboard with the user's own data still intact
 //   B: register → sees ONLY own rows (A/B tenant isolation through real RLS)
 //   negatives: no-cookie protected GET, garbage Bearer on a guarded route
 //   concurrency: stale expected_updated_at rejected vs current accepted —
@@ -60,6 +62,14 @@ async function register(page, user) {
   await page.check('input[name="privacyAccepted"]');
   await page.getByRole("button", { name: "Tạo tài khoản" }).click();
   await page.waitForURL(/onboarding|dashboard|\/$/, { timeout: 30_000 });
+}
+
+async function loginForm(page, email, password) {
+  await page.goto(`${BASE}/login`, { waitUntil: "networkidle" });
+  await page.fill('input[name="email"]', email);
+  await page.fill('input[name="password"]', password);
+  // Exact name — the Google button is also type=submit and precedes it in DOM.
+  await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
 }
 
 // System Chrome keeps the slice runnable where `playwright install` hasn't
@@ -286,6 +296,38 @@ await step("A logout clears session + protected route redirects", async () => {
   if (!/\/login/.test(pageA.url()))
     throw new Error(`protected route reachable after logout: ${pageA.url()}`);
 });
+
+// ---- Login regressions (review round-1 P0): the fresh-login path must not
+// depend on any existing session — this broke once via the data client ----
+await step("wrong password rejected at /login", async () => {
+  await loginForm(pageA, USER_A.email, "WrongPass!999999");
+  await pageA.waitForTimeout(2_500);
+  const body = await pageA.textContent("body");
+  if (!body?.includes("Email hoặc mật khẩu không đúng"))
+    throw new Error(`no wrong-password error surfaced (url ${pageA.url()})`);
+  if (!/\/login/.test(pageA.url()))
+    throw new Error(`wrong password left /login: ${pageA.url()}`);
+});
+
+await step(
+  "A fresh-context login after logout reaches dashboard with own data",
+  async () => {
+    const fresh = await browser.newContext();
+    const p = await fresh.newPage();
+    try {
+      await loginForm(p, USER_A.email, USER_A.password);
+      await p.waitForURL(/dashboard|\/$/, { timeout: 30_000 });
+      await p.goto(`${BASE}/transactions`, { waitUntil: "networkidle" });
+      const body = await p.textContent("body");
+      if (!/125[.\s]?000/.test(body ?? ""))
+        throw new Error(
+          "A's own 125000 transaction missing after fresh login",
+        );
+    } finally {
+      await fresh.close();
+    }
+  },
+);
 
 // ---- Context B: tenant isolation through the real app ----------------------
 const ctxB = await browser.newContext();

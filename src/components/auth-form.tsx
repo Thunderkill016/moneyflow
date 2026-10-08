@@ -116,6 +116,7 @@ export function AuthForm({
   demoMode = false,
   reauth = false,
   authError = null,
+  resetToken = "",
 }: {
   mode: Mode;
   next?: string;
@@ -123,6 +124,8 @@ export function AuthForm({
   reauth?: boolean;
   /** OAuth failure code from `/login?error=<code>`; shown as a banner. */
   authError?: string | null;
+  /** Managed-auth reset token forwarded from /update-password?token=… */
+  resetToken?: string;
 }) {
   const action =
     mode === "login"
@@ -256,6 +259,9 @@ export function AuthForm({
             <form className={styles.form} action={formAction} noValidate>
               <input type="hidden" name="next" value={next} />
               <input type="hidden" name="reauth" value={isReauth ? "1" : "0"} />
+              {mode === "update" && (
+                <input type="hidden" name="token" value={resetToken} />
+              )}
 
               {mode === "register" && (
                 <label>
