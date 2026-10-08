@@ -1,11 +1,72 @@
+import {
+  handleAuthRequest,
+  handleAuthResponse,
+} from "@neondatabase/auth/server";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { ACCOUNT_DELETION_PATH } from "@/lib/account-deletion-reauth";
 import { POST_AUTH_REDIRECT } from "@/lib/auth-redirect";
-import { getBackendProvider } from "@/lib/backend/provider";
+import {
+  getBackendProvider,
+  getNeonBackendConfig,
+} from "@/lib/backend/provider";
 import { getSupabaseConfig } from "@/lib/supabase/config";
 
 const NEON_SESSION_COOKIE = "__Secure-neon-auth.session_token";
+const NEON_SESSION_VERIFIER_PARAM = "neon_auth_session_verifier";
+const NEON_CHALLENGE_COOKIES = [
+  "__Secure-neon-auth.session_challenge",
+  // Legacy misspelled challenge cookie the auth server still emits.
+  "__Secure-neon-auth.session_challange",
+] as const;
+
+/*
+ * Managed-auth OAuth return leg (#774): after the provider callback, Neon
+ * redirects the browser to callbackURL?neon_auth_session_verifier=… — no
+ * session cookie exists yet. The verifier exchanges (together with the
+ * session_challenge cookie planted at sign-in/social) against the auth
+ * server's /get-session, which returns the real session cookies. Without
+ * this exchange every social sign-in lands logged-out.
+ */
+async function exchangeNeonOAuthVerifier(
+  request: NextRequest,
+): Promise<NextResponse | null> {
+  const verifier = request.nextUrl.searchParams.get(
+    NEON_SESSION_VERIFIER_PARAM,
+  );
+  if (!verifier) return null;
+  if (!NEON_CHALLENGE_COOKIES.some((name) => request.cookies.has(name)))
+    return null;
+  // Same call the SDK's middleware exchange makes: forward the verifier
+  // URL + challenge cookie to upstream /get-session, then run the response
+  // through handleAuthResponse so the signed session_data cache cookie is
+  // minted identically (cookieSecret signs it). Config/network failures
+  // fail closed to null — the request continues unauthenticated.
+  let res: Response;
+  try {
+    const config = getNeonBackendConfig();
+    if (!config) return null;
+    res = await handleAuthResponse(
+      await handleAuthRequest(
+        config.authBaseUrl,
+        new Request(request.url, { method: "GET", headers: request.headers }),
+        "get-session",
+      ),
+      config.authBaseUrl,
+      { secret: config.cookieSecret },
+    );
+  } catch {
+    return null;
+  }
+  if (!res.ok) return null;
+
+  const clean = request.nextUrl.clone();
+  clean.searchParams.delete(NEON_SESSION_VERIFIER_PARAM);
+  const redirect = NextResponse.redirect(clean);
+  for (const cookie of res.headers.getSetCookie())
+    redirect.headers.append("set-cookie", cookie);
+  return redirect;
+}
 
 /** Supabase SSR cookies look like `sb-<ref>-auth-token` (and chunked variants). */
 function hasSupabaseAuthCookie(request: NextRequest): boolean {
@@ -101,6 +162,13 @@ export async function updateSession(request: NextRequest) {
   }
 
   const path = request.nextUrl.pathname;
+
+  // OAuth return leg must run before every cookie check — no session cookie
+  // exists yet, the verifier exchange is what mints it.
+  if (neon) {
+    const oauthExchange = await exchangeNeonOAuthVerifier(request);
+    if (oauthExchange) return oauthExchange;
+  }
 
   // LCP/TTFB: public pages without session cookies skip auth getClaims.
   const hasAuthCookie = neon
