@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { tapKeypadAmount } from "./capture-keypad.ts";
 
 const NOTE = "Benchmark UX cafe";
 const AMOUNT = 125_000;
@@ -53,7 +54,7 @@ test.describe("Global PFM UX benchmark", () => {
     await quickDialog
       .getByRole("button", { name: /Khoản chi/i, exact: true })
       .click();
-    await quickDialog.getByLabel(/Số tiền chi/i).fill(String(AMOUNT));
+    await tapKeypadAmount(quickDialog, String(AMOUNT));
 
     const category = quickDialog.locator(
       'details[data-slot="capture-category-choice"]',

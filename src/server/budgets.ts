@@ -99,6 +99,7 @@ const budgetSchema = z.object({
   month_start: z.string(),
   limit_minor: z.union([z.number(), z.string()]),
   spent_minor: z.union([z.number(), z.string()]),
+  updated_at: z.string().optional(),
 });
 const categorySchema = z.object({
   id: z.string().uuid(),
@@ -136,6 +137,7 @@ export function mapBudgetRow(value: unknown): BudgetSummary {
     monthStart: row.month_start,
     limit: safePositiveMoney(row.limit_minor),
     spent: safePositiveMoney(row.spent_minor),
+    updatedAt: row.updated_at,
   };
 }
 
@@ -287,7 +289,7 @@ export async function getBudgetsWorkspace(
     supabase
       .from("budget_progress")
       .select(
-        "id,category_id,category_name,category_icon,category_color,month_start,limit_minor,spent_minor",
+        "id,category_id,category_name,category_icon,category_color,month_start,limit_minor,spent_minor,updated_at",
       )
       .eq("user_id", viewer.id)
       .gte("month_start", rolloverWindowStart)

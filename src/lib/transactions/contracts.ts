@@ -152,6 +152,8 @@ export type UpdateTransferInput = Omit<
 > & {
   id: string;
   kind: "transfer";
+  /** Optimistic-concurrency precondition: the `updated_at` the caller read. */
+  expectedUpdatedAt?: string;
 };
 
 export type BulkTransactionReviewInput = {

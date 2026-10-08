@@ -2,14 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import {
-  ARCHIVE_MAX_RESTORE_BYTES,
   classifyRestoreFailure,
   type RestoreFailureKind,
 } from "@/lib/archive/archive-backup";
 import type { MoneyFlowArchive } from "@/lib/archive/moneyflow-archive";
 import { validateMoneyFlowArchiveWithPayee } from "@/lib/archive/payee-archive-validator";
 import { createClient } from "@/lib/supabase/server";
-import { requireViewer } from "@/server/auth";
+import { requireActionViewer } from "@/server/auth";
 
 /**
  * Complete backup and restore, behind the repository's enforced boundary.
@@ -44,7 +43,8 @@ export type RestoreActionResult =
   | { ok: false; kind: RestoreFailureKind | "too_large_to_transport" };
 
 export async function createArchiveBackupAction(): Promise<BackupActionResult> {
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return { ok: false, kind: "not_authenticated" };
   if (viewer.isDemo) return { ok: false, kind: "capability_missing" };
 
   const supabase = await createClient();
@@ -83,7 +83,8 @@ export async function createArchiveBackupAction(): Promise<BackupActionResult> {
 export async function restoreArchiveAction(
   archive: unknown,
 ): Promise<RestoreActionResult> {
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return { ok: false, kind: "not_authenticated" };
   if (viewer.isDemo) return { ok: false, kind: "capability_missing" };
 
   // The browser already ran the file through ingress, but a server action is a
@@ -107,8 +108,4 @@ export async function restoreArchiveAction(
   // the user can look at pre-restore numbers.
   revalidatePath("/", "layout");
   return { ok: true };
-}
-
-export async function archiveRestoreTransportLimit(): Promise<number> {
-  return ARCHIVE_MAX_RESTORE_BYTES;
 }

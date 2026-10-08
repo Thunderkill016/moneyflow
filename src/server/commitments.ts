@@ -35,7 +35,7 @@ const feedSchema = z.object({
   id: z.string().uuid(), name: z.string().min(1), amount_minor: z.union([z.number(), z.string()]),
   due_day: z.number().int().min(1).max(31), account_id: z.string().uuid(), account_name: z.string().min(1),
   category_id: z.string().uuid(), category_name: z.string().min(1), category_icon: z.string().nullable(),
-  category_color: z.string().nullable(), is_archived: z.boolean(),
+  category_color: z.string().nullable(), is_archived: z.boolean(), updated_at: z.string().optional(),
 });
 const occurrenceSchema = z.object({ commitment_id: z.string().uuid(), transaction_id: z.string().uuid(), paid_at: z.string() });
 const accountSchema = z.object({ id: z.string().uuid(), name: z.string().min(1) });
@@ -58,7 +58,7 @@ export function mapCommitmentRow(value: unknown, monthStart: string, transaction
   return { id: row.id, name: row.name, amount, dueDay: row.due_day, dueDate: dueDateForMonth(monthStart, row.due_day),
     accountId: row.account_id, accountName: row.account_name, categoryId: row.category_id,
     categoryName: row.category_name, categoryIcon: row.category_icon, categoryColor: row.category_color,
-    isArchived: row.is_archived, isPaid: Boolean(transactionId), transactionId, paidOn };
+    isArchived: row.is_archived, isPaid: Boolean(transactionId), transactionId, paidOn, updatedAt: row.updated_at };
 }
 
 function demoWorkspace(monthStart: string): CommitmentsWorkspace {
@@ -80,7 +80,7 @@ export async function getCommitmentsWorkspace(): Promise<CommitmentsWorkspace> {
   const empty = { commitments: [], accounts: [], categories: [], detectionRows: [], monthStart, today, reservedTotal: 0 };
   if (!supabase) return { ...empty, dataError: "Không thể kết nối dữ liệu khoản định kỳ." };
   const [feed, occurrences, accounts, categories, detectionFeed] = await Promise.all([
-    supabase.from("recurring_commitment_feed").select("id,name,amount_minor,due_day,account_id,account_name,category_id,category_name,category_icon,category_color,is_archived").order("due_day"),
+    supabase.from("recurring_commitment_feed").select("id,name,amount_minor,due_day,account_id,account_name,category_id,category_name,category_icon,category_color,is_archived,updated_at").order("due_day"),
     supabase.from("commitment_occurrences").select("commitment_id,transaction_id,paid_at").eq("month_start", monthStart),
     supabase.from("accounts").select("id,name").eq("is_archived", false).order("created_at"),
     supabase

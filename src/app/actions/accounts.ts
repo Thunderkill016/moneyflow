@@ -10,12 +10,12 @@ import {
   type SaveAccountInput,
 } from "@/lib/accounts";
 import { SUPPORTED_CURRENCY_CODES, normalizeCurrencyCode } from "@/lib/currency";
-import { requireViewer } from "@/server/auth";
+import { authRequiredFailure, requireActionViewer } from "@/server/auth";
 import { mapAccountRow } from "@/server/accounts";
 
 export type AccountActionResult =
   | { ok: true; account?: AccountSummary }
-  | { ok: false; message: string };
+  | { ok: false; message: string; code?: string };
 
 const saveSchema = z.object({
   id: z.string().uuid().optional(),
@@ -32,6 +32,7 @@ const saveSchema = z.object({
    * would emit an unowned tone or glyph the UI cannot render. */
   icon: z.enum(ACCOUNT_ICON_NAMES).nullable().optional(),
   color: z.enum(ACCOUNT_COLORS).nullable().optional(),
+  expectedUpdatedAt: z.string().optional(),
 });
 const archiveSchema = z.object({ id: z.string().uuid(), archived: z.boolean() });
 
@@ -52,7 +53,8 @@ export async function saveAccountAction(input: SaveAccountInput): Promise<Accoun
   const parsed = saveSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Thông tin tài khoản chưa hợp lệ." };
 
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) return { ok: false, message: "Chế độ demo không lưu tài khoản mới." };
   const supabase = await createClient();
   if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
@@ -66,7 +68,11 @@ export async function saveAccountAction(input: SaveAccountInput): Promise<Accoun
       p_initial_balance_minor: parsed.data.initialBalance,
       p_icon: parsed.data.icon ?? null,
       p_color: parsed.data.color ?? null,
+      p_expected_updated_at: parsed.data.expectedUpdatedAt ?? null,
     });
+    if (error?.message.includes("stale_write")) {
+      return { ok: false, message: "Dữ liệu đã được thay đổi ở nơi khác, hãy tải lại và thử lại." };
+    }
     if (error) return { ok: false, message: accountError(error.message) };
     if (data !== true) return { ok: false, message: "Không tìm thấy tài khoản." };
   } else {
@@ -88,7 +94,7 @@ export async function saveAccountAction(input: SaveAccountInput): Promise<Accoun
   const [accountResult, balanceResult] = await Promise.all([
     supabase
       .from("accounts")
-      .select("id,name,kind,currency_code,initial_balance_minor,is_archived,icon,color")
+      .select("id,name,kind,currency_code,initial_balance_minor,is_archived,icon,color,updated_at")
       .eq("id", accountId)
       .single(),
     supabase.from("account_balances").select("balance_minor").eq("account_id", accountId).single(),
@@ -112,7 +118,8 @@ export async function setAccountArchivedAction(id: string, archived: boolean): P
   const parsed = archiveSchema.safeParse({ id, archived });
   if (!parsed.success) return { ok: false, message: "Yêu cầu chưa hợp lệ." };
 
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) return { ok: false, message: "Chế độ demo không thay đổi tài khoản." };
   const supabase = await createClient();
   if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };

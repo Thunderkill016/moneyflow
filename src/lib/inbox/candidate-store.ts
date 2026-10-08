@@ -11,6 +11,7 @@ export type CandidateSource =
   | "xlsx"
   | "pdf"
   | "manual"
+  | "voice"
   | "notification"
   | "email"
   | "agent"
@@ -87,6 +88,7 @@ export const SOURCE_LABELS: Record<CandidateSource, string> = {
   xlsx: "xlsx",
   pdf: "pdf",
   manual: "manual",
+  voice: "giọng nói",
   notification: "thông báo",
   email: "email",
   agent: "AI agent",
@@ -105,6 +107,7 @@ const SOURCES: CandidateSource[] = [
   "xlsx",
   "pdf",
   "manual",
+  "voice",
   "notification",
   "email",
   "agent",
@@ -381,25 +384,6 @@ export function readStoredCandidates(): InboxCandidate[] {
 export function writeStoredCandidates(candidates: InboxCandidate[]): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(CANDIDATE_STORAGE_KEY, JSON.stringify(candidates));
-}
-
-export function addStoredCandidate(input: CreateCandidateInput): InboxCandidate {
-  const candidate = createCandidate(input);
-  const next = upsertCandidate(readStoredCandidates(), candidate);
-  writeStoredCandidates(next);
-  return candidate;
-}
-
-export function updateStoredCandidate(input: UpdateCandidateInput): InboxCandidate[] {
-  const next = updateCandidateInList(readStoredCandidates(), input);
-  writeStoredCandidates(next);
-  return next;
-}
-
-export function removeStoredCandidate(id: string): InboxCandidate[] {
-  const next = removeCandidateFromList(readStoredCandidates(), id);
-  writeStoredCandidates(next);
-  return next;
 }
 
 /** Format occurredOn (YYYY-MM-DD) as DD/MM for inbox rows. */

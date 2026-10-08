@@ -1,0 +1,46 @@
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--space-16);
+  border: 1px solid var(--mf-border);
+  border-radius: var(--radius-xl);
+  background: var(--mf-surface);
+  color: var(--mf-text);
+  font: var(--text-heading-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.key:active {
+  background: var(--mf-surface-muted);
+  transform: scale(0.97);
+}
+
+.key:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.key:focus-visible {
+  outline: 2px solid var(--mf-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .key:active {
+    transform: none;
+  }
+}

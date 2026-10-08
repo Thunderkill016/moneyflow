@@ -62,6 +62,12 @@ export function PrivacyPolicyPage() {
                 <strong>Sự kiện sản phẩm tối thiểu:</strong> đếm hành động (ví dụ đã paste/upload)
                 không kèm nội dung sao kê thô hay số dư chi tiết trong log/analytics.
               </li>
+              <li>
+                <strong>Giọng nói (tùy chọn, chỉ khi bạn bấm mic):</strong> đoạn ghi âm
+                được trình duyệt gửi đi để nhận dạng chữ rồi xóa ngay — không lưu
+                audio, chỉ giữ lại văn bản bạn xác nhận. Không cần tải model, không
+                cần đăng ký thêm.
+              </li>
             </ul>
           </section>
 

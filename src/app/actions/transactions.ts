@@ -12,7 +12,7 @@ import type {
   UpdateTransferInput,
 } from "@/lib/sample-data";
 import { validateSplitLines, splitValidationMessage } from "@/lib/splits";
-import { requireViewer } from "@/server/auth";
+import { authRequiredFailure, requireActionViewer } from "@/server/auth";
 import { mapTransactionFeedRow } from "@/server/finance";
 
 export type TransactionActionResult =
@@ -23,8 +23,8 @@ export type TransactionActionResult =
       /**
        * Stable machine reason when the failure maps to a known RPC guard
        * (`transaction_reconciled`, `recurring_payment_locked`,
-       * `transaction_not_found`). Bulk edits group per-row skips on it; the
-       * `message` stays the user-facing single-row copy.
+       * `transaction_not_found`, `auth-required`). Bulk edits group per-row
+       * skips on it; the `message` stays the user-facing single-row copy.
        */
       code?: string;
     };
@@ -103,7 +103,11 @@ const updateSchema = createSchema.omit({ idempotencyKey: true }).extend({
 });
 const updateTransferSchema = transferFields
   .omit({ idempotencyKey: true })
-  .extend({ id: z.string().uuid(), kind: z.literal("transfer") })
+  .extend({
+    id: z.string().uuid(),
+    kind: z.literal("transfer"),
+    expectedUpdatedAt: z.string().optional(),
+  })
   .refine((value) => value.sourceAccountId !== value.destinationAccountId);
 const feedColumns =
   "id,kind,note,occurred_on,created_at,updated_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines,payee,goal_id,goal_name";
@@ -124,7 +128,8 @@ export async function createTransactionAction(
   if (!parsed.success)
     return { ok: false, message: "Thông tin giao dịch chưa hợp lệ." };
 
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo)
     return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
 
@@ -183,7 +188,8 @@ export async function createTransferAction(
   const parsed = transferSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, message: "Thông tin chuyển tiền chưa hợp lệ." };
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo)
     return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
   const supabase = await createClient();
@@ -252,7 +258,8 @@ export async function createSplitExpenseAction(
   if (!linesCheck.ok)
     return { ok: false, message: splitValidationMessage(linesCheck.error) };
 
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo)
     return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
 
@@ -315,7 +322,8 @@ export async function deleteTransactionAction(
   if (!parsed.success)
     return { ok: false, message: "Mã giao dịch không hợp lệ." };
 
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo)
     return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
 
@@ -364,7 +372,8 @@ export async function restoreTransactionAction(
   if (!parsed.success)
     return { ok: false, message: "Mã giao dịch không hợp lệ." };
 
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo)
     return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
 
@@ -428,7 +437,8 @@ export async function updateTransactionAction(
   const parsed = updateSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, message: "Thông tin giao dịch chưa hợp lệ." };
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo)
     return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
   const supabase = await createClient();
@@ -512,7 +522,8 @@ export async function updateTransferAction(
   const parsed = updateTransferSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, message: "Thông tin chuyển tiền chưa hợp lệ." };
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo)
     return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
   const supabase = await createClient();
@@ -527,8 +538,15 @@ export async function updateTransferAction(
       p_amount_minor: value.amount,
       p_occurred_on: value.occurredOn,
       p_note: value.note,
+      p_expected_updated_at: value.expectedUpdatedAt ?? null,
     },
   );
+  if (error?.message.includes("stale_write"))
+    return {
+      ok: false,
+      code: "stale_write",
+      message: "Dữ liệu đã được thay đổi ở nơi khác, hãy tải lại và thử lại.",
+    };
   if (error?.message.includes("recurring_payment_locked"))
     return {
       ok: false,

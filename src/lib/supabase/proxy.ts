@@ -31,6 +31,22 @@ function hasSupabaseAuthCookie(request: NextRequest): boolean {
     .some((cookie) => cookie.name.startsWith("sb-") && cookie.name.includes("auth"));
 }
 
+/**
+ * True for Server Action invocations. Mirrors Next's own detection (see
+ * getServerActionRequestMetadata): a JS-driven action carries the `next-action`
+ * header; the no-JS form fallback posts urlencoded/multipart bodies to the
+ * same route.
+ */
+function isServerActionRequest(request: NextRequest): boolean {
+  if (request.method !== "POST") return false;
+  if (request.headers.has("next-action")) return true;
+  const contentType = request.headers.get("content-type") ?? "";
+  return (
+    contentType === "application/x-www-form-urlencoded" ||
+    contentType.startsWith("multipart/form-data")
+  );
+}
+
 /** Public marketing / legal — no session refresh when cookies absent (TTFB/LCP). */
 const PUBLIC_NO_AUTH_PATHS = ["/", "/landing", "/privacy"] as const;
 
@@ -76,7 +92,15 @@ export async function updateSession(request: NextRequest) {
     (protectedPath) => path === protectedPath || path.startsWith(`${protectedPath}/`),
   );
 
-  if (needsAuth && !isAuthenticated) {
+  /*
+   * A logged-out tab submitting a Server Action must not be bounced to /login
+   * here: the redirect would fail the action opaquely (the 2-tab logout race —
+   * the form's draft never gets its honest error). Let the request reach the
+   * action so requireActionViewer() can return the structured auth-required
+   * failure the UI surfaces with the draft intact. Every action gates on the
+   * viewer before touching the database, so nothing leaks past this.
+   */
+  if (needsAuth && !isAuthenticated && !isServerActionRequest(request)) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", path);

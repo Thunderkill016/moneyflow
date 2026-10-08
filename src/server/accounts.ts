@@ -26,7 +26,7 @@ export async function getAccountsWorkspace(): Promise<AccountsWorkspace> {
     supabase
       .from("accounts")
       .select(
-        "id,name,kind,currency_code,initial_balance_minor,is_archived,icon,color",
+        "id,name,kind,currency_code,initial_balance_minor,is_archived,icon,color,updated_at",
       )
       .order("is_archived")
       .order("created_at"),

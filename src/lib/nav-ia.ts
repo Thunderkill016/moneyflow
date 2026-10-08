@@ -107,10 +107,13 @@ export const APP_HOME_HREF = "/dashboard" as const;
 
 /**
  * Global primary CTA (desktop topbar + mobile FAB) — TASK-105.
- * Opens quick-add expense; pages may override with dialog `onClick` but keep the same label.
+ * Opens the capture chooser so the fastest method (voice first) is always
+ * one tap away; pages may override with dialog `onClick` but keep the same label.
+ * (2026-10-05: retargeted from /capture/quick — owner decision — because the
+ * voice capture entry was undiscoverable when Ghi bypassed the chooser.)
  */
 export const GHI_CHI_TIEU_LABEL = "Ghi chi tiêu" as const;
-export const GHI_CHI_TIEU_HREF = "/capture/quick" as const;
+export const GHI_CHI_TIEU_HREF = "/capture" as const;
 
 /** Routes that must stay off the primary sidebar / mobile tabs. */
 export const PLANNING_PATHS = [

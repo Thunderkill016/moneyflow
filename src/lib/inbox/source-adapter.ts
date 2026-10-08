@@ -5,7 +5,6 @@ import type {
 import type { SourceLifecycleState } from "./provenance.ts";
 
 export const SOURCE_EXTERNAL_ID_MAX_LENGTH = 200;
-export const SOURCE_ADAPTER_CONTRACT_VERSION = 1;
 
 export type SourceEvidenceLevel =
   | "confirmed"

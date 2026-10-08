@@ -100,6 +100,7 @@ const PARSER_VERSION_BY_SOURCE: Record<CandidateSource, string> = {
   xlsx: "xlsx_import@1.0",
   pdf: "pdf_import@1.0",
   manual: "manual_entry@1.0",
+  voice: "voice_input@1.0",
   notification: "notification@1.0",
   email: "email@1.0",
   agent: "capability@1.0",

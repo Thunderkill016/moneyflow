@@ -560,3 +560,36 @@ test("the withdrawn seven-day gate is retired in the document that outranks the 
     );
   }
 });
+
+test("voice retry reuses the idempotency key of the failed confirm", () => {
+  /**
+   * `handleConfirm` in the voice capture page used to mint
+   * `crypto.randomUUID()` on every call, so a retry after a failed save sent
+   * a fresh key. When the first request had actually committed server-side
+   * but the client saw a network error, the retry posted a duplicate row.
+   * The key must live in a ref: reused across retries of the same confirm,
+   * dropped only when a new voice capture begins.
+   */
+  const page = stripComments(
+    read("src/components/voice/voice-capture-page.tsx"),
+  );
+  assert.match(
+    page,
+    /idempotencyKeyRef/u,
+    "the key must survive a failed attempt",
+  );
+  assert.match(
+    page,
+    /idempotencyKeyRef\.current \?\? crypto\.randomUUID\(\)/u,
+    "a retry must reuse the stored key, not mint a new one",
+  );
+  assert.ok(
+    !/idempotencyKey: crypto\.randomUUID\(\)/u.test(page),
+    "no inline minting per confirm call",
+  );
+  const clears = page.match(/idempotencyKeyRef\.current = null/gu) ?? [];
+  assert.ok(
+    clears.length >= 2,
+    `the key must be dropped when a new capture begins (found ${clears.length} clears)`,
+  );
+});

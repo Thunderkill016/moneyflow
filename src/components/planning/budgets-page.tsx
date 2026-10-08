@@ -281,8 +281,14 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
   async function applyPreviousMonth() {
     if (carrying || carryable.length === 0) return;
     setCarrying(true);
-    const result = await carryForwardBudgetsAction(carryable);
-    setCarrying(false);
+    let result: Awaited<ReturnType<typeof carryForwardBudgetsAction>>;
+    try {
+      result = await carryForwardBudgetsAction(carryable);
+    } catch {
+      result = { ok: false, message: "Mất kết nối khi áp dụng ngân sách tháng trước." };
+    } finally {
+      setCarrying(false);
+    }
     if (!result.ok) {
       showNotice(result.message, "error");
       return;
@@ -352,7 +358,11 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
       return { ok: true };
     }
 
-    const result = await saveBudgetAction(input);
+    const result = await saveBudgetAction({
+      ...input,
+      // The version the edit dialog read; a stale row fails closed in the RPC.
+      expectedUpdatedAt: editing?.updatedAt,
+    });
     if (result.ok && result.budget) {
       const next = result.budget;
       if (next.monthStart !== workspace.monthStart) {
@@ -378,12 +388,18 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
     const key = `suggestion-${category.id}`;
     if (busyId) return;
     setBusyId(key);
-    const result = await save({
-      categoryId: category.id,
-      monthStart: workspace.monthStart,
-      limit: amount,
-    });
-    setBusyId(null);
+    let result: Awaited<ReturnType<typeof save>>;
+    try {
+      result = await save({
+        categoryId: category.id,
+        monthStart: workspace.monthStart,
+        limit: amount,
+      });
+    } catch {
+      result = { ok: false, message: "Mất kết nối khi áp dụng gợi ý." };
+    } finally {
+      setBusyId(null);
+    }
     if (!result.ok) {
       showNotice(result.message || "Chưa áp dụng được gợi ý.", "error");
       return;
@@ -402,10 +418,17 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
   async function confirmRemove() {
     if (!reviewBudget) return;
     setBusyId(reviewBudget.id);
-    const result = viewer.isDemo
-      ? { ok: true as const }
-      : await deleteBudgetAction(reviewBudget.id);
-    setBusyId(null);
+    let result: Awaited<ReturnType<typeof deleteBudgetAction>> | { ok: true };
+    try {
+      result =
+        viewer.isDemo
+          ? { ok: true as const }
+          : await deleteBudgetAction(reviewBudget.id);
+    } catch {
+      result = { ok: false, message: "Mất kết nối khi xóa ngân sách." };
+    } finally {
+      setBusyId(null);
+    }
     if (!result.ok) {
       setReviewBudget(null);
       showNotice(result.message, "error");

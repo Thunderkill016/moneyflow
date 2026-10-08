@@ -15,9 +15,9 @@ import {
   PRIMARY_NAV_HREFS,
 } from "./nav-ia.ts";
 
-test("global CTA Ghi chi tiêu targets quick add", () => {
+test("global CTA Ghi chi tiêu targets the capture chooser (voice first)", () => {
   assert.equal(GHI_CHI_TIEU_LABEL, "Ghi chi tiêu");
-  assert.equal(GHI_CHI_TIEU_HREF, "/capture/quick");
+  assert.equal(GHI_CHI_TIEU_HREF, "/capture");
 });
 
 test("primary nav is thu chi: Tổng quan · Giao dịch · Nhập nhanh · Tài khoản", () => {

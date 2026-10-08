@@ -35,6 +35,7 @@ const feedSchema = z.object({
   category_icon: z.string().nullable(),
   category_color: z.string().nullable(),
   is_archived: z.boolean(),
+  updated_at: z.string().optional(),
 });
 const occurrenceSchema = z.object({
   template_id: z.string().uuid(),
@@ -72,6 +73,7 @@ export function mapIncomeTemplateRow(
     isArchived: row.is_archived,
     isReceived: Boolean(transactionId),
     transactionId,
+    updatedAt: row.updated_at,
   };
 }
 
@@ -143,7 +145,7 @@ export async function getIncomeTemplatesWorkspace(): Promise<IncomeTemplatesWork
     supabase
       .from("recurring_income_template_feed")
       .select(
-        "id,name,amount_minor,due_day,account_id,account_name,category_id,category_name,category_icon,category_color,is_archived",
+        "id,name,amount_minor,due_day,account_id,account_name,category_id,category_name,category_icon,category_color,is_archived,updated_at",
       )
       .order("due_day"),
     supabase

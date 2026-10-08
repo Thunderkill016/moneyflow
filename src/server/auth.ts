@@ -56,3 +56,37 @@ export async function requireViewer() {
   if (!viewer) redirect("/login");
   return viewer;
 }
+
+/**
+ * Stable machine reason for Server Action failures caused by a missing
+ * session. The UI maps it to the "session ended" notice instead of a generic
+ * error; drafts stay untouched either way.
+ */
+export const AUTH_REQUIRED_CODE = "auth-required";
+
+export const AUTH_REQUIRED_MESSAGE =
+  "Phiên đăng nhập đã hết hạn hoặc đã đăng xuất ở tab khác. Nội dung bạn đã nhập vẫn còn — đăng nhập lại để tiếp tục.";
+
+/**
+ * Action-context viewer. Pages keep redirecting through requireViewer(), but a
+ * Server Action must never redirect on a missing session: the middleware lets
+ * unauthenticated action requests through (see isServerActionRequest in
+ * lib/supabase/proxy.ts) so the action can return a structured auth failure
+ * the UI surfaces with the draft intact. Bouncing to /login here would drop
+ * the in-progress form silently — the 2-tab logout race.
+ */
+export async function requireActionViewer(): Promise<Viewer | null> {
+  return getViewer();
+}
+
+export function authRequiredFailure(): {
+  ok: false;
+  code: string;
+  message: string;
+} {
+  return {
+    ok: false,
+    code: AUTH_REQUIRED_CODE,
+    message: AUTH_REQUIRED_MESSAGE,
+  };
+}

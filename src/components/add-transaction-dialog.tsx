@@ -2,8 +2,14 @@
 
 import { FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
+import { NumericKeypad } from "@/components/capture/numeric-keypad";
 import { useConnectionState } from "@/hooks/use-connection-state";
 import { saveFailureMessage } from "@/lib/connectivity";
+import {
+  appendKeypadDigit,
+  backspaceKeypad,
+  clearKeypad,
+} from "@/lib/numeric-keypad";
 import { trackProductEvent } from "@/lib/safe-analytics";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -78,6 +84,7 @@ export function AddTransactionDialog({
   onTransferRequested,
   onFrequentPatternSelectionChange,
   showFrequentPatterns = false,
+  keypad = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -97,6 +104,12 @@ export function AddTransactionDialog({
   onTransferRequested?: () => void;
   onFrequentPatternSelectionChange?: (rank: 1 | 2 | null) => void;
   showFrequentPatterns?: boolean;
+  /**
+   * Keypad-first entry: show an on-screen numeric keypad under the amount
+   * field and make the amount read-only so the OS keyboard never competes
+   * with it on mobile. Only the quick-add flow opts in.
+   */
+  keypad?: boolean;
 }) {
   const formId = useId();
   const amountInputRef = useRef<HTMLInputElement>(null);
@@ -123,6 +136,12 @@ export function AddTransactionDialog({
   const [rules, setRules] = useState<InboxRule[]>([]);
   const [autoRuleHint, setAutoRuleHint] = useState<string | null>(null);
   const [draftRestored, setDraftRestored] = useState(false);
+  /*
+   * The "Tất cả danh mục" disclosure doubles as the target of the explicit
+   * Danh mục / Ví rows above: tapping either row opens it so the reader
+   * always knows which field they are changing.
+   */
+  const [moreOpen, setMoreOpen] = useState(false);
   const categoryTouchedRef = useRef(false);
   /*
    * Set by markInputChanged, which only user-initiated edits call. The
@@ -448,6 +467,27 @@ export function AddTransactionDialog({
     if (draftRestored) setDraftRestored(false);
   }
 
+  /*
+   * Keypad-first entry: tapping a key is equivalent to typing it. The value
+   * runs through the same formatter as typed input, so both paths share one
+   * pipeline. Read-only amount + on-screen keypad keeps the OS keyboard
+   * from covering the keypad on mobile.
+   */
+  function handleKeypadDigit(digit: string) {
+    setAmount(formatMoneyInput(appendKeypadDigit(amount, digit)));
+    markInputChanged();
+  }
+
+  function handleKeypadBackspace() {
+    setAmount(formatMoneyInput(backspaceKeypad(amount)));
+    markInputChanged();
+  }
+
+  function handleKeypadClear() {
+    setAmount(clearKeypad());
+    markInputChanged();
+  }
+
   function chooseCategory(nextCategoryId: string) {
     setCategoryId(nextCategoryId);
     categoryTouchedRef.current = true;
@@ -689,11 +729,12 @@ export function AddTransactionDialog({
           id="add-tx-amount"
           inputRef={amountInputRef}
           label={amountLabel}
-          inputMode="numeric"
+          inputMode={keypad ? "none" : "numeric"}
           autoComplete="off"
           placeholder="0"
           value={amount}
           required
+          readOnly={keypad}
           prefix={kindSign}
           suffix="₫"
           targetSize="important"
@@ -705,6 +746,28 @@ export function AddTransactionDialog({
             markInputChanged();
           }}
         />
+        {keypad ? (
+          <>
+            <NumericKeypad
+              onDigit={handleKeypadDigit}
+              onBackspace={handleKeypadBackspace}
+              disabled={submitting}
+            />
+            {amount ? (
+              <Button
+                type="button"
+                unstyled
+                targetSize="important"
+                className={fastStyles.keypadClear}
+                onClick={handleKeypadClear}
+                disabled={submitting}
+                aria-label="Xóa số tiền đã nhập"
+              >
+                Xóa số tiền
+              </Button>
+            ) : null}
+          </>
+        ) : null}
       </section>
 
       <div
@@ -827,19 +890,52 @@ export function AddTransactionDialog({
       <section
         className={fastStyles.fastDefaults}
         data-slot="capture-required-choices"
-        aria-label="Danh mục và tài khoản đang dùng"
+        aria-label="Danh mục và ví đang dùng"
       >
         <div
-          className={fastStyles.currentChoice}
+          className={fastStyles.choiceRows}
           data-slot="capture-fast-defaults"
         >
-          <span className={fastStyles.currentCopy}>
-            <strong>{selectedCategory?.name ?? "Chọn danh mục"}</strong>
-            <small>{selectedAccount?.name ?? "Chưa có tài khoản"}</small>
-          </span>
-          <span className={fastStyles.currentStatus}>
-            {selectedCategory ? "Đang dùng" : "Cần chọn"}
-          </span>
+          <Button
+            type="button"
+            unstyled
+            targetSize="important"
+            className={fastStyles.choiceRow}
+            onClick={() => setMoreOpen(true)}
+            aria-label={
+              selectedCategory
+                ? `Danh mục đang dùng: ${selectedCategory.name}. Bấm để đổi danh mục.`
+                : "Chưa chọn danh mục. Bấm để chọn danh mục."
+            }
+          >
+            <span className={fastStyles.choiceLabel}>Danh mục</span>
+            <span
+              className={`${fastStyles.choiceValue}${
+                selectedCategory ? "" : ` ${fastStyles.choiceValueEmpty}`
+              }`}
+            >
+              {selectedCategory?.name ?? "Chọn danh mục"}
+            </span>
+            <Icon name="arrowRight" aria-hidden="true" />
+          </Button>
+          <Button
+            type="button"
+            unstyled
+            targetSize="important"
+            className={fastStyles.choiceRow}
+            onClick={() => setMoreOpen(true)}
+            aria-label={`Ví đang dùng: ${selectedAccount?.name ?? "chưa có tài khoản"}. Bấm để đổi ví.`}
+          >
+            <span className={fastStyles.choiceLabel}>Ví</span>
+            <span
+              className={`${fastStyles.choiceValue}${
+                selectedAccount ? "" : ` ${fastStyles.choiceValueEmpty}`
+              }`}
+            >
+              {selectedAccount?.name ?? "Chưa có tài khoản"}
+            </span>
+            <Icon name="arrowRight" aria-hidden="true" />
+          </Button>
         </div>
 
         <div
@@ -885,6 +981,10 @@ export function AddTransactionDialog({
           <details
             className={fastStyles.moreDisclosure}
             data-slot="capture-category-choice"
+            open={moreOpen}
+            onToggle={(event) =>
+              setMoreOpen((event.target as HTMLDetailsElement).open)
+            }
           >
             <summary
               className={fastStyles.moreSummary}

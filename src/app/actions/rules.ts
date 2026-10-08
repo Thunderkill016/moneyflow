@@ -4,12 +4,12 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { InboxRule } from "@/lib/inbox/rules-store";
 import { createClient } from "@/lib/supabase/server";
-import { requireViewer } from "@/server/auth";
+import { authRequiredFailure, requireActionViewer } from "@/server/auth";
 import { getRulesWorkspace } from "@/server/rules";
 
 export type RuleActionResult =
   | { ok: true; rules: InboxRule[] }
-  | { ok: false; message: string };
+  | { ok: false; message: string; code?: string };
 
 export type AppliedCandidateRuleResult =
   | {
@@ -21,7 +21,7 @@ export type AppliedCandidateRuleResult =
       category: string;
       merchant: string;
     }
-  | { ok: false; message: string };
+  | { ok: false; message: string; code?: string };
 
 const saveRuleSchema = z.object({
   id: z.string().uuid().optional(),
@@ -96,7 +96,8 @@ function ruleError(error: RpcError) {
 }
 
 async function authenticatedClient() {
-  const viewer = await requireViewer();
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
   if (viewer.isDemo) {
     return {
       ok: false as const,
@@ -137,7 +138,7 @@ export async function saveRuleAction(
     return { ok: false, message: "Thông tin quy tắc chưa hợp lệ." };
   }
   const auth = await authenticatedClient();
-  if (!auth.ok) return { ok: false, message: auth.message };
+  if (!auth.ok) return auth;
 
   const merchantName = parsed.data.merchant?.trim() || null;
   if (parsed.data.id) {
@@ -240,7 +241,7 @@ export async function deleteRuleAction(input: {
   const parsed = deleteRuleSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Yêu cầu xóa chưa hợp lệ." };
   const auth = await authenticatedClient();
-  if (!auth.ok) return { ok: false, message: auth.message };
+  if (!auth.ok) return auth;
 
   const { error, count } = await auth.supabase
     .from("inbox_rules")
@@ -265,7 +266,7 @@ export async function reorderRulesAction(
     return { ok: false, message: "Thứ tự quy tắc chưa hợp lệ." };
   }
   const auth = await authenticatedClient();
-  if (!auth.ok) return { ok: false, message: auth.message };
+  if (!auth.ok) return auth;
   const { error } = await auth.supabase.rpc("replace_inbox_rule_priorities", {
     p_rule_ids: parsed.data.orderedIds,
   });
@@ -283,7 +284,7 @@ export async function applyRuleToCandidateAction(input: {
     return { ok: false, message: "Bằng chứng áp dụng quy tắc chưa hợp lệ." };
   }
   const auth = await authenticatedClient();
-  if (!auth.ok) return { ok: false, message: auth.message };
+  if (!auth.ok) return auth;
 
   const { data, error } = await auth.supabase
     .rpc("apply_inbox_rule_to_candidate", {

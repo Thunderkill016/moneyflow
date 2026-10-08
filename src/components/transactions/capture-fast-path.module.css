@@ -409,3 +409,91 @@
     outline-offset: -2px;
   }
 }
+
+.keypadClear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--space-12);
+  margin-top: var(--space-2);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  color: var(--mf-text-muted);
+  font: var(--text-caption);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.keypadClear:hover {
+  color: var(--mf-text);
+}
+
+.keypadClear:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/*
+ * Explicit Danh mục / Ví rows. The old combined block stacked the category
+ * name over the account name with no labels, which readers misread as
+ * "category = account". Each row now names its field outright.
+ */
+.choiceRows {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.choiceRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--space-12);
+  min-width: 0;
+  border: 1px solid var(--mf-border);
+  border-radius: var(--radius-lg);
+  background: var(--mf-surface-muted);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  text-align: left;
+}
+
+.choiceRow:hover {
+  border-color: var(--mf-border-strong);
+}
+
+.choiceRow:focus-visible {
+  outline: 2px solid var(--mf-focus);
+  outline-offset: 2px;
+}
+
+.choiceLabel {
+  flex: 0 0 auto;
+  min-width: var(--space-16);
+  color: var(--mf-text-muted);
+  font: var(--text-caption);
+  font-weight: 600;
+}
+
+.choiceValue {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--mf-text);
+  font: var(--text-body-md);
+  font-weight: 700;
+}
+
+.choiceValueEmpty {
+  color: var(--mf-text-muted);
+  font-weight: 600;
+}
+
+.choiceRow > svg {
+  flex: 0 0 auto;
+  color: var(--mf-text-muted);
+}

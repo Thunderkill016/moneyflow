@@ -10,6 +10,12 @@ export type BudgetSummary = {
   monthStart: string;
   limit: number;
   spent: number;
+  /**
+   * The version the client read (`updated_at`), fed back as `expectedUpdatedAt`
+   * on save — the optimistic-concurrency precondition. Undefined for demo
+   * rows and older callers, which keep the legacy last-write-wins path.
+   */
+  updatedAt?: string;
 };
 
 export type BudgetMonthAdjustment = "invalid" | "future" | null;
@@ -176,6 +182,8 @@ export type SaveBudgetInput = {
   categoryId: string;
   monthStart: string;
   limit: number;
+  /** Version read when the edit started; omitted on create and in demo. */
+  expectedUpdatedAt?: string;
 };
 
 /** Completed months looked back when suggesting a limit. */

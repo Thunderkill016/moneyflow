@@ -151,16 +151,6 @@ export const ARCHIVE_TABLE_INVENTORY: readonly ArchiveTableSpec[] = [
   },
 ];
 
-/** Collections holding live restorable state. */
-export const RESTORABLE_COLLECTIONS = ARCHIVE_TABLE_INVENTORY.filter(
-  (entry) => entry.disposition === "restorable",
-).map((entry) => entry.collection);
-
-/** Collections preserved as non-replayable history. */
-export const HISTORY_COLLECTIONS = ARCHIVE_TABLE_INVENTORY.filter(
-  (entry) => entry.disposition === "history",
-).map((entry) => entry.collection);
-
 /** Every collection an archive payload may contain. Anything else is rejected. */
 export const ALL_ARCHIVE_COLLECTIONS = ARCHIVE_TABLE_INVENTORY.map((entry) => entry.collection);
 
@@ -697,7 +687,3 @@ export const ARCHIVE_ENVELOPE_KEYS = [
   "tenant_row_counts",
   "tables",
 ] as const;
-
-export function archiveSpecFor(collection: string): ArchiveTableSpec | undefined {
-  return ARCHIVE_TABLE_INVENTORY.find((entry) => entry.collection === collection);
-}

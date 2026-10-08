@@ -375,7 +375,14 @@ export function CommitmentsPage({
       return { ok: true };
     }
 
-    const result = await saveCommitmentAction(input, monthStart);
+    const result = await saveCommitmentAction(
+      {
+        ...input,
+        // The version the edit dialog read; a stale row fails closed in the RPC.
+        expectedUpdatedAt: editing?.updatedAt,
+      },
+      monthStart,
+    );
     if (result.ok && result.commitment) {
       setItems((current) =>
         current.some((item) => item.id === result.commitment!.id)
@@ -392,11 +399,16 @@ export function CommitmentsPage({
   }
 
   async function performArchive(item: RecurringCommitment) {
-    const result = viewer.isDemo
-      ? { ok: true as const }
-      : await archiveCommitmentAction(item.id, !item.isArchived);
+    let result: { ok: boolean; message?: string };
+    try {
+      result = viewer.isDemo
+        ? { ok: true as const }
+        : await archiveCommitmentAction(item.id, !item.isArchived);
+    } catch {
+      result = { ok: false, message: "Mất kết nối khi lưu trữ khoản định kỳ." };
+    }
     if (!result.ok) {
-      showNotice(result.message, "error");
+      showNotice(result.message ?? "Có lỗi xảy ra.", "error");
       return false;
     }
     setItems((current) =>

@@ -65,4 +65,9 @@ next-env.d.ts
 # Telegram secrets
 .env.telegram
 
+# Voice model binary (~33MB): fetched at build/dev time by
+# scripts/fetch-voice-model.mjs, never committed (see PR #760).
+/public/models/*.tar.gz
+/public/models/*.zip
+
 **/.config/moneyflow/telegram.env

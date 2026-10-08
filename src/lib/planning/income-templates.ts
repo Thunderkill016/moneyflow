@@ -22,6 +22,12 @@ export type RecurringIncomeTemplate = {
   categoryIcon: string | null;
   categoryColor: string | null;
   isArchived: boolean;
+  /**
+   * The version the client read (`updated_at`), fed back as `expectedUpdatedAt`
+   * on save — the optimistic-concurrency precondition. Undefined for demo
+   * rows and older callers, which keep the legacy last-write-wins path.
+   */
+  updatedAt?: string;
   /** True when this month’s income was posted to the ledger. */
   isReceived: boolean;
   transactionId: string | null;
@@ -34,6 +40,8 @@ export type SaveIncomeTemplateInput = {
   dueDay: number;
   accountId: string;
   categoryId: string;
+  /** Version read when the edit started; omitted on create and in demo. */
+  expectedUpdatedAt?: string;
 };
 
 /** monthStart (YYYY-MM-01) → templateId → income transaction id */
