@@ -171,9 +171,11 @@ operational choice — decide in PoC with evidence, not preference.
 | T3  | pgTAP vendored install script (`db/compat/pgtap.sql`, license FreeBSD) in `extensions` schema                                         | T2         | 58/58 suites pass             | done    |
 | T4  | Real-Neon replay: `db/compat/neon-preflight.sql` + mechanical transform                                                               | T1         | 80/80 on Neon PG 18           | done    |
 | T5  | Request-path proof on real Neon (JWT→Data API→role→RLS, A/B isolation, RPC write)                                                     | T4         | verified below                | done    |
-| T6  | Typed client seam (`src/server/*` unchanged call sites → provider adapter)                                                            | T1         | pending                       | pending |
-| T7  | Auth adapter: managed Neon Auth works (uuid IDs, trigger provisioning); bcrypt password-hash import + admin-delete surface still open | T5         | partial                       | pending |
+| T6  | Typed client seam (`src/server/*` unchanged call sites → provider adapter)                                                            | T1         | 14/14 vertical slice          | done    |
+| T7  | Auth adapter: managed Neon Auth works (uuid IDs, trigger provisioning); bcrypt import **disproven** — reset/lazy-rehash cutover required  | T5         | Gate-5 evidence               | done    |
 | T8  | delete-account Edge Function → server route via privileged `pg`                                                                       | T6         | pending                       | pending |
+| T11 | Backup/restore + write-freeze rehearsal on scratch                                                                                    | T4         | Gate-4 evidence               | done    |
+| T12 | Identity-import / password / OAuth / scoped-token parity assessment                                                                   | T5         | Gate-5 evidence               | done    |
 | T9  | Egress/compute measurement vs Free budget (scratch measured ~103 KB / 277 compute-s)                                                  | T5         | scratch only                  | done    |
 | T10 | Owner decisions: OAuth consent layer, managed-auth confirm, cutover runbook                                                           | all        | gate                          | blocked |
 
@@ -238,14 +240,48 @@ bookkeeping. Zero grants or policies weakened.
 | pgTAP suites on the shimmed database  | 58/58 files green, fail-closed scanner (plan + nonzero assertions enforced) | pass   |
 | No RLS/grant weakening                | shim/preflight only add provider-equivalent surface                         | pass   |
 
+### Gate-4 evidence — backup/restore rehearsal (`scripts/neon-poc/backup-rehearsal.mjs`)
+
+All steps ran live on `moneyflow-neon-poc` at head `ca7f6379`, synthetic data:
+
+| Step                                                                       | Result                                                                                                                       |
+| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `--dry-run` inventory                                                      | 23 user tables, 0 FK violations, sha256 PK checksums emitted                                                                 |
+| `--backup`                                                                 | JSON archive → AES-256-GCM envelope identical to `backup-encryption.ts` (PBKDF2-SHA-256 250k iters, 12-byte IV); wrong-pass + tamper negatives verified in-step |
+| `--restore`                                                                | fresh scratch db `mf_poc` (allowlisted) → managed-surface stubs (`neon_auth."user"`, compile-only `auth.uid()/jwt()`) → **80/80 generated migrations** → FK-topo-ordered inserts under `set constraints all deferred` + `disable trigger user` → **all 23 table checksums identical, 0 FK violations** |
+| `--freeze-rehearsal`                                                       | `revoke … from authenticated` → insert denied, select preserved → re-grant rolled back — proves the cutover write-freeze mechanism |
+| `--cleanup`                                                                | scratch db dropped; every mutating step gated by `--i-understand-destructive` + `verifyTarget()` allowlist                   |
+
+Neon-specific restore constraints found: `session_replication_role` is
+superuser-denied and `disable trigger all` needs superuser on constraint
+triggers — owner-scope `disable trigger user` is the correct equivalent (it
+suppresses `on_auth_user_created` provisioning and `set_updated_at` rewrites
+that would otherwise corrupt checksums; FK enforcement stays live).
+
+### Gate-5 evidence — identity, password, OAuth, scoped-token parity
+
+Tested live against the provisioned managed auth on the scratch project:
+
+| Question                                                                            | Result                                                                                                                                                                                                                                                                                    |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Can `neon_auth."user"` accept a **pre-chosen UUID** (Supabase `auth.users.id`)?     | **YES** — direct insert with chosen uuid → `sign-in/email` returns 200 with a Better-Auth scrypt `account.password`; wrong password → 401. Identity/UUID preservation via table-level import works                                                                                          |
+| Can Supabase `encrypted_password` (bcrypt `$2a$`) be imported into `account.password`? | **NO** — real pgcrypto-generated `$2a$06$…` hash → sign-in 500. Better-Auth verifier only understands its scrypt format. Cutover requires forced email-reset or lazy re-hash (app verifies bcrypt once, writes scrypt into `account.password`) — documented strategy, no silent weak import |
+| Google OAuth parity                                                                 | **YES** — `POST /sign-in/social {provider:"google"}` → 302 to real Google `accounts.google.com` (client_id, PKCE S256, hosted callback `neonauth.*/auth/oauth/callback/google`). GitHub disabled. MoneyFlow's `signInWithGoogle` maps to SDK `signIn.social`                                  |
+| Scoped/OAuth-server tokens for MCP clients (`auth.jwt()->>'client_id'`)             | **NO equivalent** — managed Neon Auth issues session JWTs without `client_id`; `guard_oauth_mutation()` compiles and replays but the restricted-client branch can never trigger. Third-party agent transport would run at full user privilege unless a separate scoped-token layer is built — descope/defer |
+| Session invalidation                                                                | proven in Gate 3: upstream `/sign-out` → protected routes redirect (14/14 vertical slice)                                                                                                                                                                                                 |
+
 ### Remaining limitations
 
-- Real-Neon proof covered replay + request path with synthetic users; the
-  **app code path** (`src/lib/supabase/*` → Better Auth + postgrest-js seam)
-  is not implemented yet (T6).
-- Password-hash portability (Supabase bcrypt → Neon Auth) unverified — needs
-  an import mechanism test or a documented reset-password cutover plan.
+- Password-hash portability resolved as **no**: bcrypt cannot be imported
+  into managed auth — cutover plan must be forced reset or lazy re-hash
+  (owner decision before any real-data phase).
+- Scoped/OAuth-server tokens have no Neon equivalent — agent/MCP transport
+  with `client_id`-scoped privileges cannot be reproduced; requires descope
+  or a separate token layer.
 - `auth.oauth.*` MCP consent has no Neon equivalent — owner decision.
+- Backup/restore rehearsal restored to a same-project scratch database; a
+  real cutover would additionally need Supabase-side export (owner approval)
+  and the password cutover above.
 - `pgtap.sql` is a vendored build artifact — regenerate from pgTAP 1.3.3
   `sql/pgtap.sql.in` with `__OS__=Linux`, `__VERSION__=1.33` if upgraded.
 - Egress measured on synthetic traffic only; production egress estimate
@@ -257,6 +293,7 @@ bookkeeping. Zero grants or policies weakened.
 | ---------- | ----- | ----------- | ------------------------------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | 2026-10-08 | owner | researcher  | discovery                                  | issue #774, this packet, first reply comment                              | PoC on `feat/neon-migration-poc` branch only                                                     |
 | 2026-10-08 | owner | implementer | `provider_write_approved` for scratch only | owner comment: one Neon Free project `moneyflow-neon-poc`, synthetic data | real-provider PoC + evidence report; still no production/production-data/provider-config changes |
+| 2026-10-08 | implementer | owner | gates 1–5 complete on scratch | 2798ccf7, ca7f6379, 6d7c91bb; backup/restore + identity/password/OAuth evidence above | owner review: password-cutover strategy choice + scoped-token descope decision; no merge |
 
 ## Stop conditions
 
