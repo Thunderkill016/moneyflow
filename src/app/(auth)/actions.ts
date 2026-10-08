@@ -29,6 +29,8 @@ import {
 import { DELETE_CONFIRM_TEXT, isDeleteConfirmValid } from "@/lib/delete-account";
 import { ONBOARDING_PATH } from "@/lib/onboarding";
 import { getSiteOrigin } from "@/lib/site-url";
+import { getBackendProvider } from "@/lib/backend/provider";
+import { getNeonAuth } from "@/lib/neon/server";
 import { createClient } from "@/lib/supabase/server";
 
 export type AuthState = {
@@ -139,15 +141,35 @@ export async function login(
   const captcha = readCaptchaToken(formData);
   if (!captcha.ok) return captcha.state;
 
-  const supabase = await createClient();
-  if (!supabase) return configurationError();
-
   const nextPath = safeNextPath(
     String(formData.get("next") ?? ""),
     POST_AUTH_REDIRECT,
   );
   const reauth =
     formData.get("reauth") === "1" && nextPath === ACCOUNT_DELETION_PATH;
+
+  /*
+   * Neon backend (#774): managed Better Auth email sign-in. Sign-in must
+   * resolve through getNeonAuth() alone — the data client requires an
+   * existing session JWT, which a logged-out user does not have by
+   * definition. The step-up re-auth flow for account deletion has no Neon
+   * equivalent yet — the deletion path itself is still Supabase-only (see
+   * finalizeAccountDeletion and the migration packet's deletion design).
+   */
+  if (getBackendProvider() === "neon") {
+    const auth = getNeonAuth();
+    if (!auth) return configurationError();
+    const { error: neonError } = await auth.signIn.email({
+      email: parsed.data.email,
+      password: parsed.data.password,
+    });
+    if (neonError) return { message: "Email hoặc mật khẩu không đúng." };
+    redirect(nextPath);
+  }
+
+  const supabase = await createClient();
+  if (!supabase) return configurationError();
+
   let expectedReauthUserId: string | null = null;
   if (reauth) {
     const {
@@ -204,6 +226,31 @@ export async function register(
     String(formData.get("next") ?? ""),
     ONBOARDING_PATH,
   );
+
+  /*
+   * Neon backend (#774): managed Better Auth sign-up provisions
+   * neon_auth."user" (uuid) and auto-signs-in; the profile/category trigger
+   * migrated in db/neon supplies the same onboarding state Supabase's
+   * auth.users trigger does today.
+   */
+  if (getBackendProvider() === "neon") {
+    const auth = getNeonAuth();
+    if (!auth) return configurationError();
+    const { error: neonError } = await auth.signUp.email({
+      email: parsed.data.email,
+      name: parsed.data.fullName,
+      password: parsed.data.password,
+    });
+    if (neonError) {
+      // Same non-enumerating response as the Supabase path.
+      return {
+        message:
+          "Không thể tạo tài khoản lúc này. Kiểm tra thông tin hoặc thử lại sau.",
+      };
+    }
+    redirect(nextPath);
+  }
+
   const supabase = await createClient();
   if (!supabase) return configurationError();
   const { data, error } = await supabase.auth.signUp({
@@ -241,6 +288,29 @@ export async function signInWithGoogle(formData?: FormData) {
   );
   const reauth =
     formData?.get("reauth") === "1" && nextPath === ACCOUNT_DELETION_PATH;
+
+  /*
+   * Neon backend (#774): managed Better Auth social sign-in. The step-up
+   * re-auth flow has no Neon equivalent — fail closed rather than silently
+   * degrading a deletion guard into a plain sign-in.
+   */
+  if (getBackendProvider() === "neon") {
+    if (reauth) {
+      redirect(
+        `/login?next=${encodeURIComponent(nextPath)}&error=reauth-unsupported`,
+      );
+    }
+    const auth = getNeonAuth();
+    if (!auth) redirect("/login?error=config");
+    const { data, error } = await auth.signIn.social({
+      provider: "google",
+      callbackURL: `${getSiteOrigin()}${nextPath}`,
+      errorCallbackURL: `${getSiteOrigin()}/login?error=oauth`,
+    });
+    if (error || !data?.url) redirect("/login?error=oauth");
+    redirect(data.url);
+  }
+
   const supabase = await createClient();
   if (!supabase) redirect("/login?error=config");
 
@@ -285,6 +355,27 @@ export async function requestPasswordReset(
   const captcha = readCaptchaToken(formData);
   if (!captcha.ok) return captcha.state;
 
+  /*
+   * Neon backend (#774): managed Better Auth reset-request. Response stays
+   * identical whether the email exists or delivery is configured — upstream
+   * errors are intentionally swallowed for the same non-enumerating contract
+   * as the Supabase path. Whether the managed service can actually deliver
+   * mail is a tracked cutover blocker, not an app-side guarantee.
+   */
+  if (getBackendProvider() === "neon") {
+    const auth = getNeonAuth();
+    if (!auth) return configurationError();
+    await auth.requestPasswordReset({
+      email: parsed.data,
+      redirectTo: `${getSiteOrigin()}/update-password`,
+    });
+    return {
+      success: true,
+      message:
+        "Nếu email tồn tại, MoneyFlow đã gửi liên kết đặt lại mật khẩu.",
+    };
+  }
+
   const supabase = await createClient();
   if (!supabase) return configurationError();
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
@@ -314,6 +405,38 @@ export async function updatePassword(
     };
   }
 
+  /*
+   * Neon backend (#774): managed Better Auth reset completion. The token
+   * arrives on /update-password?token=… from the upstream reset link —
+   * without it the request cannot be bound to a reset grant, so fail to the
+   * expired-link path instead of attempting anything.
+   */
+  if (getBackendProvider() === "neon") {
+    const token = String(formData.get("token") ?? "");
+    const auth = getNeonAuth();
+    if (!auth) return configurationError();
+    if (!token) {
+      return {
+        message: "Liên kết đã hết hạn. Hãy yêu cầu một liên kết mới.",
+      };
+    }
+    const { error: neonError } = await auth.resetPassword({
+      newPassword: parsed.data,
+      token,
+    });
+    if (neonError) {
+      return {
+        message: "Liên kết đã hết hạn. Hãy yêu cầu một liên kết mới.",
+      };
+    }
+    /*
+     * Better Auth's reset-password does not guarantee an authenticated
+     * session afterwards — send the user to an explicit sign-in rather
+     * than dropping them onto a protected route they cannot see.
+     */
+    redirect("/login?reset=success");
+  }
+
   const supabase = await createClient();
   if (!supabase) return configurationError();
   const { error } = await supabase.auth.updateUser({ password: parsed.data });
@@ -326,6 +449,20 @@ export async function updatePassword(
 }
 
 export async function signOut() {
+  /*
+   * Neon backend (#774): the SDK's signOut clears the upstream session and
+   * both neon-auth cookies; nothing else must be swept locally.
+   */
+  if (getBackendProvider() === "neon") {
+    try {
+      await getNeonAuth()?.signOut();
+    } catch {
+      // Stale or already-deleted sessions can reject server-side sign-out.
+    }
+    revalidatePath("/", "layout");
+    redirect("/login");
+  }
+
   const supabase = await createClient();
   try {
     if (supabase) await supabase.auth.signOut({ scope: "local" });
@@ -387,6 +524,20 @@ export async function finalizeAccountDeletion(
     return {
       ok: false,
       message: `Gõ chính xác ${DELETE_CONFIRM_TEXT} để xác nhận.`,
+    };
+  }
+
+  /*
+   * Neon backend (#774): managed-auth user deletion (plus tenant cleanup)
+   * is not implemented on the Neon path — fail closed with an honest
+   * message rather than surfacing a misleading configuration error or
+   * attempting partial deletion.
+   */
+  if (getBackendProvider() === "neon") {
+    return {
+      ok: false,
+      message:
+        "Xóa tài khoản chưa được hỗ trợ trên bản thử Neon. Dữ liệu chưa bị thay đổi.",
     };
   }
 

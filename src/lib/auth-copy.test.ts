@@ -7,10 +7,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 const AUTH_FORM = join(process.cwd(), "src/components/auth-form.tsx");
-const REGISTER_PAGE = join(
-  process.cwd(),
-  "src/app/(auth)/register/page.tsx",
-);
+const REGISTER_PAGE = join(process.cwd(), "src/app/(auth)/register/page.tsx");
 
 const FORBIDDEN = [
   "hộp thư giao dịch",
@@ -60,7 +57,10 @@ test("demo notice stays on login and keeps the continue-demo exit", () => {
 test("register demo notice discloses device-local data and the scoped export", () => {
   const s = source();
   // The notice must reach register, not just login.
-  assert.match(s, /demoMode[\s\S]*mode === "register"[\s\S]*mode === "login" && !isReauth/);
+  assert.match(
+    s,
+    /demoMode[\s\S]*mode === "register"[\s\S]*mode === "login" && !isReauth/,
+  );
   assert.match(s, /mode === "register" \?/);
   assert.match(s, /không được\s*\n?\s*chuyển vào tài khoản mới/);
   assert.match(s, /Cài đặt → Xuất dữ liệu/);
@@ -70,7 +70,7 @@ test("register demo notice discloses device-local data and the scoped export", (
 
 test("register page enables the demo notice in demo mode", () => {
   const s = readFileSync(REGISTER_PAGE, "utf8");
-  assert.match(s, /demoMode=\{!isSupabaseConfigured\(\)\}/);
+  assert.match(s, /demoMode=\{!isBackendConfigured\(\)\}/);
 });
 
 test("auth keeps the form primary and proof rail factual", () => {

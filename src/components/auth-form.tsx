@@ -116,6 +116,8 @@ export function AuthForm({
   demoMode = false,
   reauth = false,
   authError = null,
+  resetToken = "",
+  resetDone = false,
 }: {
   mode: Mode;
   next?: string;
@@ -123,6 +125,10 @@ export function AuthForm({
   reauth?: boolean;
   /** OAuth failure code from `/login?error=<code>`; shown as a banner. */
   authError?: string | null;
+  /** Managed-auth reset token forwarded from /update-password?token=… */
+  resetToken?: string;
+  /** `/login?reset=success` — password was just reset; prompt sign-in. */
+  resetDone?: boolean;
 }) {
   const action =
     mode === "login"
@@ -210,6 +216,12 @@ export function AuthForm({
               </div>
             )}
 
+            {mode === "login" && resetDone && !authError && (
+              <div className={styles.message} role="status">
+                Đặt lại mật khẩu thành công. Đăng nhập bằng mật khẩu mới.
+              </div>
+            )}
+
             {(mode === "login" || mode === "register") && (
               <form action={signInWithGoogle}>
                 <input type="hidden" name="next" value={next} />
@@ -256,6 +268,9 @@ export function AuthForm({
             <form className={styles.form} action={formAction} noValidate>
               <input type="hidden" name="next" value={next} />
               <input type="hidden" name="reauth" value={isReauth ? "1" : "0"} />
+              {mode === "update" && (
+                <input type="hidden" name="token" value={resetToken} />
+              )}
 
               {mode === "register" && (
                 <label>

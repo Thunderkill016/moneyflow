@@ -71,3 +71,6 @@ next-env.d.ts
 /public/models/*.zip
 
 **/.config/moneyflow/telegram.env
+
+# Neon PoC runtime artifacts (encrypted archives, manifests)
+scripts/neon-poc/out/

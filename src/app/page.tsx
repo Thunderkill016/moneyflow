@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { LandingPage } from "@/components/landing-page";
 import { POST_AUTH_REDIRECT } from "@/lib/auth-redirect";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { isBackendConfigured } from "@/lib/backend/provider";
 import "./landing/safe-ux-login.css";
 
 const TITLE = "MoneyFlow — Biết tiền ở đâu, vì sao thay đổi";
@@ -43,7 +43,7 @@ const STRUCTURED_DATA = {
  * redirected in proxy so the public narrative stays focused on first visits.
  */
 export default function Home() {
-  if (!isSupabaseConfigured()) {
+  if (!isBackendConfigured()) {
     redirect(POST_AUTH_REDIRECT);
   }
 

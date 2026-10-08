@@ -1,8 +1,85 @@
+import {
+  handleAuthRequest,
+  handleAuthResponse,
+} from "@neondatabase/auth/server";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { ACCOUNT_DELETION_PATH } from "@/lib/account-deletion-reauth";
 import { POST_AUTH_REDIRECT } from "@/lib/auth-redirect";
+import {
+  getBackendProvider,
+  getNeonBackendConfig,
+} from "@/lib/backend/provider";
 import { getSupabaseConfig } from "@/lib/supabase/config";
+
+const NEON_SESSION_COOKIE = "__Secure-neon-auth.session_token";
+const NEON_SESSION_VERIFIER_PARAM = "neon_auth_session_verifier";
+const NEON_CHALLENGE_COOKIES = [
+  "__Secure-neon-auth.session_challenge",
+  // Legacy misspelled challenge cookie the auth server still emits.
+  "__Secure-neon-auth.session_challange",
+] as const;
+
+/*
+ * Managed-auth OAuth return leg (#774): after the provider callback, Neon
+ * redirects the browser to callbackURL?neon_auth_session_verifier=… — no
+ * session cookie exists yet. The verifier exchanges (together with the
+ * session_challenge cookie planted at sign-in/social) against the auth
+ * server's /get-session, which returns the real session cookies. Without
+ * this exchange every social sign-in lands logged-out.
+ */
+async function exchangeNeonOAuthVerifier(
+  request: NextRequest,
+): Promise<NextResponse | null> {
+  const verifier = request.nextUrl.searchParams.get(
+    NEON_SESSION_VERIFIER_PARAM,
+  );
+  if (!verifier) return null;
+  if (!NEON_CHALLENGE_COOKIES.some((name) => request.cookies.has(name)))
+    return null;
+  // Same call the SDK's middleware exchange makes: forward the verifier
+  // URL + challenge cookie to upstream /get-session, then run the response
+  // through handleAuthResponse so the signed session_data cache cookie is
+  // minted identically (cookieSecret signs it). Config/network failures
+  // fail closed to null — the request continues unauthenticated.
+  let res: Response;
+  try {
+    const config = getNeonBackendConfig();
+    if (!config) return null;
+    res = await handleAuthResponse(
+      await handleAuthRequest(
+        config.authBaseUrl,
+        new Request(request.url, { method: "GET", headers: request.headers }),
+        "get-session",
+      ),
+      config.authBaseUrl,
+      { secret: config.cookieSecret },
+    );
+  } catch {
+    return null;
+  }
+  if (!res.ok) return null;
+
+  const clean = request.nextUrl.clone();
+  clean.searchParams.delete(NEON_SESSION_VERIFIER_PARAM);
+  const redirect = NextResponse.redirect(clean);
+  for (const cookie of res.headers.getSetCookie())
+    redirect.headers.append("set-cookie", cookie);
+  return redirect;
+}
+
+/** Supabase SSR cookies look like `sb-<ref>-auth-token` (and chunked variants). */
+function hasSupabaseAuthCookie(request: NextRequest): boolean {
+  return request.cookies
+    .getAll()
+    .some(
+      (cookie) => cookie.name.startsWith("sb-") && cookie.name.includes("auth"),
+    );
+}
+
+function hasNeonAuthCookie(request: NextRequest): boolean {
+  return request.cookies.has(NEON_SESSION_COOKIE);
+}
 
 const protectedPaths = [
   "/inbox",
@@ -23,13 +100,6 @@ const protectedPaths = [
   "/reports",
 ];
 const authPaths = ["/login", "/register", "/forgot-password"];
-
-/** Supabase SSR cookies look like `sb-<ref>-auth-token` (and chunked variants). */
-function hasSupabaseAuthCookie(request: NextRequest): boolean {
-  return request.cookies
-    .getAll()
-    .some((cookie) => cookie.name.startsWith("sb-") && cookie.name.includes("auth"));
-}
 
 /**
  * True for Server Action invocations. Mirrors Next's own detection (see
@@ -56,40 +126,88 @@ function isPublicNoAuthPath(path: string): boolean {
   );
 }
 
+async function isNeonAuthenticated(request: NextRequest): Promise<boolean> {
+  /*
+   * Session truth lives upstream: proxy the managed-auth /get-session call
+   * with the request's session cookie — the same fail-closed contract as
+   * supabase.auth.getClaims(). No session cookie => definitely logged out;
+   * upstream error => treated as logged out (RLS still blocks data access).
+   */
+  const session = request.cookies.get(NEON_SESSION_COOKIE);
+  if (!session?.value) return false;
+  const authBase = process.env.NEON_AUTH_BASE_URL?.trim().replace(/\/+$/, "");
+  if (!authBase) return false;
+  try {
+    const res = await fetch(`${authBase}/get-session`, {
+      headers: { cookie: `${NEON_SESSION_COOKIE}=${session.value}` },
+      cache: "no-store",
+    });
+    if (!res.ok) return false;
+    const data = (await res.json()) as {
+      session?: unknown;
+      user?: { id?: string };
+    };
+    return Boolean(data?.session && data.user?.id);
+  } catch {
+    return false;
+  }
+}
+
 export async function updateSession(request: NextRequest) {
-  const config = getSupabaseConfig();
-  if (!config) return NextResponse.next({ request });
+  const neon = getBackendProvider() === "neon";
+  const config = neon ? null : getSupabaseConfig();
+  if (!neon && !config) return NextResponse.next({ request });
+  if (neon && !process.env.NEON_AUTH_BASE_URL) {
+    return NextResponse.next({ request });
+  }
 
   const path = request.nextUrl.pathname;
 
+  // OAuth return leg must run before every cookie check — no session cookie
+  // exists yet, the verifier exchange is what mints it.
+  if (neon) {
+    const oauthExchange = await exchangeNeonOAuthVerifier(request);
+    if (oauthExchange) return oauthExchange;
+  }
+
   // LCP/TTFB: public pages without session cookies skip auth getClaims.
-  if (isPublicNoAuthPath(path) && !hasSupabaseAuthCookie(request)) {
+  const hasAuthCookie = neon
+    ? hasNeonAuthCookie(request)
+    : hasSupabaseAuthCookie(request);
+  if (isPublicNoAuthPath(path) && !hasAuthCookie) {
     return NextResponse.next({ request });
   }
 
   let response = NextResponse.next({ request });
-  const supabase = createServerClient(config.url, config.publishableKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
+  let isAuthenticated: boolean;
+  if (neon) {
+    isAuthenticated = await isNeonAuthenticated(request);
+  } else {
+    const supabase = createServerClient(config!.url, config!.publishableKey, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet, cacheHeaders) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value),
+          );
+          response = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options),
+          );
+          Object.entries(cacheHeaders).forEach(([name, value]) =>
+            response.headers.set(name, value),
+          );
+        },
       },
-      setAll(cookiesToSet, cacheHeaders) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, options),
-        );
-        Object.entries(cacheHeaders).forEach(([name, value]) =>
-          response.headers.set(name, value),
-        );
-      },
-    },
-  });
-
-  const { data } = await supabase.auth.getClaims();
-  const isAuthenticated = Boolean(data?.claims?.sub);
+    });
+    const { data } = await supabase.auth.getClaims();
+    isAuthenticated = Boolean(data?.claims?.sub);
+  }
   const needsAuth = protectedPaths.some(
-    (protectedPath) => path === protectedPath || path.startsWith(`${protectedPath}/`),
+    (protectedPath) =>
+      path === protectedPath || path.startsWith(`${protectedPath}/`),
   );
 
   /*

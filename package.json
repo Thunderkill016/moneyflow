@@ -62,6 +62,7 @@
   "dependencies": {
     "@base-ui/react": "^1.7.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
+    "@neondatabase/auth": "^0.5.0-beta",
     "@radix-ui/react-dropdown-menu": "^2.1.24",
     "@supabase/ssr": "^0.12.5",
     "@supabase/supabase-js": "^2.110.3",
@@ -69,6 +70,7 @@
     "@vercel/speed-insights": "2.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "jose": "^6.2.5",
     "lucide-react": "^1.33.0",
     "next": "16.3.8",
     "react": "19.2.8",
@@ -96,6 +98,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "axe-core": "^4.13.0",
+    "embedded-postgres": "^17.10.0-beta.17",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
     "shadcn": "^4.19.0",

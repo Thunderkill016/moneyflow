@@ -1,0 +1,15 @@
+# Secrets and migration artifacts must never reach deployment file storage.
+# Vercel CLI does not apply .gitignore when .vercelignore exists, so this file
+# repeats the critical exclusions explicitly.
+scripts/neon-poc/out/
+.env*
+*.pem
+*.key
+# Build/dev artifacts (gitignored paths the uploader must also skip).
+.next/
+.vercel/
+node_modules/
+supabase/.temp/
+tsconfig.tsbuildinfo
+next-env.d.ts
+output/
