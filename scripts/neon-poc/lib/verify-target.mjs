@@ -27,7 +27,9 @@ const API_BASE = "https://console.neon.tech/api/v2";
 // moneyflow-prod was added for the owner-authorized production cutover
 // (#774); it is the live production target, not a scratch project.
 const ALLOWED_PROJECTS = {
-  "polished-pine-75721729": "moneyflow-neon-poc",
+  // moneyflow-neon-poc (polished-pine-75721729) was deleted by owner after
+  // the production cutover — its entry is intentionally removed so remote
+  // scripts cannot silently re-target a recycled id.
   "shy-mud-72113549": "moneyflow-prod",
 };
 

@@ -767,3 +767,13 @@ google-provider accounts; the email account is likewise owner-controlled.
   remain rotated post-leak.
 - hoa272140 (email provider) signs in with the rotated password from the
   post-leak credentials file.
+
+### Scratch project decommissioned (2026-10-08)
+
+Owner deleted `moneyflow-neon-poc` (`polished-pine-75721729`) — the PoC
+scratch project. Verified absent from the org project list; only
+`moneyflow-prod` (`shy-mud-72113549`, production) remains. No Vercel env
+references existed (only Production carries `NEON_*`, pointing at the prod
+endpoint). The `verify-target.mjs` allowlist now holds only the prod
+project — a stale id cannot be silently re-targeted. mfvn health 200
+post-deletion.
