@@ -43,10 +43,12 @@ const DO_BACKUP = ARGS.has("--backup");
 const DO_RESTORE = ARGS.has("--restore");
 const DO_FREEZE = ARGS.has("--freeze-rehearsal");
 const DO_CLEANUP = ARGS.has("--cleanup");
+const DO_REMAP = ARGS.has("--remap-rehearsal");
 const DESTRUCTIVE_OK = ARGS.has("--i-understand-destructive");
 const RESTORE_DB = "mf_poc"; // inside verify-target's DB allowlist
 const BACKUP_FILE = "scripts/neon-poc/out/backup.enc.json";
 const MANIFEST_FILE = "scripts/neon-poc/out/backup-manifest.json";
+const REMAP_MANIFEST = "scripts/neon-poc/out/remap-manifest.enc.json";
 
 // Mirrors src/lib/archive/backup-encryption.ts constants — the rehearsal
 // validates the same crypto shape the app's downloadable backup uses.
@@ -265,13 +267,21 @@ async function backup() {
   );
 }
 
-async function restore() {
-  requireDestructive(`create/drop scratch database ${RESTORE_DB}`);
-  if (!existsSync(BACKUP_FILE))
-    fail(`${BACKUP_FILE} missing — run --backup first`);
-  const pass = process.env.BACKUP_REHEARSAL_PASS;
-  if (!pass) fail("BACKUP_REHEARSAL_PASS env required");
-
+/*
+ * Insert a table's rows, optionally substituting owner-column values through
+ * a {legacyUuid: neonUuid} map. disable trigger user — not superuser, so
+ * session_replication_role and DISABLE TRIGGER ALL are denied. USER scope
+ * suppresses provisioning (on_auth_user_created) and rewrite triggers
+ * (set_updated_at) that would otherwise seed/perturb rows; FK constraint
+ * triggers stay enforced.
+ */
+/*
+ * Drop + recreate the allowlisted scratch database, install the minimal
+ * managed-surface stub a provisioned project would provide, and replay the
+ * deterministic generated migration set. Shared by --restore and
+ * --remap-rehearsal.
+ */
+async function prepareScratchDb() {
   const admin = await connect();
   await verifyTarget(admin, URL_ENV);
   await admin.query(`drop database if exists ${RESTORE_DB} with (force)`);
@@ -331,7 +341,39 @@ async function restore() {
       env: { ...process.env, NEON_POC_URL: restoreUrl.toString() },
     },
   );
+  return { url: restoreUrl };
+}
 
+async function insertRows(client, name, rows, ownerCols = null, map = null) {
+  const [schema, table] = name.split(".");
+  const fq = `"${schema}"."${table}"`;
+  const cols = Object.keys(rows[0]);
+  const perRow = `(${cols.map((_, j) => `$${j + 1}`).join(",")})`;
+  const oset = ownerCols?.get(name);
+  await client.query(`alter table ${fq} disable trigger user`);
+  for (const row of rows) {
+    await client.query(
+      `insert into ${fq} (${cols.map((c) => `"${c}"`).join(",")}) values ${perRow}`,
+      cols.map((c) => {
+        const v = row[c];
+        // Owner remap at INSERT: rows land already keyed to the neon uuid —
+        // a missed map entry leaves the legacy uuid, which fails the FK to
+        // neon_auth."user" (no legacy rows exist) and is caught as a negative.
+        return oset?.has(c) && map && v && map[v] ? map[v] : v;
+      }),
+    );
+  }
+  await client.query(`alter table ${fq} enable trigger user`);
+}
+
+async function restore() {
+  requireDestructive(`create/drop scratch database ${RESTORE_DB}`);
+  if (!existsSync(BACKUP_FILE))
+    fail(`${BACKUP_FILE} missing — run --backup first`);
+  const pass = process.env.BACKUP_REHEARSAL_PASS;
+  if (!pass) fail("BACKUP_REHEARSAL_PASS env required");
+
+  const { url: restoreUrl } = await prepareScratchDb();
   const client = await connect(restoreUrl.toString());
   const dump = JSON.parse(
     decryptArchive(readFileSync(BACKUP_FILE, "utf8"), pass),
@@ -370,22 +412,7 @@ async function restore() {
   for (const name of names) {
     const rows = dump.tables[name];
     if (!rows.length) continue;
-    const [schema, table] = name.split(".");
-    const fq = `"${schema}"."${table}"`;
-    const cols = Object.keys(rows[0]);
-    const perRow = `(${cols.map((_, j) => `$${j + 1}`).join(",")})`;
-    // disable trigger user — not superuser, so session_replication_role and
-    // DISABLE TRIGGER ALL are denied. USER scope suppresses provisioning
-    // (on_auth_user_created) and rewrite triggers (set_updated_at) that would
-    // otherwise seed/perturb rows; FK constraint triggers stay enforced.
-    await client.query(`alter table ${fq} disable trigger user`);
-    for (const row of rows) {
-      await client.query(
-        `insert into ${fq} (${cols.map((c) => `"${c}"`).join(",")}) values ${perRow}`,
-        cols.map((c) => row[c]),
-      );
-    }
-    await client.query(`alter table ${fq} enable trigger user`);
+    await insertRows(client, name, rows);
     console.log(`    restored ${name}: ${rows.length} rows`);
   }
   await client.query("commit");
@@ -435,6 +462,320 @@ async function restore() {
   await client.end();
 }
 
+/*
+ * --remap-rehearsal (review round-4, #774): prove the Plan-B data path on a
+ * REAL multi-user dataset. Every legacy owner uuid in the backup is mapped
+ * to a fresh neon uuid (the map stands in for the claim ceremony's output);
+ * rows are inserted already keyed to the new ids — the FK surface forces
+ * claim-before-restore ordering because (id, user_id) composite FKs are not
+ * deferrable and legacy-keyed rows could never exist.
+ *
+ * Verified: bijective mapping manifest (encrypted, uuids only — no PII),
+ * per-table canonical multiset equality with the map applied, zero legacy
+ * uuids surviving in owner columns, and per-owner financial totals preserved
+ * (sum(amount_minor) grouped by owner before vs after the substitution).
+ * Negatives: an unmapped owner aborts on FK violation, and a mid-restore
+ * abort leaves zero rows (single-transaction atomicity) with a clean rerun.
+ */
+const OWNER_COLS_SQL = `
+  -- every (table, column) that references the user-identity surface:
+  -- neon_auth."user"(id) directly, or public.profiles(id) which is itself
+  -- user-keyed (pattern_dismissals.user_id → profiles.id). Plus the identity
+  -- PKs themselves, so neon_auth."user".id and profiles.id remap too.
+  -- NOTE: pg_constraint, not information_schema.constraint_column_usage —
+  -- the latter's schema-qualified join silently drops cross-schema FKs
+  -- (public.* → neon_auth."user"), which is the whole point here.
+  select cn.nspname as table_schema, cc.relname as table_name,
+         att.attname as column_name
+  from pg_constraint c
+  join pg_class cc on cc.oid = c.conrelid
+  join pg_namespace cn on cn.oid = cc.relnamespace
+  join pg_class pc on pc.oid = c.confrelid
+  join pg_namespace pn on pn.oid = pc.relnamespace
+  join unnest(c.conkey) k(attnum) on true
+  join pg_attribute att on att.attrelid = cc.oid and att.attnum = k.attnum
+  where c.contype = 'f'
+    and ((pn.nspname = 'neon_auth' and pc.relname = 'user')
+      or (pn.nspname = 'public' and pc.relname = 'profiles'))
+  union select 'neon_auth', 'user', 'id'
+  union select 'public', 'profiles', 'id'`;
+
+// Canonical row serialization for multiset comparison — sorted keys, applied
+// identically to dump rows (map-substituted) and restored readback rows.
+const canonRow = (row) => JSON.stringify(row, Object.keys(row).sort());
+const canonDigest = (row) =>
+  createHash("sha256").update(canonRow(row), "utf8").digest("hex");
+
+async function remapRehearsal() {
+  requireDestructive(`remap rehearsal into scratch database ${RESTORE_DB}`);
+  if (!existsSync(BACKUP_FILE))
+    fail(`${BACKUP_FILE} missing — run --backup first`);
+  const pass = process.env.BACKUP_REHEARSAL_PASS;
+  if (!pass) fail("BACKUP_REHEARSAL_PASS env required");
+  const dump = JSON.parse(
+    decryptArchive(readFileSync(BACKUP_FILE, "utf8"), pass),
+  );
+
+  // Discover the owner-column surface from the source catalog (identical on
+  // the replayed schema), then build the bijective legacy→neon map.
+  const src = await connect();
+  await verifyTarget(src, URL_ENV);
+  const { rows: oc } = await src.query(OWNER_COLS_SQL);
+  const ownerCols = new Map();
+  for (const { table_schema, table_name, column_name } of oc) {
+    const k = `${table_schema}.${table_name}`;
+    if (!ownerCols.has(k)) ownerCols.set(k, new Set());
+    ownerCols.get(k).add(column_name);
+  }
+  const owners = new Set();
+  for (const [t, cols] of ownerCols)
+    for (const row of dump.tables[t] ?? [])
+      for (const c of cols) if (row[c]) owners.add(row[c]);
+
+  /*
+   * Value sweep — the FK catalog cannot see owner references that are NOT
+   * foreign keys: financial_mutation_audit_events.actor_user_id is nullable
+   * (system actors) and bound only by CHECK actor_user_id = user_id; audit
+   * payloads and provenance columns can embed owner uuids too. Any dump cell
+   * equal to a known owner id IS an owner reference — remap it or the CHECK
+   * constraints and audit provenance would break.
+   */
+  const swept = [];
+  for (const [t, rows] of Object.entries(dump.tables)) {
+    for (const row of rows) {
+      for (const [c, v] of Object.entries(row)) {
+        if (typeof v === "string" && owners.has(v)) {
+          if (!ownerCols.has(t)) ownerCols.set(t, new Set());
+          if (!ownerCols.get(t).has(c)) {
+            ownerCols.get(t).add(c);
+            swept.push(`${t}.${c}`);
+          }
+        }
+      }
+    }
+  }
+  if (swept.length)
+    console.log(`  value-sweep added owner cols: ${swept.join(", ")}`);
+
+  const map = {};
+  for (const o of owners) map[o] = crypto.randomUUID();
+  const legacySet = new Set(Object.keys(map));
+  const neonVals = Object.values(map);
+  if (new Set(neonVals).size !== neonVals.length)
+    fail("map is not bijective");
+  writeFileSync(
+    REMAP_MANIFEST,
+    encryptArchive(
+      JSON.stringify({ captured_at: new Date().toISOString(), map }),
+      pass,
+    ),
+  );
+  console.log(
+    `  remap map: ${neonVals.length} owners → fresh uuids (manifest encrypted to ${REMAP_MANIFEST})`,
+  );
+
+  const { url } = await prepareScratchDb();
+  const client = await connect(url.toString());
+  await client.query("set timezone to 'UTC'");
+
+  // Topo insert order — same as restore().
+  const { rows: order } = await client.query(`
+    with recursive dep(name, depth) as (
+      select (pn.nspname || '.' || pc.relname), 1
+      from pg_constraint c
+      join pg_class pc on pc.oid = c.confrelid
+      join pg_namespace pn on pn.oid = pc.relnamespace
+      join pg_class cc on cc.oid = c.conrelid
+      join pg_namespace cn on cn.oid = cc.relnamespace
+      where c.contype='f' and cn.nspname in ('public','neon_auth')
+      union
+      select (pn.nspname || '.' || pc.relname), dep.depth+1
+      from dep
+      join pg_class cc on true
+      join pg_namespace cn
+        on cn.oid = cc.relnamespace
+       and (cn.nspname || '.' || cc.relname) = dep.name
+      join pg_constraint c on c.conrelid = cc.oid and c.contype='f'
+      join pg_class pc on pc.oid = c.confrelid
+      join pg_namespace pn on pn.oid = pc.relnamespace
+      where dep.depth < 30
+    )
+    select name, max(depth) as depth from dep group by name`);
+  const depthOf = new Map(order.map((o) => [o.name, o.depth]));
+  const names = Object.keys(dump.tables).sort(
+    (a, b) => (depthOf.get(b) ?? 0) - (depthOf.get(a) ?? 0),
+  );
+
+  await client.query("begin");
+  await client.query("set constraints all deferred");
+  for (const name of names) {
+    const rows = dump.tables[name];
+    if (!rows.length) continue;
+    await insertRows(client, name, rows, ownerCols, map);
+  }
+  await client.query("commit");
+
+  // --- verification: multiset equality under the map ----------------------
+  const remapRow = (row, oset) => {
+    const r = { ...row };
+    for (const c of oset ?? []) if (r[c] && map[r[c]]) r[c] = map[r[c]];
+    return r;
+  };
+  const mismatched = [];
+  let totalRows = 0;
+  let legacySurvivors = 0;
+  for (const name of names) {
+    const expected = (dump.tables[name] ?? []).map((r) =>
+      canonDigest(remapRow(r, ownerCols.get(name))),
+    );
+    const fq = `"${name.split(".")[0]}"."${name.split(".")[1]}"`;
+    const { rows: got } = await client.query(
+      `select row_to_json(r) as j from (select * from ${fq}) r`,
+    );
+    totalRows += got.length;
+    const gotDigests = got.map((r) => canonDigest(r.j));
+    if (
+      expected.length !== gotDigests.length ||
+      expected.sort().join() !== gotDigests.sort().join()
+    )
+      mismatched.push(name);
+    // No owner column may still carry a legacy uuid.
+    const oset = ownerCols.get(name);
+    if (oset)
+      for (const r of got)
+        for (const c of oset)
+          if (legacySet.has(r.j[c])) legacySurvivors++;
+  }
+  if (mismatched.length)
+    fail(`remap checksum mismatch on: ${mismatched.join(", ")}`);
+  if (legacySurvivors)
+    fail(`${legacySurvivors} owner cells still carry a legacy uuid`);
+
+  // Structural invariant: NO restored row may contain a legacy uuid anywhere
+  // in its serialized form — catches embedded references in jsonb payloads
+  // and columns neither the FK catalog nor the value sweep classified.
+  let embedded = 0;
+  for (const name of names) {
+    const fq = `"${name.split(".")[0]}"."${name.split(".")[1]}"`;
+    const { rows: got } = await client.query(
+      `select row_to_json(r)::text as t from (select * from ${fq}) r`,
+    );
+    for (const r of got)
+      for (const legacy of legacySet) if (r.t.includes(legacy)) embedded++;
+  }
+  if (embedded)
+    fail(`${embedded} embedded legacy-uuid references survived — check jsonb/provenance columns`);
+
+  // Financial invariant: per-owner amount totals preserved under the map.
+  const sumFor = (rows, oset, key = "user_id") => {
+    const sums = {};
+    for (const r of rows) {
+      const owner = map[r[key]] ?? r[key];
+      sums[owner] = (sums[owner] ?? 0) + Number(r.amount_minor ?? 0);
+    }
+    return sums;
+  };
+  const srcSums = sumFor(dump.tables["public.transaction_entries"] ?? []);
+  const { rows: dstEntries } = await client.query(
+    `select user_id, amount_minor from public.transaction_entries`,
+  );
+  const dstSums = {};
+  for (const r of dstEntries)
+    dstSums[r.user_id] = (dstSums[r.user_id] ?? 0) + Number(r.amount_minor);
+  for (const [owner, sum] of Object.entries(srcSums))
+    if (dstSums[owner] !== sum)
+      fail(`amount_minor total drifted for owner ${owner}: ${sum}→${dstSums[owner]}`);
+
+  console.log(
+    `  ✔ remap: ${totalRows} rows across ${names.length} tables, multisets equal under map, 0 legacy uuids, per-owner totals preserved`,
+  );
+  await client.end();
+
+  // --- negatives on a FRESH mf_poc — inserting into the populated one would
+  // hit PK conflicts, not the FK semantics being tested. Recreate, attempt a
+  // restore with a deliberately incomplete map, prove the FK aborts the whole
+  // transaction (zero committed rows), then prove a clean rerun reproduces
+  // the identical state (retry after abort is safe and deterministic).
+  const verifyAll = async () => {
+    const c = await connect(url.toString());
+    await c.query("set timezone to 'UTC'");
+    const mism = [];
+    for (const name of names) {
+      const expected = (dump.tables[name] ?? [])
+        .map((r) => canonDigest(remapRow(r, ownerCols.get(name))))
+        .sort();
+      const fq = `"${name.split(".")[0]}"."${name.split(".")[1]}"`;
+      const { rows: got } = await c.query(
+        `select row_to_json(r) as j from (select * from ${fq}) r`,
+      );
+      const digests = got.map((r) => canonDigest(r.j)).sort();
+      if (expected.length !== digests.length || expected.join() !== digests.join())
+        mism.push(name);
+    }
+    await c.end();
+    return mism;
+  };
+
+  await prepareScratchDb();
+  const negUrl = new URL(URL_ENV);
+  negUrl.pathname = `/${RESTORE_DB}`;
+  {
+    const doomed = await connect(negUrl.toString());
+    const victim = Object.keys(map)[0];
+    const orphanMap = { ...map };
+    delete orphanMap[victim]; // one owner deliberately unmapped (unclaimed)
+    let fkCaught = false;
+    await doomed.query("begin");
+    await doomed.query("set constraints all deferred");
+    try {
+      for (const name of names) {
+        let rows = dump.tables[name];
+        if (!rows.length) continue;
+        if (name === "neon_auth.user")
+          // An unclaimed owner has no subject row — exactly what a
+          // claim-before-restore restore produces.
+          rows = rows.filter((r) => r.id !== victim);
+        await insertRows(doomed, name, rows, ownerCols, orphanMap);
+      }
+      await doomed.query("commit");
+    } catch (e) {
+      await doomed.query("rollback").catch(() => {});
+      fkCaught = /foreign key|23503/i.test(e.message);
+    }
+    if (!fkCaught)
+      fail("unmapped owner insert did NOT trip the FK — claim-before-restore unsafe");
+    const {
+      rows: [r],
+    } = await doomed.query(`select count(*)::bigint n from public.accounts`);
+    if (Number(r.n) !== 0)
+      fail(`aborted restore committed ${r.n} rows — atomicity broken`);
+    await doomed.end();
+    console.log(
+      "  ✔ negative: dropped map entry → FK violation, rollback left 0 rows",
+    );
+  }
+
+  // Clean rerun into the same db — the retry must reproduce identical state.
+  {
+    const rerun = await connect(negUrl.toString());
+    await rerun.query("begin");
+    await rerun.query("set constraints all deferred");
+    for (const name of names) {
+      const rows = dump.tables[name];
+      if (!rows.length) continue;
+      await insertRows(rerun, name, rows, ownerCols, map);
+    }
+    await rerun.query("commit");
+    await rerun.end();
+    const mism = await verifyAll();
+    if (mism.length)
+      fail(`post-abort rerun diverged: ${mism.join(", ")}`);
+    console.log(
+      "  ✔ retry-after-abort reproduces identical multisets — safe reruns",
+    );
+  }
+}
+
 async function freezeRehearsal() {
   requireDestructive("freeze/re-grant on scratch");
   const client = await connect();
@@ -469,8 +810,8 @@ async function freezeRehearsal() {
   console.log("  ✔ freeze: writes denied, reads preserved, grant restored");
 }
 
-if (!DRY_RUN && !DO_BACKUP && !DO_RESTORE && !DO_FREEZE && !DO_CLEANUP)
-  fail("choose --dry-run, --backup, --restore, --freeze-rehearsal, or --cleanup");
+if (!DRY_RUN && !DO_BACKUP && !DO_RESTORE && !DO_FREEZE && !DO_CLEANUP && !DO_REMAP)
+  fail("choose --dry-run, --backup, --restore, --freeze-rehearsal, --remap-rehearsal, or --cleanup");
 if (DRY_RUN) {
   const client = await connect();
   await verifyTarget(client, URL_ENV);
@@ -480,6 +821,7 @@ if (DRY_RUN) {
 } else {
   if (DO_BACKUP) await backup();
   if (DO_RESTORE) await restore();
+  if (DO_REMAP) await remapRehearsal();
   if (DO_FREEZE) await freezeRehearsal();
   if (DO_CLEANUP) {
     requireDestructive(`drop scratch database ${RESTORE_DB}`);

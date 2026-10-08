@@ -1,8 +1,8 @@
-// Gate-5 follow-up (#774, review round-3): the OFFICIAL-PATH identity
+// Gate-5 follow-up (#774, review round-3/4): the OFFICIAL-PATH identity
 // reconciliation. Neon's own docs state Managed Better Auth cannot import
 // Supabase password hashes and that migrated users receive NEW user_ids
 // (docs/auth/migrate/from-supabase). This script proves the supported
-// alternative — no writes to managed auth internals:
+// alternative shape:
 //
 //   1. LEGACY_UUID is a would-be Supabase id; it is NEVER inserted into
 //      neon_auth — the user onboards through the real sign-up API and gets a
@@ -15,6 +15,13 @@
 //      needs no UUID preservation.
 //   4. A second signed-up user sees zero of the first user's rows (tenant
 //      isolation holds on remapped ids).
+//
+// IMPORTANT — review round-4: this script proves the RLS/remap mechanics
+// ONLY. It does NOT prove a safe ownership claim: a bare sign-up is not
+// evidence the registrant controls the legacy identity (the claim ceremony
+// is the separate hard blocker). SCRATCH-ONLY CLEANUP below deletes the
+// synthetic neon_auth rows it created — provider-surface writes used for
+// teardown only, annotated as such, guaranteed via try/finally.
 //
 //   NEON_POC_URL=postgres://… NEON_AUTH_BASE_URL=https://… \
 //     NEON_DATA_API_URL=https://… \
@@ -70,7 +77,6 @@ const authCall = async (path, body, cookie) => {
 };
 
 let neonUuid = null;
-let sessionCookie = null;
 await step("user onboards via real sign-up — gets a fresh Neon uuid", async () => {
   const res = await authCall("/sign-up/email", {
     email: emails.a,
@@ -83,10 +89,8 @@ await step("user onboards via real sign-up — gets a fresh Neon uuid", async ()
   neonUuid = body.user.id;
   if (neonUuid === LEGACY_UUID)
     throw new Error("provider collided with the legacy id — impossible");
-  const setCookie = res.headers.get("set-cookie") ?? "";
-  const m = setCookie.match(/([^=;,]*session[^=;,]*)=([^;]*)/);
-  if (!m) throw new Error("no session cookie issued on sign-up");
-  sessionCookie = `${m[1]}=${m[2]}`;
+  if (!/session[^=;,]*=/.test(res.headers.get("set-cookie") ?? ""))
+    throw new Error("no session cookie issued on sign-up");
   return `neon sub ${neonUuid} ≠ legacy ${LEGACY_UUID}`;
 });
 
@@ -115,15 +119,18 @@ await step("sign-in → session → Data API JWT binds the neon uuid", async () 
   const body = await res.json();
   if (!res.ok || body?.user?.id !== neonUuid)
     throw new Error(`sign-in ${res.status}`);
-  const setCookie = res.headers.get("set-cookie") ?? "";
-  const m = setCookie.match(/([^=;,]*session[^=;,]*)=([^;]*)/);
+  // Use the cookie THIS sign-in produced — not the sign-up cookie — so the
+  // JWT genuinely derives from the sign-in ceremony.
+  const m = (res.headers.get("set-cookie") ?? "").match(
+    /([^=;,]*session[^=;,]*)=([^;]*)/,
+  );
+  if (!m) throw new Error("sign-in produced no session cookie");
   const session = await fetch(`${AUTH}/get-session`, {
-    headers: { cookie: sessionCookie },
+    headers: { cookie: `${m[1]}=${m[2]}` },
   });
   jwt = session.headers.get("set-auth-jwt");
   if (!jwt) throw new Error(`no JWT (status ${session.status})`);
-  if (!m && !sessionCookie) throw new Error("no session material");
-  return `user.id = ${body.user.id}`;
+  return `user.id = ${body.user.id} (post-sign-in session)`;
 });
 
 await step("remapped row visible through RLS under the neon uuid", async () => {
@@ -138,6 +145,7 @@ await step("remapped row visible through RLS under the neon uuid", async () => {
   return `row visible under subject ${neonUuid}`;
 });
 
+let neonUuidB = null;
 await step("second neon subject sees zero remapped rows (isolation)", async () => {
   const res = await authCall("/sign-up/email", {
     email: emails.b,
@@ -147,6 +155,7 @@ await step("second neon subject sees zero remapped rows (isolation)", async () =
   const body = await res.json();
   if (!res.ok || !body?.user?.id)
     throw new Error(`sign-up B ${res.status}`);
+  neonUuidB = body.user.id;
   const cookieB = (res.headers.get("set-cookie") ?? "").match(
     /([^=;,]*session[^=;,]*)=([^;]*)/,
   );
@@ -164,15 +173,25 @@ await step("second neon subject sees zero remapped rows (isolation)", async () =
   return "0 foreign rows";
 });
 
-// ---- cleanup ---------------------------------------------------------------
-await client.query(`delete from public.accounts where user_id=$1`, [neonUuid]);
-if (neonUuid) {
-  await client.query(`delete from neon_auth.account where "userId"=$1`, [
-    neonUuid,
-  ]);
-  await client.query(`delete from neon_auth."user" where id=$1`, [neonUuid]);
-}
-await client.end();
+// ---- SCRATCH-ONLY CLEANUP ----------------------------------------------------
+// Teardown deletes the synthetic neon_auth rows this script created — these
+// are provider-surface writes used ONLY to leave the scratch project clean
+// (managed auth exposes no user-deletion endpoint we may call). Guaranteed
+// for BOTH synthetic subjects regardless of failures above.
+const cleanup = async () => {
+  try {
+    for (const id of [neonUuid, neonUuidB].filter(Boolean)) {
+      await client.query(`delete from public.accounts where user_id=$1`, [id]);
+      await client.query(`delete from neon_auth.account where "userId"=$1`, [
+        id,
+      ]);
+      await client.query(`delete from neon_auth."user" where id=$1`, [id]);
+    }
+  } finally {
+    await client.end();
+  }
+};
+await cleanup();
 
 const failed = results.filter((r) => !r.ok);
 console.log(

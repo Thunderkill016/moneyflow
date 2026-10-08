@@ -359,6 +359,64 @@ Google subject-binding proof requires a dedicated client config),
 `trusted_origins=[]`, `allow_localhost=true`,
 `requireEmailVerification=false`, `emailVerificationMethod=otp`.
 
+### Round-4 evidence — claim ceremony + full-data remap rehearsal
+
+**Ordering resolved by schema fact:** the owner FKs are composite
+`(id, user_id)` pairs and **not deferrable**, so `user_id` cannot be updated
+in place — either side of the pair would dangle mid-statement. Therefore
+**claim-before-restore is required, not optional**: unclaimed legacy rows
+never land in the database; a claimed user's rows are INSERTed already keyed
+to the Neon UUID inside the claim transaction. Pre-import-and-claim would
+need deferrable-FK schema changes (or owner-level trigger suppression the
+service role cannot perform) — rejected.
+
+**Claim ceremony** (`claim-ceremony.sql` + `claim-ceremony-e2e.mjs`, 13/13):
+`public.identity_claims` — `legacy_user_id` and `neon_user_id` unique in both
+directions, single-use `claim_token_hash` (raw secret never rests), proof
+hash, idempotency key, short TTL, status machine, audit jsonb. Two
+SECURITY DEFINER RPCs (`reserve`/`complete`) executable by **service_role
+only** — authenticated/anon get permission denied; a client can never forge
+the ceremony path. Verified negatives: unverified-email gate, unknown/forged
+token, expired reservation, cross-subject replay, same-subject idempotent
+replay, one-subject-one-legacy, conflicting re-reserve, RLS sees only
+post-claim rows, and the legacy uuid itself holds nothing afterward.
+
+Old-identity proof is an injectable boundary: production verifies a Supabase
+JWT **offline** via cached JWKS (signature+iss+aud+exp+sub — feasible: the
+project currently returns 402 on JWKS, meaning live revocation checks are
+the gated part); the PoC substitutes an HMAC test artifact.
+
+**Full-data remap rehearsal** (`backup-rehearsal.mjs --remap-rehearsal`):
+the real 41-owner / 653-row scratch dataset remapped to 41 fresh uuids:
+- Owner-column discovery = FK catalog **plus a value sweep** — the sweep
+  caught `financial_mutation_audit_events.actor_user_id`, a nullable
+  FK-less owner reference bound only by `CHECK actor_user_id = user_id`.
+  An information_schema-only approach silently drops cross-schema FKs.
+- Per-table canonical multiset equality between map-substituted source rows
+  and restored rows; **0 legacy uuids** in owner columns AND in a serialized
+  whole-row scan (embedded jsonb/provenance references included).
+- Per-owner `sum(amount_minor)` totals preserved exactly.
+- Encrypted bijective mapping manifest (uuids only, no PII).
+- Negatives: an unmapped/unclaimed owner trips `23503` and rolls back with
+  zero committed rows; a clean rerun reproduces identical multisets —
+  retry-after-abort is deterministic.
+
+**Test hygiene corrections applied** (round-4 review): `identity-remap-e2e`
+now uses the sign-in response cookie for `/get-session`, cleans up BOTH
+synthetic subjects, and its cleanup deletes into `neon_auth.*` are annotated
+as scratch-only teardown rather than claimed as zero-writes.
+
+**Supabase liveness (read-only probe):** `auth/v1/.well-known/jwks.json`
+returns 402, `/health` 401 — the project endpoint is alive but gated
+(paused/free-tier behavior). Old-session signature verification is still
+feasible offline from cached JWKS; revocation/recent-auth needs liveness.
+
+**Real-target note:** the claim-driven per-user restore must suppress the
+managed provisioning trigger for the inserting transaction (same
+`disable trigger user` mechanism as the rehearsal) or seeded default
+categories collide with restored unique keys — and dedupe semantics need a
+decision where a user's restored seed rows overlap provisioned defaults.
+
 ### Round-2 evidence — forced-reset cutover journey (`scripts/neon-poc/reset-e2e.mjs`)
 
 9/9 live on the scratch project (round-3 rerun), synthetic user with a
@@ -373,12 +431,15 @@ pre-chosen UUID:
 | Post-reset sign-in | old password rejected; new password → session binds the **same uuid**; ledger rows still owned by it |
 | App-path slice | `vertical-slice.mjs` drives forgot-form → update-password → `/login?reset=success` → re-login → own data intact (**17/17**) |
 
-Password-cutover strategy (owner direction): **forced email reset** —
-viable under Plan A (imported UUID) and unnecessary under Plan B (fresh
-sign-up sets its own password). Open sub-items before real users: actual
-mail delivery through the shared sender (unverified — token was read from
-the scratch DB), shared-Google-client subject binding, and an official
-Neon answer on whether `neon_auth.*` direct inserts are supported at all.
+Identity-cutover strategy (round-4 state): **Plan B (subject remap +
+claim ceremony) is the recommended candidate** — a technical direction,
+not production authorization. Forced reset is only needed if Plan A
+(unsupported direct insert) is ever chosen; under Plan B fresh sign-up
+sets its own password and the claim ceremony binds identity. Open before
+any real user: verified old-identity proof path (Supabase 402-gated —
+offline JWKS feasible), real mail delivery via the shared sender,
+shared-Google-client subject binding, and provisioning-trigger dedupe at
+claim-restore time.
 
 ### Remaining limitations
 
