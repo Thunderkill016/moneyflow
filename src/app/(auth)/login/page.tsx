@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { AuthForm } from "@/components/auth-form";
 import { ACCOUNT_DELETION_PATH } from "@/lib/account-deletion-reauth";
 import { safeNextPath } from "@/lib/auth-redirect";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { isBackendConfigured } from "@/lib/backend/provider";
 
 export const metadata: Metadata = {
   title: "Đăng nhập — MoneyFlow",
@@ -22,7 +22,7 @@ export default async function Page({
     <AuthForm
       mode="login"
       next={next}
-      demoMode={!isSupabaseConfigured()}
+      demoMode={!isBackendConfigured()}
       reauth={reauth}
       authError={params.error}
     />

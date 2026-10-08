@@ -2,12 +2,17 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const force = process.argv.includes("--force");
-const isVercelBuild = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
-const isProduction = process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
+const isVercelBuild =
+  process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
+const isProduction =
+  process.env.VERCEL_ENV === "production" ||
+  process.env.NODE_ENV === "production";
 const requiresHttps = isVercelBuild || isProduction;
 
 if (!isVercelBuild && !force) {
-  console.log("Deployment env guard skipped outside Vercel. Use --force to validate explicitly.");
+  console.log(
+    "Deployment env guard skipped outside Vercel. Use --force to validate explicitly.",
+  );
   process.exit(0);
 }
 
@@ -24,7 +29,10 @@ function loadLocalEnv() {
     if (separator <= 0) continue;
 
     const key = trimmed.slice(0, separator).trim();
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/u.test(key) || process.env[key] !== undefined) {
+    if (
+      !/^[A-Za-z_][A-Za-z0-9_]*$/u.test(key) ||
+      process.env[key] !== undefined
+    ) {
       continue;
     }
 
@@ -85,12 +93,13 @@ if (appMode !== "demo" && appMode !== "authenticated") {
   errors.push('NEXT_PUBLIC_APP_MODE must be "demo" or "authenticated"');
 }
 if (process.env.VERCEL_ENV === "production" && appMode !== "authenticated") {
-  errors.push('Vercel production must use NEXT_PUBLIC_APP_MODE="authenticated"');
+  errors.push(
+    'Vercel production must use NEXT_PUBLIC_APP_MODE="authenticated"',
+  );
 }
 
-const captchaFlag = process.env.NEXT_PUBLIC_AUTH_CAPTCHA_ENABLED
-  ?.trim()
-  .toLowerCase();
+const captchaFlag =
+  process.env.NEXT_PUBLIC_AUTH_CAPTCHA_ENABLED?.trim().toLowerCase();
 if (captchaFlag && captchaFlag !== "true" && captchaFlag !== "false") {
   errors.push('NEXT_PUBLIC_AUTH_CAPTCHA_ENABLED must be "true" or "false"');
 }
@@ -116,41 +125,104 @@ if (isMissingOrTemplate(process.env.NEXT_PUBLIC_SITE_URL)) {
 
 const siteUrl = parseOrigin(process.env.NEXT_PUBLIC_SITE_URL);
 if (!siteUrl && !isMissingOrTemplate(process.env.NEXT_PUBLIC_SITE_URL)) {
-  errors.push("NEXT_PUBLIC_SITE_URL must be an absolute origin without a path, query string or hash");
+  errors.push(
+    "NEXT_PUBLIC_SITE_URL must be an absolute origin without a path, query string or hash",
+  );
 } else if (siteUrl && requiresHttps && siteUrl.protocol !== "https:") {
-  errors.push("NEXT_PUBLIC_SITE_URL must use HTTPS for hosted or production builds");
+  errors.push(
+    "NEXT_PUBLIC_SITE_URL must use HTTPS for hosted or production builds",
+  );
 }
 
 if (appMode === "authenticated") {
-  if (isMissingOrTemplate(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
-    errors.push("NEXT_PUBLIC_SUPABASE_URL is required in authenticated mode");
-  }
-  if (isMissingOrTemplate(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)) {
-    errors.push("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is required in authenticated mode");
+  // Backend provider seam (#774): neon validates its own env surface; the
+  // default/absent flag keeps the Supabase requirements unchanged.
+  const provider = (process.env.MF_BACKEND_PROVIDER ?? "supabase")
+    .trim()
+    .toLowerCase();
+  if (provider !== "supabase" && provider !== "neon") {
+    errors.push('MF_BACKEND_PROVIDER must be "supabase" or "neon"');
   }
 
-  const supabaseUrl = parseOrigin(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  if (!supabaseUrl && !isMissingOrTemplate(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
-    errors.push("NEXT_PUBLIC_SUPABASE_URL must be an absolute HTTP(S) origin");
-  } else if (supabaseUrl && requiresHttps && supabaseUrl.protocol !== "https:") {
-    errors.push("NEXT_PUBLIC_SUPABASE_URL must use HTTPS for hosted or production builds");
+  if (provider === "neon") {
+    for (const key of ["NEON_AUTH_BASE_URL", "NEON_DATA_API_URL"]) {
+      if (isMissingOrTemplate(process.env[key])) {
+        errors.push(`${key} is required when MF_BACKEND_PROVIDER=neon`);
+        continue;
+      }
+      // Neon endpoint URLs carry meaningful paths (…/neondb/auth,
+      // …/neondb/rest/v1) — validate scheme/host, not origin-only.
+      try {
+        const url = new URL(process.env[key].trim());
+        if (url.protocol !== "https:" && url.protocol !== "http:")
+          errors.push(`${key} must be an absolute HTTP(S) URL`);
+        else if (url.username || url.password || url.search || url.hash)
+          errors.push(`${key} must not embed credentials, query or hash`);
+        else if (requiresHttps && url.protocol !== "https:")
+          errors.push(`${key} must use HTTPS for hosted or production builds`);
+      } catch {
+        errors.push(`${key} must be an absolute HTTP(S) URL`);
+      }
+    }
+    const secret = process.env.NEON_AUTH_COOKIE_SECRET?.trim() ?? "";
+    if (secret.length < 32) {
+      errors.push(
+        "NEON_AUTH_COOKIE_SECRET (>=32 chars) is required when MF_BACKEND_PROVIDER=neon",
+      );
+    }
+  } else {
+    if (isMissingOrTemplate(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
+      errors.push("NEXT_PUBLIC_SUPABASE_URL is required in authenticated mode");
+    }
+    if (isMissingOrTemplate(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)) {
+      errors.push(
+        "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is required in authenticated mode",
+      );
+    }
+
+    const supabaseUrl = parseOrigin(process.env.NEXT_PUBLIC_SUPABASE_URL);
+    if (
+      !supabaseUrl &&
+      !isMissingOrTemplate(process.env.NEXT_PUBLIC_SUPABASE_URL)
+    ) {
+      errors.push(
+        "NEXT_PUBLIC_SUPABASE_URL must be an absolute HTTP(S) origin",
+      );
+    } else if (
+      supabaseUrl &&
+      requiresHttps &&
+      supabaseUrl.protocol !== "https:"
+    ) {
+      errors.push(
+        "NEXT_PUBLIC_SUPABASE_URL must use HTTPS for hosted or production builds",
+      );
+    }
   }
 }
 
 const legacyHosts = parseLegacyHosts(process.env.LEGACY_SITE_HOSTS);
 for (const host of legacyHosts) {
-  if (host.includes("://") || host.includes("/") || host.includes("@") || host.includes(":")) {
+  if (
+    host.includes("://") ||
+    host.includes("/") ||
+    host.includes("@") ||
+    host.includes(":")
+  ) {
     errors.push(`LEGACY_SITE_HOSTS contains an invalid hostname: ${host}`);
   }
 }
 if (siteUrl && legacyHosts.includes(siteUrl.hostname.toLowerCase())) {
-  errors.push("LEGACY_SITE_HOSTS must not contain the configured site hostname");
+  errors.push(
+    "LEGACY_SITE_HOSTS must not contain the configured site hostname",
+  );
 }
 
 if (errors.length > 0) {
   console.error("Deployment configuration is invalid:");
   for (const error of errors) console.error(`- ${error}`);
-  console.error("Configure deployment values in Vercel Project Settings, not in source control.");
+  console.error(
+    "Configure deployment values in Vercel Project Settings, not in source control.",
+  );
   process.exit(1);
 }
 

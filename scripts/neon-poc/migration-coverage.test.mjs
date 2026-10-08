@@ -6,7 +6,7 @@
 //
 //   node --test scripts/neon-poc/migration-coverage.test.mjs
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync, existsSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { transformForNeon, isFresh } from "./gen-neon-migrations.mjs";
@@ -20,17 +20,12 @@ const files = readdirSync(SRC)
 
 // Supabase dependencies that DO exist natively on the provisioned Neon
 // project — verified against pg_roles/pg_proc/pg_namespace on
-// polished-pine-75721729 (Neon Free, Data API + managed Auth):
+// polished-pine-75721729 (Neon Free, Data API + managed Auth) — and therefore
+// need no transform and no coverage flag:
 //   roles: anonymous authenticated authenticator anon service_role
 //   auth.*: auth.uid() -> uuid, auth.jwt() -> jsonb, auth.user_id() -> text
 //   schemas: neon_auth (managed mirror), extensions (created by preflight)
 //   extensions: pgcrypto (preflight), pg_session_jwt (managed, in public)
-const NATIVELY_SUPPORTED = [
-  /\b(anon|authenticated|service_role|anonymous|authenticator)\b/,
-  /\bauth\.(uid|jwt|user_id|session|organization)\s*\(/,
-  /\bextensions\.(pgcrypto|schema)?\b/,
-  /\bsupabase_migrations\./, // bookkeeping schema created by preflight
-];
 
 // Supabase-only constructs that the deterministic transform rewrites —
 // each rule must actually fire for the test to pass (guards dead rules).

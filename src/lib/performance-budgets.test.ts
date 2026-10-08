@@ -30,7 +30,11 @@ test("docs/performance-budgets.md documents web and load budgets", () => {
 
 test("load acceptance protocol binds target, identity and evidence", () => {
   const path = join(root, "docs/performance-load-acceptance.md");
-  assert.equal(existsSync(path), true, "performance-load-acceptance.md must exist");
+  assert.equal(
+    existsSync(path),
+    true,
+    "performance-load-acceptance.md must exist",
+  );
   const doc = read("docs/performance-load-acceptance.md");
   assert.match(doc, /APPROVED_TARGET_HOST/);
   assert.match(doc, /DEPLOYMENT_SHA/);
@@ -47,7 +51,10 @@ test("public k6 profiles are bounded and block accidental remote load", () => {
   assert.match(source, /target:\s*50/);
   assert.match(source, /ALLOW_REMOTE_LOAD_TEST/);
   assert.match(source, /APPROVED_TARGET_HOST/);
-  assert.match(source, /Remote public load tests are limited to preview or staging/);
+  assert.match(
+    source,
+    /Remote public load tests are limited to preview or staging/,
+  );
   assert.match(source, /rate<0\.01/);
   assert.match(source, /p\(95\)<800/);
   assert.match(source, /p\(99\)<1500/);
@@ -59,7 +66,10 @@ test("authenticated k6 profile uses only a confirmed synthetic user and bounded 
   assert.match(source, /LOAD_TEST_USER_CONFIRMED_SYNTHETIC/);
   assert.match(source, /APPROVED_TARGET_HOST/);
   assert.match(source, /DEPLOYMENT_SHA/);
-  assert.match(source, /Remote authenticated load tests are limited to preview or staging/);
+  assert.match(
+    source,
+    /Remote authenticated load tests are limited to preview or staging/,
+  );
   assert.match(source, /\/auth\/v1\/token\?grant_type=password/);
   assert.match(source, /\/rest\/v1\/rpc\/get_dashboard_bundle/);
   assert.match(source, /p_recent_limit:\s*5/);
@@ -74,7 +84,10 @@ test("package exposes explicit public and authenticated load commands", () => {
   const packageJson = JSON.parse(read("package.json")) as {
     scripts?: Record<string, string>;
   };
-  assert.equal(packageJson.scripts?.["test:load:public"], "k6 run tests/load/public-smoke.js");
+  assert.equal(
+    packageJson.scripts?.["test:load:public"],
+    "k6 run tests/load/public-smoke.js",
+  );
   assert.equal(
     packageJson.scripts?.["test:load:dashboard"],
     "k6 run tests/load/authenticated-dashboard.js",
@@ -114,7 +127,7 @@ test("home page avoids getViewer round-trip on public landing", () => {
     false,
     "page.tsx should not import/call getViewer (LCP); auth redirect lives in proxy",
   );
-  assert.match(source, /isSupabaseConfigured/);
+  assert.match(source, /isBackendConfigured/);
   assert.match(source, /LandingPage/);
 });
 
@@ -199,7 +212,13 @@ test("local owners reserve stable space for guided evidence and Dashboard money"
   assert.match(landingCss, /\.storyFigure img[\s\S]*height:\s*auto/);
   assert.match(landingSource, /width=\{step\.width\}/);
   assert.match(landingSource, /height=\{step\.height\}/);
-  assert.match(statement, /\.figure\s*\{[\s\S]*font-family:\s*var\(--mf-font-money\)/);
-  assert.match(statement, /\.figure\s*\{[\s\S]*font-variant-numeric:\s*tabular-nums/);
+  assert.match(
+    statement,
+    /\.figure\s*\{[\s\S]*font-family:\s*var\(--mf-font-money\)/,
+  );
+  assert.match(
+    statement,
+    /\.figure\s*\{[\s\S]*font-variant-numeric:\s*tabular-nums/,
+  );
   assert.match(statement, /\.legendValue\s*\{[\s\S]*white-space:\s*nowrap/);
 });

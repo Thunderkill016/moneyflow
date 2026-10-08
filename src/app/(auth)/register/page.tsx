@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { AuthForm } from "@/components/auth-form";
 import { ONBOARDING_PATH } from "@/lib/onboarding";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { isBackendConfigured } from "@/lib/backend/provider";
 
 export const metadata: Metadata = {
   title: "Tạo tài khoản — MoneyFlow",
@@ -14,7 +14,7 @@ export default function Page() {
     <AuthForm
       mode="register"
       next={ONBOARDING_PATH}
-      demoMode={!isSupabaseConfigured()}
+      demoMode={!isBackendConfigured()}
     />
   );
 }

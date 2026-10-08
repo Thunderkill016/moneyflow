@@ -29,6 +29,8 @@ import {
 import { DELETE_CONFIRM_TEXT, isDeleteConfirmValid } from "@/lib/delete-account";
 import { ONBOARDING_PATH } from "@/lib/onboarding";
 import { getSiteOrigin } from "@/lib/site-url";
+import { getBackendProvider } from "@/lib/backend/provider";
+import { getNeonAuth } from "@/lib/neon/server";
 import { createClient } from "@/lib/supabase/server";
 
 export type AuthState = {
@@ -148,6 +150,24 @@ export async function login(
   );
   const reauth =
     formData.get("reauth") === "1" && nextPath === ACCOUNT_DELETION_PATH;
+
+  /*
+   * Neon backend (#774): managed Better Auth email sign-in. The step-up
+   * re-auth flow for account deletion has no Neon equivalent yet — the
+   * deletion path itself is still Supabase-only (see finalizeAccountDeletion
+   * and the migration packet's deletion design task).
+   */
+  if (getBackendProvider() === "neon") {
+    const auth = getNeonAuth();
+    if (!auth) return configurationError();
+    const { error: neonError } = await auth.signIn.email({
+      email: parsed.data.email,
+      password: parsed.data.password,
+    });
+    if (neonError) return { message: "Email hoặc mật khẩu không đúng." };
+    redirect(nextPath);
+  }
+
   let expectedReauthUserId: string | null = null;
   if (reauth) {
     const {
@@ -204,6 +224,31 @@ export async function register(
     String(formData.get("next") ?? ""),
     ONBOARDING_PATH,
   );
+
+  /*
+   * Neon backend (#774): managed Better Auth sign-up provisions
+   * neon_auth."user" (uuid) and auto-signs-in; the profile/category trigger
+   * migrated in db/neon supplies the same onboarding state Supabase's
+   * auth.users trigger does today.
+   */
+  if (getBackendProvider() === "neon") {
+    const auth = getNeonAuth();
+    if (!auth) return configurationError();
+    const { error: neonError } = await auth.signUp.email({
+      email: parsed.data.email,
+      name: parsed.data.fullName,
+      password: parsed.data.password,
+    });
+    if (neonError) {
+      // Same non-enumerating response as the Supabase path.
+      return {
+        message:
+          "Không thể tạo tài khoản lúc này. Kiểm tra thông tin hoặc thử lại sau.",
+      };
+    }
+    redirect(nextPath);
+  }
+
   const supabase = await createClient();
   if (!supabase) return configurationError();
   const { data, error } = await supabase.auth.signUp({
@@ -326,6 +371,20 @@ export async function updatePassword(
 }
 
 export async function signOut() {
+  /*
+   * Neon backend (#774): the SDK's signOut clears the upstream session and
+   * both neon-auth cookies; nothing else must be swept locally.
+   */
+  if (getBackendProvider() === "neon") {
+    try {
+      await getNeonAuth()?.signOut();
+    } catch {
+      // Stale or already-deleted sessions can reject server-side sign-out.
+    }
+    revalidatePath("/", "layout");
+    redirect("/login");
+  }
+
   const supabase = await createClient();
   try {
     if (supabase) await supabase.auth.signOut({ scope: "local" });
