@@ -2,13 +2,27 @@
 // supabase/tests/database/*.test.sql suite on a vanilla Postgres cluster.
 //
 //   node scripts/neon-poc/run-pgtap.mjs [--db-dir /tmp/mf-neon-poc-pg]
-import { readdirSync, readFileSync, existsSync } from "node:fs";
+//
+// Default is a disposable database directory (mkdtemp, removed on exit) so a
+// run can never inherit stale state. --db-dir pins a persistent directory for
+// debugging. Every run prints the exact git HEAD so results are attributable.
+import {
+  readdirSync,
+  readFileSync,
+  existsSync,
+  mkdtempSync,
+  rmSync,
+} from "node:fs";
+import { execSync } from "node:child_process";
 import { join } from "node:path";
+import { tmpdir } from "node:os";
 import EmbeddedPostgres from "embedded-postgres";
 
+const HEAD = execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
 const DB_DIR = process.argv.includes("--db-dir")
   ? process.argv[process.argv.indexOf("--db-dir") + 1]
-  : "/tmp/mf-neon-poc-pg";
+  : mkdtempSync(join(tmpdir(), "mf-neon-poc-pg-"));
+const CLEANUP = !process.argv.includes("--db-dir");
 const PORT = 55439;
 
 const pg = new EmbeddedPostgres({
@@ -24,6 +38,10 @@ async function applyFile(client, path) {
 }
 
 async function main() {
+  console.log(`head: ${HEAD}`);
+  console.log(
+    `db dir: ${DB_DIR}${CLEANUP ? " (disposable)" : " (persistent)"}`,
+  );
   if (!existsSync(join(DB_DIR, "PG_VERSION"))) await pg.initialise();
   await pg.start();
   const client = pg.getPgClient();
@@ -82,20 +100,35 @@ async function main() {
     const sql = readFileSync(join("supabase/tests/database", file), "utf8");
     try {
       const res = await client.query(sql);
-      // pgTAP assertions return "ok N"/"not ok N" text rows; a multi-statement
-      // query yields an array of result objects — scan all of them.
+      // pgTAP output rows: a plan line "1..N" (from plan() at the start or
+      // finish() when using no_plan) plus one "ok N"/"not ok N" row per
+      // assertion. Fail closed on every irregular shape: no plan, zero
+      // assertions, assertion count != plan, or any "not ok".
       const sets = Array.isArray(res) ? res : [res];
       const tap = sets
         .flatMap((r) => r?.rows ?? [])
         .flatMap((row) =>
           Object.values(row).filter((v) => typeof v === "string"),
         );
-      const notOk = tap.filter((line) => /^not ok\b/i.test(line.trim()));
-      if (notOk.length) {
-        failures.push({
-          file,
-          error: `${notOk.length} failing assertion(s): ${notOk[0].trim().slice(0, 120)}`,
-        });
+      const planLine = tap.find((line) => /^1\.\.\d+/.test(line.trim()));
+      const assertions = tap.filter((line) =>
+        /^(not )?ok \d+/i.test(line.trim()),
+      );
+      const notOk = assertions.filter((line) => /^not ok\b/i.test(line.trim()));
+
+      let verdict = null;
+      if (!planLine) {
+        verdict = `no TAP plan line — suite produced ${tap.length} text row(s)`;
+      } else if (assertions.length === 0) {
+        verdict = "plan declared but zero assertions executed";
+      } else if (assertions.length !== Number(planLine.trim().slice(3))) {
+        verdict = `plan ${planLine.trim()} but ${assertions.length} assertion(s) executed`;
+      } else if (notOk.length) {
+        verdict = `${notOk.length} failing assertion(s): ${notOk[0].trim().slice(0, 120)}`;
+      }
+
+      if (verdict) {
+        failures.push({ file, error: verdict });
       } else {
         pass++;
       }
@@ -109,10 +142,13 @@ async function main() {
 
   await client.end();
   await pg.stop();
+  if (CLEANUP) rmSync(DB_DIR, { recursive: true, force: true });
   process.exit(failures.length ? 1 : 0);
 }
 
-main().catch((e) => {
+main().catch(async (e) => {
   console.error("harness error:", e.message);
+  await pg.stop().catch(() => {});
+  if (CLEANUP) rmSync(DB_DIR, { recursive: true, force: true });
   process.exit(2);
 });
