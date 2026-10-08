@@ -674,6 +674,7 @@ Verified leaked: `prod-credentials.txt` (5 temp passwords),
 `prod-cookie-secret.txt`.
 
 ### Remediation executed
+
 - **Rotated**: all 5 user passwords (Better Auth scrypt
   `salt-hex:key-hex`, N=16384 r=16 p=1 — hash scheme verified by
   reproducing a known hash first); `NEON_AUTH_COOKIE_SECRET` on Vercel
@@ -695,3 +696,36 @@ Verified leaked: `prod-credentials.txt` (5 temp passwords),
   deployment. Production deploys are CLI-only until owner reconnects
   (e.g. after #775 merges).
 - Owner sign-in re-verified post-rotation.
+
+## OAuth completion fix — 2026-10-08 (post-cutover)
+
+**Gap found**: `src/lib/supabase/proxy.ts` only checked for the
+`__Secure-neon-auth.session_token` cookie. Managed-auth social sign-in
+plants an app-domain `session_challenge` cookie, round-trips Google, then
+returns to `callbackURL?neon_auth_session_verifier=…` — the verifier must
+be exchanged against upstream `/get-session` to mint the session cookie.
+Nothing did that, so Google sign-in could initiate (real consent URL) but
+always landed logged-out.
+
+**Fix**: `updateSession` runs `exchangeNeonOAuthVerifier` before every
+cookie gate when verifier param + challenge cookie are present. It
+replicates the SDK middleware exactly — `handleAuthRequest` forwards the
+URL + cookies to `/get-session`; `handleAuthResponse` mints the signed
+`session_data` cache cookie with `NEON_AUTH_COOKIE_SECRET`; all returned
+`Set-Cookie` headers ride a redirect to the verifier-cleaned URL. Failure
+returns null → request continues unauthenticated (same as SDK semantics).
+(`src/lib/supabase/proxy.ts`, commit `a81281f3`.)
+
+**Verified**: typecheck/lint clean; deployed to production
+(`moneyflow-1m5h06jg8`, aliased `mfvn.vercel.app`); `/login` 200;
+challenge-cookie + bogus-verifier leg engages the exchange then fails
+closed to the login bounce; owner email sign-in and `/transactions`
+(150 currency marks) unchanged post-deploy.
+
+**Not yet verifiable here**: the real Google verifier only exists after
+an interactive consent round-trip — owner browser test required. Account
+linking gate confirmed favorable: all 5 restored users carry
+`emailVerified=true`, satisfying Better Auth's `requireLocalEmailVerified`
+link condition, so a matching Google sign-in links to the migrated
+account instead of creating an empty one. Banned users remain blocked by
+the `session.create` hook which fires on OAuth sessions too.
