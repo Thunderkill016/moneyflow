@@ -429,7 +429,12 @@ export async function updatePassword(
         message: "Liên kết đã hết hạn. Hãy yêu cầu một liên kết mới.",
       };
     }
-    redirect(POST_AUTH_REDIRECT);
+    /*
+     * Better Auth's reset-password does not guarantee an authenticated
+     * session afterwards — send the user to an explicit sign-in rather
+     * than dropping them onto a protected route they cannot see.
+     */
+    redirect("/login?reset=success");
   }
 
   const supabase = await createClient();

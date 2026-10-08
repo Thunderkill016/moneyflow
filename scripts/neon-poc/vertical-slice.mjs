@@ -16,6 +16,7 @@
 //   node scripts/neon-poc/vertical-slice.mjs --base http://localhost:3130
 // Requires the dev server running with MF_BACKEND_PROVIDER=neon.
 import { chromium } from "playwright";
+import pg from "pg";
 
 const BASE = process.argv.includes("--base")
   ? process.argv[process.argv.indexOf("--base") + 1]
@@ -328,6 +329,64 @@ await step(
     }
   },
 );
+
+// ---- Password reset through the real app (review round-2) ------------------
+// forgot form → token row → /update-password?token= → /login?reset=success →
+// sign in with the NEW password → same data. Mirrors the forced-reset cutover.
+await step("password reset through the real app preserves identity + data", async () => {
+  const NEWPASS = "ResetSlice#2026";
+  const ctx = await browser.newContext();
+  const p = await ctx.newPage();
+  try {
+    await p.goto(`${BASE}/forgot-password`, { waitUntil: "networkidle" });
+    await p.fill('input[name="email"]', USER_A.email);
+    await p
+      .getByRole("button", { name: "Gửi liên kết", exact: true })
+      .click();
+    await p.waitForTimeout(2_000);
+
+    // The managed service writes the reset grant into neon_auth.verification;
+    // the mail leg is out of scope (documented blocker) so we read it directly.
+    const dbc = new pg.Client({ connectionString: process.env.NEON_POC_URL });
+    await dbc.connect();
+    const {
+      rows: [v],
+    } = await dbc.query(
+      `select identifier from neon_auth.verification v
+       join neon_auth."user" u on u.id::text = v.value
+       where u.email = $1 and v.identifier like 'reset-password:%'
+       order by v."createdAt" desc limit 1`,
+      [USER_A.email],
+    );
+    await dbc.end();
+    if (!v) throw new Error("no reset token issued for A");
+
+    const token = v.identifier.slice("reset-password:".length);
+    await p.goto(`${BASE}/update-password?token=${token}`, {
+      waitUntil: "networkidle",
+    });
+    await p.fill('input[name="password"]', NEWPASS);
+    await p
+      .getByRole("button", { name: "Lưu mật khẩu mới", exact: true })
+      .click();
+    await p.waitForURL(/login\?reset=success/, { timeout: 30_000 });
+
+    // Old password must fail; the new one must reach the dashboard with A's data.
+    await loginForm(p, USER_A.email, USER_A.password);
+    await p.waitForTimeout(2_000);
+    if (!/\/login/.test(p.url()))
+      throw new Error("old password still works after reset");
+    await loginForm(p, USER_A.email, NEWPASS);
+    await p.waitForURL(/dashboard|\/$/, { timeout: 30_000 });
+    await p.goto(`${BASE}/transactions`, { waitUntil: "networkidle" });
+    const body = await p.textContent("body");
+    if (!/125[.\s]?000/.test(body ?? ""))
+      throw new Error("A's data missing after password reset + re-login");
+    USER_A.password = NEWPASS;
+  } finally {
+    await ctx.close();
+  }
+});
 
 // ---- Context B: tenant isolation through the real app ----------------------
 const ctxB = await browser.newContext();

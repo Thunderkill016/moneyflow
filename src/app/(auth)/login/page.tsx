@@ -13,7 +13,12 @@ export const metadata: Metadata = {
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; reauth?: string; error?: string }>;
+  searchParams: Promise<{
+    next?: string;
+    reauth?: string;
+    error?: string;
+    reset?: string;
+  }>;
 }) {
   const params = await searchParams;
   const next = safeNextPath(params.next);
@@ -25,6 +30,7 @@ export default async function Page({
       demoMode={!isBackendConfigured()}
       reauth={reauth}
       authError={params.error}
+      resetDone={params.reset === "success"}
     />
   );
 }

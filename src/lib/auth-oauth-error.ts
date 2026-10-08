@@ -14,6 +14,8 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   config: "Dịch vụ đăng nhập chưa được cấu hình. Hãy thử lại sau.",
   "reauth-session":
     "Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại để xác thực tiếp.",
+  "reauth-unsupported":
+    "Bước xác thực lại này chưa được hỗ trợ trên kênh đăng nhập hiện tại.",
 };
 
 const DEFAULT_MESSAGE = "Đăng nhập thất bại. Hãy thử lại.";

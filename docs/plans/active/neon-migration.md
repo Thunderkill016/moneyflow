@@ -317,6 +317,26 @@ mechanism (or the reset-only path) before any real-user migration. The
 backup rehearsal likewise excludes `neon_auth.account/session/
 verification` — credential state recovery is unproven by design.
 
+### Round-2 evidence — forced-reset cutover journey (`scripts/neon-poc/reset-e2e.mjs`)
+
+8/8 live on the scratch project, synthetic user with a pre-chosen UUID:
+
+| Step | Result |
+|---|---|
+| `request-password-reset` on imported user | `reset-password:<token>` row bound to the user's **uuid** in `neon_auth.verification` |
+| Non-existent email | identical 200 + identical message — no enumeration |
+| Garbage / expired / consumed token | 400 each (expired tested on a fresh row, consume-verified) |
+| Valid token reset | password changed; **zero sessions auto-created** — reset does not sign in (app now redirects to `/login?reset=success`) |
+| Post-reset sign-in | old password rejected; new password → session binds the **same uuid**; ledger rows still owned by it |
+| App-path slice | `vertical-slice.mjs` drives forgot-form → update-password → `/login?reset=success` → re-login → own data intact (**17/17**) |
+
+Password-cutover strategy (owner direction): **forced email reset** —
+viable for identity preservation because reset tokens bind to the stored
+uuid, not to the credential hash. Open sub-items before real users: mail
+delivery on managed auth (unverified — token was read from the scratch
+DB), reset rate limits, and the officially-supported import pathway for
+`neon_auth.*` writes (direct inserts worked but are provider internals).
+
 ### Remaining limitations
 
 - Password-hash portability resolved as **no**: bcrypt cannot be imported

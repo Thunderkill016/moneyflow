@@ -117,6 +117,7 @@ export function AuthForm({
   reauth = false,
   authError = null,
   resetToken = "",
+  resetDone = false,
 }: {
   mode: Mode;
   next?: string;
@@ -126,6 +127,8 @@ export function AuthForm({
   authError?: string | null;
   /** Managed-auth reset token forwarded from /update-password?token=… */
   resetToken?: string;
+  /** `/login?reset=success` — password was just reset; prompt sign-in. */
+  resetDone?: boolean;
 }) {
   const action =
     mode === "login"
@@ -210,6 +213,12 @@ export function AuthForm({
             {mode === "login" && authError && (
               <div className={styles.message} role="alert">
                 {oauthErrorMessage(authError)}
+              </div>
+            )}
+
+            {mode === "login" && resetDone && !authError && (
+              <div className={styles.message} role="status">
+                Đặt lại mật khẩu thành công. Đăng nhập bằng mật khẩu mới.
               </div>
             )}
 
