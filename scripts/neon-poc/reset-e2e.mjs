@@ -80,6 +80,19 @@ const resetRequest = (email) =>
     headers: { "content-type": "application/json", origin: AUTH },
     body: JSON.stringify({ email }),
   });
+// The managed-auth limiter is a shared bucket: a 429 means "cool down", not
+// "denied". Steps that require the request to succeed wait out the window.
+const RATE_LIMIT_WAIT_MS = 35_000;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const resetRequestPatient = async (email) => {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const res = await resetRequest(email);
+    if (res.status !== 429) return res;
+    const hint = Number(res.headers.get("retry-after")) * 1000;
+    await sleep(Number.isFinite(hint) && hint > 0 ? hint : RATE_LIMIT_WAIT_MS);
+  }
+  return resetRequest(email);
+};
 const resetComplete = (newPassword, token) =>
   fetch(`${AUTH}/reset-password`, {
     method: "POST",
@@ -113,21 +126,40 @@ const latestToken = async () => {
 
 // ---- the journey (ordering matters — see header) -----------------------------
 let token = null;
+let consumedToken = null;
 await step("reset request → token row bound to the imported uuid", async () => {
-  const res = await resetRequest(EMAIL);
+  const res = await resetRequestPatient(EMAIL);
   if (!res.ok) throw new Error(`request ${res.status}`);
   token = await latestToken();
   if (!token) throw new Error("no verification row created for the user");
   return `token created (24-char, bound to ${UUID})`;
 });
 
-await step("non-existent email returns the identical non-enumerating 200", async () => {
-  const a = await resetRequest("does-not-exist@moneyflow.test");
-  const [ta] = [await a.json()];
-  if (a.status !== 200 || !ta.message?.includes("check your email"))
-    throw new Error(`enumeration leak: ${a.status}/${ta.message}`);
-  return `same shape as the real-user response`;
-});
+await step(
+  "existing-vs-missing email produces an identical response pair",
+  async () => {
+    // Full response-pair comparison: status, body shape/content, and
+    // differentiating headers — not just a 200 on the missing side.
+    const [exists, missing] = await Promise.all([
+      resetRequestPatient(EMAIL),
+      resetRequestPatient("does-not-exist@moneyflow.test"),
+    ]);
+    const [be, bm] = [await exists.text(), await missing.text()];
+    // Vacuous-pass guard: identical 429s prove nothing about the pair.
+    if (exists.status !== 200)
+      throw new Error(`pair indeterminate under throttling: ${exists.status}`);
+    if (exists.status !== missing.status || be !== bm)
+      throw new Error(
+        `enumeration leak: ${exists.status}/${be} vs ${missing.status}/${bm}`,
+      );
+    const diffHeaders = ["retry-after", "location", "set-cookie"].filter(
+      (h) => exists.headers.get(h) !== missing.headers.get(h),
+    );
+    if (diffHeaders.length)
+      throw new Error(`differentiating headers: ${diffHeaders.join(",")}`);
+    return `status+body+headers identical for both accounts`;
+  },
+);
 
 await step("garbage token rejected", async () => {
   const res = await resetComplete(NEW_PASS, "forged-token-value");
@@ -136,8 +168,12 @@ await step("garbage token rejected", async () => {
 });
 
 await step("valid token resets — NO session is auto-created", async () => {
+  // Re-read: the pair step's fresh request may have rotated the token row.
+  const live = await latestToken();
+  if (!live) throw new Error("no live verification row");
+  consumedToken = live;
   const before = Number(await sessionsFor());
-  const res = await resetComplete(NEW_PASS, token);
+  const res = await resetComplete(NEW_PASS, live);
   if (!res.ok) throw new Error(`reset ${res.status}: ${await res.text()}`);
   const after = Number(await sessionsFor());
   if (after !== before)
@@ -146,13 +182,13 @@ await step("valid token resets — NO session is auto-created", async () => {
 });
 
 await step("consumed token cannot be reused", async () => {
-  const res = await resetComplete("ReusePass!777", token);
+  const res = await resetComplete("ReusePass!777", consumedToken ?? token);
   if (res.ok) throw new Error("consumed token accepted a second reset");
   return `${res.status}`;
 });
 
 await step("expired token rejected", async () => {
-  await resetRequest(EMAIL); // fresh row — never reuse the consumed one
+  await resetRequestPatient(EMAIL); // fresh row — never reuse the consumed one
   const fresh = await latestToken();
   if (!fresh || fresh === token) throw new Error("no fresh token issued");
   await client.query(
@@ -187,6 +223,32 @@ await step("ledger row still owned by the same uuid after reset", async () => {
   if (Number(r.n) !== 1) throw new Error("ledger row lost or re-owned");
   return "account ownership intact";
 });
+
+await step("reset abuse burst degrades uniformly, not selectively", async () => {
+  // Fire a burst at BOTH a known and an unknown address — a rate limiter that
+  // only trips for existing accounts leaks existence.
+  const burst = async (email) =>
+    Promise.all(
+      Array.from({ length: 5 }, () => resetRequest(email).then((r) => r.status)),
+    );
+  const [known, unknown] = await Promise.all([
+    burst(EMAIL),
+    burst("does-not-exist-2@moneyflow.test"),
+  ]);
+  // Enumeration-safe = both sides exposed to the SAME limiter: an interleaved
+  // shared bucket produces mixed 200/429 on both. A leak would be one side
+  // exclusively throttled (all-429 vs all-200) or distinct status code sets.
+  const [kSet, uSet] = [new Set(known), new Set(unknown)];
+  const leak =
+    ![...kSet].every((s) => uSet.has(s)) ||
+    ![...uSet].every((s) => kSet.has(s)) ||
+    (kSet.size === 1 && uSet.size === 1 &&
+      known[0] !== unknown[0]);
+  if (leak)
+    throw new Error(`asymmetric rate limiting: ${known} vs ${unknown}`);
+  return `known: [${known.join(",")}] unknown: [${unknown.join(",")}]`;
+});
+
 
 // ---- cleanup ----------------------------------------------------------------
 await client.query(`delete from public.accounts where user_id=$1`, [UUID]);

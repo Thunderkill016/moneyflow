@@ -317,31 +317,81 @@ mechanism (or the reset-only path) before any real-user migration. The
 backup rehearsal likewise excludes `neon_auth.account/session/
 verification` — credential state recovery is unproven by design.
 
+### Round-3 evidence — official import pathway + hardened enumeration test
+
+**Official Neon documentation resolves the import question:**
+`docs/auth/migrate/from-supabase` states managed Better Auth **cannot import
+Supabase password hashes** — password users must create new accounts or
+re-authenticate via OAuth. The only documented bulk-import path
+(`guides/complete-supabase-migration`) is **legacy Stack Auth**, which
+accepted `password_hash` but is closed to new projects — and even that path
+reassigned user_ids, requiring a remap step. Neon Dec-2025 launch notes the
+managed server is **not a drop-in self-hosted Better Auth** (no custom
+plugins/handlers), so upstream Better Auth docs do not guarantee managed
+functionality.
+
+Two reconciliation strategies, now separated:
+
+| Plan | Mechanism | Status |
+|---|---|---|
+| **A — UUID preservation** | Direct insert into `neon_auth."user"` with the legacy UUID + forced reset | Proven working synthetically (reset-e2e 9/9), but writes into **provider-managed internals** — no documented support; provider lifecycle could break it. Not usable for real cutover without explicit Neon confirmation. |
+| **B — subject remap (official pattern)** | User onboards via real sign-up/OAuth → provider assigns a fresh UUID → restore remaps `user_id` at INSERT time via a pre-built cutover map | **Proven end-to-end** (`identity-remap-e2e.mjs`, 5/5): real sign-up → fresh UUID → remapped row visible under that subject through the Data API + RLS → second subject sees zero rows. No auth-internals writes. Matches Neon's documented remap guidance. |
+
+**Plan B is the recommended cutover path.** It requires the cutover map
+(`legacy_uuid → neon_uuid`) captured per-user at onboarding, before data
+restore — and honest UX (existing users re-register or OAuth, then their
+history appears remapped). Plan A stays documented as a working-but-
+unsupported fallback.
+
+**Enumeration test hardened** (`reset-e2e.mjs` round-3, 9/9): response-pair
+comparison now asserts identical status+body+headers for existing-vs-missing
+emails (with a vacuous-pass guard requiring 200s, since identical 429s prove
+nothing), plus a symmetric rate-limit burst — the managed limiter is a
+**shared bucket** (both addresses interleaved 200/429), so it can't leak
+existence. Burst moved last so it can't starve token steps, and
+request-steps retry once inside the rate-limit window.
+
+**Managed-auth config observed** (`neon_auth.project_config`):
+`email_provider.type=shared` (Neon shared sender — actual mailbox delivery
+unverifiable from the DB; needs a controlled synthetic inbox + owner
+approval), `social_providers=[{google, isShared:true}]` (shared OAuth app —
+Google subject-binding proof requires a dedicated client config),
+`trusted_origins=[]`, `allow_localhost=true`,
+`requireEmailVerification=false`, `emailVerificationMethod=otp`.
+
 ### Round-2 evidence — forced-reset cutover journey (`scripts/neon-poc/reset-e2e.mjs`)
 
-8/8 live on the scratch project, synthetic user with a pre-chosen UUID:
+9/9 live on the scratch project (round-3 rerun), synthetic user with a
+pre-chosen UUID:
 
 | Step | Result |
 |---|---|
 | `request-password-reset` on imported user | `reset-password:<token>` row bound to the user's **uuid** in `neon_auth.verification` |
-| Non-existent email | identical 200 + identical message — no enumeration |
+| Existing-vs-missing email | identical status+body+headers pair; symmetric shared-bucket rate limit under burst — no enumeration |
 | Garbage / expired / consumed token | 400 each (expired tested on a fresh row, consume-verified) |
 | Valid token reset | password changed; **zero sessions auto-created** — reset does not sign in (app now redirects to `/login?reset=success`) |
 | Post-reset sign-in | old password rejected; new password → session binds the **same uuid**; ledger rows still owned by it |
 | App-path slice | `vertical-slice.mjs` drives forgot-form → update-password → `/login?reset=success` → re-login → own data intact (**17/17**) |
 
 Password-cutover strategy (owner direction): **forced email reset** —
-viable for identity preservation because reset tokens bind to the stored
-uuid, not to the credential hash. Open sub-items before real users: mail
-delivery on managed auth (unverified — token was read from the scratch
-DB), reset rate limits, and the officially-supported import pathway for
-`neon_auth.*` writes (direct inserts worked but are provider internals).
+viable under Plan A (imported UUID) and unnecessary under Plan B (fresh
+sign-up sets its own password). Open sub-items before real users: actual
+mail delivery through the shared sender (unverified — token was read from
+the scratch DB), shared-Google-client subject binding, and an official
+Neon answer on whether `neon_auth.*` direct inserts are supported at all.
 
 ### Remaining limitations
 
-- Password-hash portability resolved as **no**: bcrypt cannot be imported
-  into managed auth — cutover plan must be forced reset or lazy re-hash
-  (owner decision before any real-data phase).
+- Password-hash portability resolved as **no** (officially documented):
+  bcrypt cannot be imported into managed auth. The supported cutover is
+  Plan B subject-remap (proven 5/5); Plan A direct-insert works but writes
+  into provider internals.
+- Managed-auth mail delivery unverified: `email_provider.type=shared`;
+  token was read from the scratch DB. Needs a controlled synthetic inbox +
+  owner approval; do not claim reset-mail readiness.
+- Google OAuth on `isShared:true` provider config: initiation proven;
+  subject binding, account collision and dedicated-client behaviour all
+  unproven — requires dedicated OAuth client config (owner/provider setup).
 - Scoped/OAuth-server tokens have no Neon equivalent — agent/MCP transport
   with `client_id`-scoped privileges cannot be reproduced; requires descope
   or a separate token layer.
@@ -361,6 +411,7 @@ DB), reset rate limits, and the officially-supported import pathway for
 | 2026-10-08 | owner | researcher  | discovery                                  | issue #774, this packet, first reply comment                              | PoC on `feat/neon-migration-poc` branch only                                                     |
 | 2026-10-08 | owner | implementer | `provider_write_approved` for scratch only | owner comment: one Neon Free project `moneyflow-neon-poc`, synthetic data | real-provider PoC + evidence report; still no production/production-data/provider-config changes |
 | 2026-10-08 | implementer | owner | gates 1–5 complete on scratch | 2798ccf7, ca7f6379, 6d7c91bb; backup/restore + identity/password/OAuth evidence above | owner review: password-cutover strategy choice + scoped-token descope decision; no merge |
+| 2026-10-08 | implementer | owner | round-3: official import-path finding + remap proof | reset-e2e 9/9 (hardened enumeration + burst), identity-remap 5/5, Plan A vs B documented | owner decision: Plan B cutover shape vs Plan A unsupported internals; email-delivery verification needs a controlled inbox |
 
 ## Stop conditions
 
