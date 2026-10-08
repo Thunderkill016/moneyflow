@@ -1,8 +1,11 @@
 -- Real-Neon preflight: add ONLY the Supabase surface Neon does not provide.
 -- Verified against project polished-pine-75721729 (Neon Free, PG 18):
 --
---   Neon already provides
---     - roles `anonymous`, `authenticated`   (no `anon`, no `service_role`)
+--   Neon already provides (verified pg_roles on the scratch project)
+--     - roles `anonymous`, `authenticated`, `authenticator`, `anon`,
+--       `service_role` — the full PostgREST-style set, so migration
+--       grant/revoke statements apply verbatim; the create-role statements
+--       below are harmless no-ops kept for unmanaged-Neon compatibility
 --     - auth schema with native pg_session_jwt functions:
 --         auth.uid() -> uuid, auth.jwt() -> jsonb, auth.user_id() -> text,
 --         auth.session(), auth.organization()

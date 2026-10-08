@@ -7,14 +7,42 @@
 // schemas, the trigger on neon_auth."user") and leaves cloud_admin-owned
 // extensions alone.
 //
-//   NEON_POC_URL=postgresql://… node scripts/neon-poc/reset-remote.mjs
+// Destructive — gated by verify-target.mjs:
+//   * requires --project-id <allowlisted id> that resolves to the PoC project
+//     via the Neon Management API (no self-declared env var alone)
+//   * --dry-run lists every object that would be dropped, then exits
+//   * --i-understand-destructive is required to actually drop anything
+//   * any unexpected schema/object => fail-closed abort
+//
+//   NEON_POC_URL=postgresql://… node scripts/neon-poc/reset-remote.mjs \
+//     --project-id polished-pine-75721729 [--dry-run | --i-understand-destructive]
 import pg from "pg";
+import { verifyTarget, inventoryPublic, abort } from "./lib/verify-target.mjs";
 
 const url = process.env.NEON_POC_URL;
 if (!url) throw new Error("NEON_POC_URL env var required");
+const DRY_RUN = process.argv.includes("--dry-run");
+const OPT_IN = process.argv.includes("--i-understand-destructive");
 
 const client = new pg.Client({ connectionString: url });
 await client.connect();
+await verifyTarget(client, url);
+
+const inventory = await inventoryPublic(client);
+console.log(
+  `\nreset inventory — ${inventory.length} objects would be dropped:`,
+);
+for (const r of inventory) console.log(`  ${r.kind.padEnd(9)} ${r.name}`);
+
+if (DRY_RUN) {
+  console.log("\n--dry-run: no objects dropped");
+  await client.end();
+  process.exit(0);
+}
+if (!OPT_IN)
+  abort(
+    "refusing to drop without --i-understand-destructive (or pass --dry-run first)",
+  );
 
 // Surgical reset — `drop owned` / `drop schema public cascade` are NOT safe
 // here: the Data API's auth schema and the pg_session_jwt extension (installed

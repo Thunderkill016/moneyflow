@@ -1,0 +1,405 @@
+{
+  "generatedFrom": "supabase/migrations",
+  "entries": {
+    "20260714000100_initial_financial_schema.sql": {
+      "sourceSha256": "1ec14505c869b2311016478fb95c29cbeeab30ae5c5a94b8db5890081b8ed7a6",
+      "outputSha256": "422216a402cf6c4cda2de0b174cd2644ef73b040caf433da5e2ca5bd7b5995be",
+      "rewrites": 6
+    },
+    "20260714000200_transaction_feed_and_existing_users.sql": {
+      "sourceSha256": "eb7b96324dd2a53d7881b11bc0e6c454d88a450d2bbbcfa2b9fb77153a6451c3",
+      "outputSha256": "e5aa9bf6817ba71982bbac2fd5ee592e2706d244057b3534b2ea676b033beba6",
+      "rewrites": 4
+    },
+    "20260714000300_account_management_rpcs.sql": {
+      "sourceSha256": "06045ab9564bcb995ccf2d9f122ca5a9d379891da85487456733453a0e7117d5",
+      "outputSha256": "06045ab9564bcb995ccf2d9f122ca5a9d379891da85487456733453a0e7117d5",
+      "rewrites": 0
+    },
+    "20260714000400_monthly_budgets.sql": {
+      "sourceSha256": "43dbfb781d1658c1e1a72608529ab2626a453150a741ed6791521217a6d30774",
+      "outputSha256": "73fed23ea9605d97cd9b775fe5b5606443887c3375398a2fcf1bfed81c1d0c93",
+      "rewrites": 1
+    },
+    "20260714000500_recurring_commitments.sql": {
+      "sourceSha256": "acfaf0863ed8406a0cc9988015b2eb2844cefd502bddef77ef4aaef83c60e293",
+      "outputSha256": "406107efee022bb9fe14aff393ae4f38513aedfdce28e533e46910f058da4490",
+      "rewrites": 2
+    },
+    "20260714000600_savings_goals.sql": {
+      "sourceSha256": "1bddaccd76d15e039c0ee9dbc96bc8c28874b77057b63828b81cb02c651b7807",
+      "outputSha256": "3d62abae616ced6dbe37d22db1648eaf6d7ce5972315c710f85a81cdc7385eef",
+      "rewrites": 2
+    },
+    "20260714000700_account_transfers.sql": {
+      "sourceSha256": "2fcd3b81baf3d00b655238ea7de988801b582748fbcc82049f9568f9e8e789a2",
+      "outputSha256": "2fcd3b81baf3d00b655238ea7de988801b582748fbcc82049f9568f9e8e789a2",
+      "rewrites": 0
+    },
+    "20260714000800_transaction_editing.sql": {
+      "sourceSha256": "e5adfa316aa0586ef6e60d465945b5a26975b12139cccf15fae48ca304a62021",
+      "outputSha256": "e5adfa316aa0586ef6e60d465945b5a26975b12139cccf15fae48ca304a62021",
+      "rewrites": 0
+    },
+    "20260714000900_profile_display_names.sql": {
+      "sourceSha256": "cf7b70222719177c13695e1ea9ac2f95402168538ed126218c7563d20262cb70",
+      "outputSha256": "4d6a3e9cc80aafc50857f876f0e996e0e6f21e27e414057fc899a44b5af65560",
+      "rewrites": 5
+    },
+    "20260715001400_split_expense.sql": {
+      "sourceSha256": "c355a9f89f017263dd6ec525db523f3790dd06088b0b786a8b593c75c5d9dc2b",
+      "outputSha256": "c355a9f89f017263dd6ec525db523f3790dd06088b0b786a8b593c75c5d9dc2b",
+      "rewrites": 0
+    },
+    "20260715001500_account_currency_on_create.sql": {
+      "sourceSha256": "1ef0d18e6dbbddee35cbbbf0f1cb62e95661e50f29ada647139b6d2d52c54a99",
+      "outputSha256": "1ef0d18e6dbbddee35cbbbf0f1cb62e95661e50f29ada647139b6d2d52c54a99",
+      "rewrites": 0
+    },
+    "20260725012037_import_batches_and_inbox_candidates.sql": {
+      "sourceSha256": "313d7e0a86eac69fd7465c917b52eef4b1665370e01a4e980fb89b98d56be2e9",
+      "outputSha256": "5e5d0d155c112c8eb38912d36fdcb8cc984e38a141c42681718c37924e3b30c9",
+      "rewrites": 2
+    },
+    "20260725012045_restore_money_transaction.sql": {
+      "sourceSha256": "36915ce4c747a5b3a3665561ba29b3ba2281f2193638598f79d71162c667caaf",
+      "outputSha256": "36915ce4c747a5b3a3665561ba29b3ba2281f2193638598f79d71162c667caaf",
+      "rewrites": 0
+    },
+    "20260725012059_category_archive.sql": {
+      "sourceSha256": "08ce797164e514edcf3afe6cb48fd6ac4d08c904341f80a371e7d6e5495cfe55",
+      "outputSha256": "08ce797164e514edcf3afe6cb48fd6ac4d08c904341f80a371e7d6e5495cfe55",
+      "rewrites": 0
+    },
+    "20260725012129_recurring_income_templates.sql": {
+      "sourceSha256": "30cf61f4484e0f446e18703e939647c95425382ad20e8dee5e9b751ff84ce34b",
+      "outputSha256": "dad22403e0e91b7f73f04da6c9be41f89a92ea702de30800ebb2a143420c62b1",
+      "rewrites": 2
+    },
+    "20260725012245_readiness_security_hardening.sql": {
+      "sourceSha256": "6da3a113be21e5c2a2933775cdeb254fd9fa4363888d175fb9f55d80b54c5f7f",
+      "outputSha256": "6da3a113be21e5c2a2933775cdeb254fd9fa4363888d175fb9f55d80b54c5f7f",
+      "rewrites": 0
+    },
+    "20260725020400_transaction_entries_user_cascade.sql": {
+      "sourceSha256": "241b52dc36fbcce566a0670f8d20f696cc3dc78b50dfcc15297cee437c9a097e",
+      "outputSha256": "21eb84744d7d3ce8ebe0919f06a0eb7bb998163534216a73e88e8b24250e40bd",
+      "rewrites": 1
+    },
+    "20260725035128_restore_split_feed_and_account_currency.sql": {
+      "sourceSha256": "2a3af7aa492173be84eed2e5cd3564962c901876b9d73483e5da5d7cfed66d0f",
+      "outputSha256": "2a3af7aa492173be84eed2e5cd3564962c901876b9d73483e5da5d7cfed66d0f",
+      "rewrites": 0
+    },
+    "20260725063926_transaction_amount_safe_integer.sql": {
+      "sourceSha256": "b0fa447d1b62d6b2fbc80ba626a3a98f2abdd390560f7d30666ed7907caf3f0d",
+      "outputSha256": "b0fa447d1b62d6b2fbc80ba626a3a98f2abdd390560f7d30666ed7907caf3f0d",
+      "rewrites": 0
+    },
+    "20260725064242_browser_role_least_privilege.sql": {
+      "sourceSha256": "9549652625639afce4876fd8578a888e9f196e028aab102c20464b808443feab",
+      "outputSha256": "016c5baffec547ab0c3e8ce93f4880b2a8e19866501787dadef26b8a40b615bc",
+      "rewrites": 3
+    },
+    "20260725065918_archived_category_finance_guards.sql": {
+      "sourceSha256": "dc6ca71ee721e07ebde9744632a346564c8fa9f85d23eb757d818523ab3e52cb",
+      "outputSha256": "dc6ca71ee721e07ebde9744632a346564c8fa9f85d23eb757d818523ab3e52cb",
+      "rewrites": 0
+    },
+    "20260726004445_harden_tenant_deletion.sql": {
+      "sourceSha256": "6a96f41d975aad170b5dbcc75c24060a3dceccd476b8d99ec7570782abf1cfdb",
+      "outputSha256": "6a96f41d975aad170b5dbcc75c24060a3dceccd476b8d99ec7570782abf1cfdb",
+      "rewrites": 0
+    },
+    "20260726011134_cover_real_foreign_key_paths.sql": {
+      "sourceSha256": "e68733ffc8a59d51aba8ac769ac0c31f1be48078ab0f32963fecc7e12eb28a1d",
+      "outputSha256": "e68733ffc8a59d51aba8ac769ac0c31f1be48078ab0f32963fecc7e12eb28a1d",
+      "rewrites": 0
+    },
+    "20260801084523_import_provenance_and_atomic_approval.sql": {
+      "sourceSha256": "b80b75323a7dc615a79ef0ffd6228af82f00f0f00fa4c1ebbdcdc5c640e702b7",
+      "outputSha256": "07cce879c51f08a8df48ca1754ddad447a0a7f86a75f8318a80f48712c502968",
+      "rewrites": 1
+    },
+    "20260801084534_secure_inbox_fingerprint_trigger.sql": {
+      "sourceSha256": "5c2c70a33f30aa90d7f16f3cd6beddeb84581343934889431168293390bc2dc5",
+      "outputSha256": "5c2c70a33f30aa90d7f16f3cd6beddeb84581343934889431168293390bc2dc5",
+      "rewrites": 0
+    },
+    "20260801084604_guard_invalid_inbox_approval.sql": {
+      "sourceSha256": "ba1ca51badabbedb3de8ebe9b5c87a1f8d0a504539d40ae31e85392aacee2931",
+      "outputSha256": "ba1ca51badabbedb3de8ebe9b5c87a1f8d0a504539d40ae31e85392aacee2931",
+      "rewrites": 0
+    },
+    "20260802022923_dashboard_read_bundle.sql": {
+      "sourceSha256": "64e847d20684aa7a30b008680a4aefe5f062a6abfb6d8979f0c76967962f3713",
+      "outputSha256": "64e847d20684aa7a30b008680a4aefe5f062a6abfb6d8979f0c76967962f3713",
+      "rewrites": 0
+    },
+    "20260802060004_cover_foreign_key_indexes.sql": {
+      "sourceSha256": "59a8f8c3bdc543453487982fddc3d8fc921b8ac83561ab1e6c45c94b6b87e7e6",
+      "outputSha256": "59a8f8c3bdc543453487982fddc3d8fc921b8ac83561ab1e6c45c94b6b87e7e6",
+      "rewrites": 0
+    },
+    "20260803090000_transaction_review_bulk_correction.sql": {
+      "sourceSha256": "5fecd09121270cc2bdb18e38a1ab731b64b7089e4213e458b4080a8f85bd4fbb",
+      "outputSha256": "5fecd09121270cc2bdb18e38a1ab731b64b7089e4213e458b4080a8f85bd4fbb",
+      "rewrites": 0
+    },
+    "20260803142000_account_reconciliation_current_main.sql": {
+      "sourceSha256": "546ec8cb57a38687c501f1835a307482379fc94a234ea28e5d457a7ad792f72d",
+      "outputSha256": "aab2c829308934994630830a36c5c3332011c437c80cb2ade404cf9d6c84ee51",
+      "rewrites": 2
+    },
+    "20260803144500_account_reconciliation_ci_hardening.sql": {
+      "sourceSha256": "9cce5a7f8f9d33b3fc15f018f38553887daef7db5a6a1410749d6f9ea6be7a76",
+      "outputSha256": "9cce5a7f8f9d33b3fc15f018f38553887daef7db5a6a1410749d6f9ea6be7a76",
+      "rewrites": 0
+    },
+    "20260803153000_account_reconciliation_workspace_read_model.sql": {
+      "sourceSha256": "e2b58d90119d3d93147191e0fe084bacce324402470a16b48db269444679bce6",
+      "outputSha256": "e2b58d90119d3d93147191e0fe084bacce324402470a16b48db269444679bce6",
+      "rewrites": 0
+    },
+    "20260804110000_authenticated_deterministic_rules.sql": {
+      "sourceSha256": "633bfe48fb4bc4c7d5c54d3597b51f8c0df57f1bdc5ee37097f6e1646ddb8ef8",
+      "outputSha256": "6599faa3c7587ebd5e96990802c2290de66b93d21d6af05c6388ef9c8718bb0a",
+      "rewrites": 1
+    },
+    "20260804160000_financial_mutation_audit.sql": {
+      "sourceSha256": "2bb6d5e7de58c1e6b7a517a85ef4182f6f3a0b8963fb4643a98f88961764a0ee",
+      "outputSha256": "03ae2c9f2b51d5f2d612057ec2c5c1a170f0bc2df2523725335dffd093294504",
+      "rewrites": 1
+    },
+    "20260804160100_financial_read_plan_indexes.sql": {
+      "sourceSha256": "32958c3df4e8e90867452d6c46da2aac5a29528f3c13b653460baa1f37dc2c10",
+      "outputSha256": "32958c3df4e8e90867452d6c46da2aac5a29528f3c13b653460baa1f37dc2c10",
+      "rewrites": 0
+    },
+    "20260804160200_financial_audit_service_role_inspection.sql": {
+      "sourceSha256": "54e6371269f17afb0bd53e45ea4a10944857325b220f98e70f9f8ca8cbc33486",
+      "outputSha256": "54e6371269f17afb0bd53e45ea4a10944857325b220f98e70f9f8ca8cbc33486",
+      "rewrites": 0
+    },
+    "20260804160300_financial_audit_request_id_token.sql": {
+      "sourceSha256": "fe8376c67a18e3defb7a592f49167cc5fa03d424ce914a1bedb5ba5da2220493",
+      "outputSha256": "fe8376c67a18e3defb7a592f49167cc5fa03d424ce914a1bedb5ba5da2220493",
+      "rewrites": 0
+    },
+    "20260809010648_financial_audit_service_role_read_only.sql": {
+      "sourceSha256": "7d792ffe36fcfebbd7a9d22136e5d36dee0af2f2b5fae040d46e870d9592a02c",
+      "outputSha256": "7d792ffe36fcfebbd7a9d22136e5d36dee0af2f2b5fae040d46e870d9592a02c",
+      "rewrites": 0
+    },
+    "20260812000000_export_user_archive.sql": {
+      "sourceSha256": "4cbdc7bf5e0837e88786c20f68abc78c195010e417424af06b935ed0fd4f2678",
+      "outputSha256": "4cbdc7bf5e0837e88786c20f68abc78c195010e417424af06b935ed0fd4f2678",
+      "rewrites": 0
+    },
+    "20260812010000_restore_user_archive.sql": {
+      "sourceSha256": "a0be08da0634faaabdaf9fe36a841d3942da7925369b74feac330ef995acf306",
+      "outputSha256": "0b1c376a2cba174ca518750c298f3aa9b071d97d91e36ce969c2d3d1028e84c7",
+      "rewrites": 2
+    },
+    "20260812043219_remove_atoryn_from_moneyflow_project.sql": {
+      "sourceSha256": "3cf52f90e53bae37e4f1938607f868051ca7e76113b5f0e91f0b29d6e4531462",
+      "outputSha256": "3cf52f90e53bae37e4f1938607f868051ca7e76113b5f0e91f0b29d6e4531462",
+      "rewrites": 0
+    },
+    "20260821014500_direct_csv_batch_atomic_approval.sql": {
+      "sourceSha256": "c6f25f4bbb64533694d757a4c716d996456d703a3ac76ee628a25c57f2e5ead4",
+      "outputSha256": "c6f25f4bbb64533694d757a4c716d996456d703a3ac76ee628a25c57f2e5ead4",
+      "rewrites": 0
+    },
+    "20260821062000_manual_import_reconciliation.sql": {
+      "sourceSha256": "3e22424a7a3ed23994af546a0171df8c8daab0d69be6c9fdc81363833853e511",
+      "outputSha256": "3e22424a7a3ed23994af546a0171df8c8daab0d69be6c9fdc81363833853e511",
+      "rewrites": 0
+    },
+    "20260821093500_deleted_source_reimport_precedence.sql": {
+      "sourceSha256": "aa5671198fd1006b54f352cd95781cd2ef68de5ef27444158728abbbe92789ac",
+      "outputSha256": "aa5671198fd1006b54f352cd95781cd2ef68de5ef27444158728abbbe92789ac",
+      "rewrites": 0
+    },
+    "20260821184500_source_observation_precedence.sql": {
+      "sourceSha256": "7d83da3f844e97cd28a77b3beae165181e6e3b1dd201c7311beb2ae6fb5e8c80",
+      "outputSha256": "7d83da3f844e97cd28a77b3beae165181e6e3b1dd201c7311beb2ae6fb5e8c80",
+      "rewrites": 0
+    },
+    "20260821190000_source_observation_guard_compat.sql": {
+      "sourceSha256": "1d073507d7d0963aed7c1be5acd6ea1f57d0ae7949facfea4ea3ecbcfbb0c139",
+      "outputSha256": "1d073507d7d0963aed7c1be5acd6ea1f57d0ae7949facfea4ea3ecbcfbb0c139",
+      "rewrites": 0
+    },
+    "20260821203000_import_batch_owner_preserving_fk.sql": {
+      "sourceSha256": "3fdac45190e57758894fa9ecfe56511a8cd3335c4cf20589bb9ba53dd993caaa",
+      "outputSha256": "3fdac45190e57758894fa9ecfe56511a8cd3335c4cf20589bb9ba53dd993caaa",
+      "rewrites": 0
+    },
+    "20260822094400_source_identity_consistency_preflight.sql": {
+      "sourceSha256": "d2ebfe6349cfd0f2c829054697afb14dc87a3090d4952f48eb6eaed75b3de110",
+      "outputSha256": "d2ebfe6349cfd0f2c829054697afb14dc87a3090d4952f48eb6eaed75b3de110",
+      "rewrites": 0
+    },
+    "20260822094500_source_lineage_lifecycle.sql": {
+      "sourceSha256": "7d4985702fa7ff7b23ca8f051b8df766be0ff9c964c6e25225ba9b4128c2942e",
+      "outputSha256": "7d4985702fa7ff7b23ca8f051b8df766be0ff9c964c6e25225ba9b4128c2942e",
+      "rewrites": 0
+    },
+    "20260822094600_source_lineage_archive_compat.sql": {
+      "sourceSha256": "ed2d176555c0b87f40cb6228456eae72a756f6a7897810762bdb6dd301d16b4a",
+      "outputSha256": "ed2d176555c0b87f40cb6228456eae72a756f6a7897810762bdb6dd301d16b4a",
+      "rewrites": 0
+    },
+    "20260822094700_source_lineage_archive_mode_guard.sql": {
+      "sourceSha256": "7d4cc63b7409bc559c0440c0bd749c4b5c1a03a251fe8e1e82516f4c31b27152",
+      "outputSha256": "7d4cc63b7409bc559c0440c0bd749c4b5c1a03a251fe8e1e82516f4c31b27152",
+      "rewrites": 0
+    },
+    "20260823124000_source_lifecycle_reconciliation_policy.sql": {
+      "sourceSha256": "7af7634a3cbf4487bd4d4b50ee73c7bcfea054ce8084dcdf9a9893a3d897e1fb",
+      "outputSha256": "7af7634a3cbf4487bd4d4b50ee73c7bcfea054ce8084dcdf9a9893a3d897e1fb",
+      "rewrites": 0
+    },
+    "20260823124500_source_lifecycle_reconciliation_lock_order.sql": {
+      "sourceSha256": "e34d7d20b8b36c903b9a9f2f8f367c40357af3e4a548a4bb9678dd8bd1f7f3e0",
+      "outputSha256": "e34d7d20b8b36c903b9a9f2f8f367c40357af3e4a548a4bb9678dd8bd1f7f3e0",
+      "rewrites": 0
+    },
+    "20260824083000_share_target_atomic_ingestion.sql": {
+      "sourceSha256": "cf7ba53dbb21a4d9163170856b518a5e5d26176af64af17ad3d688ce279c1c3c",
+      "outputSha256": "cf7ba53dbb21a4d9163170856b518a5e5d26176af64af17ad3d688ce279c1c3c",
+      "rewrites": 0
+    },
+    "20260824170000_share_target_rule_atomic_ingestion.sql": {
+      "sourceSha256": "5b0b72c43dbc35a8e035508db28e9bc36c7bf81175887c16b6828e7d30c2dacc",
+      "outputSha256": "5b0b72c43dbc35a8e035508db28e9bc36c7bf81175887c16b6828e7d30c2dacc",
+      "rewrites": 0
+    },
+    "20260825090000_direct_csv_rule_atomic_ingestion.sql": {
+      "sourceSha256": "802cf35df8a5f448ca246d9d3940c9c0abb23bdadaad2b8a11f32a11c684b211",
+      "outputSha256": "802cf35df8a5f448ca246d9d3940c9c0abb23bdadaad2b8a11f32a11c684b211",
+      "rewrites": 0
+    },
+    "20260909090000_import_batch_atomic_commit.sql": {
+      "sourceSha256": "f91f4f47199f0bfd5588ddcbee355fe9f6231cd19a434c174d81295dd82e8155",
+      "outputSha256": "f91f4f47199f0bfd5588ddcbee355fe9f6231cd19a434c174d81295dd82e8155",
+      "rewrites": 0
+    },
+    "20260909120000_import_batch_measurement.sql": {
+      "sourceSha256": "b5991121cfa152c9770787e6303fefa917f14712d501c26e6248945c9d38c0eb",
+      "outputSha256": "b5991121cfa152c9770787e6303fefa917f14712d501c26e6248945c9d38c0eb",
+      "rewrites": 0
+    },
+    "20260910181500_function_default_acl_hardening.sql": {
+      "sourceSha256": "5783ec4e10f3094ef3e7d8bffa955d04d5b005062f510dacd444550dbc45a9e2",
+      "outputSha256": "45f2472c5c0f30aa8b4e68b1de63651b3f8881209bd5131456ee7bb950bdab1e",
+      "rewrites": 1
+    },
+    "20260910182000_reconciliation_snapshot_security_invoker.sql": {
+      "sourceSha256": "95bb1051746055f253b613b00fbc50a7196702a949afee8fc4e25db8ea33d4ac",
+      "outputSha256": "95bb1051746055f253b613b00fbc50a7196702a949afee8fc4e25db8ea33d4ac",
+      "rewrites": 0
+    },
+    "20260911150000_ledger_trusted_through.sql": {
+      "sourceSha256": "63c0ad68eba843b829f23f75577eca26b29c8d0b0078ee166d4bc7302dd2f0bf",
+      "outputSha256": "63c0ad68eba843b829f23f75577eca26b29c8d0b0078ee166d4bc7302dd2f0bf",
+      "rewrites": 0
+    },
+    "20260913103000_dashboard_bundle_ledger_trust.sql": {
+      "sourceSha256": "a63382617ca68098db8ccae4ef90ea34efd94ec6db99afebb2a964c2d2c38493",
+      "outputSha256": "a63382617ca68098db8ccae4ef90ea34efd94ec6db99afebb2a964c2d2c38493",
+      "rewrites": 0
+    },
+    "20260920120000_agent_candidate_proposals.sql": {
+      "sourceSha256": "f960a6a932ed7410a841f73e4649fcecd17cd7cb80227c89ebcdb83df43ccf35",
+      "outputSha256": "f960a6a932ed7410a841f73e4649fcecd17cd7cb80227c89ebcdb83df43ccf35",
+      "rewrites": 0
+    },
+    "20260921120000_backup_reminder_state.sql": {
+      "sourceSha256": "84b4c458d7b1995cb387f76c41bf07f16e1b01e388bb3d786919baae2ab3c464",
+      "outputSha256": "84b4c458d7b1995cb387f76c41bf07f16e1b01e388bb3d786919baae2ab3c464",
+      "rewrites": 0
+    },
+    "20260922120000_transaction_payee.sql": {
+      "sourceSha256": "2457cade5dccd5f93e651922f7a4a8d89ee49931a9234d2e768afa85dedff610",
+      "outputSha256": "2457cade5dccd5f93e651922f7a4a8d89ee49931a9234d2e768afa85dedff610",
+      "rewrites": 0
+    },
+    "20260923013000_reconciliation_adjustment_completion.sql": {
+      "sourceSha256": "cac1ff2348e0693cd02343f1a5cf8aac95d9ecd120abae298a7a7717c31e7d2b",
+      "outputSha256": "cac1ff2348e0693cd02343f1a5cf8aac95d9ecd120abae298a7a7717c31e7d2b",
+      "rewrites": 0
+    },
+    "20260923090000_deleted_transaction_feed.sql": {
+      "sourceSha256": "724b82345ee17bb2405092965d6984f92cd860eec5e78df59a1dd1eea657e11a",
+      "outputSha256": "724b82345ee17bb2405092965d6984f92cd860eec5e78df59a1dd1eea657e11a",
+      "rewrites": 0
+    },
+    "20260923120000_dashboard_bundle_goal_created_at.sql": {
+      "sourceSha256": "5bb078a751ed0f44e9cdf111e040cf23cbe80969c5f934af6f2a719b84c31e46",
+      "outputSha256": "5bb078a751ed0f44e9cdf111e040cf23cbe80969c5f934af6f2a719b84c31e46",
+      "rewrites": 0
+    },
+    "20260923160000_update_money_transaction_expected_updated_at.sql": {
+      "sourceSha256": "02709f4fb077ce4df52f1969240c730dbc28e2772f6fe02c099a0b801a546454",
+      "outputSha256": "02709f4fb077ce4df52f1969240c730dbc28e2772f6fe02c099a0b801a546454",
+      "rewrites": 0
+    },
+    "20260924120000_transaction_goal_linkage.sql": {
+      "sourceSha256": "10c058cb04c1763891394aeed857a7eae302aeab25da5f449a7a36b6031f85af",
+      "outputSha256": "10c058cb04c1763891394aeed857a7eae302aeab25da5f449a7a36b6031f85af",
+      "rewrites": 0
+    },
+    "20260925150000_pattern_dismissals.sql": {
+      "sourceSha256": "c665d729568b60c25e8de902835e653b002f96c112da0963ae115d8f69803895",
+      "outputSha256": "d7e9ca3fbb3bc9cf9aec7ac968291305c72fe4ae40716c05ab810973853dda52",
+      "rewrites": 1
+    },
+    "20260926120000_account_identity.sql": {
+      "sourceSha256": "6294a50af8e0b042f5bf35a0489f515fc1fc8b334a025181edddffefe032b2fe",
+      "outputSha256": "6294a50af8e0b042f5bf35a0489f515fc1fc8b334a025181edddffefe032b2fe",
+      "rewrites": 0
+    },
+    "20261002120000_oauth_mutation_boundary.sql": {
+      "sourceSha256": "0fe8df7e6b7a7216f70deac0a066dd99ba97b84b83816f0d41feb9e1e969f849",
+      "outputSha256": "0fe8df7e6b7a7216f70deac0a066dd99ba97b84b83816f0d41feb9e1e969f849",
+      "rewrites": 0
+    },
+    "20261002121000_agent_proposal_identity.sql": {
+      "sourceSha256": "cf2605f81c2399da223865a65d720c1802b94b82fb7fcf7581e01fe6e1742c8b",
+      "outputSha256": "cf2605f81c2399da223865a65d720c1802b94b82fb7fcf7581e01fe6e1742c8b",
+      "rewrites": 0
+    },
+    "20261006160000_update_account_transfer_expected_updated_at.sql": {
+      "sourceSha256": "2e581f91f5d356abaa2cef67c0739702449ed4318c9f4cc76b01a5bc21f5499e",
+      "outputSha256": "2e581f91f5d356abaa2cef67c0739702449ed4318c9f4cc76b01a5bc21f5499e",
+      "rewrites": 0
+    },
+    "20261006200000_update_financial_account_expected_updated_at.sql": {
+      "sourceSha256": "25ed9c4e6045155e7774b972431a3da7200c4c0e18fef2a6a76f774a873ea1ac",
+      "outputSha256": "25ed9c4e6045155e7774b972431a3da7200c4c0e18fef2a6a76f774a873ea1ac",
+      "rewrites": 0
+    },
+    "20261006201000_upsert_monthly_budget_expected_updated_at.sql": {
+      "sourceSha256": "e6d05bd0388d27857eff1d11d23971d5beb29f06a6e41f7a6387694bd32cf582",
+      "outputSha256": "e6d05bd0388d27857eff1d11d23971d5beb29f06a6e41f7a6387694bd32cf582",
+      "rewrites": 0
+    },
+    "20261006202000_upsert_recurring_commitment_expected_updated_at.sql": {
+      "sourceSha256": "2f4d562669e4d264fd688cd099fbc4593df0de23aacf777ecb9565a202a62d84",
+      "outputSha256": "2f4d562669e4d264fd688cd099fbc4593df0de23aacf777ecb9565a202a62d84",
+      "rewrites": 0
+    },
+    "20261006203000_upsert_savings_goal_expected_updated_at.sql": {
+      "sourceSha256": "ca09a3db589564f88a192b9a061f420b37d055908ce33e79a9e228c811122386",
+      "outputSha256": "ca09a3db589564f88a192b9a061f420b37d055908ce33e79a9e228c811122386",
+      "rewrites": 0
+    },
+    "20261006204000_upsert_recurring_income_template_expected_updated_at.sql": {
+      "sourceSha256": "9cb2e0bc8ee568d77a74a93ef046d981d493e5c04fc32efd33ce4b991c1b9eed",
+      "outputSha256": "9cb2e0bc8ee568d77a74a93ef046d981d493e5c04fc32efd33ce4b991c1b9eed",
+      "rewrites": 0
+    }
+  }
+}
