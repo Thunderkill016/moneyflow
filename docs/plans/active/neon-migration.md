@@ -661,3 +661,37 @@ endpoint `ep-morning-band-b3a6dp3y`, region `aws-ap-southeast-1`).
 - Password-hash portability unproven → STOP, surface secure-reset plan.
 - A Neon gap with no safe equivalent (e.g. OAuth server) → STOP, descope
   proposal to owner rather than silently dropping security surface.
+
+## Emergency remediation record — 2026-10-08 (post-cutover)
+
+Triggered by owner review: deployment `dpl_CssEN6KPSiATVeQ51L3LGhNwz9kk`
+file list contained `scripts/neon-poc/out/` — Vercel CLI did NOT apply
+`.gitignore`, so all migration secrets were uploaded to build-input storage
+(team-token-gated, never publicly served; treated as compromised).
+
+Verified leaked: `prod-credentials.txt` (5 temp passwords),
+`prod-backup.passphrase`, `prod-neon-conn.txt` (DB password),
+`prod-cookie-secret.txt`.
+
+### Remediation executed
+- **Rotated**: all 5 user passwords (Better Auth scrypt
+  `salt-hex:key-hex`, N=16384 r=16 p=1 — hash scheme verified by
+  reproducing a known hash first); `NEON_AUTH_COOKIE_SECRET` on Vercel
+  prod; `neondb_owner` DB password via Neon API `reset_password`
+  (new password verified live, old dead).
+- **`.vercelignore`** added (explicit `scripts/neon-poc/out/`, `.env*`,
+  build artifacts) — redeployed clean (`moneyflow-h9hn8qfg1`,
+  73.5KB upload vs 14.2MB tainted), file list verified empty of secrets.
+- **Tainted deployment deleted** — `DELETE /deployments/dpl_CssE…` →
+  `DELETED`; file API now returns not-found.
+- **4 unverified accounts banned** (`banned=true`, reason recorded) +
+  all their sessions revoked. Sign-in probe returns `BANNED_USER`.
+  Financial data untouched. Owner account left active (self-verifiable).
+- **Per-record integrity**: all 725 public rows verified
+  byte-identical modulo uuid remap; only `profiles.updated_at` differs
+  (provisioning trigger bump = correct audit provenance).
+- **Git auto-deploy neutralized**: `DELETE /v9/projects/{id}/link` —
+  `main` can no longer auto-deploy stale Supabase-era code over the Neon
+  deployment. Production deploys are CLI-only until owner reconnects
+  (e.g. after #775 merges).
+- Owner sign-in re-verified post-rotation.
