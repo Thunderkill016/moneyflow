@@ -748,3 +748,22 @@ Production DB evidence confirms the real Google round-trip closed:
 
 Outcome: Google Login → correct old account → full migrated data. The
 migration's sole remaining acceptance criterion is met.
+
+### Secondary-account unban + per-account RLS verification (2026-10-08)
+
+Owner confirmed all 4 remaining accounts are their own secondary accounts
+— the Google OAuth round-trip itself is the identity proof for the 3
+google-provider accounts; the email account is likewise owner-controlled.
+
+- Unbanned all 4 (`neon_auth.user.banned=false`); owner account untouched.
+- Per-account verification through the production app: credential sign-in
+  200 → session cookie → `set-auth-jwt` → Data API queries under RLS.
+  Each subject sees exactly their own rows: dinhbahoang1605 → 6 txns/2
+  accts, hoangvosong000 → 3/1, hoangn36th3a → 0/1, hoa272140 → 0/1.
+  Zero cross-tenant rows returned.
+- The 3 google-provider accounts complete login via "Đăng nhập bằng
+  Google" — link-by-verified-email binds to the migrated account on first
+  sign-in (same path proven on the owner account); credential passwords
+  remain rotated post-leak.
+- hoa272140 (email provider) signs in with the rotated password from the
+  post-leak credentials file.
