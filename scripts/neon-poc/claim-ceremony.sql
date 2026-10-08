@@ -79,20 +79,41 @@ begin
 end;
 $$;
 
--- complete_identity_claim: binds the reservation to a VERIFIED Neon subject
--- and flips it completed atomically. Verification of the Neon session itself
--- happens server-side BEFORE this call; the function still refuses expired
--- or already-used reservations and enforces both uniques.
+-- complete_identity_claim: binds the reservation to the subject of a LIVE
+-- managed-auth session — never to a caller-supplied uuid. The raw session
+-- token (from the httpOnly cookie, `token.signature` → `token`) is resolved
+-- against neon_auth.session inside the function, so a caller cannot bind a
+-- subject they do not hold a valid session for.
 create or replace function public.complete_identity_claim(
   p_claim_token_hash bytea,
-  p_neon_user_id uuid
+  p_session_token text
 ) returns public.identity_claims
 language plpgsql security definer
-set search_path = public
+set search_path = public, neon_auth
 as $$
 declare
   v_claim public.identity_claims;
+  v_subject uuid;
 begin
+  -- The Neon side of the dual-identity proof, verified in-database: the
+  -- session token must exist AND be unexpired. A forged or stale token
+  -- yields no subject.
+  select s."userId" into v_subject
+    from neon_auth.session s
+   where s.token = p_session_token
+     and s."expiresAt" > now();
+  if v_subject is null then
+    raise exception 'no live neon session for the presented token'
+      using errcode = 'P0004';
+  end if;
+  -- The destination subject's email must be verified — an unverified
+  -- sign-up is not proof of control over the destination identity.
+  if not (select coalesce(u."emailVerified", false)
+            from neon_auth."user" u where u.id = v_subject) then
+    raise exception 'destination subject email is not verified'
+      using errcode = 'P0005';
+  end if;
+
   select * into v_claim from public.identity_claims
    where claim_token_hash = p_claim_token_hash
    for update; -- serialize concurrent completion attempts
@@ -102,7 +123,7 @@ begin
   if v_claim.status = 'completed' then
     -- Idempotent ONLY for the same subject; a different subject replaying
     -- a used token is a takeover attempt, not a retry.
-    if v_claim.neon_user_id = p_neon_user_id then
+    if v_claim.neon_user_id = v_subject then
       return v_claim;
     end if;
     raise exception 'claim token already consumed by another subject'
@@ -112,13 +133,13 @@ begin
     raise exception 'claim reservation expired' using errcode = 'P0003';
   end if;
   if exists (select 1 from public.identity_claims
-             where neon_user_id = p_neon_user_id and status = 'completed') then
+             where neon_user_id = v_subject and status = 'completed') then
     raise exception 'neon subject already bound to a legacy identity'
       using errcode = '23505';
   end if;
 
   update public.identity_claims
-     set neon_user_id = p_neon_user_id,
+     set neon_user_id = v_subject,
          status = 'completed',
          completed_at = now()
    where id = v_claim.id
@@ -131,9 +152,9 @@ $$;
 -- boundary is the trusted server path, never an exposed client RPC.
 revoke all on function public.reserve_identity_claim(uuid, bytea, bytea, text, integer)
   from public, anon, authenticated;
-revoke all on function public.complete_identity_claim(bytea, uuid)
+revoke all on function public.complete_identity_claim(bytea, text)
   from public, anon, authenticated;
 grant execute on function public.reserve_identity_claim(uuid, bytea, bytea, text, integer)
   to service_role;
-grant execute on function public.complete_identity_claim(bytea, uuid)
+grant execute on function public.complete_identity_claim(bytea, text)
   to service_role;

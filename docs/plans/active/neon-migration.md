@@ -164,20 +164,20 @@ operational choice — decide in PoC with evidence, not preference.
 
 ## Tasks
 
-| ID  | Task                                                                                                                                  | Dependency | Evidence                      | Status  |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ----------------------------- | ------- |
-| T1  | `db/compat/supabase-auth-shim.sql` — roles, `auth` schema, `users`, `uid()`/`jwt()`/`email()`                                         | none       | 80/80 migrations replay local | done    |
-| T2  | `scripts/neon-poc/replay-migrations.mjs` + `run-pgtap.mjs` on embedded-postgres 17                                                    | T1         | harness green                 | done    |
-| T3  | pgTAP vendored install script (`db/compat/pgtap.sql`, license FreeBSD) in `extensions` schema                                         | T2         | 58/58 suites pass             | done    |
-| T4  | Real-Neon replay: `db/compat/neon-preflight.sql` + mechanical transform                                                               | T1         | 80/80 on Neon PG 18           | done    |
-| T5  | Request-path proof on real Neon (JWT→Data API→role→RLS, A/B isolation, RPC write)                                                     | T4         | verified below                | done    |
-| T6  | Typed client seam (`src/server/*` unchanged call sites → provider adapter)                                                            | T1         | 14/14 vertical slice          | done    |
-| T7  | Auth adapter: managed Neon Auth works (uuid IDs, trigger provisioning); bcrypt import **disproven** — reset/lazy-rehash cutover required  | T5         | Gate-5 evidence               | done    |
-| T8  | delete-account Edge Function → server route via privileged `pg`                                                                       | T6         | pending                       | pending |
-| T11 | Backup/restore + write-freeze rehearsal on scratch                                                                                    | T4         | Gate-4 evidence               | done    |
-| T12 | Identity-import / password / OAuth / scoped-token parity assessment                                                                   | T5         | Gate-5 evidence               | done    |
-| T9  | Egress/compute measurement vs Free budget (scratch measured ~103 KB / 277 compute-s)                                                  | T5         | scratch only                  | done    |
-| T10 | Owner decisions: OAuth consent layer, managed-auth confirm, cutover runbook                                                           | all        | gate                          | blocked |
+| ID  | Task                                                                                                                                     | Dependency | Evidence                      | Status  |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ----------------------------- | ------- |
+| T1  | `db/compat/supabase-auth-shim.sql` — roles, `auth` schema, `users`, `uid()`/`jwt()`/`email()`                                            | none       | 80/80 migrations replay local | done    |
+| T2  | `scripts/neon-poc/replay-migrations.mjs` + `run-pgtap.mjs` on embedded-postgres 17                                                       | T1         | harness green                 | done    |
+| T3  | pgTAP vendored install script (`db/compat/pgtap.sql`, license FreeBSD) in `extensions` schema                                            | T2         | 58/58 suites pass             | done    |
+| T4  | Real-Neon replay: `db/compat/neon-preflight.sql` + mechanical transform                                                                  | T1         | 80/80 on Neon PG 18           | done    |
+| T5  | Request-path proof on real Neon (JWT→Data API→role→RLS, A/B isolation, RPC write)                                                        | T4         | verified below                | done    |
+| T6  | Typed client seam (`src/server/*` unchanged call sites → provider adapter)                                                               | T1         | 14/14 vertical slice          | done    |
+| T7  | Auth adapter: managed Neon Auth works (uuid IDs, trigger provisioning); bcrypt import **disproven** — reset/lazy-rehash cutover required | T5         | Gate-5 evidence               | done    |
+| T8  | delete-account Edge Function → server route via privileged `pg`                                                                          | T6         | pending                       | pending |
+| T11 | Backup/restore + write-freeze rehearsal on scratch                                                                                       | T4         | Gate-4 evidence               | done    |
+| T12 | Identity-import / password / OAuth / scoped-token parity assessment                                                                      | T5         | Gate-5 evidence               | done    |
+| T9  | Egress/compute measurement vs Free budget (scratch measured ~103 KB / 277 compute-s)                                                     | T5         | scratch only                  | done    |
+| T10 | Owner decisions: OAuth consent layer, managed-auth confirm, cutover runbook                                                              | all        | gate                          | blocked |
 
 ## Evaluation
 
@@ -244,13 +244,13 @@ bookkeeping. Zero grants or policies weakened.
 
 All steps ran live on `moneyflow-neon-poc` at head `ca7f6379`, synthetic data:
 
-| Step                                                                       | Result                                                                                                                       |
-| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `--dry-run` inventory                                                      | 23 user tables, 0 FK violations, sha256 PK checksums emitted                                                                 |
-| `--backup`                                                                 | JSON archive → AES-256-GCM envelope identical to `backup-encryption.ts` (PBKDF2-SHA-256 250k iters, 12-byte IV); wrong-pass + tamper negatives verified in-step |
-| `--restore`                                                                | fresh scratch db `mf_poc` (allowlisted) → managed-surface stubs (`neon_auth."user"`, compile-only `auth.uid()/jwt()`) → **80/80 generated migrations** → FK-topo-ordered inserts under `set constraints all deferred` + `disable trigger user` → **all 23 table checksums identical, 0 FK violations** |
-| `--freeze-rehearsal`                                                       | `revoke … from authenticated` → insert denied, select preserved → re-grant rolled back — proves the cutover write-freeze mechanism |
-| `--cleanup`                                                                | scratch db dropped; every mutating step gated by `--i-understand-destructive` + `verifyTarget()` allowlist                   |
+| Step                  | Result                                                                                                                                                                                                                                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--dry-run` inventory | 23 user tables, 0 FK violations, sha256 PK checksums emitted                                                                                                                                                                                                                                           |
+| `--backup`            | JSON archive → AES-256-GCM envelope identical to `backup-encryption.ts` (PBKDF2-SHA-256 250k iters, 12-byte IV); wrong-pass + tamper negatives verified in-step                                                                                                                                        |
+| `--restore`           | fresh scratch db `mf_poc` (allowlisted) → managed-surface stubs (`neon_auth."user"`, compile-only `auth.uid()/jwt()`) → **80/80 generated migrations** → FK-topo-ordered inserts under `set constraints all deferred` + `disable trigger user` → **all 23 table checksums identical, 0 FK violations** |
+| `--freeze-rehearsal`  | `revoke … from authenticated` → insert denied, select preserved → re-grant rolled back — proves the cutover write-freeze mechanism                                                                                                                                                                     |
+| `--cleanup`           | scratch db dropped; every mutating step gated by `--i-understand-destructive` + `verifyTarget()` allowlist                                                                                                                                                                                             |
 
 Neon-specific restore constraints found: `session_replication_role` is
 superuser-denied and `disable trigger all` needs superuser on constraint
@@ -262,22 +262,22 @@ that would otherwise corrupt checksums; FK enforcement stays live).
 
 Tested live against the provisioned managed auth on the scratch project:
 
-| Question                                                                            | Result                                                                                                                                                                                                                                                                                    |
-| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Can `neon_auth."user"` accept a **pre-chosen UUID** (Supabase `auth.users.id`)?     | **YES** — direct insert with chosen uuid → `sign-in/email` returns 200 with a Better-Auth scrypt `account.password`; wrong password → 401. Identity/UUID preservation via table-level import works                                                                                          |
-| Can Supabase `encrypted_password` (bcrypt `$2a$`) be imported into `account.password`? | **NO** — real pgcrypto-generated `$2a$06$…` hash → sign-in 500. Better-Auth verifier only understands its scrypt format. Cutover requires forced email-reset or lazy re-hash (app verifies bcrypt once, writes scrypt into `account.password`) — documented strategy, no silent weak import |
-| Google OAuth parity                                                                 | **YES** — `POST /sign-in/social {provider:"google"}` → 302 to real Google `accounts.google.com` (client_id, PKCE S256, hosted callback `neonauth.*/auth/oauth/callback/google`). GitHub disabled. MoneyFlow's `signInWithGoogle` maps to SDK `signIn.social`                                  |
-| Scoped/OAuth-server tokens for MCP clients (`auth.jwt()->>'client_id'`)             | **NO equivalent** — managed Neon Auth issues session JWTs without `client_id`; `guard_oauth_mutation()` compiles and replays but the restricted-client branch can never trigger. Third-party agent transport would run at full user privilege unless a separate scoped-token layer is built — descope/defer |
-| Session invalidation                                                                | proven in Gate 3: upstream `/sign-out` → protected routes redirect (14/14 vertical slice)                                                                                                                                                                                                 |
+| Question                                                                               | Result                                                                                                                                                                                                                                                                                                      |
+| -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Can `neon_auth."user"` accept a **pre-chosen UUID** (Supabase `auth.users.id`)?        | **YES** — direct insert with chosen uuid → `sign-in/email` returns 200 with a Better-Auth scrypt `account.password`; wrong password → 401. Identity/UUID preservation via table-level import works                                                                                                          |
+| Can Supabase `encrypted_password` (bcrypt `$2a$`) be imported into `account.password`? | **NO** — real pgcrypto-generated `$2a$06$…` hash → sign-in 500. Better-Auth verifier only understands its scrypt format. Cutover requires forced email-reset or lazy re-hash (app verifies bcrypt once, writes scrypt into `account.password`) — documented strategy, no silent weak import                 |
+| Google OAuth parity                                                                    | **YES** — `POST /sign-in/social {provider:"google"}` → 302 to real Google `accounts.google.com` (client_id, PKCE S256, hosted callback `neonauth.*/auth/oauth/callback/google`). GitHub disabled. MoneyFlow's `signInWithGoogle` maps to SDK `signIn.social`                                                |
+| Scoped/OAuth-server tokens for MCP clients (`auth.jwt()->>'client_id'`)                | **NO equivalent** — managed Neon Auth issues session JWTs without `client_id`; `guard_oauth_mutation()` compiles and replays but the restricted-client branch can never trigger. Third-party agent transport would run at full user privilege unless a separate scoped-token layer is built — descope/defer |
+| Session invalidation                                                                   | proven in Gate 3: upstream `/sign-out` → protected routes redirect (14/14 vertical slice)                                                                                                                                                                                                                   |
 
 ### Review round-1 findings and resolution (owner review 2026-10-08)
 
-| Finding | Severity | Resolution |
-|---|---|---|
-| `login()` created the data client before the Neon branch — logged-out users (no JWT) hit `configurationError` | P0 | Neon sign-in resolves via `getNeonAuth()` alone; Supabase client only inside its branch. Slice adds wrong-password + fresh-context login-after-logout → 16/16 |
-| `npm ci` fails under Node 22/npm 10 — lockfile missing nested peer entries (`ajv@8.20.0`, `ajv-formats@2.1.1`, `json-schema-traverse@1.0.0`) | P0 | lockfile regenerated with npm 10 (CI toolchain); clean `npm ci` verified |
-| PK-only `pk_sha256` cannot detect value corruption | P1 | canonical full-row `content_sha256` (UTC-pinned, PK-independent) + cross-tenant ownership invariants + in-run mutation-negative (+1 `amount_minor`, PK intact → flagged) |
-| PR-775 memory record missing literal `Changed/Verified/Remaining` markers | P0 | record rewritten to contract |
+| Finding                                                                                                                                      | Severity | Resolution                                                                                                                                                               |
+| -------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `login()` created the data client before the Neon branch — logged-out users (no JWT) hit `configurationError`                                | P0       | Neon sign-in resolves via `getNeonAuth()` alone; Supabase client only inside its branch. Slice adds wrong-password + fresh-context login-after-logout → 16/16            |
+| `npm ci` fails under Node 22/npm 10 — lockfile missing nested peer entries (`ajv@8.20.0`, `ajv-formats@2.1.1`, `json-schema-traverse@1.0.0`) | P0       | lockfile regenerated with npm 10 (CI toolchain); clean `npm ci` verified                                                                                                 |
+| PK-only `pk_sha256` cannot detect value corruption                                                                                           | P1       | canonical full-row `content_sha256` (UTC-pinned, PK-independent) + cross-tenant ownership invariants + in-run mutation-negative (+1 `amount_minor`, PK intact → flagged) |
+| PR-775 memory record missing literal `Changed/Verified/Remaining` markers                                                                    | P0       | record rewritten to contract                                                                                                                                             |
 
 Sibling auth actions audited per review: `signInWithGoogle` → managed
 `signIn.social` branch (reauth fails closed); `requestPasswordReset` /
@@ -332,9 +332,9 @@ functionality.
 
 Two reconciliation strategies, now separated:
 
-| Plan | Mechanism | Status |
-|---|---|---|
-| **A — UUID preservation** | Direct insert into `neon_auth."user"` with the legacy UUID + forced reset | Proven working synthetically (reset-e2e 9/9), but writes into **provider-managed internals** — no documented support; provider lifecycle could break it. Not usable for real cutover without explicit Neon confirmation. |
+| Plan                                     | Mechanism                                                                                                                                  | Status                                                                                                                                                                                                                                                     |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A — UUID preservation**                | Direct insert into `neon_auth."user"` with the legacy UUID + forced reset                                                                  | Proven working synthetically (reset-e2e 9/9), but writes into **provider-managed internals** — no documented support; provider lifecycle could break it. Not usable for real cutover without explicit Neon confirmation.                                   |
 | **B — subject remap (official pattern)** | User onboards via real sign-up/OAuth → provider assigns a fresh UUID → restore remaps `user_id` at INSERT time via a pre-built cutover map | **Proven end-to-end** (`identity-remap-e2e.mjs`, 5/5): real sign-up → fresh UUID → remapped row visible under that subject through the Data API + RLS → second subject sees zero rows. No auth-internals writes. Matches Neon's documented remap guidance. |
 
 **Plan B is the recommended cutover path.** It requires the cutover map
@@ -370,7 +370,8 @@ to the Neon UUID inside the claim transaction. Pre-import-and-claim would
 need deferrable-FK schema changes (or owner-level trigger suppression the
 service role cannot perform) — rejected.
 
-**Claim ceremony** (`claim-ceremony.sql` + `claim-ceremony-e2e.mjs`, 13/13):
+**Claim ceremony** (`claim-ceremony.sql` + `claim-ceremony-e2e.mjs`, now
+18/18 after round-5 hardening — see below):
 `public.identity_claims` — `legacy_user_id` and `neon_user_id` unique in both
 directions, single-use `claim_token_hash` (raw secret never rests), proof
 hash, idempotency key, short TTL, status machine, audit jsonb. Two
@@ -384,10 +385,12 @@ post-claim rows, and the legacy uuid itself holds nothing afterward.
 Old-identity proof is an injectable boundary: production verifies a Supabase
 JWT **offline** via cached JWKS (signature+iss+aud+exp+sub — feasible: the
 project currently returns 402 on JWKS, meaning live revocation checks are
-the gated part); the PoC substitutes an HMAC test artifact.
+the gated part). Round 5 replaced the HMAC stand-in with real Ed25519 JWT
+verification (`jose`) — see the round-5 section.
 
 **Full-data remap rehearsal** (`backup-rehearsal.mjs --remap-rehearsal`):
 the real 41-owner / 653-row scratch dataset remapped to 41 fresh uuids:
+
 - Owner-column discovery = FK catalog **plus a value sweep** — the sweep
   caught `financial_mutation_audit_events.actor_user_id`, a nullable
   FK-less owner reference bound only by `CHECK actor_user_id = user_id`.
@@ -417,19 +420,73 @@ managed provisioning trigger for the inserting transaction (same
 categories collide with restored unique keys — and dedupe semantics need a
 decision where a user's restored seed rows overlap provisioned defaults.
 
+### Round-5 evidence — real JWT proof, session-bound completion, atomic claim+restore
+
+Review fixes verified on scratch (`claim-ceremony-e2e.mjs` 18/18):
+
+- **Real cryptographic old-identity proof** — `jose` Ed25519 verification
+  (signature + iss + aud + exp + sub) replacing the HMAC stand-in. Forgery
+  negatives: wrong key, wrong issuer, expired token, subject mismatch — all
+  rejected before reserve. Honest boundary: test JWKS proves the _mechanism_;
+  live Supabase liveness (revocation, recent-auth) stays gated (402/401 probe).
+- **Session-bound completion** — `complete_identity_claim(token_hash,
+session_token)` derives the Neon subject from a live `neon_auth.session`
+  row; caller-supplied UUIDs are impossible. Negatives: forged/expired/missing
+  session tokens denied (P0004), completed-token replay by a different session
+  rejected (23505), impostor-session denied, same-session replay idempotent.
+- **Atomic claim + restore** — single transaction: token validation, session
+  subject derivation, claim state transition, remapped-row inserts. Proven
+  negative: a mid-insert failure leaves the claim `reserved` (not completed)
+  with zero rows — safe retry reproduces the clean result.
+- **In-DB email-verified gate** — `complete()` refuses unverified destination
+  subjects inside the trusted SQL boundary (not a caller-supplied flag).
+- **Collision + unclaimed coverage** — unclaimed legacy data never exists to
+  leak (0 rows); a Neon subject's self-created rows coexist with claimed rows
+  under one uuid (merge, not overwrite); one subject cannot bind two legacies.
+
+**Recursive JSONB canonicalization** (`backup-rehearsal.mjs`): the old
+`canonRow` used `JSON.stringify` with a key-array replacer — which applied the
+top-level key allowlist to nested objects and silently DROPPED jsonb sub-keys.
+Replaced with recursive canonicalization (keys sorted at every depth, arrays
+keep order). Self-test proves key-order tolerance + nested-mutation detection;
+a LIVE negative mutates a nested path in the restored db
+(`import_batches.column_map{extra,0}`) and the multiset comparison catches it.
+Owner remap is now deep — uuid-equality policy applied recursively (any string
+equal to a legacy owner id remaps, embedded or not), and every money-shaped
+column is asserted `Number.isSafeInteger` on both sides — no float drift.
+Rehearsal re-run: 654 rows / 23 tables, multisets equal, 0 legacy uuids.
+
+**Provider email-verification, honestly bounded:** managed auth exposes a real
+OTP verification flow — `send-verification-email` creates
+`email-verification-otp-<email>` rows and `/email-otp/verify-email` consumes
+them — BUT the stored value is an OTP hash; plaintext travels only via the
+shared sender (`email_provider.type=shared`). Without a controlled mailbox the
+loop cannot be closed in scratch: tests set `emailVerified` directly (marked
+as stand-in, not claimed as provider proof) and the gate semantics — fail
+closed for unverified subjects — are what the tests verify.
+
+**Managed-auth OTP finding (new):** verification rows use identifier
+`email-verification-otp-<email>` — distinct from `reset-password:<token>`
+rows. Any claim/reset tooling must not conflate identifier namespaces.
+
+**Still blocked (unchanged):** real-mail delivery verification, Google OAuth
+subject binding, production liveness of the Supabase project, owner decisions
+on password strategy/scoped tokens/real-data export. Plan B remains a
+candidate direction, NOT production approval.
+
 ### Round-2 evidence — forced-reset cutover journey (`scripts/neon-poc/reset-e2e.mjs`)
 
 9/9 live on the scratch project (round-3 rerun), synthetic user with a
 pre-chosen UUID:
 
-| Step | Result |
-|---|---|
-| `request-password-reset` on imported user | `reset-password:<token>` row bound to the user's **uuid** in `neon_auth.verification` |
-| Existing-vs-missing email | identical status+body+headers pair; symmetric shared-bucket rate limit under burst — no enumeration |
-| Garbage / expired / consumed token | 400 each (expired tested on a fresh row, consume-verified) |
-| Valid token reset | password changed; **zero sessions auto-created** — reset does not sign in (app now redirects to `/login?reset=success`) |
-| Post-reset sign-in | old password rejected; new password → session binds the **same uuid**; ledger rows still owned by it |
-| App-path slice | `vertical-slice.mjs` drives forgot-form → update-password → `/login?reset=success` → re-login → own data intact (**17/17**) |
+| Step                                      | Result                                                                                                                      |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `request-password-reset` on imported user | `reset-password:<token>` row bound to the user's **uuid** in `neon_auth.verification`                                       |
+| Existing-vs-missing email                 | identical status+body+headers pair; symmetric shared-bucket rate limit under burst — no enumeration                         |
+| Garbage / expired / consumed token        | 400 each (expired tested on a fresh row, consume-verified)                                                                  |
+| Valid token reset                         | password changed; **zero sessions auto-created** — reset does not sign in (app now redirects to `/login?reset=success`)     |
+| Post-reset sign-in                        | old password rejected; new password → session binds the **same uuid**; ledger rows still owned by it                        |
+| App-path slice                            | `vertical-slice.mjs` drives forgot-form → update-password → `/login?reset=success` → re-login → own data intact (**17/17**) |
 
 Identity-cutover strategy (round-4 state): **Plan B (subject remap +
 claim ceremony) is the recommended candidate** — a technical direction,
@@ -467,12 +524,13 @@ claim-restore time.
 
 ## Handoff record
 
-| Date       | From  | To          | State                                      | Artifacts                                                                 | Next allowed action                                                                              |
-| ---------- | ----- | ----------- | ------------------------------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| 2026-10-08 | owner | researcher  | discovery                                  | issue #774, this packet, first reply comment                              | PoC on `feat/neon-migration-poc` branch only                                                     |
-| 2026-10-08 | owner | implementer | `provider_write_approved` for scratch only | owner comment: one Neon Free project `moneyflow-neon-poc`, synthetic data | real-provider PoC + evidence report; still no production/production-data/provider-config changes |
-| 2026-10-08 | implementer | owner | gates 1–5 complete on scratch | 2798ccf7, ca7f6379, 6d7c91bb; backup/restore + identity/password/OAuth evidence above | owner review: password-cutover strategy choice + scoped-token descope decision; no merge |
-| 2026-10-08 | implementer | owner | round-3: official import-path finding + remap proof | reset-e2e 9/9 (hardened enumeration + burst), identity-remap 5/5, Plan A vs B documented | owner decision: Plan B cutover shape vs Plan A unsupported internals; email-delivery verification needs a controlled inbox |
+| Date       | From        | To          | State                                                                         | Artifacts                                                                                | Next allowed action                                                                                                                             |
+| ---------- | ----------- | ----------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-10-08 | owner       | researcher  | discovery                                                                     | issue #774, this packet, first reply comment                                             | PoC on `feat/neon-migration-poc` branch only                                                                                                    |
+| 2026-10-08 | owner       | implementer | `provider_write_approved` for scratch only                                    | owner comment: one Neon Free project `moneyflow-neon-poc`, synthetic data                | real-provider PoC + evidence report; still no production/production-data/provider-config changes                                                |
+| 2026-10-08 | implementer | owner       | gates 1–5 complete on scratch                                                 | 2798ccf7, ca7f6379, 6d7c91bb; backup/restore + identity/password/OAuth evidence above    | owner review: password-cutover strategy choice + scoped-token descope decision; no merge                                                        |
+| 2026-10-08 | implementer | owner       | round-3: official import-path finding + remap proof                           | reset-e2e 9/9 (hardened enumeration + burst), identity-remap 5/5, Plan A vs B documented | owner decision: Plan B cutover shape vs Plan A unsupported internals; email-delivery verification needs a controlled inbox                      |
+| 2026-10-08 | implementer | owner       | round-5: real-JWT proof, session-bound atomic claim+restore, deep JSONB canon | claim-e2e 18/18, remap 654r/23t + nested-jsonb negative, money-int assertions            | owner decision: none of this is production authorization — blockers: mailbox-controlled email verify, Google subject binding, Supabase liveness |
 
 ## Stop conditions
 

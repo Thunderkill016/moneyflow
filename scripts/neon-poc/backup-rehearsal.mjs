@@ -66,7 +66,9 @@ function fail(msg) {
 
 function requireDestructive(what) {
   if (!DESTRUCTIVE_OK)
-    fail(`refusing ${what} without --i-understand-destructive (run --dry-run first)`);
+    fail(
+      `refusing ${what} without --i-understand-destructive (run --dry-run first)`,
+    );
 }
 
 const connect = async (connectionString = URL_ENV) => {
@@ -182,7 +184,10 @@ function encryptArchive(plaintext, passphrase) {
   const key = pbkdf2Sync(passphrase, salt, KDF_ITERATIONS, KEY_BYTES, "sha256");
   const iv = randomBytes(IV_BYTES);
   const cipher = createCipheriv("aes-256-gcm", key, iv);
-  const body = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
+  const body = Buffer.concat([
+    cipher.update(plaintext, "utf8"),
+    cipher.final(),
+  ]);
   return JSON.stringify({
     format: "moneyflow-backup-encrypted",
     version: 1,
@@ -344,22 +349,24 @@ async function prepareScratchDb() {
   return { url: restoreUrl };
 }
 
-async function insertRows(client, name, rows, ownerCols = null, map = null) {
+async function insertRows(client, name, rows, map = null) {
   const [schema, table] = name.split(".");
   const fq = `"${schema}"."${table}"`;
   const cols = Object.keys(rows[0]);
   const perRow = `(${cols.map((_, j) => `$${j + 1}`).join(",")})`;
-  const oset = ownerCols?.get(name);
   await client.query(`alter table ${fq} disable trigger user`);
   for (const row of rows) {
     await client.query(
       `insert into ${fq} (${cols.map((c) => `"${c}"`).join(",")}) values ${perRow}`,
       cols.map((c) => {
-        const v = row[c];
         // Owner remap at INSERT: rows land already keyed to the neon uuid —
         // a missed map entry leaves the legacy uuid, which fails the FK to
         // neon_auth."user" (no legacy rows exist) and is caught as a negative.
-        return oset?.has(c) && map && v && map[v] ? map[v] : v;
+        // remapValue recurses into jsonb so embedded owner refs remap too.
+        const v = map ? remapValue(row[c], map) : row[c];
+        // pg serializes JS arrays as Postgres ARRAY literals ({...}), which
+        // jsonb columns reject — send JSON text and let the cast parse it.
+        return v !== null && typeof v === "object" ? JSON.stringify(v) : v;
       }),
     );
   }
@@ -471,11 +478,16 @@ async function restore() {
  * deferrable and legacy-keyed rows could never exist.
  *
  * Verified: bijective mapping manifest (encrypted, uuids only — no PII),
- * per-table canonical multiset equality with the map applied, zero legacy
- * uuids surviving in owner columns, and per-owner financial totals preserved
- * (sum(amount_minor) grouped by owner before vs after the substitution).
- * Negatives: an unmapped owner aborts on FK violation, and a mid-restore
- * abort leaves zero rows (single-transaction atomicity) with a clean rerun.
+ * per-table canonical multiset equality with the map applied (canonicalization
+ * is RECURSIVE — nested jsonb keys sorted, none dropped), zero legacy uuids
+ * surviving anywhere in serialized rows (uuid-equality is the owner-reference
+ * policy: any string equal to a legacy id remaps, embedded or not), per-owner
+ * financial totals preserved, and every money-shaped column proven to hold
+ * exact integers — no float drift.
+ * Negatives: an unmapped owner aborts on FK violation, a mid-restore abort
+ * leaves zero rows (single-transaction atomicity) with a clean deterministic
+ * rerun, and a nested jsonb mutation in the restored db is detected by the
+ * multiset comparison.
  */
 const OWNER_COLS_SQL = `
   -- every (table, column) that references the user-identity surface:
@@ -500,11 +512,70 @@ const OWNER_COLS_SQL = `
   union select 'neon_auth', 'user', 'id'
   union select 'public', 'profiles', 'id'`;
 
-// Canonical row serialization for multiset comparison — sorted keys, applied
-// identically to dump rows (map-substituted) and restored readback rows.
-const canonRow = (row) => JSON.stringify(row, Object.keys(row).sort());
+// Canonical row serialization for multiset comparison. RECURSIVE: object
+// keys are sorted at every nesting level — the JSON.stringify array-replacer
+// form only sorted top-level keys and worse, treated the key list as an
+// allowlist applied to nested objects, silently dropping jsonb sub-keys.
+// Arrays keep element order (order is semantics), objects canonicalize.
+const canon = (v) => {
+  if (v === null || typeof v !== "object") return JSON.stringify(v);
+  if (Array.isArray(v)) return `[${v.map(canon).join(",")}]`;
+  return `{${Object.keys(v)
+    .sort()
+    .map((k) => `${JSON.stringify(k)}:${canon(v[k])}`)
+    .join(",")}}`;
+};
+const canonRow = canon;
 const canonDigest = (row) =>
   createHash("sha256").update(canonRow(row), "utf8").digest("hex");
+
+// Explicit uuid policy: ANY string value anywhere in a row (scalar column or
+// nested inside jsonb) that equals a known legacy owner id IS an owner
+// reference and is remapped to the neon uuid. This is the only consistent
+// treatment — a uuid that survives inside a jsonb payload is a dangling
+// cross-reference the way an unmapped user_id is.
+const remapValue = (v, map) => {
+  if (typeof v === "string") return map[v] ?? v;
+  if (Array.isArray(v)) return v.map((x) => remapValue(x, map));
+  if (v !== null && typeof v === "object")
+    return Object.fromEntries(
+      Object.entries(v).map(([k, x]) => [k, remapValue(x, map)]),
+    );
+  return v;
+};
+const remapRowDeep = (row, map) => (map ? remapValue(row, map) : { ...row });
+
+// Money-precision invariant: any column that looks monetary must hold an
+// exact integer (VND đồng is stored as integer, never float). Numbers in the
+// dump may be JS numbers or bigint-as-strings — both must be safe integers.
+const MONEY_COL = /amount|balance|minor/i;
+const assertIntegerMoney = (rows, where) => {
+  for (const row of rows)
+    for (const [c, v] of Object.entries(row))
+      if (v !== null && MONEY_COL.test(c) && !Number.isSafeInteger(Number(v)))
+        fail(`non-integer money at ${where}.${c} = ${JSON.stringify(v)}`);
+};
+
+// Proof the comparator actually detects nested mutation — a comparator that
+// cannot fail cannot verify anything.
+const canonSelfTest = () => {
+  const a = { top: 1, nested: { z: [1, { k: "v" }], a: "x" }, flag: true };
+  const sameReordered = {
+    nested: { a: "x", z: [1, { k: "v" }] },
+    flag: true,
+    top: 1,
+  };
+  const mutated = JSON.parse(JSON.stringify(a));
+  mutated.nested.z[1].k = "w";
+  const mutatedDeep = JSON.parse(JSON.stringify(a));
+  mutatedDeep.nested.z[1].extra = 1;
+  if (canonDigest(a) !== canonDigest(sameReordered))
+    fail("canon: key-order produced a false difference");
+  if (canonDigest(a) === canonDigest(mutated))
+    fail("canon: nested value mutation undetected");
+  if (canonDigest(a) === canonDigest(mutatedDeep))
+    fail("canon: nested key insertion undetected");
+};
 
 async function remapRehearsal() {
   requireDestructive(`remap rehearsal into scratch database ${RESTORE_DB}`);
@@ -561,8 +632,7 @@ async function remapRehearsal() {
   for (const o of owners) map[o] = crypto.randomUUID();
   const legacySet = new Set(Object.keys(map));
   const neonVals = Object.values(map);
-  if (new Set(neonVals).size !== neonVals.length)
-    fail("map is not bijective");
+  if (new Set(neonVals).size !== neonVals.length) fail("map is not bijective");
   writeFileSync(
     REMAP_MANIFEST,
     encryptArchive(
@@ -611,28 +681,30 @@ async function remapRehearsal() {
   for (const name of names) {
     const rows = dump.tables[name];
     if (!rows.length) continue;
-    await insertRows(client, name, rows, ownerCols, map);
+    await insertRows(client, name, rows, map);
   }
   await client.query("commit");
 
   // --- verification: multiset equality under the map ----------------------
-  const remapRow = (row, oset) => {
-    const r = { ...row };
-    for (const c of oset ?? []) if (r[c] && map[r[c]]) r[c] = map[r[c]];
-    return r;
-  };
+  canonSelfTest();
+  for (const [t, rows] of Object.entries(dump.tables))
+    assertIntegerMoney(rows, `dump.${t}`);
   const mismatched = [];
   let totalRows = 0;
   let legacySurvivors = 0;
   for (const name of names) {
     const expected = (dump.tables[name] ?? []).map((r) =>
-      canonDigest(remapRow(r, ownerCols.get(name))),
+      canonDigest(remapRowDeep(r, map)),
     );
     const fq = `"${name.split(".")[0]}"."${name.split(".")[1]}"`;
     const { rows: got } = await client.query(
       `select row_to_json(r) as j from (select * from ${fq}) r`,
     );
     totalRows += got.length;
+    assertIntegerMoney(
+      got.map((r) => r.j),
+      `restored.${name}`,
+    );
     const gotDigests = got.map((r) => canonDigest(r.j));
     if (
       expected.length !== gotDigests.length ||
@@ -643,8 +715,7 @@ async function remapRehearsal() {
     const oset = ownerCols.get(name);
     if (oset)
       for (const r of got)
-        for (const c of oset)
-          if (legacySet.has(r.j[c])) legacySurvivors++;
+        for (const c of oset) if (legacySet.has(r.j[c])) legacySurvivors++;
   }
   if (mismatched.length)
     fail(`remap checksum mismatch on: ${mismatched.join(", ")}`);
@@ -664,7 +735,9 @@ async function remapRehearsal() {
       for (const legacy of legacySet) if (r.t.includes(legacy)) embedded++;
   }
   if (embedded)
-    fail(`${embedded} embedded legacy-uuid references survived — check jsonb/provenance columns`);
+    fail(
+      `${embedded} embedded legacy-uuid references survived — check jsonb/provenance columns`,
+    );
 
   // Financial invariant: per-owner amount totals preserved under the map.
   const sumFor = (rows, oset, key = "user_id") => {
@@ -684,7 +757,9 @@ async function remapRehearsal() {
     dstSums[r.user_id] = (dstSums[r.user_id] ?? 0) + Number(r.amount_minor);
   for (const [owner, sum] of Object.entries(srcSums))
     if (dstSums[owner] !== sum)
-      fail(`amount_minor total drifted for owner ${owner}: ${sum}→${dstSums[owner]}`);
+      fail(
+        `amount_minor total drifted for owner ${owner}: ${sum}→${dstSums[owner]}`,
+      );
 
   console.log(
     `  ✔ remap: ${totalRows} rows across ${names.length} tables, multisets equal under map, 0 legacy uuids, per-owner totals preserved`,
@@ -702,14 +777,17 @@ async function remapRehearsal() {
     const mism = [];
     for (const name of names) {
       const expected = (dump.tables[name] ?? [])
-        .map((r) => canonDigest(remapRow(r, ownerCols.get(name))))
+        .map((r) => canonDigest(remapRowDeep(r, map)))
         .sort();
       const fq = `"${name.split(".")[0]}"."${name.split(".")[1]}"`;
       const { rows: got } = await c.query(
         `select row_to_json(r) as j from (select * from ${fq}) r`,
       );
       const digests = got.map((r) => canonDigest(r.j)).sort();
-      if (expected.length !== digests.length || expected.join() !== digests.join())
+      if (
+        expected.length !== digests.length ||
+        expected.join() !== digests.join()
+      )
         mism.push(name);
     }
     await c.end();
@@ -735,7 +813,7 @@ async function remapRehearsal() {
           // An unclaimed owner has no subject row — exactly what a
           // claim-before-restore restore produces.
           rows = rows.filter((r) => r.id !== victim);
-        await insertRows(doomed, name, rows, ownerCols, orphanMap);
+        await insertRows(doomed, name, rows, orphanMap);
       }
       await doomed.query("commit");
     } catch (e) {
@@ -743,7 +821,9 @@ async function remapRehearsal() {
       fkCaught = /foreign key|23503/i.test(e.message);
     }
     if (!fkCaught)
-      fail("unmapped owner insert did NOT trip the FK — claim-before-restore unsafe");
+      fail(
+        "unmapped owner insert did NOT trip the FK — claim-before-restore unsafe",
+      );
     const {
       rows: [r],
     } = await doomed.query(`select count(*)::bigint n from public.accounts`);
@@ -763,16 +843,65 @@ async function remapRehearsal() {
     for (const name of names) {
       const rows = dump.tables[name];
       if (!rows.length) continue;
-      await insertRows(rerun, name, rows, ownerCols, map);
+      await insertRows(rerun, name, rows, map);
     }
     await rerun.query("commit");
     await rerun.end();
     const mism = await verifyAll();
-    if (mism.length)
-      fail(`post-abort rerun diverged: ${mism.join(", ")}`);
+    if (mism.length) fail(`post-abort rerun diverged: ${mism.join(", ")}`);
     console.log(
       "  ✔ retry-after-abort reproduces identical multisets — safe reruns",
     );
+  }
+
+  // Live nested-jsonb mutation negative: alter one key INSIDE a jsonb column
+  // of the restored db and prove the multiset comparison reports the table.
+  // A comparator that cannot fail cannot verify anything.
+  {
+    const probe = await connect(negUrl.toString());
+    let probeDone = false;
+    for (const name of names) {
+      if (probeDone) break;
+      const rows = dump.tables[name] ?? [];
+      for (const row of rows.slice(0, 50)) {
+        if (probeDone) break;
+        for (const [c, v] of Object.entries(row)) {
+          if (!v || typeof v !== "object" || Array.isArray(v)) continue;
+          // Find a path two levels deep (nested object/array) for a true
+          // NESTED mutation; fall back to a top-level key if none exists.
+          const k1 = Object.keys(v)[0];
+          if (k1 === undefined) continue;
+          const inner = v[k1];
+          const k2 =
+            inner && typeof inner === "object"
+              ? Object.keys(inner)[0]
+              : undefined;
+          const path = k2 !== undefined ? `{${k1},${k2}}` : `{${k1}}`;
+          const [schema, table] = name.split(".");
+          try {
+            await probe.query(
+              `update "${schema}"."${table}"
+                  set "${c}" = jsonb_set("${c}"::jsonb, '${path}', '"__tampered__"')
+                where ctid = (select ctid from "${schema}"."${table}"
+                              where "${c}" is not null limit 1)`,
+            );
+          } catch {
+            continue; // not a jsonb-typed column — try the next candidate
+          }
+          const mism = await verifyAll();
+          if (!mism.includes(name))
+            fail(`nested jsonb mutation on ${name}.${c}${path} UNDETECTED`);
+          console.log(
+            `  ✔ negative: nested jsonb mutation at ${name}.${c}${path} detected`,
+          );
+          probeDone = true;
+          break;
+        }
+      }
+    }
+    if (!probeDone)
+      console.log("  (no populated jsonb column to mutate — skipped)");
+    await probe.end();
   }
 }
 
@@ -810,8 +939,17 @@ async function freezeRehearsal() {
   console.log("  ✔ freeze: writes denied, reads preserved, grant restored");
 }
 
-if (!DRY_RUN && !DO_BACKUP && !DO_RESTORE && !DO_FREEZE && !DO_CLEANUP && !DO_REMAP)
-  fail("choose --dry-run, --backup, --restore, --freeze-rehearsal, --remap-rehearsal, or --cleanup");
+if (
+  !DRY_RUN &&
+  !DO_BACKUP &&
+  !DO_RESTORE &&
+  !DO_FREEZE &&
+  !DO_CLEANUP &&
+  !DO_REMAP
+)
+  fail(
+    "choose --dry-run, --backup, --restore, --freeze-rehearsal, --remap-rehearsal, or --cleanup",
+  );
 if (DRY_RUN) {
   const client = await connect();
   await verifyTarget(client, URL_ENV);

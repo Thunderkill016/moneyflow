@@ -1,33 +1,33 @@
-// Gate-5 follow-up (#774, review round-4): the dual-identity claim ceremony
-// that makes Plan B safe. A bare Neon sign-up MUST NOT be able to claim a
-// legacy ledger — the claim is a server-only, single-use, time-limited,
-// audited binding of a VERIFIED old-identity proof to a VERIFIED Neon
-// subject.
+// Gate-5 follow-up (#774, review rounds 4–5): the dual-identity claim
+// ceremony that makes Plan B safe. A bare Neon sign-up MUST NOT be able to
+// claim a legacy ledger — the claim is a server-only, single-use,
+// time-limited, audited binding of a VERIFIED old-identity proof to a
+// VERIFIED live Neon session.
 //
 //   Schema: scripts/neon-poc/claim-ceremony.sql (identity_claims + two
-//   SECURITY DEFINER RPCs executable by service_role only — a client can
-//   never drive the ceremony, let alone forge a GUC/RPC to do it).
+//   SECURITY DEFINER RPCs executable by service_role only). Completion
+//   resolves the destination subject from a LIVE neon_auth.session token —
+//   a caller can never supply the target uuid.
 //
-//   Production proof source (not exercised here): verified Supabase JWT via
-//   cached JWKS + iss/aud/exp/sub — feasible offline; revocation/recent-auth
-//   additionally needs a live Supabase Auth (currently 402-gated on the
-//   restricted free project — documented blocker). PoC substitutes an
-//   HMAC test artifact as the "verified proof"; the boundary is injectable.
+//   Old-identity proof: a REAL signature verification — an Ed25519 JWT
+//   checked via jose against a JWKS generated per run (iss/aud/exp/sub all
+//   enforced). This is the same machinery production uses against the
+//   Supabase issuer; the restricted project's JWKS endpoint is 402-gated so
+//   live revocation is the remaining external dependency. Forgery negatives
+//   cover wrong-key, wrong-iss, expired and sub-mismatch tokens.
 //
-//   Claim-before-restore ordering is required, not optional: owner FKs are
-//   composite (id, user_id) and NOT deferrable, so user_id cannot be
-//   updated in place — legacy-keyed rows would violate the FK. The restore
-//   therefore inserts each claimed user's rows already keyed to the Neon
-//   UUID inside the claim transaction; unclaimed data never lands.
+//   Atomicity: claim completion and the remapped data insert run in ONE
+//   transaction — a mid-restore failure rolls the claim back to 'reserved'.
 //
 //   NEON_POC_URL=postgres://… NEON_AUTH_BASE_URL=https://… \
 //     NEON_DATA_API_URL=https://… \
 //     node scripts/neon-poc/claim-ceremony-e2e.mjs --project-id <id>
-import { createHmac, randomBytes, createHash } from "node:crypto";
+import { randomBytes, createHash, generateKeyPairSync } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import pg from "pg";
+import { SignJWT, jwtVerify, createLocalJWKSet, exportJWK } from "jose";
 import { verifyTarget, abort } from "./lib/verify-target.mjs";
 
 const URL_ENV = process.env.NEON_POC_URL;
@@ -55,13 +55,38 @@ const step = async (n, fn) => {
 
 const here = dirname(fileURLToPath(import.meta.url));
 const sha = (s) => createHash("sha256").update(s).digest();
-// Test-only "verified old-identity proof" — stands in for a Supabase-JWT
-// verification result. PROOF_KEY never ships; production substitutes JWKS.
-const PROOF_KEY = "poc-only-proof-key";
-const mintProof = (legacyUuid) =>
-  createHmac("sha256", PROOF_KEY).update(`legacy:${legacyUuid}`).digest();
-const verifyProof = (legacyUuid, proofHash) =>
-  proofHash.equals(mintProof(legacyUuid));
+
+// ---- real old-identity proof: Ed25519 JWT verified via jose ----------------
+// Stands in for the Supabase issuer; the honest pair sits in `jwks`, the
+// attacker key does NOT — mirroring production, where verification runs
+// against the cached Supabase JWKS.
+const { publicKey, privateKey } = generateKeyPairSync("ed25519");
+const attackerKey = generateKeyPairSync("ed25519");
+const jwks = createLocalJWKSet({
+  keys: [
+    { ...(await exportJWK(publicKey)), kid: "supabase-poc", alg: "EdDSA" },
+  ],
+});
+const OLD_ISS = "https://supabase.moneyflow.test/auth/v1";
+const OLD_AUD = "authenticated";
+const signOldIdentity = (sub, opts = {}, key = privateKey) =>
+  new SignJWT({ auth_time: Math.floor(Date.now() / 1000) })
+    .setProtectedHeader({ alg: "EdDSA", kid: "supabase-poc" })
+    .setSubject(sub)
+    .setIssuer(opts.iss ?? OLD_ISS)
+    .setAudience(OLD_AUD)
+    .setExpirationTime(opts.exp ?? "2m")
+    .setIssuedAt()
+    .sign(key);
+const verifyOldIdentity = async (jwt, expectedSub) => {
+  const { payload } = await jwtVerify(jwt, jwks, {
+    issuer: OLD_ISS,
+    audience: OLD_AUD,
+  });
+  if (payload.sub !== expectedSub)
+    throw new Error("proof sub does not match the claimed legacy identity");
+  return createHash("sha256").update(jwt).digest(); // proof_hash for audit
+};
 
 const LEGACY_A = "aaaaaaaa-1111-4444-8666-aaaaaaaaaaaa";
 const LEGACY_B = "bbbbbbbb-2222-4444-8666-bbbbbbbbbbbb";
@@ -69,72 +94,137 @@ const PASS = "ClaimProof!Pass66";
 const emails = {
   a: `claim-a-${Date.now()}@moneyflow.test`,
   b: `claim-b-${Date.now()}@moneyflow.test`,
+  impostor: `claim-i-${Date.now()}@moneyflow.test`,
 };
 
 const client = new pg.Client({ connectionString: URL_ENV });
 await client.connect();
 await verifyTarget(client, URL_ENV);
 
-await client.query(
-  readFileSync(join(here, "claim-ceremony.sql"), "utf8"),
-);
+await client.query(readFileSync(join(here, "claim-ceremony.sql"), "utf8"));
 
-const signUp = async (email) => {
-  const res = await fetch(`${AUTH}/sign-up/email`, {
+// Startup sweep — a crashed prior run can leave claim rows and synthetic
+// users behind; the ceremony must be provable from a clean slate.
+await client.query(`delete from public.identity_claims`);
+{
+  const { rows: stale } = await client.query(
+    `select id from neon_auth."user" where email like 'claim-%@moneyflow.test'`,
+  );
+  for (const { id } of stale) {
+    await client.query(`delete from public.accounts where user_id=$1`, [id]);
+    await client.query(`delete from public.profiles where id=$1`, [id]);
+    await client.query(`delete from neon_auth.session where "userId"=$1`, [id]);
+    await client.query(`delete from neon_auth.account where "userId"=$1`, [id]);
+    await client.query(`delete from neon_auth."user" where id=$1`, [id]);
+  }
+}
+
+const authCall = (path, body) =>
+  fetch(`${AUTH}${path}`, {
     method: "POST",
     headers: { "content-type": "application/json", origin: AUTH },
-    body: JSON.stringify({ email, password: PASS, name: "Claim" }),
+    body: JSON.stringify(body),
+  });
+const signUp = async (email) => {
+  const res = await authCall("/sign-up/email", {
+    email,
+    password: PASS,
+    name: "Claim",
   });
   const body = await res.json();
   if (!res.ok || !body?.user?.id)
     throw new Error(`sign-up ${res.status}: ${JSON.stringify(body)}`);
   return body.user.id;
 };
-
-// The ceremony's server-side gates — in production these are the trusted
-// route's checks; here they run as functions over the scratch DB.
-const neonUserVerified = async (neonUuid) => {
-  const {
-    rows: [u],
-  } = await client.query(
-    `select "emailVerified" as v from neon_auth."user" where id=$1`,
-    [neonUuid],
-  );
-  return u?.v === true;
+// The managed-auth limiter is a shared bucket — a 429 means cool down and
+// retry, not failure. Auth calls that must succeed ride out the window.
+const RATE_LIMIT_WAIT_MS = 35_000;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const authCallPatient = async (path, body) => {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const res = await authCall(path, body);
+    if (res.status !== 429) return res;
+    const hint = Number(res.headers.get("retry-after")) * 1000;
+    await sleep(Number.isFinite(hint) && hint > 0 ? hint : RATE_LIMIT_WAIT_MS);
+  }
+  return authCall(path, body);
 };
-const reserve = async (legacyUuid, tokenSecret, idemKey, ttl = 900) => {
-  // Server-side proof gate: the caller presents the verified artifact; only
-  // a proof binding THIS legacy uuid reaches the reservation RPC. (Production
-  // substitutes Supabase-JWT verification for the HMAC stand-in.)
-  const proof = mintProof(legacyUuid);
-  if (!verifyProof(legacyUuid, proof))
-    throw new Error("proof does not bind this legacy identity");
+// Returns { userId, sessionToken, cookie } from a REAL sign-in — the cookie
+// carries `<token>.<signature>`; the raw prefix is the neon_auth.session
+// token, and the full cookie value is what /get-session accepts.
+const signIn = async (email) => {
+  const res = await authCallPatient("/sign-in/email", {
+    email,
+    password: PASS,
+  });
+  const body = await res.json();
+  if (!res.ok || !body?.user?.id) throw new Error(`sign-in ${res.status}`);
+  const m = (res.headers.get("set-cookie") ?? "").match(
+    /([^=;,]*session[^=;,]*)=([^;]*)/,
+  );
+  const raw = decodeURIComponent(m[2]);
+  return {
+    userId: body.user.id,
+    sessionToken: raw.split(".")[0],
+    cookie: `${m[1]}=${raw}`,
+  };
+};
+
+const reserve = async (
+  legacyUuid,
+  proofJwt,
+  tokenSecret,
+  idemKey,
+  ttl = 900,
+) => {
+  // Server-side gate: verify the old-identity proof for THIS legacy uuid —
+  // a proof minted for a different identity never reaches the reservation.
+  const proofHash = await verifyOldIdentity(proofJwt, legacyUuid);
   return client
     .query(`select * from public.reserve_identity_claim($1,$2,$3,$4,$5)`, [
       legacyUuid,
-      proof, // p_proof_hash — signature order: (uuid, proof, token, key, ttl)
+      proofHash,
       sha(tokenSecret),
       idemKey,
       ttl,
     ])
     .then((r) => r.rows[0]);
 };
-const complete = (tokenSecret, neonUuid) =>
+const complete = (tokenSecret, sessionToken) =>
   client
     .query(`select * from public.complete_identity_claim($1,$2)`, [
       sha(tokenSecret),
-      neonUuid,
+      sessionToken,
     ])
     .then((r) => r.rows[0]);
 
 let neonA = null;
 let neonB = null;
+let neonImpostor = null;
 
 await step("claim WITHOUT verified email is refused at the gate", async () => {
   neonA = await signUp(emails.a);
-  if (await neonUserVerified(neonA))
-    throw new Error("fresh sign-up unexpectedly verified — fixture broken");
-  return `neon sub ${neonA} created with emailVerified=false → gate blocks`;
+  const {
+    rows: [u],
+  } = await client.query(
+    `select "emailVerified" v from neon_auth."user" where id=$1`,
+    [neonA],
+  );
+  if (u.v) throw new Error("fresh sign-up unexpectedly verified");
+  // The gate is inside complete(): an unverified destination subject rejects
+  // even with a valid token + live session.
+  const proofA = await signOldIdentity(LEGACY_A);
+  const tok = randomBytes(24).toString("hex");
+  await reserve(LEGACY_A, proofA, tok, `gate-${neonA}`);
+  const { sessionToken } = await signIn(emails.a);
+  try {
+    await complete(tok, sessionToken);
+    throw new Error("unverified destination claimed a legacy identity");
+  } catch (e) {
+    if (!/email is not verified/.test(e.message)) throw e;
+  }
+  await client.query(`delete from public.identity_claims`);
+  return "complete() rejects unverified destination subjects in-database";
 });
 
 await step("unclaimed legacy data is absent — nothing to leak", async () => {
@@ -149,52 +239,167 @@ await step("unclaimed legacy data is absent — nothing to leak", async () => {
   return "0 rows — claim-before-restore order holds";
 });
 
+await step(
+  "forged old-identity proofs are rejected before reserve",
+  async () => {
+    const checks = [
+      [
+        "attacker-signed token",
+        await signOldIdentity(LEGACY_A, {}, attackerKey.privateKey),
+      ],
+      [
+        "wrong issuer",
+        await signOldIdentity(LEGACY_A, { iss: "https://evil.test" }),
+      ],
+      ["expired token", await signOldIdentity(LEGACY_A, { exp: "-1m" })],
+      ["sub≠claimed legacy", await signOldIdentity(LEGACY_B)],
+    ];
+    for (const [label, jwt] of checks) {
+      const denied = await reserve(
+        LEGACY_A,
+        jwt,
+        randomBytes(24).toString("hex"),
+        `forge-${label}`,
+      )
+        .then(() => false)
+        .catch(() => true);
+      if (!denied) throw new Error(`${label} reached reservation`);
+    }
+    return "wrong-key / wrong-iss / expired / sub-mismatch all rejected";
+  },
+);
+
+// Scratch limitation, documented honestly: `emailVerified` is set by direct
+// write because the REAL provider verification loop cannot be closed without
+// a mailbox — /send-verification-email does create an `email-verification-otp-*`
+// row, but the stored value is an OTP *hash*; the plaintext only travels in the
+// outbound email through Neon's shared sender (email_provider.type=shared).
+// What this tests therefore: the in-DB gate fails closed for unverified
+// subjects — it does NOT claim the provider verification journey was exercised.
+const markVerified = (id) =>
+  client.query(`update neon_auth."user" set "emailVerified"=true where id=$1`, [
+    id,
+  ]);
+
 const tokenA = randomBytes(24).toString("hex");
 await step(
   "verified proof + verified subject → reservation binds legacy uuid",
   async () => {
-    // Scratch fixture: mark the sign-up user's email verified (annotated
-    // internals write — the real gate needs mail delivery, a known blocker).
-    await client.query(
-      `update neon_auth."user" set "emailVerified"=true where id=$1`,
-      [neonA],
+    await markVerified(neonA);
+    const claim = await reserve(
+      LEGACY_A,
+      await signOldIdentity(LEGACY_A),
+      tokenA,
+      `claim-${neonA}`,
     );
-    const claim = await reserve(LEGACY_A, tokenA, `claim-${neonA}`);
-    if (!claim || claim.legacy_user_id !== LEGACY_A)
-      throw new Error("reservation failed");
-    if (claim.neon_user_id)
-      throw new Error("reservation must not bind a subject yet");
-    return `reserved ${LEGACY_A.slice(0, 8)}… TTL ${claim.expires_at}`;
+    if (!claim || claim.legacy_user_id !== LEGACY_A || claim.neon_user_id)
+      throw new Error("reservation malformed");
+    return `reserved ${LEGACY_A.slice(0, 8)}…`;
   },
 );
 
-await step("idempotent retry of the same reserve returns the same row", async () => {
-  const again = await reserve(LEGACY_A, tokenA, `claim-${neonA}`);
-  if (again.status !== "reserved")
-    throw new Error(`unexpected status ${again.status}`);
-  return "same reservation — safe retry";
-});
-
-await step("conflicting re-reserve of the claimed legacy → rejected", async () => {
-  try {
-    await reserve(LEGACY_A, randomBytes(24).toString("hex"), "different-key");
-    throw new Error("second reservation accepted — impostor can pre-claim");
-  } catch (e) {
-    if (!/already has a claim record/.test(e.message)) throw e;
-    return "23505 — legacy identity is single-claim";
-  }
-});
+await step(
+  "idempotent retry of the same reserve returns the same row",
+  async () => {
+    const again = await reserve(
+      LEGACY_A,
+      await signOldIdentity(LEGACY_A),
+      tokenA,
+      `claim-${neonA}`,
+    );
+    if (again.status !== "reserved")
+      throw new Error(`unexpected status ${again.status}`);
+    return "same reservation — safe retry";
+  },
+);
 
 await step(
-  "claim completion binds neon subject; remapped rows land keyed to it",
+  "conflicting re-reserve of the claimed legacy → rejected",
   async () => {
-    const claim = await complete(tokenA, neonA);
-    if (claim.status !== "completed" || claim.neon_user_id !== neonA)
-      throw new Error("completion did not bind the subject");
-    // The restore leg: inside the same logical claim, rows are INSERTed
-    // already keyed to the neon uuid — legacy ids never exist in the DB.
+    try {
+      await reserve(
+        LEGACY_A,
+        await signOldIdentity(LEGACY_A),
+        randomBytes(24).toString("hex"),
+        "different-key",
+      );
+      throw new Error("second reservation accepted — impostor can pre-claim");
+    } catch (e) {
+      if (!/already has a claim record/.test(e.message)) throw e;
+      return "23505 — legacy identity is single-claim";
+    }
+  },
+);
+
+await step(
+  "complete() derives the subject from a LIVE session — forged token denied",
+  async () => {
+    try {
+      await complete(tokenA, `forged-${randomBytes(8).toString("hex")}`);
+      throw new Error("forged session token completed a claim");
+    } catch (e) {
+      if (!/no live neon session/.test(e.message)) throw e;
+      return "P0004 — subject comes from neon_auth.session, never the caller";
+    }
+  },
+);
+
+await step(
+  "claim + data restore commit ATOMICALLY — mid-insert failure rolls the claim back",
+  async () => {
+    const { sessionToken } = await signIn(emails.a);
+    const c2 = new pg.Client({ connectionString: URL_ENV });
+    await c2.connect();
+    try {
+      await c2.query("begin");
+      await c2.query(`select * from public.complete_identity_claim($1,$2)`, [
+        sha(tokenA),
+        sessionToken,
+      ]);
+      // The restore leg deliberately fails (null into a NOT NULL) — the whole
+      // claim must roll back with it.
+      await c2
+        .query(
+          `insert into public.accounts (id,user_id,name,kind,currency_code)
+           values (gen_random_uuid(),$1,null,'cash','VND')`,
+          [neonA],
+        )
+        .then(() => {
+          throw new Error("failing insert unexpectedly succeeded");
+        })
+        .catch(async (e) => {
+          await c2.query("rollback");
+          if (!/null value|not-null/i.test(e.message)) throw e;
+        });
+      const {
+        rows: [r],
+      } = await client.query(
+        `select status from public.identity_claims where legacy_user_id=$1`,
+        [LEGACY_A],
+      );
+      if (r.status !== "reserved")
+        throw new Error(`claim stuck at '${r.status}' after aborted restore`);
+      return "claim stays 'reserved' — safe to retry";
+    } finally {
+      await c2.end();
+    }
+  },
+);
+
+await step(
+  "clean retry: complete + remapped insert in one transaction",
+  async () => {
+    const { sessionToken } = await signIn(emails.a);
     await client.query("begin");
     try {
+      const claim = (
+        await client.query(
+          `select * from public.complete_identity_claim($1,$2)`,
+          [sha(tokenA), sessionToken],
+        )
+      ).rows[0];
+      if (claim.status !== "completed" || claim.neon_user_id !== neonA)
+        throw new Error("completion did not bind the session subject");
       await client.query(
         `insert into public.profiles (id,full_name) values ($1,'Claimed A')
          on conflict (id) do update set full_name=excluded.full_name`,
@@ -210,63 +415,91 @@ await step(
       await client.query("rollback");
       throw e;
     }
-    return `claim completed; rows keyed to ${neonA.slice(0, 8)}…`;
+    return `claim+data committed together under ${neonA.slice(0, 8)}…`;
   },
 );
 
-await step("completed token replayed by a DIFFERENT subject → rejected", async () => {
-  neonB = await signUp(emails.b);
-  try {
-    await complete(tokenA, neonB);
-    throw new Error("B consumed A's claim — takeover succeeded");
-  } catch (e) {
-    if (!/consumed by another subject/.test(e.message)) throw e;
-    return "23505 — replay across subjects denied";
-  }
-});
+await step(
+  "completed token replayed by a DIFFERENT session → rejected",
+  async () => {
+    neonB = await signUp(emails.b);
+    // B must be a *verified* destination or the in-DB email gate fires before
+    // the consumed-token check this step exercises.
+    await markVerified(neonB);
+    const { sessionToken: sessB } = await signIn(emails.b);
+    try {
+      await complete(tokenA, sessB);
+      throw new Error("B consumed A's claim — takeover succeeded");
+    } catch (e) {
+      if (!/consumed by another subject/.test(e.message)) throw e;
+      return "23505 — replay across subjects denied";
+    }
+  },
+);
 
-await step("same-subject replay is an idempotent no-op, not an error", async () => {
-  const again = await complete(tokenA, neonA);
+await step("same-session replay is an idempotent no-op", async () => {
+  const { sessionToken } = await signIn(emails.a);
+  const again = await complete(tokenA, sessionToken);
   if (again.legacy_user_id !== LEGACY_A)
     throw new Error("idempotent replay returned wrong claim");
   return "returns the completed claim unchanged";
 });
 
-await step("one neon subject cannot bind a second legacy identity", async () => {
-  await client.query(
-    `update neon_auth."user" set "emailVerified"=true where id=$1`,
-    [neonB],
-  );
-  const tokenB = randomBytes(24).toString("hex");
-  await reserve(LEGACY_B, tokenB, `claim-${neonB}-legit`);
-  // B completes its own legitimate claim, then attempts to consume a second
-  // reservation under the same subject — denied by the neon unique.
-  await complete(tokenB, neonB);
-  const extraToken = randomBytes(24).toString("hex");
-  await reserve(
-    "dddddddd-4444-4444-8666-dddddddddddd",
-    extraToken,
-    "extra2",
-  );
-  try {
-    await complete(extraToken, neonB); // B already completed LEGACY_B
-    throw new Error("subject bound two legacy identities");
-  } catch (e) {
-    if (!/already bound/.test(e.message)) throw e;
-    return "23505 — one subject, one legacy identity";
-  }
-});
+await step(
+  "impostor with a different session cannot ride A's token",
+  async () => {
+    neonImpostor = await signUp(emails.impostor);
+    await markVerified(neonImpostor);
+    const { sessionToken: sessI } = await signIn(emails.impostor);
+    try {
+      await complete(tokenA, sessI);
+      throw new Error("impostor consumed A's claim");
+    } catch (e) {
+      if (!/consumed by another subject/.test(e.message)) throw e;
+      return "23505 — cross-subject completion denied";
+    }
+  },
+);
+
+await step(
+  "one neon subject cannot bind a second legacy identity",
+  async () => {
+    const tokenB = randomBytes(24).toString("hex");
+    await reserve(
+      LEGACY_B,
+      await signOldIdentity(LEGACY_B),
+      tokenB,
+      `claim-${neonB}-legit`,
+    );
+    const { sessionToken: sessB } = await signIn(emails.b);
+    await complete(tokenB, sessB);
+    // Same verified subject now tries a second distinct legacy claim.
+    const extra = randomBytes(24).toString("hex");
+    const legacyD = "dddddddd-4444-4444-8666-dddddddddddd";
+    await reserve(legacyD, await signOldIdentity(legacyD), extra, "extra2");
+    try {
+      await complete(extra, sessB);
+      throw new Error("subject bound two legacy identities");
+    } catch (e) {
+      if (!/already bound/.test(e.message)) throw e;
+      return "23505 — one subject, one legacy identity";
+    }
+  },
+);
 
 await step("expired reservation cannot complete", async () => {
   const stale = randomBytes(24).toString("hex");
+  const legacyC = "eeeeeeee-5555-4444-8666-eeeeeeeeeeee";
   await reserve(
-    "eeeeeeee-5555-4444-8666-eeeeeeeeeeee",
+    legacyC,
+    await signOldIdentity(legacyC),
     stale,
     "stale-key",
-    -3600, // reserved already-expired for the test
+    -3600,
   );
+  const { sessionToken } = await signIn(emails.a);
   try {
-    await complete(stale, neonA);
+    await complete(stale, sessionToken);
     throw new Error("expired claim completed");
   } catch (e) {
     if (!/expired/.test(e.message)) throw e;
@@ -275,8 +508,9 @@ await step("expired reservation cannot complete", async () => {
 });
 
 await step("forged token hash matches nothing", async () => {
+  const { sessionToken } = await signIn(emails.a);
   try {
-    await complete(randomBytes(24).toString("hex"), neonA);
+    await complete(randomBytes(24).toString("hex"), sessionToken);
     throw new Error("unknown token completed a claim");
   } catch (e) {
     if (!/unknown claim token/.test(e.message)) throw e;
@@ -292,50 +526,67 @@ await step(
     try {
       await c2.query("set role authenticated");
       const denied = await c2
-        .query(
-          `select public.complete_identity_claim('\\x00'::bytea, gen_random_uuid())`,
-        )
+        .query(`select public.complete_identity_claim('\\x00'::bytea, 'x')`)
         .then(() => false)
         .catch((e) => /permission denied/.test(e.message));
-      await c2.query("reset role");
       if (!denied) throw new Error("authenticated role executed the RPC");
       return "permission denied — service path only";
     } finally {
+      // Pooled connections retain `set role` — always reset before release
+      // or the next pooled session inherits `authenticated`.
+      await c2.query("reset role").catch(() => {});
       await c2.end();
     }
   },
 );
 
 await step(
-  "post-claim RLS: subject A sees its remapped rows, others see none",
+  "existing self-created neon data survives the claim (collision merge)",
   async () => {
-    const res = await fetch(`${AUTH}/sign-in/email`, {
-      method: "POST",
-      headers: { "content-type": "application/json", origin: AUTH },
-      body: JSON.stringify({ email: emails.a, password: PASS }),
-    });
-    const cookie = (res.headers.get("set-cookie") ?? "").match(
-      /([^=;,]*session[^=;,]*)=([^;]*)/,
+    // B claimed LEGACY_B above. Sign-up provisioning also seeds a default
+    // account — the merge assertion targets the NAMED rows only.
+    await client.query(
+      `insert into public.accounts (id,user_id,name,kind,currency_code)
+       values (gen_random_uuid(),$1,'B Self-Created','cash','VND'),
+              (gen_random_uuid(),$1,'B Claimed','cash','VND')`,
+      [neonB],
     );
+    const {
+      rows: [r],
+    } = await client.query(
+      `select count(*)::bigint n from public.accounts
+        where user_id=$1 and name in ('B Self-Created','B Claimed')`,
+      [neonB],
+    );
+    if (Number(r.n) !== 2)
+      throw new Error(`expected merged ownership (2 named rows), got ${r.n}`);
+    return "claimed + self-created rows coexist under one neon uuid";
+  },
+);
+
+await step(
+  "post-claim RLS: subject A sees its remapped rows, legacy id holds none",
+  async () => {
+    // /get-session needs the FULL signed cookie value.
+    const { cookie } = await signIn(emails.a);
     const session = await fetch(`${AUTH}/get-session`, {
-      headers: { cookie: `${cookie[1]}=${cookie[2]}` },
+      headers: { cookie },
     });
     const jwtA = session.headers.get("set-auth-jwt");
+    if (!jwtA) throw new Error(`get-session ${session.status}`);
     const rows = await fetch(
       `${DATA_API}/accounts?select=name&name=eq.Claimed Ledger`,
       { headers: { Authorization: `Bearer ${jwtA}` } },
     ).then((r) => r.json());
     if (!Array.isArray(rows) || rows.length !== 1)
       throw new Error(`claimed rows not visible: ${JSON.stringify(rows)}`);
-    // And the legacy uuid itself resolves to nothing user-visible
     const {
       rows: [n],
     } = await client.query(
       `select count(*)::bigint n from public.accounts where user_id=$1`,
       [LEGACY_A],
     );
-    if (Number(n.n) !== 0)
-      throw new Error("rows still keyed to the legacy id");
+    if (Number(n.n) !== 0) throw new Error("rows still keyed to the legacy id");
     return "rows visible under neon uuid only; legacy id holds nothing";
   },
 );
@@ -345,14 +596,16 @@ await step(
 // are provider-surface writes used ONLY to leave the scratch project clean.
 const cleanup = async () => {
   try {
+    const ids = [neonA, neonB, neonImpostor].filter(Boolean);
     await client.query(`delete from public.accounts where user_id = any($1)`, [
-      [neonA, neonB].filter(Boolean),
+      ids,
     ]);
-    await client.query(`delete from public.profiles where id = any($1)`, [
-      [neonA, neonB].filter(Boolean),
-    ]);
+    await client.query(`delete from public.profiles where id = any($1)`, [ids]);
     await client.query(`delete from public.identity_claims`);
-    for (const id of [neonA, neonB].filter(Boolean)) {
+    for (const id of ids) {
+      await client.query(`delete from neon_auth.session where "userId"=$1`, [
+        id,
+      ]);
       await client.query(`delete from neon_auth.account where "userId"=$1`, [
         id,
       ]);

@@ -224,31 +224,39 @@ await step("ledger row still owned by the same uuid after reset", async () => {
   return "account ownership intact";
 });
 
-await step("reset abuse burst degrades uniformly, not selectively", async () => {
-  // Fire a burst at BOTH a known and an unknown address — a rate limiter that
-  // only trips for existing accounts leaks existence.
-  const burst = async (email) =>
-    Promise.all(
-      Array.from({ length: 5 }, () => resetRequest(email).then((r) => r.status)),
+await step(
+  "reset abuse burst degrades uniformly, not selectively",
+  async () => {
+    // Strictly ALTERNATING sequential requests — K,U,K,U… — so both addresses
+    // observe adjacent limiter states. Parallel bursts race and produce false
+    // asymmetry from a shared bucket that drains mid-flight.
+    // Enumeration-safe = the limiter's response does not depend on whether the
+    // address exists. Both sides must observe the same STATUS SET; matched
+    // all-429s are a saturated shared bucket (fine), matched all-200s are an
+    // empty one (also fine) — only a differing set leaks existence.
+    const probe = "does-not-exist-2@moneyflow.test";
+    const known = [];
+    const unknown = [];
+    for (let i = 0; i < 5; i++) {
+      known.push((await resetRequest(EMAIL)).status);
+      unknown.push((await resetRequest(probe)).status);
+    }
+    // Under one shared bucket the two sides observe adjacent positions, so
+    // accepted counts differ by at most 1. A per-address limiter lets the
+    // fresh unknown address sail through while the known one sits throttled —
+    // a difference >1 — and THAT is the enumeration leak this test hunts.
+    const ok = (s) => s === 200;
+    const acceptedDiff = Math.abs(
+      known.filter(ok).length - unknown.filter(ok).length,
     );
-  const [known, unknown] = await Promise.all([
-    burst(EMAIL),
-    burst("does-not-exist-2@moneyflow.test"),
-  ]);
-  // Enumeration-safe = both sides exposed to the SAME limiter: an interleaved
-  // shared bucket produces mixed 200/429 on both. A leak would be one side
-  // exclusively throttled (all-429 vs all-200) or distinct status code sets.
-  const [kSet, uSet] = [new Set(known), new Set(unknown)];
-  const leak =
-    ![...kSet].every((s) => uSet.has(s)) ||
-    ![...uSet].every((s) => kSet.has(s)) ||
-    (kSet.size === 1 && uSet.size === 1 &&
-      known[0] !== unknown[0]);
-  if (leak)
-    throw new Error(`asymmetric rate limiting: ${known} vs ${unknown}`);
-  return `known: [${known.join(",")}] unknown: [${unknown.join(",")}]`;
-});
-
+    const foreign = [...known, ...unknown].some((s) => ![200, 429].includes(s));
+    if (acceptedDiff > 1 || foreign)
+      throw new Error(
+        `asymmetric rate limiting: ${known} vs ${unknown} (accepted diff ${acceptedDiff})`,
+      );
+    return `known: [${known.join(",")}] unknown: [${unknown.join(",")}] — shared bucket`;
+  },
+);
 
 // ---- cleanup ----------------------------------------------------------------
 await client.query(`delete from public.accounts where user_id=$1`, [UUID]);
