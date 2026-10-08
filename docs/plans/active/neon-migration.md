@@ -270,6 +270,53 @@ Tested live against the provisioned managed auth on the scratch project:
 | Scoped/OAuth-server tokens for MCP clients (`auth.jwt()->>'client_id'`)             | **NO equivalent** — managed Neon Auth issues session JWTs without `client_id`; `guard_oauth_mutation()` compiles and replays but the restricted-client branch can never trigger. Third-party agent transport would run at full user privilege unless a separate scoped-token layer is built — descope/defer |
 | Session invalidation                                                                | proven in Gate 3: upstream `/sign-out` → protected routes redirect (14/14 vertical slice)                                                                                                                                                                                                 |
 
+### Review round-1 findings and resolution (owner review 2026-10-08)
+
+| Finding | Severity | Resolution |
+|---|---|---|
+| `login()` created the data client before the Neon branch — logged-out users (no JWT) hit `configurationError` | P0 | Neon sign-in resolves via `getNeonAuth()` alone; Supabase client only inside its branch. Slice adds wrong-password + fresh-context login-after-logout → 16/16 |
+| `npm ci` fails under Node 22/npm 10 — lockfile missing nested peer entries (`ajv@8.20.0`, `ajv-formats@2.1.1`, `json-schema-traverse@1.0.0`) | P0 | lockfile regenerated with npm 10 (CI toolchain); clean `npm ci` verified |
+| PK-only `pk_sha256` cannot detect value corruption | P1 | canonical full-row `content_sha256` (UTC-pinned, PK-independent) + cross-tenant ownership invariants + in-run mutation-negative (+1 `amount_minor`, PK intact → flagged) |
+| PR-775 memory record missing literal `Changed/Verified/Remaining` markers | P0 | record rewritten to contract |
+
+Sibling auth actions audited per review: `signInWithGoogle` → managed
+`signIn.social` branch (reauth fails closed); `requestPasswordReset` /
+`updatePassword` → Better-Auth reset endpoints with `?token=` plumbing;
+`finalizeAccountDeletion` → honest fail-closed (Supabase-only).
+
+### Scoped-token design note (OAuth/MCP boundary — owner direction: keep the capability)
+
+Neon managed JWTs carry no `client_id`, so the provider cannot mint
+third-party scoped tokens. The boundary therefore moves into MoneyFlow:
+
+1. **App-level grant registry** — a `public.oauth_client_grants` table
+   (user_id, client_id, scopes, status, issued/revoked timestamps) owned
+   by us, migrated like any app table. Consent UX records a grant; only
+   rows in `approved` state authorize.
+2. **MoneyFlow-issued agent tokens** — PAT-style opaque tokens we mint,
+   hash-store, and scope to a grant. The app's bearer boundary resolves
+   `token → grant → {user_id, client_id, scopes}` itself rather than
+   trusting provider JWT claims.
+3. **`guard_oauth_mutation()` stays the enforcement shape** — but reads
+   `client_id` from a request GUC our API layer sets (`set_config`)
+   instead of `auth.jwt()`, so restricted clients still cannot mutate
+   beyond `pending` inbox proposals.
+4. Regular Neon session JWTs keep user-level scope; they are never
+   treated as OAuth clients because they carry no grant record.
+
+Status: **design only** — implementation is its own scoped task, and the
+capability stays a cutover blocker until built and tested.
+
+### Managed-auth import limitation (review round-1)
+
+Direct `insert` into `neon_auth."user"`/`account` preserved chosen UUIDs
+and authenticated in the PoC, but these are **provider-managed internals**
+— Neon's documented import path may differ and internals can change under
+us. Marked as an auth-import cutover blocker: verify the official import
+mechanism (or the reset-only path) before any real-user migration. The
+backup rehearsal likewise excludes `neon_auth.account/session/
+verification` — credential state recovery is unproven by design.
+
 ### Remaining limitations
 
 - Password-hash portability resolved as **no**: bcrypt cannot be imported
