@@ -729,3 +729,22 @@ linking gate confirmed favorable: all 5 restored users carry
 link condition, so a matching Google sign-in links to the migrated
 account instead of creating an empty one. Banned users remain blocked by
 the `session.create` hook which fires on OAuth sessions too.
+
+### OAuth completion — verified end-to-end (2026-10-08)
+
+Production DB evidence confirms the real Google round-trip closed:
+
+- `neon_auth.account` holds `providerId="google"`,
+  `accountId=<google-sub>` bound to `userId=3f44bf04…` — the **migrated
+  owner account**, not a newly created user. Link-by-verified-email gate
+  (`emailVerified=true` both sides) worked as designed.
+- `idToken` carries `email=thunderkill016@gmail.com`,
+  `email_verified=true` — genuine Google identity.
+- `neon_auth.session` newest row created 24 ms after the google account
+  row → the verifier exchange + session mint succeeded in the real
+  browser flow.
+- That `userId` owns the 170 migrated `financial_transactions` — RLS
+  scoping returns the correct dataset, not an empty account.
+
+Outcome: Google Login → correct old account → full migrated data. The
+migration's sole remaining acceptance criterion is met.
