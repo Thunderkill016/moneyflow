@@ -38,6 +38,8 @@ export type UnsentCaptureDraft = {
   accountId: string;
   occurredOn: string;
   savedAt: string;
+  /** Identity of an already attempted write; reused only for the same unchanged draft. */
+  idempotencyKey?: string;
 };
 
 const KINDS: TransactionKind[] = ["expense", "income"];
@@ -74,6 +76,9 @@ export function isUnsentCaptureDraft(
     item.accountId.length <= ID_MAX_LENGTH &&
     typeof item.occurredOn === "string" &&
     OCCURRED_ON_PATTERN.test(item.occurredOn) &&
+    (item.idempotencyKey === undefined ||
+      (typeof item.idempotencyKey === "string" &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(item.idempotencyKey))) &&
     typeof item.savedAt === "string" &&
     Number.isFinite(Date.parse(item.savedAt))
   );
