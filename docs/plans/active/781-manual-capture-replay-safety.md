@@ -30,3 +30,38 @@ Follow `AGENTS.md`, `docs/product/CANON.md`, `docs/engineering/RISK_PROPORTIONAL
 ## Delivery status
 
 Draft PR #782 opened. Tests pending CI. No production write and no provider changes.
+
+## Repository reconnaissance
+
+- Capture path: `src/components/add-transaction-dialog.tsx`, `src/lib/unsent-draft.ts`, `src/app/actions/transactions.ts`.
+- Transaction RPC current definition: `db/neon/migrations/20260924120000_transaction_goal_linkage.sql`.
+- Database verification: `supabase/tests/database` and the Neon-generated migration manifest.
+
+## Research
+
+PostgreSQL transaction-scoped advisory locks serialize attempts on a user/key pair. An immutable creation-intent record is needed to compare replays even after legitimate edits to the transaction. Request identity must survive an ambiguous response; a unique index alone cannot distinguish a changed payload.
+
+## Specification
+
+An unchanged submitted request with the same key returns the original transaction ID. A changed request sharing the key fails explicitly; legacy rows without a recorded original intent fail closed. The browser persists the submitted key before sending and restores it without generating another key for the same draft. No production writes or provider changes.
+
+## Implementation plan
+
+1. Add the draft and RPC changes on the isolated branch.
+2. Add paired provider migrations and their identity/manifest records.
+3. Add unit and pgTAP regressions and check a truly concurrent test with two connections.
+4. Run exact-head CI, reconcile findings, and seek owner review before merge.
+
+## Tasks
+
+| Task | State |
+|---|---|
+| Branch implementation, provider migration parity | done |
+| Draft restoration and static contract tests | done |
+| pgTAP first/replay/mismatch cases | authored; CI pending |
+| Browser ambiguous-commit and two-connection concurrency | outstanding |
+| Owner-reviewed merge/deploy | not authorized |
+
+## Evaluation
+
+Acceptance requires a single persisted transaction and account leg after repeated identical attempts, mismatched intent rejection without mutation, restored draft idempotency identity across remount, and no archived-data or RLS regression. CI/test evidence must attach to the exact head. Do not claim complete until independent concurrency and lost-ACK scenarios are proven.
