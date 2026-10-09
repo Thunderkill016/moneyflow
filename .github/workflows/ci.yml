@@ -117,6 +117,8 @@ jobs:
           fi
       - name: Migration identity contract
         run: npm run check:migrations
+      - name: Deploy-context hygiene contract
+        run: npm run check:deploy-hygiene
       - name: Project knowledge contract
         run: npm run check:knowledge
       - name: CI classification and retry contract

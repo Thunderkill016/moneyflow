@@ -103,19 +103,60 @@ MF_BUILD_COMMIT=<sha>` and post-checks `/api/health`.
 
 ### Acceptance matrix (start state)
 
-| #   | Criterion                                          | State                                             | Evidence                                           |
-| --- | -------------------------------------------------- | ------------------------------------------------- | -------------------------------------------------- |
-| 1   | Production build carries verifiable commit         | FAIL (live build = `dev`)                         | `/api/health` probe + deploy inspect               |
-| 2   | Untraceable prod build fails closed at build time  | NOT YET PROVEN                                    | implement + test                                   |
-| 3   | Secrets/`out/`/env cannot reach deployment storage | PARTIAL (vercelignore exists, no automated proof) | canary test + file-list verify                     |
-| 4   | Neon OAuth verifier exchange covered by test       | PARTIAL (live prod proof only)                    | contract + behavior test                           |
-| 5   | A/B RLS isolation                                  | PASS on prod (2026-10-08), REPEATABLE PROOF thin  | record + local pgTAP + prod read-only negatives    |
-| 6   | pgTAP/db gates on Neon-relevant schema             | NOT RUN locally this mission                      | run `test:db`                                      |
-| 7   | Docs match Neon reality                            | FAIL                                              | README/ARCHITECTURE/configuration/deployment stale |
-| 8   | Ops runbook + rollback                             | MISSING                                           | write `docs/operations/` runbook                   |
-| 9   | Clean-checkout reproducibility                     | NOT YET PROVEN                                    | fresh clone + npm ci + gates                       |
-| 10  | Independent review of diff                         | NOT YET PROVEN                                    | reviewer subagent on final diff                    |
-| 11  | Deletion/reauth + OAuth/MCP scoped-token audit     | NOT YET PROVEN                                    | code audit + contract tests                        |
+| #   | Criterion                                          | State                          | Evidence                                                                                                |
+| --- | -------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| 1   | Production build carries verifiable commit         | FIXED in code, pending deploy  | `resolveBuildCommit` + `deploy-prod.mjs` `-b MF_BUILD_COMMIT`; prod still runs pre-fix build            |
+| 2   | Untraceable prod build fails closed at build time  | PASS                           | `VERCEL_ENV=production` w/o commit → config load throws; `MF_BUILD_COMMIT=<sha>` bakes SHA; unit tests  |
+| 3   | Secrets/`out/`/env cannot reach deployment storage | PASS                           | `vercel deploy --dry` file list shows 0 secret paths; `check-deploy-hygiene.mjs` 19 canaries, negative-tested |
+| 4   | Neon OAuth verifier exchange covered by test       | PASS                           | `proxy-oauth-contract.test.ts` 5/5 + live prod proof (owner Google sign-in 2026-10-08)                  |
+| 5   | A/B RLS isolation                                  | PASS                           | 4-account prod sign-in + Data API counts (2026-10-08); RLS flag audit: all 22 tenant tables `rowsecurity=true` (2026-10-09) |
+| 6   | pgTAP/db gates on Neon-relevant schema             | PASS                           | `run-pgtap.mjs` embedded PG 17: 80 migrations + 58/58 suites green at HEAD                              |
+| 7   | Docs match Neon reality                            | FAIL                           | README/ARCHITECTURE/configuration/deployment stale                                                      |
+| 8   | Ops runbook + rollback                             | MISSING                        | write `docs/operations/` runbook                                                                        |
+| 9   | Clean-checkout reproducibility                     | PARTIAL                        | `npm ci` + typecheck/lint/tests green in worktree; isolated clone + exact-head CI pending PR            |
+| 10  | Independent review of diff                         | NOT YET PROVEN                 | reviewer pass on final diff                                                                             |
+| 11  | Deletion/reauth + OAuth/MCP scoped-token audit     | PASS (audit)                   | see audit notes below                                                                                   |
+
+### Audit notes — deletion/reauth + scoped-token paths (2026-10-09)
+
+- `finalizeAccountDeletion` (`src/app/(auth)/actions.ts:536`): Neon branch
+  returns an honest "not supported" failure — no partial deletion, no
+  misleading error. Fail-closed; user data untouched.
+- `/api/mcp` bearer path: `verifyNeonBearerJwt` pins `iss == aud == auth
+  origin`, EdDSA-only, `jose` JWKS. Offline contract tests in
+  `src/lib/neon/jwt.test.ts` cover foreign-key forgery, wrong iss/aud,
+  expiry, garbage. Live prod probes (2026-10-08): anonymous/malformed/forged
+  bearer → 401/Data-API deny.
+- `/oauth/consent`: Supabase-GoTrue-only surface (`auth.oauth.*` API). Under
+  Neon `createClient()` returns the Data API client, so authorization calls
+  error → honest "expired or missing" card / `consent_failed` redirect.
+  Fail-closed, documented boundary (`clientId: null` in `src/server/auth.ts`).
+- Cookie session path: `auth.getSession()` upstream → banned/revoked/expired
+  users resolve to null → 401/redirect. Live proof: banned users got
+  `BANNED_USER` on both credential and OAuth session creation.
+
+### Ledger integrity audit — live Neon prod, read-only (2026-10-09)
+
+- 183 `financial_transactions` (174 live / 9 soft-deleted), 3 owners; owner
+  live count moved 170→166 = real post-migration usage, consistent with
+  Neon being the live source of truth.
+- Entries: 0 orphans, 0 live txns without legs, 0 zero-amount legs.
+- Transfer invariant: 1 live transfer = exactly 2 legs netting 0.
+- No mixed-sign legs on non-transfer txns; 0 idempotency dupes;
+  0 future-dated rows; 0 account/category FK orphans.
+- All 22 tenant tables have `relrowsecurity = true`; 0 orphaned sessions;
+  0 expired sessions linger; all 5 auth users active (post-unban state).
+- `supabase_migrations.schema_migrations` is empty: migrations were applied
+  via `db/neon/migrations` replay, not the Supabase CLI tracker. Schema
+  parity verified by table/index/constraint inspection; record bookkeeping
+  difference, not an integrity gap.
+
+### Rollback-posture finding (2026-10-09)
+
+- `scripts/neon-poc/out/` (encrypted Supabase backup + rotated credentials)
+  no longer exists on this machine. Rollback to Supabase now relies on
+  Supabase-side data retention (egress-locked but queryable via Management
+  API). Acceptable but should be stated in the runbook and to the owner.
 
 ### Financial and security constraints
 
