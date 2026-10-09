@@ -107,14 +107,14 @@ MF_BUILD_COMMIT=<sha>` and post-checks `/api/health`.
 | --- | -------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------- |
 | 1   | Production build carries verifiable commit         | FIXED in code, pending deploy  | `resolveBuildCommit` + `deploy-prod.mjs` `-b MF_BUILD_COMMIT`; prod still runs pre-fix build            |
 | 2   | Untraceable prod build fails closed at build time  | PASS                           | `VERCEL_ENV=production` w/o commit → config load throws; `MF_BUILD_COMMIT=<sha>` bakes SHA; unit tests  |
-| 3   | Secrets/`out/`/env cannot reach deployment storage | PASS                           | `vercel deploy --dry` file list shows 0 secret paths; `check-deploy-hygiene.mjs` 19 canaries, negative-tested |
-| 4   | Neon OAuth verifier exchange covered by test       | PASS                           | `proxy-oauth-contract.test.ts` 5/5 + live prod proof (owner Google sign-in 2026-10-08)                  |
+| 3   | Secrets/`out/`/env cannot reach deployment storage | PASS                           | `.vercelignore` at .gitignore parity + beyond; `check-deploy-hygiene.mjs` 49 canaries + parity guard, negative-tested; `vercel deploy --dry` file list clean |
+| 4   | Neon OAuth verifier exchange covered by test       | PASS                           | `proxy-oauth-contract.test.ts` 6/6 + live prod proof (owner Google sign-in 2026-10-08)                  |
 | 5   | A/B RLS isolation                                  | PASS                           | 4-account prod sign-in + Data API counts (2026-10-08); RLS flag audit: all 22 tenant tables `rowsecurity=true` (2026-10-09) |
 | 6   | pgTAP/db gates on Neon-relevant schema             | PASS                           | `run-pgtap.mjs` embedded PG 17: 80 migrations + 58/58 suites green at HEAD                              |
-| 7   | Docs match Neon reality                            | FAIL                           | README/ARCHITECTURE/configuration/deployment stale                                                      |
-| 8   | Ops runbook + rollback                             | MISSING                        | write `docs/operations/` runbook                                                                        |
-| 9   | Clean-checkout reproducibility                     | PARTIAL                        | `npm ci` + typecheck/lint/tests green in worktree; isolated clone + exact-head CI pending PR            |
-| 10  | Independent review of diff                         | NOT YET PROVEN                 | reviewer pass on final diff                                                                             |
+| 7   | Docs match Neon reality                            | PASS                           | README/ARCHITECTURE/configuration/deployment reconciled; stale Supabase-only claims removed             |
+| 8   | Ops runbook + rollback                             | PASS                           | `docs/operations/production-runbook.md`                                                                 |
+| 9   | Clean-checkout reproducibility                     | PASS                           | fresh `/tmp/mf-clean-checkout` clone → `npm ci` → `verify:fast` green on exact head `c0b843bd` (2170/2170 tests) |
+| 10  | Independent review of diff                         | PASS                           | reviewer pass found 1 blocker (`.vercelignore` coverage holes) + 14 warnings; all fixed in `c0b843bd`   |
 | 11  | Deletion/reauth + OAuth/MCP scoped-token audit     | PASS (audit)                   | see audit notes below                                                                                   |
 
 ### Audit notes — deletion/reauth + scoped-token paths (2026-10-09)
@@ -199,9 +199,9 @@ another provider migration, restoring Supabase as authoritative, merging.
 | T5  | Neon auth/JWT/RLS boundary audit + live read-only prod probes        | done       |
 | T6  | pgTAP suite on embedded Postgres + live ledger invariant audit       | done       |
 | T7  | Docs reconciliation + ops runbook                                    | done       |
-| T8  | Clean isolated checkout + exact-head CI                              | in progress |
-| T9  | Independent review of diff + packet                                  | pending    |
-| T10 | PR + consolidated handoff on #779                                    | pending    |
+| T8  | Clean isolated checkout + exact-head CI                              | done (clone+npm ci+verify:fast on `c0b843bd`); GitHub CI awaits PR |
+| T9  | Independent review of diff + packet                                  | done — findings fixed in `c0b843bd`                                |
+| T10 | PR + consolidated handoff on #779                                    | in progress |
 
 ## Evaluation
 
@@ -216,7 +216,26 @@ Repository gates run on the branch head:
   on embedded Postgres 17 at HEAD.
 - `vercel deploy --dry` file-list audit — zero secret paths in upload set.
 - `node --test` contract suites: `build-identity.test.ts` 11/11,
-  `proxy-oauth-contract.test.ts` 5/5, `neon/jwt.test.ts` 6/6.
+  `proxy-oauth-contract.test.ts` 6/6, `neon/jwt.test.ts` 6/6.
+- Clean isolated checkout (`/tmp/mf-clean-checkout`, fresh clone):
+  `npm ci` + `verify:fast` green on exact head `c0b843bd` — 2170/2170 tests.
+
+### Independent review (2026-10-09, reviewer subagent)
+
+One blocker and fourteen warnings were raised and all fixed in `c0b843bd`:
+
+- BLOCKER: `.vercelignore` lacked `.gitignore` parity for secret-bearing
+  paths (`.tmp/` archives, `credentials.json`, `id_*`, `*.env`, npmrc).
+  Fixed — parity now CI-enforced so a future `.gitignore` addition cannot
+  silently reopen the upload surface.
+- `deploy-prod.mjs` hardened: cwd anchored to repo root, `.vercel` link
+  must identify the production project, `git fetch --prune origin` before
+  containment (stale refs rejected), hygiene re-run before upload, Vercel
+  CLI pinned to 63.1.0, per-poll fetch timeout.
+- `resolveBuildCommit` accepts full 40-hex lowercase only.
+- Contract test anchored to call sites + Neon-gate ordering asserted.
+- `vercel promote` bypass documented as forbidden; stale pre-cutover
+  docstrings removed.
 
 Not proven here: exact-head GitHub CI on the final diff (awaits PR), a
 production deploy carrying the new provenance path (owner-gated), and Docker
