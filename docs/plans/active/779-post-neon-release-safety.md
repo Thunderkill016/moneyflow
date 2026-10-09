@@ -241,11 +241,21 @@ Not proven here: a production deploy carrying the new provenance path
 (owner-gated), and a `vercel promote` technical block (policy-forbidden in
 `docs/deployment.md` only).
 
-### Exact-head CI — `d01812ed` (2026-10-09)
+### Exact-head CI — `b562a3f7` then `fb529b06` (2026-10-09)
 
-All checks pass: classify, Gitleaks, CodeQL (1 real alert found in the
-hygiene glob translator — unescaped backslash — fixed before merge),
+All checks pass on the final head `fb529b06`: classify, Gitleaks, CodeQL,
 Analyze JS/TS, Verify policy contracts (includes the deploy-hygiene gate),
 Verify production build, Verify static quality, Verify unit tests + static
 RLS, database (pgTAP, real Postgres), Browser smoke, Cross-device UI audit,
 `verify` + `e2e` aggregators.
+
+Two real defects were caught by the pipeline and fixed before merge —
+CodeQL flagged an unescaped backslash in the hygiene glob translator
+(`d01812ed`), and the independent post-handoff review on #780 flagged the
+deploy gate failing open on any pushed branch (`fb529b06`): the ordinary
+release now deploys only the `origin/main` tip, `--allow-ancestor` covers
+deliberate rollback, `--allow-non-main` covers emergency pre-merge deploys
+of pushed commits, and an unpushed HEAD is undeliverable under any flag.
+Nine unit cases (`scripts/deploy-prod.test.mjs`) pin the denial matrix and
+run under `test:ci-policy`; the live denial was also verified on the real
+feature-branch head.
