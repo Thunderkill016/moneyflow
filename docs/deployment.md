@@ -60,12 +60,18 @@ The `**` globstar is intentional: MoneyFlow branches contain `/`, for example `a
 `scripts/deploy-prod.mjs` is the only sanctioned CLI release path:
 
 ```bash
-node scripts/deploy-prod.mjs          # full deploy (owner-authorized)
-node scripts/deploy-prod.mjs --dry    # plan only — no upload, no deploy
+node scripts/deploy-prod.mjs                    # full deploy (owner-authorized)
+node scripts/deploy-prod.mjs --dry              # plan only — no upload, no deploy
+node scripts/deploy-prod.mjs --allow-ancestor   # deliberate rollback to an older origin/main commit
+node scripts/deploy-prod.mjs --allow-non-main   # emergency pre-merge deploy of a pushed branch head
 ```
 
-It refuses to deploy unless the worktree is clean and `HEAD` exists on a remote
-branch, injects `-b MF_BUILD_COMMIT=<sha>` so the build carries provenance, and
+The gate is fail-closed: the ordinary command deploys **only** the
+`origin/main` tip (reviewed, merged code). It refuses a dirty worktree, an
+unpushed `HEAD` (no flag can override — invisible commits cannot be reviewed
+or reproduced), a `HEAD` pushed only to a feature branch, and a `HEAD` that is
+an older `origin/main` ancestor, unless the matching explicit flag is passed.
+It injects `-b MF_BUILD_COMMIT=<sha>` so the build carries provenance, and
 post-checks that `/api/health` reports the deployed commit.
 
 ## Emergency production redeploy

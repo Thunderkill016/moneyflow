@@ -32,19 +32,24 @@ curl -s https://mfvn.vercel.app/api/health
 ## Deploying
 
 ```bash
-node scripts/deploy-prod.mjs         # guarded full deploy (owner-authorized)
-node scripts/deploy-prod.mjs --dry   # plan preview only
+node scripts/deploy-prod.mjs                     # guarded full deploy (owner-authorized)
+node scripts/deploy-prod.mjs --dry               # plan preview only
+node scripts/deploy-prod.mjs --allow-ancestor    # deliberate rollback (older origin/main commit)
+node scripts/deploy-prod.mjs --allow-non-main    # emergency pre-merge deploy of a pushed branch head
 ```
 
-The script refuses dirty worktrees and commits that are not on a remote branch,
-injects `MF_BUILD_COMMIT`, and post-checks `/api/health` for the expected SHA.
+The ordinary command deploys only the `origin/main` tip. It fails closed on a
+dirty worktree, an unpushed `HEAD` (unoverridable — invisible code cannot have
+been reviewed), a `HEAD` reachable only from a feature branch, or an older
+`origin/main` ancestor without the matching explicit flag. It injects
+`MF_BUILD_COMMIT` and post-checks `/api/health` for the expected SHA.
 Pushing to `main` is the normal path (Vercel git integration, `main` only).
 
 ## Rollback
 
 | Failure                          | Action                                                                |
 | -------------------------------- | --------------------------------------------------------------------- |
-| Bad build / regression           | `vercel rollback` or redeploy the last good commit via the guarded CLI |
+| Bad build / regression           | `vercel rollback` or check out the last good `origin/main` ancestor and run `node scripts/deploy-prod.mjs --allow-ancestor` |
 | Bad env value                    | Fix in Vercel Project Settings (Production scope) + redeploy          |
 | Neon outage                      | Wait or restore a Neon branch snapshot — **no Supabase rollback**      |
 | Suspected secret leak in a build | Rotate affected values, redeploy clean, delete the tainted deployment |
