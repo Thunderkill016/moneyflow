@@ -402,8 +402,8 @@
       "rewrites": 0
     },
     "20261009160000_manual_capture_replay_safety.sql": {
-      "sourceSha256": "587db3915bed5d8533c07149b510acc9a2410bd5c42679b9afdc9a765c6a6cc8",
-      "outputSha256": "587db3915bed5d8533c07149b510acc9a2410bd5c42679b9afdc9a765c6a6cc8",
+      "sourceSha256": "32b1d15326a53fc1da72017ad9e4f4d2273a957350506a982b363d80900f82dc",
+      "outputSha256": "32b1d15326a53fc1da72017ad9e4f4d2273a957350506a982b363d80900f82dc",
       "rewrites": 0
     }
   }
