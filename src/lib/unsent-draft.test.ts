@@ -114,7 +114,7 @@ test("failed capture draft retains attempted write identity", () => {
   writeUnsentCaptureDraft({ ...validDraft, idempotencyKey: key }, storage);
   assert.equal(readUnsentCaptureDraft(storage)?.idempotencyKey, key);
   assert.equal(isUnsentCaptureDraft({ ...validDraft, idempotencyKey: "not-a-uuid" }), false);
-  assert.match(dialog, /idempotencyKeyRef\.current = draft\.idempotencyKey \?\? null/);
+  assert.match(dialog, /draftAccountResolves && draftCategoryResolves && draftGoalResolves/);
   assert.match(dialog, /writeUnsentCaptureDraft\(\{[\s\S]*?idempotencyKey,[\s\S]*?savedAt/);
 });
 
