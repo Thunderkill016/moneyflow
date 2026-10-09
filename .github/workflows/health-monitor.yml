@@ -5,7 +5,8 @@ name: Health monitor
 # workflow-failure notification, so no third-party monitoring account is needed.
 on:
   schedule:
-    # Every 15 minutes. GitHub does not guarantee scheduled punctuality and delays
+    # Hourly at minute 17 reduces recurring runner usage while retaining an
+    # hourly external availability check. GitHub does not guarantee punctuality and delays
     # under load are normal, so treat this as "checked regularly", not "checked to
     # the minute". A missed window is not evidence the site was up.
     - cron: "*/15 * * * *"
