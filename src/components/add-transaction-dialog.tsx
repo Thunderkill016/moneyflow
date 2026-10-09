@@ -389,7 +389,14 @@ export function AddTransactionDialog({
         ) {
           setGoalId(draft.goalId);
         }
-        idempotencyKeyRef.current = draft.idempotencyKey ?? null;
+        // A fallback account/category or goal is no longer the submitted intent.
+        // Never reuse the original key with a silently changed payload.
+        const draftAccountResolves = accounts.some((item) => item.id === draft.accountId);
+        const draftGoalResolves = !draft.goalId || goals.some((g) => g.id === draft.goalId && !g.isArchived);
+        idempotencyKeyRef.current =
+          draftAccountResolves && draftCategoryResolves && draftGoalResolves
+            ? draft.idempotencyKey ?? null
+            : null;
         setDraftRestored(true);
       }
     });
