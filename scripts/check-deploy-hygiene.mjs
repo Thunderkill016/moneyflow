@@ -101,7 +101,7 @@ function globToRegExp(glob) {
     } else if (c === "\\" && i + 1 < n) {
       out += `\\${glob[++i]}`;
     } else {
-      out += c.replace(/[.+^${}()|]/gu, "\\$&");
+      out += c.replace(/[.+^${}()|[\]\\]/gu, "\\$&");
     }
   }
   return new RegExp(`^${out}$`, "u");
