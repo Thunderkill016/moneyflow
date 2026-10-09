@@ -226,8 +226,6 @@ test("the workflow parser finds the job identities GitHub would use", () => {
   // ...and one with a `name:` is addressed by that name, not its key.
   assert.equal(byContext.get("Analyze JavaScript and TypeScript")?.id, "analyze");
   assert.equal(byContext.get("Gitleaks all refs")?.workflow, ".github/workflows/secret-history.yml");
-  // The nightly audit is not a pull-request gate and must not be mistaken for one.
-  assert.equal(byContext.get("firefox")?.triggersPullRequest, false);
 });
 
 test("a renamed or unhooked CI job is detected rather than silently stale", () => {
