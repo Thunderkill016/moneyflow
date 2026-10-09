@@ -1,18 +1,21 @@
 import type { NextConfig } from "next";
+import { resolveBuildCommit } from "./src/lib/build-identity.ts";
 import { buildSecurityHeaders } from "./src/lib/security-headers.ts";
 
 /*
  * The deployed commit, baked in so the app can name its own build.
  *
- * Read from the hosting platform's build variable, falling back to the generic
- * one CI sets, and left undefined locally so `buildLabel` says "dev" rather
- * than inventing a value.
+ * Resolution lives in `resolveBuildCommit`: platform git variables first,
+ * explicit MF_BUILD_COMMIT for manual CLI/prebuilt deploys, fail-closed
+ * when a Vercel production build would otherwise ship without provenance.
  */
-const buildCommit =
-  process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GITHUB_SHA ?? "";
+const resolvedBuildCommit = resolveBuildCommit(process.env);
+if (resolvedBuildCommit.error) {
+  throw new Error(resolvedBuildCommit.error);
+}
 
 const nextConfig: NextConfig = {
-  env: { NEXT_PUBLIC_BUILD_COMMIT: buildCommit },
+  env: { NEXT_PUBLIC_BUILD_COMMIT: resolvedBuildCommit.commit ?? "" },
   // Tree-shake lucide icons (icons.tsx imports many named exports).
   experimental: {
     optimizePackageImports: ["lucide-react"],
