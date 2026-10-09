@@ -201,7 +201,7 @@ another provider migration, restoring Supabase as authoritative, merging.
 | T7  | Docs reconciliation + ops runbook                                    | done       |
 | T8  | Clean isolated checkout + exact-head CI                              | done (clone+npm ci+verify:fast on `c0b843bd`); GitHub CI awaits PR |
 | T9  | Independent review of diff + packet                                  | done — findings fixed in `c0b843bd`                                |
-| T10 | PR + consolidated handoff on #779                                    | in progress |
+| T10 | PR + consolidated handoff on #779                                    | done — PR #780 open, exact-head CI all-green on `d01812ed` |
 
 ## Evaluation
 
@@ -237,6 +237,15 @@ One blocker and fourteen warnings were raised and all fixed in `c0b843bd`:
 - `vercel promote` bypass documented as forbidden; stale pre-cutover
   docstrings removed.
 
-Not proven here: exact-head GitHub CI on the final diff (awaits PR), a
-production deploy carrying the new provenance path (owner-gated), and Docker
-`supabase test db` (embedded-PG run stands in for it locally).
+Not proven here: a production deploy carrying the new provenance path
+(owner-gated), and a `vercel promote` technical block (policy-forbidden in
+`docs/deployment.md` only).
+
+### Exact-head CI — `d01812ed` (2026-10-09)
+
+All checks pass: classify, Gitleaks, CodeQL (1 real alert found in the
+hygiene glob translator — unescaped backslash — fixed before merge),
+Analyze JS/TS, Verify policy contracts (includes the deploy-hygiene gate),
+Verify production build, Verify static quality, Verify unit tests + static
+RLS, database (pgTAP, real Postgres), Browser smoke, Cross-device UI audit,
+`verify` + `e2e` aggregators.
