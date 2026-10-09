@@ -367,6 +367,11 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
           npm run test:e2e:statement
+      # Separate PostgreSQL clients prove actual same-key serialization and
+      # a replay after an intentionally discarded commit acknowledgment.
+      - name: Independent connection replay acceptance
+        if: needs.classify.outputs.database == 'true' && steps.database-tests.outcome == 'success'
+        run: node scripts/neon-poc/run-pgtap.mjs
       - name: Stop local Supabase
         if: always() && needs.classify.outputs.database == 'true'
         run: supabase stop --no-backup || true
