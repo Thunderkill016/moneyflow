@@ -389,6 +389,7 @@ export function AddTransactionDialog({
         ) {
           setGoalId(draft.goalId);
         }
+        idempotencyKeyRef.current = draft.idempotencyKey ?? null;
         setDraftRestored(true);
       }
     });
@@ -583,6 +584,13 @@ export function AddTransactionDialog({
 
     const idempotencyKey = idempotencyKeyRef.current ?? crypto.randomUUID();
     idempotencyKeyRef.current = idempotencyKey;
+    // Persist before the request: the tab can close after DB commit but before an ACK.
+    writeUnsentCaptureDraft({
+      kind, amount: parsedAmount, note: note.trim(), payee: payee.trim(),
+      goalId: goalId || undefined, categoryId: selectedCategoryId,
+      accountId: selectedAccountId, occurredOn,
+      idempotencyKey, savedAt: new Date().toISOString(),
+    });
     if (shouldKeepOpen) setKeepOpenSession(true);
     setSubmitting(true);
     let result: { ok: boolean; message?: string };
@@ -621,6 +629,7 @@ export function AddTransactionDialog({
         categoryId: selectedCategoryId,
         accountId: selectedAccountId,
         occurredOn,
+        idempotencyKey,
         savedAt: new Date().toISOString(),
       });
       setError(
