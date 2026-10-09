@@ -59,9 +59,14 @@ An unchanged submitted request with the same key returns the original transactio
 | Branch implementation, provider migration parity | done |
 | Draft restoration and static contract tests | done |
 | pgTAP first/replay/mismatch cases | authored; CI pending |
-| Browser ambiguous-commit and two-connection concurrency | outstanding |
+| Independent-client concurrency and lost-ACK simulation | implemented in disposable embedded PostgreSQL CI; exact-head evidence pending |
+| Browser remount after ambiguous ACK | outstanding |
 | Owner-reviewed merge/deploy | not authorized |
 
 ## Evaluation
 
 Acceptance requires a single persisted transaction and account leg after repeated identical attempts, mismatched intent rejection without mutation, restored draft idempotency identity across remount, and no archived-data or RLS regression. CI/test evidence must attach to the exact head. Do not claim complete until independent concurrency and lost-ACK scenarios are proven.
+
+## Acceptance expansion (2026-10-09)
+
+The database CI path now runs `scripts/neon-poc/run-pgtap.mjs` after `npm ci`; this includes a real two-connection, same-user/same-key simultaneous create and a same-key retry after intentionally dropping the first RPC response in the test harness. Verify `concurrency: independent clients + lost-ACK replay OK` in exact-head logs. This is a database-level lost-ACK simulation; browser remount behavior remains covered only by draft unit/contract tests until a browser-level network-fault scenario is added. Archive restore does not recover the new creation-intent metadata, so retry after a legacy restore deliberately fails closed. Do not claim a fully restored replay works.
