@@ -22,8 +22,13 @@ The Vietnamese [provider security controls runbook](operations/provider-security
 | --- | --- | --- |
 | `NEXT_PUBLIC_APP_MODE` | Development, Preview, Production | Explicitly `demo` or `authenticated` |
 | `NEXT_PUBLIC_SITE_URL` | Development, Preview, Production | Exact application origin used for OAuth, signup and recovery callbacks |
-| `NEXT_PUBLIC_SUPABASE_URL` | Required in authenticated mode | Supabase project API origin |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Required in authenticated mode | Browser-safe Supabase publishable key |
+| `MF_BACKEND_PROVIDER` | Development, Preview, Production | Backend provider in authenticated mode: `supabase` or `neon`. Default/omitted = `supabase`. Production currently runs `neon` |
+| `NEON_AUTH_BASE_URL` | Required when `MF_BACKEND_PROVIDER=neon` | Managed Neon Auth (Better Auth) service base URL |
+| `NEON_DATA_API_URL` | Required when `MF_BACKEND_PROVIDER=neon` | Neon Data API PostgREST base (`…/rest/v1`) |
+| `NEON_AUTH_COOKIE_SECRET` | Required when `MF_BACKEND_PROVIDER=neon` | >=32-char secret signing the `session_data` cache cookie |
+| `NEON_JWKS_URL` | Optional when `MF_BACKEND_PROVIDER=neon` | Override JWKS endpoint; derived from `NEON_AUTH_BASE_URL` when unset |
+| `NEXT_PUBLIC_SUPABASE_URL` | Required in authenticated mode when provider is `supabase` | Supabase project API origin |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Required in authenticated mode when provider is `supabase` | Browser-safe Supabase publishable key |
 | `NEXT_PUBLIC_AUTH_CAPTCHA_ENABLED` | Optional, explicit boolean | Renders and requires the Auth Turnstile token when `true` |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Required when Auth CAPTCHA is enabled | Browser-safe Cloudflare Turnstile site key |
 | `LEGACY_SITE_HOSTS` | Environment-specific, optional | Comma-separated retired hostnames redirected to `NEXT_PUBLIC_SITE_URL` |
@@ -38,8 +43,18 @@ Rules:
 6. Deployment values do not belong in `vercel.json`, TypeScript constants or checked-in `.env` files.
 7. Missing credentials never imply demo mode.
 8. Service-role/secret keys are never named `NEXT_PUBLIC_*` and never enter browser or normal Next.js application code.
-9. The Turnstile **site key** is public; the Turnstile **secret key** belongs only in Supabase Auth provider settings.
+9. The Turnstile **site key** is public; the Turnstile **secret key** belongs only in the auth provider's bot-protection settings (Supabase Auth when provider is `supabase`).
 10. `NEXT_PUBLIC_AUTH_CAPTCHA_ENABLED=true` without a site key fails deployment validation.
+11. Under `MF_BACKEND_PROVIDER=neon`, Neon Production env values are the only place `NEON_*` secrets live; Preview/Development have no Neon variables unless a deliberate provider test exists.
+
+## Backend provider seam (#774/#779)
+
+`MF_BACKEND_PROVIDER` selects the authenticated backend:
+
+- `supabase` — Supabase Auth + PostgREST. The Supabase sections below apply.
+- `neon` — managed Neon Auth (Better Auth) + Neon Data API. The managed auth console owns URL allow-lists, password policy and provider settings; Google sign-in links to an existing user only when the stored account's email is verified.
+
+Session-cookie semantics differ per provider but the viewer contract in `src/server/auth.ts` is identical; loaders never branch on provider.
 
 ## Third-party OAuth proposal authorization
 
@@ -66,6 +81,8 @@ Current provider configuration is not established by this document. [Supabase OA
 
 ## Supabase Auth URL configuration
 
+Applies when `MF_BACKEND_PROVIDER=supabase` only. Under `neon`, redirect/origin allow-lists live in the managed Neon Auth console.
+
 In **Authentication → URL Configuration**:
 
 - set **Site URL** to the exact production `NEXT_PUBLIC_SITE_URL`;
@@ -77,9 +94,11 @@ The application `redirectTo` value and Supabase redirect allow-list must agree. 
 
 ## Auth security configuration
 
-The application requires 12–72 characters for registration and password update. This boundary improves the MoneyFlow UI, but direct calls to Supabase Auth bypass application validation. Provider settings must match it.
+Applies when `MF_BACKEND_PROVIDER=supabase`. Under `neon` the managed auth console owns the equivalent controls (password policy, email verification, rate limits); the same checklist intent applies.
 
-Before public or paid beta, verify in Supabase Auth:
+The application requires 12–72 characters for registration and password update. This boundary improves the MoneyFlow UI, but direct calls to the auth provider bypass application validation. Provider settings must match it.
+
+Before public or paid beta, verify in the auth provider settings:
 
 - [ ] minimum password length is **12**;
 - [ ] email confirmation is enabled unless a reviewed alternative flow exists;
@@ -128,7 +147,7 @@ Do not implement an in-memory per-instance limiter and call it production protec
 cp .env.example .env.local
 ```
 
-The example starts in explicit `demo` mode. To test real accounts, set `NEXT_PUBLIC_APP_MODE=authenticated` and provide both public Supabase values. The app intentionally has no production fallback.
+The example starts in explicit `demo` mode. To test real accounts locally, set `NEXT_PUBLIC_APP_MODE=authenticated` plus either the Supabase public values (provider `supabase`) or the `NEON_*` values (provider `neon`). The app intentionally has no production fallback.
 
 CAPTCHA remains disabled locally by default. Cloudflare testing site keys may be used for browser verification, but production hostname restrictions and the real secret must be configured separately before enforcement.
 
@@ -162,7 +181,7 @@ CI can prove repository behavior. It cannot prove dashboard values, firewall pub
 
 1. Add the new hostname to Vercel and verify TLS.
 2. Change production `NEXT_PUBLIC_SITE_URL` in Vercel.
-3. Change Supabase Site URL and add the exact callback URL.
+3. Change the auth provider's Site URL and add the exact callback URL (Supabase Auth URL configuration, or the managed Neon Auth console under `neon`).
 4. Add the new hostname to the Cloudflare Turnstile widget before switching traffic.
 5. Put retired hostnames in `LEGACY_SITE_HOSTS`.
 6. Redeploy; environment changes do not affect old deployments.

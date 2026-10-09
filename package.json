@@ -15,7 +15,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test src/lib/*.test.ts src/lib/*/*.test.ts src/server/**/*.test.ts",
     "evidence:bank-export": "node --experimental-strip-types scripts/bank-export-evidence.mts",
-    "verify:fast": "npm run check:knowledge && npm run check:architecture && npm run check:capabilities && npm run lint && npm run typecheck && npm test",
+    "verify:fast": "npm run check:knowledge && npm run check:deploy-hygiene && npm run check:architecture && npm run check:capabilities && npm run lint && npm run typecheck && npm test",
     "verify:prepush": "npm run verify:fast && npm run build",
     "agent:doctor": "node scripts/agent-doctor.mjs",
     "agent:dispatch": "node scripts/agent-harness/cli.mjs --once",
@@ -38,7 +38,7 @@
     "check:capabilities": "node --experimental-strip-types scripts/emit-capabilities.mjs --check",
     "ci:status": "node scripts/watch-pr-ci.mjs --once",
     "ci:watch": "node scripts/watch-pr-ci.mjs",
-    "test:ci-policy": "node --test scripts/check-release-version.test.mjs scripts/check-workflow-pins.test.mjs scripts/probe-health.test.mjs scripts/check-prove-evidence.test.mjs scripts/classify-ci-changes.test.mjs scripts/ci-retry-graph.test.mjs scripts/check-ui-migration-diff.test.mjs scripts/watch-pr-ci.test.mjs scripts/project-knowledge-contract.test.mjs scripts/agent-policy.test.mjs scripts/agent-doctor.test.mjs scripts/agent-harness/context.test.mjs scripts/agent-harness/journal.test.mjs scripts/agent-harness/legacy-migration.test.mjs scripts/agent-harness/providers.test.mjs scripts/agent-harness/runtime.test.mjs scripts/agent-harness/command-guard.test.mjs",
+    "test:ci-policy": "node --test scripts/check-release-version.test.mjs scripts/check-workflow-pins.test.mjs scripts/probe-health.test.mjs scripts/check-prove-evidence.test.mjs scripts/classify-ci-changes.test.mjs scripts/ci-retry-graph.test.mjs scripts/check-ui-migration-diff.test.mjs scripts/watch-pr-ci.test.mjs scripts/project-knowledge-contract.test.mjs scripts/agent-policy.test.mjs scripts/agent-doctor.test.mjs scripts/deploy-prod.test.mjs scripts/agent-harness/context.test.mjs scripts/agent-harness/journal.test.mjs scripts/agent-harness/legacy-migration.test.mjs scripts/agent-harness/providers.test.mjs scripts/agent-harness/runtime.test.mjs scripts/agent-harness/command-guard.test.mjs",
     "mvp-verify": "bash scripts/mvp-verify.sh",
     "check:rls": "bash scripts/check-rls-migrations.sh",
     "test:db": "SUPABASE_TELEMETRY_DISABLED=1 npx supabase test db",
@@ -57,7 +57,8 @@
     "test:ui-audit:firefox": "playwright test -c playwright.audit.config.ts --project=firefox-desktop",
     "check:dead-css": "node scripts/check-dead-css-reachable.mjs",
     "check:code-css-ownership": "node scripts/check-code-css-ownership.mjs",
-    "test:journey:baseline": "playwright test e2e/expense-path.spec.ts e2e/accounts-transfer.phase6.spec.ts e2e/direct-csv-remembered-mapping.spec.ts e2e/inbox-exception-first-review.spec.ts e2e/account-reconciliation-workspace.spec.ts e2e/global-pfm-ux.spec.ts e2e/reports-custom-range.spec.ts e2e/connectivity-awareness.spec.ts"
+    "test:journey:baseline": "playwright test e2e/expense-path.spec.ts e2e/accounts-transfer.phase6.spec.ts e2e/direct-csv-remembered-mapping.spec.ts e2e/inbox-exception-first-review.spec.ts e2e/account-reconciliation-workspace.spec.ts e2e/global-pfm-ux.spec.ts e2e/reports-custom-range.spec.ts e2e/connectivity-awareness.spec.ts",
+    "check:deploy-hygiene": "node scripts/check-deploy-hygiene.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

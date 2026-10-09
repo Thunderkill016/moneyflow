@@ -26,7 +26,7 @@ Do not infer current work from a filename, date, newest document, open PR or cha
 ## What MoneyFlow does today
 
 - Explicit `demo` mode with browser-local exploration data.
-- Explicit `authenticated` mode using Supabase Auth + PostgreSQL with RLS.
+- Explicit `authenticated` mode on a pluggable backend: `MF_BACKEND_PROVIDER` selects Supabase Auth + PostgreSQL/RLS or managed Neon Auth + Neon Data API/RLS. Production currently runs `neon`.
 - Multiple accounts such as cash, bank, e-wallet, credit and savings representations.
 - Income, expense and balanced internal transfers.
 - Edit, soft delete and recovery paths.
@@ -68,7 +68,7 @@ Provider connectivity is read-only first and optional. MoneyFlow remains useful 
 
 `NEXT_PUBLIC_APP_MODE` is explicit:
 
-- `authenticated` — Supabase Auth + PostgreSQL/RLS.
+- `authenticated` — managed auth (Neon Auth in production; Supabase Auth when `MF_BACKEND_PROVIDER=supabase`) + PostgreSQL/RLS.
 - `demo` — browser-local exploration data.
 
 Missing credentials never silently switch the application into demo mode.
