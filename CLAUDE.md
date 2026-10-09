@@ -20,7 +20,7 @@ This file is a Claude Code adapter. It does not replace `AGENTS.md`, current cod
 
 - Production repository: `Thunderkill016/moneyflow`; it is public and is the source of truth.
 - `/dashboard` is the canonical authenticated home; `/insights` is compatibility-only.
-- Authenticated mode uses Supabase Auth and PostgreSQL with RLS.
+- Authenticated mode uses managed auth + PostgreSQL with RLS; `MF_BACKEND_PROVIDER` selects `neon` (production) or `supabase`.
 - Demo mode uses browser-local storage.
 - Runtime mode is explicit through `NEXT_PUBLIC_APP_MODE`.
 - VND is stored as integer đồng.

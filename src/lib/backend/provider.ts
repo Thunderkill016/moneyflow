@@ -1,8 +1,8 @@
 /**
- * Backend provider seam (#774): `supabase` (default, production today) or
- * `neon` (opt-in migration PoC). The flag only exists to prove the Neon
- * path on the scratch project — production stays on supabase until the
- * owner approves cutover, and this flag is never flipped in Vercel.
+ * Backend provider seam (#774/#779): `supabase` or `neon`. Production
+ * (`mfvn.vercel.app`) runs `neon` since the 2026-10-08 cutover — Neon is the
+ * sole live source of truth; Supabase retains only the pre-cutover
+ * egress-locked snapshot.
  */
 export type BackendProvider = "supabase" | "neon";
 

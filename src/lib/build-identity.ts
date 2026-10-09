@@ -20,7 +20,7 @@
 export const BUILD_COMMIT: string | null =
   process.env.NEXT_PUBLIC_BUILD_COMMIT || null;
 
-const COMMIT_PATTERN = /^[0-9a-f]{7,40}$/iu;
+const COMMIT_PATTERN = /^[0-9a-f]{40}$/u;
 
 export type BuildCommitResolution = {
   /** Resolved commit, or null when no source provided one. */
@@ -58,7 +58,7 @@ export function resolveBuildCommit(
     "MF_BUILD_COMMIT",
   ] as const;
   for (const name of sources) {
-    const raw = env[name]?.trim();
+    const raw = env[name]?.trim().toLowerCase();
     if (!raw) continue;
     if (!COMMIT_PATTERN.test(raw)) {
       return {

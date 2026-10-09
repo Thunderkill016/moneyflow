@@ -10,14 +10,18 @@
  * cutover.
  *
  * This script is the only sanctioned CLI path:
- *   1. requires the deployed commit to be the local HEAD — the upload is the
- *      working tree, so releasing anything but HEAD would lie about itself;
- *   2. requires a clean worktree — uncommitted changes are unreviewed code;
- *   3. requires HEAD to exist on the remote — a commit nobody else can see
- *      cannot have been reviewed;
- *   4. passes `-b MF_BUILD_COMMIT=<sha>` so `next.config.ts` bakes a real,
+ *   1. anchors cwd at the repo root — `vercel deploy` uploads cwd;
+ *   2. requires the linked Vercel project to be MoneyFlow production —
+ *      an unlinked checkout would silently create a NEW project;
+ *   3. requires a clean worktree — uncommitted changes are unreviewed code;
+ *   4. requires HEAD to exist on `origin` after a live fetch — a commit
+ *      nobody else can see cannot have been reviewed, and a stale
+ *      remote-tracking ref must not satisfy the check;
+ *   5. re-runs the deploy-context hygiene contract before upload, so a
+ *      weakened `.vercelignore` cannot ship secrets;
+ *   6. passes `-b MF_BUILD_COMMIT=<sha>` so `next.config.ts` bakes a real,
  *      verifiable identifier into the build (it fails closed without one);
- *   5. post-checks `/api/health` until it reports that commit.
+ *   7. post-checks `/api/health` until it reports that commit.
  *
  * Usage:
  *   node scripts/deploy-prod.mjs [--dry]
@@ -28,12 +32,26 @@
  * secrets.
  */
 import { execFileSync, spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const PRODUCTION_ORIGIN = (
   process.env.PRODUCTION_ORIGIN || "https://mfvn.vercel.app"
 ).replace(/\/+$/, "");
 const HEALTH_TIMEOUT_MS = 6 * 60 * 1000;
 const HEALTH_POLL_MS = 15 * 1000;
+const HEALTH_FETCH_TIMEOUT_MS = 10 * 1000;
+/*
+ * Pinned Vercel CLI — the version that performed the verified Neon cutover
+ * deploys. An unpinned `npx vercel` floats to latest-registry on the release
+ * path; release tooling must not change underneath the operator.
+ */
+const VERCEL_CLI = "vercel@63.1.0";
+/* Expected Vercel link for the production project (`.vercel/project.json`). */
+const EXPECTED_PROJECT = {
+  projectId: "prj_eAusnkm1X1HzAt4wMFbuMnRXela7",
+  orgId: "team_1MZEcAVjG3nrOnklJxYIqGQs",
+};
 
 const dry = process.argv.includes("--dry");
 
@@ -46,8 +64,29 @@ function fail(message) {
   process.exit(1);
 }
 
+// `vercel deploy` uploads the current directory — pin it to the repo root so
+// invoking the script from a subdirectory cannot ship a partial tree.
+process.chdir(git(["rev-parse", "--show-toplevel"]));
+
 const head = git(["rev-parse", "HEAD"]);
-if (!/^[0-9a-f]{40}$/iu.test(head)) fail(`unrecognised HEAD: ${head}`);
+if (!/^[0-9a-f]{40}$/u.test(head)) fail(`unrecognised HEAD: ${head}`);
+
+// The linked project must be MoneyFlow production — `vercel deploy --yes` on
+// an unlinked tree silently creates a new project under the personal scope.
+let link;
+try {
+  link = JSON.parse(readFileSync(join(".vercel", "project.json"), "utf8"));
+} catch {
+  fail("no .vercel/project.json — run `vercel link` against the moneyflow project first");
+}
+if (
+  link.projectId !== EXPECTED_PROJECT.projectId ||
+  link.orgId !== EXPECTED_PROJECT.orgId
+) {
+  fail(
+    `.vercel is linked to ${link.projectName ?? link.projectId} in org ${link.orgId} — expected the moneyflow production project`,
+  );
+}
 
 const dirty = git(["status", "--porcelain"]);
 if (dirty) {
@@ -57,16 +96,24 @@ if (dirty) {
   );
 }
 
+// Live-check remote state: a stale remote-tracking ref must not satisfy the
+// review gate, and only `origin` counts (a local-path scratch remote proves
+// nothing about review).
+try {
+  git(["fetch", "--prune", "origin"]);
+} catch {
+  fail("cannot reach origin — refusing to judge review status offline");
+}
 const containing = git(["branch", "-r", "--contains", head])
   .split("\n")
   .map((s) => s.trim())
-  .filter((s) => s && !s.includes("->"));
+  .filter((s) => s.startsWith("origin/") && !s.includes("->"));
 if (containing.length === 0) {
   fail(
-    `${head.slice(0, 7)} is not on any remote branch — push and get it reviewed first`,
+    `${head.slice(0, 7)} is not on any origin branch — push and get it reviewed first`,
   );
 }
-const onMain = containing.some((b) => /(^|\/)main$/u.test(b));
+const onMain = containing.includes("origin/main");
 console.log(
   `commit ${head.slice(0, 7)} is reachable from: ${containing.join(", ")}`,
 );
@@ -76,8 +123,19 @@ if (!onMain) {
   );
 }
 
+// Re-prove the upload exclusion contract at deploy time: a pushed-but-
+// unreviewed branch could carry a weakened .vercelignore, and the working
+// tree can contain secret-bearing files git never told anyone about.
+const hygiene = spawnSync("node", ["scripts/check-deploy-hygiene.mjs"], {
+  stdio: "inherit",
+});
+if (hygiene.status !== 0) {
+  fail("deploy-context hygiene check failed — refusing upload");
+}
+
 const deployArgs = [
-  "vercel",
+  "--yes",
+  VERCEL_CLI,
   "deploy",
   "--prod",
   "--yes",
@@ -85,7 +143,7 @@ const deployArgs = [
   `MF_BUILD_COMMIT=${head}`,
 ];
 console.log(
-  `\nplan:\n  npx ${deployArgs.join(" ")}\n  postcheck: GET ${PRODUCTION_ORIGIN}/api/health until build==${head.slice(0, 7)}\n`,
+  `\nplan:\n  npx ${deployArgs.join(" ")}\n  postcheck: GET ${PRODUCTION_ORIGIN}/api/health until commit==${head}\n`,
 );
 if (dry) {
   console.log("--dry: plan printed, nothing deployed");
@@ -102,6 +160,7 @@ while (Date.now() < deadline) {
   try {
     const res = await fetch(`${PRODUCTION_ORIGIN}/api/health`, {
       cache: "no-store",
+      signal: AbortSignal.timeout(HEALTH_FETCH_TIMEOUT_MS),
     });
     const body = await res.json();
     observed = body;

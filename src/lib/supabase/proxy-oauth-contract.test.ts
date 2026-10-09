@@ -48,10 +48,25 @@ test("the exchange uses the SDK's own request/response pipeline", () => {
    * handleAuthResponse mints the signed `local.session_data` cache cookie
    * with NEON_AUTH_COOKIE_SECRET — hand-copying only upstream Set-Cookie
    * headers leaves that cookie absent and degrades session resolution.
+   * Assertions anchor on the call sites inside the exchange function, not
+   * the import statement, so deleting the wiring fails this test.
    */
-  assert.match(proxy, /handleAuthRequest/u);
-  assert.match(proxy, /handleAuthResponse/u);
-  assert.match(proxy, /cookieSecret/u);
+  const fn = proxy.slice(
+    proxy.indexOf("async function exchangeNeonOAuthVerifier"),
+  );
+  assert.match(fn, /handleAuthRequest\(\s*config\.authBaseUrl/u);
+  assert.match(fn, /handleAuthResponse\(/u);
+  assert.match(fn, /cookieSecret/u);
+});
+
+test("the exchange only runs inside the Neon provider branch", () => {
+  const callSite = proxy.indexOf("exchangeNeonOAuthVerifier(request)");
+  const providerGate = proxy.indexOf('getBackendProvider() === "neon"');
+  assert.ok(providerGate > 0, "neon provider gate must exist");
+  assert.ok(
+    providerGate < callSite,
+    "exchange must sit inside the provider-gated neon branch",
+  );
 });
 
 test("the verifier parameter is stripped before the redirect lands", () => {

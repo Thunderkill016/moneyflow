@@ -23,16 +23,18 @@ does not redefine those values.
 
 1. Never commit product changes directly to `main`.
 2. Create one `agent/<scope>` branch for the complete change.
-3. Keep the pull request in draft while the change is incomplete. Draft PRs do not run the full CI suite.
-4. When the diff is final, mark the PR ready once. GitHub runs lint, typecheck, unit/static-RLS tests, the production Next.js build, a fresh Supabase reset, and pgTAP.
+3. Keep the pull request in draft while the change is incomplete.
+4. When the diff is final, mark the PR ready once. GitHub runs lint, typecheck, unit/static-RLS tests, the production Next.js build, a fresh Supabase reset, and pgTAP across its shard/aggregator jobs.
 5. Fix failures on the same branch. New commits cancel stale CI runs automatically.
-6. Squash-merge only after both CI jobs pass.
+6. Squash-merge only after the required checks pass.
 7. Vercel automatically deploys only commits on `main`. Feature, verification, and temporary branches must never create preview deployments.
-8. Do not create temporary marker files or empty commits merely to trigger CI. Use `workflow_dispatch` for a manual verification run.
-9. Deploy-context hygiene is CI-enforced: `npm run check:deploy-hygiene` proves
-   `.vercelignore` keeps secrets (`.env*`, credentials, backups, keys, passphrases,
-   `scripts/neon-poc/out/`) out of the Vercel upload set. Vercel CLI uploads do not
-   honor `.gitignore` — `.vercelignore` is the only exclusion contract.
+8. Never `vercel promote` a CLI-built preview deployment to production — preview builds carry no commit provenance and would reach production as `build:"dev"`. Production deploys come only from `main` git builds or `scripts/deploy-prod.mjs`.
+9. Do not create temporary marker files or empty commits merely to trigger CI. Use `workflow_dispatch` for a manual verification run.
+10. Deploy-context hygiene is CI-enforced: `npm run check:deploy-hygiene` proves
+    `.vercelignore` keeps secrets (`.env*`, credentials, backups, keys, passphrases,
+    `scripts/neon-poc/out/`) out of the Vercel upload set, and enforces parity
+    with `.gitignore`. Vercel CLI uploads do not honor `.gitignore` —
+    `.vercelignore` is the only exclusion contract.
 
 ## Vercel branch rule
 

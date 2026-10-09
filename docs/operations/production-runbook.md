@@ -63,6 +63,9 @@ post-cutover transaction.
 - `.vercelignore` is the only exclusion contract for Vercel CLI uploads
   (`.gitignore` is ignored). `npm run check:deploy-hygiene` proves secret paths
   stay out of the upload set — keep it in CI.
+- To audit what a CLI deploy would upload without deploying:
+  `npx vercel deploy --dry` lists the upload file set on a linked project —
+  check it for `scripts/neon-poc/out/`, `.env*`, credential and key material.
 - If a deployment file list ever contains `scripts/neon-poc/out/`, `.env*` or
   credential material: treat as breach — rotate, redeploy, delete deployment.
 
