@@ -8,16 +8,18 @@ MoneyFlow is a Vietnamese personal-finance ledger for manually recording income,
 
 ## Architecture style
 
-MoneyFlow is a **single-deployment modular monolith** built with Next.js App Router and Supabase/PostgreSQL.
+MoneyFlow is a **single-deployment modular monolith** built with Next.js App Router and PostgreSQL.
+
+The authenticated backend sits behind an explicit provider seam (`MF_BACKEND_PROVIDER`, `src/lib/backend/provider.ts`): `neon` (managed Neon Auth + Neon Data API — current production) or `supabase` (Supabase Auth + PostgREST). Both paths converge on the same Postgres schema and RLS; the seam owns session/viewer resolution (`src/server/auth.ts`), not business logic.
 
 This is a deliberate current fit, not a temporary failure to adopt microservices. A package or service split requires an independent runtime, deployment lifecycle, security boundary, scaling need or team ownership boundary. File size or similarity to a larger finance project is not enough.
 
 ## Runtime modes
 
-| Mode            | Source of truth                      | Purpose                                 |
-| --------------- | ------------------------------------ | --------------------------------------- |
-| `authenticated` | Supabase Auth + PostgreSQL           | Real user data with RLS isolation       |
-| `demo`          | Browser-local stores and seeded data | Product exploration without credentials |
+| Mode            | Source of truth                          | Purpose                                 |
+| --------------- | ---------------------------------------- | --------------------------------------- |
+| `authenticated` | Managed auth + PostgreSQL (Neon in prod) | Real user data with RLS isolation       |
+| `demo`          | Browser-local stores and seeded data     | Product exploration without credentials |
 
 Runtime mode is explicit through `NEXT_PUBLIC_APP_MODE`. Missing configuration must fail validation; it must not silently switch modes.
 
@@ -32,7 +34,7 @@ App Router page / server entrypoint
         ↓
 requireViewer + server workspace loader
         ↓
-Supabase table/view query          or          explicit demo seed
+Supabase/Neon Data API table/view query          or          explicit demo seed
         ↓
 validated serializable workspace
         ↓
@@ -50,7 +52,7 @@ shared hook or bounded UI handler
         ↓
 Server Action input validation
         ↓
-requireViewer + Supabase client
+requireViewer + provider-scoped data client
         ↓
 ownership-safe PostgreSQL RPC
         ↓
@@ -90,8 +92,11 @@ Demo storage is not a fallback for authenticated failures. Production contracts 
 | `src/lib/demo/transaction-fixtures.ts`          | Seeded demo accounts, categories and transactions; never a production contract owner                                            |
 | `src/lib/sample-data.ts`                        | Deprecated compatibility re-export for contracts/presentation only; it must never export demo fixtures or own runtime constants |
 | `src/lib/*-store*`                              | Browser/demo persistence and hydration helpers                                                                                  |
-| `supabase/migrations/`                          | Versioned database schema, constraints, policies, RPCs and indexes                                                              |
+| `supabase/migrations/`                          | Versioned database schema, constraints, policies, RPCs and indexes (applied to Neon via `db/neon/migrations` replay tooling)      |
 | `supabase/tests/`                               | pgTAP database invariants and tenant-isolation checks                                                                           |
+| `db/neon/` + `db/compat/`                       | Neon migration projection and pgTAP/auth compatibility shims                                                                    |
+| `src/lib/backend/provider.ts`                   | `MF_BACKEND_PROVIDER` seam — `supabase` or `neon` backend selection                                                            |
+| `src/lib/neon/`                                 | Neon managed-auth server adapter, JWT verification and Data API session plumbing                                                |
 | `tests/` and Playwright configs                 | Browser smoke, responsive, accessibility and visual evidence                                                                    |
 | `scripts/`                                      | Repeatable verification and repository automation                                                                               |
 | `docs/`                                         | Product truth, research, decisions, plans and operating procedures                                                              |

@@ -187,3 +187,37 @@ another provider migration, restoring Supabase as authoritative, merging.
   OWNER-GATED with a prepared approval package.
 - #776 (docs closeout, still open) — appends to `neon-migration.md` only;
   this packet is a separate file. No overlap; merge order irrelevant.
+
+## Tasks
+
+| #   | Task                                                                 | State      |
+| --- | -------------------------------------------------------------------- | ---------- |
+| T1  | Build-provenance resolver + fail-closed production config            | done       |
+| T2  | Guarded CLI deploy (`deploy-prod.mjs`) + dry-run proof               | done       |
+| T3  | `.vercelignore` canary checker + CI wiring                           | done       |
+| T4  | OAuth verifier-exchange contract tests                               | done       |
+| T5  | Neon auth/JWT/RLS boundary audit + live read-only prod probes        | done       |
+| T6  | pgTAP suite on embedded Postgres + live ledger invariant audit       | done       |
+| T7  | Docs reconciliation + ops runbook                                    | done       |
+| T8  | Clean isolated checkout + exact-head CI                              | in progress |
+| T9  | Independent review of diff + packet                                  | pending    |
+| T10 | PR + consolidated handoff on #779                                    | pending    |
+
+## Evaluation
+
+Repository gates run on the branch head:
+
+- `npm ci` (fresh), `npm run lint`, `npm run typecheck`, `npm test` — green.
+- `npm run check:deploy-hygiene` — green; negative-tested by deleting
+  `.vercelignore` rules (checker fails as required).
+- `npm run check:knowledge`, `check:deployment-env`, `check:architecture`,
+  `check:capabilities`, `check:css-ownership` — green.
+- `node scripts/neon-poc/run-pgtap.mjs` — 80 migrations + 58/58 pgTAP suites
+  on embedded Postgres 17 at HEAD.
+- `vercel deploy --dry` file-list audit — zero secret paths in upload set.
+- `node --test` contract suites: `build-identity.test.ts` 11/11,
+  `proxy-oauth-contract.test.ts` 5/5, `neon/jwt.test.ts` 6/6.
+
+Not proven here: exact-head GitHub CI on the final diff (awaits PR), a
+production deploy carrying the new provenance path (owner-gated), and Docker
+`supabase test db` (embedded-PG run stands in for it locally).
