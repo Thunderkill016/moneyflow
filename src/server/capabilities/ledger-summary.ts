@@ -51,9 +51,11 @@ export const ledgerSummaryOutputSchema = z.object({
   expense: explainedAmountSchema,
   net: explainedAmountSchema,
   accounts: z.array(accountSchema),
-  trust: ledgerTrustSummarySchema.nullable().describe(
-    "Ledger-trust summary from the database ledger_trust_summary() contract; null for demo viewers or when the contract is unavailable (withheld, never fabricated).",
-  ),
+  trust: ledgerTrustSummarySchema
+    .nullable()
+    .describe(
+      "Ledger-trust summary from the database ledger_trust_summary() contract; null for demo viewers or when the contract is unavailable (withheld, never fabricated).",
+    ),
 });
 
 export type LedgerSummaryInput = z.infer<typeof ledgerSummaryInputSchema>;
@@ -71,8 +73,16 @@ async function defaultLoadLedgerTrust(): Promise<LedgerTrustSummary | null> {
 
 function validateInput(input: LedgerSummaryInput, today: string) {
   if (input.period !== "custom") return;
-  if (!input.from || !input.to || !validIsoDate(input.from) || !validIsoDate(input.to)) {
-    throw new CapabilityError("invalid_input", "Custom range requires valid from and to dates");
+  if (
+    !input.from ||
+    !input.to ||
+    !validIsoDate(input.from) ||
+    !validIsoDate(input.to)
+  ) {
+    throw new CapabilityError(
+      "invalid_input",
+      "Custom range requires valid from and to dates",
+    );
   }
   if (!normalizeCustomRange({ from: input.from, to: input.to }, today)) {
     throw new CapabilityError("invalid_input", "Custom range is invalid");
@@ -93,11 +103,12 @@ export async function run(
   input: LedgerSummaryInput,
   deps: CapabilityDeps = {},
 ): Promise<LedgerSummaryOutput> {
+  // Reject invalid ranges before private ledger/trust reads incur provider work.
+  const range = rangeFor(input, ctx.today);
   const [workspace, trust] = await Promise.all([
     (deps.loadFinanceWorkspace ?? defaultLoadFinanceWorkspace)(),
     (deps.loadLedgerTrust ?? defaultLoadLedgerTrust)(),
   ]);
-  const range = rangeFor(input, ctx.today);
   const currentRange = {
     from: range.currentStart,
     to: range.currentEnd,
@@ -105,7 +116,9 @@ export async function run(
   const current = transactionRange(workspace.transactions, currentRange);
   const report = buildFinancialReport(current, range);
   const income = current.filter((transaction) => transaction.kind === "income");
-  const expense = current.filter((transaction) => transaction.kind === "expense");
+  const expense = current.filter(
+    (transaction) => transaction.kind === "expense",
+  );
   const computedAt = ctx.now;
   const capabilityVersion = "ledger.summary@1";
   const incomeBasis = buildBasis({
@@ -138,7 +151,8 @@ export async function run(
     trust,
   });
   const balanceBasis = buildSnapshotBasis({
-    formula: "sum of active account balances (workspace snapshot); not derived from listed transactions",
+    formula:
+      "sum of active account balances (workspace snapshot); not derived from listed transactions",
     computedAt,
     capabilityVersion,
     trust,
@@ -166,7 +180,8 @@ export const definition: CapabilityDefinition<
   id: "ledger.summary",
   version: "1",
   title: "Tóm tắt sổ cái / Ledger summary",
-  description: "Tóm tắt số dư và dòng tiền theo kỳ / Deterministic ledger totals for a selected period.",
+  description:
+    "Tóm tắt số dư và dòng tiền theo kỳ / Deterministic ledger totals for a selected period.",
   authorization: "read",
   sideEffects: "none",
   idempotent: true,

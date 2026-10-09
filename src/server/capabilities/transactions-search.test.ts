@@ -28,17 +28,32 @@ test("transactions.search orders deterministically and cursor paging is complete
   let cursor: string | undefined;
   const pagedIds: string[] = [];
   do {
-    const page = await run(FIXED_CONTEXT, { limit: 2, ...(cursor ? { cursor } : {}) }, deps);
+    const page = await run(
+      FIXED_CONTEXT,
+      { limit: 2, ...(cursor ? { cursor } : {}) },
+      deps,
+    );
     pagedIds.push(...page.items.map((item) => item.id));
     cursor = page.nextCursor ?? undefined;
   } while (cursor);
-  assert.deepEqual(pagedIds, full.items.map((item) => item.id));
   assert.deepEqual(
-    [...full.items].sort((left, right) => right.occurredAt.localeCompare(left.occurredAt) || right.id.localeCompare(left.id)).map((item) => item.id),
+    pagedIds,
+    full.items.map((item) => item.id),
+  );
+  assert.deepEqual(
+    [...full.items]
+      .sort(
+        (left, right) =>
+          right.occurredAt.localeCompare(left.occurredAt) ||
+          right.id.localeCompare(left.id),
+      )
+      .map((item) => item.id),
     full.items.map((item) => item.id),
   );
   assert.equal(
-    (await run(FIXED_CONTEXT, { kind: "transfer", limit: 50 }, deps)).items.map((item) => item.kind).join(","),
+    (await run(FIXED_CONTEXT, { kind: "transfer", limit: 50 }, deps)).items
+      .map((item) => item.kind)
+      .join(","),
     "transfer",
   );
 });
@@ -49,7 +64,10 @@ test("transactions.search applies case-insensitive text and date filters", async
     { text: "GRAB", from: "2026-07-14", to: "2026-07-14", limit: 50 },
     fixtureDeps(),
   );
-  assert.deepEqual(output.items.map((item) => item.id), ["sample-2"]);
+  assert.deepEqual(
+    output.items.map((item) => item.id),
+    ["sample-2"],
+  );
   assert.equal("pendingKey" in (output.items[0] ?? {}), false);
 });
 
@@ -115,16 +133,68 @@ test("transactions.search matches payee text", async () => {
 });
 
 test("transactions.search rejects malformed cursors", async () => {
+  let workspaceReads = 0;
+  const deps = fixtureDeps();
   await assert.rejects(
-    () => run(FIXED_CONTEXT, { cursor: "not-base64", limit: 50 }, fixtureDeps()),
-    (error: unknown) => error instanceof Error && "code" in error && error.code === "invalid_input",
+    () =>
+      run(
+        FIXED_CONTEXT,
+        { cursor: "not-base64", limit: 50 },
+        {
+          ...deps,
+          loadFinanceWorkspace: async () => {
+            workspaceReads += 1;
+            return deps.loadFinanceWorkspace!();
+          },
+        },
+      ),
+    (error: unknown) =>
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "invalid_input",
+  );
+  assert.equal(
+    workspaceReads,
+    0,
+    "Malformed cursors must not trigger ledger reads",
+  );
+});
+
+test("transactions.search rejects reversed dates before loading the ledger", async () => {
+  let workspaceReads = 0;
+  const deps = fixtureDeps();
+  await assert.rejects(
+    () =>
+      run(
+        FIXED_CONTEXT,
+        { from: "2026-07-31", to: "2026-07-01", limit: 50 },
+        {
+          ...deps,
+          loadFinanceWorkspace: async () => {
+            workspaceReads += 1;
+            return deps.loadFinanceWorkspace!();
+          },
+        },
+      ),
+    (error: unknown) =>
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "invalid_input",
+  );
+  assert.equal(
+    workspaceReads,
+    0,
+    "Invalid ranges must not trigger ledger reads",
   );
 });
 
 test("transactions.search golden output stays deterministic", async () => {
   const output = await run(FIXED_CONTEXT, { limit: 200 }, fixtureDeps());
   const golden = JSON.parse(
-    await readFile(new URL("./__golden__/transactions-search.json", import.meta.url), "utf8"),
+    await readFile(
+      new URL("./__golden__/transactions-search.json", import.meta.url),
+      "utf8",
+    ),
   );
   assert.deepEqual(output, golden);
 });
