@@ -92,4 +92,3 @@ begin
   return v_transaction_id;
 end;
 $$;
-
