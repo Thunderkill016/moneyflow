@@ -152,6 +152,13 @@ export async function createTransactionAction(
   );
 
   if (error || typeof transactionId !== "string") {
+    const detail = error?.message ?? "";
+    if (detail.includes("idempotency_intent_mismatch")) {
+      return { ok: false, message: "Nội dung giao dịch đã thay đổi so với lần gửi trước. Hãy kiểm tra sổ trước khi tạo giao dịch mới." };
+    }
+    if (detail.includes("idempotency_intent_unavailable")) {
+      return { ok: false, message: "Không xác minh được lần ghi cũ. Hãy kiểm tra sổ giao dịch trước khi thử lại." };
+    }
     return {
       ok: false,
       message: "Không thể lưu giao dịch. Hãy kiểm tra và thử lại.",
