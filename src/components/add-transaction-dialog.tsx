@@ -389,6 +389,14 @@ export function AddTransactionDialog({
         ) {
           setGoalId(draft.goalId);
         }
+        // A fallback account/category or goal is no longer the submitted intent.
+        // Never reuse the original key with a silently changed payload.
+        const draftAccountResolves = accounts.some((item) => item.id === draft.accountId);
+        const draftGoalResolves = !draft.goalId || goals.some((g) => g.id === draft.goalId && !g.isArchived);
+        idempotencyKeyRef.current =
+          draftAccountResolves && draftCategoryResolves && draftGoalResolves
+            ? draft.idempotencyKey ?? null
+            : null;
         setDraftRestored(true);
       }
     });
@@ -583,6 +591,13 @@ export function AddTransactionDialog({
 
     const idempotencyKey = idempotencyKeyRef.current ?? crypto.randomUUID();
     idempotencyKeyRef.current = idempotencyKey;
+    // Persist before the request: the tab can close after DB commit but before an ACK.
+    writeUnsentCaptureDraft({
+      kind, amount: parsedAmount, note: note.trim(), payee: payee.trim(),
+      goalId: goalId || undefined, categoryId: selectedCategoryId,
+      accountId: selectedAccountId, occurredOn,
+      idempotencyKey, savedAt: new Date().toISOString(),
+    });
     if (shouldKeepOpen) setKeepOpenSession(true);
     setSubmitting(true);
     let result: { ok: boolean; message?: string };
@@ -621,6 +636,7 @@ export function AddTransactionDialog({
         categoryId: selectedCategoryId,
         accountId: selectedAccountId,
         occurredOn,
+        idempotencyKey,
         savedAt: new Date().toISOString(),
       });
       setError(

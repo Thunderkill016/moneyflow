@@ -137,6 +137,73 @@ async function main() {
     }
   }
 
+
+  // Integration acceptance on two *independent* connections, rather than
+  // pgTAP's single transaction: covers same-key concurrency and lost ACK.
+  const id = "e821cccc-0000-4000-8000-000000000001";
+  const key = "e821cccc-0000-4000-8000-000000000002";
+  let left;
+  let right;
+  try {
+    await client.query(`insert into auth.users (
+      instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+      confirmation_token, recovery_token, email_change_token_new, email_change,
+      email_change_token_current, reauthentication_token, raw_app_meta_data,
+      raw_user_meta_data, created_at, updated_at, phone_change, phone_change_token,
+      is_sso_user, is_anonymous
+    ) values (
+      '00000000-0000-0000-0000-000000000000', $1, 'authenticated',
+      'authenticated', 'concurrent-replay@example.invalid',
+      crypt('discarded-password', gen_salt('bf')), now(),
+      '', '', '', '', '', '',
+      '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb,
+      now(), now(), '', '', false, false
+    )`, [id]);
+    const scope = await client.query(`select
+      (select id from public.accounts where user_id = $1 limit 1) as account,
+      (select id from public.categories where user_id = $1 and kind = 'expense' limit 1) as category`, [id]);
+    const { account, category } = scope.rows[0];
+    if (!account || !category) throw new Error("concurrency fixture missing ledger defaults");
+    left = pg.getPgClient();
+    right = pg.getPgClient();
+    await Promise.all([left.connect(), right.connect()]);
+    const claims = JSON.stringify({ sub: id, role: "authenticated" });
+    for (const connection of [left, right]) {
+      await connection.query("select set_config('request.jwt.claims', $1, false)", [claims]);
+      await connection.query("set role authenticated");
+    }
+    const query = `select public.create_money_transaction(
+      $1::uuid, $2::uuid, 'expense'::public.transaction_kind,
+      43000::bigint, current_date, 'ambiguous acknowledgment', $3::uuid
+    ) as id`;
+    // Both calls intentionally start together. One must block on the lock,
+    // then discover the already committed intent rather than insert again.
+    const [first, second] = await Promise.all([
+      left.query(query, [account, category, key]),
+      right.query(query, [account, category, key]),
+    ]);
+    if (first.rows[0].id !== second.rows[0].id)
+      throw new Error("concurrent same-key calls returned different transactions");
+    // Simulate a lost response: intentionally ignore the original result,
+    // then submit the exact request again from another connection.
+    const replay = await right.query(query, [account, category, key]);
+    if (replay.rows[0].id !== first.rows[0].id)
+      throw new Error("lost-ACK retry returned a different transaction");
+    const count = await client.query(`select
+      (select count(*)::integer from public.financial_transactions
+       where user_id = $1 and idempotency_key = $2) as transactions,
+      (select count(*)::integer from public.transaction_entries
+       where user_id = $1 and transaction_id = $3) as entries`,
+      [id, key, first.rows[0].id]);
+    if (count.rows[0].transactions !== 1 || count.rows[0].entries !== 1)
+      throw new Error("concurrent/lost-ACK path duplicated a transaction or account leg");
+    console.log("concurrency: independent clients + lost-ACK replay OK");
+  } catch (err) {
+    failures.push({ file: "manual-capture-concurrency", error: err.message });
+  } finally {
+    await Promise.allSettled([left?.end(), right?.end()].filter(Boolean));
+  }
+
   console.log(`\ntest files: ${pass} executed OK, ${failures.length} FAILED`);
   for (const f of failures) console.log(`  ✗ ${f.file}\n      ${f.error}`);
 

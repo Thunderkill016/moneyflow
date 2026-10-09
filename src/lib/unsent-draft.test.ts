@@ -108,6 +108,16 @@ test("a draft keeps its optional goal tag through write → read", () => {
   assert.deepEqual(readUnsentCaptureDraft(storage), tagged);
 });
 
+test("failed capture draft retains attempted write identity", () => {
+  const { storage } = mockStorage();
+  const key = "63010000-0000-4000-8000-000000000002";
+  writeUnsentCaptureDraft({ ...validDraft, idempotencyKey: key }, storage);
+  assert.equal(readUnsentCaptureDraft(storage)?.idempotencyKey, key);
+  assert.equal(isUnsentCaptureDraft({ ...validDraft, idempotencyKey: "not-a-uuid" }), false);
+  assert.match(dialog, /draftAccountResolves && draftCategoryResolves && draftGoalResolves/);
+  assert.match(dialog, /writeUnsentCaptureDraft\(\{[\s\S]*?idempotencyKey,[\s\S]*?savedAt/);
+});
+
 test("write → read → clear round-trips the draft", () => {
   const { storage, map } = mockStorage();
   writeUnsentCaptureDraft(validDraft, storage);

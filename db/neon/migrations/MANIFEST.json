@@ -400,6 +400,11 @@
       "sourceSha256": "9cb2e0bc8ee568d77a74a93ef046d981d493e5c04fc32efd33ce4b991c1b9eed",
       "outputSha256": "9cb2e0bc8ee568d77a74a93ef046d981d493e5c04fc32efd33ce4b991c1b9eed",
       "rewrites": 0
+    },
+    "20261009160000_manual_capture_replay_safety.sql": {
+      "sourceSha256": "32b1d15326a53fc1da72017ad9e4f4d2273a957350506a982b363d80900f82dc",
+      "outputSha256": "32b1d15326a53fc1da72017ad9e4f4d2273a957350506a982b363d80900f82dc",
+      "rewrites": 0
     }
   }
 }

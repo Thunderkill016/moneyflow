@@ -399,6 +399,11 @@
       "version": "20261006204000",
       "name": "20261006204000_upsert_recurring_income_template_expected_updated_at.sql",
       "hash": "9cb2e0bc8ee568d77a74a93ef046d981"
+    },
+    {
+      "version": "20261009160000",
+      "name": "20261009160000_manual_capture_replay_safety.sql",
+      "hash": "32b1d15326a53fc1da72017ad9e4f4d2"
     }
   ]
 }

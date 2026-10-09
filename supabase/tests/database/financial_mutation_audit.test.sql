@@ -172,11 +172,11 @@ select is(
     'expense'::public.transaction_kind,
     30000::bigint,
     current_date,
-    'retry text must not alter the original transaction',
+    'SECRET-NOTE-MUST-NOT-APPEAR',
     '26810000-0000-4000-8000-000000000001'::uuid
   ),
   current_setting('moneyflow_test.audit_transaction_a')::uuid,
-  'idempotent retry returns the original transaction'
+  'identical idempotent retry returns the original transaction'
 );
 select is(
   (select count(*)::integer
