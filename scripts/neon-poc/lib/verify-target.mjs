@@ -31,6 +31,8 @@ const ALLOWED_PROJECTS = {
   // the production cutover — its entry is intentionally removed so remote
   // scripts cannot silently re-target a recycled id.
   "shy-mud-72113549": "moneyflow-prod",
+  // #785: dedicated blank acceptance test project; never use production user data.
+  "nameless-wind-29591132": "moneyflow-acceptance-sandbox",
 };
 
 // Databases inside the scratch project the PoC may operate on. `mf_poc*` is
