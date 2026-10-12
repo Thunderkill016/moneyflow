@@ -1,0 +1,65 @@
+import 'dart:convert';
+import 'dart:io';
+
+/// Minimal injectable HTTP seam for Neon calls.
+///
+/// The auth flow needs raw response headers (`set-cookie`, `set-auth-jwt`)
+/// that `package:http` flattens awkwardly, so the real implementation goes
+/// through [HttpClient]; tests inject a fake [NeonRequester] instead.
+class NeonRequest {
+  const NeonRequest({
+    required this.method,
+    required this.url,
+    this.headers = const {},
+    this.body,
+  });
+
+  final String method;
+  final Uri url;
+  final Map<String, String> headers;
+  final Object? body; // JSON-encodable
+}
+
+class NeonResponse {
+  const NeonResponse({
+    required this.status,
+    required this.headers,
+    required this.body,
+  });
+
+  final int status;
+  // Header names are stored lower-cased.
+  final Map<String, String> headers;
+  final String body;
+
+  bool get ok => status >= 200 && status < 300;
+
+  Object? get json => body.isEmpty ? null : jsonDecode(body);
+
+  String? header(String name) => headers[name.toLowerCase()];
+}
+
+typedef NeonRequester = Future<NeonResponse> Function(NeonRequest req);
+
+/// Production transport over dart:io HttpClient.
+Future<NeonResponse> httpNeonRequester(NeonRequest req) async {
+  final client = HttpClient();
+  try {
+    final ioReq = await client.openUrl(req.method, req.url);
+    req.headers.forEach(ioReq.headers.set);
+    if (req.body != null) {
+      ioReq.headers.contentType = ContentType.json;
+      ioReq.write(jsonEncode(req.body));
+    }
+    final ioRes = await ioReq.close();
+    final body = await utf8.decodeStream(ioRes);
+    final headers = <String, String>{};
+    ioRes.headers.forEach((name, values) {
+      // Join repeated headers (e.g. set-cookie) so nothing is lost.
+      headers[name.toLowerCase()] = values.join(', ');
+    });
+    return NeonResponse(status: ioRes.statusCode, headers: headers, body: body);
+  } finally {
+    client.close(force: true);
+  }
+}

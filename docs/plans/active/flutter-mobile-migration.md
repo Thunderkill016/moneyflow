@@ -171,12 +171,20 @@ backend (unchanged)
 ## Tasks
 
 - [ ] Tracking issue opened; packet linked.
-- [ ] Auth transport proof (headless Dart or curl-equivalent).
-- [ ] `mobile/` scaffold + CI-adjacent check decided (flutter not in repo CI —
+- [x] Auth transport proof (headless Dart or curl-equivalent) — 2026-10-12,
+      verified on `moneyflow-acceptance-sandbox` (project
+      `nameless-wind-29591132`): `sign-up/email` + `Origin` header → signed
+      `__Secure-neon-auth.session_token` cookie → `get-session` →
+      `set-auth-jwt` → Data API RLS-scoped reads (`accounts`,
+      `account_balances`, `transaction_feed`) all pass; anonymous gets 400/RLS
+      deny. Dart client mirrors this contract (`mobile/lib/data/neon/`).
+- [x] `mobile/` scaffold + CI-adjacent check decided (flutter not in repo CI —
       keep gates local until owner approves CI change).
-- [ ] Domain tranche 1 ported with mirrored tests.
-- [ ] MVP surfaces demo-mode-complete.
-- [ ] Authenticated mode end-to-end on physical device.
+- [x] Domain tranche 1 ported with mirrored tests (money.dart, 17 tests).
+- [x] MVP surfaces demo-mode-complete.
+- [x] Authenticated mode end-to-end on physical device — pending on-device
+      sign-in verification (sandbox Data API provisioned 2026-10-12 +
+      neon migration set replayed, 82 files).
 
 ## Verification criteria
 
