@@ -97,17 +97,19 @@ class _CapturePageState extends State<CapturePage> {
       _error = null;
     });
     try {
-      await widget.onSubmit(CaptureIntent(
-        kind: _kind,
-        accountId: _accountId!,
-        destinationAccountId: _destAccountId,
-        categoryId: _categoryId,
-        amount: amount,
-        occurredOn: _fmtDate(_date),
-        note: _note.text.trim(),
-        payee: _payee.text.trim(),
-        idempotencyKey: _idempotencyKey,
-      ));
+      await widget.onSubmit(
+        CaptureIntent(
+          kind: _kind,
+          accountId: _accountId!,
+          destinationAccountId: _destAccountId,
+          categoryId: _categoryId,
+          amount: amount,
+          occurredOn: _fmtDate(_date),
+          note: _note.text.trim(),
+          payee: _payee.text.trim(),
+          idempotencyKey: _idempotencyKey,
+        ),
+      );
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       setState(() {
@@ -138,17 +140,20 @@ class _CapturePageState extends State<CapturePage> {
           SegmentedButton<TransactionKind>(
             segments: const [
               ButtonSegment(
-                  value: TransactionKind.expense,
-                  label: Text('Chi'),
-                  icon: Icon(Icons.remove)),
+                value: TransactionKind.expense,
+                label: Text('Chi'),
+                icon: Icon(Icons.remove),
+              ),
               ButtonSegment(
-                  value: TransactionKind.income,
-                  label: Text('Thu'),
-                  icon: Icon(Icons.add)),
+                value: TransactionKind.income,
+                label: Text('Thu'),
+                icon: Icon(Icons.add),
+              ),
               ButtonSegment(
-                  value: TransactionKind.transfer,
-                  label: Text('Chuyển'),
-                  icon: Icon(Icons.swap_horiz)),
+                value: TransactionKind.transfer,
+                label: Text('Chuyển'),
+                icon: Icon(Icons.swap_horiz),
+              ),
             ],
             selected: {_kind},
             onSelectionChanged: (s) => setState(() {
@@ -232,9 +237,11 @@ class _CapturePageState extends State<CapturePage> {
           ),
           const SizedBox(height: 16),
           if (_error != null) ...[
-            Text(_error!,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.red.shade700)),
+            Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.red.shade700),
+            ),
             const SizedBox(height: 8),
           ],
           FilledButton(

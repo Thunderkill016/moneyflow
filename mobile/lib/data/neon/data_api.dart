@@ -10,9 +10,9 @@ class NeonDataApi {
     required NeonConfig config,
     required NeonAuthClient auth,
     NeonRequester requester = httpNeonRequester,
-  })  : _config = config,
-        _auth = auth,
-        _requester = requester;
+  }) : _config = config,
+       _auth = auth,
+       _requester = requester;
 
   final NeonConfig _config;
   final NeonAuthClient _auth;
@@ -38,24 +38,26 @@ class NeonDataApi {
   /// actions call). Returns the decoded result (uuid string for creates).
   Future<Object?> rpc(String fn, Map<String, Object?> params) async {
     final base = _config.dataApiUrl.replaceAll(RegExp(r'/+$'), '');
-    final res =
-        await _send('POST', Uri.parse('$base/rpc/$fn'), body: params);
+    final res = await _send('POST', Uri.parse('$base/rpc/$fn'), body: params);
     return res.json;
   }
 
-  Future<NeonResponse> _send(String method, Uri url,
-      {Object? body}) async {
+  Future<NeonResponse> _send(String method, Uri url, {Object? body}) async {
     final jwt = await _auth.sessionJwt();
     if (jwt == null) throw NeonAuthException(401, 'not signed in');
-    final res = await _requester(NeonRequest(
-      method: method,
-      url: url,
-      headers: {'Authorization': 'Bearer $jwt'},
-      body: body,
-    ));
+    final res = await _requester(
+      NeonRequest(
+        method: method,
+        url: url,
+        headers: {'Authorization': 'Bearer $jwt'},
+        body: body,
+      ),
+    );
     if (!res.ok) {
       throw NeonAuthException(
-          res.status, '${url.host}${url.path} -> ${res.body}');
+        res.status,
+        '${url.host}${url.path} -> ${res.body}',
+      );
     }
     return res;
   }

@@ -1,7 +1,6 @@
 // Port of src/lib/money.dart — integer-đồng money formatting and parsing.
 // Money is ALWAYS int minor units (đồng). Never double.
 
-
 enum MoneySignKind { income, expense, transfer }
 
 const vndFractionEntryMessage =
@@ -49,13 +48,16 @@ String formatSignedMoney(int amount, {bool compact = false}) {
 }
 
 String moneyKindPrefix(MoneySignKind kind) => switch (kind) {
-      MoneySignKind.income => '+',
-      MoneySignKind.transfer => '↔',
-      MoneySignKind.expense => '−',
-    };
+  MoneySignKind.income => '+',
+  MoneySignKind.transfer => '↔',
+  MoneySignKind.expense => '−',
+};
 
-String formatMoneyWithKind(int amount, MoneySignKind kind,
-    {bool compact = false}) {
+String formatMoneyWithKind(
+  int amount,
+  MoneySignKind kind, {
+  bool compact = false,
+}) {
   return '${moneyKindPrefix(kind)} ${formatMoney(amount.abs(), compact: compact)}';
 }
 

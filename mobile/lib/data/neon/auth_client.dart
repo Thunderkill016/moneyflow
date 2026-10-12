@@ -33,26 +33,26 @@ class NeonSession {
   final String name;
 
   Map<String, String> toJson() => {
-        'sessionToken': sessionToken,
-        'userId': userId,
-        'email': email,
-        'name': name,
-      };
+    'sessionToken': sessionToken,
+    'userId': userId,
+    'email': email,
+    'name': name,
+  };
 
   factory NeonSession.fromJson(Map<String, dynamic> json) => NeonSession(
-        sessionToken: json['sessionToken'] as String,
-        userId: json['userId'] as String,
-        email: json['email'] as String,
-        name: json['name'] as String? ?? '',
-      );
+    sessionToken: json['sessionToken'] as String,
+    userId: json['userId'] as String,
+    email: json['email'] as String,
+    name: json['name'] as String? ?? '',
+  );
 }
 
 class NeonAuthClient {
   NeonAuthClient({
     required NeonConfig config,
     NeonRequester requester = httpNeonRequester,
-  })  : _config = config,
-        _requester = requester;
+  }) : _config = config,
+       _requester = requester;
 
   static const sessionCookieName = '__Secure-neon-auth.session_token';
 
@@ -66,16 +66,18 @@ class NeonAuthClient {
   NeonSession? get session => _session;
 
   Future<NeonResponse> _call(String path, {Object? body}) {
-    return _requester(NeonRequest(
-      method: body == null ? 'GET' : 'POST',
-      url: Uri.parse('${_config.authBaseUrl}$path'),
-      headers: {
-        'Origin': _config.origin,
-        if (_session != null)
-          'Cookie': '$sessionCookieName=${_session!.sessionToken}',
-      },
-      body: body,
-    ));
+    return _requester(
+      NeonRequest(
+        method: body == null ? 'GET' : 'POST',
+        url: Uri.parse('${_config.authBaseUrl}$path'),
+        headers: {
+          'Origin': _config.origin,
+          if (_session != null)
+            'Cookie': '$sessionCookieName=${_session!.sessionToken}',
+        },
+        body: body,
+      ),
+    );
   }
 
   Future<NeonSession> signIn(String email, String password) =>
@@ -182,9 +184,11 @@ class NeonAuthClient {
     final parts = jwt.split('.');
     if (parts.length != 3) return null;
     try {
-      final payload = jsonDecode(
-        utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
-      ) as Map<String, dynamic>;
+      final payload =
+          jsonDecode(
+                utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+              )
+              as Map<String, dynamic>;
       final exp = payload['exp'];
       return exp is int ? exp * 1000 : null;
     } catch (_) {
@@ -195,8 +199,9 @@ class NeonAuthClient {
   static String? _sessionTokenFromCookie(NeonResponse res) {
     final cookie = res.header('set-cookie');
     if (cookie == null) return null;
-    final match =
-        RegExp('${RegExp.escape(sessionCookieName)}=([^;]+)').firstMatch(cookie);
+    final match = RegExp(
+      '${RegExp.escape(sessionCookieName)}=([^;]+)',
+    ).firstMatch(cookie);
     return match?.group(1);
   }
 

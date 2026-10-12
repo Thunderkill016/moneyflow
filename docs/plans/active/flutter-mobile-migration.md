@@ -182,9 +182,19 @@ backend (unchanged)
       keep gates local until owner approves CI change).
 - [x] Domain tranche 1 ported with mirrored tests (money.dart, 17 tests).
 - [x] MVP surfaces demo-mode-complete.
-- [x] Authenticated mode end-to-end on physical device — pending on-device
-      sign-in verification (sandbox Data API provisioned 2026-10-12 +
-      neon migration set replayed, 82 files).
+- [x] Authenticated mode end-to-end on physical device — 2026-10-12 on
+      OPPO CPH2001 (USB `UKMBCUTWIFYTOVDQ`): sign-in → dashboard renders
+      RLS-scoped balances/feed → capture expense 30k → balance updated →
+      session persisted across reinstall.
+- [x] Activity + Accounts surfaces verified on-device 2026-10-12:
+      transaction list + soft-delete (`deleted_at` set, feed excludes row),
+      account create (`Vi Momo`, `e_wallet`) + archive (`is_archived=true`).
+      Both confirmed via direct DB query on the sandbox.
+- Known behavior: Neon Data API read-after-write lag — writes commit
+  immediately but list reads can serve a stale snapshot for ~seconds–minutes;
+  post-write refresh may show the old row until a later fetch. Documented,
+  not an app defect; a short post-mutation delay or optimistic update is a
+  candidate follow-up.
 
 ## Verification criteria
 

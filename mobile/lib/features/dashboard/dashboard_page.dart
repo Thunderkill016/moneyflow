@@ -13,14 +13,16 @@ class DashboardPage extends StatefulWidget {
     this.modeLabel,
     this.onSignOut,
     this.captureBuilder,
+    this.onShowActivity,
+    this.onShowAccounts,
   });
 
   factory DashboardPage.demo({VoidCallback? onSignOut}) => DashboardPage(
-        loadAccounts: () async => DemoStore.seedAccounts(),
-        loadTransactions: () async => DemoStore.seedTransactions(),
-        modeLabel: 'demo',
-        onSignOut: onSignOut,
-      );
+    loadAccounts: () async => DemoStore.seedAccounts(),
+    loadTransactions: () async => DemoStore.seedTransactions(),
+    modeLabel: 'demo',
+    onSignOut: onSignOut,
+  );
 
   final Future<List<AccountSummary>> Function() loadAccounts;
   final Future<List<Transaction>> Function() loadTransactions;
@@ -30,6 +32,8 @@ class DashboardPage extends StatefulWidget {
   /// Builds the capture route for the currently loaded accounts; null in
   /// demo mode (no write path).
   final Widget? Function(List<AccountSummary> accounts)? captureBuilder;
+  final VoidCallback? onShowActivity;
+  final VoidCallback? onShowAccounts;
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
@@ -45,7 +49,8 @@ class _DashboardPageState extends State<DashboardPage> {
     _data = _load();
   }
 
-  Future<({List<AccountSummary> accounts, List<Transaction> txs})> _load() async {
+  Future<({List<AccountSummary> accounts, List<Transaction> txs})>
+  _load() async {
     final accounts = await widget.loadAccounts();
     final txs = await widget.loadTransactions();
     return (accounts: accounts, txs: txs);
@@ -55,15 +60,17 @@ class _DashboardPageState extends State<DashboardPage> {
     setState(() => _data = _load());
     try {
       await _data;
-    } catch (_) {/* surfaced by the FutureBuilder */}
+    } catch (_) {
+      /* surfaced by the FutureBuilder */
+    }
   }
 
   Future<void> _openCapture() async {
     final build = widget.captureBuilder;
     if (build == null || _accounts.isEmpty) return;
-    final saved = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => build(_accounts)!),
-    );
+    final saved = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => build(_accounts)!));
     if (saved == true) _refresh();
   }
 
@@ -73,8 +80,19 @@ class _DashboardPageState extends State<DashboardPage> {
       appBar: AppBar(
         title: const Text('MoneyFlow'),
         actions: [
-          if (widget.modeLabel != null)
-            Center(child: Text(widget.modeLabel!)),
+          if (widget.modeLabel != null) Center(child: Text(widget.modeLabel!)),
+          if (widget.onShowActivity != null)
+            IconButton(
+              icon: const Icon(Icons.receipt_long),
+              tooltip: 'Hoạt động',
+              onPressed: widget.onShowActivity,
+            ),
+          if (widget.onShowAccounts != null)
+            IconButton(
+              icon: const Icon(Icons.account_balance_wallet),
+              tooltip: 'Tài khoản',
+              onPressed: widget.onShowAccounts,
+            ),
           if (widget.onSignOut != null)
             IconButton(
               icon: const Icon(Icons.logout),
@@ -96,13 +114,17 @@ class _DashboardPageState extends State<DashboardPage> {
                   const SizedBox(height: 8),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Text('${snap.error}',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodySmall),
+                    child: Text(
+                      '${snap.error}',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   FilledButton(
-                      onPressed: _refresh, child: const Text('Thử lại')),
+                    onPressed: _refresh,
+                    child: const Text('Thử lại'),
+                  ),
                 ],
               ),
             );
@@ -122,13 +144,17 @@ class _DashboardPageState extends State<DashboardPage> {
               children: [
                 _TotalCard(total: total),
                 const SizedBox(height: 20),
-                Text('Tài khoản',
-                    style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  'Tài khoản',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const SizedBox(height: 8),
                 for (final a in accounts) _AccountTile(account: a),
                 const SizedBox(height: 20),
-                Text('Hoạt động gần đây',
-                    style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  'Hoạt động gần đây',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const SizedBox(height: 8),
                 if (txs.isEmpty)
                   const Card(
@@ -161,15 +187,13 @@ class _TotalCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Tổng số dư',
-                style: Theme.of(context).textTheme.labelLarge),
+            Text('Tổng số dư', style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 6),
             Text(
               formatMoney(total),
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineMedium
-                  ?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
           ],
         ),
@@ -196,12 +220,12 @@ class _AccountTile extends StatelessWidget {
   }
 
   String _kindLabel(AccountKind kind) => switch (kind) {
-        AccountKind.cash => 'Tiền mặt',
-        AccountKind.bank => 'Ngân hàng',
-        AccountKind.eWallet => 'Ví điện tử',
-        AccountKind.creditCard => 'Thẻ tín dụng',
-        AccountKind.savings => 'Tiết kiệm',
-      };
+    AccountKind.cash => 'Tiền mặt',
+    AccountKind.bank => 'Ngân hàng',
+    AccountKind.eWallet => 'Ví điện tử',
+    AccountKind.creditCard => 'Thẻ tín dụng',
+    AccountKind.savings => 'Tiết kiệm',
+  };
 }
 
 class _TransactionTile extends StatelessWidget {

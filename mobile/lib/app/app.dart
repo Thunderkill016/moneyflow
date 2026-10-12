@@ -6,6 +6,8 @@ import '../data/neon/neon_config.dart';
 import '../data/neon/real_store.dart';
 import '../data/session_store.dart';
 import '../domain/models.dart';
+import '../features/accounts/accounts_page.dart';
+import '../features/activity/activity_page.dart';
 import '../features/auth/login_page.dart';
 import '../features/capture/capture_page.dart';
 import '../features/dashboard/dashboard_page.dart';
@@ -88,7 +90,9 @@ class _AuthGateState extends State<AuthGate> {
   Future<void> _signOut() async {
     try {
       await _auth.signOut();
-    } catch (_) {/* upstream sign-out failure still logs out locally */}
+    } catch (_) {
+      /* upstream sign-out failure still logs out locally */
+    }
     await SessionStore.clear();
     setState(() => _gate = _Gate.login);
   }
@@ -96,25 +100,46 @@ class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
     return switch (_gate) {
-      _Gate.booting =>
-        const Scaffold(body: Center(child: CircularProgressIndicator())),
+      _Gate.booting => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
       _Gate.login => LoginPage(
-          auth: _auth,
-          onSignedIn: _onSignedIn,
-          onDemo: () => setState(() => _gate = _Gate.demo),
-        ),
+        auth: _auth,
+        onSignedIn: _onSignedIn,
+        onDemo: () => setState(() => _gate = _Gate.demo),
+      ),
       _Gate.demo => DashboardPage.demo(
-          onSignOut: () => setState(() => _gate = _Gate.login)),
+        onSignOut: () => setState(() => _gate = _Gate.login),
+      ),
       _Gate.signedIn => DashboardPage(
-          loadAccounts: _store.loadAccounts,
-          loadTransactions: _store.loadTransactions,
-          onSignOut: _signOut,
-          captureBuilder: (accounts) => _CaptureLoader(
-            accounts: accounts,
-            categories: _store.loadCategories(),
-            store: _store,
+        loadAccounts: _store.loadAccounts,
+        loadTransactions: _store.loadTransactions,
+        onSignOut: _signOut,
+        captureBuilder: (accounts) => _CaptureLoader(
+          accounts: accounts,
+          categories: _store.loadCategories(),
+          store: _store,
+        ),
+        onShowActivity: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ActivityPage(
+              loadTransactions: _store.loadTransactions,
+              onDelete: _store.deleteTransaction,
+            ),
           ),
         ),
+        onShowAccounts: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => AccountsPage(
+              loadAccounts: _store.loadAccounts,
+              onCreate: (name, kind, bal) => _store
+                  .createAccount(name: name, kind: kind, initialBalance: bal)
+                  .then((_) {}),
+              onArchive: _store.setAccountArchived,
+            ),
+          ),
+        ),
+      ),
     };
   }
 }
@@ -139,7 +164,8 @@ class _CaptureLoader extends StatelessWidget {
       builder: (context, snap) {
         if (!snap.hasData) {
           return const Scaffold(
-              body: Center(child: CircularProgressIndicator()));
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
         return CapturePage(
           accounts: accounts.cast(),

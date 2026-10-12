@@ -11,8 +11,14 @@ class NeonConfig {
   final String dataApiUrl;
 
   factory NeonConfig.fromEnvironment() {
-    const auth = String.fromEnvironment('MF_AUTH_BASE_URL', defaultValue: _devAuth);
-    const api = String.fromEnvironment('MF_DATA_API_URL', defaultValue: _devApi);
+    const auth = String.fromEnvironment(
+      'MF_AUTH_BASE_URL',
+      defaultValue: _devAuth,
+    );
+    const api = String.fromEnvironment(
+      'MF_DATA_API_URL',
+      defaultValue: _devApi,
+    );
     return NeonConfig(authBaseUrl: auth, dataApiUrl: api);
   }
 

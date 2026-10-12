@@ -5,7 +5,12 @@ import '../../data/neon/auth_client.dart';
 /// Email/password auth against managed Better Auth (Neon).
 /// Sign-in and sign-up share the screen — matching the web's /login flow.
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key, required this.auth, required this.onSignedIn, this.onDemo});
+  const LoginPage({
+    super.key,
+    required this.auth,
+    required this.onSignedIn,
+    this.onDemo,
+  });
 
   final NeonAuthClient auth;
   final ValueChanged<NeonSession> onSignedIn;
@@ -31,7 +36,10 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final session = _signUp
           ? await widget.auth.signUp(
-              _name.text.trim(), _email.text.trim(), _password.text)
+              _name.text.trim(),
+              _email.text.trim(),
+              _password.text,
+            )
           : await widget.auth.signIn(_email.text.trim(), _password.text);
       if (!mounted) return;
       widget.onSignedIn(session);
@@ -65,20 +73,26 @@ class _LoginPageState extends State<LoginPage> {
               shrinkWrap: true,
               padding: const EdgeInsets.all(24),
               children: [
-                Text('MoneyFlow',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineMedium),
+                Text(
+                  'MoneyFlow',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
                 const SizedBox(height: 8),
-                Text('Sổ tiền của bạn',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium),
+                Text(
+                  'Sổ tiền của bạn',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
                 const SizedBox(height: 28),
                 if (_signUp) ...[
                   TextField(
                     controller: _name,
                     textInputAction: TextInputAction.next,
                     decoration: const InputDecoration(
-                        labelText: 'Tên', border: OutlineInputBorder()),
+                      labelText: 'Tên',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                   const SizedBox(height: 12),
                 ],
@@ -87,7 +101,9 @@ class _LoginPageState extends State<LoginPage> {
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
-                      labelText: 'Email', border: OutlineInputBorder()),
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -96,33 +112,41 @@ class _LoginPageState extends State<LoginPage> {
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _busy ? null : _submit(),
                   decoration: const InputDecoration(
-                      labelText: 'Mật khẩu', border: OutlineInputBorder()),
+                    labelText: 'Mật khẩu',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 if (_error != null) ...[
-                  Text(_error!,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.red.shade700)),
+                  Text(
+                    _error!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.red.shade700),
+                  ),
                   const SizedBox(height: 8),
                 ],
                 FilledButton(
                   onPressed: _busy ? null : _submit,
-                  child: Text(_busy
-                      ? '…'
-                      : _signUp
-                          ? 'Tạo tài khoản'
-                          : 'Đăng nhập'),
+                  child: Text(
+                    _busy
+                        ? '…'
+                        : _signUp
+                        ? 'Tạo tài khoản'
+                        : 'Đăng nhập',
+                  ),
                 ),
                 TextButton(
                   onPressed: _busy
                       ? null
                       : () => setState(() {
-                            _signUp = !_signUp;
-                            _error = null;
-                          }),
-                  child: Text(_signUp
-                      ? 'Đã có tài khoản? Đăng nhập'
-                      : 'Chưa có tài khoản? Đăng ký'),
+                          _signUp = !_signUp;
+                          _error = null;
+                        }),
+                  child: Text(
+                    _signUp
+                        ? 'Đã có tài khoản? Đăng nhập'
+                        : 'Chưa có tài khoản? Đăng ký',
+                  ),
                 ),
                 if (widget.onDemo != null) ...[
                   const SizedBox(height: 8),

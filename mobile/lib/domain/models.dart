@@ -1,15 +1,14 @@
 // Domain models ported from src/lib/accounts.ts + transactions/contracts.ts.
 
-
 enum AccountKind { cash, bank, eWallet, creditCard, savings }
 
 AccountKind accountKindFromString(String raw) => switch (raw) {
-      'bank' => AccountKind.bank,
-      'e_wallet' => AccountKind.eWallet,
-      'credit_card' => AccountKind.creditCard,
-      'savings' => AccountKind.savings,
-      _ => AccountKind.cash,
-    };
+  'bank' => AccountKind.bank,
+  'e_wallet' => AccountKind.eWallet,
+  'credit_card' => AccountKind.creditCard,
+  'savings' => AccountKind.savings,
+  _ => AccountKind.cash,
+};
 
 class AccountSummary {
   const AccountSummary({
