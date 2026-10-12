@@ -182,6 +182,105 @@ void main() {
 
       expect(find.text('Lương'), findsNothing);
     });
+
+    testWidgets(
+      'lặp lại hàng tháng shows for expense and flows into the intent',
+      (t) async {
+        CaptureIntent? captured;
+        await t.pumpWidget(
+          _wrap(
+            CapturePage(
+              accounts: DemoStore.seedAccounts(),
+              categories: DemoStore.seedCategories(),
+              transactions: DemoStore.seedTransactions(),
+              onSubmit: (i) async => captured = i,
+            ),
+          ),
+        );
+        await t.pumpAndSettle();
+
+        // Fill the top of the form first: quick chip, account, mục hay
+        // dùng category — the checkbox sits below the fold.
+        await t.tap(find.widgetWithText(ActionChip, '100k'));
+        await t.pumpAndSettle();
+        await t.tap(find.text('Tài khoản'));
+        await t.pumpAndSettle();
+        await t.tap(find.text('Tiền mặt').last);
+        await t.pumpAndSettle();
+        await t.tap(find.widgetWithText(ChoiceChip, 'Ăn uống'));
+        await t.pumpAndSettle();
+
+        // The form is a lazy ListView — items below the fold aren't
+        // built yet, so scroll until the checkbox is instantiated.
+        final scrollable = find.byType(Scrollable).first;
+        final repeatLabel = find.text('Lặp lại hàng tháng');
+        await t.scrollUntilVisible(repeatLabel, 200, scrollable: scrollable);
+        await t.tap(repeatLabel);
+        await t.pumpAndSettle();
+
+        await t.scrollUntilVisible(
+          find.text('Lưu'),
+          200,
+          scrollable: scrollable,
+        );
+        await t.tap(find.text('Lưu'));
+        await t.pumpAndSettle();
+
+        expect(captured, isNotNull);
+        expect(captured!.repeatMonthly, isTrue);
+        expect(captured!.dueDay, DateTime.now().day);
+        // Note and payee empty → the category name names the commitment.
+        expect(captured!.commitmentName, 'Ăn uống');
+      },
+    );
+
+    testWidgets('lặp lại hàng tháng hides for transfers', (t) async {
+      await t.pumpWidget(
+        _wrap(
+          CapturePage(
+            accounts: DemoStore.seedAccounts(),
+            categories: DemoStore.seedCategories(),
+            onSubmit: (_) async {},
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      await t.tap(find.text('Chuyển'));
+      await t.pumpAndSettle();
+      expect(find.text('Lặp lại hàng tháng'), findsNothing);
+    });
+
+    testWidgets('category sheet filters by name and selects on tap', (t) async {
+      await t.pumpWidget(
+        _wrap(
+          CapturePage(
+            accounts: DemoStore.seedAccounts(),
+            categories: DemoStore.seedCategories(),
+            onSubmit: (_) async {},
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      // The placeholder row opens the sheet.
+      await t.tap(find.text('Chọn'));
+      await t.pumpAndSettle();
+
+      expect(find.text('Tìm danh mục'), findsOneWidget);
+      await t.enterText(find.widgetWithText(TextField, 'Tìm danh mục'), 'di');
+      await t.pumpAndSettle();
+
+      // Filtered: Di chuyển stays, Ăn uống/Hóa đơn drop out of the sheet.
+      expect(find.text('Di chuyển'), findsOneWidget);
+      expect(find.text('Hóa đơn'), findsNothing);
+
+      await t.tap(find.text('Di chuyển'));
+      await t.pumpAndSettle();
+
+      // The input row now shows the picked category.
+      expect(find.widgetWithText(InputDecorator, 'Di chuyển'), findsOneWidget);
+    });
   });
 
   group('DashboardPage offline snapshot', () {

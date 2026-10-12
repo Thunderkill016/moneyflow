@@ -20,6 +20,7 @@ import '../features/activity/activity_page.dart';
 import '../data/demo_store.dart';
 import '../features/auth/login_page.dart';
 import '../features/capture/capture_page.dart';
+import '../features/capture/capture_submit.dart';
 import '../features/dashboard/dashboard_page.dart';
 import '../features/planning/planning_page.dart';
 import '../features/reports/reports_page.dart';
@@ -169,21 +170,36 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<void> _openSharedCapture(SharedTextPrefill prefill) async {
-    final saved = await Navigator.of(context).push<bool>(
+    final result = await Navigator.of(context).push<CaptureResult>(
       MaterialPageRoute(
         builder: (_) => _SharedCaptureLoader(store: _store, prefill: prefill),
       ),
     );
-    if (saved == true) _reloadTabs();
+    if (result != null) _reloadTabs();
+    if (result == CaptureResult.savedPartial && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã lưu khoản — chưa tạo được cam kết lặp lại'),
+        ),
+      );
+    }
   }
 
   /// Center-nav capture: loads its own accounts/categories/transactions so
   /// the form gets fresh data plus the "Mục hay dùng" ranking regardless of
   /// what the dashboard has loaded.
-  Future<bool?> _openCapture(BuildContext context) {
-    return Navigator.of(context).push<bool>(
+  Future<CaptureResult?> _openCapture(BuildContext context) async {
+    final result = await Navigator.of(context).push<CaptureResult>(
       MaterialPageRoute(builder: (_) => _CaptureLoader(store: _store)),
     );
+    if (result == CaptureResult.savedPartial && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã lưu khoản — chưa tạo được cam kết lặp lại'),
+        ),
+      );
+    }
+    return result;
   }
 
   /// After a capture save, every surface that shows its effect reloads.
@@ -359,7 +375,7 @@ class _AuthGateState extends State<AuthGate> {
             content: Text('Demo chỉ xem — đăng nhập để ghi khoản'),
           ),
         );
-        return Future.value();
+        return Future<CaptureResult?>.value();
       },
       onCaptureSaved: () {},
     );
@@ -474,7 +490,7 @@ class _CaptureLoader extends StatelessWidget {
           accounts: snap.data![0].cast(),
           categories: snap.data![1].cast(),
           transactions: snap.data![2].cast(),
-          onSubmit: (intent) => _submitCaptureIntent(store, intent),
+          onSubmit: (intent) => _submitIntent(store, intent),
         );
       },
     );
@@ -518,34 +534,49 @@ class _SharedCaptureLoader extends StatelessWidget {
           accounts: snap.data![0].cast(),
           categories: snap.data![1].cast(),
           prefill: prefill,
-          onSubmit: (intent) => _submitCaptureIntent(store, intent),
+          onSubmit: (intent) => _submitIntent(store, intent),
         );
       },
     );
   }
 }
 
-/// One submit path for every capture surface — transaction vs transfer
-/// routes to the matching RPC; the intent's idempotency key guards replays.
-Future<void> _submitCaptureIntent(RealStore store, CaptureIntent intent) {
-  if (intent.kind == TransactionKind.transfer) {
-    return store.createTransfer(
-      sourceAccountId: intent.accountId,
-      destinationAccountId: intent.destinationAccountId!,
-      amount: intent.amount,
-      occurredOn: intent.occurredOn,
-      note: intent.note,
-      idempotencyKey: intent.idempotencyKey,
-    );
-  }
-  return store.createTransaction(
-    accountId: intent.accountId,
-    categoryId: intent.categoryId!,
-    kind: intent.kind,
-    amount: intent.amount,
-    occurredOn: intent.occurredOn,
-    note: intent.note,
-    payee: intent.payee,
-    idempotencyKey: intent.idempotencyKey,
+/// Wires the Data API calls into the shared capture-submit orchestration —
+/// transaction/transfer first, then the optional monthly commitment.
+Future<void> _submitIntent(RealStore store, CaptureIntent intent) {
+  return submitCaptureIntent(
+    intent: intent,
+    createTransaction: (i) => store.createTransaction(
+      accountId: i.accountId,
+      categoryId: i.categoryId!,
+      kind: i.kind,
+      amount: i.amount,
+      occurredOn: i.occurredOn,
+      note: i.note,
+      payee: i.payee,
+      idempotencyKey: i.idempotencyKey,
+    ),
+    createTransfer: (i) => store.createTransfer(
+      sourceAccountId: i.accountId,
+      destinationAccountId: i.destinationAccountId!,
+      amount: i.amount,
+      occurredOn: i.occurredOn,
+      note: i.note,
+      idempotencyKey: i.idempotencyKey,
+    ),
+    createCommitment:
+        ({
+          required name,
+          required amountMinor,
+          required dueDay,
+          required accountId,
+          required categoryId,
+        }) => store.upsertCommitment(
+          name: name,
+          amountMinor: amountMinor,
+          dueDay: dueDay,
+          accountId: accountId,
+          categoryId: categoryId,
+        ),
   );
 }

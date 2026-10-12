@@ -8,6 +8,8 @@ import '../../data/share/share_text_parser.dart';
 import '../../domain/frequency.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
+import 'capture_submit.dart' show CommitmentFailed;
+import 'category_picker.dart';
 
 /// Result of one capture intent — carries the idempotency key generated when
 /// the form opened so replays of the same intent never double-post.
@@ -22,6 +24,9 @@ class CaptureIntent {
     this.note = '',
     this.payee = '',
     required this.idempotencyKey,
+    this.repeatMonthly = false,
+    this.dueDay = 1,
+    this.commitmentName = '',
   });
 
   final TransactionKind kind;
@@ -33,7 +38,19 @@ class CaptureIntent {
   final String note;
   final String payee;
   final String idempotencyKey;
+
+  /// "Lặp lại hàng tháng" — after the transaction saves, a monthly
+  /// commitment is created on [dueDay] under [commitmentName] (Money
+  /// Manager's inline-recurring pattern, mapped to our commitment RPC).
+  final bool repeatMonthly;
+  final int dueDay;
+  final String commitmentName;
 }
+
+/// What the capture route returns — `saved` is a clean save;
+/// `savedPartial` means the transaction landed but its recurring
+/// commitment did not (the shell shows an honest snackbar).
+enum CaptureResult { saved, savedPartial }
 
 /// Manual capture: Chi / Thu / Chuyển — mirrors the web's three action
 /// shapes (create_money_transaction, create_account_transfer).
@@ -77,6 +94,7 @@ class _CapturePageState extends State<CapturePage> {
   String? _categoryId;
   DateTime _date = DateTime.now();
   bool _busy = false;
+  bool _repeatMonthly = false;
   String? _error;
 
   @override
@@ -163,6 +181,16 @@ class _CapturePageState extends State<CapturePage> {
       _busy = true;
       _error = null;
     });
+    // Commitment display name: the most human label available.
+    final categoryName = widget.categories
+        .where((c) => c.id == _categoryId)
+        .map((c) => c.name)
+        .firstOrNull;
+    final commitmentName = _note.text.trim().isNotEmpty
+        ? _note.text.trim()
+        : (_payee.text.trim().isNotEmpty
+              ? _payee.text.trim()
+              : (categoryName ?? 'Khoản lặp lại'));
     try {
       await widget.onSubmit(
         CaptureIntent(
@@ -175,6 +203,9 @@ class _CapturePageState extends State<CapturePage> {
           note: _note.text.trim(),
           payee: _payee.text.trim(),
           idempotencyKey: _idempotencyKey,
+          repeatMonthly: _repeatMonthly && _kind != TransactionKind.transfer,
+          dueDay: _date.day,
+          commitmentName: commitmentName,
         ),
       );
       // Persist the last-used picks so the next capture starts pre-filled.
@@ -184,13 +215,28 @@ class _CapturePageState extends State<CapturePage> {
           categoryId: _categoryId,
         ),
       );
-      if (mounted) Navigator.of(context).pop(true);
+      if (mounted) Navigator.of(context).pop(CaptureResult.saved);
+    } on CommitmentFailed {
+      // The transaction saved; only the recurring commitment failed. The
+      // caller turns savedPartial into an honest snackbar — still a save.
+      if (mounted) Navigator.of(context).pop(CaptureResult.savedPartial);
     } catch (e) {
       setState(() {
         _busy = false;
         _error = 'Không lưu được — thử lại';
       });
     }
+  }
+
+  /// Category selection via a searchable bottom sheet — the flat list
+  /// will not scale as user categories grow (Money Lover/Wallet pattern).
+  Future<void> _pickCategory() async {
+    final picked = await showCategoryPicker(
+      context,
+      categories: _kindCategories,
+      selectedId: _categoryId,
+    );
+    if (picked != null) setState(() => _categoryId = picked.id);
   }
 
   Future<void> _pickDate() async {
@@ -323,20 +369,32 @@ class _CapturePageState extends State<CapturePage> {
               ),
               const SizedBox(height: 8),
             ],
-            DropdownButtonFormField<String>(
-              // Same non-reactive initialValue — chip taps and the
-              // remembered-category prefill recreate the field.
-              key: ValueKey('cat-$_categoryId'),
-              initialValue: _categoryId,
-              decoration: const InputDecoration(
-                labelText: 'Danh mục',
-                border: OutlineInputBorder(),
+            // Category opens a searchable sheet — the selected name shows
+            // on an input-styled row so the form reads like the old field.
+            InkWell(
+              onTap: _pickCategory,
+              borderRadius: BorderRadius.circular(4),
+              child: InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'Danh mục',
+                  border: OutlineInputBorder(),
+                  suffixIcon: Icon(Icons.arrow_drop_down),
+                ),
+                child: Text(
+                  _categoryId == null
+                      ? 'Chọn'
+                      : widget.categories
+                                .where((c) => c.id == _categoryId)
+                                .map((c) => c.name)
+                                .firstOrNull ??
+                            '',
+                  style: _categoryId == null
+                      ? TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        )
+                      : null,
+                ),
               ),
-              items: [
-                for (final c in _kindCategories)
-                  DropdownMenuItem(value: c.id, child: Text(c.name)),
-              ],
-              onChanged: (v) => setState(() => _categoryId = v),
             ),
           ],
           const SizedBox(height: 12),
@@ -361,7 +419,18 @@ class _CapturePageState extends State<CapturePage> {
             icon: const Icon(Icons.calendar_today),
             label: Text('Ngày: ${_fmtDate(_date)}'),
           ),
-          const SizedBox(height: 16),
+          // Money Manager's inline "Lặp lại" — a monthly commitment for
+          // expense/income. Transfers can't recur (no category).
+          if (!isTransfer)
+            CheckboxListTile(
+              value: _repeatMonthly,
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              title: const Text('Lặp lại hàng tháng'),
+              subtitle: Text('Tạo cam kết vào ngày ${_date.day} hằng tháng'),
+              onChanged: (v) => setState(() => _repeatMonthly = v ?? false),
+            ),
+          const SizedBox(height: 8),
           if (_error != null) ...[
             Text(
               _error!,

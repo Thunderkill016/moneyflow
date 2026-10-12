@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../features/capture/capture_page.dart' show CaptureResult;
+
 /// Bottom-navigation shell — the reference-app layout: Tổng quan /
 /// Hoạt động / [Ghi] / Kế hoạch / Báo cáo, with the center destination
 /// acting as the capture action instead of a tab (MISA/Money Lover
@@ -17,7 +19,9 @@ class HomeShell extends StatefulWidget {
   final List<Widget Function()> tabBuilders;
 
   /// Pushes the capture flow; the shell owns no capture logic of its own.
-  final Future<bool?> Function(BuildContext context) onCaptureTap;
+  /// A non-null result (saved or savedPartial) reloads the tabs — a
+  /// partial save still wrote a transaction the surfaces must show.
+  final Future<CaptureResult?> Function(BuildContext context) onCaptureTap;
 
   /// Called after a capture was saved — reloads the tabs that need it.
   final VoidCallback onCaptureSaved;
@@ -32,8 +36,8 @@ class _HomeShellState extends State<HomeShell> {
   final _visited = <int>{0};
 
   Future<void> _capture() async {
-    final saved = await widget.onCaptureTap(context);
-    if (saved == true) widget.onCaptureSaved();
+    final result = await widget.onCaptureTap(context);
+    if (result != null) widget.onCaptureSaved();
   }
 
   @override

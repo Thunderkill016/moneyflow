@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/app/home_shell.dart';
+import 'package:moneyflow/features/capture/capture_page.dart'
+    show CaptureResult;
 
 Widget _shell({
-  Future<bool?> Function(BuildContext)? onCaptureTap,
+  Future<CaptureResult?> Function(BuildContext)? onCaptureTap,
   VoidCallback? onCaptureSaved,
 }) => MaterialApp(
   home: HomeShell(
@@ -66,7 +68,7 @@ void main() {
         _shell(
           onCaptureTap: (_) async {
             captureCalls++;
-            return true;
+            return CaptureResult.saved;
           },
           onCaptureSaved: () => savedCalls++,
         ),

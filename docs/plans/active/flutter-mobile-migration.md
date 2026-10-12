@@ -437,3 +437,20 @@ prefills Tiền mặt + Ăn uống. `flutter test` 101/101, analyze clean.
 
 Deliberately not copied: paywall-before-entry, SMS permission, ads,
 quiz onboarding >3 questions, bank-connect-as-CTA (see "Avoid" above).
+
+Continuation (same owner instruction):
+
+- **"Lặp lại hàng tháng" inline** (Money Manager): checkbox on the capture
+  form for expense/income — saves the transaction, then creates the monthly
+  commitment via the existing `upsert_commitment` contract (dueDay = the
+  entry's day-of-month; name = note → payee → category). The submit
+  orchestration lives in `capture_submit.dart` (store-agnostic, spy-tested);
+  a commitment failure after a successful save surfaces as
+  `CaptureResult.savedPartial` + an honest snackbar, never a silent drop.
+- **Category search sheet** (`category_picker.dart`): the flat dropdown
+  became a searchable bottom sheet — Money Lover/Wallet picker pattern,
+  sized for growing user categories.
+
+Verified on-device: checkbox creates a real commitment ("Ăn uống · ngày 13"
+with Trả button in Kế hoạch); the sheet opens and filters; last-used
+account + category prefill make a repeat save a 3-tap flow. 109/109 tests.
