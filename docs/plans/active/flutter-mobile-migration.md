@@ -257,3 +257,74 @@ backend (unchanged)
 - Test totals after P5: 74/74 (`money` 9, `neon_client` 8, `report` 4,
   `planning_reports` 5, `share_text_parser` 27, `offline_cache` 9,
   `biometric_lock` 7, `device_features` 5); `flutter analyze` clean.
+
+## P6 — parity review and release decision (2026-10-12)
+
+Status: **implemented and device-verified through P5; not release-ready.**
+Nothing below was pushed, published, signed or submitted to a store.
+
+### Parity matrix (web routes in `src/app/**` vs `mobile/`)
+
+| Area | Web | Mobile | Verdict |
+|---|---|---|---|
+| Auth: sign-in / sign-up | `(auth)/login,register` | `login_page.dart` (toggle) | Parity |
+| Auth: forgot / update password | `(auth)/forgot-password,update-password` | none | **Gap** (store-relevant) |
+| Dashboard | `/dashboard` | `dashboard_page.dart` (+ offline snapshot) | Parity (no insights widgets) |
+| Accounts create / archive | `/accounts` | `accounts_page.dart` | Parity |
+| Account detail + reconcile | `/accounts/[id]`, `/reconcile` | none | Gap |
+| Manual capture exp/inc/transfer | `/capture`, `/capture/quick` | `capture_page.dart` | Parity |
+| Activity + soft delete | `/activity`, `/transactions` | `activity_page.dart` | Parity |
+| Trash / recovery | `/transactions/trash` | none | **Gap** (soft-delete is write-only on mobile) |
+| Budgets, commitments, goals | `/budgets,/commitments,/goals` | `planning_page.dart` | Parity (create/pay/adjust/archive) |
+| Reports | `/reports` | `reports_page.dart` | Parity (month only) |
+| Share receive | `/capture/share` + inbox pipeline | text prefill, manual review | **Partial by design** (no inbox/provenance/rate limits) |
+| Paste / upload / voice capture, imports, inbox, rules, income templates, categories CRUD, timeline | yes | none | Gap |
+| Notifications | SW notification | local due-day reminders | Parity (local only; no push backend exists on web either) |
+| Biometric lock | none | opt-in | Mobile-only |
+| Settings: export, backup, delete-account, privacy, appearance | yes | none | **Gap** (delete-account is a store requirement) |
+
+Mobile covers the daily loop (see balances, capture, review, plan, report). It
+does not cover correction/recovery, ingestion pipelines or account lifecycle.
+
+### Store-release blockers (Google Play)
+
+1. **In-app account deletion path + privacy policy link** — the app creates
+   accounts, so Play requires both. Web has `/settings/delete-account` and
+   `/privacy`; mobile has neither (a link-out to the web pages would be the
+   smallest slice, owner/legal to confirm).
+2. **Password reset** missing.
+3. **Release signing**: `build.gradle.kts` signs release with the *debug* key;
+   no upload keystore exists. Owner must create/hold the key.
+4. **Identity/branding**: label is lowercase `moneyflow`, launcher icon is the
+   Flutter default, `applicationId` `app.moneyflow.moneyflow` not yet confirmed
+   as the permanent store id.
+5. **Backend target**: `MF_AUTH_BASE_URL`/`MF_DATA_API_URL` default to the
+   acceptance sandbox. Everything on-device was verified against the sandbox
+   only; **production Data API/auth has not been exercised from mobile**.
+   Release builds must pass prod values via `--dart-define` and be re-verified.
+6. **Read-after-write lag** (Known behavior above) makes post-mutation lists
+   look stale; acceptable for internal testing, a visible quality issue for
+   public release (optimistic update / delayed refetch is the candidate fix).
+7. **Data-safety form, target API level, 12-testers/14-day closed-test rule**
+   (new personal Play accounts) — owner/process items, not code.
+8. **CI**: Flutter checks run locally only; no CI gate (owner approval needed
+   to change CI policy). `flutter test` 74/74 and `analyze` clean at P5.
+9. iOS: unverified. No Apple account confirmed; Linux cannot build iOS.
+
+### Decision (recommendation — owner approves)
+
+- **Do not submit to a public store track yet.**
+- **Proceed to an internal/closed-testing track** after: (a) a production-backend
+  smoke test on the device, (b) blockers 1–5 above, (c) trash/recovery on mobile
+  (financial-invariant parity: soft delete must be recoverable), (d) CI gate
+  decision. These are separate focused slices, not part of this commit.
+- **Web end-state: coexist.** The PWA already covers web/desktop, and mobile
+  lacks imports/inbox/rules/exports. Sunsetting the PWA is not supported by the
+  parity evidence.
+- SMS/notification-listener acquisition remains out of scope; it needs its own
+  privacy-scoped specification and owner authorization (canon acquisition law).
+- Merge/PR/issue status: no tracking issue or PR was opened by this work;
+  branch `feat/mobile-flutter` is local. Opening them is an owner action.
+
+Open questions updated: web end-state → recommended *coexist* (owner to
+confirm); iOS → still blocked on account + macOS; placement → `mobile/` kept.
