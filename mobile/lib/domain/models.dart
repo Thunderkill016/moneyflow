@@ -151,6 +151,32 @@ class RecurringCommitment {
   final bool paidThisMonth;
 }
 
+/// Recurring income (salary etc.) — mirrors
+/// public.recurring_income_template_feed plus this month's receipt state.
+class RecurringIncome {
+  const RecurringIncome({
+    required this.id,
+    required this.name,
+    required this.amountMinor,
+    required this.dueDay,
+    required this.accountId,
+    required this.accountName,
+    required this.categoryId,
+    required this.categoryName,
+    this.receivedThisMonth = false,
+  });
+
+  final String id;
+  final String name;
+  final int amountMinor;
+  final int dueDay; // 1-31
+  final String accountId;
+  final String accountName;
+  final String categoryId;
+  final String categoryName;
+  final bool receivedThisMonth;
+}
+
 /// Savings goal row — mirrors public.savings_goals.
 class SavingsGoal {
   const SavingsGoal({

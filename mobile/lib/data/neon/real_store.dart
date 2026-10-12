@@ -262,6 +262,92 @@ class RealStore {
         .toList();
   }
 
+  /// Recurring income templates + this month's receipt state —
+  /// public.recurring_income_template_feed + income_template_occurrences.
+  Future<List<RecurringIncome>> loadIncomeTemplates(String monthStart) async {
+    final rows = await _api.select(
+      'recurring_income_template_feed',
+      query: {
+        'select':
+            'id,name,amount_minor,due_day,account_id,account_name,'
+            'category_id,category_name,is_archived',
+        'is_archived': 'eq.false',
+        'order': 'due_day.asc',
+      },
+    );
+    final occurrences = await _api.select(
+      'income_template_occurrences',
+      query: {'select': 'template_id', 'month_start': 'eq.$monthStart'},
+    );
+    final received = {for (final o in occurrences) o['template_id'] as String};
+    return rows
+        .map(
+          (r) => RecurringIncome(
+            id: r['id'] as String,
+            name: r['name'] as String,
+            amountMinor: (r['amount_minor'] as num).toInt(),
+            dueDay: (r['due_day'] as num).toInt(),
+            accountId: r['account_id'] as String,
+            accountName: r['account_name'] as String? ?? '',
+            categoryId: r['category_id'] as String,
+            categoryName: r['category_name'] as String? ?? 'Khác',
+            receivedThisMonth: received.contains(r['id']),
+          ),
+        )
+        .toList();
+  }
+
+  /// POST /rpc/upsert_recurring_income_template — create (id null).
+  Future<String> createIncomeTemplate({
+    required String name,
+    required int amountMinor,
+    required int dueDay,
+    required String accountId,
+    required String categoryId,
+  }) async {
+    final id = await _api.rpc('upsert_recurring_income_template', {
+      'p_template_id': null,
+      'p_name': name,
+      'p_amount_minor': amountMinor,
+      'p_due_day': dueDay,
+      'p_account_id': accountId,
+      'p_category_id': categoryId,
+      'p_expected_updated_at': null,
+    });
+    return id as String;
+  }
+
+  /// POST /rpc/record_recurring_income_template — posts the real income
+  /// transaction and records this month's receipt (idempotent on the key).
+  Future<String> receiveIncome({
+    required String templateId,
+    required String monthStart,
+    required String receivedOn,
+    required String idempotencyKey,
+  }) async {
+    final id = await _api.rpc('record_recurring_income_template', {
+      'p_template_id': templateId,
+      'p_month_start': monthStart,
+      'p_received_on': receivedOn,
+      'p_idempotency_key': idempotencyKey,
+    });
+    return id as String;
+  }
+
+  /// POST /rpc/undo_recurring_income_template_receipt — removes this
+  /// month's receipt and soft-deletes its transaction (recoverable).
+  Future<void> undoIncomeReceipt(String templateId, String monthStart) =>
+      _api.rpc('undo_recurring_income_template_receipt', {
+        'p_template_id': templateId,
+        'p_month_start': monthStart,
+      });
+
+  Future<void> setIncomeTemplateArchived(String templateId, bool archived) =>
+      _api.rpc('set_recurring_income_template_archived', {
+        'p_template_id': templateId,
+        'p_archived': archived,
+      });
+
   /// Savings goals — public.savings_goals.
   Future<List<SavingsGoal>> loadGoals() async {
     final rows = await _api.select(

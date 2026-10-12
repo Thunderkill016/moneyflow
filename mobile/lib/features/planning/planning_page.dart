@@ -14,9 +14,11 @@ class PlanningData {
     required this.accounts,
     required this.categories,
     required this.monthStart,
+    this.incomeTemplates = const [],
   });
 
   final List<BudgetProgress> budgets;
+  final List<RecurringIncome> incomeTemplates;
   final List<RecurringCommitment> commitments;
   final List<SavingsGoal> goals;
   final List<AccountSummary> accounts;
@@ -35,7 +37,24 @@ class PlanningActions {
     required this.onGoalCreate,
     required this.onGoalAdjust,
     required this.onGoalArchive,
+    this.onIncomeCreate,
+    this.onIncomeReceive,
+    this.onIncomeUndo,
+    this.onIncomeArchive,
   });
+
+  /// Recurring-income writes — null (demo) hides the add/receive actions.
+  final Future<void> Function(
+    String name,
+    int amountMinor,
+    int dueDay,
+    String accountId,
+    String categoryId,
+  )?
+  onIncomeCreate;
+  final Future<void> Function(RecurringIncome income)? onIncomeReceive;
+  final Future<void> Function(RecurringIncome income)? onIncomeUndo;
+  final Future<void> Function(String templateId)? onIncomeArchive;
 
   final Future<void> Function(String categoryId, int limitMinor) onBudgetCreate;
   final Future<void> Function(String budgetId) onBudgetDelete;
@@ -136,10 +155,35 @@ class PlanningPageState extends State<PlanningPage> {
                 if (d.budgets.isEmpty) _empty('Chưa có ngân sách nào'),
                 for (final b in d.budgets)
                   _BudgetTile(budget: b, onDelete: () => _deleteBudget(b)),
+                if (widget.actions.onIncomeCreate != null ||
+                    d.incomeTemplates.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  _SectionHeader(
+                    title: 'Thu nhập định kỳ',
+                    onAdd: widget.actions.onIncomeCreate == null
+                        ? null
+                        : () => _createRecurring(d, income: true),
+                  ),
+                  if (d.incomeTemplates.isEmpty)
+                    _empty('Chưa có khoản thu định kỳ nào'),
+                  for (final i in d.incomeTemplates)
+                    _IncomeTile(
+                      income: i,
+                      onReceive: widget.actions.onIncomeReceive == null
+                          ? null
+                          : () => _receiveIncome(i),
+                      onUndo: widget.actions.onIncomeUndo == null
+                          ? null
+                          : () => _undoIncome(i),
+                      onArchive: widget.actions.onIncomeArchive == null
+                          ? null
+                          : () => _archiveIncome(i),
+                    ),
+                ],
                 const SizedBox(height: 20),
                 _SectionHeader(
                   title: 'Cam kết hàng tháng',
-                  onAdd: () => _createCommitment(d),
+                  onAdd: () => _createRecurring(d, income: false),
                 ),
                 if (d.commitments.isEmpty) _empty('Chưa có cam kết nào'),
                 for (final c in d.commitments)
@@ -239,11 +283,29 @@ class PlanningPageState extends State<PlanningPage> {
 
   // -- Commitments ---------------------------------------------------------
 
-  Future<void> _createCommitment(PlanningData d) async {
+  /// One dialog for both recurring shapes — a monthly commitment
+  /// (expense categories, "Tài khoản trả") or recurring income such as
+  /// salary (income categories, "Tài khoản nhận").
+  Future<void> _createRecurring(PlanningData d, {required bool income}) async {
     final expenseCats = d.categories
-        .where((c) => c.kind == TransactionKind.expense)
+        .where(
+          (c) =>
+              c.kind ==
+              (income ? TransactionKind.income : TransactionKind.expense),
+        )
         .toList();
-    if (expenseCats.isEmpty || d.accounts.isEmpty) return;
+    if (expenseCats.isEmpty || d.accounts.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            income
+                ? 'Cần ít nhất một tài khoản và một danh mục thu'
+                : 'Cần ít nhất một tài khoản và một danh mục chi',
+          ),
+        ),
+      );
+      return;
+    }
     final name = TextEditingController();
     final amount = TextEditingController();
     final dueDay = TextEditingController();
@@ -253,26 +315,26 @@ class PlanningPageState extends State<PlanningPage> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) => AlertDialog(
-          title: const Text('Cam kết mới'),
+          title: Text(income ? 'Thu nhập định kỳ mới' : 'Cam kết mới'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: name,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Tên',
-                    hintText: 'vd: Tiền nhà',
-                    border: OutlineInputBorder(),
+                    hintText: income ? 'vd: Lương' : 'vd: Tiền nhà',
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: amount,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Số tiền',
-                    hintText: 'vd: 3tr',
-                    border: OutlineInputBorder(),
+                    hintText: income ? 'vd: 15tr' : 'vd: 3tr',
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -287,9 +349,9 @@ class PlanningPageState extends State<PlanningPage> {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<AccountSummary>(
                   initialValue: acc,
-                  decoration: const InputDecoration(
-                    labelText: 'Tài khoản trả',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: income ? 'Tài khoản nhận' : 'Tài khoản trả',
+                    border: const OutlineInputBorder(),
                   ),
                   items: [
                     for (final a in d.accounts)
@@ -333,13 +395,10 @@ class PlanningPageState extends State<PlanningPage> {
                     cat == null) {
                   return;
                 }
-                await widget.actions.onCommitmentCreate(
-                  n,
-                  a,
-                  day,
-                  acc!.id,
-                  cat!.id,
-                );
+                final create = income
+                    ? widget.actions.onIncomeCreate!
+                    : widget.actions.onCommitmentCreate;
+                await create(n, a, day, acc!.id, cat!.id);
                 if (ctx.mounted) Navigator.pop(ctx, true);
               },
               child: const Text('Tạo'),
@@ -365,6 +424,36 @@ class PlanningPageState extends State<PlanningPage> {
     final ok = await _confirm('Lưu trữ "${c.name}"?');
     if (ok) {
       await widget.actions.onCommitmentArchive(c.id);
+      _refresh();
+    }
+  }
+
+  // -- Recurring income ----------------------------------------------------
+
+  Future<void> _receiveIncome(RecurringIncome i) async {
+    final ok = await _confirm(
+      'Ghi nhận "${i.name}" — ${formatMoney(i.amountMinor)} vào ${i.accountName}?',
+    );
+    if (ok) {
+      await widget.actions.onIncomeReceive!(i);
+      _refresh();
+    }
+  }
+
+  Future<void> _undoIncome(RecurringIncome i) async {
+    final ok = await _confirm(
+      'Hoàn tác khoản nhận "${i.name}" tháng này? Giao dịch sẽ vào Thùng rác.',
+    );
+    if (ok) {
+      await widget.actions.onIncomeUndo!(i);
+      _refresh();
+    }
+  }
+
+  Future<void> _archiveIncome(RecurringIncome i) async {
+    final ok = await _confirm('Lưu trữ "${i.name}"?');
+    if (ok) {
+      await widget.actions.onIncomeArchive!(i.id);
       _refresh();
     }
   }
@@ -625,6 +714,38 @@ class _CommitmentTile extends StatelessWidget {
         trailing: commitment.paidThisMonth
             ? const Text('Đã trả')
             : TextButton(onPressed: onPay, child: const Text('Trả')),
+        onLongPress: onArchive,
+      ),
+    );
+  }
+}
+
+class _IncomeTile extends StatelessWidget {
+  const _IncomeTile({
+    required this.income,
+    required this.onReceive,
+    required this.onUndo,
+    required this.onArchive,
+  });
+
+  final RecurringIncome income;
+  final VoidCallback? onReceive;
+  final VoidCallback? onUndo;
+  final VoidCallback? onArchive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        title: Text(income.name),
+        subtitle: Text(
+          '${income.categoryName} · ${income.accountName} · ngày ${income.dueDay}'
+          ' · ${formatMoney(income.amountMinor)}',
+        ),
+        trailing: income.receivedThisMonth
+            ? TextButton(onPressed: onUndo, child: const Text('Đã nhận'))
+            : TextButton(onPressed: onReceive, child: const Text('Nhận')),
         onLongPress: onArchive,
       ),
     );

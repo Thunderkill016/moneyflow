@@ -74,7 +74,154 @@ Transaction _tx(
   occurredOn: occurredOn,
 );
 
+const _salary = RecurringIncome(
+  id: 'inc-1',
+  name: 'Lương',
+  amountMinor: 15000000,
+  dueDay: 5,
+  accountId: 'acc-bank',
+  accountName: 'Ngân hàng VCB',
+  categoryId: 'cat-salary',
+  categoryName: 'Lương',
+);
+
+Future<void> _pumpIncome(
+  WidgetTester tester, {
+  required List<RecurringIncome> templates,
+  required PlanningActions actions,
+}) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      home: PlanningPage(
+        loadData: () => Future.value(
+          PlanningData(
+            budgets: const [],
+            commitments: const [],
+            goals: const [],
+            accounts: DemoStore.seedAccounts(),
+            categories: DemoStore.seedCategories(),
+            monthStart: _monthStart(),
+            incomeTemplates: templates,
+          ),
+        ),
+        actions: actions,
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+PlanningActions _incomeActions({
+  Future<void> Function(RecurringIncome)? onReceive,
+  Future<void> Function(RecurringIncome)? onUndo,
+  Future<void> Function(String, int, int, String, String)? onCreate,
+}) => PlanningActions(
+  onBudgetCreate: (a, b) async {},
+  onBudgetDelete: (_) async {},
+  onCommitmentCreate: (a, b, c, d, e) async {},
+  onCommitmentPay: (_) async {},
+  onCommitmentArchive: (_) async {},
+  onGoalCreate: (a, b, c) async {},
+  onGoalAdjust: (a, b) async {},
+  onGoalArchive: (_) async {},
+  onIncomeCreate: onCreate ?? (a, b, c, d, e) async {},
+  onIncomeReceive: onReceive ?? (_) async {},
+  onIncomeUndo: onUndo ?? (_) async {},
+  onIncomeArchive: (_) async {},
+);
+
 void main() {
+  group('PlanningPage recurring income', () {
+    testWidgets('demo (no income actions, no templates) hides the section', (
+      tester,
+    ) async {
+      await _pumpPlanning(tester, actions: _actions());
+      expect(find.text('Thu nhập định kỳ'), findsNothing);
+    });
+
+    testWidgets('lists templates; Nhận confirms then records the receipt', (
+      tester,
+    ) async {
+      RecurringIncome? received;
+      await _pumpIncome(
+        tester,
+        templates: const [_salary],
+        actions: _incomeActions(onReceive: (i) async => received = i),
+      );
+
+      expect(find.text('Thu nhập định kỳ'), findsOneWidget);
+      expect(find.text('Lương'), findsWidgets);
+      expect(find.textContaining('ngày 5'), findsOneWidget);
+
+      await tester.tap(find.text('Nhận'));
+      await tester.pumpAndSettle();
+      // Money moves only after an explicit confirmation.
+      expect(received, isNull);
+      await tester.tap(find.text('Đồng ý'));
+      await tester.pumpAndSettle();
+      expect(received?.id, 'inc-1');
+    });
+
+    testWidgets('a received template offers an explicit undo', (tester) async {
+      RecurringIncome? undone;
+      await _pumpIncome(
+        tester,
+        templates: [
+          const RecurringIncome(
+            id: 'inc-1',
+            name: 'Lương',
+            amountMinor: 15000000,
+            dueDay: 5,
+            accountId: 'acc-bank',
+            accountName: 'Ngân hàng VCB',
+            categoryId: 'cat-salary',
+            categoryName: 'Lương',
+            receivedThisMonth: true,
+          ),
+        ],
+        actions: _incomeActions(onUndo: (i) async => undone = i),
+      );
+
+      expect(find.text('Nhận'), findsNothing);
+      await tester.tap(find.text('Đã nhận'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Đồng ý'));
+      await tester.pumpAndSettle();
+      expect(undone?.id, 'inc-1');
+    });
+
+    testWidgets('create dialog uses income categories and posts the template', (
+      tester,
+    ) async {
+      List<Object?>? created;
+      await _pumpIncome(
+        tester,
+        templates: const [],
+        actions: _incomeActions(
+          onCreate: (n, a, d, acc, cat) async => created = [n, a, d, acc, cat],
+        ),
+      );
+
+      // First "+" belongs to the budget section; income is the second.
+      await tester.tap(find.byIcon(Icons.add_circle_outline).at(1));
+      await tester.pumpAndSettle();
+      expect(find.text('Thu nhập định kỳ mới'), findsOneWidget);
+      expect(find.text('Tài khoản nhận'), findsOneWidget);
+
+      await tester.enterText(find.widgetWithText(TextField, 'Tên'), 'Lương');
+      await tester.enterText(find.widgetWithText(TextField, 'Số tiền'), '15tr');
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Ngày đến hạn (1-31)'),
+        '5',
+      );
+      await tester.tap(find.text('Tạo'));
+      await tester.pumpAndSettle();
+
+      // Only the income category exists for this kind in the seed.
+      expect(created, ['Lương', 15000000, 5, 'acc-cash', 'cat-salary']);
+    });
+  });
+
   group('PlanningPage', () {
     testWidgets('renders section titles and seed item names', (tester) async {
       await _pumpPlanning(tester, actions: _actions());

@@ -504,6 +504,7 @@ class _AuthGateState extends State<AuthGate> {
       _store.loadGoals(),
       _store.loadAccounts(),
       _store.loadCategories(),
+      _store.loadIncomeTemplates(monthStart),
     ]);
     unawaited(
       NotificationService.scheduleCommitmentReminders(
@@ -516,8 +517,18 @@ class _AuthGateState extends State<AuthGate> {
       goals: results[2] as List<SavingsGoal>,
       accounts: results[3] as List<AccountSummary>,
       categories: results[4] as List<Category>,
+      incomeTemplates: results[5] as List<RecurringIncome>,
       monthStart: monthStart,
     );
+  }
+
+  /// Paying a commitment / receiving income posts a real ledger
+  /// transaction — balances, feed and reports must follow (the planning
+  /// page reloads itself).
+  void _reloadLedgerTabs() {
+    _dashKey.currentState?.reload();
+    _actKey.currentState?.reload();
+    _reportKey.currentState?.reload();
   }
 
   PlanningActions _planningActions() => PlanningActions(
@@ -545,8 +556,29 @@ class _AuthGateState extends State<AuthGate> {
           paidOn: _today(),
           idempotencyKey: newIdempotencyKey(),
         )
-        .then((_) {}),
+        .then((_) => _reloadLedgerTabs()),
     onCommitmentArchive: (id) => _store.setCommitmentArchived(id, true),
+    onIncomeCreate: (name, amount, day, accountId, categoryId) => _store
+        .createIncomeTemplate(
+          name: name,
+          amountMinor: amount,
+          dueDay: day,
+          accountId: accountId,
+          categoryId: categoryId,
+        )
+        .then((_) {}),
+    onIncomeReceive: (i) => _store
+        .receiveIncome(
+          templateId: i.id,
+          monthStart: _monthStart(),
+          receivedOn: _today(),
+          idempotencyKey: newIdempotencyKey(),
+        )
+        .then((_) => _reloadLedgerTabs()),
+    onIncomeUndo: (i) => _store
+        .undoIncomeReceipt(i.id, _monthStart())
+        .then((_) => _reloadLedgerTabs()),
+    onIncomeArchive: (id) => _store.setIncomeTemplateArchived(id, true),
     onGoalCreate: (name, target, deadline) => _store
         .upsertGoal(name: name, targetMinor: target, deadline: deadline)
         .then((_) {}),
