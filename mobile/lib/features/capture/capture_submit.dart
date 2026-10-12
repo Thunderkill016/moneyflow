@@ -28,7 +28,19 @@ Future<void> submitCaptureIntent({
     required String categoryId,
   })
   createCommitment,
+  Future<void> Function(CaptureIntent intent)? updateTransaction,
+  Future<void> Function(CaptureIntent intent)? updateTransfer,
 }) async {
+  // Edit mode: an intent carrying a transactionId updates in place —
+  // it never creates, and never spawns a commitment.
+  if (intent.transactionId != null) {
+    final update = intent.kind == TransactionKind.transfer
+        ? updateTransfer
+        : updateTransaction;
+    if (update == null) throw StateError('edit intent without an update path');
+    await update(intent);
+    return;
+  }
   if (intent.kind == TransactionKind.transfer) {
     await createTransfer(intent);
   } else {

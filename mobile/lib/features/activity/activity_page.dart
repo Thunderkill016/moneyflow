@@ -11,10 +11,14 @@ class ActivityPage extends StatefulWidget {
     required this.loadTransactions,
     required this.onDelete,
     this.onOpenTrash,
+    this.onEdit,
   });
 
   final Future<List<Transaction>> Function() loadTransactions;
   final Future<void> Function(String transactionId) onDelete;
+
+  /// Tap-to-edit entry — null keeps rows read-only (demo has no writes).
+  final Future<void> Function(Transaction tx)? onEdit;
 
   /// Trash entry — null hides the action (demo deletes are no-ops, so a
   /// trash surface there would always be empty and misleading).
@@ -108,7 +112,16 @@ class ActivityPageState extends State<ActivityPage> {
                     ),
                   ),
                 for (final t in txs)
-                  _TxTile(tx: t, onLongPress: () => _confirmDelete(t)),
+                  _TxTile(
+                    tx: t,
+                    onTap: widget.onEdit == null
+                        ? null
+                        : () async {
+                            await widget.onEdit!(t);
+                            _refresh();
+                          },
+                    onLongPress: () => _confirmDelete(t),
+                  ),
               ],
             ),
           );
@@ -119,9 +132,10 @@ class ActivityPageState extends State<ActivityPage> {
 }
 
 class _TxTile extends StatelessWidget {
-  const _TxTile({required this.tx, required this.onLongPress});
+  const _TxTile({required this.tx, required this.onLongPress, this.onTap});
   final Transaction tx;
   final VoidCallback onLongPress;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -148,6 +162,7 @@ class _TxTile extends StatelessWidget {
           formatMoneyWithKind(tx.amount, kind),
           style: TextStyle(color: color, fontWeight: FontWeight.w600),
         ),
+        onTap: onTap,
         onLongPress: onLongPress,
       ),
     );

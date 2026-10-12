@@ -22,7 +22,101 @@ CaptureIntent _intent({
   commitmentName: commitmentName,
 );
 
+CaptureIntent _editIntent({
+  TransactionKind kind = TransactionKind.expense,
+  bool repeatMonthly = false,
+}) => CaptureIntent(
+  kind: kind,
+  accountId: 'acc-cash',
+  destinationAccountId: kind == TransactionKind.transfer ? 'acc-bank' : null,
+  categoryId: kind == TransactionKind.transfer ? null : 'cat-food',
+  amount: 100000,
+  occurredOn: '2026-10-12',
+  idempotencyKey: 'idem-1',
+  repeatMonthly: repeatMonthly,
+  transactionId: 'tx-1',
+  expectedUpdatedAt: '2026-10-12T01:00:00Z',
+);
+
+Future<void> _noCommitment({
+  required String name,
+  required int amountMinor,
+  required int dueDay,
+  required String accountId,
+  required String categoryId,
+}) async => throw StateError('edit must never create a commitment');
+
 void main() {
+  group('submitCaptureIntent edit mode', () {
+    test('expense edit routes to updateTransaction only', () async {
+      final calls = <String>[];
+      await submitCaptureIntent(
+        intent: _editIntent(),
+        createTransaction: (_) async => calls.add('create-tx'),
+        createTransfer: (_) async => calls.add('create-transfer'),
+        createCommitment: _noCommitment,
+        updateTransaction: (i) async =>
+            calls.add('update-tx:${i.transactionId}'),
+        updateTransfer: (_) async => calls.add('update-transfer'),
+      );
+      expect(calls, ['update-tx:tx-1']);
+    });
+
+    test('transfer edit routes to updateTransfer only', () async {
+      final calls = <String>[];
+      await submitCaptureIntent(
+        intent: _editIntent(kind: TransactionKind.transfer),
+        createTransaction: (_) async => calls.add('create-tx'),
+        createTransfer: (_) async => calls.add('create-transfer'),
+        createCommitment: _noCommitment,
+        updateTransaction: (_) async => calls.add('update-tx'),
+        updateTransfer: (i) async =>
+            calls.add('update-transfer:${i.expectedUpdatedAt}'),
+      );
+      expect(calls, ['update-transfer:2026-10-12T01:00:00Z']);
+    });
+
+    test(
+      'edit never creates a commitment even if repeatMonthly leaks',
+      () async {
+        await submitCaptureIntent(
+          intent: _editIntent(repeatMonthly: true),
+          createTransaction: (_) async {},
+          createTransfer: (_) async {},
+          createCommitment: _noCommitment,
+          updateTransaction: (_) async {},
+        );
+      },
+    );
+
+    test('edit without an update path fails loudly, not as a create', () async {
+      var created = 0;
+      await expectLater(
+        submitCaptureIntent(
+          intent: _editIntent(),
+          createTransaction: (_) async => created++,
+          createTransfer: (_) async => created++,
+          createCommitment: _noCommitment,
+        ),
+        throwsA(isA<StateError>()),
+      );
+      expect(created, 0);
+    });
+
+    test('update failure propagates (stale_write reaches the form)', () async {
+      await expectLater(
+        submitCaptureIntent(
+          intent: _editIntent(),
+          createTransaction: (_) async {},
+          createTransfer: (_) async {},
+          createCommitment: _noCommitment,
+          updateTransaction: (_) async => throw Exception('stale_write'),
+        ),
+        throwsA(isA<Exception>()),
+      );
+    });
+  });
+
   group('submitCaptureIntent', () {
     test(
       'expense routes to createTransaction, no commitment by default',

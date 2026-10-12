@@ -27,6 +27,8 @@ class CaptureIntent {
     this.repeatMonthly = false,
     this.dueDay = 1,
     this.commitmentName = '',
+    this.transactionId,
+    this.expectedUpdatedAt,
   });
 
   final TransactionKind kind;
@@ -45,6 +47,12 @@ class CaptureIntent {
   final bool repeatMonthly;
   final int dueDay;
   final String commitmentName;
+
+  /// Edit mode — when set, the intent updates this row instead of
+  /// creating one. [expectedUpdatedAt] is the optimistic-concurrency
+  /// token from the feed (server raises stale_write when stale).
+  final String? transactionId;
+  final String? expectedUpdatedAt;
 }
 
 /// What the capture route returns — `saved` is a clean save;
@@ -62,6 +70,7 @@ class CapturePage extends StatefulWidget {
     required this.onSubmit,
     this.prefill,
     this.transactions = const [],
+    this.editing,
   });
 
   final List<AccountSummary> accounts;
@@ -75,6 +84,11 @@ class CapturePage extends StatefulWidget {
   /// Recent transactions — ranked into the "Mục hay dùng" category row.
   /// Empty for share-receive opens (no feed loaded yet).
   final List<Transaction> transactions;
+
+  /// Edit mode — prefills every field from this row; submits carry its
+  /// id + updated_at instead of a new idempotency write. Kind stays
+  /// locked to what the update RPC allows (transfers stay transfers).
+  final Transaction? editing;
 
   @override
   State<CapturePage> createState() => _CapturePageState();
@@ -100,6 +114,18 @@ class _CapturePageState extends State<CapturePage> {
   @override
   void initState() {
     super.initState();
+    final editing = widget.editing;
+    if (editing != null) {
+      _kind = editing.kind;
+      _accountId = editing.accountId;
+      _destAccountId = editing.destinationAccountId;
+      _categoryId = editing.categoryId.isEmpty ? null : editing.categoryId;
+      _amount.text = editing.amount.toString();
+      _note.text = editing.note;
+      _payee.text = editing.payee ?? '';
+      _date = DateTime.tryParse(editing.occurredOn) ?? DateTime.now();
+      return; // an edited row is the strongest prefill — skip the rest
+    }
     final p = widget.prefill;
     if (p != null) {
       if (p.kind != null) _kind = p.kind!;
@@ -203,9 +229,14 @@ class _CapturePageState extends State<CapturePage> {
           note: _note.text.trim(),
           payee: _payee.text.trim(),
           idempotencyKey: _idempotencyKey,
-          repeatMonthly: _repeatMonthly && _kind != TransactionKind.transfer,
+          repeatMonthly:
+              _repeatMonthly &&
+              _kind != TransactionKind.transfer &&
+              widget.editing == null,
           dueDay: _date.day,
           commitmentName: commitmentName,
+          transactionId: widget.editing?.id,
+          expectedUpdatedAt: widget.editing?.updatedAt,
         ),
       );
       // Persist the last-used picks so the next capture starts pre-filled.
@@ -223,9 +254,25 @@ class _CapturePageState extends State<CapturePage> {
     } catch (e) {
       setState(() {
         _busy = false;
-        _error = 'Không lưu được — thử lại';
+        _error = _submitError(e);
       });
     }
+  }
+
+  /// Named RPC guard failures get an honest action message; everything
+  /// else falls back to the generic retry.
+  String _submitError(Object e) {
+    final msg = e.toString();
+    if (msg.contains('stale_write')) {
+      return 'Khoản này vừa thay đổi — thoát rồi mở lại để sửa bản mới';
+    }
+    if (msg.contains('recurring_payment_locked')) {
+      return 'Khoản trả định kỳ không sửa được — xóa rồi ghi lại';
+    }
+    if (msg.contains('transaction_kind_locked')) {
+      return 'Không đổi được kiểu của khoản chuyển';
+    }
+    return 'Không lưu được — thử lại';
   }
 
   /// Category selection via a searchable bottom sheet — the flat list
@@ -249,11 +296,59 @@ class _CapturePageState extends State<CapturePage> {
     if (picked != null) setState(() => _date = picked);
   }
 
+  /// Which kind segments the user may pick. Create mode offers all
+  /// three; editing locks to the update-RPC contract — a transfer can
+  /// never change kind, and a normal transaction can't become one.
+  List<ButtonSegment<TransactionKind>> get _kindSegments {
+    if (widget.editing != null) {
+      if (widget.editing!.kind == TransactionKind.transfer) {
+        return const [
+          ButtonSegment(
+            value: TransactionKind.transfer,
+            label: Text('Chuyển'),
+            icon: Icon(Icons.swap_horiz),
+          ),
+        ];
+      }
+      return const [
+        ButtonSegment(
+          value: TransactionKind.expense,
+          label: Text('Chi'),
+          icon: Icon(Icons.remove),
+        ),
+        ButtonSegment(
+          value: TransactionKind.income,
+          label: Text('Thu'),
+          icon: Icon(Icons.add),
+        ),
+      ];
+    }
+    return const [
+      ButtonSegment(
+        value: TransactionKind.expense,
+        label: Text('Chi'),
+        icon: Icon(Icons.remove),
+      ),
+      ButtonSegment(
+        value: TransactionKind.income,
+        label: Text('Thu'),
+        icon: Icon(Icons.add),
+      ),
+      ButtonSegment(
+        value: TransactionKind.transfer,
+        label: Text('Chuyển'),
+        icon: Icon(Icons.swap_horiz),
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final isTransfer = _kind == TransactionKind.transfer;
     return Scaffold(
-      appBar: AppBar(title: const Text('Ghi khoản')),
+      appBar: AppBar(
+        title: Text(widget.editing == null ? 'Ghi khoản' : 'Sửa khoản'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -270,28 +365,14 @@ class _CapturePageState extends State<CapturePage> {
             const SizedBox(height: 12),
           ],
           SegmentedButton<TransactionKind>(
-            segments: const [
-              ButtonSegment(
-                value: TransactionKind.expense,
-                label: Text('Chi'),
-                icon: Icon(Icons.remove),
-              ),
-              ButtonSegment(
-                value: TransactionKind.income,
-                label: Text('Thu'),
-                icon: Icon(Icons.add),
-              ),
-              ButtonSegment(
-                value: TransactionKind.transfer,
-                label: Text('Chuyển'),
-                icon: Icon(Icons.swap_horiz),
-              ),
-            ],
+            segments: _kindSegments,
             selected: {_kind},
-            onSelectionChanged: (s) => setState(() {
-              _kind = s.first;
-              _categoryId = null;
-            }),
+            onSelectionChanged: widget.editing?.kind == TransactionKind.transfer
+                ? null // a transfer can never change kind (RPC-locked)
+                : (s) => setState(() {
+                    _kind = s.first;
+                    _categoryId = null;
+                  }),
           ),
           const SizedBox(height: 16),
           TextField(
@@ -420,8 +501,9 @@ class _CapturePageState extends State<CapturePage> {
             label: Text('Ngày: ${_fmtDate(_date)}'),
           ),
           // Money Manager's inline "Lặp lại" — a monthly commitment for
-          // expense/income. Transfers can't recur (no category).
-          if (!isTransfer)
+          // new expense/income captures only. Transfers can't recur (no
+          // category), and an edit can't silently spawn a commitment.
+          if (!isTransfer && widget.editing == null)
             CheckboxListTile(
               value: _repeatMonthly,
               contentPadding: EdgeInsets.zero,

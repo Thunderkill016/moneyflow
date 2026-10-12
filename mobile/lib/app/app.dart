@@ -204,6 +204,17 @@ class _AuthGateState extends State<AuthGate> {
     return result;
   }
 
+  /// Tap-to-edit from the activity feed — same form as capture, prefilled
+  /// from the row; accounts/categories load fresh so pickers are current.
+  Future<void> _openEdit(BuildContext context, Transaction tx) async {
+    final result = await Navigator.of(context).push<CaptureResult>(
+      MaterialPageRoute(
+        builder: (_) => _EditLoader(store: _store, transaction: tx),
+      ),
+    );
+    if (result != null) _reloadTabs();
+  }
+
   /// After a capture save, every surface that shows its effect reloads.
   void _reloadTabs() {
     _dashKey.currentState?.reload();
@@ -281,6 +292,7 @@ class _AuthGateState extends State<AuthGate> {
               loadTransactions: _store.loadTransactions,
               onDelete: _deleteTransaction,
               onOpenTrash: () => _openTrash(context),
+              onEdit: (tx) => _openEdit(context, tx),
             ),
             () => PlanningPage(
               key: _planKey,
@@ -564,6 +576,43 @@ class _CaptureLoader extends StatelessWidget {
   }
 }
 
+/// Edit entry — accounts/categories load fresh; the row being edited
+/// carries its own updated_at as the optimistic-concurrency token.
+class _EditLoader extends StatelessWidget {
+  const _EditLoader({required this.store, required this.transaction});
+
+  final RealStore store;
+  final Transaction transaction;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+      future: Future.wait([store.loadAccounts(), store.loadCategories()]),
+      builder: (context, snap) {
+        if (snap.hasError) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Sửa khoản')),
+            body: const Center(
+              child: Text('Không tải được dữ liệu — thử lại khi có mạng'),
+            ),
+          );
+        }
+        if (!snap.hasData) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        return CapturePage(
+          accounts: snap.data![0].cast(),
+          categories: snap.data![1].cast(),
+          editing: transaction,
+          onSubmit: (intent) => _submitIntent(store, intent),
+        );
+      },
+    );
+  }
+}
+
 /// Share-receive entry — accounts/categories are fetched on demand because
 /// a share can arrive before the dashboard has loaded anything.
 class _SharedCaptureLoader extends StatelessWidget {
@@ -630,6 +679,26 @@ Future<void> _submitIntent(RealStore store, CaptureIntent intent) {
       occurredOn: i.occurredOn,
       note: i.note,
       idempotencyKey: i.idempotencyKey,
+    ),
+    updateTransaction: (i) => store.updateTransaction(
+      transactionId: i.transactionId!,
+      accountId: i.accountId,
+      categoryId: i.categoryId!,
+      kind: i.kind,
+      amount: i.amount,
+      occurredOn: i.occurredOn,
+      note: i.note,
+      payee: i.payee,
+      expectedUpdatedAt: i.expectedUpdatedAt,
+    ),
+    updateTransfer: (i) => store.updateTransfer(
+      transactionId: i.transactionId!,
+      sourceAccountId: i.accountId,
+      destinationAccountId: i.destinationAccountId!,
+      amount: i.amount,
+      occurredOn: i.occurredOn,
+      note: i.note,
+      expectedUpdatedAt: i.expectedUpdatedAt,
     ),
     createCommitment:
         ({

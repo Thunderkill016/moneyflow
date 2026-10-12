@@ -344,6 +344,126 @@ void main() {
     });
   });
 
+  group('CapturePage edit mode', () {
+    const row = Transaction(
+      id: 'tx-9',
+      kind: TransactionKind.expense,
+      categoryId: 'cat-food',
+      category: 'Ăn uống',
+      note: 'Phở bò',
+      accountId: 'acc-cash',
+      account: 'Tiền mặt',
+      amount: 65000,
+      occurredOn: '2026-10-05',
+      payee: 'Quán A',
+      updatedAt: '2026-10-05T03:00:00Z',
+    );
+
+    testWidgets('prefills the row and submits an update intent', (t) async {
+      CaptureIntent? sent;
+      await t.pumpWidget(
+        _wrap(
+          CapturePage(
+            accounts: DemoStore.seedAccounts(),
+            categories: DemoStore.seedCategories(),
+            editing: row,
+            onSubmit: (i) async => sent = i,
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      expect(find.text('Sửa khoản'), findsOneWidget);
+      expect(find.widgetWithText(TextField, '65000'), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'Phở bò'), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'Quán A'), findsOneWidget);
+      // Recurring toggle is a create-only affordance.
+      expect(find.text('Lặp lại hàng tháng'), findsNothing);
+
+      await t.enterText(find.widgetWithText(TextField, '65000'), '70000');
+      await t.scrollUntilVisible(
+        find.text('Lưu'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      // Built != on-screen: bring the button fully into the viewport.
+      await t.ensureVisible(find.text('Lưu'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Lưu'));
+      await t.pumpAndSettle();
+
+      expect(sent, isNotNull);
+      expect(sent!.transactionId, 'tx-9');
+      expect(sent!.expectedUpdatedAt, '2026-10-05T03:00:00Z');
+      expect(sent!.amount, 70000);
+      expect(sent!.occurredOn, '2026-10-05');
+      expect(sent!.repeatMonthly, isFalse);
+    });
+
+    testWidgets('transfer edit offers only the transfer kind', (t) async {
+      const transfer = Transaction(
+        id: 'tx-t',
+        kind: TransactionKind.transfer,
+        categoryId: '',
+        category: 'Chuyển khoản',
+        note: '',
+        accountId: 'acc-cash',
+        account: 'Tiền mặt',
+        amount: 500000,
+        occurredOn: '2026-10-06',
+        destinationAccountId: 'acc-bank',
+        destinationAccount: 'Ngân hàng VCB',
+        updatedAt: '2026-10-06T03:00:00Z',
+      );
+      await t.pumpWidget(
+        _wrap(
+          CapturePage(
+            accounts: DemoStore.seedAccounts(),
+            categories: DemoStore.seedCategories(),
+            editing: transfer,
+            onSubmit: (_) async {},
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      final seg = t.widget<SegmentedButton<TransactionKind>>(
+        find.byType(SegmentedButton<TransactionKind>),
+      );
+      expect(seg.segments.length, 1);
+      expect(seg.selected, {TransactionKind.transfer});
+      expect(seg.onSelectionChanged, isNull);
+    });
+
+    testWidgets('stale_write shows the reopen guidance', (t) async {
+      await t.pumpWidget(
+        _wrap(
+          CapturePage(
+            accounts: DemoStore.seedAccounts(),
+            categories: DemoStore.seedCategories(),
+            editing: row,
+            onSubmit: (_) async => throw Exception('... stale_write ...'),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      await t.scrollUntilVisible(
+        find.text('Lưu'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      // Built != on-screen: bring the button fully into the viewport.
+      await t.ensureVisible(find.text('Lưu'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Lưu'));
+      await t.pumpAndSettle();
+      expect(
+        find.text('Khoản này vừa thay đổi — thoát rồi mở lại để sửa bản mới'),
+        findsOneWidget,
+      );
+    });
+  });
+
   group('DashboardPage empty ledger', () {
     testWidgets('fully empty ledger shows labeled sample data', (t) async {
       await t.pumpWidget(

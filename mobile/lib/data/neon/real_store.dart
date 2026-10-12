@@ -45,7 +45,7 @@ class RealStore {
   static const _txColumns =
       'id,kind,note,occurred_on,amount_minor,account_id,account_name,'
       'category_id,category_name,destination_account_id,'
-      'destination_account_name,payee';
+      'destination_account_name,payee,updated_at';
 
   static Transaction _txFromRow(Map<String, dynamic> r) => Transaction(
     id: r['id'] as String,
@@ -64,6 +64,7 @@ class RealStore {
     payee: r['payee'] as String?,
     destinationAccountId: r['destination_account_id'] as String?,
     destinationAccount: r['destination_account_name'] as String?,
+    updatedAt: r['updated_at'] as String?,
   );
 
   Future<List<Transaction>> loadTransactions({int limit = 50}) async {
@@ -290,6 +291,51 @@ class RealStore {
     'restore_money_transaction',
     {'p_transaction_id': transactionId},
   );
+
+  /// POST /rpc/update_money_transaction — expense/income edits.
+  /// [expectedUpdatedAt] is the optimistic-concurrency token read from
+  /// the feed; the server raises stale_write when the row moved on.
+  Future<void> updateTransaction({
+    required String transactionId,
+    required String accountId,
+    required String categoryId,
+    required TransactionKind kind,
+    required int amount,
+    required String occurredOn,
+    String note = '',
+    String payee = '',
+    String? expectedUpdatedAt,
+  }) => _api.rpc('update_money_transaction', {
+    'p_transaction_id': transactionId,
+    'p_account_id': accountId,
+    'p_category_id': categoryId,
+    'p_kind': kind == TransactionKind.income ? 'income' : 'expense',
+    'p_amount_minor': amount,
+    'p_occurred_on': occurredOn,
+    'p_note': note,
+    'p_payee': payee,
+    'p_expected_updated_at': expectedUpdatedAt,
+  });
+
+  /// POST /rpc/update_account_transfer — transfer legs stay balanced;
+  /// the kind itself can never change on an update.
+  Future<void> updateTransfer({
+    required String transactionId,
+    required String sourceAccountId,
+    required String destinationAccountId,
+    required int amount,
+    required String occurredOn,
+    String note = '',
+    String? expectedUpdatedAt,
+  }) => _api.rpc('update_account_transfer', {
+    'p_transaction_id': transactionId,
+    'p_source_account_id': sourceAccountId,
+    'p_destination_account_id': destinationAccountId,
+    'p_amount_minor': amount,
+    'p_occurred_on': occurredOn,
+    'p_note': note,
+    'p_expected_updated_at': expectedUpdatedAt,
+  });
 
   /// POST /rpc/upsert_monthly_budget — create or update a category budget.
   Future<String> upsertBudget({
