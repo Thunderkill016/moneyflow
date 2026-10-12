@@ -11,12 +11,22 @@ class AccountsPage extends StatefulWidget {
     required this.loadAccounts,
     required this.onCreate,
     required this.onArchive,
+    this.onUpdate,
   });
 
   final Future<List<AccountSummary>> Function() loadAccounts;
   final Future<void> Function(String name, AccountKind kind, int initialBalance)
   onCreate;
   final Future<void> Function(String accountId, bool archived) onArchive;
+
+  /// Tap-to-edit — null keeps rows read-only.
+  final Future<void> Function(
+    AccountSummary account,
+    String name,
+    AccountKind kind,
+    int initialBalance,
+  )?
+  onUpdate;
 
   @override
   State<AccountsPage> createState() => _AccountsPageState();
@@ -40,15 +50,19 @@ class _AccountsPageState extends State<AccountsPage> {
     } catch (_) {}
   }
 
-  Future<void> _showCreate() async {
-    final name = TextEditingController();
-    final balance = TextEditingController();
-    AccountKind kind = AccountKind.cash;
+  /// Create when [editing] is null, otherwise edit that account in place.
+  Future<void> _showForm({AccountSummary? editing}) async {
+    final name = TextEditingController(text: editing?.name ?? '');
+    final balance = TextEditingController(
+      text: editing == null ? '' : editing.initialBalance.toString(),
+    );
+    AccountKind kind = editing?.kind ?? AccountKind.cash;
+    String? error;
     final saved = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) => AlertDialog(
-          title: const Text('Thêm tài khoản'),
+          title: Text(editing == null ? 'Thêm tài khoản' : 'Sửa tài khoản'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -100,6 +114,10 @@ class _AccountsPageState extends State<AccountsPage> {
                     border: OutlineInputBorder(),
                   ),
                 ),
+                if (error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(error!, style: TextStyle(color: Colors.red.shade700)),
+                ],
               ],
             ),
           ),
@@ -113,16 +131,36 @@ class _AccountsPageState extends State<AccountsPage> {
                 final n = name.text.trim();
                 if (n.isEmpty) return;
                 final bal = parseMoneyInput(balance.text) ?? 0;
-                await widget.onCreate(n, kind, bal);
+                try {
+                  if (editing == null) {
+                    await widget.onCreate(n, kind, bal);
+                  } else {
+                    await widget.onUpdate!(editing, n, kind, bal);
+                  }
+                } catch (e) {
+                  setDlg(() => error = _saveError(e));
+                  return;
+                }
                 if (ctx.mounted) Navigator.pop(ctx, true);
               },
-              child: const Text('Tạo'),
+              child: Text(editing == null ? 'Tạo' : 'Lưu'),
             ),
           ],
         ),
       ),
     );
     if (saved == true) _refresh();
+  }
+
+  String _saveError(Object e) {
+    final msg = e.toString();
+    if (msg.contains('stale_write')) {
+      return 'Tài khoản vừa thay đổi — đóng rồi mở lại để sửa bản mới';
+    }
+    if (msg.contains('invalid_account_name')) {
+      return 'Tên tài khoản chưa hợp lệ';
+    }
+    return 'Không lưu được — thử lại';
   }
 
   @override
@@ -151,6 +189,9 @@ class _AccountsPageState extends State<AccountsPage> {
                       title: Text(a.name),
                       subtitle: Text(_kindLabel(a.kind)),
                       trailing: Text(formatMoney(a.balance)),
+                      onTap: widget.onUpdate == null
+                          ? null
+                          : () => _showForm(editing: a),
                       onLongPress: () => _confirmArchive(a),
                     ),
                   ),
@@ -160,7 +201,7 @@ class _AccountsPageState extends State<AccountsPage> {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showCreate,
+        onPressed: _showForm,
         icon: const Icon(Icons.add),
         label: const Text('Thêm tài khoản'),
       ),

@@ -380,6 +380,17 @@ class _AuthGateState extends State<AuthGate> {
                   .createAccount(name: name, kind: kind, initialBalance: bal)
                   .then((_) {}),
               onArchive: _store.setAccountArchived,
+              onUpdate: (a, name, kind, bal) => _store
+                  .updateAccount(
+                    accountId: a.id,
+                    name: name,
+                    kind: kind,
+                    initialBalance: bal,
+                    icon: a.icon,
+                    color: a.color,
+                    expectedUpdatedAt: a.updatedAt,
+                  )
+                  .then((_) => _reloadTabs()),
             ),
           ),
         ),

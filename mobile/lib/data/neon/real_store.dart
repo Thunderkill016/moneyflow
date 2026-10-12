@@ -15,7 +15,8 @@ class RealStore {
       'accounts',
       query: {
         'select':
-            'id,name,kind,currency_code,initial_balance_minor,is_archived',
+            'id,name,kind,currency_code,initial_balance_minor,is_archived,'
+            'icon,color,updated_at',
         'is_archived': 'eq.false',
         'order': 'created_at.asc',
       },
@@ -37,6 +38,9 @@ class RealStore {
             initialBalance: (r['initial_balance_minor'] as num).toInt(),
             balance: (byId[r['id']] ?? 0).toInt(),
             isArchived: r['is_archived'] as bool? ?? false,
+            icon: r['icon'] as String?,
+            color: r['color'] as String?,
+            updatedAt: r['updated_at'] as String?,
           ),
         )
         .toList();
@@ -262,18 +266,41 @@ class RealStore {
   }) async {
     final id = await _api.rpc('create_financial_account', {
       'p_name': name,
-      'p_kind': switch (kind) {
-        AccountKind.bank => 'bank',
-        AccountKind.eWallet => 'e_wallet',
-        AccountKind.creditCard => 'credit_card',
-        AccountKind.savings => 'savings',
-        AccountKind.cash => 'cash',
-      },
+      'p_kind': _accountKindWire(kind),
       'p_initial_balance_minor': initialBalance,
       'p_currency_code': 'VND',
     });
     return id as String;
   }
+
+  /// POST /rpc/update_financial_account. The RPC overwrites icon/color
+  /// with its params, so callers pass the current values back to keep
+  /// them; [expectedUpdatedAt] guards against stale writes.
+  Future<void> updateAccount({
+    required String accountId,
+    required String name,
+    required AccountKind kind,
+    required int initialBalance,
+    String? icon,
+    String? color,
+    String? expectedUpdatedAt,
+  }) => _api.rpc('update_financial_account', {
+    'p_account_id': accountId,
+    'p_name': name,
+    'p_kind': _accountKindWire(kind),
+    'p_initial_balance_minor': initialBalance,
+    'p_icon': icon,
+    'p_color': color,
+    'p_expected_updated_at': expectedUpdatedAt,
+  });
+
+  static String _accountKindWire(AccountKind kind) => switch (kind) {
+    AccountKind.bank => 'bank',
+    AccountKind.eWallet => 'e_wallet',
+    AccountKind.creditCard => 'credit_card',
+    AccountKind.savings => 'savings',
+    AccountKind.cash => 'cash',
+  };
 
   Future<void> setAccountArchived(String accountId, bool archived) => _api.rpc(
     'set_financial_account_archived',
