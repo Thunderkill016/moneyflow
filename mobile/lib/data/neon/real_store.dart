@@ -49,7 +49,7 @@ class RealStore {
   static const _txColumns =
       'id,kind,note,occurred_on,amount_minor,account_id,account_name,'
       'category_id,category_name,destination_account_id,'
-      'destination_account_name,payee,updated_at';
+      'destination_account_name,payee,updated_at,split_lines';
 
   static Transaction _txFromRow(Map<String, dynamic> r) => Transaction(
     id: r['id'] as String,
@@ -69,6 +69,9 @@ class RealStore {
     destinationAccountId: r['destination_account_id'] as String?,
     destinationAccount: r['destination_account_name'] as String?,
     updatedAt: r['updated_at'] as String?,
+    splitCount: r['split_lines'] is List
+        ? (r['split_lines'] as List).length
+        : 0,
   );
 
   Future<List<Transaction>> loadTransactions({int limit = 50}) async {
@@ -147,6 +150,31 @@ class RealStore {
       'p_note': note,
       'p_payee': payee,
       'p_goal_id': goalId,
+      'p_idempotency_key': idempotencyKey,
+    });
+    return id as String;
+  }
+
+  /// POST /rpc/create_split_expense — one expense spread over 2–12
+  /// distinct expense categories on a single account. [lines] are
+  /// (categoryId, amountMinor) pairs; the RPC enforces the invariants.
+  Future<String> createSplitExpense({
+    required String accountId,
+    required List<({String categoryId, int amount})> lines,
+    required String occurredOn,
+    String note = '',
+    String payee = '',
+    required String idempotencyKey,
+  }) async {
+    final id = await _api.rpc('create_split_expense', {
+      'p_account_id': accountId,
+      'p_lines': [
+        for (final l in lines)
+          {'category_id': l.categoryId, 'amount_minor': l.amount},
+      ],
+      'p_occurred_on': occurredOn,
+      'p_note': note,
+      'p_payee': payee,
       'p_idempotency_key': idempotencyKey,
     });
     return id as String;

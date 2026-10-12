@@ -344,6 +344,123 @@ void main() {
     });
   });
 
+  group('CapturePage split', () {
+    Future<void> openSplit(
+      WidgetTester t,
+      Future<void> Function(CaptureIntent) onSubmit,
+    ) async {
+      await t.pumpWidget(
+        _wrap(
+          CapturePage(
+            accounts: DemoStore.seedAccounts(),
+            categories: DemoStore.seedCategories(),
+            onSubmit: onSubmit,
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      await t.tap(find.text('Chia theo nhiều danh mục'));
+      await t.pumpAndSettle();
+    }
+
+    Future<void> pickCategory(WidgetTester t, int line, String name) async {
+      await t.tap(find.byKey(ValueKey('split-cat-$line')));
+      await t.pumpAndSettle();
+      await t.tap(find.text(name).last);
+      await t.pumpAndSettle();
+    }
+
+    Future<void> save(WidgetTester t) async {
+      await t.scrollUntilVisible(
+        find.text('Lưu'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await t.ensureVisible(find.text('Lưu'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Lưu'));
+      await t.pumpAndSettle();
+    }
+
+    testWidgets('two lines submit a split intent with the summed total', (
+      t,
+    ) async {
+      CaptureIntent? sent;
+      await openSplit(t, (i) async => sent = i);
+      // Hidden single-amount UI is replaced by the running total.
+      expect(find.text('Tổng số tiền'), findsOneWidget);
+      expect(find.text('Lặp lại hàng tháng'), findsNothing);
+
+      await pickCategory(t, 0, 'Ăn uống');
+      await pickCategory(t, 1, 'Di chuyển');
+      await t.enterText(find.byKey(const ValueKey('split-amt-0')), '45k');
+      await t.enterText(find.byKey(const ValueKey('split-amt-1')), '25000');
+      await t.pump();
+      expect(find.text('70.000 ₫'), findsOneWidget);
+
+      // Account is required and not prefilled in this harness.
+      await t.tap(find.byKey(const ValueKey('acc-null')));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Tiền mặt').last);
+      await t.pumpAndSettle();
+
+      await save(t);
+
+      expect(sent, isNotNull);
+      expect(sent!.amount, 70000);
+      expect(sent!.categoryId, isNull);
+      expect(sent!.repeatMonthly, isFalse);
+      expect(sent!.splitLines, [
+        (categoryId: 'cat-food', amount: 45000),
+        (categoryId: 'cat-transport', amount: 25000),
+      ]);
+    });
+
+    testWidgets('a half-filled split is rejected before any submit', (t) async {
+      var submits = 0;
+      await openSplit(t, (_) async => submits++);
+      await t.tap(find.byKey(const ValueKey('acc-null')));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Tiền mặt').last);
+      await t.pumpAndSettle();
+      await pickCategory(t, 0, 'Ăn uống');
+      await t.enterText(find.byKey(const ValueKey('split-amt-0')), '45k');
+      await save(t);
+
+      expect(find.text('Chọn danh mục cho mọi dòng'), findsOneWidget);
+      expect(submits, 0);
+    });
+
+    testWidgets('the picker hides categories already used by other lines', (
+      t,
+    ) async {
+      await openSplit(t, (_) async {});
+      await pickCategory(t, 0, 'Ăn uống');
+      await t.tap(find.byKey(const ValueKey('split-cat-1')));
+      await t.pumpAndSettle();
+      // Line 1's picker no longer offers "Ăn uống" (line 0 owns it).
+      expect(find.widgetWithText(ListTile, 'Ăn uống'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'Di chuyển'), findsOneWidget);
+    });
+
+    testWidgets('only expenses can split', (t) async {
+      await t.pumpWidget(
+        _wrap(
+          CapturePage(
+            accounts: DemoStore.seedAccounts(),
+            categories: DemoStore.seedCategories(),
+            onSubmit: (_) async {},
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(find.text('Chia theo nhiều danh mục'), findsOneWidget);
+      await t.tap(find.text('Thu'));
+      await t.pumpAndSettle();
+      expect(find.text('Chia theo nhiều danh mục'), findsNothing);
+    });
+  });
+
   group('CapturePage edit mode', () {
     const row = Transaction(
       id: 'tx-9',
@@ -377,8 +494,9 @@ void main() {
       expect(find.widgetWithText(TextField, '65000'), findsOneWidget);
       expect(find.widgetWithText(TextField, 'Phở bò'), findsOneWidget);
       expect(find.widgetWithText(TextField, 'Quán A'), findsOneWidget);
-      // Recurring toggle is a create-only affordance.
+      // Recurring and split are create-only affordances.
       expect(find.text('Lặp lại hàng tháng'), findsNothing);
+      expect(find.text('Chia theo nhiều danh mục'), findsNothing);
 
       await t.enterText(find.widgetWithText(TextField, '65000'), '70000');
       await t.scrollUntilVisible(

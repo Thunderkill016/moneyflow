@@ -8,6 +8,7 @@ import '../../data/share/share_text_parser.dart';
 import '../../domain/frequency.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
+import '../../domain/split.dart';
 import 'capture_submit.dart' show CommitmentFailed;
 import 'category_picker.dart';
 
@@ -29,6 +30,7 @@ class CaptureIntent {
     this.commitmentName = '',
     this.transactionId,
     this.expectedUpdatedAt,
+    this.splitLines = const [],
   });
 
   final TransactionKind kind;
@@ -53,12 +55,23 @@ class CaptureIntent {
   /// token from the feed (server raises stale_write when stale).
   final String? transactionId;
   final String? expectedUpdatedAt;
+
+  /// Non-empty = one expense split over several categories; [amount] is
+  /// then the lines' total and [categoryId] is null.
+  final List<SplitLine> splitLines;
 }
 
 /// What the capture route returns — `saved` is a clean save;
 /// `savedPartial` means the transaction landed but its recurring
 /// commitment did not (the shell shows an honest snackbar).
 enum CaptureResult { saved, savedPartial }
+
+class _SplitRow {
+  _SplitRow({this.categoryId});
+
+  String? categoryId;
+  final TextEditingController amount = TextEditingController();
+}
 
 /// Manual capture: Chi / Thu / Chuyển — mirrors the web's three action
 /// shapes (create_money_transaction, create_account_transfer).
@@ -110,6 +123,58 @@ class _CapturePageState extends State<CapturePage> {
   bool _busy = false;
   bool _repeatMonthly = false;
   String? _error;
+
+  // "Chia danh mục" — one expense over several categories.
+  bool _split = false;
+  final List<_SplitRow> _splitRows = [];
+  final List<_SplitRow> _retiredSplitRows = [];
+
+  @override
+  void dispose() {
+    _amount.dispose();
+    _note.dispose();
+    _payee.dispose();
+    for (final r in [..._splitRows, ..._retiredSplitRows]) {
+      r.amount.dispose();
+    }
+    super.dispose();
+  }
+
+  /// Turning split on seeds two lines, carrying over the category and
+  /// amount already typed so nothing the user entered is lost.
+  void _setSplit(bool on) {
+    setState(() {
+      _split = on;
+      _error = null;
+      if (on && _splitRows.isEmpty) {
+        final first = _SplitRow(categoryId: _categoryId);
+        final typed = parseMoneyInput(_amount.text);
+        if (typed != null && typed > 0) first.amount.text = typed.toString();
+        _splitRows.addAll([first, _SplitRow()]);
+      }
+    });
+  }
+
+  Future<void> _pickSplitCategory(_SplitRow row) async {
+    final usedElsewhere = {
+      for (final r in _splitRows)
+        if (!identical(r, row) && r.categoryId != null) r.categoryId!,
+    };
+    final picked = await showCategoryPicker(
+      context,
+      categories: [
+        for (final c in _kindCategories)
+          if (!usedElsewhere.contains(c.id)) c,
+      ],
+      selectedId: row.categoryId,
+    );
+    if (picked != null) setState(() => row.categoryId = picked.id);
+  }
+
+  int get _splitRunningTotal => _splitRows.fold(
+    0,
+    (sum, r) => sum + (parseMoneyInput(r.amount.text) ?? 0),
+  );
 
   @override
   void initState() {
@@ -182,7 +247,25 @@ class _CapturePageState extends State<CapturePage> {
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
   Future<void> _submit() async {
-    final amount = parseMoneyInput(_amount.text);
+    var splitLines = <SplitLine>[];
+    int? amount;
+    if (_split) {
+      final drafts = [
+        for (final r in _splitRows)
+          (categoryId: r.categoryId, amount: parseMoneyInput(r.amount.text)),
+      ];
+      final problem = validateSplit(drafts);
+      if (problem != null) {
+        setState(() => _error = problem);
+        return;
+      }
+      splitLines = [
+        for (final d in drafts) (categoryId: d.categoryId!, amount: d.amount!),
+      ];
+      amount = splitTotal(splitLines);
+    } else {
+      amount = parseMoneyInput(_amount.text);
+    }
     if (amount == null || amount <= 0) {
       setState(() => _error = 'Số tiền chưa hợp lệ — vd: 50k, 2tr');
       return;
@@ -191,7 +274,7 @@ class _CapturePageState extends State<CapturePage> {
       setState(() => _error = 'Chọn tài khoản');
       return;
     }
-    if (_kind != TransactionKind.transfer && _categoryId == null) {
+    if (!_split && _kind != TransactionKind.transfer && _categoryId == null) {
       setState(() => _error = 'Chọn danh mục');
       return;
     }
@@ -223,14 +306,16 @@ class _CapturePageState extends State<CapturePage> {
           kind: _kind,
           accountId: _accountId!,
           destinationAccountId: _destAccountId,
-          categoryId: _categoryId,
+          categoryId: _split ? null : _categoryId,
           amount: amount,
+          splitLines: splitLines,
           occurredOn: _fmtDate(_date),
           note: _note.text.trim(),
           payee: _payee.text.trim(),
           idempotencyKey: _idempotencyKey,
           repeatMonthly:
               _repeatMonthly &&
+              !_split &&
               _kind != TransactionKind.transfer &&
               widget.editing == null,
           dueDay: _date.day,
@@ -294,6 +379,63 @@ class _CapturePageState extends State<CapturePage> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (picked != null) setState(() => _date = picked);
+  }
+
+  /// One editable split line: category picker + amount (+ remove while
+  /// more than the 2-line minimum remain).
+  Widget _splitRowTile(int index, _SplitRow row) {
+    final name = widget.categories
+        .where((c) => c.id == row.categoryId)
+        .map((c) => c.name)
+        .firstOrNull;
+    return Padding(
+      key: ObjectKey(row),
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 5,
+            child: InkWell(
+              key: ValueKey('split-cat-$index'),
+              onTap: () => _pickSplitCategory(row),
+              borderRadius: BorderRadius.circular(4),
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'Danh mục ${index + 1}',
+                  border: const OutlineInputBorder(),
+                ),
+                child: Text(name ?? 'Chọn', overflow: TextOverflow.ellipsis),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 4,
+            child: TextField(
+              key: ValueKey('split-amt-$index'),
+              controller: row.amount,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                labelText: 'Số tiền',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+          if (_splitRows.length > 2)
+            IconButton(
+              tooltip: 'Bỏ dòng',
+              icon: const Icon(Icons.close),
+              onPressed: () => setState(() {
+                _splitRows.remove(row);
+                // Disposed with the page — the unmounting field may still
+                // reference this controller for the current frame.
+                _retiredSplitRows.add(row);
+              }),
+            ),
+        ],
+      ),
+    );
   }
 
   /// Which kind segments the user may pick. Create mode offers all
@@ -372,31 +514,45 @@ class _CapturePageState extends State<CapturePage> {
                 : (s) => setState(() {
                     _kind = s.first;
                     _categoryId = null;
+                    // Only expenses can be split across categories.
+                    if (_kind != TransactionKind.expense) _split = false;
                   }),
           ),
           const SizedBox(height: 16),
-          TextField(
-            controller: _amount,
-            keyboardType: TextInputType.text,
-            decoration: const InputDecoration(
-              labelText: 'Số tiền',
-              hintText: 'vd: 50k, 2tr, 150.000',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 8),
-          // Quick-amount chips — one tap beats six digits for common sizes.
-          Wrap(
-            spacing: 8,
-            children: [
-              for (final q in _quickAmounts)
-                ActionChip(
-                  label: Text(q.label),
-                  onPressed: () =>
-                      setState(() => _amount.text = q.value.toString()),
+          if (_split)
+            Card(
+              child: ListTile(
+                title: const Text('Tổng số tiền'),
+                trailing: Text(
+                  formatMoney(_splitRunningTotal),
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
-            ],
-          ),
+              ),
+            )
+          else ...[
+            TextField(
+              controller: _amount,
+              keyboardType: TextInputType.text,
+              decoration: const InputDecoration(
+                labelText: 'Số tiền',
+                hintText: 'vd: 50k, 2tr, 150.000',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Quick-amount chips — one tap beats six digits for common sizes.
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final q in _quickAmounts)
+                  ActionChip(
+                    label: Text(q.label),
+                    onPressed: () =>
+                        setState(() => _amount.text = q.value.toString()),
+                  ),
+              ],
+            ),
+          ],
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             // initialValue is non-reactive: the key recreates the field
@@ -427,6 +583,19 @@ class _CapturePageState extends State<CapturePage> {
               ],
               onChanged: (v) => setState(() => _destAccountId = v),
             ),
+          ] else if (_split) ...[
+            const SizedBox(height: 12),
+            for (var i = 0; i < _splitRows.length; i++)
+              _splitRowTile(i, _splitRows[i]),
+            if (_splitRows.length < maxSplitLines)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => setState(() => _splitRows.add(_SplitRow())),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Thêm dòng'),
+                ),
+              ),
           ] else ...[
             const SizedBox(height: 12),
             // "Mục hay dùng" — most-used categories inline, no picker trip.
@@ -478,6 +647,16 @@ class _CapturePageState extends State<CapturePage> {
               ),
             ),
           ],
+          // Split is a create-only expense affordance (the update RPC
+          // rejects split rows, and income/transfers have no categories).
+          if (_kind == TransactionKind.expense && widget.editing == null)
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Chia theo nhiều danh mục'),
+              subtitle: const Text('Một khoản chi, nhiều dòng danh mục'),
+              value: _split,
+              onChanged: _setSplit,
+            ),
           const SizedBox(height: 12),
           TextField(
             controller: _note,
@@ -503,7 +682,7 @@ class _CapturePageState extends State<CapturePage> {
           // Money Manager's inline "Lặp lại" — a monthly commitment for
           // new expense/income captures only. Transfers can't recur (no
           // category), and an edit can't silently spawn a commitment.
-          if (!isTransfer && widget.editing == null)
+          if (!isTransfer && !_split && widget.editing == null)
             CheckboxListTile(
               value: _repeatMonthly,
               contentPadding: EdgeInsets.zero,

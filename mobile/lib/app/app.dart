@@ -691,6 +691,14 @@ Future<void> _submitIntent(RealStore store, CaptureIntent intent) {
       note: i.note,
       idempotencyKey: i.idempotencyKey,
     ),
+    createSplit: (i) => store.createSplitExpense(
+      accountId: i.accountId,
+      lines: i.splitLines,
+      occurredOn: i.occurredOn,
+      note: i.note,
+      payee: i.payee,
+      idempotencyKey: i.idempotencyKey,
+    ),
     updateTransaction: (i) => store.updateTransaction(
       transactionId: i.transactionId!,
       accountId: i.accountId,

@@ -30,7 +30,17 @@ Future<void> submitCaptureIntent({
   createCommitment,
   Future<void> Function(CaptureIntent intent)? updateTransaction,
   Future<void> Function(CaptureIntent intent)? updateTransfer,
+  Future<void> Function(CaptureIntent intent)? createSplit,
 }) async {
+  // A split is a create-only expense across categories: it never edits,
+  // never recurs (no single category to commit against).
+  if (intent.splitLines.isNotEmpty) {
+    if (intent.transactionId != null || createSplit == null) {
+      throw StateError('split intent without a create-split path');
+    }
+    await createSplit(intent);
+    return;
+  }
   // Edit mode: an intent carrying a transactionId updates in place —
   // it never creates, and never spawns a commitment.
   if (intent.transactionId != null) {

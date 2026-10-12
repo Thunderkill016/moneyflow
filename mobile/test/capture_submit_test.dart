@@ -46,7 +46,64 @@ Future<void> _noCommitment({
   required String categoryId,
 }) async => throw StateError('edit must never create a commitment');
 
+CaptureIntent _splitIntent({String? transactionId}) => CaptureIntent(
+  kind: TransactionKind.expense,
+  accountId: 'acc-cash',
+  amount: 70000,
+  occurredOn: '2026-10-12',
+  idempotencyKey: 'idem-split',
+  splitLines: const [
+    (categoryId: 'cat-food', amount: 45000),
+    (categoryId: 'cat-transport', amount: 25000),
+  ],
+  repeatMonthly: true, // must be ignored: a split has no single category
+  transactionId: transactionId,
+);
+
 void main() {
+  group('submitCaptureIntent split', () {
+    test('routes to createSplit only and never makes a commitment', () async {
+      final calls = <String>[];
+      await submitCaptureIntent(
+        intent: _splitIntent(),
+        createTransaction: (_) async => calls.add('create-tx'),
+        createTransfer: (_) async => calls.add('create-transfer'),
+        createCommitment: _noCommitment,
+        createSplit: (i) async =>
+            calls.add('split:${i.splitLines.length}:${i.amount}'),
+      );
+      expect(calls, ['split:2:70000']);
+    });
+
+    test('without a createSplit path it fails instead of posting', () async {
+      var created = 0;
+      await expectLater(
+        submitCaptureIntent(
+          intent: _splitIntent(),
+          createTransaction: (_) async => created++,
+          createTransfer: (_) async => created++,
+          createCommitment: _noCommitment,
+        ),
+        throwsA(isA<StateError>()),
+      );
+      expect(created, 0);
+    });
+
+    test('a split can never be an edit', () async {
+      await expectLater(
+        submitCaptureIntent(
+          intent: _splitIntent(transactionId: 'tx-1'),
+          createTransaction: (_) async {},
+          createTransfer: (_) async {},
+          createCommitment: _noCommitment,
+          createSplit: (_) async {},
+          updateTransaction: (_) async {},
+        ),
+        throwsA(isA<StateError>()),
+      );
+    });
+  });
+
   group('submitCaptureIntent edit mode', () {
     test('expense edit routes to updateTransaction only', () async {
       final calls = <String>[];

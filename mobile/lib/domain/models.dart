@@ -65,6 +65,7 @@ class Transaction {
     this.destinationAccount,
     this.reviewStatus = TransactionReviewStatus.reviewed,
     this.updatedAt,
+    this.splitCount = 0,
   });
 
   final String id;
@@ -81,6 +82,13 @@ class Transaction {
   final String? destinationAccount;
   final TransactionReviewStatus reviewStatus;
   final String? updatedAt;
+
+  /// Number of category lines when this expense was split across
+  /// categories (0 = ordinary single-category row). Split rows are not
+  /// editable in place — update_money_transaction rejects them.
+  final int splitCount;
+
+  bool get isSplit => splitCount > 1;
 }
 
 /// Soft-deleted ledger row — mirrors deleted_transaction_feed

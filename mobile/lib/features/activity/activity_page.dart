@@ -117,6 +117,19 @@ class ActivityPageState extends State<ActivityPage> {
                     onTap: widget.onEdit == null
                         ? null
                         : () async {
+                            // update_money_transaction rejects multi-line
+                            // splits — say so instead of failing on save.
+                            if (t.isSplit) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Khoản chia danh mục chưa sửa được — '
+                                    'xóa rồi ghi lại',
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
                             await widget.onEdit!(t);
                             _refresh();
                           },
