@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../../data/capture_prefs.dart';
 import '../../data/neon/real_store.dart' show newIdempotencyKey;
 import '../../data/share/share_text_parser.dart';
+import '../../domain/frequency.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 
@@ -40,6 +44,7 @@ class CapturePage extends StatefulWidget {
     required this.categories,
     required this.onSubmit,
     this.prefill,
+    this.transactions = const [],
   });
 
   final List<AccountSummary> accounts;
@@ -49,6 +54,10 @@ class CapturePage extends StatefulWidget {
   /// Shared-text extraction applied to the form on open. The user still
   /// reviews and submits manually — a share never posts a transaction.
   final SharedTextPrefill? prefill;
+
+  /// Recent transactions — ranked into the "Mục hay dùng" category row.
+  /// Empty for share-receive opens (no feed loaded yet).
+  final List<Transaction> transactions;
 
   @override
   State<CapturePage> createState() => _CapturePageState();
@@ -74,11 +83,53 @@ class _CapturePageState extends State<CapturePage> {
   void initState() {
     super.initState();
     final p = widget.prefill;
-    if (p == null) return;
-    if (p.kind != null) _kind = p.kind!;
-    if (p.amount != null) _amount.text = p.amount!.toString();
-    if (p.note != null) _note.text = p.note!;
+    if (p != null) {
+      if (p.kind != null) _kind = p.kind!;
+      if (p.amount != null) _amount.text = p.amount!.toString();
+      if (p.note != null) _note.text = p.note!;
+    }
+    // Last-used defaults — prefills only win when the id still exists.
+    // A prefs-backend failure (no plugin, corrupt store) just means no
+    // prefill; it must never break the form.
+    CapturePrefs.loadLastCapture()
+        .then((last) {
+          if (!mounted) return;
+          setState(() {
+            if (widget.accounts.any((a) => a.id == last.accountId)) {
+              _accountId = last.accountId;
+            }
+            // A remembered category only applies when it still exists and
+            // matches the current kind — an income category can't prefill an
+            // expense form.
+            if (widget.categories.any(
+              (c) => c.id == last.categoryId && c.kind == _kind,
+            )) {
+              _categoryId = last.categoryId;
+            }
+          });
+        })
+        .catchError((_) {});
   }
+
+  /// Most-used categories for the current kind — the inline pick row.
+  List<Category> get _frequentCategories {
+    final ids = frequentCategoryIds(widget.transactions, _kind);
+    final byId = {for (final c in widget.categories) c.id: c};
+    return [
+      for (final id in ids)
+        if (byId.containsKey(id)) byId[id]!,
+    ];
+  }
+
+  /// VND quick amounts — the magnitudes people type most (100k..5tr).
+  static const _quickAmounts = [
+    (label: '50k', value: 50000),
+    (label: '100k', value: 100000),
+    (label: '200k', value: 200000),
+    (label: '500k', value: 500000),
+    (label: '1tr', value: 1000000),
+    (label: '5tr', value: 5000000),
+  ];
 
   List<Category> get _kindCategories =>
       widget.categories.where((c) => c.kind == _kind).toList();
@@ -124,6 +175,13 @@ class _CapturePageState extends State<CapturePage> {
           note: _note.text.trim(),
           payee: _payee.text.trim(),
           idempotencyKey: _idempotencyKey,
+        ),
+      );
+      // Persist the last-used picks so the next capture starts pre-filled.
+      unawaited(
+        CapturePrefs.saveLastCapture(
+          accountId: _accountId!,
+          categoryId: _categoryId,
         ),
       );
       if (mounted) Navigator.of(context).pop(true);
@@ -199,8 +257,24 @@ class _CapturePageState extends State<CapturePage> {
               border: OutlineInputBorder(),
             ),
           ),
+          const SizedBox(height: 8),
+          // Quick-amount chips — one tap beats six digits for common sizes.
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final q in _quickAmounts)
+                ActionChip(
+                  label: Text(q.label),
+                  onPressed: () =>
+                      setState(() => _amount.text = q.value.toString()),
+                ),
+            ],
+          ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
+            // initialValue is non-reactive: the key recreates the field
+            // when the remembered-account prefill lands asynchronously.
+            key: ValueKey('acc-$_accountId'),
             initialValue: _accountId,
             decoration: InputDecoration(
               labelText: isTransfer ? 'Từ tài khoản' : 'Tài khoản',
@@ -228,7 +302,31 @@ class _CapturePageState extends State<CapturePage> {
             ),
           ] else ...[
             const SizedBox(height: 12),
+            // "Mục hay dùng" — most-used categories inline, no picker trip.
+            if (_frequentCategories.isNotEmpty) ...[
+              Text(
+                'Mục hay dùng',
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final c in _frequentCategories)
+                    ChoiceChip(
+                      label: Text(c.name),
+                      selected: _categoryId == c.id,
+                      onSelected: (_) => setState(() => _categoryId = c.id),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
             DropdownButtonFormField<String>(
+              // Same non-reactive initialValue — chip taps and the
+              // remembered-category prefill recreate the field.
+              key: ValueKey('cat-$_categoryId'),
               initialValue: _categoryId,
               decoration: const InputDecoration(
                 labelText: 'Danh mục',

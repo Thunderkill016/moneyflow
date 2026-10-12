@@ -93,11 +93,55 @@ void main() {
       expect(find.text('Quỹ khẩn cấp'), findsOneWidget);
     });
 
-    testWidgets('over-budget budget shows the Vượt label', (tester) async {
-      await _pumpPlanning(tester, actions: _actions());
+    testWidgets(
+      'budgets render all three states with amounts and a pace marker',
+      (tester) async {
+        await _pumpPlanning(tester, actions: _actions());
 
-      // Seed 'Di chuyển': spentMinor 532000 > limitMinor 500000.
-      expect(find.text('Vượt'), findsOneWidget);
+        // Seed 'Di chuyển': spentMinor 532000 > limitMinor 500000.
+        expect(find.textContaining('Vượt 32.000'), findsOneWidget);
+        // Seed 'Ăn uống': 45.000 / 2.000.000 → ok state names the remainder.
+        expect(find.textContaining('Còn lại 1.955.000'), findsOneWidget);
+        // Every budget bar carries the pace semantics label.
+        expect(find.bySemanticsLabel(RegExp('Đã chi')), findsWidgets);
+      },
+    );
+
+    testWidgets('a near-limit budget shows the sắp tới hạn mức state', (
+      tester,
+    ) async {
+      final data = PlanningData(
+        budgets: [
+          BudgetProgress(
+            id: 'b-near',
+            categoryId: 'cat-food',
+            categoryName: 'Ăn uống',
+            monthStart: _monthStart(),
+            limitMinor: 500000,
+            spentMinor: 420000,
+          ),
+        ],
+        commitments: const [],
+        goals: const [],
+        accounts: const [],
+        categories: const [],
+        monthStart: _monthStart(),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PlanningPage(
+            loadData: () => Future.value(data),
+            actions: _actions(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 84% spent → near-limit state with the headroom amount.
+      expect(
+        find.textContaining('Sắp tới hạn mức · còn 80.000'),
+        findsOneWidget,
+      );
     });
 
     testWidgets(

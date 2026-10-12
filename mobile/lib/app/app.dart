@@ -23,6 +23,7 @@ import '../features/capture/capture_page.dart';
 import '../features/dashboard/dashboard_page.dart';
 import '../features/planning/planning_page.dart';
 import '../features/reports/reports_page.dart';
+import 'home_shell.dart';
 
 /// MoneyFlow brand tokens (from src/app/manifest.ts).
 const kBrandColor = Color(0xFF0EA5E9);
@@ -78,6 +79,13 @@ class _AuthGateState extends State<AuthGate> {
   bool _bioEnabled = false;
   OfflineCache? _offline;
   StreamSubscription<String>? _shareSub;
+
+  /// Tab keys — a saved capture reloads the surfaces that show its effect
+  /// (dashboard balances, activity list, planning budgets, month report).
+  final _dashKey = GlobalKey<DashboardPageState>();
+  final _actKey = GlobalKey<ActivityPageState>();
+  final _planKey = GlobalKey<PlanningPageState>();
+  final _reportKey = GlobalKey<ReportsPageState>();
 
   /// A share that arrived before sign-in — drained once the dashboard is
   /// reachable so the prefill isn't lost behind the login screen.
@@ -161,11 +169,29 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<void> _openSharedCapture(SharedTextPrefill prefill) async {
-    await Navigator.of(context).push<bool>(
+    final saved = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => _SharedCaptureLoader(store: _store, prefill: prefill),
       ),
     );
+    if (saved == true) _reloadTabs();
+  }
+
+  /// Center-nav capture: loads its own accounts/categories/transactions so
+  /// the form gets fresh data plus the "Mục hay dùng" ranking regardless of
+  /// what the dashboard has loaded.
+  Future<bool?> _openCapture(BuildContext context) {
+    return Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => _CaptureLoader(store: _store)),
+    );
+  }
+
+  /// After a capture save, every surface that shows its effect reloads.
+  void _reloadTabs() {
+    _dashKey.currentState?.reload();
+    _actKey.currentState?.reload();
+    _planKey.currentState?.reload();
+    _reportKey.currentState?.reload();
   }
 
   Future<void> _onSignedIn(_) async {
@@ -217,131 +243,125 @@ class _AuthGateState extends State<AuthGate> {
         onSignedIn: _onSignedIn,
         onDemo: () => setState(() => _gate = _Gate.demo),
       ),
-      _Gate.demo => _demoDashboard(context),
+      _Gate.demo => _demoDashboard(),
       _Gate.signedIn => BiometricGate(
         enabled: _bioEnabled,
         service: _bioService,
-        child: DashboardPage(
-          loadAccounts: _store.loadAccounts,
-          loadTransactions: _store.loadTransactions,
-          readSnapshot: () => _offline?.readDashboard(),
-          writeSnapshot: (snap) =>
-              _offline?.saveDashboard(snap) ?? Future.value(),
-          captureBuilder: (accounts) => _CaptureLoader(
-            accounts: accounts,
-            categories: _store.loadCategories(),
-            store: _store,
-          ),
-          onShowActivity: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => ActivityPage(
-                loadTransactions: _store.loadTransactions,
-                onDelete: _store.deleteTransaction,
-              ),
+        child: HomeShell(
+          tabBuilders: [
+            () => DashboardPage(
+              key: _dashKey,
+              loadAccounts: _store.loadAccounts,
+              loadTransactions: _store.loadTransactions,
+              readSnapshot: () => _offline?.readDashboard(),
+              writeSnapshot: (snap) =>
+                  _offline?.saveDashboard(snap) ?? Future.value(),
+              menuItems: _dashboardMenu(context),
             ),
-          ),
-          menuItems: [
-            DashboardMenuItem(
-              label: 'Tài khoản',
-              icon: Icons.account_balance_wallet,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => AccountsPage(
-                    loadAccounts: _store.loadAccounts,
-                    onCreate: (name, kind, bal) => _store
-                        .createAccount(
-                          name: name,
-                          kind: kind,
-                          initialBalance: bal,
-                        )
-                        .then((_) {}),
-                    onArchive: _store.setAccountArchived,
-                  ),
-                ),
-              ),
+            () => ActivityPage(
+              key: _actKey,
+              loadTransactions: _store.loadTransactions,
+              onDelete: _store.deleteTransaction,
             ),
-            DashboardMenuItem(
-              label: 'Kế hoạch',
-              icon: Icons.event_note,
-              onTap: () => Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => _planningPage())),
+            () => PlanningPage(
+              key: _planKey,
+              loadData: _loadPlanning,
+              actions: _planningActions(),
             ),
-            DashboardMenuItem(
-              label: 'Báo cáo',
-              icon: Icons.bar_chart,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) =>
-                      ReportsPage(loadTransactions: _store.loadTransactions),
-                ),
-              ),
-            ),
-            DashboardMenuItem(
-              label: _bioEnabled ? 'Tắt khóa sinh trắc' : 'Bật khóa sinh trắc',
-              icon: _bioEnabled ? Icons.fingerprint : Icons.lock_open,
-              onTap: _toggleBiometric,
-            ),
-            DashboardMenuItem(
-              label: 'Đăng xuất',
-              icon: Icons.logout,
-              onTap: _signOut,
+            () => ReportsPage(
+              key: _reportKey,
+              loadTransactions: _store.loadTransactions,
             ),
           ],
+          onCaptureTap: _openCapture,
+          onCaptureSaved: _reloadTabs,
         ),
       ),
     };
   }
 
-  /// Demo keeps the same surfaces on seed data; writes are honest no-ops so
-  /// read-only exploration still works fully offline.
-  DashboardPage _demoDashboard(BuildContext context) {
+  /// Menu items on the dashboard appbar — account management, device lock,
+  /// and sign-out stay one level deep; the day-to-day surfaces are tabs.
+  List<DashboardMenuItem> _dashboardMenu(BuildContext context) {
+    return [
+      DashboardMenuItem(
+        label: 'Tài khoản',
+        icon: Icons.account_balance_wallet,
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => AccountsPage(
+              loadAccounts: _store.loadAccounts,
+              onCreate: (name, kind, bal) => _store
+                  .createAccount(name: name, kind: kind, initialBalance: bal)
+                  .then((_) {}),
+              onArchive: _store.setAccountArchived,
+            ),
+          ),
+        ),
+      ),
+      DashboardMenuItem(
+        label: _bioEnabled ? 'Tắt khóa sinh trắc' : 'Bật khóa sinh trắc',
+        icon: _bioEnabled ? Icons.fingerprint : Icons.lock_open,
+        onTap: _toggleBiometric,
+      ),
+      DashboardMenuItem(
+        label: 'Đăng xuất',
+        icon: Icons.logout,
+        onTap: _signOut,
+      ),
+    ];
+  }
+
+  /// Demo keeps the same shell and surfaces on seed data; writes are
+  /// honest no-ops so read-only exploration still works fully offline.
+  HomeShell _demoDashboard() {
     String monthStart() {
       final n = DateTime.now();
       return '${n.year}-${n.month.toString().padLeft(2, '0')}-01';
     }
 
-    return DashboardPage(
-      loadAccounts: () async => DemoStore.seedAccounts(),
-      loadTransactions: () async => DemoStore.seedTransactions(),
-      modeLabel: 'demo',
-      menuItems: [
-        DashboardMenuItem(
-          label: 'Kế hoạch',
-          icon: Icons.event_note,
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => PlanningPage(
-                loadData: () async => PlanningData(
-                  budgets: DemoStore.seedBudgets(monthStart()),
-                  commitments: DemoStore.seedCommitments(),
-                  goals: DemoStore.seedGoals(),
-                  accounts: DemoStore.seedAccounts(),
-                  categories: DemoStore.seedCategories(),
-                  monthStart: monthStart(),
-                ),
-                actions: _noopPlanningActions,
-              ),
+    return HomeShell(
+      tabBuilders: [
+        () => DashboardPage(
+          loadAccounts: () async => DemoStore.seedAccounts(),
+          loadTransactions: () async => DemoStore.seedTransactions(),
+          modeLabel: 'demo',
+          menuItems: [
+            DashboardMenuItem(
+              label: 'Thoát demo',
+              icon: Icons.logout,
+              onTap: () => setState(() => _gate = _Gate.login),
             ),
-          ),
+          ],
         ),
-        DashboardMenuItem(
-          label: 'Báo cáo',
-          icon: Icons.bar_chart,
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => ReportsPage(
-                loadTransactions: () async => DemoStore.seedTransactions(),
-              ),
-            ),
-          ),
+        () => ActivityPage(
+          loadTransactions: () async => DemoStore.seedTransactions(),
+          onDelete: (_) async {},
         ),
-        DashboardMenuItem(
-          label: 'Đăng xuất',
-          icon: Icons.logout,
-          onTap: () => setState(() => _gate = _Gate.login),
+        () => PlanningPage(
+          loadData: () async => PlanningData(
+            budgets: DemoStore.seedBudgets(monthStart()),
+            commitments: DemoStore.seedCommitments(),
+            goals: DemoStore.seedGoals(),
+            accounts: DemoStore.seedAccounts(),
+            categories: DemoStore.seedCategories(),
+            monthStart: monthStart(),
+          ),
+          actions: _noopPlanningActions,
+        ),
+        () => ReportsPage(
+          loadTransactions: () async => DemoStore.seedTransactions(),
         ),
       ],
+      onCaptureTap: (ctx) {
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          const SnackBar(
+            content: Text('Demo chỉ xem — đăng nhập để ghi khoản'),
+          ),
+        );
+        return Future.value();
+      },
+      onCaptureSaved: () {},
     );
   }
 
@@ -367,85 +387,83 @@ class _AuthGateState extends State<AuthGate> {
     return '${n.year}-${n.month.toString().padLeft(2, '0')}-${n.day.toString().padLeft(2, '0')}';
   }
 
-  PlanningPage _planningPage() => PlanningPage(
-    loadData: () async {
-      final monthStart = _monthStart();
-      final results = await Future.wait([
-        _store.loadBudgets(monthStart),
-        _store.loadCommitments(monthStart),
-        _store.loadGoals(),
-        _store.loadAccounts(),
-        _store.loadCategories(),
-      ]);
-      // Reschedule due-day reminders against the just-fetched list —
-      // archived commitments get cancelled inside the scheduler.
-      unawaited(
-        NotificationService.scheduleCommitmentReminders(
-          results[1] as List<RecurringCommitment>,
-        ).catchError((_) {}),
-      );
-      return PlanningData(
-        budgets: results[0] as List<BudgetProgress>,
-        commitments: results[1] as List<RecurringCommitment>,
-        goals: results[2] as List<SavingsGoal>,
-        accounts: results[3] as List<AccountSummary>,
-        categories: results[4] as List<Category>,
-        monthStart: monthStart,
-      );
-    },
-    actions: PlanningActions(
-      onBudgetCreate: (categoryId, limit) => _store
-          .upsertBudget(
-            categoryId: categoryId,
-            monthStart: _monthStart(),
-            limitMinor: limit,
-          )
-          .then((_) {}),
-      onBudgetDelete: _store.deleteBudget,
-      onCommitmentCreate: (name, amount, day, accountId, categoryId) => _store
-          .upsertCommitment(
-            name: name,
-            amountMinor: amount,
-            dueDay: day,
-            accountId: accountId,
-            categoryId: categoryId,
-          )
-          .then((_) {}),
-      onCommitmentPay: (c) => _store
-          .payCommitment(
-            commitmentId: c.id,
-            monthStart: _monthStart(),
-            paidOn: _today(),
-            idempotencyKey: newIdempotencyKey(),
-          )
-          .then((_) {}),
-      onCommitmentArchive: (id) => _store.setCommitmentArchived(id, true),
-      onGoalCreate: (name, target, deadline) => _store
-          .upsertGoal(name: name, targetMinor: target, deadline: deadline)
-          .then((_) {}),
-      onGoalAdjust: _store.adjustGoal,
-      onGoalArchive: (id) => _store.setGoalArchived(id, true),
-    ),
+  /// Signed-in planning loader — also reschedules due-day reminders
+  /// against the just-fetched list (archived commitments get cancelled
+  /// inside the scheduler).
+  Future<PlanningData> _loadPlanning() async {
+    final monthStart = _monthStart();
+    final results = await Future.wait([
+      _store.loadBudgets(monthStart),
+      _store.loadCommitments(monthStart),
+      _store.loadGoals(),
+      _store.loadAccounts(),
+      _store.loadCategories(),
+    ]);
+    unawaited(
+      NotificationService.scheduleCommitmentReminders(
+        results[1] as List<RecurringCommitment>,
+      ).catchError((_) {}),
+    );
+    return PlanningData(
+      budgets: results[0] as List<BudgetProgress>,
+      commitments: results[1] as List<RecurringCommitment>,
+      goals: results[2] as List<SavingsGoal>,
+      accounts: results[3] as List<AccountSummary>,
+      categories: results[4] as List<Category>,
+      monthStart: monthStart,
+    );
+  }
+
+  PlanningActions _planningActions() => PlanningActions(
+    onBudgetCreate: (categoryId, limit) => _store
+        .upsertBudget(
+          categoryId: categoryId,
+          monthStart: _monthStart(),
+          limitMinor: limit,
+        )
+        .then((_) {}),
+    onBudgetDelete: _store.deleteBudget,
+    onCommitmentCreate: (name, amount, day, accountId, categoryId) => _store
+        .upsertCommitment(
+          name: name,
+          amountMinor: amount,
+          dueDay: day,
+          accountId: accountId,
+          categoryId: categoryId,
+        )
+        .then((_) {}),
+    onCommitmentPay: (c) => _store
+        .payCommitment(
+          commitmentId: c.id,
+          monthStart: _monthStart(),
+          paidOn: _today(),
+          idempotencyKey: newIdempotencyKey(),
+        )
+        .then((_) {}),
+    onCommitmentArchive: (id) => _store.setCommitmentArchived(id, true),
+    onGoalCreate: (name, target, deadline) => _store
+        .upsertGoal(name: name, targetMinor: target, deadline: deadline)
+        .then((_) {}),
+    onGoalAdjust: _store.adjustGoal,
+    onGoalArchive: (id) => _store.setGoalArchived(id, true),
   );
 }
 
-/// Loads categories before showing the capture form (form needs them for
-/// expense/income; transfers skip categories server-side anyway).
+/// Loads accounts, categories and the recent feed before showing the
+/// capture form — the feed powers the "Mục hay dùng" category ranking.
 class _CaptureLoader extends StatelessWidget {
-  const _CaptureLoader({
-    required this.accounts,
-    required this.categories,
-    required this.store,
-  });
+  const _CaptureLoader({required this.store});
 
-  final List<dynamic> accounts;
-  final Future<List<dynamic>> categories;
   final RealStore store;
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: categories,
+      future: Future.wait([
+        store.loadAccounts(),
+        store.loadCategories(),
+        store.loadTransactions(),
+      ]),
       builder: (context, snap) {
         if (!snap.hasData) {
           return const Scaffold(
@@ -453,8 +471,9 @@ class _CaptureLoader extends StatelessWidget {
           );
         }
         return CapturePage(
-          accounts: accounts.cast(),
-          categories: snap.data!.cast(),
+          accounts: snap.data![0].cast(),
+          categories: snap.data![1].cast(),
+          transactions: snap.data![2].cast(),
           onSubmit: (intent) => _submitCaptureIntent(store, intent),
         );
       },

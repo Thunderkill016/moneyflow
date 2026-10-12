@@ -16,10 +16,10 @@ class ActivityPage extends StatefulWidget {
   final Future<void> Function(String transactionId) onDelete;
 
   @override
-  State<ActivityPage> createState() => _ActivityPageState();
+  State<ActivityPage> createState() => ActivityPageState();
 }
 
-class _ActivityPageState extends State<ActivityPage> {
+class ActivityPageState extends State<ActivityPage> {
   late Future<List<Transaction>> _txs;
 
   @override
@@ -36,6 +36,9 @@ class _ActivityPageState extends State<ActivityPage> {
       await _txs;
     } catch (_) {}
   }
+
+  /// Public reload for the nav shell after a capture save.
+  void reload() => _refresh();
 
   Future<void> _confirmDelete(Transaction tx) async {
     final ok = await showDialog<bool>(

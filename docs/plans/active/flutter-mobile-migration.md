@@ -328,3 +328,112 @@ does not cover correction/recovery, ingestion pipelines or account lifecycle.
 
 Open questions updated: web end-state → recommended *coexist* (owner to
 confirm); iOS → still blocked on account + macOS; placement → `mobile/` kept.
+
+## Appendix: competitor app walkthrough (2026-10-12, OPPO CPH2001)
+
+8 reference apps installed via Play on the owner's device; all inspected first-hand.
+Where signup was required, Google sign-in was used with an account already on the
+device (Economy / hoangn36th3a@gmail.com). Screenshots in session only (not
+committed). This appendix is evidence for UX decisions, not work authority.
+
+### Per-app findings
+
+| App | Account | Onboarding | Capture model | Notable surfaces |
+|---|---|---|---|---|
+| **Monefy** | none needed | 3 slides → notif ask → **paywall before first entry** (674kđ/yr) | EXPENSE/INCOME giant buttons → numpad w/ inline math (+−×÷) → category icon grid = **saves on tap** (~4 taps total) | Donut category wheel; simplest capture observed |
+| **Money Manager** (Realbyte) | none needed | **asks SMS + storage permission on first open** (works if denied) | Segmented Thu/Chi/Chuyển khoản, date+time+**"Lặp lại" recurring inline on the form**, Thể loại/Tài khoản/Ghi chú, numpad w/ "làm xong" | Tabs Hàng ngày/Ngày/Tháng/Tổng/Ghi chú; Thống kê tab Thu/Chi + Hàng tháng period dropdown; ad banner in free tier |
+| **Bluecoins** | none needed | language picker (VI preset) → straight in | FAB + on dashboard | **"Thử file mẫu" demo file** generates sample ledger (dialog stuck at 0% observed — their bug); dashboard = composable widget cards: 7-day bar chart w/ 7/30-day averages, budget pie + progress bar w/ **"HÔM NAY" pace marker**, monthly calendar w/ colored dots, net-worth line chart |
+| **Money Lover** | Google/Apple/email | 6-slide carousel → signup → goal question → currency (VND preset) → 4-step coach marks ending on the + FAB | Segmented Chi/Thu/**Vay-Nợ**; wallet selector; **quick-amount chips** (100.0/1000.0/10000.0 → 100k/1tr/10tr); numpad w/ 000 key + math; **2-level category list** w/ search; camera attach; "THÊM CHI TIẾT" expander; Lưu gated until valid | Dashboard: Tổng số dư w/ eye-hide, wallets, "Chi tiêu nhiều nhất" Tuần/Tháng, recent list, **"Xem Dữ liệu mẫu"** card; **post-first-save upsell: free tier = 1 wallet**; Budget form: nhóm + số tiền + kỳ (Tháng này range) + ví + **"Lặp lại ngân sách" auto-rollover checkbox**; budget states rendered Còn lại / Sắp tới hạn mức (amber) / Vượt hạn mức (red border) |
+| **MISA Sổ Thu Chi** | Google/FB/email | 3-slide (PDF bank import headline: "Nhập 1 lần - Cập nhật cả tháng"; dedup UI "10 ghi chép trùng nhau — Xóa ngay"; receipt OCR) → signup → **5-step wizard** (nghề nghiệp → intent multi-select → first wallet + starting balance → social proof "5 triệu người dùng") | "Ghi chép" center nav → dropdown Chi tiền + amount + **"Mục hay dùng" inline category grid** (Ăn uống, Đi lại, Con cái, Hiếu hỉ...) + Ví + Hôm nay+giờ + Diễn giải; **mic FAB (voice) + scan FAB (OCR) on the form** | Feature grid: Cho vay, Sổ tích lũy, Kết nối ngân hàng, voice capture; AI assistant FAB; **ad banner inside app**; period picker "Tháng này" + "báo cáo mẫu" |
+| **Wallet** (BudgetBakers) | Google/FB/email | carousel → signup → VND preset → cash balance numpad | THU NHẬP/CHI TIÊU/CHUYỂN KHOẢN tabs; giant amount; TIỀN MẶT account selector; CHỌN DANH MỤC 2-level (Ăn uống → Nhà hàng/Quán bar/Đồ tạp hóa); **"MẪU" templates button**; calc numpad; ✓ save | Tabs Tài khoản / Ngân sách & Mục tiêu; account carousel; cross-sell "Wallet cho doanh nghiệp"; Premium club card; "Cơ cấu chi tiêu 30 ngày vs cùng kỳ"; post-save Google Pay connect card |
+| **Spendee** | Google/FB/email | **quiz funnel 5+ questions** (feeling about money → spend for whom → saving for → habits) → notif guilt claim ("kiên trì gấp 2 lần") → with/without savings-growth chart → signup | Bottom sheet; giant 0 VND w/ currency picker; **tag chips** (Coffee, Vacation); camera; **icon-grid categories**; Chi phí/Thu nhập/Chuyển segmented | Primary CTA after signup is **"Kết nối TK Ngân hàng"**; manual entry is secondary |
+| **YNAB** | email/Google | emotional chat-bubble story ("Am I going to be OK?") → **interactive zero-based demo**: Balance $5000 → "Tap to fill" Mortgage $2500 → "Ask: what is this money for?" → signup | (not reached — English-only, method-first) | Teaches the budgeting *method* interactively before the app; assign-dollars paradigm ≠ ledger-tracking paradigm |
+
+### Cross-cutting lessons for MoneyFlow
+
+Adopt:
+
+1. **Default-account fast path** (Monefy): prefill last-used account + inline
+   category grid so save is amount→category→done. MoneyFlow today requires
+   account pick → category pick → Lưu; a last-used default keeps correctness
+   and removes 1-2 taps.
+2. **"Mục hay dùng" inline category row** (MISA): most-used categories directly
+   on the capture form, "Chỉnh sửa" to customize — cuts the picker round-trip.
+3. **Quick-amount chips** (Money Lover): 100k/1tr/10tr chips above the numpad
+   fit VND magnitudes; cheaper than typing 6-7 digits.
+4. **Budget pace marker** (Bluecoins "HÔM NAY" tick on the progress bar):
+   shows position-in-month vs spend ratio — one glance answers "am I pacing?"
+5. **3-state budget rows** (Money Lover): Còn lại / Sắp tới hạn mức / Vượt hạn
+   mức with color + explicit text (not color alone — matches our a11y rule).
+6. **"Lặp lại ngân sách" rollover** (Money Lover): budget auto-repeats next
+   period — our `upsert_monthly_budget` currently re-creates per month; a
+   rollover flag is a candidate contract addition (needs backend spec).
+7. **"Lặp lại" inline on entry form** (Money Manager): recurring toggle at
+   capture time, separate from the commitments surface.
+8. **Demo/sample data inside the signed-in app** (Bluecoins "Thử file mẫu",
+   Money Lover "Xem Dữ liệu mẫu", ML "Ví dụ" budget card): empty states show
+   *rendered example data*, not just text. Our demo mode exists but requires
+   logging out; an in-product preview would help onboarding.
+9. **Coach-mark funnel ending on the + FAB** (Money Lover 4/4 → "Thêm giao
+   dịch"): walkthrough terminates in the first action, not a description.
+10. **Dedup review UI for imports** (MISA "10 ghi chép trùng nhau — Xóa ngay/
+    Bỏ chọn tất cả"): directly applicable to our future inbox dedup surface.
+11. **2-level categories w/ search** (Money Lover, Wallet): parent icons +
+    indented children; our flat category list will not scale.
+12. **Tag chips on capture** (Spendee): free-text tags alongside categories —
+    note-augmentation without a second field.
+
+Avoid / already avoided:
+
+- **Paywall before first entry** (Monefy, Spendee funnel): paywalling an empty
+  ledger burns trust; monetize after first saved month.
+- **Quiz onboarding >3 questions** (Spendee): every extra question loses users;
+  MISA's 2-question wizard is the sane bound.
+- **SMS/storage permission on first open** (Money Manager): MoneyFlow's
+  share-intent + explicit-review path is the right call (canon acquisition law).
+- **Ads inside the app** (MISA, Money Manager free): conflicts with
+  "trustworthy ledger" positioning.
+- **Bank-connect as the primary CTA** (Spendee, Wallet upsell): fine as a
+  capability, wrong as the front door for a manual-first product.
+- **Currency picker on the amount field** (Spendee): VND-only product doesn't
+  need per-transaction currency switching.
+
+Open product questions raised (owner decisions, not implemented):
+
+- Transaction **templates** (Wallet "MẪU") — we have income templates on web;
+  expense templates on mobile are a candidate slice.
+- **Vay/Nợ as a third kind** (Money Lover, MISA "Cho vay") — debt tracking is
+  VN-common; currently modeled as transfers; needs a spec if promoted.
+- **Voice + receipt scan capture** (MISA FABs) — matches our /capture/voice +
+  /capture/upload web surfaces; mobile parity slice.
+- **AI assistant FAB** (MISA robot) — canon requires spec + owner auth.
+
+### Applied slice (this branch, post-P6)
+
+Owner instruction 2026-10-12: "Build app đi" — apply the highest-value
+reference findings to the Flutter client. Implemented:
+
+- **Bottom nav shell** (`mobile/lib/app/home_shell.dart`): Tổng quan /
+  Hoạt động / **Ghi** (center action, not a tab) / Kế hoạch / Báo cáo —
+  replaces the overflow-menu navigation (MISA/Money Lover pattern). Tabs
+  keep state via IndexedStack and build lazily; a saved capture reloads
+  dashboard/activity/planning/report via public `reload()` on each state.
+- **Fast capture** (`capture_page.dart`): quick-amount chips
+  (50k/100k/200k/500k/1tr/5tr), inline "Mục hay dùng" category chips ranked
+  from the transaction feed (`domain/frequency.dart`, pure), and
+  last-used account/category prefill via `data/capture_prefs.dart`
+  (SharedPreferences — device-local convenience, never server truth).
+  `DropdownButtonFormField.initialValue` is non-reactive, so the dropdowns
+  carry `ValueKey`s — async prefs actually display.
+- **Budget 3-state + pace** (`domain/budget.dart` + `_PaceBar`): Còn lại /
+  Sắp tới hạn mức (>=80%) / Vượt with explicit text + color (not color
+  alone), and a "Hôm nay" tick marking position-in-month on the bar.
+
+Verified on the OPPO device (debug APK): nav destinations switch tabs;
+"Ghi" opens capture; 100k chip fills the field; "Ăn uống" chip selects the
+category; a saved capture appears in Hoạt động and folds into the budget
+row (170.000/2.000.000 → "Còn lại 1.830.000 ₫"); reopening capture
+prefills Tiền mặt + Ăn uống. `flutter test` 101/101, analyze clean.
+
+Deliberately not copied: paywall-before-entry, SMS permission, ads,
+quiz onboarding >3 questions, bank-connect-as-CTA (see "Avoid" above).

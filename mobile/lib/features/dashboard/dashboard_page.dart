@@ -26,8 +26,6 @@ class DashboardPage extends StatefulWidget {
     required this.loadAccounts,
     required this.loadTransactions,
     this.modeLabel,
-    this.captureBuilder,
-    this.onShowActivity,
     this.menuItems = const [],
     this.readSnapshot,
     this.writeSnapshot,
@@ -50,11 +48,6 @@ class DashboardPage extends StatefulWidget {
   final Future<List<AccountSummary>> Function() loadAccounts;
   final Future<List<Transaction>> Function() loadTransactions;
   final String? modeLabel;
-
-  /// Builds the capture route for the currently loaded accounts; null in
-  /// demo mode (no write path).
-  final Widget? Function(List<AccountSummary> accounts)? captureBuilder;
-  final VoidCallback? onShowActivity;
   final List<DashboardMenuItem> menuItems;
 
   /// Offline read-back: when the loaders throw and a snapshot exists, the
@@ -65,15 +58,14 @@ class DashboardPage extends StatefulWidget {
   final Future<void> Function(DashboardSnapshot snapshot)? writeSnapshot;
 
   @override
-  State<DashboardPage> createState() => _DashboardPageState();
+  State<DashboardPage> createState() => DashboardPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage> {
+class DashboardPageState extends State<DashboardPage> {
   late Future<
     ({List<AccountSummary> accounts, List<Transaction> txs, int? savedAtMs})
   >
   _data;
-  List<AccountSummary> _accounts = const [];
 
   @override
   void initState() {
@@ -119,14 +111,8 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  Future<void> _openCapture() async {
-    final build = widget.captureBuilder;
-    if (build == null || _accounts.isEmpty) return;
-    final saved = await Navigator.of(
-      context,
-    ).push<bool>(MaterialPageRoute(builder: (_) => build(_accounts)!));
-    if (saved == true) _refresh();
-  }
+  /// Public reload for the nav shell after a capture save.
+  void reload() => _refresh();
 
   @override
   Widget build(BuildContext context) {
@@ -135,12 +121,6 @@ class _DashboardPageState extends State<DashboardPage> {
         title: const Text('MoneyFlow'),
         actions: [
           if (widget.modeLabel != null) Center(child: Text(widget.modeLabel!)),
-          if (widget.onShowActivity != null)
-            IconButton(
-              icon: const Icon(Icons.receipt_long),
-              tooltip: 'Hoạt động',
-              onPressed: widget.onShowActivity,
-            ),
           if (widget.menuItems.isNotEmpty)
             PopupMenuButton<int>(
               icon: const Icon(Icons.more_vert),
@@ -194,7 +174,6 @@ class _DashboardPageState extends State<DashboardPage> {
           final accounts = snap.data!.accounts;
           final txs = snap.data!.txs;
           final savedAtMs = snap.data!.savedAtMs;
-          _accounts = accounts;
           final total = accounts.fold<int>(0, (s, a) => s + a.balance);
           return RefreshIndicator(
             onRefresh: _refresh,
@@ -226,11 +205,6 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openCapture,
-        icon: const Icon(Icons.add),
-        label: const Text('Ghi khoản'),
       ),
     );
   }

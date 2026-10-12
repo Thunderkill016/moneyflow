@@ -12,10 +12,10 @@ class ReportsPage extends StatefulWidget {
   final Future<List<Transaction>> Function() loadTransactions;
 
   @override
-  State<ReportsPage> createState() => _ReportsPageState();
+  State<ReportsPage> createState() => ReportsPageState();
 }
 
-class _ReportsPageState extends State<ReportsPage> {
+class ReportsPageState extends State<ReportsPage> {
   late Future<PeriodReport> _report;
 
   @override
@@ -48,6 +48,9 @@ class _ReportsPageState extends State<ReportsPage> {
       /* surfaced by the FutureBuilder */
     }
   }
+
+  /// Public reload for the nav shell after a capture save.
+  void reload() => _refresh();
 
   @override
   Widget build(BuildContext context) {

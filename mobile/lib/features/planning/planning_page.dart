@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../domain/budget.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 
@@ -67,10 +68,10 @@ class PlanningPage extends StatefulWidget {
   final PlanningActions actions;
 
   @override
-  State<PlanningPage> createState() => _PlanningPageState();
+  State<PlanningPage> createState() => PlanningPageState();
 }
 
-class _PlanningPageState extends State<PlanningPage> {
+class PlanningPageState extends State<PlanningPage> {
   late Future<PlanningData> _data;
 
   @override
@@ -89,6 +90,9 @@ class _PlanningPageState extends State<PlanningPage> {
       /* surfaced by the FutureBuilder */
     }
   }
+
+  /// Public reload for the nav shell after a capture save.
+  void reload() => _refresh();
 
   @override
   Widget build(BuildContext context) {
@@ -516,7 +520,25 @@ class _BudgetTile extends StatelessWidget {
     final ratio = budget.limitMinor <= 0
         ? 0.0
         : (budget.spentMinor / budget.limitMinor).clamp(0.0, 1.0);
-    final color = budget.isOver ? Colors.red.shade700 : null;
+    final state = budgetState(
+      spentMinor: budget.spentMinor,
+      limitMinor: budget.limitMinor,
+    );
+    final pace = monthPace(budget.monthStart, DateTime.now());
+    final (status, color) = switch (state) {
+      BudgetState.over => (
+        'Vượt ${formatMoney(budget.spentMinor - budget.limitMinor)}',
+        Colors.red.shade700,
+      ),
+      BudgetState.nearLimit => (
+        'Sắp tới hạn mức · còn ${formatMoney(budget.limitMinor - budget.spentMinor)}',
+        Colors.orange.shade800,
+      ),
+      BudgetState.ok => (
+        'Còn lại ${formatMoney(budget.limitMinor - budget.spentMinor)}',
+        Colors.green.shade700,
+      ),
+    };
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
@@ -524,17 +546,57 @@ class _BudgetTile extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            LinearProgressIndicator(value: ratio, color: color),
+            _PaceBar(ratio: ratio, pace: pace, color: color),
             const SizedBox(height: 4),
             Text(
-              '${formatMoney(budget.spentMinor)} / ${formatMoney(budget.limitMinor)}',
+              '${formatMoney(budget.spentMinor)} / ${formatMoney(budget.limitMinor)} · $status',
+              style: TextStyle(color: color),
             ),
           ],
         ),
-        trailing: budget.isOver
-            ? Text('Vượt', style: TextStyle(color: color))
-            : null,
         onLongPress: onDelete,
+      ),
+    );
+  }
+}
+
+/// Budget progress bar with a "Hôm nay" pace tick — the vertical marker
+/// shows where today falls in the month, so spend vs time elapsed is
+/// readable at a glance (Bluecoins pattern).
+class _PaceBar extends StatelessWidget {
+  const _PaceBar({required this.ratio, required this.pace, this.color});
+
+  final double ratio;
+  final double pace;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return LayoutBuilder(
+      builder: (context, c) => Semantics(
+        label: 'Đã chi ${(ratio * 100).round()}% ngân sách',
+        child: SizedBox(
+          height: 14,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: ratio,
+                  minHeight: 6,
+                  color: color ?? scheme.primary,
+                  backgroundColor: scheme.surfaceContainerHighest,
+                ),
+              ),
+              Positioned(
+                left: (pace * c.maxWidth).clamp(0.0, c.maxWidth - 2),
+                child: Container(width: 2, height: 14, color: scheme.outline),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
