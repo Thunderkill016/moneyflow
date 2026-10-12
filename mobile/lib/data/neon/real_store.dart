@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import '../../domain/models.dart';
 import 'data_api.dart';
 
@@ -62,4 +64,82 @@ class RealStore {
             ))
         .toList();
   }
+
+  /// Capture-form categories (expense/income kinds; transfers use none).
+  Future<List<Category>> loadCategories() async {
+    final rows = await _api.select('categories', query: {
+      'select': 'id,name,kind',
+      'order': 'kind.asc,name.asc',
+    });
+    return rows
+        .map((r) => Category(
+              id: r['id'] as String,
+              name: r['name'] as String,
+              kind: r['kind'] == 'income'
+                  ? TransactionKind.income
+                  : TransactionKind.expense,
+            ))
+        .toList();
+  }
+
+  /// POST /rpc/create_money_transaction — same function the web's
+  /// createTransactionAction calls; idempotency key dedupes replays.
+  Future<String> createTransaction({
+    required String accountId,
+    required String categoryId,
+    required TransactionKind kind,
+    required int amount,
+    required String occurredOn,
+    String note = '',
+    String payee = '',
+    String? goalId,
+    required String idempotencyKey,
+  }) async {
+    final id = await _api.rpc('create_money_transaction', {
+      'p_account_id': accountId,
+      'p_category_id': categoryId,
+      'p_kind': kind == TransactionKind.income ? 'income' : 'expense',
+      'p_amount_minor': amount,
+      'p_occurred_on': occurredOn,
+      'p_note': note,
+      'p_payee': payee,
+      'p_goal_id': goalId,
+      'p_idempotency_key': idempotencyKey,
+    });
+    return id as String;
+  }
+
+  /// POST /rpc/create_account_transfer — balanced movement, never
+  /// income/expense (product invariant).
+  Future<String> createTransfer({
+    required String sourceAccountId,
+    required String destinationAccountId,
+    required int amount,
+    required String occurredOn,
+    String note = '',
+    required String idempotencyKey,
+  }) async {
+    final id = await _api.rpc('create_account_transfer', {
+      'p_source_account_id': sourceAccountId,
+      'p_destination_account_id': destinationAccountId,
+      'p_amount_minor': amount,
+      'p_occurred_on': occurredOn,
+      'p_note': note,
+      'p_idempotency_key': idempotencyKey,
+    });
+    return id as String;
+  }
+}
+
+/// One UUIDv4 per form instance = one idempotency key per user intent.
+String newIdempotencyKey() {
+  final r = Random.secure();
+  final b = List<int>.generate(16, (_) => r.nextInt(256));
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  String hex(int i) => b[i].toRadixString(16).padLeft(2, '0');
+  return '${hex(0)}${hex(1)}${hex(2)}${hex(3)}-'
+      '${hex(4)}${hex(5)}-${hex(6)}${hex(7)}-'
+      '${hex(8)}${hex(9)}-${hex(10)}${hex(11)}'
+      '${hex(12)}${hex(13)}${hex(14)}${hex(15)}';
 }

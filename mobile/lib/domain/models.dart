@@ -39,6 +39,15 @@ class AccountSummary {
 
 enum TransactionKind { expense, income, transfer }
 
+/// Category rows for the capture form — kinds match transaction kinds.
+class Category {
+  const Category({required this.id, required this.name, required this.kind});
+
+  final String id;
+  final String name;
+  final TransactionKind kind;
+}
+
 enum TransactionReviewStatus { needsReview, reviewed }
 
 class Transaction {

@@ -12,6 +12,7 @@ class DashboardPage extends StatefulWidget {
     required this.loadTransactions,
     this.modeLabel,
     this.onSignOut,
+    this.captureBuilder,
   });
 
   factory DashboardPage.demo({VoidCallback? onSignOut}) => DashboardPage(
@@ -26,12 +27,17 @@ class DashboardPage extends StatefulWidget {
   final String? modeLabel;
   final VoidCallback? onSignOut;
 
+  /// Builds the capture route for the currently loaded accounts; null in
+  /// demo mode (no write path).
+  final Widget? Function(List<AccountSummary> accounts)? captureBuilder;
+
   @override
   State<DashboardPage> createState() => _DashboardPageState();
 }
 
 class _DashboardPageState extends State<DashboardPage> {
   late Future<({List<AccountSummary> accounts, List<Transaction> txs})> _data;
+  List<AccountSummary> _accounts = const [];
 
   @override
   void initState() {
@@ -50,6 +56,15 @@ class _DashboardPageState extends State<DashboardPage> {
     try {
       await _data;
     } catch (_) {/* surfaced by the FutureBuilder */}
+  }
+
+  Future<void> _openCapture() async {
+    final build = widget.captureBuilder;
+    if (build == null || _accounts.isEmpty) return;
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => build(_accounts)!),
+    );
+    if (saved == true) _refresh();
   }
 
   @override
@@ -97,6 +112,7 @@ class _DashboardPageState extends State<DashboardPage> {
           }
           final accounts = snap.data!.accounts;
           final txs = snap.data!.txs;
+          _accounts = accounts;
           final total = accounts.fold<int>(0, (s, a) => s + a.balance);
           return RefreshIndicator(
             onRefresh: _refresh,
@@ -125,7 +141,7 @@ class _DashboardPageState extends State<DashboardPage> {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
+        onPressed: _openCapture,
         icon: const Icon(Icons.add),
         label: const Text('Ghi khoản'),
       ),

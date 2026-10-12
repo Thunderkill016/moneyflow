@@ -5,7 +5,9 @@ import '../data/neon/data_api.dart';
 import '../data/neon/neon_config.dart';
 import '../data/neon/real_store.dart';
 import '../data/session_store.dart';
+import '../domain/models.dart';
 import '../features/auth/login_page.dart';
+import '../features/capture/capture_page.dart';
 import '../features/dashboard/dashboard_page.dart';
 
 /// MoneyFlow brand tokens (from src/app/manifest.ts).
@@ -107,7 +109,66 @@ class _AuthGateState extends State<AuthGate> {
           loadAccounts: _store.loadAccounts,
           loadTransactions: _store.loadTransactions,
           onSignOut: _signOut,
+          captureBuilder: (accounts) => _CaptureLoader(
+            accounts: accounts,
+            categories: _store.loadCategories(),
+            store: _store,
+          ),
         ),
     };
+  }
+}
+
+/// Loads categories before showing the capture form (form needs them for
+/// expense/income; transfers skip categories server-side anyway).
+class _CaptureLoader extends StatelessWidget {
+  const _CaptureLoader({
+    required this.accounts,
+    required this.categories,
+    required this.store,
+  });
+
+  final List<dynamic> accounts;
+  final Future<List<dynamic>> categories;
+  final RealStore store;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+      future: categories,
+      builder: (context, snap) {
+        if (!snap.hasData) {
+          return const Scaffold(
+              body: Center(child: CircularProgressIndicator()));
+        }
+        return CapturePage(
+          accounts: accounts.cast(),
+          categories: snap.data!.cast(),
+          onSubmit: (intent) async {
+            if (intent.kind == TransactionKind.transfer) {
+              await store.createTransfer(
+                sourceAccountId: intent.accountId,
+                destinationAccountId: intent.destinationAccountId!,
+                amount: intent.amount,
+                occurredOn: intent.occurredOn,
+                note: intent.note,
+                idempotencyKey: intent.idempotencyKey,
+              );
+            } else {
+              await store.createTransaction(
+                accountId: intent.accountId,
+                categoryId: intent.categoryId!,
+                kind: intent.kind,
+                amount: intent.amount,
+                occurredOn: intent.occurredOn,
+                note: intent.note,
+                payee: intent.payee,
+                idempotencyKey: intent.idempotencyKey,
+              );
+            }
+          },
+        );
+      },
+    );
   }
 }
