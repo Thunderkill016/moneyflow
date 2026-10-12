@@ -213,3 +213,47 @@ backend (unchanged)
   round-trip visible in web UI.
 - Product invariants unchanged: integer đồng, transfers not income, soft
   delete, no invented data.
+- [x] P5 device features verified on-device 2026-10-12 (OPPO CPH2001):
+      - **Share receive**: `MainActivity` (native, `FlutterFragmentActivity`)
+        exposes ACTION_SEND text via `app.moneyflow/share_text` MethodChannel
+        (cold start) + `app.moneyflow/share_stream` EventChannel (warm).
+        `share_text_parser.dart` (pure Dart) extracts amount/kind/note from
+        VN bank SMS → `SharedTextPrefill` pre-fills the capture form under a
+        review banner; user still picks account/category and taps Lưu —
+        a share never posts a transaction. Verified cold-start
+        (`GD -1.250.000d tai Circle K` → Chi, 1250000, "Circle K luc 14:20")
+        and warm (`Nhan duoc 500k luong` → Thu, 500000). Shares arriving
+        pre-sign-in stash and drain after `_Gate.signedIn`.
+      - **Biometric lock**: opt-in via ⋮ menu → `BiometricGate` wraps the
+        signed-in dashboard; fail-open when hardware unavailable; auto-prompt
+        + retry. Enable path requires one successful `authenticate()` before
+        arming — `isDeviceSupported()` can report true with no credential
+        enrolled and would otherwise strand the user (verified on this
+        OPPO: `canAuthenticate` = NONE_ENROLLED → snackbar "Không xác thực
+        được — chưa bật khóa", lock not armed).
+      - **Offline**: `OfflineCache` persists a `DashboardSnapshot` to
+        SharedPreferences on every successful load; on loader failure the
+        dashboard renders the snapshot under an explicit "Ngoại tuyến — dữ
+        liệu đã lưu · Cập nhật lúc HH:mm" banner — never as fresh. Verified
+        in airplane mode. Root-cause fix along the way: `HttpClient` had no
+        `connectionTimeout` and session restore blocked forever → added
+        10s bound + offline restore path trusting the stored token (JWT
+        re-validates lazily; upstream 401 still signs out).
+      - **Notifications**: `NotificationService` schedules one local
+        reminder per active commitment at 09:00 on its due day
+        (`matchDateTimeComponents: dayOfMonthAndTime`), archived → cancelled.
+        Verified via `dumpsys alarm`: `ScheduledNotificationReceiver` for
+        Tiền nhà at 2026-11-05 09:00 local. Init required
+        `tzdata.initializeTimeZones()` + `tz.setLocalLocation`
+        (`flutter_timezone`) — without them `tz.local` is UTC/throws.
+      - Deps added: `local_auth`, `flutter_local_notifications`, `timezone`,
+        `flutter_timezone`, `shared_preferences`. `receive_sharing_intent`
+        was evaluated then dropped — its iOS side is Swift-PM-only and broke
+        Flutter tooling on Linux; the ~60-line native MainActivity bridge
+        covers the Android scope with zero plugin risk.
+      - Android: `USE_BIOMETRIC`, `POST_NOTIFICATIONS`, SEND text/plain
+        intent-filter, `FlutterFragmentActivity` (BiometricPrompt host),
+        core-library desugaring (java.time in flutter_local_notifications).
+- Test totals after P5: 74/74 (`money` 9, `neon_client` 8, `report` 4,
+  `planning_reports` 5, `share_text_parser` 27, `offline_cache` 9,
+  `biometric_lock` 7, `device_features` 5); `flutter analyze` clean.

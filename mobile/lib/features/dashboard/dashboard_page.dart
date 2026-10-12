@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/demo_store.dart';
+import '../../data/offline_cache.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 
@@ -28,21 +29,23 @@ class DashboardPage extends StatefulWidget {
     this.captureBuilder,
     this.onShowActivity,
     this.menuItems = const [],
+    this.readSnapshot,
+    this.writeSnapshot,
   });
 
   factory DashboardPage.demo({VoidCallback? onSignOut}) => DashboardPage(
-        loadAccounts: () async => DemoStore.seedAccounts(),
-        loadTransactions: () async => DemoStore.seedTransactions(),
-        modeLabel: 'demo',
-        menuItems: [
-          if (onSignOut != null)
-            DashboardMenuItem(
-              label: 'Đăng xuất',
-              icon: Icons.logout,
-              onTap: onSignOut,
-            ),
-        ],
-      );
+    loadAccounts: () async => DemoStore.seedAccounts(),
+    loadTransactions: () async => DemoStore.seedTransactions(),
+    modeLabel: 'demo',
+    menuItems: [
+      if (onSignOut != null)
+        DashboardMenuItem(
+          label: 'Đăng xuất',
+          icon: Icons.logout,
+          onTap: onSignOut,
+        ),
+    ],
+  );
 
   final Future<List<AccountSummary>> Function() loadAccounts;
   final Future<List<Transaction>> Function() loadTransactions;
@@ -54,12 +57,22 @@ class DashboardPage extends StatefulWidget {
   final VoidCallback? onShowActivity;
   final List<DashboardMenuItem> menuItems;
 
+  /// Offline read-back: when the loaders throw and a snapshot exists, the
+  /// dashboard renders it under an explicit stale label — never as fresh.
+  final DashboardSnapshot? Function()? readSnapshot;
+
+  /// Called with a fresh snapshot after every successful load.
+  final Future<void> Function(DashboardSnapshot snapshot)? writeSnapshot;
+
   @override
   State<DashboardPage> createState() => _DashboardPageState();
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  late Future<({List<AccountSummary> accounts, List<Transaction> txs})> _data;
+  late Future<
+    ({List<AccountSummary> accounts, List<Transaction> txs, int? savedAtMs})
+  >
+  _data;
   List<AccountSummary> _accounts = const [];
 
   @override
@@ -68,26 +81,50 @@ class _DashboardPageState extends State<DashboardPage> {
     _data = _load();
   }
 
-  Future<({List<AccountSummary> accounts, List<Transaction> txs})>
-      _load() async {
-    final accounts = await widget.loadAccounts();
-    final txs = await widget.loadTransactions();
-    return (accounts: accounts, txs: txs);
+  /// Fresh load wins; on failure the saved snapshot renders under a stale
+  /// label. A snapshot is only a fallback — it never masks a loader error
+  /// as success.
+  Future<
+    ({List<AccountSummary> accounts, List<Transaction> txs, int? savedAtMs})
+  >
+  _load() async {
+    try {
+      final accounts = await widget.loadAccounts();
+      final txs = await widget.loadTransactions();
+      final snap = DashboardSnapshot(
+        savedAtMs: DateTime.now().millisecondsSinceEpoch,
+        accounts: accounts,
+        transactions: txs,
+      );
+      // Persisting must not fail the render path.
+      await widget.writeSnapshot?.call(snap).catchError((_) {});
+      return (accounts: accounts, txs: txs, savedAtMs: null);
+    } catch (e) {
+      final cached = widget.readSnapshot?.call();
+      if (cached == null) rethrow;
+      return (
+        accounts: cached.accounts,
+        txs: cached.transactions,
+        savedAtMs: cached.savedAtMs,
+      );
+    }
   }
 
   Future<void> _refresh() async {
     setState(() => _data = _load());
     try {
       await _data;
-    } catch (_) {/* surfaced by the FutureBuilder */}
+    } catch (_) {
+      /* surfaced by the FutureBuilder */
+    }
   }
 
   Future<void> _openCapture() async {
     final build = widget.captureBuilder;
     if (build == null || _accounts.isEmpty) return;
-    final saved = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => build(_accounts)!),
-    );
+    final saved = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => build(_accounts)!));
     if (saved == true) _refresh();
   }
 
@@ -97,8 +134,7 @@ class _DashboardPageState extends State<DashboardPage> {
       appBar: AppBar(
         title: const Text('MoneyFlow'),
         actions: [
-          if (widget.modeLabel != null)
-            Center(child: Text(widget.modeLabel!)),
+          if (widget.modeLabel != null) Center(child: Text(widget.modeLabel!)),
           if (widget.onShowActivity != null)
             IconButton(
               icon: const Icon(Icons.receipt_long),
@@ -157,6 +193,7 @@ class _DashboardPageState extends State<DashboardPage> {
           }
           final accounts = snap.data!.accounts;
           final txs = snap.data!.txs;
+          final savedAtMs = snap.data!.savedAtMs;
           _accounts = accounts;
           final total = accounts.fold<int>(0, (s, a) => s + a.balance);
           return RefreshIndicator(
@@ -165,6 +202,7 @@ class _DashboardPageState extends State<DashboardPage> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               children: [
+                if (savedAtMs != null) _StaleBanner(savedAtMs: savedAtMs),
                 _TotalCard(total: total),
                 const SizedBox(height: 20),
                 Text(
@@ -198,6 +236,32 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 }
 
+/// Offline indicator — labels restored data with its save time so stale
+/// numbers can never be mistaken for the live ledger.
+class _StaleBanner extends StatelessWidget {
+  const _StaleBanner({required this.savedAtMs});
+  final int savedAtMs;
+
+  @override
+  Widget build(BuildContext context) {
+    final saved = DateTime.fromMillisecondsSinceEpoch(savedAtMs);
+    final hh = saved.hour.toString().padLeft(2, '0');
+    final mm = saved.minute.toString().padLeft(2, '0');
+    final dd = saved.day.toString().padLeft(2, '0');
+    final mo = saved.month.toString().padLeft(2, '0');
+    return Card(
+      color: Theme.of(context).colorScheme.errorContainer,
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        dense: true,
+        leading: const Icon(Icons.wifi_off),
+        title: const Text('Ngoại tuyến — dữ liệu đã lưu'),
+        subtitle: Text('Cập nhật lúc $hh:$mm $dd/$mo'),
+      ),
+    );
+  }
+}
+
 class _TotalCard extends StatelessWidget {
   const _TotalCard({required this.total});
   final int total;
@@ -214,10 +278,9 @@ class _TotalCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               formatMoney(total),
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineMedium
-                  ?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
           ],
         ),
@@ -244,12 +307,12 @@ class _AccountTile extends StatelessWidget {
   }
 
   String _kindLabel(AccountKind kind) => switch (kind) {
-        AccountKind.cash => 'Tiền mặt',
-        AccountKind.bank => 'Ngân hàng',
-        AccountKind.eWallet => 'Ví điện tử',
-        AccountKind.creditCard => 'Thẻ tín dụng',
-        AccountKind.savings => 'Tiết kiệm',
-      };
+    AccountKind.cash => 'Tiền mặt',
+    AccountKind.bank => 'Ngân hàng',
+    AccountKind.eWallet => 'Ví điện tử',
+    AccountKind.creditCard => 'Thẻ tín dụng',
+    AccountKind.savings => 'Tiết kiệm',
+  };
 }
 
 class _TransactionTile extends StatelessWidget {

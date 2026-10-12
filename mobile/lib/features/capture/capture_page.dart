@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/neon/real_store.dart' show newIdempotencyKey;
+import '../../data/share/share_text_parser.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 
@@ -38,11 +39,16 @@ class CapturePage extends StatefulWidget {
     required this.accounts,
     required this.categories,
     required this.onSubmit,
+    this.prefill,
   });
 
   final List<AccountSummary> accounts;
   final List<Category> categories;
   final Future<void> Function(CaptureIntent intent) onSubmit;
+
+  /// Shared-text extraction applied to the form on open. The user still
+  /// reviews and submits manually — a share never posts a transaction.
+  final SharedTextPrefill? prefill;
 
   @override
   State<CapturePage> createState() => _CapturePageState();
@@ -63,6 +69,16 @@ class _CapturePageState extends State<CapturePage> {
   DateTime _date = DateTime.now();
   bool _busy = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    final p = widget.prefill;
+    if (p == null) return;
+    if (p.kind != null) _kind = p.kind!;
+    if (p.amount != null) _amount.text = p.amount!.toString();
+    if (p.note != null) _note.text = p.note!;
+  }
 
   List<Category> get _kindCategories =>
       widget.categories.where((c) => c.kind == _kind).toList();
@@ -137,6 +153,18 @@ class _CapturePageState extends State<CapturePage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (widget.prefill != null) ...[
+            Card(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              child: const ListTile(
+                dense: true,
+                leading: Icon(Icons.share),
+                title: Text('Điền sẵn từ nội dung chia sẻ'),
+                subtitle: Text('Kiểm tra lại trước khi lưu'),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           SegmentedButton<TransactionKind>(
             segments: const [
               ButtonSegment(

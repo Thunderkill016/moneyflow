@@ -39,7 +39,9 @@ class _ReportsPageState extends State<ReportsPage> {
   }
 
   Future<void> _refresh() async {
-    setState(() { _report = _load(); });
+    setState(() {
+      _report = _load();
+    });
     try {
       await _report;
     } catch (_) {

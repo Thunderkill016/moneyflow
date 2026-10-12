@@ -44,6 +44,9 @@ typedef NeonRequester = Future<NeonResponse> Function(NeonRequest req);
 /// Production transport over dart:io HttpClient.
 Future<NeonResponse> httpNeonRequester(NeonRequest req) async {
   final client = HttpClient();
+  // Without a bound, a dead connection stalls callers on the OS DNS/connect
+  // timeout — in airplane mode that meant the app sat on a spinner forever.
+  client.connectionTimeout = const Duration(seconds: 10);
   try {
     final ioReq = await client.openUrl(req.method, req.url);
     req.headers.forEach(ioReq.headers.set);

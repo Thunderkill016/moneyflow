@@ -29,7 +29,9 @@ class _ActivityPageState extends State<ActivityPage> {
   }
 
   Future<void> _refresh() async {
-    setState(() { _txs = widget.loadTransactions(); });
+    setState(() {
+      _txs = widget.loadTransactions();
+    });
     try {
       await _txs;
     } catch (_) {}

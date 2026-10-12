@@ -80,7 +80,9 @@ class _PlanningPageState extends State<PlanningPage> {
   }
 
   Future<void> _refresh() async {
-    setState(() { _data = widget.loadData(); });
+    setState(() {
+      _data = widget.loadData();
+    });
     try {
       await _data;
     } catch (_) {
