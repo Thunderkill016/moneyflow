@@ -83,6 +83,18 @@ class Transaction {
   final String? updatedAt;
 }
 
+/// Soft-deleted ledger row — mirrors deleted_transaction_feed
+/// (transaction columns + the tombstone timestamp).
+class DeletedTransaction {
+  const DeletedTransaction({
+    required this.transaction,
+    required this.deletedAt,
+  });
+
+  final Transaction transaction;
+  final String deletedAt; // ISO timestamp
+}
+
 /// Monthly budget row — mirrors public.budget_progress.
 class BudgetProgress {
   const BudgetProgress({

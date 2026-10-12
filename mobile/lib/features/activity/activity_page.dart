@@ -10,10 +10,15 @@ class ActivityPage extends StatefulWidget {
     super.key,
     required this.loadTransactions,
     required this.onDelete,
+    this.onOpenTrash,
   });
 
   final Future<List<Transaction>> Function() loadTransactions;
   final Future<void> Function(String transactionId) onDelete;
+
+  /// Trash entry — null hides the action (demo deletes are no-ops, so a
+  /// trash surface there would always be empty and misleading).
+  final VoidCallback? onOpenTrash;
 
   @override
   State<ActivityPage> createState() => ActivityPageState();
@@ -69,7 +74,17 @@ class ActivityPageState extends State<ActivityPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Hoạt động')),
+      appBar: AppBar(
+        title: const Text('Hoạt động'),
+        actions: [
+          if (widget.onOpenTrash != null)
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              tooltip: 'Thùng rác',
+              onPressed: widget.onOpenTrash,
+            ),
+        ],
+      ),
       body: FutureBuilder(
         future: _txs,
         builder: (context, snap) {

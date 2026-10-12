@@ -177,6 +177,41 @@ void main() {
       final auth = NeonAuthClient(config: config, requester: t.requester);
       expect(() => auth.signIn('x', 'y'), throwsA(isA<NeonAuthException>()));
     });
+
+    test(
+      'requestPasswordReset posts the email to the reset endpoint',
+      () async {
+        final t = FakeTransport()..queue.add(FakeTransport.json(200, {}));
+        final auth = NeonAuthClient(config: config, requester: t.requester);
+        await auth.requestPasswordReset('a@b.c');
+        final req = t.requests.single;
+        expect(req.url.path, '/neondb/auth/request-password-reset');
+        expect((req.body as Map)['email'], 'a@b.c');
+      },
+    );
+
+    test(
+      'requestPasswordReset falls back to /forget-password on 404',
+      () async {
+        final t = FakeTransport()
+          ..queue.add(FakeTransport.json(404, {}))
+          ..queue.add(FakeTransport.json(200, {}));
+        final auth = NeonAuthClient(config: config, requester: t.requester);
+        await auth.requestPasswordReset('a@b.c');
+        expect(t.requests.length, 2);
+        expect(t.requests.last.url.path, '/neondb/auth/forget-password');
+      },
+    );
+
+    test('requestPasswordReset surfaces upstream failure', () async {
+      final t = FakeTransport()
+        ..queue.add(FakeTransport.json(500, {'message': 'down'}));
+      final auth = NeonAuthClient(config: config, requester: t.requester);
+      expect(
+        () => auth.requestPasswordReset('a@b.c'),
+        throwsA(isA<NeonAuthException>()),
+      );
+    });
   });
 
   group('NeonDataApi', () {

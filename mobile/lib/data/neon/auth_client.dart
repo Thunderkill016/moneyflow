@@ -145,6 +145,20 @@ class NeonAuthClient {
     return _session;
   }
 
+  /// Email reset request. The emailed link completes on the web's
+  /// /update-password page — this only fires the request; the caller
+  /// owns the non-enumerating UX (same contract as the web action).
+  Future<void> requestPasswordReset(String email) async {
+    var res = await _call('/request-password-reset', body: {'email': email});
+    if (res.status == 404) {
+      // Older Better Auth builds expose the same flow at /forget-password.
+      res = await _call('/forget-password', body: {'email': email});
+    }
+    if (!res.ok) {
+      throw NeonAuthException(res.status, _errorMessage(res));
+    }
+  }
+
   Future<void> signOut() async {
     if (_session != null) {
       await _call('/sign-out', body: const {});

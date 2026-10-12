@@ -52,6 +52,31 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  /// Reset request only sends the email — the link completes on the
+  /// web's /update-password page. The result message is identical
+  /// whether the account exists or the request failed (non-enumerating,
+  /// same contract as the web's requestPasswordReset action).
+  Future<void> _forgotPassword() async {
+    final email = await showDialog<String>(
+      context: context,
+      builder: (ctx) => _ResetEmailDialog(initial: _email.text.trim()),
+    );
+    if (email == null || !mounted) return;
+    try {
+      await widget.auth.requestPasswordReset(email);
+    } catch (_) {
+      /* identical response on failure — do not enumerate accounts */
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Nếu email tồn tại, MoneyFlow đã gửi liên kết đặt lại mật khẩu',
+        ),
+      ),
+    );
+  }
+
   String _friendly(NeonAuthException e) {
     if (e.status == 401 || e.message.contains('INVALID_EMAIL_OR_PASSWORD')) {
       return 'Email hoặc mật khẩu chưa đúng';
@@ -135,6 +160,11 @@ class _LoginPageState extends State<LoginPage> {
                         : 'Đăng nhập',
                   ),
                 ),
+                if (!_signUp)
+                  TextButton(
+                    onPressed: _busy ? null : _forgotPassword,
+                    child: const Text('Quên mật khẩu?'),
+                  ),
                 TextButton(
                   onPressed: _busy
                       ? null
@@ -160,6 +190,66 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Email entry for the reset request — prefilled from the sign-in form.
+class _ResetEmailDialog extends StatefulWidget {
+  const _ResetEmailDialog({required this.initial});
+
+  final String initial;
+
+  @override
+  State<_ResetEmailDialog> createState() => _ResetEmailDialogState();
+}
+
+class _ResetEmailDialogState extends State<_ResetEmailDialog> {
+  late final TextEditingController _email = TextEditingController(
+    text: widget.initial,
+  );
+
+  @override
+  void dispose() {
+    _email.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Đặt lại mật khẩu'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Nhập email — liên kết đặt lại sẽ được gửi và mở trên trang web MoneyFlow.',
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _email,
+            keyboardType: TextInputType.emailAddress,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Email',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Hủy'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final email = _email.text.trim();
+            if (email.isNotEmpty) Navigator.pop(context, email);
+          },
+          child: const Text('Gửi liên kết'),
+        ),
+      ],
     );
   }
 }

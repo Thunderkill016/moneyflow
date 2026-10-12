@@ -42,37 +42,60 @@ class RealStore {
         .toList();
   }
 
+  static const _txColumns =
+      'id,kind,note,occurred_on,amount_minor,account_id,account_name,'
+      'category_id,category_name,destination_account_id,'
+      'destination_account_name,payee';
+
+  static Transaction _txFromRow(Map<String, dynamic> r) => Transaction(
+    id: r['id'] as String,
+    kind: switch (r['kind']) {
+      'income' => TransactionKind.income,
+      'transfer' => TransactionKind.transfer,
+      _ => TransactionKind.expense,
+    },
+    categoryId: r['category_id'] as String? ?? '',
+    category: r['category_name'] as String? ?? 'Khác',
+    note: r['note'] as String? ?? '',
+    accountId: r['account_id'] as String? ?? '',
+    account: r['account_name'] as String? ?? '',
+    amount: (r['amount_minor'] as num).toInt(),
+    occurredOn: r['occurred_on'] as String,
+    payee: r['payee'] as String?,
+    destinationAccountId: r['destination_account_id'] as String?,
+    destinationAccount: r['destination_account_name'] as String?,
+  );
+
   Future<List<Transaction>> loadTransactions({int limit = 50}) async {
     final rows = await _api.select(
       'transaction_feed',
       query: {
-        'select':
-            'id,kind,note,occurred_on,amount_minor,account_id,account_name,'
-            'category_id,category_name,destination_account_id,'
-            'destination_account_name,payee',
+        'select': _txColumns,
         'order': 'occurred_on.desc,created_at.desc',
+        'limit': '$limit',
+      },
+    );
+    return rows.map(_txFromRow).toList();
+  }
+
+  /// Soft-deleted ledger rows — public.deleted_transaction_feed mirrors
+  /// transaction_feed plus the tombstone timestamp.
+  Future<List<DeletedTransaction>> loadDeletedTransactions({
+    int limit = 50,
+  }) async {
+    final rows = await _api.select(
+      'deleted_transaction_feed',
+      query: {
+        'select': '$_txColumns,deleted_at',
+        'order': 'deleted_at.desc',
         'limit': '$limit',
       },
     );
     return rows
         .map(
-          (r) => Transaction(
-            id: r['id'] as String,
-            kind: switch (r['kind']) {
-              'income' => TransactionKind.income,
-              'transfer' => TransactionKind.transfer,
-              _ => TransactionKind.expense,
-            },
-            categoryId: r['category_id'] as String? ?? '',
-            category: r['category_name'] as String? ?? 'Khác',
-            note: r['note'] as String? ?? '',
-            accountId: r['account_id'] as String? ?? '',
-            account: r['account_name'] as String? ?? '',
-            amount: (r['amount_minor'] as num).toInt(),
-            occurredOn: r['occurred_on'] as String,
-            payee: r['payee'] as String?,
-            destinationAccountId: r['destination_account_id'] as String?,
-            destinationAccount: r['destination_account_name'] as String?,
+          (r) => DeletedTransaction(
+            transaction: _txFromRow(r),
+            deletedAt: r['deleted_at'] as String? ?? '',
           ),
         )
         .toList();
@@ -259,6 +282,12 @@ class RealStore {
   /// Soft delete — ledger recovery path stays intact (product invariant).
   Future<void> deleteTransaction(String transactionId) => _api.rpc(
     'soft_delete_money_transaction',
+    {'p_transaction_id': transactionId},
+  );
+
+  /// POST /rpc/restore_money_transaction — clears deleted_at.
+  Future<void> restoreTransaction(String transactionId) => _api.rpc(
+    'restore_money_transaction',
     {'p_transaction_id': transactionId},
   );
 

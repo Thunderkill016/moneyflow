@@ -15,8 +15,10 @@ import '../data/share/share_intent.dart';
 import '../data/share/share_text_parser.dart';
 import '../domain/models.dart';
 import 'biometric_lock.dart';
+import 'delete_data.dart';
 import '../features/accounts/accounts_page.dart';
 import '../features/activity/activity_page.dart';
+import '../features/activity/trash_page.dart';
 import '../data/demo_store.dart';
 import '../features/auth/login_page.dart';
 import '../features/capture/capture_page.dart';
@@ -277,7 +279,8 @@ class _AuthGateState extends State<AuthGate> {
             () => ActivityPage(
               key: _actKey,
               loadTransactions: _store.loadTransactions,
-              onDelete: _store.deleteTransaction,
+              onDelete: _deleteTransaction,
+              onOpenTrash: () => _openTrash(context),
             ),
             () => PlanningPage(
               key: _planKey,
@@ -294,6 +297,60 @@ class _AuthGateState extends State<AuthGate> {
         ),
       ),
     };
+  }
+
+  /// Deleting a transaction moves money off every surface, not just the
+  /// feed — reload balances/budgets alongside the list.
+  Future<void> _deleteTransaction(String id) async {
+    await _store.deleteTransaction(id);
+    _reloadTabs();
+  }
+
+  Future<void> _openTrash(BuildContext context) async {
+    final restored = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => TrashPage(
+          loadDeleted: _store.loadDeletedTransactions,
+          onRestore: _store.restoreTransaction,
+        ),
+      ),
+    );
+    if (restored == true) _reloadTabs();
+  }
+
+  /// Local wipe + honest server-account status. Managed account deletion
+  /// is not implemented upstream (the web fails closed the same way), so
+  /// the dialog only removes device-local data and signs out.
+  Future<void> _deleteLocalData(BuildContext context) async {
+    final confirmed = await showDeleteDataDialog(
+      context,
+      title: 'Xóa dữ liệu & tài khoản',
+      body:
+          'Dữ liệu trên thiết bị này (bộ nhớ đệm, lựa chọn gần nhất, khóa '
+          'sinh trắc, phiên đăng nhập) sẽ bị xóa và bạn sẽ đăng xuất.',
+      serverNote:
+          'Xóa tài khoản trên máy chủ chưa được hỗ trợ — sổ cái của bạn '
+          'không bị thay đổi.',
+    );
+    if (!confirmed) return;
+    final prefs = await SharedPreferences.getInstance();
+    await wipeLocalData(prefs);
+    if (mounted) await _signOut();
+  }
+
+  /// Demo data is seed-only, but the device still holds prefs — same
+  /// wipe contract as the web's demo-local deletion.
+  Future<void> _deleteDemoData(BuildContext context) async {
+    final confirmed = await showDeleteDataDialog(
+      context,
+      title: 'Xóa dữ liệu demo',
+      body: 'Dữ liệu demo và cài đặt MoneyFlow trên thiết bị này sẽ bị xóa.',
+      serverNote: 'Chế độ demo không có dữ liệu trên máy chủ.',
+    );
+    if (!confirmed) return;
+    final prefs = await SharedPreferences.getInstance();
+    await wipeLocalData(prefs);
+    if (mounted) setState(() => _gate = _Gate.login);
   }
 
   /// Menu items on the dashboard appbar — account management, device lock,
@@ -321,6 +378,11 @@ class _AuthGateState extends State<AuthGate> {
         onTap: _toggleBiometric,
       ),
       DashboardMenuItem(
+        label: 'Xóa dữ liệu & tài khoản',
+        icon: Icons.delete_forever,
+        onTap: () => _deleteLocalData(context),
+      ),
+      DashboardMenuItem(
         label: 'Đăng xuất',
         icon: Icons.logout,
         onTap: _signOut,
@@ -343,6 +405,11 @@ class _AuthGateState extends State<AuthGate> {
           loadTransactions: () async => DemoStore.seedTransactions(),
           modeLabel: 'demo',
           menuItems: [
+            DashboardMenuItem(
+              label: 'Xóa dữ liệu demo',
+              icon: Icons.delete_forever,
+              onTap: () => _deleteDemoData(context),
+            ),
             DashboardMenuItem(
               label: 'Thoát demo',
               icon: Icons.logout,
