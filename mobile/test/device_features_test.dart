@@ -343,4 +343,41 @@ void main() {
       expect(find.text('Tổng số dư'), findsOneWidget);
     });
   });
+
+  group('DashboardPage empty ledger', () {
+    testWidgets('fully empty ledger shows labeled sample data', (t) async {
+      await t.pumpWidget(
+        _wrap(
+          DashboardPage(
+            loadAccounts: () async => const [],
+            loadTransactions: () async => const [],
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      expect(find.text('Sổ của bạn đang trống'), findsOneWidget);
+      expect(find.text('Dữ liệu mẫu'), findsOneWidget);
+      // Seed preview row + the REAL total stays 0 — samples never inflate it.
+      expect(find.text('Bún bò sáng'), findsOneWidget);
+      expect(find.text('0 ₫'), findsOneWidget);
+    });
+
+    testWidgets('accounts without transactions keep the plain empty card', (
+      t,
+    ) async {
+      await t.pumpWidget(
+        _wrap(
+          DashboardPage(
+            loadAccounts: () async => DemoStore.seedAccounts(),
+            loadTransactions: () async => const [],
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      expect(find.text('Chưa có giao dịch nào'), findsOneWidget);
+      expect(find.text('Dữ liệu mẫu'), findsNothing);
+    });
+  });
 }

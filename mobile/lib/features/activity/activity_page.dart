@@ -100,7 +100,12 @@ class ActivityPageState extends State<ActivityPage> {
               children: [
                 if (txs.isEmpty)
                   const Card(
-                    child: ListTile(title: Text('Chưa có giao dịch nào')),
+                    child: ListTile(
+                      title: Text('Chưa có giao dịch nào'),
+                      subtitle: Text(
+                        'Bấm "Ghi" ở thanh dưới để thêm khoản đầu tiên',
+                      ),
+                    ),
                   ),
                 for (final t in txs)
                   _TxTile(tx: t, onLongPress: () => _confirmDelete(t)),

@@ -183,24 +183,28 @@ class DashboardPageState extends State<DashboardPage> {
               children: [
                 if (savedAtMs != null) _StaleBanner(savedAtMs: savedAtMs),
                 _TotalCard(total: total),
-                const SizedBox(height: 20),
-                Text(
-                  'Tài khoản',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                for (final a in accounts) _AccountTile(account: a),
-                const SizedBox(height: 20),
-                Text(
-                  'Hoạt động gần đây',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                if (txs.isEmpty)
-                  const Card(
-                    child: ListTile(title: Text('Chưa có giao dịch nào')),
+                if (accounts.isEmpty && txs.isEmpty)
+                  const _EmptyLedgerIntro()
+                else ...[
+                  const SizedBox(height: 20),
+                  Text(
+                    'Tài khoản',
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
-                for (final t in txs) _TransactionTile(tx: t),
+                  const SizedBox(height: 8),
+                  for (final a in accounts) _AccountTile(account: a),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Hoạt động gần đây',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  if (txs.isEmpty)
+                    const Card(
+                      child: ListTile(title: Text('Chưa có giao dịch nào')),
+                    ),
+                  for (final t in txs) _TransactionTile(tx: t),
+                ],
               ],
             ),
           );
@@ -232,6 +236,37 @@ class _StaleBanner extends StatelessWidget {
         title: const Text('Ngoại tuyến — dữ liệu đã lưu'),
         subtitle: Text('Cập nhật lúc $hh:$mm $dd/$mo'),
       ),
+    );
+  }
+}
+
+/// First-run state — the real total stays at 0 ₫ above; the tiles below
+/// are an explicitly-labeled preview of what the ledger looks like, and
+/// are never written to the user's books.
+class _EmptyLedgerIntro extends StatelessWidget {
+  const _EmptyLedgerIntro();
+
+  @override
+  Widget build(BuildContext context) {
+    final samples = DemoStore.seedTransactions().take(2).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 20),
+        Card(
+          child: ListTile(
+            title: const Text('Sổ của bạn đang trống'),
+            subtitle: const Text(
+              'Dưới đây là dữ liệu mẫu — bấm "Ghi" ở thanh dưới để '
+              'thêm khoản đầu tiên của bạn.',
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text('Dữ liệu mẫu', style: Theme.of(context).textTheme.labelMedium),
+        const SizedBox(height: 8),
+        for (final t in samples) _TransactionTile(tx: t),
+      ],
     );
   }
 }
