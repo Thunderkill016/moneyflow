@@ -82,3 +82,72 @@ class Transaction {
   final TransactionReviewStatus reviewStatus;
   final String? updatedAt;
 }
+
+/// Monthly budget row — mirrors public.budget_progress.
+class BudgetProgress {
+  const BudgetProgress({
+    required this.id,
+    required this.categoryId,
+    required this.categoryName,
+    required this.monthStart,
+    required this.limitMinor,
+    required this.spentMinor,
+  });
+
+  final String id;
+  final String categoryId;
+  final String categoryName;
+  final String monthStart; // YYYY-MM-01
+  final int limitMinor;
+  final int spentMinor;
+
+  bool get isOver => spentMinor > limitMinor;
+}
+
+/// Recurring commitment row — mirrors public.recurring_commitment_feed.
+class RecurringCommitment {
+  const RecurringCommitment({
+    required this.id,
+    required this.name,
+    required this.amountMinor,
+    required this.dueDay,
+    required this.accountId,
+    required this.accountName,
+    required this.categoryId,
+    required this.categoryName,
+    this.isArchived = false,
+    this.paidThisMonth = false,
+  });
+
+  final String id;
+  final String name;
+  final int amountMinor;
+  final int dueDay; // 1-31
+  final String accountId;
+  final String accountName;
+  final String categoryId;
+  final String categoryName;
+  final bool isArchived;
+  final bool paidThisMonth;
+}
+
+/// Savings goal row — mirrors public.savings_goals.
+class SavingsGoal {
+  const SavingsGoal({
+    required this.id,
+    required this.name,
+    required this.targetMinor,
+    required this.allocatedMinor,
+    this.deadline,
+    this.isArchived = false,
+  });
+
+  final String id;
+  final String name;
+  final int targetMinor;
+  final int allocatedMinor;
+  final String? deadline; // YYYY-MM-DD
+  final bool isArchived;
+
+  double get progress => targetMinor <= 0 ? 0 : allocatedMinor / targetMinor;
+}

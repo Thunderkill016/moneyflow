@@ -32,7 +32,7 @@ class _AccountsPageState extends State<AccountsPage> {
   }
 
   Future<void> _refresh() async {
-    setState(() => _accounts = widget.loadAccounts());
+    setState(() { _accounts = widget.loadAccounts(); });
     try {
       await _accounts;
     } catch (_) {}

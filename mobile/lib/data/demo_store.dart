@@ -81,4 +81,68 @@ class DemoStore {
       occurredOn: '2026-10-08',
     ),
   ];
+
+  static List<Category> seedCategories() => const [
+    Category(id: 'cat-food', name: 'Ăn uống', kind: TransactionKind.expense),
+    Category(
+      id: 'cat-transport',
+      name: 'Di chuyển',
+      kind: TransactionKind.expense,
+    ),
+    Category(id: 'cat-bills', name: 'Hóa đơn', kind: TransactionKind.expense),
+    Category(id: 'cat-salary', name: 'Lương', kind: TransactionKind.income),
+  ];
+
+  static List<BudgetProgress> seedBudgets(String monthStart) => [
+    BudgetProgress(
+      id: 'b-1',
+      categoryId: 'cat-food',
+      categoryName: 'Ăn uống',
+      monthStart: monthStart,
+      limitMinor: 2000000,
+      spentMinor: 45000,
+    ),
+    BudgetProgress(
+      id: 'b-2',
+      categoryId: 'cat-transport',
+      categoryName: 'Di chuyển',
+      monthStart: monthStart,
+      limitMinor: 500000,
+      spentMinor: 532000,
+    ),
+  ];
+
+  static List<RecurringCommitment> seedCommitments() => const [
+    RecurringCommitment(
+      id: 'cm-1',
+      name: 'Tiền nhà',
+      amountMinor: 3500000,
+      dueDay: 5,
+      accountId: 'acc-bank',
+      accountName: 'Ngân hàng VCB',
+      categoryId: 'cat-bills',
+      categoryName: 'Hóa đơn',
+      paidThisMonth: true,
+    ),
+    RecurringCommitment(
+      id: 'cm-2',
+      name: 'Internet',
+      amountMinor: 250000,
+      dueDay: 15,
+      accountId: 'acc-bank',
+      accountName: 'Ngân hàng VCB',
+      categoryId: 'cat-bills',
+      categoryName: 'Hóa đơn',
+    ),
+  ];
+
+  static List<SavingsGoal> seedGoals() => const [
+    SavingsGoal(
+      id: 'g-1',
+      name: 'Quỹ khẩn cấp',
+      targetMinor: 20000000,
+      allocatedMinor: 8500000,
+      deadline: '2027-03-01',
+    ),
+  ];
 }

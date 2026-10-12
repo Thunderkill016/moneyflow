@@ -8,9 +8,12 @@ import '../data/session_store.dart';
 import '../domain/models.dart';
 import '../features/accounts/accounts_page.dart';
 import '../features/activity/activity_page.dart';
+import '../data/demo_store.dart';
 import '../features/auth/login_page.dart';
 import '../features/capture/capture_page.dart';
 import '../features/dashboard/dashboard_page.dart';
+import '../features/planning/planning_page.dart';
+import '../features/reports/reports_page.dart';
 
 /// MoneyFlow brand tokens (from src/app/manifest.ts).
 const kBrandColor = Color(0xFF0EA5E9);
@@ -108,13 +111,10 @@ class _AuthGateState extends State<AuthGate> {
         onSignedIn: _onSignedIn,
         onDemo: () => setState(() => _gate = _Gate.demo),
       ),
-      _Gate.demo => DashboardPage.demo(
-        onSignOut: () => setState(() => _gate = _Gate.login),
-      ),
+      _Gate.demo => _demoDashboard(context),
       _Gate.signedIn => DashboardPage(
         loadAccounts: _store.loadAccounts,
         loadTransactions: _store.loadTransactions,
-        onSignOut: _signOut,
         captureBuilder: (accounts) => _CaptureLoader(
           accounts: accounts,
           categories: _store.loadCategories(),
@@ -128,20 +128,180 @@ class _AuthGateState extends State<AuthGate> {
             ),
           ),
         ),
-        onShowAccounts: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => AccountsPage(
-              loadAccounts: _store.loadAccounts,
-              onCreate: (name, kind, bal) => _store
-                  .createAccount(name: name, kind: kind, initialBalance: bal)
-                  .then((_) {}),
-              onArchive: _store.setAccountArchived,
+        menuItems: [
+          DashboardMenuItem(
+            label: 'Tài khoản',
+            icon: Icons.account_balance_wallet,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => AccountsPage(
+                  loadAccounts: _store.loadAccounts,
+                  onCreate: (name, kind, bal) => _store
+                      .createAccount(
+                        name: name,
+                        kind: kind,
+                        initialBalance: bal,
+                      )
+                      .then((_) {}),
+                  onArchive: _store.setAccountArchived,
+                ),
+              ),
             ),
           ),
-        ),
+          DashboardMenuItem(
+            label: 'Kế hoạch',
+            icon: Icons.event_note,
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => _planningPage())),
+          ),
+          DashboardMenuItem(
+            label: 'Báo cáo',
+            icon: Icons.bar_chart,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) =>
+                    ReportsPage(loadTransactions: _store.loadTransactions),
+              ),
+            ),
+          ),
+          DashboardMenuItem(
+            label: 'Đăng xuất',
+            icon: Icons.logout,
+            onTap: _signOut,
+          ),
+        ],
       ),
     };
   }
+
+  /// Demo keeps the same surfaces on seed data; writes are honest no-ops so
+  /// read-only exploration still works fully offline.
+  DashboardPage _demoDashboard(BuildContext context) {
+    String monthStart() {
+      final n = DateTime.now();
+      return '${n.year}-${n.month.toString().padLeft(2, '0')}-01';
+    }
+
+    return DashboardPage(
+      loadAccounts: () async => DemoStore.seedAccounts(),
+      loadTransactions: () async => DemoStore.seedTransactions(),
+      modeLabel: 'demo',
+      menuItems: [
+        DashboardMenuItem(
+          label: 'Kế hoạch',
+          icon: Icons.event_note,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => PlanningPage(
+                loadData: () async => PlanningData(
+                  budgets: DemoStore.seedBudgets(monthStart()),
+                  commitments: DemoStore.seedCommitments(),
+                  goals: DemoStore.seedGoals(),
+                  accounts: DemoStore.seedAccounts(),
+                  categories: DemoStore.seedCategories(),
+                  monthStart: monthStart(),
+                ),
+                actions: _noopPlanningActions,
+              ),
+            ),
+          ),
+        ),
+        DashboardMenuItem(
+          label: 'Báo cáo',
+          icon: Icons.bar_chart,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => ReportsPage(
+                loadTransactions: () async => DemoStore.seedTransactions(),
+              ),
+            ),
+          ),
+        ),
+        DashboardMenuItem(
+          label: 'Đăng xuất',
+          icon: Icons.logout,
+          onTap: () => setState(() => _gate = _Gate.login),
+        ),
+      ],
+    );
+  }
+
+  static final _noopPlanningActions = PlanningActions(
+    onBudgetCreate: (_, _) async {},
+    onBudgetDelete: (_) async {},
+    onCommitmentCreate: (_, _, _, _, _) async {},
+    onCommitmentPay: (_) async {},
+    onCommitmentArchive: (_) async {},
+    onGoalCreate: (_, _, _) async {},
+    onGoalAdjust: (_, _) async {},
+    onGoalArchive: (_) async {},
+  );
+
+  /// First of the current month — the planning RPC window boundary.
+  static String _monthStart() {
+    final n = DateTime.now();
+    return '${n.year}-${n.month.toString().padLeft(2, '0')}-01';
+  }
+
+  static String _today() {
+    final n = DateTime.now();
+    return '${n.year}-${n.month.toString().padLeft(2, '0')}-${n.day.toString().padLeft(2, '0')}';
+  }
+
+  PlanningPage _planningPage() => PlanningPage(
+    loadData: () async {
+      final monthStart = _monthStart();
+      final results = await Future.wait([
+        _store.loadBudgets(monthStart),
+        _store.loadCommitments(monthStart),
+        _store.loadGoals(),
+        _store.loadAccounts(),
+        _store.loadCategories(),
+      ]);
+      return PlanningData(
+        budgets: results[0] as List<BudgetProgress>,
+        commitments: results[1] as List<RecurringCommitment>,
+        goals: results[2] as List<SavingsGoal>,
+        accounts: results[3] as List<AccountSummary>,
+        categories: results[4] as List<Category>,
+        monthStart: monthStart,
+      );
+    },
+    actions: PlanningActions(
+      onBudgetCreate: (categoryId, limit) => _store
+          .upsertBudget(
+            categoryId: categoryId,
+            monthStart: _monthStart(),
+            limitMinor: limit,
+          )
+          .then((_) {}),
+      onBudgetDelete: _store.deleteBudget,
+      onCommitmentCreate: (name, amount, day, accountId, categoryId) => _store
+          .upsertCommitment(
+            name: name,
+            amountMinor: amount,
+            dueDay: day,
+            accountId: accountId,
+            categoryId: categoryId,
+          )
+          .then((_) {}),
+      onCommitmentPay: (c) => _store
+          .payCommitment(
+            commitmentId: c.id,
+            monthStart: _monthStart(),
+            paidOn: _today(),
+            idempotencyKey: newIdempotencyKey(),
+          )
+          .then((_) {}),
+      onCommitmentArchive: (id) => _store.setCommitmentArchived(id, true),
+      onGoalCreate: (name, target, deadline) => _store
+          .upsertGoal(name: name, targetMinor: target, deadline: deadline)
+          .then((_) {}),
+      onGoalAdjust: _store.adjustGoal,
+      onGoalArchive: (id) => _store.setGoalArchived(id, true),
+    ),
+  );
 }
 
 /// Loads categories before showing the capture form (form needs them for

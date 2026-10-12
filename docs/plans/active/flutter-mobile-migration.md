@@ -190,6 +190,12 @@ backend (unchanged)
       transaction list + soft-delete (`deleted_at` set, feed excludes row),
       account create (`Vi Momo`, `e_wallet`) + archive (`is_archived=true`).
       Both confirmed via direct DB query on the sandbox.
+- [x] Planning + Reports surfaces verified on-device 2026-10-12:
+      `budget_progress` read (spent computed view-side), commitments with
+      paid-this-month state, `pay_recurring_commitment` posts a real ledger
+      expense (−3.5tr, verified via DB) + occurrence, savings goal progress,
+      month report (thu/chi/net/savings-rate + category shares) mirroring
+      `src/lib/reports.ts` contract. Widget tests cover both pages.
 - Known behavior: Neon Data API read-after-write lag — writes commit
   immediately but list reads can serve a stale snapshot for ~seconds–minutes;
   post-write refresh may show the old row until a later fetch. Documented,

@@ -145,6 +145,91 @@ class RealStore {
     return id as String;
   }
 
+  /// Monthly budgets with spent progress — public.budget_progress.
+  Future<List<BudgetProgress>> loadBudgets(String monthStart) async {
+    final rows = await _api.select(
+      'budget_progress',
+      query: {
+        'select':
+            'id,category_id,category_name,month_start,limit_minor,spent_minor',
+        'month_start': 'eq.$monthStart',
+        'order': 'category_name.asc',
+      },
+    );
+    return rows
+        .map(
+          (r) => BudgetProgress(
+            id: r['id'] as String,
+            categoryId: r['category_id'] as String,
+            categoryName: r['category_name'] as String? ?? 'Khác',
+            monthStart: r['month_start'] as String,
+            limitMinor: (r['limit_minor'] as num).toInt(),
+            spentMinor: (r['spent_minor'] as num).toInt(),
+          ),
+        )
+        .toList();
+  }
+
+  /// Recurring commitments + this month's paid state —
+  /// public.recurring_commitment_feed + commitment_occurrences.
+  Future<List<RecurringCommitment>> loadCommitments(String monthStart) async {
+    final rows = await _api.select(
+      'recurring_commitment_feed',
+      query: {
+        'select':
+            'id,name,amount_minor,due_day,account_id,account_name,'
+            'category_id,category_name,is_archived',
+        'is_archived': 'eq.false',
+        'order': 'due_day.asc',
+      },
+    );
+    final occurrences = await _api.select(
+      'commitment_occurrences',
+      query: {'select': 'commitment_id', 'month_start': 'eq.$monthStart'},
+    );
+    final paid = {for (final o in occurrences) o['commitment_id'] as String};
+    return rows
+        .map(
+          (r) => RecurringCommitment(
+            id: r['id'] as String,
+            name: r['name'] as String,
+            amountMinor: (r['amount_minor'] as num).toInt(),
+            dueDay: (r['due_day'] as num).toInt(),
+            accountId: r['account_id'] as String,
+            accountName: r['account_name'] as String? ?? '',
+            categoryId: r['category_id'] as String,
+            categoryName: r['category_name'] as String? ?? 'Khác',
+            isArchived: r['is_archived'] as bool? ?? false,
+            paidThisMonth: paid.contains(r['id']),
+          ),
+        )
+        .toList();
+  }
+
+  /// Savings goals — public.savings_goals.
+  Future<List<SavingsGoal>> loadGoals() async {
+    final rows = await _api.select(
+      'savings_goals',
+      query: {
+        'select': 'id,name,target_minor,allocated_minor,deadline,is_archived',
+        'is_archived': 'eq.false',
+        'order': 'deadline.asc.nullslast,name.asc',
+      },
+    );
+    return rows
+        .map(
+          (r) => SavingsGoal(
+            id: r['id'] as String,
+            name: r['name'] as String,
+            targetMinor: (r['target_minor'] as num).toInt(),
+            allocatedMinor: (r['allocated_minor'] as num).toInt(),
+            deadline: r['deadline'] as String?,
+            isArchived: r['is_archived'] as bool? ?? false,
+          ),
+        )
+        .toList();
+  }
+
   /// POST /rpc/create_financial_account.
   Future<String> createAccount({
     required String name,
@@ -175,6 +260,91 @@ class RealStore {
   Future<void> deleteTransaction(String transactionId) => _api.rpc(
     'soft_delete_money_transaction',
     {'p_transaction_id': transactionId},
+  );
+
+  /// POST /rpc/upsert_monthly_budget — create or update a category budget.
+  Future<String> upsertBudget({
+    required String categoryId,
+    required String monthStart,
+    required int limitMinor,
+  }) async {
+    final id = await _api.rpc('upsert_monthly_budget', {
+      'p_category_id': categoryId,
+      'p_month_start': monthStart,
+      'p_limit_minor': limitMinor,
+    });
+    return id as String;
+  }
+
+  Future<void> deleteBudget(String budgetId) =>
+      _api.rpc('delete_monthly_budget', {'p_budget_id': budgetId});
+
+  /// POST /rpc/upsert_recurring_commitment — create a monthly commitment.
+  Future<String> upsertCommitment({
+    required String name,
+    required int amountMinor,
+    required int dueDay,
+    required String accountId,
+    required String categoryId,
+  }) async {
+    final id = await _api.rpc('upsert_recurring_commitment', {
+      'p_commitment_id': null,
+      'p_name': name,
+      'p_amount_minor': amountMinor,
+      'p_due_day': dueDay,
+      'p_account_id': accountId,
+      'p_category_id': categoryId,
+    });
+    return id as String;
+  }
+
+  /// POST /rpc/pay_recurring_commitment — posts the real ledger transaction
+  /// and records this month's occurrence (idempotent on the key).
+  Future<String> payCommitment({
+    required String commitmentId,
+    required String monthStart,
+    required String paidOn,
+    required String idempotencyKey,
+  }) async {
+    final id = await _api.rpc('pay_recurring_commitment', {
+      'p_commitment_id': commitmentId,
+      'p_month_start': monthStart,
+      'p_paid_on': paidOn,
+      'p_idempotency_key': idempotencyKey,
+    });
+    return id as String;
+  }
+
+  Future<void> setCommitmentArchived(String commitmentId, bool archived) =>
+      _api.rpc('set_recurring_commitment_archived', {
+        'p_commitment_id': commitmentId,
+        'p_archived': archived,
+      });
+
+  /// POST /rpc/upsert_savings_goal — create a goal (p_goal_id null).
+  Future<String> upsertGoal({
+    required String name,
+    required int targetMinor,
+    String? deadline,
+  }) async {
+    final id = await _api.rpc('upsert_savings_goal', {
+      'p_goal_id': null,
+      'p_name': name,
+      'p_target_minor': targetMinor,
+      'p_deadline': deadline,
+    });
+    return id as String;
+  }
+
+  /// POST /rpc/adjust_savings_goal — add (positive) or withdraw (negative).
+  Future<void> adjustGoal(String goalId, int amountMinor) => _api.rpc(
+    'adjust_savings_goal',
+    {'p_goal_id': goalId, 'p_amount_minor': amountMinor},
+  );
+
+  Future<void> setGoalArchived(String goalId, bool archived) => _api.rpc(
+    'set_savings_goal_archived',
+    {'p_goal_id': goalId, 'p_archived': archived},
   );
 }
 

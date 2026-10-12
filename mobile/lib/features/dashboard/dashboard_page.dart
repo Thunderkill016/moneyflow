@@ -3,6 +3,20 @@ import '../../data/demo_store.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 
+/// One entry in the dashboard overflow menu — keeps the appbar to a single
+/// quick action (activity) as the surface count grows.
+class DashboardMenuItem {
+  const DashboardMenuItem({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+}
+
 /// Dashboard loads its data through injected loaders so the same screen
 /// serves demo mode (local seeds) and authenticated mode (Neon Data API).
 class DashboardPage extends StatefulWidget {
@@ -11,29 +25,34 @@ class DashboardPage extends StatefulWidget {
     required this.loadAccounts,
     required this.loadTransactions,
     this.modeLabel,
-    this.onSignOut,
     this.captureBuilder,
     this.onShowActivity,
-    this.onShowAccounts,
+    this.menuItems = const [],
   });
 
   factory DashboardPage.demo({VoidCallback? onSignOut}) => DashboardPage(
-    loadAccounts: () async => DemoStore.seedAccounts(),
-    loadTransactions: () async => DemoStore.seedTransactions(),
-    modeLabel: 'demo',
-    onSignOut: onSignOut,
-  );
+        loadAccounts: () async => DemoStore.seedAccounts(),
+        loadTransactions: () async => DemoStore.seedTransactions(),
+        modeLabel: 'demo',
+        menuItems: [
+          if (onSignOut != null)
+            DashboardMenuItem(
+              label: 'Đăng xuất',
+              icon: Icons.logout,
+              onTap: onSignOut,
+            ),
+        ],
+      );
 
   final Future<List<AccountSummary>> Function() loadAccounts;
   final Future<List<Transaction>> Function() loadTransactions;
   final String? modeLabel;
-  final VoidCallback? onSignOut;
 
   /// Builds the capture route for the currently loaded accounts; null in
   /// demo mode (no write path).
   final Widget? Function(List<AccountSummary> accounts)? captureBuilder;
   final VoidCallback? onShowActivity;
-  final VoidCallback? onShowAccounts;
+  final List<DashboardMenuItem> menuItems;
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
@@ -50,7 +69,7 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<({List<AccountSummary> accounts, List<Transaction> txs})>
-  _load() async {
+      _load() async {
     final accounts = await widget.loadAccounts();
     final txs = await widget.loadTransactions();
     return (accounts: accounts, txs: txs);
@@ -60,17 +79,15 @@ class _DashboardPageState extends State<DashboardPage> {
     setState(() => _data = _load());
     try {
       await _data;
-    } catch (_) {
-      /* surfaced by the FutureBuilder */
-    }
+    } catch (_) {/* surfaced by the FutureBuilder */}
   }
 
   Future<void> _openCapture() async {
     final build = widget.captureBuilder;
     if (build == null || _accounts.isEmpty) return;
-    final saved = await Navigator.of(
-      context,
-    ).push<bool>(MaterialPageRoute(builder: (_) => build(_accounts)!));
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => build(_accounts)!),
+    );
     if (saved == true) _refresh();
   }
 
@@ -80,24 +97,30 @@ class _DashboardPageState extends State<DashboardPage> {
       appBar: AppBar(
         title: const Text('MoneyFlow'),
         actions: [
-          if (widget.modeLabel != null) Center(child: Text(widget.modeLabel!)),
+          if (widget.modeLabel != null)
+            Center(child: Text(widget.modeLabel!)),
           if (widget.onShowActivity != null)
             IconButton(
               icon: const Icon(Icons.receipt_long),
               tooltip: 'Hoạt động',
               onPressed: widget.onShowActivity,
             ),
-          if (widget.onShowAccounts != null)
-            IconButton(
-              icon: const Icon(Icons.account_balance_wallet),
-              tooltip: 'Tài khoản',
-              onPressed: widget.onShowAccounts,
-            ),
-          if (widget.onSignOut != null)
-            IconButton(
-              icon: const Icon(Icons.logout),
-              tooltip: 'Đăng xuất',
-              onPressed: widget.onSignOut,
+          if (widget.menuItems.isNotEmpty)
+            PopupMenuButton<int>(
+              icon: const Icon(Icons.more_vert),
+              onSelected: (i) => widget.menuItems[i].onTap(),
+              itemBuilder: (ctx) => [
+                for (var i = 0; i < widget.menuItems.length; i++)
+                  PopupMenuItem(
+                    value: i,
+                    child: ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(widget.menuItems[i].icon),
+                      title: Text(widget.menuItems[i].label),
+                    ),
+                  ),
+              ],
             ),
           const SizedBox(width: 8),
         ],
@@ -191,9 +214,10 @@ class _TotalCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               formatMoney(total),
-              style: Theme.of(
-                context,
-              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineMedium
+                  ?.copyWith(fontWeight: FontWeight.w700),
             ),
           ],
         ),
@@ -220,12 +244,12 @@ class _AccountTile extends StatelessWidget {
   }
 
   String _kindLabel(AccountKind kind) => switch (kind) {
-    AccountKind.cash => 'Tiền mặt',
-    AccountKind.bank => 'Ngân hàng',
-    AccountKind.eWallet => 'Ví điện tử',
-    AccountKind.creditCard => 'Thẻ tín dụng',
-    AccountKind.savings => 'Tiết kiệm',
-  };
+        AccountKind.cash => 'Tiền mặt',
+        AccountKind.bank => 'Ngân hàng',
+        AccountKind.eWallet => 'Ví điện tử',
+        AccountKind.creditCard => 'Thẻ tín dụng',
+        AccountKind.savings => 'Tiết kiệm',
+      };
 }
 
 class _TransactionTile extends StatelessWidget {
