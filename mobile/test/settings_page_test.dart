@@ -490,10 +490,9 @@ void main() {
 
       // The archive row stays hidden — the build flag is off here.
       expect(find.text('Sao lưu (JSON)'), findsNothing);
-      // No server-side deletion seam exists yet — the row stays hidden
-      // rather than faking it (the page renders it only when the host
-      // wires a real callback, covered in the section test above).
-      expect(find.text('Xóa tài khoản'), findsNothing);
+      // Server-side deletion is wired (delete_my_account RPC) — the row
+      // renders and rides the real danger flow.
+      expect(find.text('Xóa tài khoản'), findsOneWidget);
 
       // Biometric ON runs the real enable path: proof prompt, pref,
       // then the gate re-locks behind the pushed page.
