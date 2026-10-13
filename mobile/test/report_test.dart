@@ -2,6 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/domain/models.dart';
 import 'package:moneyflow/domain/report.dart';
 
+/// Feed rows keyed by the (name, id) pair the backend would send — the
+/// breakdown groups on the stored id now, so each display name gets a
+/// matching distinct id; sharing one id across different names would be
+/// inconsistent feed data and rightly merges.
 Transaction tx(
   TransactionKind kind,
   int amount, {
@@ -11,10 +15,10 @@ Transaction tx(
 }) => Transaction(
   id: 't',
   kind: kind,
-  categoryId: 'c',
+  categoryId: 'c-$category',
   category: category,
   note: '',
-  accountId: 'a',
+  accountId: 'a-$account',
   account: account,
   amount: amount,
   occurredOn: '2026-10-01',
@@ -140,6 +144,97 @@ void main() {
       expect(r.payees, isEmpty);
       expect(r.accounts, isEmpty);
       expect(r.transactionCount, 1); // the row still counts as activity
+    });
+  });
+
+  group('breakdown drill-in keys', () {
+    Transaction txId(
+      TransactionKind kind,
+      int amount, {
+      String categoryId = 'c',
+      String category = 'X',
+      String accountId = 'a',
+      String account = 'A',
+      String? payee,
+    }) => Transaction(
+      id: 't',
+      kind: kind,
+      categoryId: categoryId,
+      category: category,
+      note: '',
+      accountId: accountId,
+      account: account,
+      amount: amount,
+      occurredOn: '2026-10-01',
+      payee: payee,
+    );
+
+    test('category and account rows carry their stored ids', () {
+      final r = buildPeriodReport([
+        txId(
+          TransactionKind.expense,
+          45000,
+          categoryId: 'cat-food',
+          category: 'Ăn uống',
+          accountId: 'acc-cash',
+          account: 'Tiền mặt',
+          payee: 'Quán A',
+        ),
+        txId(
+          TransactionKind.income,
+          9000000,
+          categoryId: 'cat-salary',
+          category: 'Lương',
+        ),
+      ]);
+      expect(r.categories.single.id, 'cat-food');
+      expect(r.incomeCategories.single.id, 'cat-salary');
+      expect(r.accounts.single.id, 'acc-cash');
+      // The payee key is the trimmed text itself — no id exists to hide.
+      expect(r.payees.single.id, 'Quán A');
+    });
+
+    test('the unnamed payee bucket keys on ""', () {
+      final r = buildPeriodReport([txId(TransactionKind.expense, 1000)]);
+      expect(r.payees.single.name, 'Không tên');
+      expect(r.payees.single.id, '');
+    });
+
+    test('same-name categories stay separate rows keyed by id', () {
+      // Two "Ăn uống" ids must not merge — one category_id filter could
+      // never reproduce the merged row, so merging would make the
+      // drill-in count disagree with the share the row claims.
+      final r = buildPeriodReport([
+        txId(
+          TransactionKind.expense,
+          30000,
+          categoryId: 'cat-1',
+          category: 'Ăn uống',
+        ),
+        txId(
+          TransactionKind.expense,
+          20000,
+          categoryId: 'cat-2',
+          category: 'Ăn uống',
+        ),
+      ]);
+      expect(r.categories.map((c) => c.id), ['cat-1', 'cat-2']);
+      expect(r.categories.map((c) => c.amount), [30000, 20000]);
+    });
+
+    test('a row grouped by name only carries no drill-in key', () {
+      // A feed row with no category_id groups under 'name:<label>' and
+      // stays untappable — no filter could rebuild exactly those rows.
+      final r = buildPeriodReport([
+        txId(
+          TransactionKind.expense,
+          40000,
+          categoryId: '',
+          category: 'Tên lạ',
+        ),
+      ]);
+      expect(r.categories.single.name, 'Tên lạ');
+      expect(r.categories.single.id, isNull);
     });
   });
 

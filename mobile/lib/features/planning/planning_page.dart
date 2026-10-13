@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/budget.dart';
+import '../../domain/goal_projection.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 import 'recurring_form_dialog.dart';
@@ -1105,6 +1106,27 @@ class _GoalTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pct = (goal.progress * 100).round();
+    // On-track projection at the observed pace: allocated ÷ elapsed since
+    // the stored created_at is the only honest rate the schema offers —
+    // a goal with no readable span gets "chưa đủ dữ liệu", not a guess.
+    final today = DateTime.now();
+    final projection = projectGoalCompletion(
+      targetMinor: goal.targetMinor,
+      contributedMinor: goal.allocatedMinor,
+      deadline: goal.deadline,
+      monthlyRateMinor: estimateGoalMonthlyRate(
+        contributedMinor: goal.allocatedMinor,
+        createdAt: goal.createdAt,
+        today: today,
+      ),
+      today: today,
+    );
+    final scheme = Theme.of(context).colorScheme;
+    final projectionColor = switch (projection.status) {
+      GoalProjectionStatus.atRisk => scheme.error,
+      GoalProjectionStatus.noRate => scheme.onSurfaceVariant,
+      _ => null,
+    };
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
@@ -1116,6 +1138,13 @@ class _GoalTile extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               '${formatMoney(goal.allocatedMinor)} / ${formatMoney(goal.targetMinor)} · $pct%',
+            ),
+            const SizedBox(height: 2),
+            Text(
+              goalProjectionLabel(projection),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: projectionColor),
             ),
           ],
         ),

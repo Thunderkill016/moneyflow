@@ -269,6 +269,7 @@ class SavingsGoal {
     required this.allocatedMinor,
     this.deadline,
     this.isArchived = false,
+    this.createdAt,
     this.updatedAt,
   });
 
@@ -278,6 +279,11 @@ class SavingsGoal {
   final int allocatedMinor;
   final String? deadline; // YYYY-MM-DD
   final bool isArchived;
+
+  /// The goal's stored created_at — doubles as the contribution span's
+  /// start for the on-track projection (the schema has no separate
+  /// started_at and no cadence field).
+  final String? createdAt;
 
   /// Row version read from the feed — the `expected_updated_at` edit token.
   final String? updatedAt;

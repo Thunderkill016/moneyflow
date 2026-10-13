@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../domain/bulk.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
+import '../../domain/report.dart' show unnamedPayeeBucket;
 import '../../domain/transaction_query.dart';
 import '../capture/category_picker.dart';
 
@@ -23,11 +24,22 @@ class ActivityPage extends StatefulWidget {
     this.onBulkCategory,
     this.loadCategories,
     this.loadAccounts,
+    this.initialQuery,
+    this.title,
   });
 
   /// One page of the feed for a search/filter query.
   final TransactionPageLoader loadPage;
   final Future<void> Function(String transactionId) onDelete;
+
+  /// Pre-filtered opening state — the reports drill-in pushes the page
+  /// already scoped to a row's dimension and period. The filters behave
+  /// like any user-set ones: chips render them and can be removed.
+  final TransactionQuery? initialQuery;
+
+  /// AppBar title while neither searching nor selecting — the drill-in
+  /// names the slice ("Ăn uống · Tháng 10/2026"); null keeps 'Hoạt động'.
+  final String? title;
 
   /// Tap-to-edit entry — null keeps rows read-only (demo has no writes).
   final Future<void> Function(Transaction tx)? onEdit;
@@ -57,7 +69,7 @@ const _searchDebounce = Duration(milliseconds: 350);
 const _loadMoreThreshold = 300.0;
 
 class ActivityPageState extends State<ActivityPage> {
-  TransactionQuery _query = TransactionQuery.none;
+  late TransactionQuery _query = widget.initialQuery ?? TransactionQuery.none;
   List<Transaction>? _rows;
   Object? _error;
   bool _hasMore = false;
@@ -400,6 +412,14 @@ class ActivityPageState extends State<ActivityPage> {
               ),
               () => _setQuery(q.copyWith(clearCategory: true)),
             ),
+          if (q.payee != null)
+            chip(
+              // '' is the payee-less bucket the report section groups.
+              q.payee!.isEmpty
+                  ? 'Người nhận: $unnamedPayeeBucket'
+                  : 'Người nhận: ${q.payee}',
+              () => _setQuery(q.copyWith(clearPayee: true)),
+            ),
           if (q.dateFrom != null || q.dateTo != null)
             chip(_dateLabel(), () => _setQuery(q.copyWith(clearDates: true))),
           if (q.minAmount != null || q.maxAmount != null)
@@ -487,7 +507,7 @@ class ActivityPageState extends State<ActivityPage> {
                 ),
                 onChanged: _onSearchChanged,
               )
-            : const Text('Hoạt động'),
+            : Text(widget.title ?? 'Hoạt động'),
         actions: [
           if (!_selecting && !_searching)
             IconButton(

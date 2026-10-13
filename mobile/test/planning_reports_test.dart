@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/data/demo_store.dart';
 import 'package:moneyflow/domain/models.dart';
+import 'package:moneyflow/domain/transaction_query.dart';
 import 'package:moneyflow/features/planning/planning_page.dart';
 import 'package:moneyflow/features/reports/reports_page.dart';
 
@@ -84,10 +85,12 @@ Transaction _tx(
 }) => Transaction(
   id: id,
   kind: kind,
-  categoryId: 'cat-$id',
+  // Ids track the display names because breakdown rows group on the
+  // stored id — the feed never sends one id under two names.
+  categoryId: 'cat-$category',
   category: category,
   note: '',
-  accountId: 'acc-cash',
+  accountId: 'acc-$account',
   account: account,
   amount: amount,
   occurredOn: occurredOn,
@@ -829,6 +832,49 @@ void main() {
       expect(find.text('Không thể rút quá số tiền đã dành'), findsOneWidget);
     });
 
+    testWidgets('goal tiles render the projection line honestly', (
+      tester,
+    ) async {
+      // ~a year of elapsed span keeps the rate stable regardless of the
+      // day the test runs; the second goal has no created_at and no
+      // allocation, so it must say "chưa đủ dữ liệu" — not guess.
+      final now = DateTime.now();
+      final data = PlanningData(
+        budgets: const [],
+        commitments: const [],
+        goals: [
+          SavingsGoal(
+            id: 'g-1',
+            name: 'Quỹ khẩn cấp',
+            targetMinor: 10000000,
+            allocatedMinor: 5000000,
+            createdAt: '${now.year - 1}-01-15',
+          ),
+          const SavingsGoal(
+            id: 'g-2',
+            name: 'Xe mới',
+            targetMinor: 5000000,
+            allocatedMinor: 0,
+          ),
+        ],
+        accounts: DemoStore.seedAccounts(),
+        categories: DemoStore.seedCategories(),
+        monthStart: _monthStart(),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PlanningPage(
+            loadData: () => Future.value(data),
+            actions: _actions(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Dự kiến đạt'), findsOneWidget);
+      expect(find.text('Chưa đủ dữ liệu để dự kiến'), findsOneWidget);
+    });
+
     testWidgets('archiving a funded goal warns instead of asking', (
       tester,
     ) async {
@@ -955,6 +1001,173 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Không có giao dịch trong kỳ này'), findsOneWidget);
+    });
+  });
+
+  group('ReportsPage drill-in', () {
+    /// The shown period as the feed's inclusive bounds — the report's
+    /// exclusive `to` lands as the last day of the current month.
+    (String, String) periodBounds() {
+      final now = DateTime.now();
+      final last = DateTime(now.year, now.month + 1, 0);
+      String pad(int v) => v.toString().padLeft(2, '0');
+      return (
+        _monthStart(),
+        '${last.year}-${pad(last.month)}-${pad(last.day)}',
+      );
+    }
+
+    testWidgets('a category row opens the feed filtered to category + period', (
+      tester,
+    ) async {
+      _tallViewport(tester);
+      final day = _thisMonthDay();
+      (TransactionQuery, String)? opened;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ReportsPage(
+            loadTransactions: () => Future.value([
+              _tx('t1', TransactionKind.expense, 'Ăn uống', 45000, day),
+            ]),
+            onOpenActivity: (q, title) async => opened = (q, title),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Ăn uống'));
+      await tester.pumpAndSettle();
+
+      final (q, title) = opened!;
+      expect(q.kind, TransactionKind.expense);
+      // The stored category_id, not the display label.
+      expect(q.categoryId, 'cat-Ăn uống');
+      final (from, to) = periodBounds();
+      expect(q.dateFrom, from);
+      expect(q.dateTo, to);
+      final now = DateTime.now();
+      expect(title, 'Ăn uống · Tháng ${now.month}/${now.year}');
+    });
+
+    testWidgets('account and payee rows drill in on their own keys', (
+      tester,
+    ) async {
+      _tallViewport(tester);
+      final day = _thisMonthDay();
+      final opened = <TransactionQuery>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ReportsPage(
+            loadTransactions: () => Future.value([
+              _tx(
+                't1',
+                TransactionKind.expense,
+                'Ăn uống',
+                45000,
+                day,
+                payee: 'Quán gần nhà',
+              ),
+              // A payee-less expense — drills in on the unnamed bucket.
+              _tx('t2', TransactionKind.expense, 'Khác', 20000, day),
+            ]),
+            onOpenActivity: (q, title) async => opened.add(q),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Tiền mặt'));
+      await tester.pumpAndSettle();
+      expect(opened.last.accountId, 'acc-Tiền mặt');
+      expect(opened.last.kind, TransactionKind.expense);
+
+      await tester.tap(find.text('Quán gần nhà'));
+      await tester.pumpAndSettle();
+      expect(opened.last.payee, 'Quán gần nhà');
+
+      // 'Không tên' is the payee-less bucket — its key is '' and the feed
+      // shows only rows with no stored payee.
+      await tester.tap(find.text('Không tên'));
+      await tester.pumpAndSettle();
+      expect(opened.last.payee, '');
+    });
+
+    testWidgets('an income-category row keeps kind=income', (tester) async {
+      _tallViewport(tester);
+      final day = _thisMonthDay();
+      (TransactionQuery, String)? opened;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ReportsPage(
+            loadTransactions: () => Future.value([
+              _tx('t1', TransactionKind.income, 'Lương', 15000000, day),
+            ]),
+            onOpenActivity: (q, title) async => opened = (q, title),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Lương'));
+      await tester.pumpAndSettle();
+      expect(opened!.$1.kind, TransactionKind.income);
+      expect(opened!.$1.categoryId, 'cat-Lương');
+    });
+
+    testWidgets('a name-only row cannot drill in — no filter rebuilds it', (
+      tester,
+    ) async {
+      _tallViewport(tester);
+      var calls = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ReportsPage(
+            loadTransactions: () => Future.value([
+              Transaction(
+                id: 't9',
+                kind: TransactionKind.expense,
+                // The feed row carried a label but no category_id — the
+                // row groups under 'name:<label>' and must stay inert.
+                categoryId: '',
+                category: 'Tên lạ',
+                note: '',
+                accountId: 'acc-cash',
+                account: 'Tiền mặt',
+                amount: 40000,
+                occurredOn: _thisMonthDay(),
+              ),
+            ]),
+            onOpenActivity: (_, _) async => calls++,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Tên lạ'));
+      await tester.pumpAndSettle();
+      expect(calls, 0);
+    });
+
+    testWidgets('without the seam the breakdown rows stay read-only', (
+      tester,
+    ) async {
+      _tallViewport(tester);
+      final day = _thisMonthDay();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ReportsPage(
+            loadTransactions: () => Future.value([
+              _tx('t1', TransactionKind.expense, 'Ăn uống', 45000, day),
+            ]),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<ListTile>(find.widgetWithText(ListTile, 'Ăn uống')).onTap,
+        isNull,
+      );
     });
   });
 

@@ -609,7 +609,7 @@ class RealStore {
       query: {
         'select':
             'id,name,target_minor,allocated_minor,deadline,is_archived,'
-            'updated_at',
+            'created_at,updated_at',
         'order': 'deadline.asc.nullslast,name.asc',
       },
     );
@@ -622,6 +622,7 @@ class RealStore {
             allocatedMinor: (r['allocated_minor'] as num).toInt(),
             deadline: r['deadline'] as String?,
             isArchived: r['is_archived'] as bool? ?? false,
+            createdAt: r['created_at'] as String?,
             updatedAt: r['updated_at'] as String?,
           ),
         )

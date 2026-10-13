@@ -7,6 +7,7 @@ import '../../domain/export_csv.dart';
 import '../../domain/money.dart';
 import '../../domain/models.dart';
 import '../../domain/report.dart';
+import '../../domain/transaction_query.dart';
 
 /// Period report — mirrors the web /reports: month navigation plus a
 /// custom range, totals (Thu/Chi/Còn lại/tiết kiệm) and the income/expense
@@ -22,6 +23,7 @@ class ReportsPage extends StatefulWidget {
     this.shareFile,
     this.tempDir,
     this.loadArchive,
+    this.onOpenActivity,
   });
 
   final Future<List<Transaction>> Function() loadTransactions;
@@ -51,6 +53,13 @@ class ReportsPage extends StatefulWidget {
   /// Full-archive loader (`export_user_archive` RPC). Null — demo mode —
   /// hides the JSON backup item entirely, like the web's capability gate.
   final Future<Object?> Function()? loadArchive;
+
+  /// Breakdown drill-in (the Monarch pattern): tapping a share row opens
+  /// the activity feed pre-filtered to that row's dimension AND the
+  /// current period, titled "name · period". Null leaves rows read-only —
+  /// surfaces that cannot host a feed just don't offer it.
+  final Future<void> Function(TransactionQuery query, String title)?
+  onOpenActivity;
 
   @override
   State<ReportsPage> createState() => ReportsPageState();
@@ -117,6 +126,27 @@ class ReportsPageState extends State<ReportsPage> {
   /// names the last day the reader actually sees covered.
   String _inclusiveEnd(ReportPeriod period) =>
       ymd(dateAdd(parseYmd(period.to), -1));
+
+  /// The visible period as the feed's inclusive date filter — the same
+  /// window the report totalled, so a drill-in can never widen it.
+  TransactionQuery _periodQuery() =>
+      TransactionQuery(dateFrom: _period.from, dateTo: _inclusiveEnd(_period));
+
+  /// Builds a breakdown row's tap handler: [build] turns the row's stored
+  /// drill-in key into a query. Rows with a null key (a name-only bucket
+  /// no filter reproduces) stay inert; null [onOpenActivity] leaves the
+  /// whole section read-only.
+  void Function(CategoryShare row)? _rowTap(
+    TransactionQuery Function(String key) build,
+  ) {
+    final open = widget.onOpenActivity;
+    if (open == null) return null;
+    return (row) {
+      final key = row.id;
+      if (key == null) return;
+      open(build(key), '${row.name} · ${_period.label}');
+    };
+  }
 
   /// Export sheet for the shown period. The CSV item is gated on the
   /// loaded report: an empty period says so honestly instead of offering
@@ -417,21 +447,45 @@ class ReportsPageState extends State<ReportsPage> {
                           title: 'Chi theo danh mục',
                           rows: r.categories,
                           emptyLabel: 'Chưa có khoản chi trong kỳ này',
+                          onRowTap: _rowTap(
+                            (id) => _periodQuery().copyWith(
+                              kind: TransactionKind.expense,
+                              categoryId: id,
+                            ),
+                          ),
                         ),
                         _ShareSection(
                           title: 'Thu theo danh mục',
                           rows: r.incomeCategories,
                           emptyLabel: 'Chưa có khoản thu trong kỳ này',
+                          onRowTap: _rowTap(
+                            (id) => _periodQuery().copyWith(
+                              kind: TransactionKind.income,
+                              categoryId: id,
+                            ),
+                          ),
                         ),
                         _ShareSection(
                           title: 'Chi theo tài khoản',
                           rows: r.accounts,
                           emptyLabel: 'Chưa có khoản chi trong kỳ này',
+                          onRowTap: _rowTap(
+                            (id) => _periodQuery().copyWith(
+                              kind: TransactionKind.expense,
+                              accountId: id,
+                            ),
+                          ),
                         ),
                         _ShareSection(
                           title: 'Chi theo người nhận',
                           rows: r.payees,
                           emptyLabel: 'Chưa có khoản chi trong kỳ này',
+                          onRowTap: _rowTap(
+                            (payee) => _periodQuery().copyWith(
+                              kind: TransactionKind.expense,
+                              payee: payee,
+                            ),
+                          ),
                         ),
                       ],
                     ],
@@ -516,17 +570,21 @@ class _PeriodBar extends StatelessWidget {
 }
 
 /// One named breakdown — title, honest empty label, and a progress-bar row
-/// per entry in the existing card style.
+/// per entry in the existing card style. When [onRowTap] is set, rows
+/// whose [CategoryShare.id] resolves drill into the filtered activity
+/// feed; key-less rows and a missing seam stay read-only.
 class _ShareSection extends StatelessWidget {
   const _ShareSection({
     required this.title,
     required this.rows,
     required this.emptyLabel,
+    this.onRowTap,
   });
 
   final String title;
   final List<CategoryShare> rows;
   final String emptyLabel;
+  final void Function(CategoryShare row)? onRowTap;
 
   @override
   Widget build(BuildContext context) {
@@ -549,6 +607,9 @@ class _ShareSection extends StatelessWidget {
                 '${formatMoney(c.amount)}\n${c.share}%',
                 textAlign: TextAlign.end,
               ),
+              onTap: onRowTap == null || c.id == null
+                  ? null
+                  : () => onRowTap!(c),
             ),
           ),
       ],

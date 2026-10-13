@@ -157,11 +157,20 @@ class CategoryShare {
     required this.name,
     required this.amount,
     required this.share,
+    this.id,
   });
 
   final String name;
   final int amount;
   final int share; // percent of the section's denominator, rounded
+
+  /// Drill-in key behind the row — what produced it depends on the
+  /// section: category_id for the category breakdowns, account_id for
+  /// the account one, the trimmed payee text for the payee section (''
+  /// there means the payee-less bucket). Null when the row has no stable
+  /// key (a feed row that carried no id), so a section can disable
+  /// drill-in instead of filtering on a guess.
+  final String? id;
 }
 
 /// Totals for a bounded period: income, expense, net, savings rate and the
@@ -203,14 +212,22 @@ class PeriodReport {
 
 /// Sorted largest-first share rows; [denominator] is the section's total
 /// (expense or income). Name order pins ties that `List.sort` — unstable,
-/// unlike the web's — would otherwise leave arbitrary.
-List<CategoryShare> _shares(Map<String, int> totals, int denominator) =>
+/// unlike the web's — would otherwise leave arbitrary. [names] carries
+/// each key's display label and [ids] the drill-in key behind it — null
+/// there marks a row grouped by name only, which no filter can rebuild.
+List<CategoryShare> _shares(
+  Map<String, int> totals,
+  int denominator, {
+  required Map<String, String> names,
+  required Map<String, String?> ids,
+}) =>
     [
       for (final e in totals.entries)
         CategoryShare(
-          name: e.key,
+          name: names[e.key] ?? e.key,
           amount: e.value,
           share: denominator == 0 ? 0 : (e.value / denominator * 100).round(),
+          id: ids[e.key],
         ),
     ]..sort((a, b) {
       final byAmount = b.amount.compareTo(a.amount);
@@ -222,35 +239,78 @@ List<CategoryShare> _shares(Map<String, int> totals, int denominator) =>
 /// income - expense; savings rate is null when income is zero.
 PeriodReport buildPeriodReport(List<Transaction> items) {
   var income = 0, expense = 0;
+  // Id-backed sections key on the stored id so a drill-in can rebuild the
+  // exact row set; two categories sharing a name stay two rows, which is
+  // more honest than merging what one category_id filter could never
+  // reproduce. The display name rides along in the names map.
   final categoryTotals = <String, int>{};
+  final categoryNames = <String, String>{};
+  final categoryIds = <String, String?>{};
   final incomeCategoryTotals = <String, int>{};
-  final payeeTotals = <String, int>{};
+  final incomeCategoryNames = <String, String>{};
+  final incomeCategoryIds = <String, String?>{};
   final accountTotals = <String, int>{};
-  void bump(Map<String, int> totals, String name, int amount) {
-    totals[name] = (totals[name] ?? 0) + amount;
+  final accountNames = <String, String>{};
+  final accountIds = <String, String?>{};
+  // Payees have no id — the trimmed text itself is the drill-in key.
+  final payeeTotals = <String, int>{};
+  final payeeNames = <String, String>{};
+  final payeeIds = <String, String?>{};
+
+  void bump(
+    Map<String, int> totals,
+    Map<String, String> names,
+    Map<String, String?> ids,
+    String id,
+    String name,
+    int amount,
+  ) {
+    final key = id.isEmpty ? 'name:$name' : id;
+    totals[key] = (totals[key] ?? 0) + amount;
+    names[key] ??= name;
+    ids[key] ??= id.isEmpty ? null : id;
   }
 
   for (final item in items) {
     if (item.kind == TransactionKind.income) {
       income += item.amount;
       if (item.category.isNotEmpty) {
-        bump(incomeCategoryTotals, item.category, item.amount);
+        bump(
+          incomeCategoryTotals,
+          incomeCategoryNames,
+          incomeCategoryIds,
+          item.categoryId,
+          item.category,
+          item.amount,
+        );
       }
     } else if (item.kind == TransactionKind.expense) {
       expense += item.amount;
       if (item.category.isNotEmpty) {
-        bump(categoryTotals, item.category, item.amount);
+        bump(
+          categoryTotals,
+          categoryNames,
+          categoryIds,
+          item.categoryId,
+          item.category,
+          item.amount,
+        );
       }
       // Payee-less expenses still happened — they group under an honest
       // bucket instead of silently leaving the section's total.
       final payee = (item.payee ?? '').trim();
-      bump(
-        payeeTotals,
-        payee.isEmpty ? unnamedPayeeBucket : payee,
-        item.amount,
-      );
+      payeeTotals[payee] = (payeeTotals[payee] ?? 0) + item.amount;
+      payeeNames[payee] ??= payee.isEmpty ? unnamedPayeeBucket : payee;
+      payeeIds[payee] ??= payee;
       if (item.account.isNotEmpty) {
-        bump(accountTotals, item.account, item.amount);
+        bump(
+          accountTotals,
+          accountNames,
+          accountIds,
+          item.accountId,
+          item.account,
+          item.amount,
+        );
       }
     }
   }
@@ -261,9 +321,24 @@ PeriodReport buildPeriodReport(List<Transaction> items) {
     net: net,
     transactionCount: items.length,
     savingsRatePercent: income == 0 ? null : ((net / income) * 100).round(),
-    categories: _shares(categoryTotals, expense),
-    incomeCategories: _shares(incomeCategoryTotals, income),
-    payees: _shares(payeeTotals, expense),
-    accounts: _shares(accountTotals, expense),
+    categories: _shares(
+      categoryTotals,
+      expense,
+      names: categoryNames,
+      ids: categoryIds,
+    ),
+    incomeCategories: _shares(
+      incomeCategoryTotals,
+      income,
+      names: incomeCategoryNames,
+      ids: incomeCategoryIds,
+    ),
+    payees: _shares(payeeTotals, expense, names: payeeNames, ids: payeeIds),
+    accounts: _shares(
+      accountTotals,
+      expense,
+      names: accountNames,
+      ids: accountIds,
+    ),
   );
 }

@@ -173,8 +173,49 @@ class DemoStore {
       targetMinor: 20000000,
       allocatedMinor: 8500000,
       deadline: '2027-03-01',
+      // ~4 months before the seed world (txs are Oct-2026) — the on-track
+      // projection derives its pace from this span, so the demo line is
+      // deterministic instead of a fabricated "monthly contribution".
+      createdAt: '2026-06-15T00:00:00Z',
     ),
   ];
+
+  /// Pending review items — demo "Cần xem" exercises the same review sheet
+  /// and the rule-from-approve offer without an account. Dates track
+  /// "now" so the queue never looks months stale.
+  static List<InboxCandidate> seedCandidates() {
+    String ymd(DateTime d) =>
+        '${d.year}-${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+    final today = DateTime.now();
+    return [
+      InboxCandidate(
+        id: 'demo-cand-1',
+        kind: TransactionKind.expense,
+        amountMinor: 68000,
+        merchant: 'HIGHLANDS COFFEE',
+        note: '',
+        occurredOn: ymd(today.subtract(const Duration(days: 1))),
+        source: 'paste',
+        confidence: 'medium',
+        // The seeded HIGHLANDS rule would prefill exactly this.
+        categoryName: 'Ăn uống',
+        accountName: 'Ngân hàng VCB',
+        rawSnippet: 'VCB: GD -68,000 VND HIGHLANDS COFFEE',
+      ),
+      InboxCandidate(
+        id: 'demo-cand-2',
+        kind: TransactionKind.expense,
+        amountMinor: 125000,
+        merchant: 'GRAB',
+        note: '',
+        occurredOn: ymd(today),
+        source: 'notification',
+        confidence: 'low',
+        rawSnippet: 'MoMo: -125,000 GRAB*BIKE',
+      ),
+    ];
+  }
 }
 
 /// Demo-mode category writes — session-scoped in-memory, no network.
@@ -265,6 +306,44 @@ class DemoCategoryStore {
     if (i < 0 || _categories[i].isDefault) return false;
     _categories.removeAt(i);
     return true;
+  }
+}
+
+/// Demo-mode "Cần xem" — a session-scoped pending queue so the review
+/// sheet and the rule-from-approve offer run without an account. Approves
+/// and rejects simply drop the row: demo never posts to a ledger, and the
+/// queue refill on the next entry keeps the seed honest.
+class DemoInboxStore {
+  DemoInboxStore() : _candidates = List.of(DemoStore.seedCandidates());
+
+  List<InboxCandidate> _candidates;
+
+  Future<List<InboxCandidate>> loadPending() async =>
+      List.unmodifiable(_candidates);
+
+  /// Menu badge — same "count the ids" shape as the real badge read.
+  Future<int> pendingCount() async => _candidates.length;
+
+  /// Advisory dry-run — the demo answer is always "would create", the
+  /// same verdict a fresh queue gets from the real RPC.
+  Future<InboxPlan?> plan(String candidateId) async => const InboxPlan(
+    status: 'would_create',
+    reason: 'no_match',
+    confidence: 0.85,
+  );
+
+  Future<void> approve(InboxApproval approval) async {
+    _candidates = [
+      for (final c in _candidates)
+        if (c.id != approval.candidateId) c,
+    ];
+  }
+
+  Future<void> reject(String candidateId) async {
+    _candidates = [
+      for (final c in _candidates)
+        if (c.id != candidateId) c,
+    ];
   }
 }
 

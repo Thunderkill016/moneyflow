@@ -30,6 +30,7 @@ class InboxPage extends StatefulWidget {
     this.pickCsvFile,
     this.onImportCsv,
     this.onOpenRules,
+    this.onSaveRule,
   });
 
   final Future<List<InboxCandidate>> Function() loadCandidates;
@@ -40,6 +41,12 @@ class InboxPage extends StatefulWidget {
   /// queue's candidates, so the shortcut lives on this appbar. Null hides
   /// it (surfaces without a rules store wired).
   final VoidCallback? onOpenRules;
+
+  /// Rule-write seam (Monarch's rule-from-approve): after an approval the
+  /// queue offers "Luôn áp dụng cho …" for the reviewed merchant, and a
+  /// tap saves a merchant→category rule through this — `saveInboxRule` on
+  /// the real store, `DemoRuleStore.save` in demo. Null disables the offer.
+  final Future<void> Function(InboxRuleDraft draft)? onSaveRule;
 
   /// Advisory server dry-run; a failure must not block review because the
   /// approve RPC re-runs the same checks atomically.
@@ -168,7 +175,7 @@ class InboxPageState extends State<InboxPage> {
   }
 
   Future<void> _review(_InboxData data, InboxCandidate c) async {
-    final changed = await Navigator.of(context).push<bool>(
+    final result = await Navigator.of(context).push<_ReviewResult>(
       MaterialPageRoute(
         builder: (_) => _ReviewPage(
           candidate: c,
@@ -182,9 +189,61 @@ class InboxPageState extends State<InboxPage> {
     );
     // Any approve/reject inside review mutates the queue AND possibly the
     // ledger — reload the list; the shell hears about it via the pop flag.
-    if (changed == true) {
+    // A null result is a plain back-navigation: nothing changed.
+    if (result != null) {
       _changed = true;
       _refresh();
+      final approval = result.approval;
+      if (approval != null) _offerRule(approval);
+    }
+  }
+
+  /// Rule-from-approve (the Monarch pattern): after a successful approve,
+  /// offer "Luôn áp dụng cho …" for the reviewed payee as a snackbar
+  /// action. Transfers carry neither payee nor category and a blank
+  /// reviewed payee has no stable text to match — neither shows the offer.
+  void _offerRule(InboxApproval approval) {
+    final save = widget.onSaveRule;
+    if (save == null || approval.kind == TransactionKind.transfer) return;
+    final merchant = approval.payee.trim();
+    final categoryId = approval.categoryId;
+    if (merchant.isEmpty || categoryId == null || categoryId.isEmpty) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Đã duyệt. Luôn áp dụng cho "$merchant"?'),
+        action: SnackBarAction(
+          label: 'Tạo quy tắc',
+          onPressed: () => _saveRule(merchant, categoryId),
+        ),
+      ),
+    );
+  }
+
+  /// Saves the merchant→category rule the review just used; the result is
+  /// reported honestly — the write is a separate call AFTER the approve,
+  /// so its failure can never pretend the approval failed (it didn't).
+  Future<void> _saveRule(String merchant, String categoryId) async {
+    try {
+      await widget.onSaveRule!((
+        id: null,
+        expectedVersion: null,
+        matchField: RuleMatchField.merchant,
+        containsText: merchant,
+        categoryId: categoryId,
+        merchantName: null,
+        enabled: true,
+      ));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Đã lưu quy tắc cho "$merchant"')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(inboxRuleErrorMessage(e))));
+      }
     }
   }
 
@@ -396,6 +455,16 @@ class InboxPageState extends State<InboxPage> {
       ),
     );
   }
+}
+
+/// What the review page pops: [approval] null is a reject (queue changed,
+/// no payload), non-null is an approve carrying the exact values that
+/// landed — the rule offer needs the reviewed payee/category, not the
+/// candidate's raw suggestion.
+class _ReviewResult {
+  const _ReviewResult.rejected() : approval = null;
+  const _ReviewResult.approved(this.approval);
+  final InboxApproval? approval;
 }
 
 /// dd/MM/yyyy — the row reads in the Vietnamese convention even though the
@@ -640,22 +709,23 @@ class _ReviewPageState extends State<_ReviewPage> {
       _busy = true;
       _error = null;
     });
+    final approval = InboxApproval(
+      candidateId: widget.candidate.id,
+      kind: _kind,
+      accountId: _accountId!,
+      categoryId: isTransfer ? null : _categoryId,
+      destinationAccountId: isTransfer ? _destinationAccountId : null,
+      amountMinor: amount,
+      occurredOn: _ymd(_date),
+      note: _note.text.trim(),
+      payee: _payee.text.trim(),
+      allowHeuristicDuplicate: _allowDuplicate,
+    );
     try {
-      await widget.onApprove(
-        InboxApproval(
-          candidateId: widget.candidate.id,
-          kind: _kind,
-          accountId: _accountId!,
-          categoryId: isTransfer ? null : _categoryId,
-          destinationAccountId: isTransfer ? _destinationAccountId : null,
-          amountMinor: amount,
-          occurredOn: _ymd(_date),
-          note: _note.text.trim(),
-          payee: _payee.text.trim(),
-          allowHeuristicDuplicate: _allowDuplicate,
-        ),
-      );
-      if (mounted) Navigator.of(context).pop(true);
+      await widget.onApprove(approval);
+      if (mounted) {
+        Navigator.of(context).pop(_ReviewResult.approved(approval));
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -691,7 +761,9 @@ class _ReviewPageState extends State<_ReviewPage> {
     setState(() => _busy = true);
     try {
       await widget.onReject(widget.candidate.id);
-      if (mounted) Navigator.of(context).pop(true);
+      if (mounted) {
+        Navigator.of(context).pop(const _ReviewResult.rejected());
+      }
     } catch (_) {
       if (mounted) {
         setState(() {

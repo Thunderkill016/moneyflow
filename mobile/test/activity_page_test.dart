@@ -258,6 +258,69 @@ void main() {
     );
   });
 
+  group('report drill-in (initialQuery + title)', () {
+    const paid = Transaction(
+      id: 'tx-paid',
+      kind: TransactionKind.expense,
+      categoryId: 'cat-food',
+      category: 'Ăn uống',
+      note: 'Bún bò',
+      accountId: 'a1',
+      account: 'Tiền mặt',
+      amount: 45000,
+      occurredOn: '2026-10-12',
+      payee: 'Quán gần nhà',
+    );
+
+    testWidgets('the feed opens pre-filtered and the title names the slice', (
+      t,
+    ) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: ActivityPage(
+            loadPage: inMemoryPageLoader([paid, _transfer]),
+            onDelete: (_) async {},
+            initialQuery: const TransactionQuery(
+              kind: TransactionKind.expense,
+              payee: 'Quán gần nhà',
+              dateFrom: '2026-10-01',
+              dateTo: '2026-10-31',
+            ),
+            title: 'Quán gần nhà · Tháng 10/2026',
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      expect(find.text('Quán gần nhà · Tháng 10/2026'), findsOneWidget);
+      // The payee + period filters render as removable chips.
+      expect(find.text('Người nhận: Quán gần nhà'), findsOneWidget);
+      expect(find.textContaining('10/2026'), findsWidgets);
+      // Only the matching row loads — the transfer is filtered out.
+      expect(find.text('Bún bò'), findsOneWidget);
+      expect(find.text('Rút tiền'), findsNothing);
+    });
+
+    testWidgets('the unnamed payee bucket chips as "Không tên"', (t) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: ActivityPage(
+            loadPage: inMemoryPageLoader([paid, _plain]),
+            onDelete: (_) async {},
+            // '' is the report's payee-less bucket — only _plain (no
+            // stored payee) should remain.
+            initialQuery: const TransactionQuery(payee: ''),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      expect(find.text('Người nhận: Không tên'), findsOneWidget);
+      expect(find.text('Bún bò'), findsOneWidget); // _plain
+      expect(find.text('Quán gần nhà'), findsNothing); // paid filtered out
+    });
+  });
+
   test('Transaction.isSplit needs more than one line', () {
     expect(_plain.isSplit, isFalse);
     expect(_split.isSplit, isTrue);

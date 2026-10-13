@@ -12,6 +12,7 @@ import 'package:moneyflow/data/neon/data_api.dart';
 import 'package:moneyflow/data/neon/neon_config.dart';
 import 'package:moneyflow/data/neon/neon_transport.dart';
 import 'package:moneyflow/data/neon/real_store.dart';
+import 'package:moneyflow/data/demo_store.dart';
 import 'package:moneyflow/data/share/inbox_paste_parser.dart';
 import 'package:moneyflow/domain/csv_import.dart';
 import 'package:moneyflow/domain/inbox.dart';
@@ -128,6 +129,42 @@ const catIncome = Category(
 );
 
 void main() {
+  InboxPage page({
+    required Future<List<InboxCandidate>> Function() load,
+    Future<void> Function(InboxApproval)? onApprove,
+    Future<void> Function(String)? onReject,
+    Future<CsvImportResult> Function(CsvImportBatch)? onImport,
+    Future<InboxPlan?> Function(String)? onPlan,
+    Future<void> Function(InboxRuleDraft)? onSaveRule,
+  }) => InboxPage(
+    loadCandidates: load,
+    loadAccounts: () async => [acc, acc2],
+    loadCategories: () async => [catExpense, catIncome],
+    onPlan: onPlan ?? (_) async => null,
+    onApprove: onApprove ?? (_) async {},
+    onReject: onReject ?? (_) async {},
+    onSaveRule: onSaveRule,
+    onImportCsv:
+        onImport ??
+        (_) async => const CsvImportResult(batchId: 'b', candidateCount: 0),
+  );
+
+  InboxCandidate row() => InboxCandidate(
+    id: 'c1',
+    kind: TransactionKind.expense,
+    amountMinor: 45000,
+    merchant: 'PHO NGON',
+    note: '',
+    occurredOn: '2026-10-14',
+    source: 'paste',
+    confidence: 'medium',
+    accountId: 'a1',
+    accountName: 'VCB',
+    categoryId: 'k1',
+    categoryName: 'Ăn uống',
+    rawSnippet: 'TK 1234 GD -45,000 VND PHO NGON',
+  );
+
   group('RealStore inbox reads', () {
     test('loadPendingInboxCandidates filters pending, newest first', () async {
       final h = Harness();
@@ -481,40 +518,6 @@ void main() {
   });
 
   group('InboxPage widget states', () {
-    InboxPage page({
-      required Future<List<InboxCandidate>> Function() load,
-      Future<void> Function(InboxApproval)? onApprove,
-      Future<void> Function(String)? onReject,
-      Future<CsvImportResult> Function(CsvImportBatch)? onImport,
-      Future<InboxPlan?> Function(String)? onPlan,
-    }) => InboxPage(
-      loadCandidates: load,
-      loadAccounts: () async => [acc, acc2],
-      loadCategories: () async => [catExpense, catIncome],
-      onPlan: onPlan ?? (_) async => null,
-      onApprove: onApprove ?? (_) async {},
-      onReject: onReject ?? (_) async {},
-      onImportCsv:
-          onImport ??
-          (_) async => const CsvImportResult(batchId: 'b', candidateCount: 0),
-    );
-
-    InboxCandidate row() => InboxCandidate(
-      id: 'c1',
-      kind: TransactionKind.expense,
-      amountMinor: 45000,
-      merchant: 'PHO NGON',
-      note: '',
-      occurredOn: '2026-10-14',
-      source: 'paste',
-      confidence: 'medium',
-      accountId: 'a1',
-      accountName: 'VCB',
-      categoryId: 'k1',
-      categoryName: 'Ăn uống',
-      rawSnippet: 'TK 1234 GD -45,000 VND PHO NGON',
-    );
-
     testWidgets('loading → list renders amount, kind, labels', (t) async {
       final gate = Completer<List<InboxCandidate>>();
       await t.pumpWidget(MaterialApp(home: page(load: () => gate.future)));
@@ -699,5 +702,138 @@ void main() {
       expect(find.text('Đã tạo 1 mục chờ duyệt'), findsOneWidget);
       expect(find.text('Không có mục nào chờ duyệt'), findsNothing);
     });
+  });
+
+  group('rule-from-approve', () {
+    /// Drives the list → review → "Duyệt vào sổ" path; returns after the
+    /// review page has popped and the offer snackbar is on screen.
+    Future<void> approveRow(WidgetTester t) async {
+      await t.tap(find.text('Duyệt'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Duyệt vào sổ'));
+      await t.pumpAndSettle();
+    }
+
+    testWidgets('approve offers a merchant rule; the action saves it', (
+      t,
+    ) async {
+      InboxRuleDraft? draft;
+      await t.pumpWidget(
+        MaterialApp(
+          home: page(
+            load: () async => [row()],
+            onApprove: (_) async {},
+            onSaveRule: (d) async => draft = d,
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      await approveRow(t);
+
+      // The offer names the reviewed merchant, not the raw candidate text.
+      expect(
+        find.text('Đã duyệt. Luôn áp dụng cho "PHO NGON"?'),
+        findsOneWidget,
+      );
+      await t.tap(find.text('Tạo quy tắc'));
+      await t.pumpAndSettle();
+
+      expect(draft, isNotNull);
+      expect(draft!.id, isNull); // a new rule, appended server-side
+      expect(draft!.matchField, RuleMatchField.merchant);
+      expect(draft!.containsText, 'PHO NGON');
+      expect(draft!.categoryId, 'k1');
+      expect(draft!.enabled, isTrue);
+      expect(find.text('Đã lưu quy tắc cho "PHO NGON"'), findsOneWidget);
+    });
+
+    testWidgets('a failed rule save is an honest snackbar, not a retry loop', (
+      t,
+    ) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: page(
+            load: () async => [row()],
+            onApprove: (_) async {},
+            onSaveRule: (_) async => throw Exception('PGRST202 missing'),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      await approveRow(t);
+
+      await t.tap(find.text('Tạo quy tắc'));
+      await t.pumpAndSettle();
+      expect(
+        find.text('Tính năng quy tắc chưa được bật trên máy chủ.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('no reviewed payee → no rule offer', (t) async {
+      final blank = InboxCandidate(
+        id: 'c1',
+        kind: TransactionKind.expense,
+        amountMinor: 45000,
+        // 'Không rõ' prefills an empty payee field — the reviewed payee is
+        // what the offer keys on, and blank has nothing stable to match.
+        merchant: 'Không rõ',
+        note: '',
+        occurredOn: '2026-10-14',
+        source: 'paste',
+        confidence: 'low',
+        accountId: 'a1',
+        accountName: 'VCB',
+        categoryId: 'k1',
+        categoryName: 'Ăn uống',
+      );
+      await t.pumpWidget(
+        MaterialApp(
+          home: page(
+            load: () async => [blank],
+            onApprove: (_) async {},
+            onSaveRule: (_) async {},
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      await approveRow(t);
+      expect(find.textContaining('Luôn áp dụng'), findsNothing);
+    });
+
+    testWidgets('no onSaveRule seam → the offer is simply absent', (t) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: page(load: () async => [row()], onApprove: (_) async {}),
+        ),
+      );
+      await t.pumpAndSettle();
+      await approveRow(t);
+      expect(find.textContaining('Luôn áp dụng'), findsNothing);
+    });
+  });
+
+  group('DemoInboxStore', () {
+    test(
+      'seeds two pending rows; approve/reject drop them from the queue',
+      () async {
+        final store = DemoInboxStore();
+        expect(await store.pendingCount(), 2);
+        await store.approve(
+          const InboxApproval(
+            candidateId: 'demo-cand-1',
+            kind: TransactionKind.expense,
+            accountId: 'acc-bank',
+            categoryId: 'cat-food',
+            amountMinor: 68000,
+            occurredOn: '2026-10-14',
+          ),
+        );
+        expect((await store.loadPending()).map((c) => c.id), ['demo-cand-2']);
+        await store.reject('demo-cand-2');
+        expect(await store.loadPending(), isEmpty);
+        expect(await store.pendingCount(), 0);
+      },
+    );
   });
 }

@@ -26,6 +26,7 @@ class TransactionQuery {
     this.kind,
     this.accountId,
     this.categoryId,
+    this.payee,
     this.dateFrom,
     this.dateTo,
     this.minAmount,
@@ -36,6 +37,12 @@ class TransactionQuery {
   final TransactionKind? kind;
   final String? accountId;
   final String? categoryId;
+
+  /// Exact payee filter — the reports payee breakdown drills in on this.
+  /// The report buckets by trimmed payee text, so the value here is the
+  /// bucket's trimmed name; `''` means the "no payee" bucket (rows whose
+  /// stored payee is null or blank). Null leaves payee unfiltered.
+  final String? payee;
 
   /// Inclusive YYYY-MM-DD bounds on occurred_on.
   final String? dateFrom;
@@ -57,6 +64,7 @@ class TransactionQuery {
       kind == null &&
       accountId == null &&
       categoryId == null &&
+      payee == null &&
       dateFrom == null &&
       dateTo == null &&
       minAmount == null &&
@@ -67,6 +75,7 @@ class TransactionQuery {
     kind,
     accountId,
     categoryId,
+    payee,
     dateFrom ?? dateTo,
     minAmount ?? maxAmount,
   ].where((v) => v != null).length;
@@ -77,6 +86,7 @@ class TransactionQuery {
     TransactionKind? kind,
     String? accountId,
     String? categoryId,
+    String? payee,
     String? dateFrom,
     String? dateTo,
     int? minAmount,
@@ -84,6 +94,7 @@ class TransactionQuery {
     bool clearKind = false,
     bool clearAccount = false,
     bool clearCategory = false,
+    bool clearPayee = false,
     bool clearDates = false,
     bool clearAmounts = false,
   }) => TransactionQuery(
@@ -91,6 +102,7 @@ class TransactionQuery {
     kind: clearKind ? null : kind ?? this.kind,
     accountId: clearAccount ? null : accountId ?? this.accountId,
     categoryId: clearCategory ? null : categoryId ?? this.categoryId,
+    payee: clearPayee ? null : payee ?? this.payee,
     dateFrom: clearDates ? null : dateFrom ?? this.dateFrom,
     dateTo: clearDates ? null : dateTo ?? this.dateTo,
     minAmount: clearAmounts ? null : minAmount ?? this.minAmount,
@@ -106,6 +118,13 @@ class TransactionQuery {
       return false;
     }
     if (categoryId != null && t.categoryId != categoryId) return false;
+    if (payee != null) {
+      // The report buckets on trimmed payee text; '' is the unnamed bucket.
+      final stored = (t.payee ?? '').trim();
+      if (payee!.isEmpty ? stored.isNotEmpty : stored != payee) {
+        return false;
+      }
+    }
     // YYYY-MM-DD compares correctly as a string.
     if (dateFrom != null && t.occurredOn.compareTo(dateFrom!) < 0) return false;
     if (dateTo != null && t.occurredOn.compareTo(dateTo!) > 0) return false;
@@ -149,6 +168,15 @@ class TransactionQuery {
     if (accountId != null) {
       final id = postgrestQuote(accountId!);
       parts.add('or(account_id.eq.$id,destination_account_id.eq.$id)');
+    }
+    if (payee != null) {
+      // The unnamed bucket covers both null and '' stored payees; a named
+      // bucket is an exact match on the (already trimmed) payee text.
+      if (payee!.isEmpty) {
+        parts.add('or(payee.is.null,payee.eq."")');
+      } else {
+        parts.add('payee.eq.${postgrestQuote(payee!)}');
+      }
     }
     if (dateFrom != null) {
       parts.add('occurred_on.gte.${postgrestQuote(dateFrom!)}');

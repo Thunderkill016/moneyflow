@@ -167,6 +167,10 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     categories: () => _demoCategories.current,
   );
 
+  /// Demo-mode pending review queue — same session scope; recreated in
+  /// `onDemo` so each visit starts from the two seeded candidates.
+  var _demoInbox = DemoInboxStore();
+
   /// Re-entrancy guard for the session-expired sign-out — several tab
   /// loaders can 401 in the same frame and each signals the callback.
   bool _expiredSignOut = false;
@@ -748,6 +752,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           // means.
           _demoCategories = DemoCategoryStore();
           _demoRules = DemoRuleStore(categories: () => _demoCategories.current);
+          _demoInbox = DemoInboxStore();
           setState(() => _gate = _Gate.demo);
           _drainQuickAction();
         },
@@ -807,6 +812,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
               loadTransactions: _store.loadTransactions,
               loadRange: _store.loadTransactionsInRange,
               loadArchive: kArchiveBackupEnabled ? _store.exportArchive : null,
+              onOpenActivity: (q, title) =>
+                  _openActivitySlice(context, q, title),
             ),
           ],
           onCaptureTap: _openCapture,
@@ -963,9 +970,21 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           onPlan: _store.planInboxCandidate,
           onApprove: (a) => _store.approveInboxCandidate(a).then((_) {}),
           onReject: _store.rejectInboxCandidate,
-          // CSV import stays authenticated-only: demo mode never reaches
-          // this page (the demo menu has no "Cần xem" entry), and the
-          // seams unset keep the "Nhập CSV" affordance hidden regardless.
+          // "Tạo quy tắc" after an approve rides the same upsert RPC the
+          // rules manager uses — a failed rule save lands its own honest
+          // snackbar and can never masquerade as an approval failure.
+          onSaveRule: (draft) => _store.saveInboxRule(
+            ruleId: draft.id,
+            expectedVersion: draft.expectedVersion,
+            matchField: draft.matchField,
+            containsText: draft.containsText,
+            categoryId: draft.categoryId,
+            merchantName: draft.merchantName,
+            enabled: draft.enabled,
+          ),
+          // CSV import stays authenticated-only: the demo "Cần xem" menu
+          // entry leaves these seams unset, which keeps the "Nhập CSV" /
+          // "Dán tin nhắn" affordances hidden on that surface too.
           // "Dán tin nhắn" rides the same seam — pasted lines become
           // candidates through the prepare RPC, the only write path the
           // hosted backend accepts for this table.
@@ -976,6 +995,41 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       ),
     );
     if (changed == true) _reloadTabs();
+  }
+
+  /// Report drill-in — pushes the same fully-capable feed the tab hosts,
+  /// scoped to a breakdown row's slice of the shown period. Edits and
+  /// deletes inside it stay live; they're real ledger writes either way.
+  Future<void> _openActivitySlice(
+    BuildContext context,
+    TransactionQuery query,
+    String title,
+  ) {
+    return Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (_) => ActivityPage(
+              loadPage: _store.loadTransactionPage,
+              loadAccounts: _store.loadAccounts,
+              loadCategories: _store.loadCategories,
+              onDelete: _deleteTransaction,
+              onOpenTrash: () => _openTrash(context),
+              onEdit: (tx) => _openEdit(context, tx),
+              onBulkReview: (ids, {required reviewed}) async {
+                await _store.setReviewStatusBulk(ids, reviewed: reviewed);
+              },
+              onBulkCategory: (ids, categoryId) async {
+                await _store.setCategoryBulk(ids, categoryId);
+                _planKey.currentState?.reload();
+                _reportKey.currentState?.reload();
+                _dashKey.currentState?.reload();
+              },
+              initialQuery: query,
+              title: title,
+            ),
+          ),
+        )
+        .then((_) {});
   }
 
   /// "Quy tắc tự điền" — reachable from the review queue because rules are
@@ -1202,9 +1256,40 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
                 ),
               ),
             ),
-            // Demo has no "Cần xem" queue, so the rules manager lives on
-            // the menu — writes land in the session-scoped DemoRuleStore,
-            // honest local data discarded when demo ends.
+            // Demo "Cần xem" — two seeded candidates run the real review
+            // sheet and the rule-from-approve offer; writes stay in the
+            // session-scoped stores, so leaving demo discards them.
+            DashboardMenuItem(
+              label: 'Cần xem',
+              icon: Icons.inbox_outlined,
+              badge: _demoInbox.pendingCount,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => InboxPage(
+                    loadCandidates: _demoInbox.loadPending,
+                    loadAccounts: () async => DemoStore.seedAccounts(),
+                    loadCategories: _demoCategories.loadAll,
+                    onPlan: _demoInbox.plan,
+                    onApprove: _demoInbox.approve,
+                    onReject: _demoInbox.reject,
+                    onSaveRule: (draft) => _demoRules.save(draft).then((_) {}),
+                    onOpenRules: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => InboxRulesPage(
+                          loadRules: _demoRules.loadAll,
+                          loadCategories: _demoCategories.loadAll,
+                          onSave: _demoRules.save,
+                          onDelete: _demoRules.delete,
+                          onReorder: _demoRules.reorder,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // Rules are also reachable from inside "Cần xem"; the menu
+            // entry stays so the manager is discoverable on its own.
             DashboardMenuItem(
               label: 'Quy tắc',
               icon: Icons.rule_outlined,
@@ -1259,6 +1344,22 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         ),
         () => ReportsPage(
           loadTransactions: () async => DemoStore.seedTransactions(),
+          // Drill-in runs against the same in-memory feed the demo tab
+          // uses — read-only rows, identical filter semantics.
+          onOpenActivity: (q, title) => Navigator.of(context)
+              .push(
+                MaterialPageRoute(
+                  builder: (_) => ActivityPage(
+                    loadPage: inMemoryPageLoader(DemoStore.seedTransactions()),
+                    loadAccounts: () async => DemoStore.seedAccounts(),
+                    loadCategories: () async => _demoCategories.active,
+                    onDelete: (_) async {},
+                    initialQuery: q,
+                    title: title,
+                  ),
+                ),
+              )
+              .then((_) {}),
         ),
       ],
       onCaptureTap: (ctx) {

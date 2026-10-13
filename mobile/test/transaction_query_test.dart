@@ -161,6 +161,54 @@ void main() {
       );
       expect(const TransactionQuery(categoryId: 'x').matches(food), isFalse);
     });
+
+    test('payee is an exact trimmed-text filter', () {
+      // The report buckets on trimmed text — the drill-in value is the
+      // bucket key, so 'Quán Bà Tư' hits, anything else misses.
+      expect(const TransactionQuery(payee: 'Quán Bà Tư').matches(food), isTrue);
+      expect(
+        const TransactionQuery(payee: 'quán bà tư').matches(food),
+        isFalse,
+      );
+      expect(const TransactionQuery(payee: '').matches(food), isFalse);
+    });
+
+    test('payee "" is the unnamed bucket — null or blank stored payee', () {
+      expect(const TransactionQuery(payee: '').matches(_tx('p1')), isTrue);
+      expect(
+        const TransactionQuery(payee: '').matches(_tx('p2', payee: '   ')),
+        isTrue,
+      );
+      expect(
+        const TransactionQuery(payee: '').matches(_tx('p3', payee: 'GRAB')),
+        isFalse,
+      );
+    });
+  });
+
+  group('payee PostgREST params', () {
+    test('named payee is a quoted eq inside the and() group', () {
+      final p = const TransactionQuery(
+        kind: TransactionKind.expense,
+        payee: 'Quán, Bà (Tư)',
+      ).toPostgrestParams();
+      expect(p['kind'], 'eq.expense');
+      // Commas/parens stay data inside the quotes — one flat and() group.
+      expect(p['and'], '(payee.eq."Quán, Bà (Tư)")');
+    });
+
+    test('the unnamed bucket covers both null and blank stored payees', () {
+      final p = const TransactionQuery(payee: '').toPostgrestParams();
+      expect(p['and'], '(or(payee.is.null,payee.eq.""))');
+    });
+
+    test('payee counts as a filter and clears like the others', () {
+      const q = TransactionQuery(payee: 'GRAB');
+      expect(q.isEmpty, isFalse);
+      expect(q.filterCount, 1);
+      expect(q.copyWith(clearPayee: true).payee, isNull);
+      expect(q.copyWith(clearPayee: true).isEmpty, isTrue);
+    });
   });
 
   group('copyWith / counts', () {
