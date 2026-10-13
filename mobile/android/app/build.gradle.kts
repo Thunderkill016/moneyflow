@@ -1,8 +1,31 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// Upload-keystore signing for release builds. `key.properties` lives next to
+// settings.gradle.kts at mobile/android/key.properties and is gitignored —
+// local-only, never committed. When it is absent we keep the previous debug
+// fallback so `flutter run --release` still works, but warn during
+// configuration so a debug-signed release is never silent.
+val keyPropertiesFile = rootProject.file("key.properties")
+val hasUploadKey = keyPropertiesFile.exists()
+val keyProperties = Properties().apply {
+    if (hasUploadKey) {
+        keyPropertiesFile.inputStream().use { load(it) }
+    }
+}
+
+if (!hasUploadKey) {
+    logger.warn(
+        "key.properties not found at ${keyPropertiesFile.path} — " +
+            "release builds fall back to the debug signing key. " +
+            "Restore the upload keystore before building a Play AAB.",
+    )
 }
 
 android {
@@ -32,11 +55,28 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasUploadKey) {
+            create("release") {
+                keyAlias = keyProperties.getProperty("keyAlias")
+                keyPassword = keyProperties.getProperty("keyPassword")
+                storeFile = keyProperties.getProperty("storeFile")?.let { file(it) }
+                storePassword = keyProperties.getProperty("storePassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig =
+                if (hasUploadKey) {
+                    signingConfigs.getByName("release")
+                } else {
+                    // Debug fallback for local release runs without a
+                    // key.properties file; the warning above fires at
+                    // configuration time.
+                    signingConfigs.getByName("debug")
+                }
         }
     }
 }
