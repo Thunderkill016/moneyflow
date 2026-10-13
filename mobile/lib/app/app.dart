@@ -15,6 +15,7 @@ import '../data/session_store.dart';
 import '../data/share/share_intent.dart';
 import '../data/share/share_text_parser.dart';
 import '../domain/models.dart';
+import '../domain/recurring_detection.dart';
 import '../domain/transaction_query.dart';
 import 'biometric_lock.dart';
 import 'delete_data.dart';
@@ -29,6 +30,7 @@ import '../features/capture/queue_banner.dart';
 import '../features/categories/categories_page.dart';
 import '../features/dashboard/dashboard_page.dart';
 import '../features/planning/planning_page.dart';
+import '../features/planning/recurring_form_dialog.dart';
 import '../features/reports/reports_page.dart';
 import 'home_shell.dart';
 
@@ -95,6 +97,9 @@ class _AuthGateState extends State<AuthGate> {
 
   _Gate _gate = _Gate.booting;
   bool _bioEnabled = false;
+
+  /// Weekly-digest opt-in — defaults OFF until the stored pref loads.
+  bool _digestEnabled = false;
   OfflineCache? _offline;
   OfflineCaptureQueue? _queue;
   StreamSubscription<String>? _shareSub;
@@ -129,6 +134,7 @@ class _AuthGateState extends State<AuthGate> {
 
   Future<void> _restore() async {
     _bioEnabled = await BiometricPrefs.loadBiometricEnabled();
+    _digestEnabled = await NotificationPrefs.loadWeeklyDigestEnabled();
     final prefs = await SharedPreferences.getInstance();
     _offline = OfflineCache(prefs);
     _queue = OfflineCaptureQueue(prefs);
@@ -140,6 +146,7 @@ class _AuthGateState extends State<AuthGate> {
           setState(() => _gate = _Gate.signedIn);
           _drainPendingShare();
           unawaited(_drainQueue());
+          unawaited(_refreshWeeklyDigest());
           return;
         }
       } on SocketException {
@@ -164,6 +171,9 @@ class _AuthGateState extends State<AuthGate> {
     // The drain attempt will fail fast and just records an honest
     // last-attempt time on the banner.
     unawaited(_drainQueue());
+    // The digest re-arm fails the same way — a failed range read leaves
+    // whatever was previously armed untouched.
+    unawaited(_refreshWeeklyDigest());
   }
 
   void _initShare() {
@@ -266,11 +276,14 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   /// After a capture save, every surface that shows its effect reloads.
+  /// The digest re-arms too, so a pending Sunday notification quotes the
+  /// totals including the rows just written.
   void _reloadTabs() {
     _dashKey.currentState?.reload();
     _actKey.currentState?.reload();
     _planKey.currentState?.reload();
     _reportKey.currentState?.reload();
+    unawaited(_refreshWeeklyDigest());
   }
 
   /// Capture submit with offline-hold semantics: a transport failure
@@ -327,6 +340,81 @@ class _AuthGateState extends State<AuthGate> {
     setState(() => _gate = _Gate.signedIn);
     _drainPendingShare();
     unawaited(_drainQueue());
+    unawaited(_refreshWeeklyDigest());
+  }
+
+  /// The weekly digest is opt-in — enabling arms the next Sunday 19:00
+  /// one-shot from fresh data, disabling cancels whatever was pending.
+  Future<void> _toggleDigest() async {
+    final enabled = !_digestEnabled;
+    await NotificationPrefs.saveWeeklyDigestEnabled(enabled);
+    setState(() => _digestEnabled = enabled);
+    unawaited(_refreshWeeklyDigest().catchError((_) {}));
+  }
+
+  /// Re-arms the Sunday digest one-shot after sign-in and after every
+  /// ledger write, so the copy always carries the freshest totals this
+  /// device has seen. Opt-in only (NotificationPrefs) and best-effort —
+  /// a failed range read leaves the previous schedule untouched.
+  Future<void> _refreshWeeklyDigest() async {
+    try {
+      await refreshWeeklyDigest(
+        enabled: _digestEnabled,
+        loadRange: _store.loadTransactionsInRange,
+        schedule: NotificationService.scheduleWeeklyDigest,
+        cancel: NotificationService.cancelWeeklyDigest,
+      );
+    } catch (_) {
+      /* advisory — same failure posture as the commitment reminders */
+    }
+  }
+
+  /// "Tạo cam kết" on a detected pattern — pickers load fresh (the
+  /// dashboard doesn't hold categories), the shared planning form opens
+  /// prefilled, and Kế hoạch reloads after a real save so the new row
+  /// shows up there immediately.
+  Future<bool> _createSuggestedCommitment(
+    BuildContext ctx,
+    RecurringSuggestion suggestion,
+  ) async {
+    final List<AccountSummary> accounts;
+    final List<Category> categories;
+    try {
+      final rows = await Future.wait([
+        _store.loadAccounts(),
+        _store.loadCategories(),
+      ]);
+      accounts = rows[0] as List<AccountSummary>;
+      categories = rows[1] as List<Category>;
+    } catch (_) {
+      if (ctx.mounted) {
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          const SnackBar(
+            content: Text('Không tải được dữ liệu — thử lại khi có mạng'),
+          ),
+        );
+      }
+      return false;
+    }
+    if (!ctx.mounted) return false;
+    final saved = await showRecurringFormDialog(
+      ctx,
+      accounts: accounts,
+      categories: categories,
+      income: false,
+      suggestion: suggestion,
+      onSave: (name, amount, day, accountId, categoryId) => _store
+          .upsertCommitment(
+            name: name,
+            amountMinor: amount,
+            dueDay: day,
+            accountId: accountId,
+            categoryId: categoryId,
+          )
+          .then((_) {}),
+    );
+    if (saved) _planKey.currentState?.reload();
+    return saved;
   }
 
   Future<void> _toggleBiometric() async {
@@ -386,6 +474,8 @@ class _AuthGateState extends State<AuthGate> {
               loadTransactions: _store.loadTransactions,
               loadBudgets: _store.loadBudgets,
               loadCommitments: _store.loadCommitments,
+              loadSuggestionTransactions: _store.loadTransactionsInRange,
+              onCreateCommitment: (s) => _createSuggestedCommitment(context, s),
               readSnapshot: () => _offline?.readDashboard(),
               writeSnapshot: (snap) =>
                   _offline?.saveDashboard(snap) ?? Future.value(),
@@ -543,6 +633,13 @@ class _AuthGateState extends State<AuthGate> {
         ),
       ),
       DashboardMenuItem(
+        label: _digestEnabled ? 'Tắt tóm tắt tuần' : 'Bật tóm tắt tuần',
+        icon: _digestEnabled
+            ? Icons.notifications_active_outlined
+            : Icons.notifications_none,
+        onTap: _toggleDigest,
+      ),
+      DashboardMenuItem(
         label: _bioEnabled ? 'Tắt khóa sinh trắc' : 'Bật khóa sinh trắc',
         icon: _bioEnabled ? Icons.fingerprint : Icons.lock_open,
         onTap: _toggleBiometric,
@@ -575,6 +672,21 @@ class _AuthGateState extends State<AuthGate> {
           loadTransactions: () async => DemoStore.seedTransactions(),
           loadBudgets: (m) async => DemoStore.seedBudgets(m),
           loadCommitments: (_) async => DemoStore.seedCommitments(),
+          // Detection runs on the same seeds; the seeds carry no monthly
+          // pattern today, so the card simply stays absent — if a seed
+          // ever qualifies, the create button repeats the read-only rule.
+          loadSuggestionTransactions: (_, _) async =>
+              DemoStore.seedTransactions(),
+          onCreateCommitment: (s) async {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Demo chỉ xem — đăng nhập để ghi khoản'),
+                ),
+              );
+            }
+            return false;
+          },
           modeLabel: 'demo',
           menuItems: [
             DashboardMenuItem(

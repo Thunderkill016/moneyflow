@@ -3,6 +3,13 @@ import 'package:flutter/material.dart';
 import '../../domain/budget.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
+import 'recurring_form_dialog.dart';
+
+// planningErrorMessage moved to recurring_form_dialog.dart — the shared
+// recurring-form file owns the RPC-error wording so the dashboard's
+// prefill path speaks the same language. Re-exported for the tests and
+// callers that referenced it here.
+export 'recurring_form_dialog.dart' show planningErrorMessage;
 
 /// Everything the planning surface needs in one load — keeps the page
 /// identical for demo seeds and the Neon store.
@@ -24,48 +31,6 @@ class PlanningData {
   final List<AccountSummary> accounts;
   final List<Category> categories;
   final String monthStart; // YYYY-MM-01
-}
-
-/// Honest message for a failed planning write — the web server actions
-/// map the same RPC codes; stale_write reuses the edit flow's wording
-/// pattern ("đóng rồi mở lại để sửa bản mới").
-String planningErrorMessage(Object e, {required String fallback}) {
-  final msg = e.toString();
-  if (msg.contains('stale_write')) {
-    return 'Dữ liệu vừa thay đổi — đóng rồi mở lại để sửa bản mới';
-  }
-  if (msg.contains('goal_not_found_or_target_below_allocated')) {
-    return 'Mức đích không được thấp hơn tiền đã dành';
-  }
-  if (msg.contains('allocation_below_zero')) {
-    return 'Không thể rút quá số tiền đã dành';
-  }
-  if (msg.contains('allocation_above_target')) {
-    return 'Số tiền vượt phần còn thiếu của mục tiêu';
-  }
-  if (msg.contains('insufficient_unreserved_balance')) {
-    return 'Không đủ số dư chưa được giữ trước';
-  }
-  if (msg.contains('goal_archive_blocked')) {
-    return 'Hãy rút hết tiền đã dành trước khi lưu trữ';
-  }
-  if (msg.contains('category_archived')) {
-    return 'Danh mục đã bị ẩn — chọn danh mục khác';
-  }
-  if (msg.contains('expense_category_required')) {
-    return 'Cần chọn một danh mục chi';
-  }
-  if (msg.contains('income_category_required')) {
-    return 'Cần chọn một danh mục thu';
-  }
-  // *_not_found (row deleted elsewhere), nothing_to_undo and
-  // archive_rejected all mean the local row state was stale.
-  if (msg.contains('not_found') ||
-      msg.contains('nothing_to_undo') ||
-      msg.contains('archive_rejected')) {
-    return 'Dữ liệu vừa thay đổi — tải lại rồi thử lại';
-  }
-  return fallback;
 }
 
 /// Write surface — each maps 1:1 to a Data API RPC (or a demo no-op).
@@ -509,190 +474,41 @@ class PlanningPageState extends State<PlanningPage> {
 
   /// One dialog for both recurring shapes — a monthly commitment
   /// (expense categories, "Tài khoản trả") or recurring income such as
-  /// salary (income categories, "Tài khoản nhận"). A non-null
-  /// [commitment]/[template] switches to edit mode: fields prefill from
-  /// the row and the save calls the same upsert RPC with its id.
+  /// salary (income categories, "Tài khoản nhận"). The form itself lives
+  /// in recurring_form_dialog.dart, shared with the dashboard's detected
+  /// suggestion card; this wrapper only binds the right save action.
   Future<void> _showRecurringForm(
     PlanningData d, {
     required bool income,
     RecurringCommitment? commitment,
     RecurringIncome? template,
   }) async {
-    final kindCats = d.categories
-        .where(
-          (c) =>
-              c.kind ==
-              (income ? TransactionKind.income : TransactionKind.expense),
-        )
-        .toList();
-    if (kindCats.isEmpty || d.accounts.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            income
-                ? 'Cần ít nhất một tài khoản và một danh mục thu'
-                : 'Cần ít nhất một tài khoản và một danh mục chi',
-          ),
-        ),
-      );
-      return;
-    }
-    final isEdit = commitment != null || template != null;
-    final editAccountId = commitment?.accountId ?? template?.accountId;
-    final editCategoryId = commitment?.categoryId ?? template?.categoryId;
-    final name = TextEditingController(
-      text: commitment?.name ?? template?.name ?? '',
-    );
-    final amount = TextEditingController(
-      text:
-          (commitment?.amountMinor ?? template?.amountMinor)?.toString() ?? '',
-    );
-    final dueDay = TextEditingController(
-      text: (commitment?.dueDay ?? template?.dueDay)?.toString() ?? '',
-    );
-    // A stored account/category that is gone or archived since can't be a
-    // dropdown value — fall back to the first option so the field shows
-    // exactly what a save would write.
-    Category? cat =
-        kindCats.where((c) => c.id == editCategoryId).firstOrNull ??
-        kindCats.firstOrNull;
-    AccountSummary? acc =
-        d.accounts.where((a) => a.id == editAccountId).firstOrNull ??
-        d.accounts.firstOrNull;
-    String? error;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlg) => AlertDialog(
-          title: Text(
-            isEdit
-                ? (income ? 'Sửa thu nhập định kỳ' : 'Sửa cam kết')
-                : (income ? 'Thu nhập định kỳ mới' : 'Cam kết mới'),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: name,
-                  decoration: InputDecoration(
-                    labelText: 'Tên',
-                    hintText: income ? 'vd: Lương' : 'vd: Tiền nhà',
-                    border: const OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: amount,
-                  decoration: InputDecoration(
-                    labelText: 'Số tiền',
-                    hintText: income ? 'vd: 15tr' : 'vd: 3tr',
-                    border: const OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: dueDay,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Ngày đến hạn (1-31)',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<AccountSummary>(
-                  initialValue: acc,
-                  decoration: InputDecoration(
-                    labelText: income ? 'Tài khoản nhận' : 'Tài khoản trả',
-                    border: const OutlineInputBorder(),
-                  ),
-                  items: [
-                    for (final a in d.accounts)
-                      DropdownMenuItem(value: a, child: Text(a.name)),
-                  ],
-                  onChanged: (v) => setDlg(() => acc = v ?? acc),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<Category>(
-                  initialValue: cat,
-                  decoration: const InputDecoration(
-                    labelText: 'Danh mục',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: [
-                    for (final c in kindCats)
-                      DropdownMenuItem(value: c, child: Text(c.name)),
-                  ],
-                  onChanged: (v) => setDlg(() => cat = v ?? cat),
-                ),
-                if (error != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    error!,
-                    style: TextStyle(color: Theme.of(ctx).colorScheme.error),
-                  ),
-                ],
-              ],
+    final ok = await showRecurringFormDialog(
+      context,
+      accounts: d.accounts,
+      categories: d.categories,
+      income: income,
+      commitment: commitment,
+      template: template,
+      onSave: (name, amount, day, accountId, categoryId) => income
+          ? widget.actions.onIncomeSave!(
+              template,
+              name,
+              amount,
+              day,
+              accountId,
+              categoryId,
+            )
+          : widget.actions.onCommitmentSave(
+              commitment,
+              name,
+              amount,
+              day,
+              accountId,
+              categoryId,
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Hủy'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                final n = name.text.trim();
-                final a = parseMoneyInput(amount.text);
-                final day = int.tryParse(dueDay.text.trim());
-                if (n.isEmpty ||
-                    a == null ||
-                    a <= 0 ||
-                    day == null ||
-                    day < 1 ||
-                    day > 31 ||
-                    acc == null ||
-                    cat == null) {
-                  return;
-                }
-                try {
-                  if (income) {
-                    await widget.actions.onIncomeSave!(
-                      template,
-                      n,
-                      a,
-                      day,
-                      acc!.id,
-                      cat!.id,
-                    );
-                  } else {
-                    await widget.actions.onCommitmentSave(
-                      commitment,
-                      n,
-                      a,
-                      day,
-                      acc!.id,
-                      cat!.id,
-                    );
-                  }
-                } catch (e) {
-                  setDlg(
-                    () => error = planningErrorMessage(
-                      e,
-                      fallback: 'Không lưu được — thử lại',
-                    ),
-                  );
-                  return;
-                }
-                if (ctx.mounted) Navigator.pop(ctx, true);
-              },
-              child: Text(isEdit ? 'Lưu' : 'Tạo'),
-            ),
-          ],
-        ),
-      ),
     );
-    if (ok == true) _refresh();
+    if (ok) _refresh();
   }
 
   Future<void> _payCommitment(RecurringCommitment c) async {

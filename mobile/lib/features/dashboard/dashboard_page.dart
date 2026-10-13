@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../data/demo_store.dart';
 import '../../data/offline_cache.dart';
+import '../../data/recurring_dismissals.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
+import '../../domain/recurring_detection.dart';
+import '../../domain/report.dart' show dateAdd, ymd;
 import '../../domain/safe_to_spend.dart';
 
 /// One entry in the dashboard overflow menu — keeps the appbar to a single
@@ -28,6 +31,8 @@ class DashboardPage extends StatefulWidget {
     required this.loadTransactions,
     this.loadBudgets,
     this.loadCommitments,
+    this.loadSuggestionTransactions,
+    this.onCreateCommitment,
     this.modeLabel,
     this.menuItems = const [],
     this.readSnapshot,
@@ -59,6 +64,18 @@ class DashboardPage extends StatefulWidget {
   final Future<List<BudgetProgress>> Function(String monthStart)? loadBudgets;
   final Future<List<RecurringCommitment>> Function(String monthStart)?
   loadCommitments;
+
+  /// Optional detection source for the recurring-suggestion card — the
+  /// [from, to) range contract of RealStore.loadTransactionsInRange.
+  /// Absent (or a failed read) simply means no card: the dashboard never
+  /// invents a pattern to fill the slot.
+  final Future<List<Transaction>> Function(String from, String to)?
+  loadSuggestionTransactions;
+
+  /// "Tạo cam kết" on a suggestion — the app shell opens the shared
+  /// planning form prefilled and reports whether a real save happened.
+  final Future<bool> Function(RecurringSuggestion suggestion)?
+  onCreateCommitment;
   final String? modeLabel;
   final List<DashboardMenuItem> menuItems;
 
@@ -82,10 +99,16 @@ typedef _DashboardData = ({
   int? savedAtMs,
   List<BudgetProgress>? budgets,
   List<RecurringCommitment>? commitments,
+  List<RecurringSuggestion> suggestions,
 });
 
 class DashboardPageState extends State<DashboardPage> {
   late Future<_DashboardData> _data;
+
+  /// Suggestions hidden this session — persisted dismissals are filtered
+  /// at load; this set also covers a just-created commitment until the
+  /// next load's coverage keys exclude the pattern for real.
+  final _hiddenSuggestions = <String>{};
 
   @override
   void initState() {
@@ -114,6 +137,7 @@ class DashboardPageState extends State<DashboardPage> {
         savedAtMs: null,
         budgets: planning.$1,
         commitments: planning.$2,
+        suggestions: await _loadSuggestions(planning.$2),
       );
     } catch (e) {
       final cached = widget.readSnapshot?.call();
@@ -124,6 +148,7 @@ class DashboardPageState extends State<DashboardPage> {
         savedAtMs: cached.savedAtMs,
         budgets: null,
         commitments: null,
+        suggestions: const <RecurringSuggestion>[],
       );
     }
   }
@@ -143,6 +168,52 @@ class DashboardPageState extends State<DashboardPage> {
       return (budgets, commitments);
     } catch (_) {
       return (null, null);
+    }
+  }
+
+  /// Detection over the last ~6 months — advisory like the safe-spend
+  /// tile: a failed range or dismissal read hides the card rather than
+  /// failing the dashboard, and no commitments means coverage can't be
+  /// checked so nothing is suggested (a re-suggestion would be a lie).
+  Future<List<RecurringSuggestion>> _loadSuggestions(
+    List<RecurringCommitment>? commitments,
+  ) async {
+    final loader = widget.loadSuggestionTransactions;
+    if (loader == null || commitments == null) return const [];
+    try {
+      final today = DateTime.now();
+      final txs = await loader(
+        recurringDetectionStart(today),
+        ymd(dateAdd(today, 1)),
+      );
+      final covered = {
+        for (final c in commitments.where((c) => !c.isArchived))
+          ...recurringCommitmentKeys(c),
+      };
+      final dismissed = await RecurringDismissals.load();
+      return detectRecurring(
+        txs,
+        covered,
+        today: today,
+      ).where((s) => !dismissed.contains(s.key)).toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  /// "Ẩn" is permanent — the key lands in mf_recurring_dismissed and the
+  /// pattern is filtered out on every later load.
+  Future<void> _dismissSuggestion(RecurringSuggestion s) async {
+    setState(() => _hiddenSuggestions.add(s.key));
+    await RecurringDismissals.dismiss(s.key);
+  }
+
+  /// A real save covers the pattern via the new commitment's keys; hiding
+  /// the card immediately just mirrors what the next load would compute.
+  Future<void> _createCommitment(RecurringSuggestion s) async {
+    final created = await widget.onCreateCommitment!(s);
+    if (created && mounted) {
+      setState(() => _hiddenSuggestions.add(s.key));
     }
   }
 
@@ -221,6 +292,9 @@ class DashboardPageState extends State<DashboardPage> {
           final total = accounts.fold<int>(0, (s, a) => s + a.balance);
           final budgets = snap.data!.budgets;
           final commitments = snap.data!.commitments;
+          final suggestions = snap.data!.suggestions
+              .where((s) => !_hiddenSuggestions.contains(s.key))
+              .toList();
           return RefreshIndicator(
             onRefresh: _refresh,
             child: ListView(
@@ -237,6 +311,16 @@ class DashboardPageState extends State<DashboardPage> {
                       commitments: commitments,
                       today: DateTime.now(),
                     ),
+                  ),
+                ],
+                for (final s in suggestions) ...[
+                  const SizedBox(height: 12),
+                  _RecurringSuggestionCard(
+                    suggestion: s,
+                    onCreate: widget.onCreateCommitment == null
+                        ? null
+                        : () => _createCommitment(s),
+                    onDismiss: () => _dismissSuggestion(s),
                   ),
                 ],
                 if (accounts.isEmpty && txs.isEmpty)
@@ -407,6 +491,73 @@ class _SafeSpendCard extends StatelessWidget {
                 style: text.bodySmall,
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "Có vẻ là khoản định kỳ" — a detected monthly pattern the user may
+/// declare as a commitment. Sits under the safe-spend tile with the other
+/// planning nudges; both actions are explicit user choices — [onCreate]
+/// opens the prefilled planning form (never writes by itself) and
+/// [onDismiss] permanently hides this pattern.
+class _RecurringSuggestionCard extends StatelessWidget {
+  const _RecurringSuggestionCard({
+    required this.suggestion,
+    required this.onDismiss,
+    this.onCreate,
+  });
+
+  final RecurringSuggestion suggestion;
+  final VoidCallback onDismiss;
+
+  /// Null when the host offers no commitment surface (e.g. demo) — the
+  /// card still lets the user hide the pattern.
+  final VoidCallback? onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final text = theme.textTheme;
+    final s = suggestion;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.repeat, size: 18, color: theme.colorScheme.primary),
+                const SizedBox(width: 6),
+                Text('Có vẻ là khoản định kỳ', style: text.labelLarge),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${s.name} · ${formatMoney(s.amount)} · ngày ${s.dayOfMonth}',
+              style: text.bodyMedium,
+            ),
+            Text(
+              'Gặp ${s.occurrenceCount} lần trong '
+              '${s.months.length} tháng gần đây',
+              style: text.bodySmall,
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(onPressed: onDismiss, child: const Text('Ẩn')),
+                const SizedBox(width: 8),
+                if (onCreate != null)
+                  FilledButton(
+                    onPressed: onCreate,
+                    child: const Text('Tạo cam kết'),
+                  ),
+              ],
+            ),
           ],
         ),
       ),
