@@ -854,6 +854,9 @@ void main() {
     testWidgets('goal tiles render the projection line honestly', (
       tester,
     ) async {
+      // Empty budget/commitment cards above the goals section push its
+      // tiles past the default surface — ListView builds lazily.
+      _tallViewport(tester);
       // ~a year of elapsed span keeps the rate stable regardless of the
       // day the test runs; the second goal has no created_at and no
       // allocation, so it must say "chưa đủ dữ liệu" — not guess.

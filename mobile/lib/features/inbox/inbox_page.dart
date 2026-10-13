@@ -14,6 +14,7 @@ import '../../domain/inbox.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../capture/category_picker.dart';
+import '../shared/empty_state.dart';
 import 'csv_import_sheet.dart';
 
 /// The pending review queue. Page pops `true` when anything changed so the
@@ -408,15 +409,12 @@ class InboxPageState extends State<InboxPage> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(16),
                   children: [
-                    const Card(
-                      child: ListTile(
-                        leading: Icon(Icons.inbox_outlined),
-                        title: Text('Không có mục nào chờ duyệt'),
-                        subtitle: Text(
+                    const EmptyStateCard(
+                      icon: Icons.inbox_outlined,
+                      title: 'Không có mục nào chờ duyệt',
+                      message:
                           'Dán tin nhắn ngân hàng hoặc nhập file CSV để '
                           'tạo mục chờ duyệt — chưa có gì ghi vào sổ.',
-                        ),
-                      ),
                     ),
                     const SizedBox(height: 12),
                     if (_pasteEnabled)

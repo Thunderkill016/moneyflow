@@ -64,6 +64,9 @@ void main() {
           'mf_last_capture_account': 'acc-1',
           'mf_last_capture_category': 'cat-1',
           'mf_recurring_dismissed': '["k1"]',
+          // Per-account search history — the next sign-in on this
+          // device must not see the previous account's queries.
+          'mf_recent_searches': '["cafe"]',
           'mf_dashboard_snapshot': '{}',
           'mf_offline_capture_queue': '{}',
           // Account-scoped stores — survive for their owner's next session.
@@ -81,6 +84,7 @@ void main() {
           'mf_last_capture_account',
           'mf_last_capture_category',
           'mf_recurring_dismissed',
+          'mf_recent_searches',
           'mf_dashboard_snapshot',
           'mf_offline_capture_queue',
         ]) {

@@ -2,12 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../data/recent_searches.dart';
 import '../../domain/bulk.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/report.dart' show unnamedPayeeBucket;
 import '../../domain/transaction_query.dart';
 import '../capture/category_picker.dart';
+import '../shared/empty_state.dart';
 
 /// Full transaction activity — soft-delete via long-press (the same
 /// soft_delete_money_transaction RPC the web trash flow uses), tap to
@@ -26,6 +28,7 @@ class ActivityPage extends StatefulWidget {
     this.loadAccounts,
     this.initialQuery,
     this.title,
+    this.onCapture,
   });
 
   /// One page of the feed for a search/filter query.
@@ -57,6 +60,11 @@ class ActivityPage extends StatefulWidget {
 
   /// Feeds the account filter — null hides it.
   final Future<List<AccountSummary>> Function()? loadAccounts;
+
+  /// "Ghi khoản đầu tiên" on the empty feed — the host opens its
+  /// capture flow. Null leaves the empty state as plain informational
+  /// text, never a dead button.
+  final VoidCallback? onCapture;
 
   @override
   State<ActivityPage> createState() => ActivityPageState();
@@ -92,6 +100,10 @@ class ActivityPageState extends State<ActivityPage> {
   Timer? _debounce;
   List<AccountSummary> _accounts = const [];
   List<Category> _categories = const [];
+
+  /// "Tìm gần đây" — last persisted searches, newest first. Loaded
+  /// when the search field opens; a prefs failure just means no chips.
+  List<String> _recent = const [];
 
   @override
   void initState() {
@@ -170,15 +182,61 @@ class ActivityPageState extends State<ActivityPage> {
   }
 
   void _onSearchChanged(String text) {
+    // Rebuild so the "Tìm gần đây" chips hide the moment typing starts.
+    setState(() {});
     _debounce?.cancel();
     _debounce = Timer(_searchDebounce, () {
       if (!mounted || text == _query.text) return;
+      _recordSearch(text);
       _setQuery(_query.copyWith(text: text));
     });
   }
 
+  /// Persists a non-empty applied query for the "Tìm gần đây" chips —
+  /// best-effort like the last-capture picks; a failed write only means
+  /// the chip row won't remember this term.
+  void _recordSearch(String text) {
+    RecentSearches.record(text)
+        .then((list) {
+          if (mounted) setState(() => _recent = list);
+        })
+        .catchError((_) {});
+  }
+
+  Future<void> _loadRecent() async {
+    try {
+      final list = await RecentSearches.load();
+      if (mounted) setState(() => _recent = list);
+    } catch (_) {
+      /* no prefs backend → no saved searches */
+    }
+  }
+
+  void _openSearch() {
+    setState(() => _searching = true);
+    _loadRecent();
+  }
+
+  /// A tapped recent chip fills the field and applies immediately —
+  /// re-running a saved search is the whole point of the row.
+  void _applyRecent(String text) {
+    _search.text = text;
+    _search.selection = TextSelection.collapsed(offset: text.length);
+    _debounce?.cancel();
+    _recordSearch(text);
+    _setQuery(_query.copyWith(text: text));
+  }
+
+  Future<void> _clearRecent() async {
+    setState(() => _recent = const []);
+    await RecentSearches.clear().catchError((_) {});
+  }
+
   void _closeSearch() {
     _debounce?.cancel();
+    // A pending debounce never fires after close — record the typed
+    // term here so quick-open searches still land in "Tìm gần đây".
+    _recordSearch(_search.text);
     final had = _query.text.isNotEmpty;
     _search.clear();
     setState(() => _searching = false);
@@ -439,14 +497,57 @@ class ActivityPageState extends State<ActivityPage> {
 
   Widget _emptyState() {
     if (!_query.isEmpty) {
-      return const Card(
-        child: ListTile(title: Text('Không có giao dịch khớp bộ lọc')),
+      return EmptyStateCard(
+        icon: Icons.search_off,
+        title: 'Không có giao dịch khớp bộ lọc',
+        message: 'Nới hoặc xóa bớt điều kiện lọc để xem thêm.',
+        actionLabel: 'Xóa bộ lọc',
+        onAction: _clearFilters,
       );
     }
-    return const Card(
-      child: ListTile(
-        title: Text('Chưa có giao dịch nào'),
-        subtitle: Text('Bấm "Ghi" ở thanh dưới để thêm khoản đầu tiên'),
+    return EmptyStateCard(
+      icon: Icons.receipt_long_outlined,
+      title: 'Chưa có giao dịch nào',
+      message: 'Khoản đầu tiên bạn ghi sẽ hiện ở đây.',
+      actionLabel: widget.onCapture == null ? null : 'Ghi khoản đầu tiên',
+      onAction: widget.onCapture,
+    );
+  }
+
+  /// "Tìm gần đây" — recent-query chips shown while the search field is
+  /// still empty; each tap refills the field and runs the search.
+  /// "Xóa" clears the persisted list — the store lives in prefs, so the
+  /// chips would otherwise outlive what the user meant to keep.
+  Widget _recentSearches() {
+    final text = Theme.of(context).textTheme;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 8, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.history,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 6),
+                Expanded(child: Text('Tìm gần đây', style: text.labelLarge)),
+                TextButton(onPressed: _clearRecent, child: const Text('Xóa')),
+              ],
+            ),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final s in _recent)
+                  ActionChip(label: Text(s), onPressed: () => _applyRecent(s)),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -517,7 +618,7 @@ class ActivityPageState extends State<ActivityPage> {
             IconButton(
               icon: const Icon(Icons.search),
               tooltip: 'Tìm kiếm',
-              onPressed: () => setState(() => _searching = true),
+              onPressed: _openSearch,
             ),
           if (!_selecting)
             IconButton(
@@ -587,6 +688,10 @@ class ActivityPageState extends State<ActivityPage> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
                 children: [
+                  if (showSearch &&
+                      _search.text.trim().isEmpty &&
+                      _recent.isNotEmpty)
+                    _recentSearches(),
                   if (!_query.isEmpty) _filterChips(),
                   if (_canSelect && (reviewCount > 0 || _onlyNeedsReview))
                     Align(

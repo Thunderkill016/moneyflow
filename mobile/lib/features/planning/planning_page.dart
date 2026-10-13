@@ -6,6 +6,7 @@ import '../../domain/goal_projection.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/report.dart' show ymd;
+import '../shared/empty_state.dart';
 import 'recurring_form_dialog.dart';
 
 // planningErrorMessage moved to recurring_form_dialog.dart — the shared
@@ -314,7 +315,26 @@ class PlanningPageState extends State<PlanningPage> {
                       : () => _showQuickFill(d),
                 ),
                 if (_budgetOffset > 0) _fundedChip(d),
-                if (d.budgets.isEmpty) _empty('Chưa có ngân sách nào'),
+                if (d.budgets.isEmpty)
+                  _empty(
+                    'Chưa có ngân sách nào',
+                    icon: Icons.pie_chart_outline,
+                    message: 'Đặt hạn mức cho từng danh mục chi để theo dõi.',
+                    // Same guard as the section header's add button — no
+                    // expense category means the form has nothing to pick.
+                    actionLabel:
+                        d.categories.any(
+                          (c) => c.kind == TransactionKind.expense,
+                        )
+                        ? 'Đặt hạn mức'
+                        : null,
+                    onAction:
+                        d.categories.any(
+                          (c) => c.kind == TransactionKind.expense,
+                        )
+                        ? () => _showBudgetForm(d)
+                        : null,
+                  ),
                 for (final b in d.budgets)
                   _BudgetTile(
                     budget: b,
@@ -330,12 +350,23 @@ class PlanningPageState extends State<PlanningPage> {
                   const SizedBox(height: 20),
                   _SectionHeader(
                     title: 'Thu nhập định kỳ',
+                    addTooltip: 'Thêm khoản thu định kỳ',
                     onAdd: widget.actions.onIncomeSave == null
                         ? null
                         : () => _showIncomeForm(d),
                   ),
                   if (activeIncome.isEmpty)
-                    _empty('Chưa có khoản thu định kỳ nào'),
+                    _empty(
+                      'Chưa có khoản thu định kỳ nào',
+                      icon: Icons.event_repeat,
+                      message: 'Thêm khoản thu lặp lại như lương, phụ cấp.',
+                      actionLabel: widget.actions.onIncomeSave == null
+                          ? null
+                          : 'Thêm khoản thu',
+                      onAction: widget.actions.onIncomeSave == null
+                          ? null
+                          : () => _showIncomeForm(d),
+                    ),
                   for (final i in activeIncome)
                     _IncomeTile(
                       income: i,
@@ -370,9 +401,19 @@ class PlanningPageState extends State<PlanningPage> {
                 const SizedBox(height: 20),
                 _SectionHeader(
                   title: 'Cam kết hàng tháng',
+                  addTooltip: 'Thêm cam kết',
                   onAdd: () => _showCommitmentForm(d),
                 ),
-                if (activeCommitments.isEmpty) _empty('Chưa có cam kết nào'),
+                if (activeCommitments.isEmpty)
+                  _empty(
+                    'Chưa có cam kết nào',
+                    icon: Icons.repeat,
+                    message:
+                        'Thêm khoản định kỳ như tiền nhà, internet '
+                        'để theo dõi ngày đến hạn.',
+                    actionLabel: 'Thêm cam kết',
+                    onAction: () => _showCommitmentForm(d),
+                  ),
                 for (final c in activeCommitments)
                   _CommitmentTile(
                     commitment: c,
@@ -399,9 +440,17 @@ class PlanningPageState extends State<PlanningPage> {
                 const SizedBox(height: 20),
                 _SectionHeader(
                   title: 'Mục tiêu tiết kiệm',
+                  addTooltip: 'Thêm mục tiêu',
                   onAdd: () => _showGoalForm(),
                 ),
-                if (activeGoals.isEmpty) _empty('Chưa có mục tiêu nào'),
+                if (activeGoals.isEmpty)
+                  _empty(
+                    'Chưa có mục tiêu nào',
+                    icon: Icons.savings_outlined,
+                    message: 'Đặt mục tiêu để theo dõi tiến độ tiết kiệm.',
+                    actionLabel: 'Thêm mục tiêu',
+                    onAction: () => _showGoalForm(),
+                  ),
                 for (final g in activeGoals)
                   _GoalTile(
                     goal: g,
@@ -432,7 +481,21 @@ class PlanningPageState extends State<PlanningPage> {
     );
   }
 
-  Widget _empty(String text) => Card(child: ListTile(title: Text(text)));
+  /// One shared empty-state card per section — an action button renders
+  /// only where a real seam exists, never as a dead affordance.
+  Widget _empty(
+    String text, {
+    required IconData icon,
+    String? message,
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) => EmptyStateCard(
+    icon: icon,
+    title: text,
+    message: message,
+    actionLabel: actionLabel,
+    onAction: onAction,
+  );
 
   /// "% đã dự phòng" for the month-ahead view — next month's planned
   /// limits against the average income of the three COMPLETED months
@@ -1489,6 +1552,7 @@ class _BudgetSectionHeader extends StatelessWidget {
         if (onAdd != null)
           IconButton(
             icon: const Icon(Icons.add_circle_outline),
+            tooltip: 'Thêm ngân sách',
             onPressed: onAdd,
           ),
       ],
@@ -1497,10 +1561,13 @@ class _BudgetSectionHeader extends StatelessWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, this.onAdd});
+  const _SectionHeader({required this.title, this.onAdd, this.addTooltip});
 
   final String title;
   final VoidCallback? onAdd;
+
+  /// Screen-reader + long-press label for the icon-only add button.
+  final String? addTooltip;
 
   @override
   Widget build(BuildContext context) {
@@ -1512,6 +1579,7 @@ class _SectionHeader extends StatelessWidget {
         if (onAdd != null)
           IconButton(
             icon: const Icon(Icons.add_circle_outline),
+            tooltip: addTooltip,
             onPressed: onAdd,
           ),
       ],

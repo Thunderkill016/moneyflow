@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/models.dart';
 import '../../domain/money.dart';
+import '../shared/empty_state.dart';
 
 /// Account list + create/archive — mirrors the web's account management
 /// surface (create_financial_account, set_financial_account_archived).
@@ -70,125 +71,17 @@ class _AccountsPageState extends State<AccountsPage> {
     } catch (_) {}
   }
 
-  /// Create when [editing] is null, otherwise edit that account in place.
+  /// Create when [editing] is null, otherwise edit that account in
+  /// place — both paths go through the shared [showAccountFormDialog].
   Future<void> _showForm({AccountSummary? editing}) async {
-    final name = TextEditingController(text: editing?.name ?? '');
-    final balance = TextEditingController(
-      text: editing == null ? '' : editing.initialBalance.toString(),
+    final saved = await showAccountFormDialog(
+      context,
+      editing: editing,
+      onSave: (name, kind, bal) => editing == null
+          ? widget.onCreate!(name, kind, bal)
+          : widget.onUpdate!(editing, name, kind, bal),
     );
-    AccountKind kind = editing?.kind ?? AccountKind.cash;
-    String? error;
-    final saved = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlg) => AlertDialog(
-          title: Text(editing == null ? 'Thêm tài khoản' : 'Sửa tài khoản'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: name,
-                  decoration: const InputDecoration(
-                    labelText: 'Tên tài khoản',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<AccountKind>(
-                  initialValue: kind,
-                  decoration: const InputDecoration(
-                    labelText: 'Loại',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: AccountKind.cash,
-                      child: Text('Tiền mặt'),
-                    ),
-                    DropdownMenuItem(
-                      value: AccountKind.bank,
-                      child: Text('Ngân hàng'),
-                    ),
-                    DropdownMenuItem(
-                      value: AccountKind.eWallet,
-                      child: Text('Ví điện tử'),
-                    ),
-                    DropdownMenuItem(
-                      value: AccountKind.creditCard,
-                      child: Text('Thẻ tín dụng'),
-                    ),
-                    DropdownMenuItem(
-                      value: AccountKind.savings,
-                      child: Text('Tiết kiệm'),
-                    ),
-                  ],
-                  onChanged: (v) => setDlg(() => kind = v ?? kind),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: balance,
-                  decoration: const InputDecoration(
-                    labelText: 'Số dư ban đầu',
-                    hintText: 'vd: 500k',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                if (error != null) ...[
-                  const SizedBox(height: 12),
-                  Text(error!, style: TextStyle(color: Colors.red.shade700)),
-                ],
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Hủy'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                final n = name.text.trim();
-                if (n.isEmpty) return;
-                // An empty balance is a legitimate 0 opening; a non-empty
-                // entry the money parser rejects must fail visibly — `?? 0`
-                // here used to silently save a mistyped balance as 0.
-                final balRaw = balance.text.trim();
-                final bal = balRaw.isEmpty ? 0 : parseMoneyInput(balRaw);
-                if (bal == null) {
-                  setDlg(() => error = 'Số tiền không hợp lệ');
-                  return;
-                }
-                try {
-                  if (editing == null) {
-                    await widget.onCreate!(n, kind, bal);
-                  } else {
-                    await widget.onUpdate!(editing, n, kind, bal);
-                  }
-                } catch (e) {
-                  setDlg(() => error = _saveError(e));
-                  return;
-                }
-                if (ctx.mounted) Navigator.pop(ctx, true);
-              },
-              child: Text(editing == null ? 'Tạo' : 'Lưu'),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (saved == true) _refresh();
-  }
-
-  String _saveError(Object e) {
-    final msg = e.toString();
-    if (msg.contains('stale_write')) {
-      return 'Tài khoản vừa thay đổi — đóng rồi mở lại để sửa bản mới';
-    }
-    if (msg.contains('invalid_account_name')) {
-      return 'Tên tài khoản chưa hợp lệ';
-    }
-    return 'Không lưu được — thử lại';
+    if (saved) _refresh();
   }
 
   @override
@@ -237,6 +130,18 @@ class _AccountsPageState extends State<AccountsPage> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               children: [
+                if (snap.data!.isEmpty)
+                  EmptyStateCard(
+                    icon: Icons.account_balance_wallet_outlined,
+                    title: 'Chưa có tài khoản nào',
+                    message: 'Tạo ví hoặc tài khoản để bắt đầu ghi khoản.',
+                    actionLabel: widget.onCreate == null
+                        ? null
+                        : 'Thêm tài khoản',
+                    onAction: widget.onCreate == null
+                        ? null
+                        : () => _showForm(),
+                  ),
                 for (final a in snap.data!)
                   if (!a.isArchived) _accountTile(a),
                 if (archived.isNotEmpty) ...[
@@ -270,7 +175,7 @@ class _AccountsPageState extends State<AccountsPage> {
     try {
       await widget.onArchive!(a.id, archived);
     } catch (e) {
-      if (mounted) _snack(_saveError(e));
+      if (mounted) _snack(accountFormErrorMessage(e));
       return;
     }
     _snack(archived ? 'Đã lưu trữ tài khoản.' : 'Đã hiện lại tài khoản.');
@@ -345,4 +250,138 @@ class _AccountsPageState extends State<AccountsPage> {
     );
     if (ok == true) await _applyArchived(a, true);
   }
+}
+
+/// Account-form error copy shared by every host of the dialog — the
+/// accounts page and the zero-account capture state report identical
+/// failures with identical wording.
+String accountFormErrorMessage(Object e) {
+  final msg = e.toString();
+  if (msg.contains('stale_write')) {
+    return 'Tài khoản vừa thay đổi — đóng rồi mở lại để sửa bản mới';
+  }
+  if (msg.contains('invalid_account_name')) {
+    return 'Tên tài khoản chưa hợp lệ';
+  }
+  return 'Không lưu được — thử lại';
+}
+
+/// The shared create/edit account form — the accounts page hosts it
+/// from the FAB and row actions, and other surfaces (capture's
+/// zero-account state, the empty-ledger intro) reuse it so a first
+/// wallet is never created two different ways. [onSave] performs the
+/// actual write; the dialog stays open with an honest error when it
+/// throws. Returns true only when a save actually landed.
+Future<bool> showAccountFormDialog(
+  BuildContext context, {
+  AccountSummary? editing,
+  required Future<void> Function(
+    String name,
+    AccountKind kind,
+    int initialBalance,
+  )
+  onSave,
+}) async {
+  final name = TextEditingController(text: editing?.name ?? '');
+  final balance = TextEditingController(
+    text: editing == null ? '' : editing.initialBalance.toString(),
+  );
+  AccountKind kind = editing?.kind ?? AccountKind.cash;
+  String? error;
+  final saved = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setDlg) => AlertDialog(
+        title: Text(editing == null ? 'Thêm tài khoản' : 'Sửa tài khoản'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: name,
+                decoration: const InputDecoration(
+                  labelText: 'Tên tài khoản',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<AccountKind>(
+                initialValue: kind,
+                decoration: const InputDecoration(
+                  labelText: 'Loại',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: AccountKind.cash,
+                    child: Text('Tiền mặt'),
+                  ),
+                  DropdownMenuItem(
+                    value: AccountKind.bank,
+                    child: Text('Ngân hàng'),
+                  ),
+                  DropdownMenuItem(
+                    value: AccountKind.eWallet,
+                    child: Text('Ví điện tử'),
+                  ),
+                  DropdownMenuItem(
+                    value: AccountKind.creditCard,
+                    child: Text('Thẻ tín dụng'),
+                  ),
+                  DropdownMenuItem(
+                    value: AccountKind.savings,
+                    child: Text('Tiết kiệm'),
+                  ),
+                ],
+                onChanged: (v) => setDlg(() => kind = v ?? kind),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: balance,
+                decoration: const InputDecoration(
+                  labelText: 'Số dư ban đầu',
+                  hintText: 'vd: 500k',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              if (error != null) ...[
+                const SizedBox(height: 12),
+                Text(error!, style: TextStyle(color: Colors.red.shade700)),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final n = name.text.trim();
+              if (n.isEmpty) return;
+              // An empty balance is a legitimate 0 opening; a non-empty
+              // entry the money parser rejects must fail visibly — `?? 0`
+              // here used to silently save a mistyped balance as 0.
+              final balRaw = balance.text.trim();
+              final bal = balRaw.isEmpty ? 0 : parseMoneyInput(balRaw);
+              if (bal == null) {
+                setDlg(() => error = 'Số tiền không hợp lệ');
+                return;
+              }
+              try {
+                await onSave(n, kind, bal);
+              } catch (e) {
+                setDlg(() => error = accountFormErrorMessage(e));
+                return;
+              }
+              if (ctx.mounted) Navigator.pop(ctx, true);
+            },
+            child: Text(editing == null ? 'Tạo' : 'Lưu'),
+          ),
+        ],
+      ),
+    ),
+  );
+  return saved ?? false;
 }

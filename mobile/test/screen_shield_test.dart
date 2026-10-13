@@ -15,9 +15,7 @@ void main() {
     await ScreenShield.protect(apply: () async => throw Exception('nope'));
   });
 
-  testWidgets('the real plugin call resolves even when unsupported', (
-    t,
-  ) async {
+  testWidgets('the real plugin call resolves even when unsupported', (t) async {
     // Mock the plugin channel to answer like a device without the
     // feature — protect() must still complete and must not throw.
     final messenger =

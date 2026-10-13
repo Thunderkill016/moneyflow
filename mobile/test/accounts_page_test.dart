@@ -151,7 +151,8 @@ void main() {
       ),
     );
     await t.pumpAndSettle();
-    await t.tap(find.text('Thêm tài khoản'));
+    // The FAB — the empty-list card carries the same label now.
+    await t.tap(find.widgetWithText(FloatingActionButton, 'Thêm tài khoản'));
     await t.pumpAndSettle();
     await t.enterText(find.widgetWithText(TextField, 'Tên tài khoản'), 'Quỹ');
     await t.tap(find.text('Tạo'));
@@ -173,7 +174,8 @@ void main() {
       ),
     );
     await t.pumpAndSettle();
-    await t.tap(find.text('Thêm tài khoản'));
+    // The FAB — the empty-list card carries the same label now.
+    await t.tap(find.widgetWithText(FloatingActionButton, 'Thêm tài khoản'));
     await t.pumpAndSettle();
     await t.enterText(find.widgetWithText(TextField, 'Tên tài khoản'), 'Quỹ');
 

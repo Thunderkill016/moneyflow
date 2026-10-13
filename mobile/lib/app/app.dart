@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/csv_file_source.dart';
@@ -68,6 +69,16 @@ class MoneyFlowApp extends StatelessWidget {
     return MaterialApp(
       title: 'MoneyFlow',
       debugShowCheckedModeBanner: false,
+      // The UI is Vietnamese-only; without these delegates the framework
+      // defaults (back-button tooltip "Back", menu "Show menu", date
+      // pickers) read English to screen readers and long-presses.
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('vi'), Locale('en')],
+      locale: const Locale('vi'),
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
@@ -469,6 +480,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           store: _store,
           prefill: prefill,
           submit: _captureSubmit,
+          onCreateAccount: _createAccountForCapture,
         ),
       ),
     );
@@ -486,13 +498,41 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     }
   }
 
+  /// "Tạo ví" from the zero-account capture form / empty-ledger intro —
+  /// one shared create flow on the same dialog the accounts page hosts.
+  /// Returns the refreshed account list after a real save (null when the
+  /// dialog was cancelled) so capture can repopulate its picker without
+  /// a second contract. The dialog itself reports save failures inline.
+  Future<List<AccountSummary>?> _createAccountFlow() async {
+    final saved = await showAccountFormDialog(
+      context,
+      onSave: (name, kind, bal) => _store
+          .createAccount(name: name, kind: kind, initialBalance: bal)
+          .then((_) {}),
+    );
+    if (!saved || !mounted) return null;
+    return _store.loadAccounts();
+  }
+
+  /// Capture-side wrapper: the created wallet changes what every tab
+  /// shows (balances, pickers), so a real save reloads them all.
+  Future<List<AccountSummary>?> _createAccountForCapture() async {
+    final fresh = await _createAccountFlow();
+    if (fresh != null) _reloadTabs();
+    return fresh;
+  }
+
   /// Center-nav capture: loads its own accounts/categories/transactions so
   /// the form gets fresh data plus the "Mục hay dùng" ranking regardless of
   /// what the dashboard has loaded.
   Future<CaptureResult?> _openCapture(BuildContext context) async {
     final result = await Navigator.of(context).push<CaptureResult>(
       MaterialPageRoute(
-        builder: (_) => _CaptureLoader(store: _store, submit: _captureSubmit),
+        builder: (_) => _CaptureLoader(
+          store: _store,
+          submit: _captureSubmit,
+          onCreateAccount: _createAccountForCapture,
+        ),
       ),
     );
     if (!context.mounted) return result;
@@ -798,6 +838,17 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
               loadCommitments: _store.loadCommitments,
               loadSuggestionTransactions: _store.loadTransactionsInRange,
               onCreateCommitment: (s) => _createSuggestedCommitment(context, s),
+              // "Tạo ví đầu tiên" on the empty ledger — the page reloads
+              // itself after the seam returns; the other tabs that read
+              // accounts follow on a real save.
+              onCreateAccount: () async {
+                final fresh = await _createAccountFlow();
+                if (fresh == null) return;
+                _actKey.currentState?.reload();
+                _planKey.currentState?.reload();
+                _reportKey.currentState?.reload();
+                unawaited(_refreshWeeklyDigest());
+              },
               readSnapshot: () => _offline?.readDashboard(),
               writeSnapshot: (snap) =>
                   _offline?.saveDashboard(snap) ?? Future.value(),
@@ -821,6 +872,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
                 _dashKey.currentState?.reload();
               },
               loadCategories: _store.loadCategories,
+              // "Ghi khoản đầu tiên" on the empty feed — the same route
+              // as the center nav button.
+              onCapture: _openQuickCapture,
             ),
             () => PlanningPage(
               key: _planKey,
@@ -1362,6 +1416,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           // Session demo store — pack additions filter transactions too.
           loadCategories: () async => _demoCategories.active,
           onDelete: (_) async {},
+          // Demo capture is read-only but real — the empty feed's CTA
+          // lands on the same honest form as the nav button.
+          onCapture: _openDemoCapture,
         ),
         () => PlanningPage(
           loadData: (budgetMonth) async => PlanningData(
@@ -1647,10 +1704,15 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
 /// Loads accounts, categories and the recent feed before showing the
 /// capture form — the feed powers the "Mục hay dùng" category ranking.
 class _CaptureLoader extends StatelessWidget {
-  const _CaptureLoader({required this.store, required this.submit});
+  const _CaptureLoader({
+    required this.store,
+    required this.submit,
+    this.onCreateAccount,
+  });
 
   final RealStore store;
   final Future<void> Function(CaptureIntent intent) submit;
+  final Future<List<AccountSummary>?> Function()? onCreateAccount;
 
   @override
   Widget build(BuildContext context) {
@@ -1688,6 +1750,7 @@ class _CaptureLoader extends StatelessWidget {
           categories: snap.data![1].cast(),
           transactions: snap.data![2].cast(),
           onSubmit: submit,
+          onCreateAccount: onCreateAccount,
         );
       },
     );
@@ -1743,11 +1806,13 @@ class _SharedCaptureLoader extends StatelessWidget {
     required this.store,
     required this.prefill,
     required this.submit,
+    this.onCreateAccount,
   });
 
   final RealStore store;
   final SharedTextPrefill prefill;
   final Future<void> Function(CaptureIntent intent) submit;
+  final Future<List<AccountSummary>?> Function()? onCreateAccount;
 
   @override
   Widget build(BuildContext context) {
@@ -1779,6 +1844,7 @@ class _SharedCaptureLoader extends StatelessWidget {
           categories: snap.data![1].cast(),
           prefill: prefill,
           onSubmit: submit,
+          onCreateAccount: onCreateAccount,
         );
       },
     );

@@ -7,6 +7,8 @@ import '../../domain/money.dart';
 import '../../domain/recurring_detection.dart';
 import '../../domain/report.dart' show dateAdd, ymd;
 import '../../domain/safe_to_spend.dart';
+import '../../domain/spoken_vnd.dart';
+import '../shared/empty_state.dart';
 
 /// One entry in the dashboard overflow menu — keeps the appbar to a single
 /// quick action (activity) as the surface count grows.
@@ -39,6 +41,7 @@ class DashboardPage extends StatefulWidget {
     this.loadCommitments,
     this.loadSuggestionTransactions,
     this.onCreateCommitment,
+    this.onCreateAccount,
     this.modeLabel,
     this.menuItems = const [],
     this.readSnapshot,
@@ -85,6 +88,13 @@ class DashboardPage extends StatefulWidget {
   /// planning form prefilled and reports whether a real save happened.
   final Future<bool> Function(RecurringSuggestion suggestion)?
   onCreateCommitment;
+
+  /// "Tạo ví đầu tiên" on the empty-ledger intro — the host opens its
+  /// account-creation flow; when it returns the dashboard re-runs its
+  /// loaders so a created wallet shows immediately. Null (demo, whose
+  /// seeded accounts never reach the intro anyway) drops the button —
+  /// no dead affordance pointing at a write the surface cannot do.
+  final Future<void> Function()? onCreateAccount;
   final String? modeLabel;
   final List<DashboardMenuItem> menuItems;
 
@@ -228,6 +238,18 @@ class DashboardPageState extends State<DashboardPage> {
     }
   }
 
+  /// "Tạo ví đầu tiên" on the empty-ledger intro. The seam surfaces its
+  /// own save errors inside the dialog; whatever happens, the loaders
+  /// re-run afterwards so the visible state is always the real one
+  /// (a cancelled dialog just reloads the still-empty ledger).
+  Future<void> _createAccountFromEmpty() async {
+    try {
+      await widget.onCreateAccount!();
+    } finally {
+      _refresh();
+    }
+  }
+
   Future<void> _refresh() async {
     // Braces, not `=>` — setState rejects a closure that returns a
     // Future, and `_data = _load()` evaluates to that Future (debug
@@ -255,6 +277,7 @@ class DashboardPageState extends State<DashboardPage> {
           if (widget.menuItems.isNotEmpty)
             PopupMenuButton<int>(
               icon: const Icon(Icons.more_vert),
+              tooltip: 'Mở menu',
               onSelected: (i) => widget.menuItems[i].onTap(),
               itemBuilder: (ctx) => [
                 for (var i = 0; i < widget.menuItems.length; i++)
@@ -347,7 +370,11 @@ class DashboardPageState extends State<DashboardPage> {
                   ),
                 ],
                 if (accounts.isEmpty && txs.isEmpty)
-                  const _EmptyLedgerIntro()
+                  _EmptyLedgerIntro(
+                    onCreateAccount: widget.onCreateAccount == null
+                        ? null
+                        : _createAccountFromEmpty,
+                  )
                 else ...[
                   const SizedBox(height: 20),
                   Text(
@@ -363,8 +390,12 @@ class DashboardPageState extends State<DashboardPage> {
                   ),
                   const SizedBox(height: 8),
                   if (txs.isEmpty)
-                    const Card(
-                      child: ListTile(title: Text('Chưa có giao dịch nào')),
+                    const EmptyStateCard(
+                      icon: Icons.receipt_long_outlined,
+                      title: 'Chưa có giao dịch nào',
+                      message:
+                          'Bấm "Ghi" ở thanh dưới để thêm khoản '
+                          'đầu tiên của bạn.',
                     ),
                   for (final t in txs) _TransactionTile(tx: t),
                 ],
@@ -426,8 +457,15 @@ class _StaleBanner extends StatelessWidget {
 /// First-run state — the real total stays at 0 ₫ above; the tiles below
 /// are an explicitly-labeled preview of what the ledger looks like, and
 /// are never written to the user's books.
+///
+/// The intro only renders when there are ZERO accounts, so "bấm Ghi"
+/// would be a dead end — Ghi needs a wallet. The primary CTA is
+/// therefore account creation via [onCreateAccount]; without the seam
+/// the card degrades to an honest pointer at the Tài khoản menu.
 class _EmptyLedgerIntro extends StatelessWidget {
-  const _EmptyLedgerIntro();
+  const _EmptyLedgerIntro({this.onCreateAccount});
+
+  final VoidCallback? onCreateAccount;
 
   @override
   Widget build(BuildContext context) {
@@ -437,11 +475,38 @@ class _EmptyLedgerIntro extends StatelessWidget {
       children: [
         const SizedBox(height: 20),
         Card(
-          child: ListTile(
-            title: const Text('Sổ của bạn đang trống'),
-            subtitle: const Text(
-              'Dưới đây là dữ liệu mẫu — bấm "Ghi" ở thanh dưới để '
-              'thêm khoản đầu tiên của bạn.',
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Sổ của bạn đang trống',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Tạo ví đầu tiên để bắt đầu ghi — dưới đây là dữ liệu '
+                  'mẫu minh họa.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (onCreateAccount != null)
+                  FilledButton.icon(
+                    onPressed: onCreateAccount,
+                    icon: const Icon(Icons.account_balance_wallet_outlined),
+                    label: const Text('Tạo ví đầu tiên'),
+                  )
+                else
+                  Text(
+                    'Tạo ví trong mục Tài khoản của menu để bắt đầu.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
             ),
           ),
         ),
@@ -482,12 +547,24 @@ class _TotalCard extends StatelessWidget {
           children: [
             Text('Tổng số dư', style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 6),
-            _countUpMoney(
-              context,
-              total,
-              Theme.of(
-                context,
-              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
+            // The spoken label is the real figure — the animated glyph
+            // string ("45.000 ₫") would read digit-by-digit otherwise.
+            // FittedBox keeps one line at 2x text scale instead of
+            // wrapping the figure mid-number.
+            Semantics(
+              label: 'Tổng số dư ${spokenVnd(total)}',
+              excludeSemantics: true,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: _countUpMoney(
+                  context,
+                  total,
+                  Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
             ),
           ],
         ),
@@ -535,17 +612,31 @@ class _SafeSpendCard extends StatelessWidget {
                 style: text.bodyMedium,
               )
             else ...[
-              _countUpMoney(
-                context,
-                s.perDayMinor,
-                text.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+              Semantics(
+                label: spokenVnd(s.perDayMinor),
+                excludeSemantics: true,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: _countUpMoney(
+                    context,
+                    s.perDayMinor,
+                    text.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
               ),
               Text('trong hạn mức ngân sách tháng này', style: text.bodySmall),
               const SizedBox(height: 4),
-              Text(
-                'Còn ${formatMoney(s.remainingMinor)} đến hết tháng '
-                '(${s.daysLeft} ngày)',
-                style: text.bodySmall,
+              Semantics(
+                label:
+                    'Còn ${spokenVnd(s.remainingMinor)} đến hết tháng, '
+                    '${s.daysLeft} ngày',
+                excludeSemantics: true,
+                child: Text(
+                  'Còn ${formatMoney(s.remainingMinor)} đến hết tháng '
+                  '(${s.daysLeft} ngày)',
+                  style: text.bodySmall,
+                ),
               ),
             ],
           ],

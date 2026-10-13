@@ -43,6 +43,9 @@ const signOutResidueKeys = [
   'mf_last_capture_account',
   'mf_last_capture_category',
   'mf_recurring_dismissed',
+  // Session-scoped search history — the next account on this device
+  // must not see the previous one's queries.
+  'mf_recent_searches',
   // Pre-scoping leftover keys — the scoped stores never read them, and
   // they cannot be attributed to any particular account.
   OfflineCache.legacyKey,

@@ -13,6 +13,7 @@ import '../../domain/split.dart';
 import 'capture_submit.dart'
     show CaptureQueued, CommitmentFailed, submitErrorMessage;
 import 'category_picker.dart';
+import '../shared/empty_state.dart';
 
 /// Result of one capture intent — carries the idempotency key generated when
 /// the form opened so replays of the same intent never double-post.
@@ -87,11 +88,21 @@ class CapturePage extends StatefulWidget {
     this.prefill,
     this.transactions = const [],
     this.editing,
+    this.onCreateAccount,
   });
 
   final List<AccountSummary> accounts;
   final List<Category> categories;
   final Future<void> Function(CaptureIntent intent) onSubmit;
+
+  /// Zero-account escape hatch — when [accounts] is empty the dropdown
+  /// is a dead end, so the form shows "Chưa có ví" with a "Tạo ví"
+  /// button that runs the host's account-creation flow. The seam
+  /// returns the refreshed account list after a real save (null means
+  /// the user cancelled or the save failed); the created account is
+  /// auto-selected. Null hides the button — a read-only host (demo)
+  /// gets the honest message without a dead affordance.
+  final Future<List<AccountSummary>?> Function()? onCreateAccount;
 
   /// Shared-text extraction applied to the form on open. The user still
   /// reviews and submits manually — a share never posts a transaction.
@@ -132,6 +143,9 @@ class _CapturePageState extends State<CapturePage> {
   final String _idempotencyKey = newIdempotencyKey();
 
   TransactionKind _kind = TransactionKind.expense;
+  // Mirrors widget.accounts but mutable — creating a wallet from the
+  // zero-account state repopulates the dropdown without a route reload.
+  late List<AccountSummary> _accounts;
   String? _accountId;
   String? _destAccountId;
   String? _categoryId;
@@ -196,6 +210,7 @@ class _CapturePageState extends State<CapturePage> {
   @override
   void initState() {
     super.initState();
+    _accounts = widget.accounts;
     final editing = widget.editing;
     if (editing != null) {
       _kind = editing.kind;
@@ -221,7 +236,7 @@ class _CapturePageState extends State<CapturePage> {
         .then((last) {
           if (!mounted) return;
           setState(() {
-            if (widget.accounts.any((a) => a.id == last.accountId)) {
+            if (_accounts.any((a) => a.id == last.accountId)) {
               _accountId = last.accountId;
             }
             // A remembered category only applies when it still exists and
@@ -514,6 +529,42 @@ class _CapturePageState extends State<CapturePage> {
     if (picked != null) setState(() => _date = picked);
   }
 
+  /// "Tạo ví" on the zero-account state — the host runs the shared
+  /// account-creation dialog and hands back the refreshed list. The
+  /// newly created wallet is auto-selected so the form is ready to
+  /// save; a failed refresh keeps the honest empty state plus an error.
+  Future<void> _createAccount() async {
+    // Separate method — a variable assigned inside try/catch can't be
+    // promoted, and the null-check below needs the promotion.
+    final fresh = await _runCreateAccount();
+    if (!mounted || fresh == null) return;
+    setState(() {
+      final known = {for (final a in _accounts) a.id};
+      _accounts = fresh;
+      // Prefer the wallet the user just created; fall back to the
+      // first row when the host can't tell which is new.
+      _accountId ??=
+          fresh
+              .where((a) => !known.contains(a.id))
+              .map((a) => a.id)
+              .firstOrNull ??
+          fresh.firstOrNull?.id;
+    });
+  }
+
+  /// Runs the host's create seam; a thrown refresh read lands as the
+  /// honest inline error rather than an unhandled snackbar-less crash.
+  Future<List<AccountSummary>?> _runCreateAccount() async {
+    try {
+      return await widget.onCreateAccount!();
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = 'Không tải được tài khoản — thử lại');
+      }
+      return null;
+    }
+  }
+
   /// One editable split line: category picker + amount (+ remove while
   /// more than the 2-line minimum remain).
   Widget _splitRowTile(int index, _SplitRow row) {
@@ -673,9 +724,14 @@ class _CapturePageState extends State<CapturePage> {
             Card(
               child: ListTile(
                 title: const Text('Tổng số tiền'),
-                trailing: Text(
-                  formatMoney(_splitRunningTotal),
-                  style: Theme.of(context).textTheme.titleMedium,
+                // Long figures at 2x text scale must shrink, not clip
+                // the "Tổng số tiền" label or overflow the tile.
+                trailing: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    formatMoney(_splitRunningTotal),
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 ),
               ),
             )
@@ -704,22 +760,36 @@ class _CapturePageState extends State<CapturePage> {
             ),
           ],
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            // initialValue is non-reactive: the key recreates the field
-            // when the remembered-account prefill lands asynchronously.
-            key: ValueKey('acc-$_accountId'),
-            initialValue: _accountId,
-            decoration: InputDecoration(
-              labelText: isTransfer ? 'Từ tài khoản' : 'Tài khoản',
-              border: const OutlineInputBorder(),
+          // Zero accounts makes the picker a dead end — Ghi needs a
+          // wallet, so say so and offer the create flow when the host
+          // provides it instead of an empty dropdown.
+          if (_accounts.isEmpty)
+            EmptyStateCard(
+              icon: Icons.account_balance_wallet_outlined,
+              title: 'Chưa có ví — tạo ví trước khi ghi',
+              message: 'Khoản ghi cần gắn vào một ví hoặc tài khoản.',
+              actionLabel: widget.onCreateAccount == null ? null : 'Tạo ví',
+              onAction: widget.onCreateAccount == null
+                  ? null
+                  : (_busy ? null : _createAccount),
+            )
+          else
+            DropdownButtonFormField<String>(
+              // initialValue is non-reactive: the key recreates the field
+              // when the remembered-account prefill lands asynchronously.
+              key: ValueKey('acc-$_accountId'),
+              initialValue: _accountId,
+              decoration: InputDecoration(
+                labelText: isTransfer ? 'Từ tài khoản' : 'Tài khoản',
+                border: const OutlineInputBorder(),
+              ),
+              items: [
+                for (final a in _accounts)
+                  DropdownMenuItem(value: a.id, child: Text(a.name)),
+              ],
+              onChanged: (v) => setState(() => _accountId = v),
             ),
-            items: [
-              for (final a in widget.accounts)
-                DropdownMenuItem(value: a.id, child: Text(a.name)),
-            ],
-            onChanged: (v) => setState(() => _accountId = v),
-          ),
-          if (isTransfer) ...[
+          if (isTransfer && _accounts.isNotEmpty) ...[
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: _destAccountId,
@@ -728,7 +798,7 @@ class _CapturePageState extends State<CapturePage> {
                 border: OutlineInputBorder(),
               ),
               items: [
-                for (final a in widget.accounts)
+                for (final a in _accounts)
                   DropdownMenuItem(value: a.id, child: Text(a.name)),
               ],
               onChanged: (v) => setState(() => _destAccountId = v),
