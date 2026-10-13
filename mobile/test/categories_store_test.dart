@@ -237,7 +237,7 @@ void main() {
     });
 
     test(
-      'setCategoryArchived PATCHes the flag and reads the row back',
+      'setCategoryArchived POSTs the definer RPC and reads the row back',
       () async {
         final h = Harness();
         await h.signIn();
@@ -251,26 +251,50 @@ void main() {
 
         expect(c.isArchived, isTrue);
         final req = h.t.requests.last;
-        expect(req.method, 'PATCH');
-        expect(req.url.queryParameters['id'], 'eq.c9');
-        expect(req.body, {'is_archived': true});
+        // RPC-only write path — a direct PATCH on categories dies 42501.
+        expect(req.method, 'POST');
+        expect(req.url.path, '/neondb/rest/v1/rpc/set_category_archived');
+        expect(req.body, {'p_category_id': 'c9', 'p_archived': true});
       },
     );
 
     test(
-      'deleteCategory DELETEs and reports whether a row went away',
+      'setCategoryArchived with an empty RPC result throws category_not_found',
       () async {
         final h = Harness();
         await h.signIn();
-        h.t.queue.add(FakeTransport.json(200, [_row]));
         h.t.queue.add(FakeTransport.json(200, []));
+        expect(
+          () => h.store.setCategoryArchived('ghost', true),
+          throwsA(
+            isA<Exception>().having(
+              (e) => e.toString(),
+              'message',
+              contains('category_not_found'),
+            ),
+          ),
+        );
+      },
+    );
+
+    test(
+      'deleteCategory POSTs the definer RPC and reports the result',
+      () async {
+        final h = Harness();
+        await h.signIn();
+        h.t.queue.add(FakeTransport.json(200, true));
+        h.t.queue.add(FakeTransport.json(200, false));
 
         expect(await h.store.deleteCategory('c9'), isTrue);
         final req = h.t.requests.last;
-        expect(req.method, 'DELETE');
-        expect(req.url.queryParameters['id'], 'eq.c9');
+        // RPC-only write path — the function itself refuses seeded
+        // defaults and referenced rows (raised errors, not a false).
+        expect(req.method, 'POST');
+        expect(req.url.path, '/neondb/rest/v1/rpc/delete_financial_category');
+        expect(req.body, {'p_category_id': 'c9'});
 
-        // RLS/default rows: nothing deleted -> false, not a silent success.
+        // A non-true payload means nothing was removed — not a silent
+        // success.
         expect(await h.store.deleteCategory('c9'), isFalse);
       },
     );

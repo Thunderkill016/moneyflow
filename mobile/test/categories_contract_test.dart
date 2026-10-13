@@ -166,6 +166,12 @@ void main() {
         categoryErrorMessage(Exception('something_weird')),
         'Không thể cập nhật danh mục. Hãy thử lại.',
       );
+      // set_category_archived's required-param guard — unreachable via
+      // the UI but mapped honestly if it ever surfaces.
+      expect(
+        categoryErrorMessage(Exception('archive_state_required')),
+        contains('tải lại'),
+      );
     });
   });
 
@@ -265,6 +271,23 @@ void main() {
       expect(
         categoryDeleteErrorMessage(Exception('opaque')),
         'Không xóa được danh mục. Hãy thử lại.',
+      );
+    });
+
+    test('delete RPC refusal tokens map to the same honest copy', () {
+      // delete_financial_category raises these — the FK string shape is
+      // gone under SECURITY DEFINER.
+      expect(
+        categoryDeleteErrorMessage(Exception('category_in_use')),
+        contains('hãy ẩn thay'),
+      );
+      expect(
+        categoryDeleteErrorMessage(Exception('category_default_locked')),
+        contains('mặc định'),
+      );
+      expect(
+        categoryDeleteErrorMessage(Exception('category_not_found')),
+        contains('không còn tồn tại'),
       );
     });
   });

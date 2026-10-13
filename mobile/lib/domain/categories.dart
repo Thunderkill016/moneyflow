@@ -283,19 +283,36 @@ String categoryErrorMessage(Object error) {
   if (msg.contains('invalid_category_name')) {
     return 'Tên danh mục cần từ 1 đến $categoryNameMax ký tự.';
   }
+  // set_category_archived requires p_archived — unreachable from the UI
+  // (the toggle always sends a bool), but if it ever surfaces it is the
+  // honest reason, not a crash token.
+  if (msg.contains('archive_state_required')) {
+    return 'Thiếu trạng thái ẩn/hiện — hãy tải lại rồi thử lại.';
+  }
   return 'Không thể cập nhật danh mục. Hãy thử lại.';
 }
 
 /// Hard-delete failures (mobile-only affordance; the web has no delete).
-/// FK-restrict references (transactions, budgets, commitments) make delete
-/// impossible — archive is the supported hide path, so say exactly that.
+/// The delete_financial_category RPC raises `category_*` tokens for the
+/// same refusals the table path surfaced as FK violations — referenced rows
+/// can't be deleted, so archive is the supported hide path; say exactly that.
 String categoryDeleteErrorMessage(Object error) {
   final msg = error.toString();
-  if (msg.contains('foreign key') ||
+  if (msg.contains('category_in_use') ||
+      msg.contains('foreign key') ||
       msg.contains('23503') ||
       msg.contains('violates')) {
-    return 'Danh mục đang gắn giao dịch, ngân sách hoặc cam kết — '
+    return 'Danh mục đang gắn giao dịch, ngân sách, quy tắc hoặc cam kết — '
         'hãy ẩn thay vì xóa hẳn.';
+  }
+  // Only the RPC guard can still refuse a default — under SECURITY DEFINER
+  // the delete RLS policy is bypassed, so this branch is the user-facing
+  // twin of `category_default_locked`.
+  if (msg.contains('category_default_locked')) {
+    return 'Danh mục mặc định không xóa được — hãy ẩn thay.';
+  }
+  if (msg.contains('category_not_found')) {
+    return 'Danh mục không còn tồn tại — hãy tải lại danh sách.';
   }
   return 'Không xóa được danh mục. Hãy thử lại.';
 }

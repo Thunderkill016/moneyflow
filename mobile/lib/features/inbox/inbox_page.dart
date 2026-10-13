@@ -29,11 +29,17 @@ class InboxPage extends StatefulWidget {
     required this.onReject,
     this.pickCsvFile,
     this.onImportCsv,
+    this.onOpenRules,
   });
 
   final Future<List<InboxCandidate>> Function() loadCandidates;
   final Future<List<AccountSummary>> Function() loadAccounts;
   final Future<List<Category>> Function() loadCategories;
+
+  /// Entry point to the "Quy tắc" manager — rules are what prefill this
+  /// queue's candidates, so the shortcut lives on this appbar. Null hides
+  /// it (surfaces without a rules store wired).
+  final VoidCallback? onOpenRules;
 
   /// Advisory server dry-run; a failure must not block review because the
   /// approve RPC re-runs the same checks atomically.
@@ -284,6 +290,12 @@ class InboxPageState extends State<InboxPage> {
         appBar: AppBar(
           title: const Text('Cần xem'),
           actions: [
+            if (widget.onOpenRules != null)
+              IconButton(
+                tooltip: 'Quy tắc',
+                icon: const Icon(Icons.rule_outlined),
+                onPressed: widget.onOpenRules,
+              ),
             if (_csvImportEnabled)
               IconButton(
                 tooltip: 'Nhập CSV',

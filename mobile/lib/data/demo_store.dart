@@ -1,4 +1,7 @@
+import 'dart:math';
+
 import '../domain/categories.dart';
+import '../domain/inbox.dart';
 import '../domain/models.dart';
 
 /// Demo-mode seed — mirrors the web demo store semantics:
@@ -262,5 +265,181 @@ class DemoCategoryStore {
     if (i < 0 || _categories[i].isDefault) return false;
     _categories.removeAt(i);
     return true;
+  }
+}
+
+/// Demo-mode "Quy tắc tự điền" — session-scoped in-memory rules mirroring
+/// the server contract exactly: create appends at max(priority)+1, updates
+/// carry an expectedVersion stale-write guard, and `version_inbox_rule`
+/// semantics bump the version only when a content field actually changed.
+/// One seed row demonstrates the feature like the category seeds do;
+/// leaving demo (or wiping demo data) resets to that seed, matching the
+/// web demo's disposable browser-local rules.
+class DemoRuleStore {
+  DemoRuleStore({required List<Category> Function() categories})
+    : _categories = categories,
+      _rules = [
+        InboxRule(
+          id: 'rule-seed-1',
+          priority: 1,
+          enabled: true,
+          matchField: RuleMatchField.merchant,
+          containsText: 'HIGHLANDS',
+          categoryId: 'cat-food',
+          merchantName: 'Highlands Coffee',
+          version: 1,
+          createdAt: '2026-10-01T00:00:00Z',
+          updatedAt: '2026-10-01T00:00:00Z',
+        ),
+      ];
+
+  /// Read the current demo categories at call time — the app may swap the
+  /// category store when a fresh demo starts, so a live lookup can never
+  /// hold a stale instance.
+  final List<Category> Function() _categories;
+
+  final List<InboxRule> _rules;
+  var _seq = 0;
+
+  /// Priority order with the web's created_at/id tie-break.
+  Future<List<InboxRule>> loadAll() async {
+    final sorted = List.of(_rules);
+    sorted.sort((a, b) {
+      if (a.priority != b.priority) return a.priority - b.priority;
+      final byCreated = (a.createdAt ?? '').compareTo(b.createdAt ?? '');
+      return byCreated != 0 ? byCreated : a.id.compareTo(b.id);
+    });
+    return List.unmodifiable(sorted);
+  }
+
+  Category? _findCategory(String id) {
+    for (final c in _categories()) {
+      if (c.id == id) return c;
+    }
+    return null;
+  }
+
+  /// Create (draft.id == null) or update — the same contract
+  /// RealStore.saveInboxRule fulfils, including the trigger's rule: an
+  /// update only requires an active category when the rule stays enabled
+  /// or the target category changes (a disabled rule may keep pointing at
+  /// an archived category so it stays restorable).
+  Future<InboxRule> save(InboxRuleDraft draft) async {
+    final contains = draft.containsText.trim();
+    if (contains.isEmpty || contains.length > ruleContainsMax) {
+      throw Exception('invalid_rule_contains');
+    }
+    final merchant = draft.merchantName?.trim();
+    if (merchant != null && merchant.length > ruleMerchantMax) {
+      throw Exception('invalid_rule_merchant');
+    }
+    final category = _findCategory(draft.categoryId);
+
+    if (draft.id == null) {
+      if (category == null || category.isArchived) {
+        throw Exception('rule_category_not_available');
+      }
+      final nextPriority = _rules.isEmpty
+          ? 1
+          : _rules.map((r) => r.priority).reduce(max) + 1;
+      final created = InboxRule(
+        id: 'demo-rule-${++_seq}',
+        priority: nextPriority,
+        enabled: draft.enabled,
+        matchField: draft.matchField,
+        containsText: contains,
+        categoryId: draft.categoryId,
+        merchantName: merchant == null || merchant.isEmpty ? null : merchant,
+        version: 1,
+        createdAt: DateTime.now().toUtc().toIso8601String(),
+      );
+      _rules.add(created);
+      return created;
+    }
+
+    final i = _rules.indexWhere((r) => r.id == draft.id);
+    if (i < 0) throw Exception('rule_not_found');
+    final old = _rules[i];
+    if (old.version != draft.expectedVersion) {
+      throw Exception('stale_write');
+    }
+    if ((draft.enabled || category?.id != old.categoryId) &&
+        (category == null || category.isArchived)) {
+      throw Exception('rule_category_not_available');
+    }
+    // version_inbox_rule: the counter moves only when a content field did.
+    final changed =
+        old.enabled != draft.enabled ||
+        old.matchField != draft.matchField ||
+        old.containsText != contains ||
+        old.categoryId != draft.categoryId ||
+        old.merchantName !=
+            (merchant == null || merchant.isEmpty ? null : merchant);
+    final updated = InboxRule(
+      id: old.id,
+      priority: old.priority,
+      enabled: draft.enabled,
+      matchField: draft.matchField,
+      containsText: contains,
+      categoryId: draft.categoryId,
+      merchantName: merchant == null || merchant.isEmpty ? null : merchant,
+      version: changed ? old.version + 1 : old.version,
+      createdAt: old.createdAt,
+      updatedAt: changed
+          ? DateTime.now().toUtc().toIso8601String()
+          : old.updatedAt,
+    );
+    _rules[i] = updated;
+    return updated;
+  }
+
+  /// Hard delete with the same expectedVersion guard — a stale read means
+  /// the list changed under the user, so refuse instead of removing the
+  /// wrong revision.
+  Future<void> delete(String id, int expectedVersion) async {
+    final i = _rules.indexWhere((r) => r.id == id);
+    if (i < 0) throw Exception('rule_not_found');
+    if (_rules[i].version != expectedVersion) {
+      throw Exception('stale_write');
+    }
+    _rules.removeAt(i);
+  }
+
+  /// replace_inbox_rule_priorities — the submitted order must name every
+  /// stored rule exactly once; a partial/stale set fails rather than
+  /// silently renumbering.
+  Future<void> reorder(List<String> orderedIds) async {
+    if (orderedIds.length != _rules.length ||
+        orderedIds.toSet().length != orderedIds.length) {
+      throw Exception('incomplete_rule_order');
+    }
+    final byId = {for (final r in _rules) r.id: r};
+    if (orderedIds.any((id) => !byId.containsKey(id))) {
+      throw Exception('rule_not_found');
+    }
+    _rules
+      ..clear()
+      ..addAll([
+        for (var i = 0; i < orderedIds.length; i++)
+          _renumbered(byId[orderedIds[i]]!, i + 1),
+      ]);
+  }
+
+  /// Reassigns priority and bumps the version when it changed — priority
+  /// is a content field in the server's version trigger.
+  InboxRule _renumbered(InboxRule rule, int priority) {
+    if (rule.priority == priority) return rule;
+    return InboxRule(
+      id: rule.id,
+      priority: priority,
+      enabled: rule.enabled,
+      matchField: rule.matchField,
+      containsText: rule.containsText,
+      categoryId: rule.categoryId,
+      merchantName: rule.merchantName,
+      version: rule.version + 1,
+      createdAt: rule.createdAt,
+      updatedAt: DateTime.now().toUtc().toIso8601String(),
+    );
   }
 }

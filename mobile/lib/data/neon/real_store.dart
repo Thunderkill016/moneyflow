@@ -330,25 +330,33 @@ class RealStore {
     return _categoryFromRow(result.first as Map<String, dynamic>);
   }
 
-  /// PATCH is_archived — setCategoryArchivedAction; defaults archive the
-  /// same way (the web offers Ẩn/Hiện lại on every row).
+  /// POST /rpc/set_category_archived — the definer twin of the web's
+  /// setCategoryArchivedAction; defaults archive the same way (the web
+  /// offers Ẩn/Hiện lại on every row). Direct PATCH dies 42501 under the
+  /// RPC-only write guard, so both flag flips ride this function.
   Future<Category> setCategoryArchived(String id, bool archived) async {
-    final rows = await _api.update(
-      'categories',
-      {'id': 'eq.$id'},
-      {'is_archived': archived},
-    );
-    if (rows.isEmpty) throw Exception('category_not_found');
-    return _categoryFromRow(rows.first);
+    final result = await _api.rpc('set_category_archived', {
+      'p_category_id': id,
+      'p_archived': archived,
+    });
+    if (result is! List || result.isEmpty) {
+      // The function always returns the written row; empty means the write
+      // landed but the read-back missed — honest failure, not silent state.
+      throw Exception('category_not_found');
+    }
+    return _categoryFromRow(result.first as Map<String, dynamic>);
   }
 
-  /// Hard delete — RLS `categories_delete_custom_own` only allows rows with
-  /// is_default=false; FK-restrict references (transactions, budgets,
-  /// commitments) still block the delete server-side. Returns false when
-  /// nothing was removed (row missing or not deletable).
+  /// POST /rpc/delete_financial_category — hard delete through the definer.
+  /// The server itself refuses seeded defaults (category_default_locked)
+  /// and referenced rows (category_in_use) — under SECURITY DEFINER the
+  /// categories delete RLS policy no longer guards them. Returns false only
+  /// on a malformed result; real refusals arrive as raised errors.
   Future<bool> deleteCategory(String id) async {
-    final rows = await _api.delete('categories', {'id': 'eq.$id'});
-    return rows.isNotEmpty;
+    final ok = await _api.rpc('delete_financial_category', {
+      'p_category_id': id,
+    });
+    return ok == true;
   }
 
   /// POST /rpc/create_money_transaction — same function the web's
@@ -979,17 +987,111 @@ class RealStore {
     return id;
   }
 
-  /// Reject = the web's status update via updateInboxCandidateAction —
-  /// a PATCH on inbox_candidates under RLS, never a hard delete (the
-  /// rejected status keeps the audit trail).
+  /// POST /rpc/reject_inbox_candidate — the definer equivalent of the web's
+  /// status flip: `rejected`, never a hard delete, so the audit trail
+  /// survives. Direct PATCH dies 42501 under the RPC-only write guard.
+  /// False upstream means the row left the pending scope between our read
+  /// and the write — the caller's queue is stale, so that surfaces as a
+  /// failure.
   Future<void> rejectInboxCandidate(String candidateId) async {
-    final rows = await _api.update(
-      'inbox_candidates',
-      {'id': 'eq.$candidateId'},
-      {'status': 'rejected'},
-    );
-    if (rows.isEmpty) throw Exception('candidate_not_found');
+    final ok = await _api.rpc('reject_inbox_candidate', {
+      'p_candidate_id': candidateId,
+    });
+    if (ok != true) throw Exception('candidate_not_found');
   }
+
+  // ---- Inbox auto-fill rules (public.inbox_rules; writes go through the
+  // definer RPCs of db/neon/migrations/20261010120000 — direct table writes
+  // die 42501 under guard_oauth_mutation). The row shape matches the select
+  // the web's getRulesWorkspace performs. ----
+
+  static const _ruleColumns =
+      'id,stage,priority,enabled,match_field,contains_text,category_id,'
+      'merchant_name,version,created_at,updated_at';
+
+  static InboxRule _ruleFromRow(Map<String, dynamic> r) => InboxRule(
+    id: r['id'] as String,
+    // bigint may arrive as a JSON string — same normalization the web's
+    // safePositiveInteger applies; a malformed row fails the load honestly
+    // instead of writing back a corrupted version later.
+    priority: _intField(r['priority'], 'rule_priority'),
+    enabled: r['enabled'] as bool? ?? false,
+    matchField: ruleMatchFieldFromString(r['match_field'] as String? ?? 'any'),
+    containsText: r['contains_text'] as String? ?? '',
+    categoryId: r['category_id'] as String? ?? '',
+    merchantName: r['merchant_name'] as String?,
+    version: _intField(r['version'], 'rule_version'),
+    createdAt: r['created_at'] as String?,
+    updatedAt: r['updated_at'] as String?,
+  );
+
+  /// The caller's full rule list in apply order — priority, then created_at,
+  /// then id; the same ordering the web workspace selects. Category names
+  /// stay unresolved here (the row only stores category_id) — the page
+  /// joins the categories read so archived targets still render.
+  Future<List<InboxRule>> loadInboxRules() async {
+    final rows = await _api.select(
+      'inbox_rules',
+      query: {
+        'select': _ruleColumns,
+        'order': 'priority.asc,created_at.asc,id.asc',
+      },
+    );
+    return rows.map(_ruleFromRow).toList();
+  }
+
+  /// POST /rpc/upsert_inbox_rule — [ruleId] null creates at
+  /// max(priority)+1 (the web save path's append rule); a real id updates
+  /// in place and [expectedVersion] must match the stored version or the
+  /// server raises stale_write. Category availability (active, owned) is
+  /// enforced server-side by the validate_inbox_rule_category trigger.
+  Future<InboxRule> saveInboxRule({
+    String? ruleId,
+    required RuleMatchField matchField,
+    required String containsText,
+    required String categoryId,
+    String? merchantName,
+    bool enabled = true,
+    int? expectedVersion,
+  }) async {
+    final trimmedMerchant = merchantName?.trim();
+    final result = await _api.rpc('upsert_inbox_rule', {
+      'p_match_field': ruleMatchFieldWire(matchField),
+      'p_contains_text': containsText,
+      'p_category_id': categoryId,
+      'p_merchant_name': trimmedMerchant == null || trimmedMerchant.isEmpty
+          ? null
+          : trimmedMerchant,
+      'p_enabled': enabled,
+      'p_rule_id': ?ruleId,
+      'p_expected_version': ?expectedVersion,
+    });
+    if (result is! List || result.isEmpty) {
+      // The function always returns the written row — an empty payload
+      // means the write landed but the read-back missed.
+      throw Exception(ruleId == null ? 'saved_unread' : 'rule_not_found');
+    }
+    return _ruleFromRow(result.first as Map<String, dynamic>);
+  }
+
+  /// POST /rpc/delete_inbox_rule — hard delete guarded by the stored
+  /// [expectedVersion] (stale_write on drift). The server keeps applied
+  /// evidence on old candidates by design; only the rule goes away.
+  Future<void> deleteInboxRule(String ruleId, int expectedVersion) async {
+    final ok = await _api.rpc('delete_inbox_rule', {
+      'p_rule_id': ruleId,
+      'p_expected_version': expectedVersion,
+    });
+    if (ok != true) throw Exception('rule_not_found');
+  }
+
+  /// POST /rpc/replace_inbox_rule_priorities — the whole ordered id list in
+  /// one write (the same RPC the web's reorderRulesAction calls). The
+  /// server refuses a partial or stale set (incomplete_rule_order /
+  /// rule_not_found) so a raced reorder can never silently scramble
+  /// priority.
+  Future<void> reorderInboxRules(List<String> orderedIds) =>
+      _api.rpc('replace_inbox_rule_priorities', {'p_rule_ids': orderedIds});
 
   /// POST /rpc/prepare_direct_csv_candidates_with_rules — the SECURITY
   /// DEFINER ingestion the web's commitDirectCsvImportAction calls. Same

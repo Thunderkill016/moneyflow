@@ -37,6 +37,7 @@ import '../features/capture/queue_banner.dart';
 import '../features/categories/categories_page.dart';
 import '../features/dashboard/dashboard_page.dart';
 import '../features/inbox/inbox_page.dart';
+import '../features/inbox/rules_page.dart';
 import '../features/notification_capture/notification_capture_page.dart';
 import '../features/planning/planning_page.dart';
 import '../features/planning/recurring_form_dialog.dart';
@@ -157,6 +158,14 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   /// demo actually persists its adds for the visit; re-entering demo or
   /// wiping demo data starts from seeds again.
   var _demoCategories = DemoCategoryStore();
+
+  /// Demo-mode auto-fill rules — same session scope as demo categories.
+  /// The store reads the CURRENT category list through the closure (never
+  /// a captured instance), so it stays correct when a fresh demo swaps
+  /// `_demoCategories`; both stores are recreated together in `onDemo`.
+  late var _demoRules = DemoRuleStore(
+    categories: () => _demoCategories.current,
+  );
 
   /// Re-entrancy guard for the session-expired sign-out — several tab
   /// loaders can 401 in the same frame and each signals the callback.
@@ -735,8 +744,10 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         onSignedIn: _onSignedIn,
         onDemo: () {
           // A fresh demo visit starts from seeds — leftover categories
-          // from a previous visit would misreport what "demo" means.
+          // or rules from a previous visit would misreport what "demo"
+          // means.
           _demoCategories = DemoCategoryStore();
+          _demoRules = DemoRuleStore(categories: () => _demoCategories.current);
           setState(() => _gate = _Gate.demo);
           _drainQuickAction();
         },
@@ -960,10 +971,40 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           // hosted backend accepts for this table.
           pickCsvFile: pickCsvFileFromDevice,
           onImportCsv: _store.prepareCsvImport,
+          onOpenRules: () => _openRules(context),
         ),
       ),
     );
     if (changed == true) _reloadTabs();
+  }
+
+  /// "Quy tắc tự điền" — reachable from the review queue because rules are
+  /// what prefill its candidates. Reads go through the same PostgREST
+  /// selects the web workspace uses; every write rides the definer RPCs
+  /// (direct table writes die 42501). Rule edits never touch the ledger,
+  /// so no tab reload is needed on return.
+  Future<void> _openRules(BuildContext context) {
+    return Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => InboxRulesPage(
+          loadRules: _store.loadInboxRules,
+          // All categories incl. archived — a rule may still target a
+          // hidden category and the list must render its name.
+          loadCategories: _store.loadAllCategories,
+          onSave: (draft) => _store.saveInboxRule(
+            ruleId: draft.id,
+            expectedVersion: draft.expectedVersion,
+            matchField: draft.matchField,
+            containsText: draft.containsText,
+            categoryId: draft.categoryId,
+            merchantName: draft.merchantName,
+            enabled: draft.enabled,
+          ),
+          onDelete: _store.deleteInboxRule,
+          onReorder: _store.reorderInboxRules,
+        ),
+      ),
+    );
   }
 
   /// Menu items on the dashboard appbar — account management, the review
@@ -1157,6 +1198,24 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
                     onSetArchived: (id, archived) =>
                         _demoCategories.setArchived(id, archived).then((_) {}),
                     onDelete: _demoCategories.delete,
+                  ),
+                ),
+              ),
+            ),
+            // Demo has no "Cần xem" queue, so the rules manager lives on
+            // the menu — writes land in the session-scoped DemoRuleStore,
+            // honest local data discarded when demo ends.
+            DashboardMenuItem(
+              label: 'Quy tắc',
+              icon: Icons.rule_outlined,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => InboxRulesPage(
+                    loadRules: _demoRules.loadAll,
+                    loadCategories: _demoCategories.loadAll,
+                    onSave: _demoRules.save,
+                    onDelete: _demoRules.delete,
+                    onReorder: _demoRules.reorder,
                   ),
                 ),
               ),

@@ -384,3 +384,173 @@ String inboxApprovalErrorMessage(Object error) {
   }
   return 'Không thể duyệt mục này. Hãy kiểm tra dữ liệu rồi thử lại.';
 }
+
+// ---------------------------------------------------------------------------
+// Deterministic auto-fill rules — src/lib/inbox/rules-store.ts +
+// src/app/actions/rules.ts ported to the public.inbox_rules contract.
+// Rules only prefill a pending candidate's category/merchant; a human still
+// approves in "Cần xem". Lower priority wins; the first enabled match applies.
+// ---------------------------------------------------------------------------
+
+/// The field a rule scans — the `match_field` check constraint's vocabulary.
+enum RuleMatchField { merchant, note, raw, any }
+
+/// DB check bounds — keep the sheet's maxLength in sync so the server
+/// never sees a value it would reject (invalid_rule_contains /
+/// invalid_rule_merchant).
+const ruleContainsMax = 120;
+const ruleMerchantMax = 200;
+
+RuleMatchField ruleMatchFieldFromString(String raw) => switch (raw) {
+  'merchant' => RuleMatchField.merchant,
+  'note' => RuleMatchField.note,
+  'raw' => RuleMatchField.raw,
+  _ => RuleMatchField.any,
+};
+
+String ruleMatchFieldWire(RuleMatchField field) => switch (field) {
+  RuleMatchField.merchant => 'merchant',
+  RuleMatchField.note => 'note',
+  RuleMatchField.raw => 'raw',
+  RuleMatchField.any => 'any',
+};
+
+/// Chip labels — RULE_FIELD_LABELS verbatim so both surfaces read alike.
+const ruleMatchFieldLabels = {
+  RuleMatchField.merchant: 'Nơi chi',
+  RuleMatchField.note: 'Ghi chú',
+  RuleMatchField.raw: 'Nội dung gốc',
+  RuleMatchField.any: 'Mọi trường',
+};
+
+/// Chip order — the web form lists "Mọi trường" first because it is the
+/// broadest, most common choice.
+const ruleMatchFieldOptions = [
+  RuleMatchField.any,
+  RuleMatchField.merchant,
+  RuleMatchField.note,
+  RuleMatchField.raw,
+];
+
+/// One inbox_rules row — camelCase mirror of the web's InboxRule minus the
+/// stored `category` label: the row only carries `category_id`, so the name
+/// is resolved from the categories read (archived included) at display time.
+class InboxRule {
+  const InboxRule({
+    required this.id,
+    required this.priority,
+    required this.enabled,
+    required this.matchField,
+    required this.containsText,
+    required this.categoryId,
+    this.merchantName,
+    required this.version,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  final String id;
+
+  /// Lower number = applied first.
+  final int priority;
+  final bool enabled;
+  final RuleMatchField matchField;
+
+  /// Case-insensitive substring, 1–120 chars after trim.
+  final String containsText;
+  final String categoryId;
+
+  /// Optional merchant normalization applied on match (null = keep).
+  final String? merchantName;
+
+  /// Optimistic-concurrency token — `version_inbox_rule` bumps it on every
+  /// content change; edits send it back as `p_expected_version`.
+  final int version;
+  final String? createdAt;
+  final String? updatedAt;
+}
+
+/// What the edit sheet submits — `id` null creates; `expectedVersion` is the
+/// stale-write guard the server requires on update/delete.
+typedef InboxRuleDraft = ({
+  String? id,
+  int? expectedVersion,
+  RuleMatchField matchField,
+  String containsText,
+  String categoryId,
+  String? merchantName,
+  bool enabled,
+});
+
+/// Client-side mirror of the web form's checks (contains non-empty,
+/// category chosen). The server re-validates; this only short-circuits
+/// obviously bad submits so the error lands inline instead of post-write.
+String? validateInboxRuleDraft(InboxRuleDraft draft) {
+  final contains = draft.containsText.trim();
+  if (contains.isEmpty || contains.length > ruleContainsMax) {
+    return 'Chuỗi cần khớp phải từ 1 đến $ruleContainsMax ký tự.';
+  }
+  if ((draft.merchantName?.trim().length ?? 0) > ruleMerchantMax) {
+    return 'Tên đổi mới tối đa $ruleMerchantMax ký tự.';
+  }
+  if (draft.categoryId.isEmpty) {
+    return 'Chọn một danh mục đang hoạt động.';
+  }
+  return null;
+}
+
+/// One-line summary for the list row — the web's formatRuleSummary with the
+/// category name resolved by the caller (rows store only category_id).
+String formatInboxRuleSummary(InboxRule rule, String categoryName) {
+  final fieldLabel = rule.matchField == RuleMatchField.any
+      ? ''
+      : '${ruleMatchFieldLabels[rule.matchField]} ~ ';
+  final merchant = rule.merchantName;
+  final merchantPart = merchant == null || merchant.isEmpty
+      ? ''
+      : ' → $merchant';
+  return '$fieldLabel“${rule.containsText}”$merchantPart → $categoryName';
+}
+
+/// Maps a failed rule RPC to the same Vietnamese copy the web action's
+/// ruleError() produces — PostgREST echoes the raised message verbatim in
+/// the error body, so substring matching hits the same tokens.
+String inboxRuleErrorMessage(Object error) {
+  final message = error.toString();
+  if (message.contains('PGRST202') ||
+      message.contains('PGRST205') ||
+      message.contains('42P01') ||
+      message.contains('Could not find the function') ||
+      message.contains('Could not find the table')) {
+    return 'Tính năng quy tắc chưa được bật trên máy chủ.';
+  }
+  if (message.contains('stale_write')) {
+    return 'Quy tắc đã được thay đổi ở nơi khác. Hãy tải lại rồi thử lại.';
+  }
+  if (message.contains('rule_category_not_available')) {
+    return 'Danh mục của quy tắc không còn khả dụng.';
+  }
+  if (message.contains('incomplete_rule_order')) {
+    return 'Danh sách quy tắc đã thay đổi. Hãy tải lại trước khi sắp xếp.';
+  }
+  if (message.contains('rule_not_available') ||
+      message.contains('rule_not_found')) {
+    return 'Quy tắc đã thay đổi hoặc không còn tồn tại. Hãy tải lại.';
+  }
+  if (message.contains('invalid_rule_contains')) {
+    return 'Chuỗi cần khớp phải từ 1 đến $ruleContainsMax ký tự.';
+  }
+  if (message.contains('invalid_rule_merchant')) {
+    return 'Tên đổi mới tối đa $ruleMerchantMax ký tự.';
+  }
+  if (message.contains('invalid_rule_field')) {
+    return 'Trường khớp chưa hợp lệ.';
+  }
+  if (message.contains('rule_priority_exhausted') ||
+      message.contains('invalid_rule_order') ||
+      message.contains('duplicate_rule_order') ||
+      message.contains('invalid_rule_version')) {
+    return 'Dữ liệu quy tắc không hợp lệ. Hãy tải lại rồi thử lại.';
+  }
+  return 'Không cập nhật được quy tắc. Hãy thử lại.';
+}

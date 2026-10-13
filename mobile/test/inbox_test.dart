@@ -306,31 +306,25 @@ void main() {
       expect(inboxPlanBlocksApproval(blocked), isTrue);
     });
 
-    test(
-      'rejectInboxCandidate PATCHes status=rejected, never deletes',
-      () async {
-        final h = Harness();
-        await h.signIn();
-        h.t.queue.add(
-          FakeTransport.json(200, [
-            candidateRow({'status': 'rejected'}),
-          ]),
-        );
-        await h.store.rejectInboxCandidate('c1');
-        final req = h.t.requests.last;
-        expect(req.method, 'PATCH');
-        expect(req.url.path, '/neondb/rest/v1/inbox_candidates');
-        expect(req.url.queryParameters['id'], 'eq.c1');
-        expect(req.body, {'status': 'rejected'});
-      },
-    );
+    test('rejectInboxCandidate POSTs the definer RPC, never deletes', () async {
+      final h = Harness();
+      await h.signIn();
+      h.t.queue.add(FakeTransport.json(200, true));
+      await h.store.rejectInboxCandidate('c1');
+      final req = h.t.requests.last;
+      // RPC-only write path — a direct PATCH on inbox_candidates dies
+      // 42501; the definer flips status to 'rejected' server-side.
+      expect(req.method, 'POST');
+      expect(req.url.path, '/neondb/rest/v1/rpc/reject_inbox_candidate');
+      expect(req.body, {'p_candidate_id': 'c1'});
+    });
 
     test(
-      'reject with empty representation throws — no silent success',
+      'reject returning false throws — no silent success on a stale queue',
       () async {
         final h = Harness();
         await h.signIn();
-        h.t.queue.add(FakeTransport.json(200, []));
+        h.t.queue.add(FakeTransport.json(200, false));
         expect(
           () => h.store.rejectInboxCandidate('ghost'),
           throwsA(isA<Exception>()),
