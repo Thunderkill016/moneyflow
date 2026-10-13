@@ -51,15 +51,13 @@ import 'home_shell.dart';
 const kBrandColor = Color(0xFF0EA5E9);
 const kBrandBackground = Color(0xFFF8FAFC);
 
-/// JSON backup ships behind a build flag until the backend is callable.
-/// `export_user_archive` is SECURITY INVOKER and resolves auth.uid() in
-/// its body; on the Neon Data API the `authenticated` role has no USAGE
-/// on schema `auth`, so the call returns 42501 (verified 2026-10-13 —
-/// `get_dashboard_bundle` fails identically while RLS policy evaluation
-/// still resolves auth.uid(); the web's backup action hits the same wall
-/// over this transport — `db/compat/supabase-auth-shim.sql` grants the
-/// usage only on Supabase). Build with `--dart-define=MF_ARCHIVE_BACKUP=
-/// true` once a backend grant or definer wrapper makes it honest.
+/// JSON backup ships behind a build flag while `export_user_archive`'s
+/// reachability is verified per backend. It is callable on the acceptance
+/// sandbox (verified 2026-10-14 — the produced archive carries real
+/// tenant rows); earlier the Data API's `authenticated` role lacked
+/// USAGE on schema `auth` and the SECURITY INVOKER body failed 42501.
+/// Build with `--dart-define=MF_ARCHIVE_BACKUP=true` for a backend where
+/// the call is confirmed live.
 const kArchiveBackupEnabled = bool.fromEnvironment('MF_ARCHIVE_BACKUP');
 
 class MoneyFlowApp extends StatelessWidget {
