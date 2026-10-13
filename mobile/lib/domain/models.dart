@@ -148,6 +148,7 @@ class BudgetProgress {
     required this.monthStart,
     required this.limitMinor,
     required this.spentMinor,
+    this.updatedAt,
   });
 
   final String id;
@@ -156,6 +157,10 @@ class BudgetProgress {
   final String monthStart; // YYYY-MM-01
   final int limitMinor;
   final int spentMinor;
+
+  /// Row version read from the feed — handed back as `expected_updated_at`
+  /// on a limit edit so a stale write fails instead of silently winning.
+  final String? updatedAt;
 
   bool get isOver => spentMinor > limitMinor;
 }
@@ -173,6 +178,7 @@ class RecurringCommitment {
     required this.categoryName,
     this.isArchived = false,
     this.paidThisMonth = false,
+    this.updatedAt,
   });
 
   final String id;
@@ -185,6 +191,9 @@ class RecurringCommitment {
   final String categoryName;
   final bool isArchived;
   final bool paidThisMonth;
+
+  /// Row version read from the feed — the `expected_updated_at` edit token.
+  final String? updatedAt;
 }
 
 /// Recurring income (salary etc.) — mirrors
@@ -199,7 +208,9 @@ class RecurringIncome {
     required this.accountName,
     required this.categoryId,
     required this.categoryName,
+    this.isArchived = false,
     this.receivedThisMonth = false,
+    this.updatedAt,
   });
 
   final String id;
@@ -210,7 +221,11 @@ class RecurringIncome {
   final String accountName;
   final String categoryId;
   final String categoryName;
+  final bool isArchived;
   final bool receivedThisMonth;
+
+  /// Row version read from the feed — the `expected_updated_at` edit token.
+  final String? updatedAt;
 }
 
 /// Savings goal row — mirrors public.savings_goals.
@@ -222,6 +237,7 @@ class SavingsGoal {
     required this.allocatedMinor,
     this.deadline,
     this.isArchived = false,
+    this.updatedAt,
   });
 
   final String id;
@@ -230,6 +246,9 @@ class SavingsGoal {
   final int allocatedMinor;
   final String? deadline; // YYYY-MM-DD
   final bool isArchived;
+
+  /// Row version read from the feed — the `expected_updated_at` edit token.
+  final String? updatedAt;
 
   double get progress => targetMinor <= 0 ? 0 : allocatedMinor / targetMinor;
 }

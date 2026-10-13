@@ -30,21 +30,38 @@ PlanningData _seedPlanningData() => PlanningData(
 
 PlanningActions _actions({
   Future<void> Function(RecurringCommitment c)? onCommitmentPay,
+  Future<void> Function(RecurringCommitment c)? onCommitmentUndo,
+  Future<void> Function(String id, bool archived)? onCommitmentArchived,
+  Future<void> Function(RecurringCommitment?, String, int, int, String, String)?
+  onCommitmentSave,
+  Future<void> Function(BudgetProgress?, String, int)? onBudgetSave,
+  Future<void> Function(String id)? onBudgetDelete,
+  Future<void> Function(SavingsGoal?, String, int, String?)? onGoalSave,
+  Future<void> Function(String id, int amount)? onGoalAdjust,
+  Future<void> Function(String id, bool archived)? onGoalArchived,
 }) => PlanningActions(
-  onBudgetCreate: (a, b) async {},
-  onBudgetDelete: (_) async {},
-  onCommitmentCreate: (a, b, c, d, e) async {},
+  onBudgetSave: onBudgetSave ?? (a, b, c) async {},
+  onBudgetDelete: onBudgetDelete ?? (_) async {},
+  onCommitmentSave: onCommitmentSave ?? (a, b, c, d, e, f) async {},
   onCommitmentPay: onCommitmentPay ?? (_) async {},
-  onCommitmentArchive: (_) async {},
-  onGoalCreate: (a, b, c) async {},
-  onGoalAdjust: (a, b) async {},
-  onGoalArchive: (_) async {},
+  onCommitmentUndo: onCommitmentUndo ?? (_) async {},
+  onCommitmentArchived: onCommitmentArchived ?? (_, _) async {},
+  onGoalSave: onGoalSave ?? (a, b, c, d) async {},
+  onGoalAdjust: onGoalAdjust ?? (a, b) async {},
+  onGoalArchived: onGoalArchived ?? (_, _) async {},
 );
 
 Future<void> _pumpPlanning(
   WidgetTester tester, {
   required PlanningActions actions,
 }) async {
+  // The seeded page (budgets + commitments + goals + archived section) is
+  // taller than the default 800x600 test surface, so bottom rows would be
+  // unreachable for hit-testing. Grow the viewport instead of scrolling.
+  tester.view.physicalSize = const Size(800, 1600);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
   await tester.pumpWidget(
     MaterialApp(
       home: PlanningPage(
@@ -114,20 +131,23 @@ Future<void> _pumpIncome(
 PlanningActions _incomeActions({
   Future<void> Function(RecurringIncome)? onReceive,
   Future<void> Function(RecurringIncome)? onUndo,
-  Future<void> Function(String, int, int, String, String)? onCreate,
+  Future<void> Function(RecurringIncome?, String, int, int, String, String)?
+  onSave,
+  Future<void> Function(String, bool)? onArchived,
 }) => PlanningActions(
-  onBudgetCreate: (a, b) async {},
+  onBudgetSave: (a, b, c) async {},
   onBudgetDelete: (_) async {},
-  onCommitmentCreate: (a, b, c, d, e) async {},
+  onCommitmentSave: (a, b, c, d, e, f) async {},
   onCommitmentPay: (_) async {},
-  onCommitmentArchive: (_) async {},
-  onGoalCreate: (a, b, c) async {},
+  onCommitmentUndo: (_) async {},
+  onCommitmentArchived: (_, _) async {},
+  onGoalSave: (a, b, c, d) async {},
   onGoalAdjust: (a, b) async {},
-  onGoalArchive: (_) async {},
-  onIncomeCreate: onCreate ?? (a, b, c, d, e) async {},
+  onGoalArchived: (_, _) async {},
+  onIncomeSave: onSave ?? (a, b, c, d, e, f) async {},
   onIncomeReceive: onReceive ?? (_) async {},
   onIncomeUndo: onUndo ?? (_) async {},
-  onIncomeArchive: (_) async {},
+  onIncomeArchived: onArchived ?? (_, _) async {},
 );
 
 void main() {
@@ -250,7 +270,8 @@ void main() {
         tester,
         templates: const [],
         actions: _incomeActions(
-          onCreate: (n, a, d, acc, cat) async => created = [n, a, d, acc, cat],
+          onSave: (editing, n, a, d, acc, cat) async =>
+              created = [editing, n, a, d, acc, cat],
         ),
       );
 
@@ -269,8 +290,74 @@ void main() {
       await tester.tap(find.text('Tạo'));
       await tester.pumpAndSettle();
 
-      // Only the income category exists for this kind in the seed.
-      expect(created, ['Lương', 15000000, 5, 'acc-cash', 'cat-salary']);
+      // editing=null means create; only the income category exists in the
+      // seed, so it wins the picker default.
+      expect(created, [null, 'Lương', 15000000, 5, 'acc-cash', 'cat-salary']);
+    });
+
+    testWidgets('tapping a template opens edit mode prefilled', (tester) async {
+      List<Object?>? saved;
+      await _pumpIncome(
+        tester,
+        templates: const [_salary],
+        actions: _incomeActions(
+          onSave: (editing, n, a, d, acc, cat) async =>
+              saved = [editing, n, a, d, acc, cat],
+        ),
+      );
+
+      await tester.tap(find.text('Lương').first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sửa thu nhập định kỳ'), findsOneWidget);
+      expect(
+        tester
+            .widget<TextField>(find.widgetWithText(TextField, 'Tên'))
+            .controller
+            ?.text,
+        'Lương',
+      );
+      expect(
+        tester
+            .widget<TextField>(find.widgetWithText(TextField, 'Số tiền'))
+            .controller
+            ?.text,
+        '15000000',
+      );
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Tên'),
+        'Lương tháng',
+      );
+      await tester.tap(find.text('Lưu'));
+      await tester.pumpAndSettle();
+
+      expect(saved?.first, isA<RecurringIncome>());
+      expect((saved?.first as RecurringIncome).id, 'inc-1');
+      expect(saved?[1], 'Lương tháng');
+    });
+
+    testWidgets('a failed edit shows the honest stale message in-dialog', (
+      tester,
+    ) async {
+      await _pumpIncome(
+        tester,
+        templates: const [_salary],
+        actions: _incomeActions(
+          onSave: (editing, n, a, d, acc, cat) async =>
+              throw Exception('stale_write'),
+        ),
+      );
+
+      await tester.tap(find.text('Lương').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lưu'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Dữ liệu vừa thay đổi — đóng rồi mở lại để sửa bản mới'),
+        findsOneWidget,
+      );
     });
   });
 
@@ -385,6 +472,356 @@ void main() {
         expect(paidCommitment?.id, 'cm-2');
       },
     );
+
+    testWidgets('tapping a commitment opens edit mode prefilled', (
+      tester,
+    ) async {
+      List<Object?>? saved;
+      await _pumpPlanning(
+        tester,
+        actions: _actions(
+          onCommitmentSave: (editing, n, a, d, acc, cat) async =>
+              saved = [editing, n, a, d, acc, cat],
+        ),
+      );
+
+      await tester.tap(find.text('Internet'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sửa cam kết'), findsOneWidget);
+      expect(
+        tester
+            .widget<TextField>(find.widgetWithText(TextField, 'Tên'))
+            .controller
+            ?.text,
+        'Internet',
+      );
+      expect(
+        tester
+            .widget<TextField>(find.widgetWithText(TextField, 'Số tiền'))
+            .controller
+            ?.text,
+        '250000',
+      );
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Số tiền'),
+        '300000',
+      );
+      await tester.tap(find.text('Lưu'));
+      await tester.pumpAndSettle();
+
+      expect(saved?.first, isA<RecurringCommitment>());
+      expect((saved?.first as RecurringCommitment).id, 'cm-2');
+      expect(saved?[2], 300000);
+    });
+
+    testWidgets('a stale commitment save shows the honest edit message', (
+      tester,
+    ) async {
+      await _pumpPlanning(
+        tester,
+        actions: _actions(
+          onCommitmentSave: (editing, n, a, d, acc, cat) async =>
+              throw Exception('stale_write'),
+        ),
+      );
+
+      await tester.tap(find.text('Internet'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lưu'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Dữ liệu vừa thay đổi — đóng rồi mở lại để sửa bản mới'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a paid commitment offers Hoàn tác like the income flow', (
+      tester,
+    ) async {
+      RecurringCommitment? undone;
+      await _pumpPlanning(
+        tester,
+        actions: _actions(onCommitmentUndo: (c) async => undone = c),
+      );
+
+      // 'Tiền nhà' is paidThisMonth — tapping Đã trả asks before undoing.
+      await tester.ensureVisible(find.text('Đã trả'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Đã trả'));
+      await tester.pumpAndSettle();
+      expect(undone, isNull);
+      await tester.tap(find.text('Đồng ý'));
+      await tester.pumpAndSettle();
+      expect(undone?.id, 'cm-1');
+    });
+
+    testWidgets('archived commitments collapse under Đã lưu trữ and restore', (
+      tester,
+    ) async {
+      String? restoredId;
+      bool? restoredTo;
+      final data = _seedPlanningData();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PlanningPage(
+            loadData: () => Future.value(
+              PlanningData(
+                budgets: data.budgets,
+                commitments: [
+                  ...data.commitments,
+                  const RecurringCommitment(
+                    id: 'cm-old',
+                    name: 'Netflix cũ',
+                    amountMinor: 100000,
+                    dueDay: 1,
+                    accountId: 'acc-bank',
+                    accountName: 'Ngân hàng VCB',
+                    categoryId: 'cat-bills',
+                    categoryName: 'Hóa đơn',
+                    isArchived: true,
+                  ),
+                ],
+                goals: data.goals,
+                accounts: data.accounts,
+                categories: data.categories,
+                monthStart: data.monthStart,
+              ),
+            ),
+            actions: _actions(
+              onCommitmentArchived: (id, archived) async {
+                restoredId = id;
+                restoredTo = archived;
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The archived row is hidden until the collapsed group expands.
+      expect(find.text('Netflix cũ'), findsNothing);
+      await tester.ensureVisible(find.text('Đã lưu trữ (1)'));
+      await tester.tap(find.text('Đã lưu trữ (1)'));
+      await tester.pumpAndSettle();
+      expect(find.text('Netflix cũ'), findsOneWidget);
+
+      await tester.tap(find.text('Khôi phục'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Đồng ý'));
+      await tester.pumpAndSettle();
+      expect(restoredId, 'cm-old');
+      expect(restoredTo, isFalse);
+    });
+
+    testWidgets('tapping a budget edits only the limit — category locked', (
+      tester,
+    ) async {
+      List<Object?>? saved;
+      await _pumpPlanning(
+        tester,
+        actions: _actions(
+          onBudgetSave: (editing, categoryId, limit) async =>
+              saved = [editing, categoryId, limit],
+        ),
+      );
+
+      await tester.tap(find.text('Ăn uống'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sửa ngân sách'), findsOneWidget);
+      // Category shows as a read-only field, not a dropdown.
+      expect(find.byType(DropdownButtonFormField<Category>), findsNothing);
+      expect(
+        tester
+            .widget<TextField>(find.widgetWithText(TextField, 'Hạn mức'))
+            .controller
+            ?.text,
+        '2000000',
+      );
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Hạn mức'),
+        '2500000',
+      );
+      await tester.tap(find.text('Lưu'));
+      await tester.pumpAndSettle();
+
+      expect(saved?.first, isA<BudgetProgress>());
+      expect((saved?.first as BudgetProgress).id, 'b-1');
+      expect(saved?[1], 'cat-food');
+      expect(saved?[2], 2500000);
+    });
+
+    testWidgets('a stale budget save shows the honest edit message', (
+      tester,
+    ) async {
+      await _pumpPlanning(
+        tester,
+        actions: _actions(
+          onBudgetSave: (editing, categoryId, limit) async =>
+              throw Exception('stale_write'),
+        ),
+      );
+
+      await tester.tap(find.text('Ăn uống'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lưu'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Dữ liệu vừa thay đổi — đóng rồi mở lại để sửa bản mới'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('long-press still asks before deleting a budget', (
+      tester,
+    ) async {
+      String? deleted;
+      await _pumpPlanning(
+        tester,
+        actions: _actions(onBudgetDelete: (id) async => deleted = id),
+      );
+
+      await tester.longPress(find.text('Di chuyển'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Xóa ngân sách'), findsOneWidget);
+      await tester.tap(find.text('Đồng ý'));
+      await tester.pumpAndSettle();
+      expect(deleted, 'b-2');
+    });
+
+    testWidgets('tapping a goal opens edit mode prefilled', (tester) async {
+      List<Object?>? saved;
+      await _pumpPlanning(
+        tester,
+        actions: _actions(
+          onGoalSave: (editing, n, t, deadline) async =>
+              saved = [editing, n, t, deadline],
+        ),
+      );
+
+      await tester.tap(find.text('Quỹ khẩn cấp'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sửa mục tiêu'), findsOneWidget);
+      expect(find.text('2027-03-01'), findsOneWidget); // deadline prefilled
+      expect(
+        tester
+            .widget<TextField>(find.widgetWithText(TextField, 'Tên mục tiêu'))
+            .controller
+            ?.text,
+        'Quỹ khẩn cấp',
+      );
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Tên mục tiêu'),
+        'Quỹ khẩn cấp mới',
+      );
+      await tester.tap(find.text('Lưu'));
+      await tester.pumpAndSettle();
+
+      expect(saved?.first, isA<SavingsGoal>());
+      expect((saved?.first as SavingsGoal).id, 'g-1');
+      expect(saved?[1], 'Quỹ khẩn cấp mới');
+      expect(saved?[3], '2027-03-01');
+    });
+
+    testWidgets('a goal target below allocated is refused before saving', (
+      tester,
+    ) async {
+      var saveCalls = 0;
+      await _pumpPlanning(
+        tester,
+        actions: _actions(onGoalSave: (e, n, t, d) async => saveCalls++),
+      );
+
+      await tester.tap(find.text('Quỹ khẩn cấp'));
+      await tester.pumpAndSettle();
+      // Seed allocated is 8.500.000 — 1tr is below it.
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Số tiền mục tiêu'),
+        '1tr',
+      );
+      await tester.tap(find.text('Lưu'));
+      await tester.pumpAndSettle();
+
+      expect(saveCalls, 0);
+      expect(
+        find.text('Mức đích không được thấp hơn tiền đã dành'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('withdrawing calls onGoalAdjust with a negative amount', (
+      tester,
+    ) async {
+      int? adjusted;
+      await _pumpPlanning(
+        tester,
+        actions: _actions(
+          onGoalAdjust: (id, amount) async => adjusted = amount,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Rút tiền'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Rút khỏi'), findsOneWidget);
+
+      await tester.enterText(find.widgetWithText(TextField, 'Số tiền'), '1tr');
+      await tester.tap(find.text('Rút'));
+      await tester.pumpAndSettle();
+      expect(adjusted, -1000000);
+    });
+
+    testWidgets('withdrawing more than allocated is refused in-dialog', (
+      tester,
+    ) async {
+      var adjustCalls = 0;
+      await _pumpPlanning(
+        tester,
+        actions: _actions(onGoalAdjust: (id, a) async => adjustCalls++),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Rút tiền'));
+      await tester.pumpAndSettle();
+      // Allocated is 8.500.000 — 10tr is over.
+      await tester.enterText(find.widgetWithText(TextField, 'Số tiền'), '10tr');
+      await tester.tap(find.text('Rút'));
+      await tester.pumpAndSettle();
+
+      expect(adjustCalls, 0);
+      expect(find.text('Không thể rút quá số tiền đã dành'), findsOneWidget);
+    });
+
+    testWidgets('archiving a funded goal warns instead of asking', (
+      tester,
+    ) async {
+      var archiveCalls = 0;
+      await _pumpPlanning(
+        tester,
+        actions: _actions(
+          onGoalArchived: (id, archived) async => archiveCalls++,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.longPress(find.text('Quỹ khẩn cấp'));
+      await tester.pumpAndSettle();
+
+      // No confirm dialog — the guard message shows straight away.
+      expect(find.text('Đồng ý'), findsNothing);
+      expect(
+        find.text('Hãy rút hết tiền đã dành trước khi lưu trữ'),
+        findsOneWidget,
+      );
+      expect(archiveCalls, 0);
+    });
   });
 
   group('ReportsPage', () {

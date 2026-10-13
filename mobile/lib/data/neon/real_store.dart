@@ -385,7 +385,8 @@ class RealStore {
       'budget_progress',
       query: {
         'select':
-            'id,category_id,category_name,month_start,limit_minor,spent_minor',
+            'id,category_id,category_name,month_start,limit_minor,spent_minor,'
+            'updated_at',
         'month_start': 'eq.$monthStart',
         'order': 'category_name.asc',
       },
@@ -399,21 +400,24 @@ class RealStore {
             monthStart: r['month_start'] as String,
             limitMinor: (r['limit_minor'] as num).toInt(),
             spentMinor: (r['spent_minor'] as num).toInt(),
+            updatedAt: r['updated_at'] as String?,
           ),
         )
         .toList();
   }
 
   /// Recurring commitments + this month's paid state —
-  /// public.recurring_commitment_feed + commitment_occurrences.
+  /// public.recurring_commitment_feed + commitment_occurrences. Archived
+  /// rows come back too: the planning page lists them under "Đã lưu trữ",
+  /// and the other consumers (safe-spend, reminder scheduler) already
+  /// skip isArchived rows themselves.
   Future<List<RecurringCommitment>> loadCommitments(String monthStart) async {
     final rows = await _api.select(
       'recurring_commitment_feed',
       query: {
         'select':
             'id,name,amount_minor,due_day,account_id,account_name,'
-            'category_id,category_name,is_archived',
-        'is_archived': 'eq.false',
+            'category_id,category_name,is_archived,updated_at',
         'order': 'due_day.asc',
       },
     );
@@ -435,6 +439,7 @@ class RealStore {
             categoryName: r['category_name'] as String? ?? 'Khác',
             isArchived: r['is_archived'] as bool? ?? false,
             paidThisMonth: paid.contains(r['id']),
+            updatedAt: r['updated_at'] as String?,
           ),
         )
         .toList();
@@ -442,14 +447,14 @@ class RealStore {
 
   /// Recurring income templates + this month's receipt state —
   /// public.recurring_income_template_feed + income_template_occurrences.
+  /// Archived rows come back for the planning page's "Đã lưu trữ" section.
   Future<List<RecurringIncome>> loadIncomeTemplates(String monthStart) async {
     final rows = await _api.select(
       'recurring_income_template_feed',
       query: {
         'select':
             'id,name,amount_minor,due_day,account_id,account_name,'
-            'category_id,category_name,is_archived',
-        'is_archived': 'eq.false',
+            'category_id,category_name,is_archived,updated_at',
         'order': 'due_day.asc',
       },
     );
@@ -469,28 +474,34 @@ class RealStore {
             accountName: r['account_name'] as String? ?? '',
             categoryId: r['category_id'] as String,
             categoryName: r['category_name'] as String? ?? 'Khác',
+            isArchived: r['is_archived'] as bool? ?? false,
             receivedThisMonth: received.contains(r['id']),
+            updatedAt: r['updated_at'] as String?,
           ),
         )
         .toList();
   }
 
-  /// POST /rpc/upsert_recurring_income_template — create (id null).
-  Future<String> createIncomeTemplate({
+  /// POST /rpc/upsert_recurring_income_template — [templateId] null creates;
+  /// a real id updates in place, [expectedUpdatedAt] failing closed on a
+  /// stale read (server raises stale_write).
+  Future<String> upsertIncomeTemplate({
+    String? templateId,
     required String name,
     required int amountMinor,
     required int dueDay,
     required String accountId,
     required String categoryId,
+    String? expectedUpdatedAt,
   }) async {
     final id = await _api.rpc('upsert_recurring_income_template', {
-      'p_template_id': null,
+      'p_template_id': templateId,
       'p_name': name,
       'p_amount_minor': amountMinor,
       'p_due_day': dueDay,
       'p_account_id': accountId,
       'p_category_id': categoryId,
-      'p_expected_updated_at': null,
+      'p_expected_updated_at': expectedUpdatedAt,
     });
     return id as String;
   }
@@ -514,25 +525,38 @@ class RealStore {
 
   /// POST /rpc/undo_recurring_income_template_receipt — removes this
   /// month's receipt and soft-deletes its transaction (recoverable).
-  Future<void> undoIncomeReceipt(String templateId, String monthStart) =>
-      _api.rpc('undo_recurring_income_template_receipt', {
-        'p_template_id': templateId,
-        'p_month_start': monthStart,
-      });
+  /// Returns false upstream when no receipt exists for the month — that
+  /// means the read state was stale, so it surfaces as a failure.
+  Future<void> undoIncomeReceipt(String templateId, String monthStart) async {
+    final ok = await _api.rpc('undo_recurring_income_template_receipt', {
+      'p_template_id': templateId,
+      'p_month_start': monthStart,
+    });
+    if (ok != true) throw Exception('nothing_to_undo');
+  }
 
-  Future<void> setIncomeTemplateArchived(String templateId, bool archived) =>
-      _api.rpc('set_recurring_income_template_archived', {
-        'p_template_id': templateId,
-        'p_archived': archived,
-      });
+  /// POST /rpc/set_recurring_income_template_archived — false upstream
+  /// means the row was missing or already in the target state.
+  Future<void> setIncomeTemplateArchived(
+    String templateId,
+    bool archived,
+  ) async {
+    final ok = await _api.rpc('set_recurring_income_template_archived', {
+      'p_template_id': templateId,
+      'p_archived': archived,
+    });
+    if (ok != true) throw Exception('archive_rejected');
+  }
 
-  /// Savings goals — public.savings_goals.
+  /// Savings goals — public.savings_goals. Archived rows come back for
+  /// the planning page's "Đã lưu trữ" section.
   Future<List<SavingsGoal>> loadGoals() async {
     final rows = await _api.select(
       'savings_goals',
       query: {
-        'select': 'id,name,target_minor,allocated_minor,deadline,is_archived',
-        'is_archived': 'eq.false',
+        'select':
+            'id,name,target_minor,allocated_minor,deadline,is_archived,'
+            'updated_at',
         'order': 'deadline.asc.nullslast,name.asc',
       },
     );
@@ -545,6 +569,7 @@ class RealStore {
             allocatedMinor: (r['allocated_minor'] as num).toInt(),
             deadline: r['deadline'] as String?,
             isArchived: r['is_archived'] as bool? ?? false,
+            updatedAt: r['updated_at'] as String?,
           ),
         )
         .toList();
@@ -657,37 +682,52 @@ class RealStore {
   });
 
   /// POST /rpc/upsert_monthly_budget — create or update a category budget.
+  /// The conflict target is (user, category, month): an edit re-sends the
+  /// same pair with [expectedUpdatedAt] guarding against a stale read.
   Future<String> upsertBudget({
     required String categoryId,
     required String monthStart,
     required int limitMinor,
+    String? expectedUpdatedAt,
   }) async {
     final id = await _api.rpc('upsert_monthly_budget', {
       'p_category_id': categoryId,
       'p_month_start': monthStart,
       'p_limit_minor': limitMinor,
+      'p_expected_updated_at': expectedUpdatedAt,
     });
     return id as String;
   }
 
-  Future<void> deleteBudget(String budgetId) =>
-      _api.rpc('delete_monthly_budget', {'p_budget_id': budgetId});
+  /// POST /rpc/delete_monthly_budget — false upstream means the row was
+  /// already gone (another device deleted it first).
+  Future<void> deleteBudget(String budgetId) async {
+    final ok = await _api.rpc('delete_monthly_budget', {
+      'p_budget_id': budgetId,
+    });
+    if (ok != true) throw Exception('budget_not_found');
+  }
 
-  /// POST /rpc/upsert_recurring_commitment — create a monthly commitment.
+  /// POST /rpc/upsert_recurring_commitment — [commitmentId] null creates;
+  /// a real id updates name/amount/due-day/account/category in place,
+  /// [expectedUpdatedAt] failing closed on a stale read.
   Future<String> upsertCommitment({
+    String? commitmentId,
     required String name,
     required int amountMinor,
     required int dueDay,
     required String accountId,
     required String categoryId,
+    String? expectedUpdatedAt,
   }) async {
     final id = await _api.rpc('upsert_recurring_commitment', {
-      'p_commitment_id': null,
+      'p_commitment_id': commitmentId,
       'p_name': name,
       'p_amount_minor': amountMinor,
       'p_due_day': dueDay,
       'p_account_id': accountId,
       'p_category_id': categoryId,
+      'p_expected_updated_at': expectedUpdatedAt,
     });
     return id as String;
   }
@@ -709,23 +749,47 @@ class RealStore {
     return id as String;
   }
 
-  Future<void> setCommitmentArchived(String commitmentId, bool archived) =>
-      _api.rpc('set_recurring_commitment_archived', {
-        'p_commitment_id': commitmentId,
-        'p_archived': archived,
-      });
+  /// POST /rpc/undo_recurring_commitment_payment — removes this month's
+  /// occurrence and soft-deletes its expense (recoverable via Thùng rác).
+  /// False upstream means no payment was recorded for the month — the
+  /// local "Đã trả" state was stale, so that surfaces as a failure.
+  Future<void> undoCommitmentPayment(
+    String commitmentId,
+    String monthStart,
+  ) async {
+    final ok = await _api.rpc('undo_recurring_commitment_payment', {
+      'p_commitment_id': commitmentId,
+      'p_month_start': monthStart,
+    });
+    if (ok != true) throw Exception('nothing_to_undo');
+  }
 
-  /// POST /rpc/upsert_savings_goal — create a goal (p_goal_id null).
+  /// POST /rpc/set_recurring_commitment_archived — false upstream means
+  /// the row was missing or already in the target state.
+  Future<void> setCommitmentArchived(String commitmentId, bool archived) async {
+    final ok = await _api.rpc('set_recurring_commitment_archived', {
+      'p_commitment_id': commitmentId,
+      'p_archived': archived,
+    });
+    if (ok != true) throw Exception('archive_rejected');
+  }
+
+  /// POST /rpc/upsert_savings_goal — [goalId] null creates; a real id
+  /// updates name/target/deadline, [expectedUpdatedAt] failing closed on
+  /// a stale read. The server rejects a target below allocated_minor.
   Future<String> upsertGoal({
+    String? goalId,
     required String name,
     required int targetMinor,
     String? deadline,
+    String? expectedUpdatedAt,
   }) async {
     final id = await _api.rpc('upsert_savings_goal', {
-      'p_goal_id': null,
+      'p_goal_id': goalId,
       'p_name': name,
       'p_target_minor': targetMinor,
       'p_deadline': deadline,
+      'p_expected_updated_at': expectedUpdatedAt,
     });
     return id as String;
   }
@@ -736,10 +800,15 @@ class RealStore {
     {'p_goal_id': goalId, 'p_amount_minor': amountMinor},
   );
 
-  Future<void> setGoalArchived(String goalId, bool archived) => _api.rpc(
-    'set_savings_goal_archived',
-    {'p_goal_id': goalId, 'p_archived': archived},
-  );
+  /// POST /rpc/set_savings_goal_archived — the server refuses to archive
+  /// a goal that still holds allocated money (returns false).
+  Future<void> setGoalArchived(String goalId, bool archived) async {
+    final ok = await _api.rpc('set_savings_goal_archived', {
+      'p_goal_id': goalId,
+      'p_archived': archived,
+    });
+    if (ok != true) throw Exception('goal_archive_blocked');
+  }
 }
 
 /// One UUIDv4 per form instance = one idempotency key per user intent.

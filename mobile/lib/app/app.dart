@@ -611,14 +611,15 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   static final _noopPlanningActions = PlanningActions(
-    onBudgetCreate: (_, _) async {},
+    onBudgetSave: (_, _, _) async {},
     onBudgetDelete: (_) async {},
-    onCommitmentCreate: (_, _, _, _, _) async {},
+    onCommitmentSave: (_, _, _, _, _, _) async {},
     onCommitmentPay: (_) async {},
-    onCommitmentArchive: (_) async {},
-    onGoalCreate: (_, _, _) async {},
+    onCommitmentUndo: (_) async {},
+    onCommitmentArchived: (_, _) async {},
+    onGoalSave: (_, _, _, _) async {},
     onGoalAdjust: (_, _) async {},
-    onGoalArchive: (_) async {},
+    onGoalArchived: (_, _) async {},
   );
 
   /// First of the current month — the planning RPC window boundary.
@@ -671,23 +672,29 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   PlanningActions _planningActions() => PlanningActions(
-    onBudgetCreate: (categoryId, limit) => _store
+    // An edit re-sends the same (category, month) pair with the row's
+    // updated_at as the stale-write guard — like the web's saveBudgetAction.
+    onBudgetSave: (editing, categoryId, limit) => _store
         .upsertBudget(
           categoryId: categoryId,
-          monthStart: _monthStart(),
+          monthStart: editing?.monthStart ?? _monthStart(),
           limitMinor: limit,
+          expectedUpdatedAt: editing?.updatedAt,
         )
         .then((_) {}),
     onBudgetDelete: _store.deleteBudget,
-    onCommitmentCreate: (name, amount, day, accountId, categoryId) => _store
-        .upsertCommitment(
-          name: name,
-          amountMinor: amount,
-          dueDay: day,
-          accountId: accountId,
-          categoryId: categoryId,
-        )
-        .then((_) {}),
+    onCommitmentSave: (editing, name, amount, day, accountId, categoryId) =>
+        _store
+            .upsertCommitment(
+              commitmentId: editing?.id,
+              name: name,
+              amountMinor: amount,
+              dueDay: day,
+              accountId: accountId,
+              categoryId: categoryId,
+              expectedUpdatedAt: editing?.updatedAt,
+            )
+            .then((_) {}),
     onCommitmentPay: (c) => _store
         .payCommitment(
           commitmentId: c.id,
@@ -696,14 +703,21 @@ class _AuthGateState extends State<AuthGate> {
           idempotencyKey: newIdempotencyKey(),
         )
         .then((_) => _reloadLedgerTabs()),
-    onCommitmentArchive: (id) => _store.setCommitmentArchived(id, true),
-    onIncomeCreate: (name, amount, day, accountId, categoryId) => _store
-        .createIncomeTemplate(
+    // Undoing a payment soft-deletes the expense it posted — the ledger
+    // surfaces (balances, feed, reports) must reload too.
+    onCommitmentUndo: (c) => _store
+        .undoCommitmentPayment(c.id, _monthStart())
+        .then((_) => _reloadLedgerTabs()),
+    onCommitmentArchived: _store.setCommitmentArchived,
+    onIncomeSave: (editing, name, amount, day, accountId, categoryId) => _store
+        .upsertIncomeTemplate(
+          templateId: editing?.id,
           name: name,
           amountMinor: amount,
           dueDay: day,
           accountId: accountId,
           categoryId: categoryId,
+          expectedUpdatedAt: editing?.updatedAt,
         )
         .then((_) {}),
     onIncomeReceive: (i) => _store
@@ -717,12 +731,18 @@ class _AuthGateState extends State<AuthGate> {
     onIncomeUndo: (i) => _store
         .undoIncomeReceipt(i.id, _monthStart())
         .then((_) => _reloadLedgerTabs()),
-    onIncomeArchive: (id) => _store.setIncomeTemplateArchived(id, true),
-    onGoalCreate: (name, target, deadline) => _store
-        .upsertGoal(name: name, targetMinor: target, deadline: deadline)
+    onIncomeArchived: _store.setIncomeTemplateArchived,
+    onGoalSave: (editing, name, target, deadline) => _store
+        .upsertGoal(
+          goalId: editing?.id,
+          name: name,
+          targetMinor: target,
+          deadline: deadline,
+          expectedUpdatedAt: editing?.updatedAt,
+        )
         .then((_) {}),
     onGoalAdjust: _store.adjustGoal,
-    onGoalArchive: (id) => _store.setGoalArchived(id, true),
+    onGoalArchived: _store.setGoalArchived,
   );
 }
 
