@@ -86,6 +86,10 @@ dependencies {
     // Local JVM unit tests — BankNotificationSources is pure Kotlin, so the
     // whitelist is verified without Robolectric or a device.
     testImplementation("junit:junit:4.13.2")
+    // Real org.json for the JVM harness — the android.jar stub throws
+    // "not mocked" otherwise. The on-device framework class stays the
+    // runtime implementation.
+    testImplementation("org.json:json:20180813")
 }
 
 flutter {

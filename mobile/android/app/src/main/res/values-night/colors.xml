@@ -3,4 +3,5 @@
     <!-- Night card — slate-800 surface with the light scaffold text color. -->
     <color name="widget_card">#FF1E293B</color>
     <color name="widget_title_text">#FFF8FAFC</color>
+    <color name="widget_dim_text">#FF94A3B8</color>
 </resources>

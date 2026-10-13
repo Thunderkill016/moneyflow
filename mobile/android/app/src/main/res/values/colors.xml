@@ -3,6 +3,7 @@
     <!-- Widget card colors — day values; values-night overrides the card. -->
     <color name="widget_card">#FFFFFFFF</color>
     <color name="widget_title_text">#FF0F172A</color>
+    <color name="widget_dim_text">#FF475569</color>
     <color name="widget_button">#FF0EA5E9</color>
     <color name="widget_button_text">#FFFFFFFF</color>
 </resources>

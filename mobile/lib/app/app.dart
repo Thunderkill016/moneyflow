@@ -19,6 +19,7 @@ import '../data/offline_queue.dart';
 import '../data/quick_action.dart';
 import '../data/session_store.dart';
 import '../data/settings_prefs.dart';
+import '../data/widget_snapshot.dart';
 import '../data/share/share_intent.dart';
 import '../data/share/share_text_parser.dart';
 import '../domain/budget.dart';
@@ -258,6 +259,15 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  /// Persists the widget feed for the signed-in account. Before prefs
+  /// load (the `_restore` race) there is nowhere to write — skipping is
+  /// honest, the next load fills the widget.
+  Future<void> _saveWidgetSnapshot(WidgetSnapshot snap) async {
+    final prefs = _prefs;
+    if (prefs == null) return;
+    await WidgetSnapshotStore(prefs).save(snap);
+  }
+
   /// Returning from system settings (or any backgrounding) re-reads the
   /// real OS grant — the menu label must never quote a stale toggle.
   @override
@@ -297,6 +307,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       // A dead stored session is a silent sign-out — the same unscoped
       // residue must go, or it reaches the next account on this device.
       await clearSignOutResidue(_prefs!);
+      // The widget held the dead session's figures — re-render now so a
+      // stale balance never poses as the next account's.
+      unawaited(WidgetSnapshotStore.refresh());
     }
     _bindAccountStores(null);
     // First run only: the welcome surface sits ahead of the login form.
@@ -889,6 +902,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       // can't leak, and sign-out must not destroy held captures.
       await clearSignOutResidue(prefs);
     }
+    // Drop the widget's balance view with the session — the residue
+    // sweep removed the value, this re-renders the honest "—".
+    unawaited(WidgetSnapshotStore.refresh());
     _bindAccountStores(null);
     if (mounted) {
       setState(() {
@@ -962,6 +978,13 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
               readSnapshot: () => _offline?.readDashboard(),
               writeSnapshot: (snap) =>
                   _offline?.saveDashboard(snap) ?? Future.value(),
+              // The home-screen widget's last-known figures ride on the
+              // dashboard's load — cheap piggyback on the snapshot write,
+              // same "never fail the render path" rule.
+              writeWidgetSnapshot: _saveWidgetSnapshot,
+              // "Ẩn" on a recurring suggestion persists to
+              // pattern_dismissals so the choice follows the account.
+              dismissalSync: _store,
               menuItems: _dashboardMenu(context),
             ),
             () => ActivityPage(
@@ -1077,6 +1100,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     // captures) can never be read or replayed by anyone. Mirrors the
     // web's clearLocalMoneyFlowStores after server deletion.
     await wipeLocalData(prefs);
+    // The deleted account's widget feed is gone — re-render before any
+    // next sign-in could be mistaken for it.
+    unawaited(WidgetSnapshotStore.refresh());
     _bindAccountStores(null);
     setState(() {
       // The wiped opt-in keys must not linger in memory — the next
@@ -1106,6 +1132,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     if (!confirmed) return;
     final prefs = await SharedPreferences.getInstance();
     await wipeLocalData(prefs);
+    unawaited(WidgetSnapshotStore.refresh());
     if (mounted) setState(() => _gate = _Gate.login);
   }
 

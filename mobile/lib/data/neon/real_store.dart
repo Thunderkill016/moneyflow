@@ -6,11 +6,12 @@ import '../notification_capture/bank_notification_parser.dart';
 import '../../domain/models.dart';
 import '../../domain/reconciliation.dart';
 import '../../domain/transaction_query.dart';
+import '../recurring_dismissals.dart';
 import 'data_api.dart';
 
 /// Neon Data API store — same domain shape as [DemoStore], real rows.
 /// Row columns mirror public.accounts / account_balances / transaction_feed.
-class RealStore {
+class RealStore implements PatternDismissalSync {
   const RealStore(this._api);
 
   final NeonDataApi _api;
@@ -995,6 +996,32 @@ class RealStore {
     final deleted = result['deleted_rows'];
     return deleted is num ? deleted.toInt() : 0;
   }
+
+  /// GET /pattern_dismissals — the RLS-scoped select the web's
+  /// getPatternDismissedKeys performs (src/server/dismissals.ts), fixed
+  /// to the recurring-suggestion scope. Direct insert is revoked on the
+  /// table, so reads are the only table traffic allowed.
+  @override
+  Future<Set<String>> loadRecurringDismissedKeys() async {
+    final rows = await _api.select(
+      'pattern_dismissals',
+      query: {'select': 'pattern_key', 'scope': 'eq.recurring'},
+    );
+    return {
+      for (final r in rows)
+        if (r['pattern_key'] is String) r['pattern_key'] as String,
+    };
+  }
+
+  /// POST /rpc/dismiss_pattern_keys — the security-definer write the
+  /// web's dismissPatternKeysAction calls. user_id comes from auth.uid()
+  /// server-side; a malformed key or scope raises, so callers see the
+  /// failure rather than a silent partial write.
+  @override
+  Future<void> dismissRecurringKeys(List<String> keys) => _api.rpc(
+    'dismiss_pattern_keys',
+    {'p_scope': 'recurring', 'p_keys': keys},
+  );
 
   /// The columns the mobile review surface reads — a subset of the web's
   /// CANDIDATE_BASE_COLUMNS (src/lib/inbox/inbox-map.ts). Source lineage,

@@ -1,11 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/data/demo_store.dart';
+import 'package:moneyflow/data/recurring_dismissals.dart';
 import 'package:moneyflow/domain/models.dart';
 import 'package:moneyflow/domain/recurring_detection.dart';
 import 'package:moneyflow/features/dashboard/dashboard_page.dart';
 import 'package:moneyflow/features/planning/recurring_form_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+/// Recording seam for the sync-aware dismissal path — stands in for
+/// RealStore's pattern_dismissals traffic.
+class _RecordingSync implements PatternDismissalSync {
+  _RecordingSync({this.server = const {}});
+
+  Set<String> server;
+  final pushed = <List<String>>[];
+
+  @override
+  Future<Set<String>> loadRecurringDismissedKeys() async => server;
+
+  @override
+  Future<void> dismissRecurringKeys(List<String> keys) async {
+    pushed.add(keys);
+    server = {...server, ...keys};
+  }
+}
 
 Widget _wrap(Widget child) =>
     MaterialApp(home: child, theme: ThemeData(useMaterial3: true));
@@ -66,6 +85,7 @@ void main() {
       List<Transaction> suggestionTxs = const [],
       Future<bool> Function(RecurringSuggestion)? onCreate,
       bool withLoader = true,
+      PatternDismissalSync? dismissalSync,
     }) => t.pumpWidget(
       _wrap(
         DashboardPage(
@@ -77,6 +97,7 @@ void main() {
               ? (from, to) async => (rows: suggestionTxs, truncated: false)
               : null,
           onCreateCommitment: onCreate,
+          dismissalSync: dismissalSync,
         ),
       ),
     );
@@ -113,6 +134,39 @@ void main() {
       await pumpDash(t, suggestionTxs: _recurringTxs());
       await t.pumpAndSettle();
       expect(find.text('Có vẻ là khoản định kỳ'), findsNothing);
+    });
+
+    testWidgets('Ẩn writes the key through to the server seam', (t) async {
+      final sync = _RecordingSync();
+      await pumpDash(t, suggestionTxs: _recurringTxs(), dismissalSync: sync);
+      await t.pumpAndSettle();
+      await t.tap(find.text('Ẩn'));
+      await t.pumpAndSettle();
+
+      expect(find.text('Có vẻ là khoản định kỳ'), findsNothing);
+      // The server got exactly the pattern's 8-hex key — the shape the
+      // pattern_dismissals CHECK constraint enforces.
+      expect(sync.pushed, hasLength(1));
+      expect(sync.pushed.single.single, matches(RegExp('^[0-9a-f]{8}\$')));
+    });
+
+    testWidgets('a server-known dismissal hides the card cross-device', (
+      t,
+    ) async {
+      // Another device dismissed this pattern: the row exists in
+      // pattern_dismissals even though this device never saw it.
+      final key = detectRecurring(
+        _recurringTxs(),
+        const {},
+        today: DateTime.now(),
+      ).single.key;
+      final sync = _RecordingSync(server: {key});
+      await pumpDash(t, suggestionTxs: _recurringTxs(), dismissalSync: sync);
+      await t.pumpAndSettle();
+      expect(find.text('Có vẻ là khoản định kỳ'), findsNothing);
+      // The merge also cached it locally for the next offline open.
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getStringList('mf_recurring_dismissed'), contains(key));
     });
 
     testWidgets(

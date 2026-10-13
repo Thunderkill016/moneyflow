@@ -86,6 +86,22 @@ class MainActivity : FlutterFragmentActivity() {
             },
         )
 
+        // The home-screen widget's refresh nudge: the Dart side invokes
+        // this right after writing mf_widget_snapshot so the launcher
+        // tile re-reads the new figures immediately (updatePeriodMillis
+        // is 0 — without the push the widget would keep stale figures).
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "app.moneyflow/widget",
+        ).setMethodCallHandler { call, result ->
+            if (call.method == "refresh") {
+                QuickCaptureWidgetProvider.requestRefresh(this@MainActivity)
+                result.success(true)
+            } else {
+                result.notImplemented()
+            }
+        }
+
         // Bank-notification capture pilot: the service has no engine of its
         // own, so the stream forwards live events through a shared sink and
         // the method channel answers permission state + drains the queue that

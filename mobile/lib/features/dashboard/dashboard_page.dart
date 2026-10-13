@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../data/demo_store.dart';
 import '../../data/offline_cache.dart';
 import '../../data/recurring_dismissals.dart';
+import '../../data/widget_snapshot.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/recurring_detection.dart';
@@ -52,6 +53,8 @@ class DashboardPage extends StatefulWidget {
     this.menuItems = const [],
     this.readSnapshot,
     this.writeSnapshot,
+    this.writeWidgetSnapshot,
+    this.dismissalSync,
   });
 
   factory DashboardPage.demo({VoidCallback? onSignOut}) => DashboardPage(
@@ -111,6 +114,17 @@ class DashboardPage extends StatefulWidget {
   /// Called with a fresh snapshot after every successful load.
   final Future<void> Function(DashboardSnapshot snapshot)? writeSnapshot;
 
+  /// Called once planning rows resolve — the home-screen widget's
+  /// last-known figures ride on the dashboard's load. Absent (demo)
+  /// leaves the widget's stored value untouched; staleness is the
+  /// widget's own honesty boundary.
+  final Future<void> Function(WidgetSnapshot snapshot)? writeWidgetSnapshot;
+
+  /// Server sync for recurring-suggestion dismissals — signed-in mode
+  /// passes the store so "Ẩn" follows the account across devices; demo
+  /// and a missing seam keep the decision device-local.
+  final PatternDismissalSync? dismissalSync;
+
   @override
   State<DashboardPage> createState() => DashboardPageState();
 }
@@ -156,6 +170,7 @@ class DashboardPageState extends State<DashboardPage> {
       // Persisting must not fail the render path.
       await widget.writeSnapshot?.call(snap).catchError((_) {});
       final planning = await _loadPlanningRows();
+      await _writeWidgetSnapshot(accounts, planning.$1, planning.$2);
       return (
         accounts: accounts,
         txs: txs,
@@ -217,7 +232,9 @@ class DashboardPageState extends State<DashboardPage> {
         for (final c in commitments.where((c) => !c.isArchived))
           ...recurringCommitmentKeys(c),
       };
-      final dismissed = await RecurringDismissals.load();
+      final dismissed = await RecurringDismissals.load(
+        sync: widget.dismissalSync,
+      );
       return detectRecurring(
         range.rows,
         covered,
@@ -229,10 +246,40 @@ class DashboardPageState extends State<DashboardPage> {
   }
 
   /// "Ẩn" is permanent — the key lands in mf_recurring_dismissed and the
-  /// pattern is filtered out on every later load.
+  /// pattern is filtered out on every later load. With a sync seam it
+  /// also lands in pattern_dismissals so the choice follows the account.
   Future<void> _dismissSuggestion(RecurringSuggestion s) async {
     setState(() => _hiddenSuggestions.add(s.key));
-    await RecurringDismissals.dismiss(s.key);
+    await RecurringDismissals.dismiss(s.key, sync: widget.dismissalSync);
+  }
+
+  /// The widget mirrors exactly what the tiles show — the VND-only
+  /// total, and the "Chi được hôm nay" figure only when planning data
+  /// actually produced one (no budget means null, and the widget renders
+  /// the same honest "—" the card's missing-tile case implies).
+  /// Persisting must never fail the render path.
+  Future<void> _writeWidgetSnapshot(
+    List<AccountSummary> accounts,
+    List<BudgetProgress>? budgets,
+    List<RecurringCommitment>? commitments,
+  ) async {
+    final sink = widget.writeWidgetSnapshot;
+    if (sink == null) return;
+    int? safeSpend;
+    if (budgets != null && commitments != null) {
+      safeSpend = safeDailySpend(
+        budgets: budgets,
+        commitments: commitments,
+        today: DateTime.now(),
+      )?.perDayMinor;
+    }
+    await sink(
+      WidgetSnapshot(
+        totalVnd: _vndTotal(accounts),
+        safeSpendVnd: safeSpend,
+        savedAtMs: DateTime.now().millisecondsSinceEpoch,
+      ),
+    ).catchError((_) {});
   }
 
   /// A real save covers the pattern via the new commitment's keys; hiding
@@ -347,9 +394,7 @@ class DashboardPageState extends State<DashboardPage> {
           // Only VND balances fold into the đồng total — a foreign-
           // currency account created on the web would otherwise corrupt
           // it (the mobile create path is VND-only).
-          final total = accounts
-              .where((a) => a.currencyCode == 'VND')
-              .fold<int>(0, (s, a) => s + a.balance);
+          final total = _vndTotal(accounts);
           final budgets = snap.data!.budgets;
           final commitments = snap.data!.commitments;
           final suggestions = snap.data!.suggestions
@@ -421,6 +466,12 @@ class DashboardPageState extends State<DashboardPage> {
     );
   }
 }
+
+/// The one VND-balance fold — the hero total and the widget snapshot
+/// must never disagree on what "Tổng số dư" means.
+int _vndTotal(List<AccountSummary> accounts) => accounts
+    .where((a) => a.currencyCode == 'VND')
+    .fold<int>(0, (s, a) => s + a.balance);
 
 /// Menu label with a lazy count badge — "Cần xem (3)". The future is
 /// awaited while the popup is already open, so the label shows first and

@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../data/offline_cache.dart';
 import '../data/offline_queue.dart';
 import '../data/session_store.dart';
+import '../data/widget_snapshot.dart';
 
 /// Local MoneyFlow data wipe — mirrors the web's
 /// clearLocalMoneyFlowStores(): only keys this app wrote are removed
@@ -44,6 +45,9 @@ const signOutResidueKeys = [
   'mf_last_capture_account',
   'mf_last_capture_category',
   'mf_recurring_dismissed',
+  // The home-screen widget's last-known balance — one account's figures
+  // must never sit on the launcher under the next account's session.
+  WidgetSnapshotStore.key,
   // Session-scoped search history — the next account on this device
   // must not see the previous one's queries.
   'mf_recent_searches',
