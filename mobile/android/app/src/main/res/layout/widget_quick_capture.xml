@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- RemoteViews layout — only widget-safe views (LinearLayout/TextView/
+     Button) and no theme-dependent attributes, so it renders inside any
+     launcher. Both the title and the button carry the capture intent. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="12dp"
+    android:background="@drawable/widget_background">
+
+    <TextView
+        android:id="@+id/widget_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="@string/widget_title"
+        android:textColor="@color/widget_title_text"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <Button
+        android:id="@+id/widget_capture_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minWidth="88dp"
+        android:text="@string/widget_capture_button"
+        android:textColor="@color/widget_button_text"
+        android:background="@drawable/widget_button_background" />
+</LinearLayout>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Static launcher shortcuts — long-press the app icon. Each intent
+     carries the `quick` extra that MainActivity forwards to Dart. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="quick_capture"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_capture"
+        android:shortcutShortLabel="@string/shortcut_capture_label"
+        android:shortcutLongLabel="@string/shortcut_capture_label"
+        android:shortcutDisabledMessage="@string/shortcut_capture_disabled">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="app.moneyflow.moneyflow"
+            android:targetClass="app.moneyflow.moneyflow.MainActivity">
+            <extra android:name="quick" android:value="capture" />
+        </intent>
+    </shortcut>
+</shortcuts>

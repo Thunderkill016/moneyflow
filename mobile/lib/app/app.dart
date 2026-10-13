@@ -11,6 +11,7 @@ import '../data/neon/real_store.dart';
 import '../data/notifications.dart';
 import '../data/offline_cache.dart';
 import '../data/offline_queue.dart';
+import '../data/quick_action.dart';
 import '../data/session_store.dart';
 import '../data/share/share_intent.dart';
 import '../data/share/share_text_parser.dart';
@@ -79,8 +80,20 @@ class MoneyFlowApp extends StatelessWidget {
 
 /// Startup auth state: restore persisted session → dashboard, else login.
 /// Demo mode remains reachable from the login screen for offline exploration.
+///
+/// [shareReceiver], [quickActions] and [biometric] are seams for widget
+/// tests — production callers never pass them.
 class AuthGate extends StatefulWidget {
-  const AuthGate({super.key});
+  const AuthGate({
+    super.key,
+    this.shareReceiver = const ShareIntentReceiver(),
+    this.quickActions = const QuickActionReceiver(),
+    this.biometric,
+  });
+
+  final ShareIntentReceiver shareReceiver;
+  final QuickActionSource quickActions;
+  final BiometricService? biometric;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -92,17 +105,29 @@ class _AuthGateState extends State<AuthGate> {
   final _config = NeonConfig.fromEnvironment();
   late final _auth = NeonAuthClient(config: _config);
   late final _store = RealStore(NeonDataApi(config: _config, auth: _auth));
-  final _bioService = DeviceBiometricService();
-  final _shareReceiver = const ShareIntentReceiver();
+  late final _bioService = widget.biometric ?? DeviceBiometricService();
+  ShareIntentReceiver get _shareReceiver => widget.shareReceiver;
+  QuickActionSource get _quickActions => widget.quickActions;
 
   _Gate _gate = _Gate.booting;
   bool _bioEnabled = false;
+
+  /// True once the signed-in shell is past the biometric gate — the lock
+  /// is off/unavailable, or the user just unlocked. Deep links check it
+  /// so a capture form never opens over the lock screen.
+  bool _unlocked = false;
 
   /// Weekly-digest opt-in — defaults OFF until the stored pref loads.
   bool _digestEnabled = false;
   OfflineCache? _offline;
   OfflineCaptureQueue? _queue;
   StreamSubscription<String>? _shareSub;
+  StreamSubscription<String>? _quickSub;
+
+  /// A "Ghi nhanh" action held until a surface can host it — the app is
+  /// still booting, the user is on the login screen, or the biometric
+  /// gate is locked. Drained from [_drainQuickAction].
+  bool _quickCapturePending = false;
 
   /// Tab keys — a saved capture reloads the surfaces that show its effect
   /// (dashboard balances, activity list, planning budgets, month report).
@@ -120,6 +145,7 @@ class _AuthGateState extends State<AuthGate> {
     super.initState();
     _restore();
     _initShare();
+    _initQuick();
     // Reminder setup is best-effort — a denied notification permission
     // must not block app startup.
     unawaited(NotificationService.init().catchError((_) {}));
@@ -128,6 +154,7 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void dispose() {
     _shareSub?.cancel();
+    _quickSub?.cancel();
     _queue?.dispose();
     super.dispose();
   }
@@ -185,10 +212,11 @@ class _AuthGateState extends State<AuthGate> {
 
   /// Shared text only ever pre-fills the capture form — review stays
   /// manual, so a shared SMS can never silently mutate the ledger.
+  /// Held behind the biometric gate like the quick-capture deep link.
   void _onSharedText(String text) {
     final prefill = parseSharedText(text);
     if (prefill == null || !mounted) return;
-    if (_gate == _Gate.signedIn) {
+    if (_gate == _Gate.signedIn && _unlocked) {
       _openSharedCapture(prefill);
     } else {
       _pendingPrefill = prefill;
@@ -196,12 +224,89 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   void _drainPendingShare() {
-    final prefill = _pendingPrefill;
-    if (prefill == null) return;
-    _pendingPrefill = null;
+    if (_pendingPrefill == null) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _gate == _Gate.signedIn) _openSharedCapture(prefill);
+      final prefill = _pendingPrefill;
+      if (prefill == null || !mounted) return;
+      // The prefill stays held until the gate reports unlocked — a
+      // capture form must never cover the lock screen.
+      if (_gate == _Gate.signedIn && _unlocked) {
+        _pendingPrefill = null;
+        _openSharedCapture(prefill);
+      }
     });
+  }
+
+  /// Launcher shortcut / home-widget taps — MainActivity forwards the
+  /// `quick` extra as a string action.
+  void _initQuick() {
+    _quickActions.consumeInitialAction().then((action) {
+      if (action != null) _onQuickAction(action);
+    });
+    _quickSub = _quickActions.stream().listen(_onQuickAction);
+  }
+
+  /// Routes a quick action. Anything that is not a capture request is
+  /// ignored — the extra is open-ended so Kotlin can grow actions later.
+  void _onQuickAction(String action) {
+    if (action != kQuickActionCapture || !mounted) return;
+    if (_gate == _Gate.signedIn && _unlocked) {
+      _openQuickCapture();
+    } else if (_gate == _Gate.demo) {
+      _openDemoCapture();
+    } else {
+      // booting / login / still locked — hold for [_drainQuickAction].
+      _quickCapturePending = true;
+    }
+  }
+
+  /// Opens a held "Ghi nhanh" request as soon as a usable surface
+  /// exists: the unlocked signed-in shell, or the read-only demo.
+  /// Called from [_onGateUnlocked] and the demo transition — safe to
+  /// call extra times because the flag is consumed inside the frame.
+  void _drainQuickAction() {
+    if (!_quickCapturePending) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_quickCapturePending) return;
+      if (_gate == _Gate.signedIn && _unlocked) {
+        _quickCapturePending = false;
+        _openQuickCapture();
+      } else if (_gate == _Gate.demo) {
+        _quickCapturePending = false;
+        _openDemoCapture();
+      }
+    });
+  }
+
+  /// BiometricGate's settle signal — the shell is visible, so held
+  /// deep links (quick capture, shared text) may drain now.
+  void _onGateUnlocked() {
+    _unlocked = true;
+    _drainPendingShare();
+    _drainQuickAction();
+  }
+
+  /// The quick-entry path — same capture route as the nav "Ghi" button,
+  /// plus the tab reload the shell performs on a real save.
+  Future<void> _openQuickCapture() async {
+    final result = await _openCapture(context);
+    if (result != null && result != CaptureResult.queued) _reloadTabs();
+  }
+
+  /// Demo is read-only, but the form still opens on seed data so the
+  /// one-tap entry points land somewhere honest — a save attempt
+  /// answers with the same "Demo chỉ xem" notice every write path shows.
+  Future<void> _openDemoCapture() async {
+    await Navigator.of(context).push<CaptureResult>(
+      MaterialPageRoute(
+        builder: (_) => CapturePage(
+          accounts: DemoStore.seedAccounts(),
+          categories: DemoStore.seedCategories(),
+          transactions: DemoStore.seedTransactions(),
+          onSubmit: (_) async => throw const DemoReadOnly(),
+        ),
+      ),
+    );
   }
 
   Future<void> _openSharedCapture(SharedTextPrefill prefill) async {
@@ -435,7 +540,12 @@ class _AuthGateState extends State<AuthGate> {
     }
     final enabled = !_bioEnabled;
     await BiometricPrefs.saveBiometricEnabled(enabled);
-    setState(() => _bioEnabled = enabled);
+    setState(() {
+      _bioEnabled = enabled;
+      // Re-arming the lock re-locks the shell — deep links wait for
+      // the next onUnlocked again.
+      if (enabled) _unlocked = false;
+    });
   }
 
   Future<void> _signOut() async {
@@ -445,7 +555,11 @@ class _AuthGateState extends State<AuthGate> {
       /* upstream sign-out failure still logs out locally */
     }
     await SessionStore.clear();
-    setState(() => _gate = _Gate.login);
+    setState(() {
+      _gate = _Gate.login;
+      // The next signed-in session starts behind the lock again.
+      _unlocked = false;
+    });
   }
 
   @override
@@ -457,12 +571,16 @@ class _AuthGateState extends State<AuthGate> {
       _Gate.login => LoginPage(
         auth: _auth,
         onSignedIn: _onSignedIn,
-        onDemo: () => setState(() => _gate = _Gate.demo),
+        onDemo: () {
+          setState(() => _gate = _Gate.demo);
+          _drainQuickAction();
+        },
       ),
       _Gate.demo => _demoDashboard(),
       _Gate.signedIn => BiometricGate(
         enabled: _bioEnabled,
         service: _bioService,
+        onUnlocked: _onGateUnlocked,
         child: HomeShell(
           banner: _queue == null
               ? null

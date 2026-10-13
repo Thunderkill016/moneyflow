@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- One-tap capture entry points — launcher shortcut + home widget. -->
+    <string name="shortcut_capture_label">Ghi nhanh</string>
+    <string name="shortcut_capture_disabled">Ghi nhanh không khả dụng</string>
+    <string name="widget_title">MoneyFlow</string>
+    <string name="widget_capture_button">＋ Ghi</string>
+    <string name="widget_capture_label">Ghi nhanh</string>
+    <string name="widget_capture_description">Mở nhanh màn ghi khoản</string>
+</resources>

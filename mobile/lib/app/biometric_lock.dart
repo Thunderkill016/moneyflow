@@ -58,11 +58,18 @@ class BiometricGate extends StatefulWidget {
     required this.child,
     required this.service,
     this.enabled = true,
+    this.onUnlocked,
   });
 
   final Widget child;
   final BiometricService service;
   final bool enabled;
+
+  /// Fires each time the gate settles into the unlocked state — at
+  /// build when the lock is disabled or the hardware is missing, and
+  /// after every successful prompt. Deep links wait on this so nothing
+  /// opens over the lock screen.
+  final VoidCallback? onUnlocked;
 
   @override
   State<BiometricGate> createState() => _BiometricGateState();
@@ -82,7 +89,13 @@ class _BiometricGateState extends State<BiometricGate> {
   @override
   void initState() {
     super.initState();
-    if (widget.enabled) _probe();
+    if (widget.enabled) {
+      _probe();
+    } else {
+      // Disabled means the child is visible immediately — that is the
+      // unlocked state as far as deep links are concerned.
+      _notifyUnlocked();
+    }
   }
 
   @override
@@ -91,6 +104,17 @@ class _BiometricGateState extends State<BiometricGate> {
     // Toggling the setting on at runtime locks immediately instead of
     // waiting for the next cold start.
     if (widget.enabled && !oldWidget.enabled) _probe();
+    // Toggling it off shows the child — the same unlocked settle point.
+    if (!widget.enabled && oldWidget.enabled) _notifyUnlocked();
+  }
+
+  /// Post-frame so a listener can push routes off the signal.
+  void _notifyUnlocked() {
+    final cb = widget.onUnlocked;
+    if (cb == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) cb();
+    });
   }
 
   Future<void> _probe() async {
@@ -104,6 +128,7 @@ class _BiometricGateState extends State<BiometricGate> {
     if (!mounted) return;
     if (!available) {
       setState(() => _phase = _LockPhase.unlocked);
+      _notifyUnlocked();
       return;
     }
     setState(() => _phase = _LockPhase.locked);
@@ -131,6 +156,7 @@ class _BiometricGateState extends State<BiometricGate> {
         _failed = true;
       }
     });
+    if (ok) _notifyUnlocked();
   }
 
   @override

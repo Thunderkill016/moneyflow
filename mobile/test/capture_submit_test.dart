@@ -315,4 +315,13 @@ void main() {
       expect(commitmentCalls, 0);
     });
   });
+
+  group('submitErrorMessage', () {
+    test('DemoReadOnly surfaces the read-only demo notice', () {
+      expect(
+        submitErrorMessage(const DemoReadOnly()),
+        'Demo chỉ xem — đăng nhập để ghi khoản',
+      );
+    });
+  });
 }

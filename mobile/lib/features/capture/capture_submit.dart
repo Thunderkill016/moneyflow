@@ -27,11 +27,20 @@ class OfflineQueueFull implements Exception {
   final int limit;
 }
 
+/// A save attempt inside read-only demo mode — the form stays open and
+/// shows the demo notice instead of a misleading retry hint.
+class DemoReadOnly implements Exception {
+  const DemoReadOnly();
+}
+
 /// Honest message for a failed capture submit — shared by the form's
 /// inline error and the queue-replay drop report so the same failure is
 /// described the same way in both places.
 String submitErrorMessage(Object e) {
   final msg = e.toString();
+  if (e is DemoReadOnly) {
+    return 'Demo chỉ xem — đăng nhập để ghi khoản';
+  }
   if (e is OfflineQueueFull) {
     return 'Đã giữ tối đa ${e.limit} khoản chờ gửi — kết nối mạng để '
         'gửi bớt rồi thử lại';

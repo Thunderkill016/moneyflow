@@ -139,6 +139,70 @@ void main() {
     });
   });
 
+  group('onUnlocked', () {
+    Future<void> pumpWithCallback(
+      WidgetTester tester,
+      _FakeBiometricService service,
+      void Function() onUnlocked, {
+      bool enabled = true,
+    }) => tester.pumpWidget(
+      MaterialApp(
+        home: BiometricGate(
+          enabled: enabled,
+          service: service,
+          onUnlocked: onUnlocked,
+          child: _child,
+        ),
+      ),
+    );
+
+    testWidgets('fires at first frame when the lock is disabled', (
+      tester,
+    ) async {
+      var calls = 0;
+      await pumpWithCallback(
+        tester,
+        _FakeBiometricService(),
+        () => calls++,
+        enabled: false,
+      );
+      await tester.pumpAndSettle();
+      // Disabled = unlocked from the start — deep links may drain.
+      expect(calls, 1);
+    });
+
+    testWidgets('silent while locked, fires once after a successful auth', (
+      tester,
+    ) async {
+      var calls = 0;
+      final service = _FakeBiometricService();
+      final prompt = Completer<bool>();
+      service.onAuthenticate = () => prompt.future;
+
+      await pumpWithCallback(tester, service, () => calls++);
+      await tester.pumpAndSettle();
+      expect(find.text('Mở khóa MoneyFlow'), findsOneWidget);
+      expect(calls, 0);
+
+      prompt.complete(true);
+      await tester.pumpAndSettle();
+      expect(calls, 1);
+    });
+
+    testWidgets('fires on fail-open when the service is unavailable', (
+      tester,
+    ) async {
+      var calls = 0;
+      await pumpWithCallback(
+        tester,
+        _FakeBiometricService(available: false),
+        () => calls++,
+      );
+      await tester.pumpAndSettle();
+      expect(calls, 1);
+    });
+  });
+
   group('BiometricPrefs', () {
     TestWidgetsFlutterBinding.ensureInitialized();
 
