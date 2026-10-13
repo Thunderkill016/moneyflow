@@ -346,12 +346,18 @@ Future<void> refreshWeeklyDigest({
   schedule,
   required Future<void> Function() cancel,
   DateTime? now,
+  int digestHour = weeklyDigestHour,
+  int digestMinute = weeklyDigestMinute,
 }) async {
   if (!enabled) {
     await cancel();
     return;
   }
-  final fire = nextWeeklyDigestFire(now ?? DateTime.now());
+  final fire = nextWeeklyDigestFire(
+    now ?? DateTime.now(),
+    hour: digestHour,
+    minute: digestMinute,
+  );
   final window = weeklyDigestWindow(fire);
   final range = await loadRange(window.loadFrom, window.loadTo);
   if (range.truncated) return;

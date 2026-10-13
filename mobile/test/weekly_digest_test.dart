@@ -46,6 +46,25 @@ void main() {
       final fire = nextWeeklyDigestFire(DateTime(2026, 10, 25, 19, 30));
       expect(fire, DateTime(2026, 11, 1, 19));
     });
+
+    test('a custom fire time lands on the same Sunday, same rule', () {
+      // Monday 2026-10-19 09:00 -> Sunday 2026-10-25 08:30.
+      final fire = nextWeeklyDigestFire(
+        DateTime(2026, 10, 19, 9),
+        hour: 8,
+        minute: 30,
+      );
+      expect(fire, DateTime(2026, 10, 25, 8, 30));
+    });
+
+    test('a Sunday already past a custom time rolls a full week', () {
+      final fire = nextWeeklyDigestFire(
+        DateTime(2026, 10, 25, 9),
+        hour: 8,
+        minute: 30,
+      );
+      expect(fire, DateTime(2026, 11, 1, 8, 30));
+    });
   });
 
   group('weeklyDigestWindow', () {
@@ -299,6 +318,28 @@ void main() {
       expect(cancelled, isTrue);
       expect(scheduled, isFalse);
     });
+
+    test(
+      'the stored fire time flows through to the scheduled one-shot',
+      () async {
+        DateTime? gotFireAt;
+        await refreshWeeklyDigest(
+          enabled: true,
+          digestHour: 8,
+          digestMinute: 30,
+          loadRange: (f, t) async => (
+            rows: [_tx(id: 'a', amount: 300000, occurredOn: '2026-10-20')],
+            truncated: false,
+          ),
+          schedule: ({required title, required body, required fireAt}) async {
+            gotFireAt = fireAt;
+          },
+          cancel: () async {},
+          now: now,
+        );
+        expect(gotFireAt, DateTime(2026, 10, 25, 8, 30));
+      },
+    );
   });
 
   group('NotificationPrefs', () {

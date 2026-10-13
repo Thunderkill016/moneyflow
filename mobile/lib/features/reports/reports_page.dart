@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
@@ -317,23 +315,13 @@ class ReportsPageState extends State<ReportsPage> {
   }
 
   /// Full JSON backup via `export_user_archive` — the real archive v1
-  /// document, written and shared unmodified.
+  /// document, written and shared unmodified. The doc→file half lives in
+  /// [writeArchiveExportFile] so the settings surface runs the same flow.
   Future<void> _exportArchive() async {
     final load = widget.loadArchive;
     if (load == null) return;
     try {
-      final doc = await load();
-      // The RPC answers a jsonb document — anything else isn't an archive
-      // we can honestly hand over.
-      if (doc is! Map && doc is! List) {
-        throw const FormatException('unexpected archive shape');
-      }
-      final body = '${const JsonEncoder.withIndent('  ').convert(doc)}\n';
-      final file = await writeExportFile(
-        exportBackupFilename(DateTime.now()),
-        body,
-        tempDir: widget.tempDir,
-      );
+      final file = await writeArchiveExportFile(load, tempDir: widget.tempDir);
       await (widget.shareFile ?? shareFileToSheet)(file.path, jsonMimeType);
     } catch (_) {
       if (mounted) _snack('Không xuất được file');

@@ -33,12 +33,13 @@ Future<List<String>> wipeLocalData(SharedPreferences prefs) async {
 /// this device never sees the previous one's leftovers.
 ///
 /// Sign-out deliberately does NOT equal the wipe: device-level opt-ins
-/// (`mf_biometric_enabled`, `mf_weekly_digest_enabled`) survive because
-/// the user opted in on this device, not on this account; and
-/// account-scoped keys (`mf_dashboard_snapshot_<uid>`,
-/// `mf_offline_capture_queue_<uid>`) stay on disk because they cannot
-/// leak into another account — and destroying held captures on sign-out
-/// would silently lose unposted money records.
+/// (`mf_biometric_enabled`, `mf_weekly_digest_enabled`,
+/// `mf_weekly_digest_minutes`, `mf_theme_mode`, `mf_notif_capture_enabled`,
+/// `mf_seen_welcome`) survive because the user opted in on this device,
+/// not on this account; and account-scoped keys
+/// (`mf_dashboard_snapshot_<uid>`, `mf_offline_capture_queue_<uid>`) stay
+/// on disk because they cannot leak into another account — and destroying
+/// held captures on sign-out would silently lose unposted money records.
 const signOutResidueKeys = [
   'mf_last_capture_account',
   'mf_last_capture_category',

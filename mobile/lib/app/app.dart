@@ -17,6 +17,7 @@ import '../data/offline_cache.dart';
 import '../data/offline_queue.dart';
 import '../data/quick_action.dart';
 import '../data/session_store.dart';
+import '../data/settings_prefs.dart';
 import '../data/share/share_intent.dart';
 import '../data/share/share_text_parser.dart';
 import '../domain/budget.dart';
@@ -46,6 +47,7 @@ import '../features/notification_capture/notification_capture_page.dart';
 import '../features/planning/planning_page.dart';
 import '../features/planning/recurring_form_dialog.dart';
 import '../features/reports/reports_page.dart';
+import '../features/settings/settings_page.dart';
 import 'home_shell.dart';
 
 /// MoneyFlow brand tokens (from src/app/manifest.ts).
@@ -61,40 +63,57 @@ const kBrandBackground = Color(0xFFF8FAFC);
 /// the call is confirmed live.
 const kArchiveBackupEnabled = bool.fromEnvironment('MF_ARCHIVE_BACKUP');
 
-class MoneyFlowApp extends StatelessWidget {
+class MoneyFlowApp extends StatefulWidget {
   const MoneyFlowApp({super.key});
 
   @override
+  State<MoneyFlowApp> createState() => _MoneyFlowAppState();
+}
+
+class _MoneyFlowAppState extends State<MoneyFlowApp> {
+  @override
+  void initState() {
+    super.initState();
+    // The stored choice lands on the notifier — the MaterialApp below
+    // rebuilds with it (absent/corrupt pref falls back to system).
+    unawaited(SettingsPrefs.loadThemeMode());
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'MoneyFlow',
-      debugShowCheckedModeBanner: false,
-      // The UI is Vietnamese-only; without these delegates the framework
-      // defaults (back-button tooltip "Back", menu "Show menu", date
-      // pickers) read English to screen readers and long-presses.
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('vi'), Locale('en')],
-      locale: const Locale('vi'),
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: kBrandColor,
-          brightness: Brightness.light,
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: SettingsPrefs.themeMode,
+      builder: (context, mode, _) => MaterialApp(
+        themeMode: mode,
+        title: 'MoneyFlow',
+        debugShowCheckedModeBanner: false,
+        // The UI is Vietnamese-only; without these delegates the framework
+        // defaults (back-button tooltip "Back", menu "Show menu", date
+        // pickers) read English to screen readers and long-presses.
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('vi'), Locale('en')],
+        locale: const Locale('vi'),
+        theme: ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: kBrandColor,
+            brightness: Brightness.light,
+          ),
+          scaffoldBackgroundColor: kBrandBackground,
         ),
-        scaffoldBackgroundColor: kBrandBackground,
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: kBrandColor,
-          brightness: Brightness.dark,
+        darkTheme: ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: kBrandColor,
+            brightness: Brightness.dark,
+          ),
         ),
+        home: const AuthGate(),
       ),
-      home: const AuthGate(),
     );
   }
 }
@@ -646,11 +665,16 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     unawaited(_refreshNotifCaptureState());
   }
 
-  /// The weekly digest is opt-in — enabling arms the next Sunday 19:00
-  /// one-shot from fresh data, disabling cancels whatever was pending.
-  Future<void> _toggleDigest() async {
-    final enabled = !_digestEnabled;
+  /// The weekly digest is opt-in — enabling arms the next Sunday one-shot
+  /// (at the user's stored fire time) from fresh data, disabling cancels
+  /// whatever was pending. The menu toggle and the settings switch share
+  /// this path; the explicit target keeps the switch independent of a
+  /// hidden current value.
+  Future<void> _toggleDigest() => _setDigestEnabled(!_digestEnabled);
+
+  Future<void> _setDigestEnabled(bool enabled) async {
     await NotificationPrefs.saveWeeklyDigestEnabled(enabled);
+    if (!mounted) return;
     setState(() => _digestEnabled = enabled);
     unawaited(_refreshWeeklyDigest().catchError((_) {}));
   }
@@ -658,11 +682,15 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   /// Re-arms the Sunday digest one-shot after sign-in and after every
   /// ledger write, so the copy always carries the freshest totals this
   /// device has seen. Opt-in only (NotificationPrefs) and best-effort —
-  /// a failed range read leaves the previous schedule untouched.
+  /// a failed range read leaves the previous schedule untouched. The fire
+  /// time re-reads SettingsPrefs so a re-arm never schedules stale.
   Future<void> _refreshWeeklyDigest() async {
     try {
+      final time = await SettingsPrefs.loadDigestTime();
       await refreshWeeklyDigest(
         enabled: _digestEnabled,
+        digestHour: time.hour,
+        digestMinute: time.minute,
         loadRange: _store.loadTransactionsInRange,
         schedule: NotificationService.scheduleWeeklyDigest,
         cancel: NotificationService.cancelWeeklyDigest,
@@ -721,23 +749,27 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     return saved;
   }
 
-  Future<void> _toggleBiometric() async {
-    if (!_bioEnabled) {
+  Future<void> _toggleBiometric() => _setBiometricEnabled(!_bioEnabled);
+
+  /// The menu toggle and the settings switch share this path — the
+  /// explicit target keeps the page's Switch honest (it reverts itself
+  /// when the seam reports the new state was not applied).
+  Future<bool> _setBiometricEnabled(bool enabled) async {
+    if (enabled) {
       // Prove an unlock path before arming the lock — the platform can
       // report supported hardware with no credential enrolled, and arming
       // then would strand the user on a lock screen they can never pass.
       final ok = await _bioService
           .authenticate(reason: 'Bật khóa MoneyFlow')
           .catchError((_) => false);
-      if (!mounted) return;
+      if (!mounted) return false;
       if (!ok) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Không xác thực được — chưa bật khóa')),
         );
-        return;
+        return false;
       }
     }
-    final enabled = !_bioEnabled;
     await BiometricPrefs.saveBiometricEnabled(enabled);
     setState(() {
       _bioEnabled = enabled;
@@ -745,6 +777,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       // the next onUnlocked again.
       if (enabled) _unlocked = false;
     });
+    return true;
   }
 
   /// "Chính sách bảo mật" — Play requires the privacy policy reachable
@@ -759,6 +792,71 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         const SnackBar(content: Text('Không mở được liên kết — thử lại sau')),
       );
     }
+  }
+
+  /// "Cài đặt" — one surface, two honest variants. The signed-in page
+  /// wires the seams only that mode can back: the biometric lock (it
+  /// guards the real shell, not demo), the weekly digest (it quotes the
+  /// real ledger), and the JSON archive (the RPC needs a session AND the
+  /// build flag). Demo keeps the device-level rows — theme, the demo
+  /// wipe, policy link, welcome replay — without fake affordances.
+  Future<void> _openSettings(BuildContext context) async {
+    final demo = _gate == _Gate.demo;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SettingsPage(
+          biometricEnabled: _bioEnabled,
+          onSetBiometricEnabled: demo ? null : _setBiometricEnabled,
+          digestEnabled: _digestEnabled,
+          onSetDigestEnabled: demo ? null : _setDigestEnabled,
+          onDigestScheduleChanged: demo ? null : _refreshWeeklyDigest,
+          loadArchive: demo || !kArchiveBackupEnabled
+              ? null
+              : _store.exportArchive,
+          onDeleteLocalData: demo
+              ? () => _deleteDemoData(context)
+              : () => _deleteLocalData(context),
+          deleteLocalDataLabel: demo
+              ? 'Xóa dữ liệu demo'
+              : 'Xóa dữ liệu trên máy',
+          onOpenPrivacyPolicy: _openPrivacyPolicy,
+          onReplayWelcome: _replayWelcome,
+        ),
+      ),
+    );
+    // No post-refresh needed: the biometric/digest seams update the
+    // gate's fields with their own setState, so the menu reopens fresh.
+  }
+
+  /// "Xem lại màn chào" — clears the first-run flag (the next no-session
+  /// boot treats the device as unintroduced again) and replays the page
+  /// now. Demo goes through the real gate so both CTAs keep their
+  /// first-run meaning; signed-in pushes it over the shell instead —
+  /// routing the gate to `welcome` would land a live session on a login
+  /// form it doesn't need, so the pushed variant just pops back.
+  Future<void> _replayWelcome() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(WelcomePrefs.seenKey);
+    if (!mounted) return;
+    if (_gate == _Gate.demo) {
+      setState(() => _gate = _Gate.welcome);
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => WelcomePage(
+          onStart: () {
+            unawaited(WelcomePrefs.markSeen());
+            Navigator.of(context).pop();
+          },
+          onDemo: () {
+            unawaited(WelcomePrefs.markSeen());
+            Navigator.of(context).pop();
+            _enterDemo();
+          },
+        ),
+      ),
+    );
   }
 
   Future<void> _signOut() async {
@@ -1252,6 +1350,11 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         onTap: () => _deleteLocalData(context),
       ),
       DashboardMenuItem(
+        label: 'Cài đặt',
+        icon: Icons.settings_outlined,
+        onTap: () => _openSettings(context),
+      ),
+      DashboardMenuItem(
         label: 'Đăng xuất',
         icon: Icons.logout,
         onTap: _signOut,
@@ -1402,6 +1505,11 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
               label: 'Xóa dữ liệu demo',
               icon: Icons.delete_forever,
               onTap: () => _deleteDemoData(context),
+            ),
+            DashboardMenuItem(
+              label: 'Cài đặt',
+              icon: Icons.settings_outlined,
+              onTap: () => _openSettings(context),
             ),
             DashboardMenuItem(
               label: 'Thoát demo',

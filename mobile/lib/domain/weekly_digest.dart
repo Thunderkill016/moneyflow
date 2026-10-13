@@ -15,8 +15,11 @@ import 'models.dart';
 import 'money.dart';
 import 'report.dart' show dateAdd, dayOnly, parseYmd, ymd;
 
-/// 19:00 Sunday — evening, after the week has effectively closed.
+/// 19:00 Sunday — evening, after the week has effectively closed. These
+/// are the DEFAULTS; the settings surface lets the user pick a different
+/// time-of-day ([nextWeeklyDigestFire] takes hour/minute overrides).
 const weeklyDigestHour = 19;
+const weeklyDigestMinute = 0;
 
 /// Mon–Sun digest window plus the equal-length week before it — the
 /// same "kỳ liền trước cùng số ngày" baseline reportRange uses.
@@ -42,16 +45,21 @@ class WeeklyDigestWindow {
   String get loadTo => ymd(dateAdd(parseYmd(end), 1));
 }
 
-/// Next Sunday 19:00 local strictly after [now]. A Sunday already past
-/// 19:00 rolls a full week forward — never schedule into the past.
-DateTime nextWeeklyDigestFire(DateTime now) {
-  // dateAdd keeps only the calendar fields — the hour is re-applied after
-  // the day shift so the fire time lands at 19:00, not midnight.
+/// Next Sunday [hour]:[minute] local strictly after [now] — defaults
+/// remain 19:00. A Sunday already past the fire time rolls a full week
+/// forward — never schedule into the past.
+DateTime nextWeeklyDigestFire(
+  DateTime now, {
+  int hour = weeklyDigestHour,
+  int minute = weeklyDigestMinute,
+}) {
+  // dateAdd keeps only the calendar fields — the clock is re-applied after
+  // the day shift so the fire time lands on the chosen hour, not midnight.
   var day = dateAdd(dayOnly(now), (DateTime.sunday - now.weekday) % 7);
-  var fire = DateTime(day.year, day.month, day.day, weeklyDigestHour);
+  var fire = DateTime(day.year, day.month, day.day, hour, minute);
   if (!fire.isAfter(now)) {
     day = dateAdd(day, 7);
-    fire = DateTime(day.year, day.month, day.day, weeklyDigestHour);
+    fire = DateTime(day.year, day.month, day.day, hour, minute);
   }
   return fire;
 }
