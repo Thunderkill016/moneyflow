@@ -55,9 +55,10 @@ class InboxPage extends StatefulWidget {
   final Future<void> Function(InboxApproval approval) onApprove;
   final Future<void> Function(String candidateId) onReject;
 
-  /// Candidate-write seams — the "Nhập CSV" entry needs both, the "Dán
-  /// tin nhắn" flow only needs [onImportCsv]: the hosted backend accepts
-  /// table writes solely through SECURITY DEFINER RPCs, so pasted lines
+  /// Candidate-write seams — the "Nhập CSV/Excel" entry needs both, the
+  /// "Dán tin nhắn" flow only needs [onImportCsv]: the hosted backend
+  /// accepts table writes solely through SECURITY DEFINER RPCs, so
+  /// pasted lines
   /// ride the same prepare RPC a CSV batch does (direct inserts fail
   /// 42501). The shell only wires them on the authenticated store, so
   /// demo mode never shows either affordance.
@@ -297,10 +298,10 @@ class InboxPageState extends State<InboxPage> {
   /// Paste needs only the write seam — no file picker.
   bool get _pasteEnabled => widget.onImportCsv != null;
 
-  /// "Nhập CSV" — a picked bank statement becomes pending candidates via
-  /// the shared prepare RPC; the sheet returns the server result so the
-  /// snackbar reports the real created count, and the queue reloads.
-  /// Nothing posts to the ledger here or inside the sheet.
+  /// "Nhập CSV/Excel" — a picked bank statement becomes pending
+  /// candidates via the shared prepare RPC; the sheet returns the server
+  /// result so the snackbar reports the real created count, and the
+  /// queue reloads. Nothing posts to the ledger here or inside the sheet.
   Future<void> _openCsvImport() async {
     final pickFile = widget.pickCsvFile;
     final onImport = widget.onImportCsv;
@@ -358,7 +359,7 @@ class InboxPageState extends State<InboxPage> {
               ),
             if (_csvImportEnabled)
               IconButton(
-                tooltip: 'Nhập CSV',
+                tooltip: 'Nhập CSV/Excel',
                 icon: const Icon(Icons.upload_file_outlined),
                 onPressed: _openCsvImport,
               ),
@@ -413,8 +414,9 @@ class InboxPageState extends State<InboxPage> {
                       icon: Icons.inbox_outlined,
                       title: 'Không có mục nào chờ duyệt',
                       message:
-                          'Dán tin nhắn ngân hàng hoặc nhập file CSV để '
-                          'tạo mục chờ duyệt — chưa có gì ghi vào sổ.',
+                          'Dán tin nhắn ngân hàng hoặc nhập file '
+                          'CSV/Excel để tạo mục chờ duyệt — chưa có gì '
+                          'ghi vào sổ.',
                     ),
                     const SizedBox(height: 12),
                     if (_pasteEnabled)
@@ -428,7 +430,7 @@ class InboxPageState extends State<InboxPage> {
                       FilledButton.tonalIcon(
                         onPressed: _openCsvImport,
                         icon: const Icon(Icons.upload_file_outlined),
-                        label: const Text('Nhập file CSV'),
+                        label: const Text('Nhập file CSV/Excel'),
                       ),
                     ],
                   ],

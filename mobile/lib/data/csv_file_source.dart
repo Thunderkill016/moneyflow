@@ -1,4 +1,4 @@
-// Device file picking for CSV imports — the thin file_picker wrapper.
+// Device file picking for CSV/XLSX imports — the thin file_picker wrapper.
 // Kept behind a typedef seam so the import sheet and its tests never
 // touch the platform channel.
 
@@ -26,13 +26,13 @@ class CsvFileReadException implements Exception {
 }
 
 /// file_picker over the system document UI — custom type restricted to
-/// .csv so the sheet only ever receives the shape it advertises. On
-/// Android this goes through SAF: no storage permission, and
-/// [PlatformFile.readAsBytes] resolves content:// providers itself.
+/// .csv and .xlsx so the sheet only ever receives the shapes it
+/// advertises. On Android this goes through SAF: no storage permission,
+/// and [PlatformFile.readAsBytes] resolves content:// providers itself.
 Future<PickedCsvFile?> pickCsvFileFromDevice() async {
   final file = await FilePicker.pickFile(
     type: FileType.custom,
-    allowedExtensions: const ['csv'],
+    allowedExtensions: const ['csv', 'xlsx'],
   );
   if (file == null) return null;
   final Uint8List bytes;

@@ -1,4 +1,5 @@
-// "Nhập CSV" — a bank-statement file becomes pending inbox candidates.
+// "Nhập CSV hoặc Excel" — a bank-statement file becomes pending inbox
+// candidates.
 //
 // The pipeline mirrors the web's /imports/direct: pick → client preview
 // parse → choose account + per-kind categories → ONE prepare RPC. The
@@ -6,6 +7,10 @@
 // mobile stops at prepare_direct_csv_candidates_with_rules so every row
 // lands in "Cần xem" and only human review posts it. The sheet therefore
 // never talks about "ghi sổ" — the copy says "nhập vào Cần xem".
+//
+// Both .csv (UTF-8 text) and .xlsx (binary workbook) decode into the same
+// CsvParseResult/CsvParsedRow model, so everything after the pick — the
+// preview, the plan, the RPC payload — is format-agnostic and shared.
 
 import 'dart:convert';
 
@@ -16,6 +21,7 @@ import '../../domain/csv_import.dart';
 import '../../domain/inbox.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
+import '../../domain/xlsx_import.dart';
 import '../capture/category_picker.dart';
 
 /// dd/MM/yyyy — the preview reads in the Vietnamese convention even
@@ -30,8 +36,8 @@ String _displayDate(String occurredOn) {
 /// sheet stays shallower so the pickers keep their place.
 const _previewLimit = 8;
 
-/// Opens the CSV import sheet; resolves to the [CsvImportResult] once a
-/// batch was accepted server-side, null on cancel or failure.
+/// Opens the CSV/Excel import sheet; resolves to the [CsvImportResult]
+/// once a batch was accepted server-side, null on cancel or failure.
 Future<CsvImportResult?> showCsvImportSheet(
   BuildContext context, {
   required List<AccountSummary> accounts,
@@ -112,9 +118,9 @@ class _CsvImportSheetState extends State<CsvImportSheet> {
     );
   }
 
-  /// Pick → byte guards → UTF-8 decode → parse. Every failure mode maps
-  /// onto the web's own wording; nothing uploads until the preview says
-  /// how many rows will land.
+  /// Pick → byte guards → decode (UTF-8 text for .csv, workbook for
+  /// .xlsx) → parse. Every failure mode maps onto the web's own wording;
+  /// nothing uploads until the preview says how many rows will land.
   Future<void> _pick() async {
     setState(() {
       _error = null;
@@ -125,7 +131,9 @@ class _CsvImportSheetState extends State<CsvImportSheet> {
       file = await widget.pickFile();
     } catch (_) {
       file = null;
-      _error = 'Không đọc được file. Thử CSV UTF-8 không quá 10 MB.';
+      _error =
+          'Không đọc được file. Thử CSV UTF-8 hoặc Excel (.xlsx) '
+          'không quá 10 MB.';
     }
     if (!mounted) return;
     if (file == null) {
@@ -135,12 +143,20 @@ class _CsvImportSheetState extends State<CsvImportSheet> {
 
     String? error;
     CsvParseResult? parsed;
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      error = 'Chỉ hỗ trợ file CSV (.csv).';
+    final lowerName = file.name.toLowerCase();
+    final isCsv = lowerName.endsWith('.csv');
+    final isXlsx = lowerName.endsWith('.xlsx');
+    if (!isCsv && !isXlsx) {
+      error = 'Chỉ hỗ trợ file CSV hoặc Excel (.csv, .xlsx).';
     } else if (file.bytes.isEmpty) {
       error = 'File trống.';
     } else if (file.bytes.length > kCsvMaxUploadBytes) {
       error = 'File quá lớn; giới hạn hiện tại là 10 MB.';
+    } else if (isXlsx) {
+      // Binary workbook → matrix → the shared statement parser; a bad or
+      // unrecognized workbook reports honestly, never garbage rows.
+      parsed = parseXlsxStatement(file.bytes, fileName: file.name);
+      if (!parsed.ok) error = parsed.error;
     } else {
       String text;
       try {
@@ -149,7 +165,9 @@ class _CsvImportSheetState extends State<CsvImportSheet> {
         text = utf8.decode(file.bytes);
       } on FormatException {
         text = '';
-        error = 'Không đọc được file. Thử CSV UTF-8 không quá 10 MB.';
+        error =
+            'Không đọc được file. Thử CSV UTF-8 hoặc Excel (.xlsx) '
+            'không quá 10 MB.';
       }
       if (error == null) {
         parsed = parseCsvStatement(text, fileName: file.name);
@@ -249,7 +267,10 @@ class _CsvImportSheetState extends State<CsvImportSheet> {
           controller: scroll,
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           children: [
-            Text('Nhập CSV', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Nhập CSV hoặc Excel',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 4),
             Text(
               'Mỗi dòng thành một mục chờ duyệt trong Cần xem — '
@@ -259,15 +280,15 @@ class _CsvImportSheetState extends State<CsvImportSheet> {
             const SizedBox(height: 12),
             if (_parsed == null) ...[
               Text(
-                'File sao kê CSV (UTF-8, tối đa 10 MB) — cần cột ngày, '
-                'số tiền và mô tả.',
+                'File sao kê CSV hoặc Excel (.xlsx, tối đa 10 MB) — '
+                'cần cột ngày, số tiền và mô tả.',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 8),
               FilledButton.tonalIcon(
                 onPressed: _busy ? null : _pick,
                 icon: const Icon(Icons.upload_file_outlined),
-                label: const Text('Chọn file CSV'),
+                label: const Text('Chọn file CSV hoặc Excel (.xlsx)'),
               ),
             ] else ...[
               Card(

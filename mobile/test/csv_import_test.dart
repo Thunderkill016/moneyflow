@@ -716,8 +716,8 @@ void main() {
       // No write seam at all → both candidate-creation entries hide.
       await t.pumpWidget(MaterialApp(home: page(load: () async => const [])));
       await t.pumpAndSettle();
-      expect(find.byTooltip('Nhập CSV'), findsNothing);
-      expect(find.text('Nhập file CSV'), findsNothing);
+      expect(find.byTooltip('Nhập CSV/Excel'), findsNothing);
+      expect(find.text('Nhập file CSV/Excel'), findsNothing);
       expect(find.byTooltip('Dán tin nhắn'), findsNothing);
     });
 
@@ -733,8 +733,8 @@ void main() {
         ),
       );
       await t.pumpAndSettle();
-      expect(find.byTooltip('Nhập CSV'), findsNothing);
-      expect(find.text('Nhập file CSV'), findsNothing);
+      expect(find.byTooltip('Nhập CSV/Excel'), findsNothing);
+      expect(find.text('Nhập file CSV/Excel'), findsNothing);
       expect(find.byTooltip('Dán tin nhắn'), findsOneWidget);
     });
 
@@ -766,11 +766,11 @@ void main() {
         ),
       );
       await t.pumpAndSettle();
-      await t.tap(find.text('Nhập file CSV'));
+      await t.tap(find.text('Nhập file CSV/Excel'));
       await t.pumpAndSettle();
-      expect(find.text('Nhập CSV'), findsWidgets);
+      expect(find.text('Nhập CSV hoặc Excel'), findsWidgets);
 
-      await t.tap(find.text('Chọn file CSV'));
+      await t.tap(find.text('Chọn file CSV hoặc Excel (.xlsx)'));
       await t.pumpAndSettle();
       expect(find.textContaining('3 dòng sẽ nhập'), findsOneWidget);
       expect(find.textContaining('1 chuyển khoản (bỏ qua)'), findsOneWidget);
@@ -803,11 +803,14 @@ void main() {
         ),
       );
       await t.pumpAndSettle();
-      await t.tap(find.text('Nhập file CSV'));
+      await t.tap(find.text('Nhập file CSV/Excel'));
       await t.pumpAndSettle();
-      await t.tap(find.text('Chọn file CSV'));
+      await t.tap(find.text('Chọn file CSV hoặc Excel (.xlsx)'));
       await t.pumpAndSettle();
-      expect(find.text('Chỉ hỗ trợ file CSV (.csv).'), findsOneWidget);
+      expect(
+        find.text('Chỉ hỗ trợ file CSV hoặc Excel (.csv, .xlsx).'),
+        findsOneWidget,
+      );
       expect(called, isFalse);
     });
 
@@ -827,9 +830,9 @@ void main() {
         ),
       );
       await t.pumpAndSettle();
-      await t.tap(find.text('Nhập file CSV'));
+      await t.tap(find.text('Nhập file CSV/Excel'));
       await t.pumpAndSettle();
-      await t.tap(find.text('Chọn file CSV'));
+      await t.tap(find.text('Chọn file CSV hoặc Excel (.xlsx)'));
       await t.pumpAndSettle();
       await t.tap(find.text('Nhập 3 mục vào Cần xem'));
       await t.pumpAndSettle();

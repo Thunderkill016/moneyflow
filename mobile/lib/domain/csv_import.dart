@@ -670,6 +670,39 @@ CsvParseResult parseCsvStatement(
     return _emptyFail(fileName, 'Không tìm thấy dòng dữ liệu trong CSV.');
   }
 
+  return parseStatementFromMatrix(
+    matrix,
+    fileName: fileName,
+    today: today,
+    maxRows: maxRows,
+  );
+}
+
+/// Port of the web's parseStatementFromMatrix — the matrix-level entry the
+/// XLSX reader reuses after it decodes a sheet into strings.
+///
+/// [columnMap] is the web's `options.columnMap` seam: when given (the XLSX
+/// pilot's header-scan result) it overrides the row-0 heuristic. The web
+/// then hard-codes confidence to 1; [mapConfidence] lets the XLSX path
+/// report its real scan score instead, which is more honest provenance for
+/// a heuristic map — the server only range-checks 0..1.
+///
+/// [rowIndexOffset] shifts reported `row_index` so XLSX rows keep their
+/// real worksheet numbers even when the parsed matrix starts mid-sheet
+/// (the web's offsetParsedRows convention).
+CsvParseResult parseStatementFromMatrix(
+  List<List<String>> matrix, {
+  String fileName = 'statement.csv',
+  String? today,
+  int maxRows = kCsvMaxRows,
+  CsvColumnMap? columnMap,
+  double? mapConfidence,
+  int rowIndexOffset = 0,
+}) {
+  if (matrix.isEmpty) {
+    return _emptyFail(fileName, 'Không tìm thấy dòng dữ liệu trong file.');
+  }
+
   final anchor = today ?? _todayVietnam();
   final first = matrix.first;
   final hasHeader = _looksLikeHeaderRow(first);
@@ -691,8 +724,8 @@ CsvParseResult parseCsvStatement(
   }
 
   final auto = mapCsvColumns(hasHeader ? first : headers);
-  final map = auto.map;
-  final confidence = auto.confidence;
+  final map = columnMap ?? auto.map;
+  final confidence = columnMap == null ? auto.confidence : (mapConfidence ?? 1);
 
   if (map.amount == null && map.debit == null && map.credit == null) {
     return CsvParseResult(
@@ -715,7 +748,12 @@ CsvParseResult parseCsvStatement(
 
   for (var i = 0; i < limit; i++) {
     final rawRow = dataRows[i];
-    final parsed = _parseDataRow(rawRow, map, anchor, i + (hasHeader ? 2 : 1));
+    final parsed = _parseDataRow(
+      rawRow,
+      map,
+      anchor,
+      i + (hasHeader ? 2 : 1) + rowIndexOffset,
+    );
     if (parsed == null) {
       skippedRows += 1;
       continue;
