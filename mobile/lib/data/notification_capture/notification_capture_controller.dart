@@ -4,11 +4,12 @@
 // pretend a draft landed.
 //
 // Submit path: `create_inbox_candidates` — the SECURITY DEFINER RPC drafted
-// in db/neon/migrations/20261010122000 for batch-less sources. It is NOT yet
-// applied on the hosted Neon Data API (verified 2026-10-13: PGRST202, and
-// the paste/csv/share ingest paths all reject source='notification'). Until
-// that migration lands, submission stays behind the build flag below —
-// parsed notifications are counted, submitted ones are not.
+// in db/neon/migrations/20261010122000 for batch-less sources. Applied on
+// the acceptance sandbox (verified live end-to-end 2026-10-14: listener →
+// parse → submit → pending candidate → approve). The flag below keeps the
+// submit path opt-in per build until the same migration is verified on
+// production — parsed notifications are counted either way, submitted
+// ones only when it is on.
 //
 // Canon guardrails implemented here:
 //  - opt-in only, default OFF, device-scoped;
