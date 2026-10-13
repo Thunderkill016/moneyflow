@@ -293,6 +293,17 @@ class _AuthGateState extends State<AuthGate> {
               onDelete: _deleteTransaction,
               onOpenTrash: () => _openTrash(context),
               onEdit: (tx) => _openEdit(context, tx),
+              onBulkReview: (ids, {required reviewed}) async {
+                await _store.setReviewStatusBulk(ids, reviewed: reviewed);
+              },
+              onBulkCategory: (ids, categoryId) async {
+                await _store.setCategoryBulk(ids, categoryId);
+                // Category moves change budgets and the category report.
+                _planKey.currentState?.reload();
+                _reportKey.currentState?.reload();
+                _dashKey.currentState?.reload();
+              },
+              loadCategories: _store.loadCategories,
             ),
             () => PlanningPage(
               key: _planKey,

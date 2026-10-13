@@ -83,8 +83,50 @@ class RealStore {
         'limit': '$limit',
       },
     );
-    return rows.map(_txFromRow).toList();
+    final txs = rows.map(_txFromRow).toList();
+    return _withReviewStatus(txs);
   }
+
+  /// transaction_feed has no review_status — it lives on
+  /// financial_transactions (same read the web does). A failure here is
+  /// non-fatal: rows keep the default "reviewed" rather than blocking the
+  /// whole feed.
+  Future<List<Transaction>> _withReviewStatus(List<Transaction> txs) async {
+    if (txs.isEmpty) return txs;
+    try {
+      final rows = await _api.select(
+        'financial_transactions',
+        query: {
+          'select': 'id,review_status',
+          'id': 'in.(${txs.map((t) => t.id).join(',')})',
+        },
+      );
+      final byId = {
+        for (final r in rows) r['id'] as String: r['review_status'],
+      };
+      return [
+        for (final t in txs)
+          byId[t.id] == 'needs_review' ? t.copyWith(needsReview: true) : t,
+      ];
+    } catch (_) {
+      return txs;
+    }
+  }
+
+  /// POST /rpc/set_transaction_review_status_bulk — up to 100 rows.
+  Future<void> setReviewStatusBulk(
+    List<String> ids, {
+    required bool reviewed,
+  }) => _api.rpc('set_transaction_review_status_bulk', {
+    'p_transaction_ids': ids,
+    'p_review_status': reviewed ? 'reviewed' : 'needs_review',
+  });
+
+  /// POST /rpc/bulk_update_transaction_category — same-kind plain rows.
+  Future<void> setCategoryBulk(List<String> ids, String categoryId) => _api.rpc(
+    'bulk_update_transaction_category',
+    {'p_transaction_ids': ids, 'p_category_id': categoryId},
+  );
 
   /// Soft-deleted ledger rows — public.deleted_transaction_feed mirrors
   /// transaction_feed plus the tombstone timestamp.

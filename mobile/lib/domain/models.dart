@@ -89,6 +89,28 @@ class Transaction {
   final int splitCount;
 
   bool get isSplit => splitCount > 1;
+
+  /// Copy with the review flag set — the only field the feed read has to
+  /// patch in after the fact (review_status lives on another relation).
+  Transaction copyWith({required bool needsReview}) => Transaction(
+    id: id,
+    kind: kind,
+    categoryId: categoryId,
+    category: category,
+    note: note,
+    accountId: accountId,
+    account: account,
+    amount: amount,
+    occurredOn: occurredOn,
+    payee: payee,
+    destinationAccountId: destinationAccountId,
+    destinationAccount: destinationAccount,
+    reviewStatus: needsReview
+        ? TransactionReviewStatus.needsReview
+        : TransactionReviewStatus.reviewed,
+    updatedAt: updatedAt,
+    splitCount: splitCount,
+  );
 }
 
 /// Soft-deleted ledger row — mirrors deleted_transaction_feed

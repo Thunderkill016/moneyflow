@@ -54,40 +54,44 @@ class _CategorySheetState extends State<_CategorySheet> {
 
   @override
   Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.6,
-      expand: false,
-      builder: (context, scroll) => Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: TextField(
-              controller: _query,
-              autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'Tìm danh mục',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
+    // Lift the sheet above the keyboard when the user taps the search
+    // field — without it the keyboard covers most of the list.
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.75,
+        expand: false,
+        builder: (context, scroll) => Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: TextField(
+                controller: _query,
+                decoration: const InputDecoration(
+                  hintText: 'Tìm danh mục',
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(),
+                ),
               ),
             ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              controller: scroll,
-              itemCount: _filtered.length,
-              itemBuilder: (context, i) {
-                final c = _filtered[i];
-                return ListTile(
-                  title: Text(c.name),
-                  trailing: c.id == widget.selectedId
-                      ? const Icon(Icons.check)
-                      : null,
-                  onTap: () => Navigator.of(context).pop(c),
-                );
-              },
+            Expanded(
+              child: ListView.builder(
+                controller: scroll,
+                itemCount: _filtered.length,
+                itemBuilder: (context, i) {
+                  final c = _filtered[i];
+                  return ListTile(
+                    title: Text(c.name),
+                    trailing: c.id == widget.selectedId
+                        ? const Icon(Icons.check)
+                        : null,
+                    onTap: () => Navigator.of(context).pop(c),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
