@@ -142,7 +142,80 @@ class DemoStore {
     ),
   ];
 
+  /// Prior-month budget rows inside the rollover window — the demo mirror
+  /// of the web workspace's `priorBudgets`. Food underspent (positive
+  /// carry), transport overspent (negative carry), and Hóa đơn holds a
+  /// previous-month limit with no current row — the carry-forward source
+  /// "Điền nhanh" proposes.
+  static List<BudgetProgress> seedPriorBudgets(String monthStart) {
+    final prev = DateTime(
+      int.parse(monthStart.substring(0, 4)),
+      int.parse(monthStart.substring(5, 7)) - 1,
+    );
+    final prevStart =
+        '${prev.year}-${prev.month.toString().padLeft(2, '0')}-01';
+    return [
+      BudgetProgress(
+        id: 'bp-1',
+        categoryId: 'cat-food',
+        categoryName: 'Ăn uống',
+        monthStart: prevStart,
+        limitMinor: 2000000,
+        spentMinor: 1700000,
+      ),
+      BudgetProgress(
+        id: 'bp-2',
+        categoryId: 'cat-transport',
+        categoryName: 'Di chuyển',
+        monthStart: prevStart,
+        limitMinor: 400000,
+        spentMinor: 530000,
+      ),
+      BudgetProgress(
+        id: 'bp-3',
+        categoryId: 'cat-bills',
+        categoryName: 'Hóa đơn',
+        monthStart: prevStart,
+        limitMinor: 1200000,
+        spentMinor: 1150000,
+      ),
+    ];
+  }
+
+  /// Trailing expense rows for the 3-month suggestion window — demo
+  /// mirror of the workspace's `transaction_feed` read. Hóa đơn spends
+  /// in each of the three completed months, so the unbudgeted category
+  /// earns a suggested limit of round(3.300.000 / 3) = 1.100.000 ₫.
+  static List<Transaction> seedBudgetSuggestionRows(String monthStart) {
+    final year = int.parse(monthStart.substring(0, 4));
+    final month = int.parse(monthStart.substring(5, 7));
+    return [
+      for (var i = 1; i <= 3; i++)
+        Transaction(
+          id: 'tx-suggest-$i',
+          kind: TransactionKind.expense,
+          categoryId: 'cat-bills',
+          category: 'Hóa đơn',
+          note: 'Điện nước',
+          accountId: 'acc-bank',
+          account: 'Ngân hàng VCB',
+          // 1.200.000 / 1.000.000 / 1.100.000 — a readable 3-month sum.
+          amount: switch (i) {
+            1 => 1200000,
+            2 => 1000000,
+            _ => 1100000,
+          },
+          occurredOn:
+              '${DateTime(year, month - i, 15).year}-'
+              '${DateTime(year, month - i, 15).month.toString().padLeft(2, '0')}'
+              '-15',
+        ),
+    ];
+  }
+
   static List<RecurringCommitment> seedCommitments() => const [
+    // Paid with a recorded amount above the declared figure — exercises
+    // the "Đã trả khác" state without inventing a server write.
     RecurringCommitment(
       id: 'cm-1',
       name: 'Tiền nhà',
@@ -153,6 +226,7 @@ class DemoStore {
       categoryId: 'cat-bills',
       categoryName: 'Hóa đơn',
       paidThisMonth: true,
+      paidAmountMinor: 3800000,
     ),
     RecurringCommitment(
       id: 'cm-2',

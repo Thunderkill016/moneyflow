@@ -18,6 +18,7 @@ import '../data/quick_action.dart';
 import '../data/session_store.dart';
 import '../data/share/share_intent.dart';
 import '../data/share/share_text_parser.dart';
+import '../domain/budget.dart';
 import '../domain/models.dart';
 import '../domain/recurring_detection.dart';
 import '../domain/transaction_query.dart';
@@ -1334,6 +1335,10 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         () => PlanningPage(
           loadData: () async => PlanningData(
             budgets: DemoStore.seedBudgets(monthStart()),
+            priorBudgets: DemoStore.seedPriorBudgets(monthStart()),
+            budgetSuggestionRows: DemoStore.seedBudgetSuggestionRows(
+              monthStart(),
+            ),
             commitments: DemoStore.seedCommitments(),
             goals: DemoStore.seedGoals(),
             accounts: DemoStore.seedAccounts(),
@@ -1411,27 +1416,44 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   /// inside the scheduler).
   Future<PlanningData> _loadPlanning() async {
     final monthStart = _monthStart();
+    // Same window the web workspace reads: rollover history inside
+    // [windowStart, monthStart] from budget_progress, plus the trailing
+    // expense slice the average-fill suggestion averages over.
+    final windowStart = budgetRolloverWindowStart(monthStart);
+    final suggestionStart = shiftBudgetMonth(
+      monthStart,
+      -budgetSuggestionMonths,
+    );
     final results = await Future.wait([
-      _store.loadBudgets(monthStart),
+      _store.loadBudgetsInRange(windowStart, monthStart),
       _store.loadCommitments(monthStart),
       _store.loadGoals(),
       _store.loadAccounts(),
       _store.loadCategories(),
       _store.loadIncomeTemplates(monthStart),
+      _store.loadTransactionsInRange(suggestionStart, monthStart),
     ]);
     unawaited(
       NotificationService.scheduleCommitmentReminders(
         results[1] as List<RecurringCommitment>,
       ).catchError((_) {}),
     );
+    final budgetRows = results[0] as List<BudgetProgress>;
     return PlanningData(
-      budgets: results[0] as List<BudgetProgress>,
+      budgets: budgetRows.where((b) => b.monthStart == monthStart).toList(),
+      priorBudgets: budgetRows
+          .where((b) => b.monthStart.compareTo(monthStart) < 0)
+          .toList(),
       commitments: results[1] as List<RecurringCommitment>,
       goals: results[2] as List<SavingsGoal>,
       accounts: results[3] as List<AccountSummary>,
       categories: results[4] as List<Category>,
       incomeTemplates: results[5] as List<RecurringIncome>,
       monthStart: monthStart,
+      // A truncated tail only narrows what the average sees — the sheet
+      // proposes less, never invents rows.
+      budgetSuggestionRows:
+          (results[6] as ({List<Transaction> rows, bool truncated})).rows,
     );
   }
 
@@ -1456,6 +1478,25 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         )
         .then((_) {}),
     onBudgetDelete: _store.deleteBudget,
+    // Bulk fill reuses the same RPC a manual save does — per-row upserts,
+    // counted honestly so a partial apply reports what landed.
+    onBudgetFill: (drafts) async {
+      var applied = 0;
+      for (final d in drafts) {
+        try {
+          await _store.upsertBudget(
+            categoryId: d.categoryId,
+            monthStart: d.monthStart,
+            limitMinor: d.limitMinor,
+          );
+          applied++;
+        } catch (_) {
+          // One failed row does not abort the rest — the caller reports
+          // the partial count and the refresh re-reads the ledger.
+        }
+      }
+      return applied;
+    },
     onCommitmentSave: (editing, name, amount, day, accountId, categoryId) =>
         _store
             .upsertCommitment(

@@ -210,6 +210,7 @@ class RecurringCommitment {
     required this.categoryName,
     this.isArchived = false,
     this.paidThisMonth = false,
+    this.paidAmountMinor,
     this.updatedAt,
   });
 
@@ -223,6 +224,12 @@ class RecurringCommitment {
   final String categoryName;
   final bool isArchived;
   final bool paidThisMonth;
+
+  /// Amount the linked payment transaction recorded this month, when the
+  /// feed could read it — null means "paid, amount unknown" (the honest
+  /// fallback, never an invented figure). A non-null value that differs
+  /// from [amountMinor] drives the "Đã trả khác" row state.
+  final int? paidAmountMinor;
 
   /// Row version read from the feed — the `expected_updated_at` edit token.
   final String? updatedAt;

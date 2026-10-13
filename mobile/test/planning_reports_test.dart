@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/data/demo_store.dart';
+import 'package:moneyflow/domain/budget.dart';
 import 'package:moneyflow/domain/models.dart';
 import 'package:moneyflow/domain/transaction_query.dart';
 import 'package:moneyflow/features/planning/planning_page.dart';
@@ -37,12 +38,14 @@ PlanningActions _actions({
   onCommitmentSave,
   Future<void> Function(BudgetProgress?, String, int)? onBudgetSave,
   Future<void> Function(String id)? onBudgetDelete,
+  Future<int> Function(List<BudgetDraft> drafts)? onBudgetFill,
   Future<void> Function(SavingsGoal?, String, int, String?)? onGoalSave,
   Future<void> Function(String id, int amount)? onGoalAdjust,
   Future<void> Function(String id, bool archived)? onGoalArchived,
 }) => PlanningActions(
   onBudgetSave: onBudgetSave ?? (a, b, c) async {},
   onBudgetDelete: onBudgetDelete ?? (_) async {},
+  onBudgetFill: onBudgetFill,
   onCommitmentSave: onCommitmentSave ?? (a, b, c, d, e, f) async {},
   onCommitmentPay: onCommitmentPay ?? (_) async {},
   onCommitmentUndo: onCommitmentUndo ?? (_) async {},
@@ -1373,6 +1376,347 @@ void main() {
       await tester.tap(find.text('Thử lại'));
       await tester.pumpAndSettle();
       expect(loads, 2);
+    });
+  });
+
+  group('PlanningPage budget rollover', () {
+    Future<void> pumpWithHistory(
+      WidgetTester tester, {
+      PlanningActions? actions,
+    }) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PlanningPage(
+            loadData: () => Future.value(
+              PlanningData(
+                budgets: DemoStore.seedBudgets(_monthStart()),
+                priorBudgets: DemoStore.seedPriorBudgets(_monthStart()),
+                commitments: const [],
+                goals: const [],
+                accounts: DemoStore.seedAccounts(),
+                categories: DemoStore.seedCategories(),
+                monthStart: _monthStart(),
+              ),
+            ),
+            actions: actions ?? _actions(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('prior under- and overspend fold into each row', (
+      tester,
+    ) async {
+      await pumpWithHistory(tester);
+
+      // Ăn uống: 2.000.000 − 1.700.000 spent last month → +300.000 carry,
+      // so "Còn lại" reads 2.000.000 + 300.000 − 45.000 = 2.255.000.
+      expect(find.text('Chuyển từ tháng trước: +300.000 ₫'), findsOneWidget);
+      expect(find.textContaining('Còn lại 2.255.000 ₫'), findsOneWidget);
+
+      // Di chuyển: 400.000 − 530.000 → −130.000 carry; effective
+      // available is 500.000 − 130.000 − 532.000 = −162.000.
+      expect(
+        find.text('Trừ vì vượt hạn mức tháng trước: −130.000 ₫'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Vượt 162.000 ₫'), findsOneWidget);
+
+      // The header figure still shows the month's own limit — the carry
+      // line is what explains the difference.
+      expect(find.textContaining('45.000 ₫ / 2.000.000 ₫'), findsOneWidget);
+    });
+
+    testWidgets('no prior rows keep the card on month-only figures', (
+      tester,
+    ) async {
+      await _pumpPlanning(tester, actions: _actions());
+      expect(find.textContaining('Còn lại 1.955.000 ₫'), findsOneWidget);
+      expect(find.textContaining('Chuyển từ'), findsNothing);
+      expect(find.textContaining('Trừ vì vượt'), findsNothing);
+    });
+  });
+
+  group('PlanningPage Điền nhanh', () {
+    PlanningData fillData() => PlanningData(
+      budgets: DemoStore.seedBudgets(_monthStart()),
+      priorBudgets: DemoStore.seedPriorBudgets(_monthStart()),
+      budgetSuggestionRows: DemoStore.seedBudgetSuggestionRows(_monthStart()),
+      commitments: const [],
+      goals: const [],
+      accounts: DemoStore.seedAccounts(),
+      categories: DemoStore.seedCategories(),
+      monthStart: _monthStart(),
+    );
+
+    Future<void> pumpFill(
+      WidgetTester tester, {
+      required PlanningActions actions,
+      PlanningData? data,
+    }) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PlanningPage(
+            loadData: () => Future.value(data ?? fillData()),
+            actions: actions,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    /// "tháng M/YYYY" — the page's own lowercase month-label style.
+    String prevMonthLabel() {
+      final now = DateTime.now();
+      final prev = DateTime(now.year, now.month - 1);
+      return 'tháng ${prev.month}/${prev.year}';
+    }
+
+    testWidgets('hides the affordance when the surface cannot write', (
+      tester,
+    ) async {
+      await pumpFill(tester, actions: _actions());
+      expect(find.byTooltip('Điền nhanh'), findsNothing);
+    });
+
+    testWidgets(
+      'carry-forward applies prior-month limits through the write callback',
+      (tester) async {
+        List<BudgetDraft>? sent;
+        await pumpFill(
+          tester,
+          actions: _actions(
+            onBudgetFill: (drafts) async {
+              sent = drafts;
+              return drafts.length;
+            },
+          ),
+        );
+
+        await tester.tap(find.byTooltip('Điền nhanh'));
+        await tester.pumpAndSettle();
+
+        // The sheet is honest about both sources before anything writes.
+        expect(find.text('Dùng hạn mức tháng trước'), findsOneWidget);
+        expect(find.text('Điền theo trung bình 3 tháng chi'), findsOneWidget);
+        expect(
+          find.text('Áp dụng 1 hạn mức của ${prevMonthLabel()}'),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.text('Dùng hạn mức tháng trước'));
+        await tester.pumpAndSettle();
+
+        // Only Hóa đơn carries — Ăn uống and Di chuyển already have this
+        // month's decision, so the write stays additive.
+        expect(sent, hasLength(1));
+        expect(sent!.single.categoryId, 'cat-bills');
+        expect(sent!.single.monthStart, _monthStart());
+        expect(sent!.single.limitMinor, 1200000);
+        expect(
+          find.text('Đã điền 1 hạn mức từ ${prevMonthLabel()}'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets('average fill reviews per-item checkboxes before writing', (
+      tester,
+    ) async {
+      List<BudgetDraft>? sent;
+      await pumpFill(
+        tester,
+        actions: _actions(
+          onBudgetFill: (drafts) async {
+            sent = drafts;
+            return drafts.length;
+          },
+        ),
+      );
+
+      await tester.tap(find.byTooltip('Điền nhanh'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Điền theo trung bình 3 tháng chi'));
+      await tester.pumpAndSettle();
+
+      // Review sheet: the suggestion is disclosed with its evidence —
+      // 1.100.000 ₫ = round(3.300.000 / 3), spend seen in 3/3 months.
+      expect(find.text('Gợi ý hạn mức'), findsOneWidget);
+      expect(find.text('Hóa đơn'), findsOneWidget);
+      expect(find.text('Có chi 3/3 tháng gần nhất'), findsOneWidget);
+      expect(find.text('1.100.000 ₫'), findsOneWidget);
+
+      // Unchecking every row disables the write — nothing is silent.
+      await tester.tap(find.byType(CheckboxListTile));
+      await tester.pumpAndSettle();
+      final disabled = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Áp dụng (0)'),
+      );
+      expect(disabled.onPressed, isNull);
+
+      await tester.tap(find.byType(CheckboxListTile));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Áp dụng (1)'));
+      await tester.pumpAndSettle();
+
+      expect(sent, hasLength(1));
+      expect(sent!.single.categoryId, 'cat-bills');
+      expect(sent!.single.limitMinor, 1100000);
+    });
+
+    testWidgets('empty states explain rather than invent proposals', (
+      tester,
+    ) async {
+      var calls = 0;
+      await pumpFill(
+        tester,
+        actions: _actions(
+          onBudgetFill: (drafts) async {
+            calls++;
+            return drafts.length;
+          },
+        ),
+        data: PlanningData(
+          budgets: const [],
+          commitments: const [],
+          goals: const [],
+          accounts: DemoStore.seedAccounts(),
+          categories: DemoStore.seedCategories(),
+          monthStart: _monthStart(),
+        ),
+      );
+
+      await tester.tap(find.byTooltip('Điền nhanh'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Không có hạn mức ${prevMonthLabel()} chưa áp dụng'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Chưa có danh mục nào đủ chi tiêu 3 tháng để gợi ý'),
+        findsOneWidget,
+      );
+
+      // Disabled rows swallow the tap — no write, no fake snackbar.
+      await tester.tap(find.text('Dùng hạn mức tháng trước'));
+      await tester.pumpAndSettle();
+      expect(calls, 0);
+    });
+  });
+
+  group('PlanningPage commitment tri-state', () {
+    RecurringCommitment commitment(
+      String id, {
+      required String name,
+      int dueDay = 15,
+      int amountMinor = 300000,
+      bool paid = false,
+      int? paidAmountMinor,
+    }) => RecurringCommitment(
+      id: id,
+      name: name,
+      amountMinor: amountMinor,
+      dueDay: dueDay,
+      accountId: 'acc-bank',
+      accountName: 'Ngân hàng VCB',
+      categoryId: 'cat-bills',
+      categoryName: 'Hóa đơn',
+      paidThisMonth: paid,
+      paidAmountMinor: paidAmountMinor,
+    );
+
+    Future<void> pumpCommitments(
+      WidgetTester tester,
+      List<RecurringCommitment> commitments, {
+      required String monthStart,
+    }) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PlanningPage(
+            loadData: () => Future.value(
+              PlanningData(
+                budgets: const [],
+                commitments: commitments,
+                goals: const [],
+                accounts: DemoStore.seedAccounts(),
+                categories: DemoStore.seedCategories(),
+                monthStart: monthStart,
+              ),
+            ),
+            actions: _actions(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('overdue unpaid rows lead; paid rows name their settle state', (
+      tester,
+    ) async {
+      // Viewing last month keeps "overdue" deterministic — every unpaid
+      // due day there is behind today regardless of the run date.
+      final lastMonth = _prevMonthStart();
+      await pumpCommitments(tester, [
+        commitment(
+          'cm-paid-same',
+          name: 'Giữ trẻ',
+          paid: true,
+          amountMinor: 3000000,
+          paidAmountMinor: 3000000,
+        ),
+        commitment(
+          'cm-paid-diff',
+          name: 'Tiền nhà',
+          paid: true,
+          amountMinor: 3500000,
+          paidAmountMinor: 3800000,
+        ),
+        commitment('cm-late', name: 'Internet', dueDay: 20),
+      ], monthStart: lastMonth);
+
+      // Text labels — never color alone. The overdue count varies with
+      // the run date, so match the prefix.
+      expect(find.textContaining('Quá hạn'), findsOneWidget);
+      expect(find.text('Đã trả khác: 3.800.000 ₫'), findsOneWidget);
+      // The matching paid row falls back to the plain trailing label.
+      expect(find.text('Đã trả'), findsNWidgets(2));
+
+      // Feed order: the overdue row renders above every paid row.
+      final lateTop = tester.getTopLeft(find.text('Internet')).dy;
+      final paidTop = tester.getTopLeft(find.text('Giữ trẻ')).dy;
+      final diffTop = tester.getTopLeft(find.text('Tiền nhà')).dy;
+      expect(lateTop, lessThan(paidTop));
+      expect(lateTop, lessThan(diffTop));
+    });
+
+    testWidgets('unpaid with a future due day names the wait', (tester) async {
+      // Viewing next month: every unpaid due day is ahead of today, so
+      // "Còn N ngày" is deterministic.
+      final now = DateTime.now();
+      final next = DateTime(now.year, now.month + 1);
+      final nextMonth =
+          '${next.year}-${next.month.toString().padLeft(2, '0')}-01';
+      await pumpCommitments(tester, [
+        commitment('cm-up', name: 'Học phí', dueDay: 20),
+      ], monthStart: nextMonth);
+      expect(find.textContaining('Còn'), findsOneWidget);
+      expect(find.textContaining('ngày'), findsWidgets);
+      // Still payable — the Trả action survives the new status model.
+      expect(find.text('Trả'), findsOneWidget);
     });
   });
 }

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/budget.dart';
+import '../../domain/commitments.dart';
 import '../../domain/goal_projection.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
+import '../../domain/report.dart' show ymd;
 import 'recurring_form_dialog.dart';
 
 // planningErrorMessage moved to recurring_form_dialog.dart — the shared
@@ -23,6 +25,8 @@ class PlanningData {
     required this.categories,
     required this.monthStart,
     this.incomeTemplates = const [],
+    this.priorBudgets = const [],
+    this.budgetSuggestionRows = const [],
   });
 
   final List<BudgetProgress> budgets;
@@ -32,6 +36,18 @@ class PlanningData {
   final List<AccountSummary> accounts;
   final List<Category> categories;
   final String monthStart; // YYYY-MM-01
+
+  /// Budget rows from months inside the rollover window before
+  /// [monthStart] — the `budget_progress` range read the web workspace
+  /// makes. Feeds both the per-card carry ("Chuyển từ tháng trước") and
+  /// the quick-fill "Dùng hạn mức tháng trước" action.
+  final List<BudgetProgress> priorBudgets;
+
+  /// Trailing expense ledger rows covering the suggestion window (the
+  /// three completed months before [monthStart]) — the web's
+  /// `budgetSuggestions` input. Empty means the quick-fill average action
+  /// honestly has nothing to propose.
+  final List<Transaction> budgetSuggestionRows;
 }
 
 /// Write surface — each maps 1:1 to a Data API RPC (or a demo no-op).
@@ -43,6 +59,7 @@ class PlanningActions {
   const PlanningActions({
     required this.onBudgetSave,
     required this.onBudgetDelete,
+    this.onBudgetFill,
     required this.onCommitmentSave,
     required this.onCommitmentPay,
     required this.onCommitmentUndo,
@@ -80,6 +97,12 @@ class PlanningActions {
   )
   onBudgetSave;
   final Future<void> Function(String budgetId) onBudgetDelete;
+
+  /// Bulk-fill writes ("Điền nhanh") — each draft lands through the same
+  /// `upsert_monthly_budget` RPC a manual save uses. Null (demo) hides the
+  /// affordance entirely. Returns how many drafts actually wrote so the
+  /// page can report a partial apply honestly.
+  final Future<int> Function(List<BudgetDraft> drafts)? onBudgetFill;
   final Future<void> Function(
     RecurringCommitment? editing,
     String name,
@@ -185,6 +208,7 @@ class PlanningPageState extends State<PlanningPage> {
             return const Center(child: CircularProgressIndicator());
           }
           final d = snap.data!;
+          final today = ymd(DateTime.now());
           // Active vs archived split — the web lists archived rows behind
           // a "Đã lưu trữ (N)" toggle; mobile collapses them in place.
           final activeIncome = d.incomeTemplates
@@ -193,9 +217,13 @@ class PlanningPageState extends State<PlanningPage> {
           final archivedIncome = d.incomeTemplates
               .where((i) => i.isArchived)
               .toList();
-          final activeCommitments = d.commitments
-              .where((c) => !c.isArchived)
-              .toList();
+          // Feed order: overdue → due-today → upcoming → paid (the
+          // "Đã trả khác" flag sorts first among paid rows).
+          final activeCommitments = sortCommitmentsForFeed(
+            d.commitments.where((c) => !c.isArchived).toList(),
+            monthStart: d.monthStart,
+            today: today,
+          );
           final archivedCommitments = d.commitments
               .where((c) => c.isArchived)
               .toList();
@@ -213,11 +241,15 @@ class PlanningPageState extends State<PlanningPage> {
                       d.categories.any((c) => c.kind == TransactionKind.expense)
                       ? () => _showBudgetForm(d)
                       : null,
+                  onQuickFill: widget.actions.onBudgetFill == null
+                      ? null
+                      : () => _showQuickFill(d),
                 ),
                 if (d.budgets.isEmpty) _empty('Chưa có ngân sách nào'),
                 for (final b in d.budgets)
                   _BudgetTile(
                     budget: b,
+                    priorBudgets: d.priorBudgets,
                     onEdit: () => _showBudgetForm(d, editing: b),
                     onDelete: () => _deleteBudget(b),
                   ),
@@ -272,6 +304,8 @@ class PlanningPageState extends State<PlanningPage> {
                 for (final c in activeCommitments)
                   _CommitmentTile(
                     commitment: c,
+                    monthStart: d.monthStart,
+                    today: today,
                     onEdit: () => _showCommitmentForm(d, editing: c),
                     onPay: c.paidThisMonth ? null : () => _payCommitment(c),
                     onUndo: c.paidThisMonth ? () => _undoCommitment(c) : null,
@@ -474,6 +508,216 @@ class PlanningPageState extends State<PlanningPage> {
       );
     }
   }
+
+  // -- Quick-fill budgets -----------------------------------------------------
+
+  /// The two bulk-fill sources, recomputed from the live load — like the
+  /// web's `carryable`/`suggestionRows` useMemos, so a row written
+  /// mid-session immediately drops out of both lists.
+  List<BudgetDraft> _carryableDrafts(PlanningData d) {
+    final prevMonth = shiftBudgetMonth(d.monthStart, -1);
+    return budgetsToCarryForward(
+      previousBudgets: d.priorBudgets
+          .where((b) => b.monthStart == prevMonth)
+          .toList(),
+      currentBudgets: d.budgets,
+      monthStart: d.monthStart,
+    );
+  }
+
+  /// Suggested limits for expense categories that have no budget this
+  /// month — the web's `budgetSuggestions` over the trailing 3 completed
+  /// months, restricted to categories that still exist.
+  List<({Category category, BudgetSuggestion suggestion})> _suggestionDrafts(
+    PlanningData d,
+  ) {
+    final suggestions = budgetSuggestions(d.budgetSuggestionRows, d.monthStart);
+    final budgeted = {for (final b in d.budgets) b.categoryId};
+    return [
+      for (final c in d.categories)
+        if (c.kind == TransactionKind.expense &&
+            !c.isArchived &&
+            !budgeted.contains(c.id) &&
+            suggestions.containsKey(c.id))
+          (category: c, suggestion: suggestions[c.id]!),
+    ];
+  }
+
+  /// "Điền nhanh" sheet — the YNAB auto-assign analog. Both actions are
+  /// honest about their inputs: a count when something is fillable, a
+  /// muted explanation when there is nothing to propose.
+  Future<void> _showQuickFill(PlanningData d) async {
+    final carryable = _carryableDrafts(d);
+    final suggestions = _suggestionDrafts(d);
+    final prevMonthLabel = _monthLabel(shiftBudgetMonth(d.monthStart, -1));
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.history),
+              title: const Text('Dùng hạn mức tháng trước'),
+              subtitle: Text(
+                carryable.isEmpty
+                    ? 'Không có hạn mức $prevMonthLabel chưa áp dụng'
+                    : 'Áp dụng ${carryable.length} hạn mức của '
+                          '$prevMonthLabel',
+              ),
+              enabled: carryable.isNotEmpty,
+              onTap: () {
+                Navigator.pop(ctx);
+                _applyDrafts(carryable, source: prevMonthLabel);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.auto_graph),
+              title: const Text('Điền theo trung bình 3 tháng chi'),
+              subtitle: Text(
+                suggestions.isEmpty
+                    ? 'Chưa có danh mục nào đủ chi tiêu 3 tháng để gợi ý'
+                    : '${suggestions.length} gợi ý — xem lại trước khi điền',
+              ),
+              enabled: suggestions.isNotEmpty,
+              onTap: () {
+                Navigator.pop(ctx);
+                _reviewSuggestions(d, suggestions);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Review sheet for the average-fill proposals — per-item checkboxes
+  /// BEFORE anything writes (never silent). Unchecking a row simply keeps
+  /// the category unbudgeted.
+  Future<void> _reviewSuggestions(
+    PlanningData d,
+    List<({Category category, BudgetSuggestion suggestion})> rows,
+  ) async {
+    final checked = {for (final r in rows) r.category.id};
+    final applied = await showModalBottomSheet<List<BudgetDraft>>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 0, 16, 4),
+                child: Text(
+                  'Gợi ý hạn mức',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'Trung bình 3 tháng chi gần nhất, tính riêng từng danh mục '
+                  '— tháng không chi vẫn tính vào trung bình.',
+                ),
+              ),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final r in rows)
+                      CheckboxListTile(
+                        value: checked.contains(r.category.id),
+                        onChanged: (v) => setSheet(
+                          () => v == true
+                              ? checked.add(r.category.id)
+                              : checked.remove(r.category.id),
+                        ),
+                        title: Text(r.category.name),
+                        subtitle: Text(
+                          'Có chi ${r.suggestion.monthsWithData}/'
+                          '$budgetSuggestionMonths tháng gần nhất',
+                        ),
+                        secondary: Text(formatMoney(r.suggestion.amount)),
+                      ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Hủy'),
+                    ),
+                    const Spacer(),
+                    FilledButton(
+                      onPressed: checked.isEmpty
+                          ? null
+                          : () => Navigator.pop(ctx, [
+                              for (final r in rows)
+                                if (checked.contains(r.category.id))
+                                  (
+                                    categoryId: r.category.id,
+                                    monthStart: d.monthStart,
+                                    limitMinor: r.suggestion.amount,
+                                  ),
+                            ]),
+                      child: Text('Áp dụng (${checked.length})'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (applied == null || applied.isEmpty) return;
+    await _applyDrafts(applied, source: 'gợi ý');
+  }
+
+  /// Writes the drafts through [PlanningActions.onBudgetFill] — each row
+  /// lands on the same `upsert_monthly_budget` RPC a manual save uses, so
+  /// there is one write path, no silent second channel. A failed row is
+  /// counted and reported rather than rolled back (plans, not ledger
+  /// facts — matching the web's carryForwardBudgetsAction).
+  Future<void> _applyDrafts(
+    List<BudgetDraft> drafts, {
+    required String source,
+  }) async {
+    final fill = widget.actions.onBudgetFill;
+    if (fill == null || drafts.isEmpty) return;
+    var applied = 0;
+    try {
+      applied = await fill(drafts);
+    } catch (_) {
+      // A transport-level failure lands as 0/N below — honest, and the
+      // refresh re-reads whatever did get written.
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            applied == drafts.length
+                ? 'Đã điền $applied hạn mức từ $source'
+                : 'Đã điền $applied/${drafts.length} hạn mức từ $source — '
+                      'phần còn lại chưa lưu được',
+          ),
+        ),
+      );
+    }
+    _refresh();
+  }
+
+  /// "tháng M/YYYY" — the label style the web's `formatMonthLabel` uses.
+  static String _monthLabel(String monthStart) =>
+      'tháng ${int.parse(monthStart.substring(5, 7))}/'
+      '${monthStart.substring(0, 4)}';
 
   // -- Commitments + recurring income ---------------------------------------
 
@@ -875,10 +1119,13 @@ class PlanningPageState extends State<PlanningPage> {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, this.onAdd});
+  const _SectionHeader({required this.title, this.onAdd, this.onQuickFill});
 
   final String title;
   final VoidCallback? onAdd;
+
+  /// Bulk-fill affordance — the budgets section's "Điền nhanh" entry.
+  final VoidCallback? onQuickFill;
 
   @override
   Widget build(BuildContext context) {
@@ -887,6 +1134,12 @@ class _SectionHeader extends StatelessWidget {
         Expanded(
           child: Text(title, style: Theme.of(context).textTheme.titleMedium),
         ),
+        if (onQuickFill != null)
+          IconButton(
+            icon: const Icon(Icons.bolt_outlined),
+            tooltip: 'Điền nhanh',
+            onPressed: onQuickFill,
+          ),
         if (onAdd != null)
           IconButton(
             icon: const Icon(Icons.add_circle_outline),
@@ -920,36 +1173,59 @@ class _BudgetTile extends StatelessWidget {
     required this.budget,
     required this.onEdit,
     required this.onDelete,
+    this.priorBudgets = const [],
   });
 
   final BudgetProgress budget;
+
+  /// Prior-month rows inside the rollover window — empty keeps the card
+  /// on the this-month-only figures it always showed.
+  final List<BudgetProgress> priorBudgets;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
-    final ratio = budget.limitMinor <= 0
-        ? 0.0
-        : (budget.spentMinor / budget.limitMinor).clamp(0.0, 1.0);
-    final state = budgetState(
+    // The carry folds prior under/overspend into this month's effective
+    // limit — the web's budgetEffective* chain, integer đồng throughout.
+    final rollover = budgetRollover(
+      priorBudgets: priorBudgets,
+      categoryId: budget.categoryId,
+      monthStart: budget.monthStart,
+    );
+    final effectiveLimit = budgetEffectiveLimit(
+      budget.limitMinor,
+      rollover.carry,
+    );
+    final available = budgetEffectiveAvailable(
       spentMinor: budget.spentMinor,
       limitMinor: budget.limitMinor,
+      carry: rollover.carry,
     );
+    final state = budgetEffectiveState(
+      spentMinor: budget.spentMinor,
+      limitMinor: budget.limitMinor,
+      carry: rollover.carry,
+    );
+    final ratio = effectiveLimit <= 0
+        ? (available < 0 ? 1.0 : 0.0)
+        : (budget.spentMinor / effectiveLimit).clamp(0.0, 1.0);
     final pace = monthPace(budget.monthStart, DateTime.now());
     final (status, color) = switch (state) {
       BudgetState.over => (
-        'Vượt ${formatMoney(budget.spentMinor - budget.limitMinor)}',
+        'Vượt ${formatMoney(available.abs())}',
         Colors.red.shade700,
       ),
       BudgetState.nearLimit => (
-        'Sắp tới hạn mức · còn ${formatMoney(budget.limitMinor - budget.spentMinor)}',
+        'Sắp tới hạn mức · còn ${formatMoney(available)}',
         Colors.orange.shade800,
       ),
       BudgetState.ok => (
-        'Còn lại ${formatMoney(budget.limitMinor - budget.spentMinor)}',
+        'Còn lại ${formatMoney(available)}',
         Colors.green.shade700,
       ),
     };
+    final rolloverLine = budgetRolloverLabel(rollover, formatMoney);
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
@@ -960,9 +1236,12 @@ class _BudgetTile extends StatelessWidget {
             _PaceBar(ratio: ratio, pace: pace, color: color),
             const SizedBox(height: 4),
             Text(
-              '${formatMoney(budget.spentMinor)} / ${formatMoney(budget.limitMinor)} · $status',
+              '${formatMoney(budget.spentMinor)} / '
+              '${formatMoney(budget.limitMinor)} · $status',
               style: TextStyle(color: color),
             ),
+            if (rolloverLine != null)
+              Text(rolloverLine, style: Theme.of(context).textTheme.bodySmall),
           ],
         ),
         onTap: onEdit,
@@ -1017,6 +1296,8 @@ class _PaceBar extends StatelessWidget {
 class _CommitmentTile extends StatelessWidget {
   const _CommitmentTile({
     required this.commitment,
+    required this.monthStart,
+    required this.today,
     required this.onEdit,
     required this.onPay,
     required this.onUndo,
@@ -1024,6 +1305,8 @@ class _CommitmentTile extends StatelessWidget {
   });
 
   final RecurringCommitment commitment;
+  final String monthStart;
+  final String today; // YYYY-MM-DD
   final VoidCallback onEdit;
   final VoidCallback? onPay;
   final VoidCallback? onUndo;
@@ -1031,16 +1314,51 @@ class _CommitmentTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final status = commitmentStatus(
+      commitment,
+      monthStart: monthStart,
+      today: today,
+    );
+    final statusColor = switch (status) {
+      CommitmentStatus.overdue => Colors.red.shade700,
+      CommitmentStatus.dueToday => Colors.orange.shade800,
+      CommitmentStatus.upcoming => scheme.onSurfaceVariant,
+      CommitmentStatus.paidDifferent => Colors.blue.shade700,
+      CommitmentStatus.paid => Colors.green.shade700,
+    };
+    // A plain "Đã trả" needs no extra line — the trailing undo button
+    // already says it. Every other state names itself in text so the
+    // color is never the only signal.
+    final statusLine = status == CommitmentStatus.paid
+        ? null
+        : commitmentStatusLabel(
+            status,
+            monthStart: monthStart,
+            today: today,
+            dueDay: commitment.dueDay,
+            paidAmountMinor: commitment.paidAmountMinor,
+            format: formatMoney,
+          );
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         title: Text(commitment.name),
-        subtitle: Text(
-          '${commitment.categoryName} · ${commitment.accountName} · ngày ${commitment.dueDay}'
-          ' · ${formatMoney(commitment.amountMinor)}',
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${commitment.categoryName} · ${commitment.accountName} · '
+              'ngày ${commitment.dueDay}'
+              ' · ${formatMoney(commitment.amountMinor)}',
+            ),
+            if (statusLine != null)
+              Text(statusLine, style: TextStyle(color: statusColor)),
+          ],
         ),
         // "Đã trả" is tappable like the income tile's "Đã nhận" — it
         // undoes this month's payment (the web's Hoàn tác thanh toán).
+        // A "khác số tiền" row undoes the same way.
         trailing: commitment.paidThisMonth
             ? TextButton(onPressed: onUndo, child: const Text('Đã trả'))
             : TextButton(onPressed: onPay, child: const Text('Trả')),

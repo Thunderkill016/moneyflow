@@ -444,20 +444,40 @@ class RealStore {
         'order': 'category_name.asc',
       },
     );
-    return rows
-        .map(
-          (r) => BudgetProgress(
-            id: r['id'] as String,
-            categoryId: r['category_id'] as String,
-            categoryName: r['category_name'] as String? ?? 'Khác',
-            monthStart: r['month_start'] as String,
-            limitMinor: (r['limit_minor'] as num).toInt(),
-            spentMinor: (r['spent_minor'] as num).toInt(),
-            updatedAt: r['updated_at'] as String?,
-          ),
-        )
-        .toList();
+    return rows.map(_budgetFromRow).toList();
   }
+
+  /// Every budgeted month in [fromMonth]..[toMonth] inclusive — the same
+  /// `budget_progress` range read the web workspace takes for the rollover
+  /// window (`month_start.gte(windowStart).lte(monthStart)`), so a prior
+  /// month's spent figure is always the view's own per-category math.
+  Future<List<BudgetProgress>> loadBudgetsInRange(
+    String fromMonth,
+    String toMonth,
+  ) async {
+    final rows = await _api.select(
+      'budget_progress',
+      query: {
+        'select':
+            'id,category_id,category_name,month_start,limit_minor,spent_minor,'
+            'updated_at',
+        'and': '(month_start.gte.$fromMonth,month_start.lte.$toMonth)',
+        'order': 'month_start.desc,category_name.asc',
+      },
+    );
+    return rows.map(_budgetFromRow).toList();
+  }
+
+  static BudgetProgress _budgetFromRow(Map<String, dynamic> r) =>
+      BudgetProgress(
+        id: r['id'] as String,
+        categoryId: r['category_id'] as String,
+        categoryName: r['category_name'] as String? ?? 'Khác',
+        monthStart: r['month_start'] as String,
+        limitMinor: (r['limit_minor'] as num).toInt(),
+        spentMinor: (r['spent_minor'] as num).toInt(),
+        updatedAt: r['updated_at'] as String?,
+      );
 
   /// Recurring commitments + this month's paid state —
   /// public.recurring_commitment_feed + commitment_occurrences. Archived
@@ -476,9 +496,21 @@ class RealStore {
     );
     final occurrences = await _api.select(
       'commitment_occurrences',
-      query: {'select': 'commitment_id', 'month_start': 'eq.$monthStart'},
+      query: {
+        'select': 'commitment_id,transaction_id',
+        'month_start': 'eq.$monthStart',
+      },
     );
-    final paid = {for (final o in occurrences) o['commitment_id'] as String};
+    final paidTxIds = {
+      for (final o in occurrences)
+        // transaction_id can be null on a partial write — that occurrence
+        // still proves "paid", it just cannot show the recorded amount.
+        if (o['commitment_id'] is String)
+          o['commitment_id'] as String: o['transaction_id'] as String?,
+    };
+    final paidAmounts = await _loadPaidAmounts(
+      paidTxIds.values.whereType<String>().toSet(),
+    );
     return rows
         .map(
           (r) => RecurringCommitment(
@@ -491,11 +523,35 @@ class RealStore {
             categoryId: r['category_id'] as String,
             categoryName: r['category_name'] as String? ?? 'Khác',
             isArchived: r['is_archived'] as bool? ?? false,
-            paidThisMonth: paid.contains(r['id']),
+            paidThisMonth: paidTxIds.containsKey(r['id']),
+            paidAmountMinor: paidAmounts[paidTxIds[r['id']]],
             updatedAt: r['updated_at'] as String?,
           ),
         )
         .toList();
+  }
+
+  /// Amounts the month's payment transactions recorded — a light
+  /// `transaction_feed` read keyed by the occurrence's transaction id.
+  /// Advisory: a failed read or a soft-deleted payment degrades to "paid,
+  /// amount unknown" (null) rather than failing the commitments list.
+  Future<Map<String, int>> _loadPaidAmounts(Set<String> transactionIds) async {
+    if (transactionIds.isEmpty) return const {};
+    try {
+      final rows = await _api.select(
+        'transaction_feed',
+        query: {
+          'select': 'id,amount_minor',
+          'id': 'in.(${transactionIds.join(',')})',
+        },
+      );
+      return {
+        for (final r in rows)
+          r['id'] as String: (r['amount_minor'] as num).toInt(),
+      };
+    } catch (_) {
+      return const {};
+    }
   }
 
   /// Recurring income templates + this month's receipt state —

@@ -325,6 +325,146 @@ void main() {
       expect(budgets.single.updatedAt, '2026-10-05T09:00:00Z');
     });
 
+    test('loadBudgetsInRange sends the rollover window range filter', () async {
+      final h = Harness();
+      await h.signIn();
+      h.t.queue.add(
+        FakeTransport.json(200, [
+          {
+            'id': 'b-1',
+            'category_id': 'cat-food',
+            'category_name': 'Ăn uống',
+            'month_start': '2026-10-01',
+            'limit_minor': 2000000,
+            'spent_minor': 45000,
+            'updated_at': '2026-10-05T09:00:00Z',
+          },
+          {
+            'id': 'b-0',
+            'category_id': 'cat-food',
+            'category_name': 'Ăn uống',
+            'month_start': '2026-09-01',
+            'limit_minor': 2000000,
+            'spent_minor': 1700000,
+            'updated_at': null,
+          },
+        ]),
+      );
+
+      final rows = await h.store.loadBudgetsInRange('2025-10-01', '2026-10-01');
+
+      final req = h.lastRpc;
+      expect(req.url.path, '/neondb/rest/v1/budget_progress');
+      // The same bounded window the web workspace reads —
+      // month_start.gte/lte, never an unfiltered history pull.
+      expect(
+        req.url.queryParameters['and'],
+        '(month_start.gte.2025-10-01,month_start.lte.2026-10-01)',
+      );
+      expect(rows.length, 2);
+      expect(rows.last.monthStart, '2026-09-01');
+      expect(rows.last.spentMinor, 1700000);
+    });
+
+    test(
+      'loadCommitments maps the paid amount through the occurrence join',
+      () async {
+        final h = Harness();
+        await h.signIn();
+        h.t.queue.add(
+          FakeTransport.json(200, [
+            {
+              'id': 'cm-1',
+              'name': 'Tiền nhà',
+              'amount_minor': 3500000,
+              'due_day': 5,
+              'account_id': 'a1',
+              'account_name': 'Bank',
+              'category_id': 'c1',
+              'category_name': 'Hóa đơn',
+              'is_archived': false,
+              'updated_at': '2026-10-03T00:00:00Z',
+            },
+            {
+              'id': 'cm-2',
+              'name': 'Internet',
+              'amount_minor': 300000,
+              'due_day': 15,
+              'account_id': 'a1',
+              'account_name': 'Bank',
+              'category_id': 'c1',
+              'category_name': 'Hóa đơn',
+              'is_archived': false,
+              'updated_at': '2026-10-03T00:00:00Z',
+            },
+          ]),
+        );
+        h.t.queue.add(
+          FakeTransport.json(200, [
+            {'commitment_id': 'cm-1', 'transaction_id': 'tx-pay-1'},
+          ]),
+        );
+        // The payment transaction's recorded amount — cm-1 declared
+        // 3.500.000 but the ledger row says 3.800.000.
+        h.t.queue.add(
+          FakeTransport.json(200, [
+            {'id': 'tx-pay-1', 'amount_minor': 3800000},
+          ]),
+        );
+
+        final commitments = await h.store.loadCommitments('2026-10-01');
+
+        // The amount join is a second read on transaction_feed, filtered
+        // to the occurrence's transaction ids.
+        final amountReq = h.lastRpc;
+        expect(amountReq.url.path, '/neondb/rest/v1/transaction_feed');
+        expect(amountReq.url.queryParameters['id'], 'in.(tx-pay-1)');
+        final paid = commitments.firstWhere((c) => c.id == 'cm-1');
+        expect(paid.paidThisMonth, isTrue);
+        expect(paid.paidAmountMinor, 3800000);
+        final unpaid = commitments.firstWhere((c) => c.id == 'cm-2');
+        expect(unpaid.paidThisMonth, isFalse);
+        expect(unpaid.paidAmountMinor, isNull);
+      },
+    );
+
+    test(
+      'loadCommitments degrades to amount-unknown when the join fails',
+      () async {
+        final h = Harness();
+        await h.signIn();
+        h.t.queue.add(
+          FakeTransport.json(200, [
+            {
+              'id': 'cm-1',
+              'name': 'Tiền nhà',
+              'amount_minor': 3500000,
+              'due_day': 5,
+              'account_id': 'a1',
+              'account_name': 'Bank',
+              'category_id': 'c1',
+              'category_name': 'Hóa đơn',
+              'is_archived': false,
+              'updated_at': null,
+            },
+          ]),
+        );
+        h.t.queue.add(
+          FakeTransport.json(200, [
+            {'commitment_id': 'cm-1', 'transaction_id': 'tx-pay-1'},
+          ]),
+        );
+        h.t.queue.add(FakeTransport.json(500, {'message': 'boom'}));
+
+        final commitments = await h.store.loadCommitments('2026-10-01');
+
+        // A failed amount read must not fail the whole list — "paid,
+        // amount unknown" beats no commitment list at all.
+        expect(commitments.single.paidThisMonth, isTrue);
+        expect(commitments.single.paidAmountMinor, isNull);
+      },
+    );
+
     test('loadCommitments keeps archived rows and maps updated_at', () async {
       final h = Harness();
       await h.signIn();
