@@ -14,6 +14,7 @@ import '../data/session_store.dart';
 import '../data/share/share_intent.dart';
 import '../data/share/share_text_parser.dart';
 import '../domain/models.dart';
+import '../domain/transaction_query.dart';
 import 'biometric_lock.dart';
 import 'delete_data.dart';
 import '../features/accounts/accounts_page.dart';
@@ -289,7 +290,8 @@ class _AuthGateState extends State<AuthGate> {
             ),
             () => ActivityPage(
               key: _actKey,
-              loadTransactions: _store.loadTransactions,
+              loadPage: _store.loadTransactionPage,
+              loadAccounts: _store.loadAccounts,
               onDelete: _deleteTransaction,
               onOpenTrash: () => _openTrash(context),
               onEdit: (tx) => _openEdit(context, tx),
@@ -453,7 +455,9 @@ class _AuthGateState extends State<AuthGate> {
           ],
         ),
         () => ActivityPage(
-          loadTransactions: () async => DemoStore.seedTransactions(),
+          loadPage: inMemoryPageLoader(DemoStore.seedTransactions()),
+          loadAccounts: () async => DemoStore.seedAccounts(),
+          loadCategories: () async => DemoStore.seedCategories(),
           onDelete: (_) async {},
         ),
         () => PlanningPage(

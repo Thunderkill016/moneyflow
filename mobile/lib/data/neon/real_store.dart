@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../../domain/models.dart';
+import '../../domain/transaction_query.dart';
 import 'data_api.dart';
 
 /// Neon Data API store — same domain shape as [DemoStore], real rows.
@@ -85,6 +86,32 @@ class RealStore {
     );
     final txs = rows.map(_txFromRow).toList();
     return _withReviewStatus(txs);
+  }
+
+  /// One page of the filtered feed. Fetches one extra row to learn whether
+  /// another page exists without a count query. `id.desc` makes the order
+  /// total, so offset paging cannot skip or repeat rows that share a date
+  /// and created_at.
+  Future<TransactionPage> loadTransactionPage(
+    TransactionQuery query, {
+    int offset = 0,
+    int limit = transactionPageSize,
+  }) async {
+    final rows = await _api.select(
+      'transaction_feed',
+      query: {
+        'select': _txColumns,
+        ...query.toPostgrestParams(),
+        'order': 'occurred_on.desc,created_at.desc,id.desc',
+        'limit': '${limit + 1}',
+        'offset': '$offset',
+      },
+    );
+    final txs = rows.take(limit).map(_txFromRow).toList();
+    return TransactionPage(
+      await _withReviewStatus(txs),
+      hasMore: rows.length > limit,
+    );
   }
 
   /// Every feed row with occurred_on in [from, to) — used by reports so a

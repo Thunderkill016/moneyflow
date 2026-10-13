@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/domain/models.dart';
+import 'package:moneyflow/domain/transaction_query.dart';
 import 'package:moneyflow/data/demo_store.dart';
 import 'package:moneyflow/features/activity/activity_page.dart';
 
@@ -31,7 +32,7 @@ const _split = Transaction(
 
 Widget _page(List<Transaction> edited) => MaterialApp(
   home: ActivityPage(
-    loadTransactions: () async => [_plain, _split],
+    loadPage: inMemoryPageLoader([_plain, _split]),
     onDelete: (_) async {},
     onEdit: (tx) async => edited.add(tx),
   ),
@@ -75,7 +76,7 @@ Widget _bulkPage(
   bool bulk = true,
 }) => MaterialApp(
   home: ActivityPage(
-    loadTransactions: () async => txs,
+    loadPage: inMemoryPageLoader(txs),
     onDelete: (_) async {},
     onEdit: (_) async {},
     onBulkReview: bulk
@@ -96,10 +97,10 @@ void main() {
     await t.pumpWidget(
       MaterialApp(
         home: ActivityPage(
-          loadTransactions: () async {
+          loadPage: (q, {offset = 0}) async {
             calls++;
             if (calls == 1) throw Exception('offline');
-            return [_plain];
+            return const TransactionPage([_plain], hasMore: false);
           },
           onDelete: (_) async {},
         ),
@@ -212,7 +213,7 @@ void main() {
       await t.pumpWidget(
         MaterialApp(
           home: ActivityPage(
-            loadTransactions: () async => const [_plain],
+            loadPage: inMemoryPageLoader(const [_plain]),
             onDelete: (_) async {},
             onBulkReview: (ids, {required reviewed}) async =>
                 throw Exception('transaction_selection_not_found'),
