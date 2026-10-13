@@ -176,6 +176,19 @@ class DemoStore {
         amount: 32000,
         occurredOn: '2026-10-08',
       ),
+      // Week-1 spend — the current-month report's weekly chart draws
+      // more than one non-empty group.
+      const Transaction(
+        id: 'tx-5',
+        kind: TransactionKind.expense,
+        categoryId: 'cat-bills',
+        category: 'Hóa đơn',
+        note: 'Điện nước tháng 9',
+        accountId: 'acc-bank',
+        account: 'Ngân hàng VCB',
+        amount: 850000,
+        occurredOn: '2026-10-03',
+      ),
       ...trendRows,
     ];
   }

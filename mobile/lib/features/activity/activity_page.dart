@@ -68,6 +68,10 @@ const _searchDebounce = Duration(milliseconds: 350);
 /// Distance from the list end at which the next page is requested.
 const _loadMoreThreshold = 300.0;
 
+/// First-build fade-in applies to the first screenful only — beyond it
+/// the wrap is skipped entirely so paging stays allocation-cheap.
+const _fadeInMaxItems = 20;
+
 class ActivityPageState extends State<ActivityPage> {
   late TransactionQuery _query = widget.initialQuery ?? TransactionQuery.none;
   List<Transaction>? _rows;
@@ -609,20 +613,37 @@ class ActivityPageState extends State<ActivityPage> {
                         ),
                       ),
                     ),
-                  for (final t in visible)
-                    _TxTile(
-                      tx: t,
-                      selecting: _selecting,
-                      selected: _selected.contains(t.id),
-                      onTap: _selecting
-                          ? () => _toggle(t)
-                          : widget.onEdit == null
-                          ? null
-                          : () => _openEdit(t),
-                      onLongPress: _selecting
-                          ? () => _toggle(t)
-                          : () => _confirmDelete(t),
-                    ),
+                  for (final (i, t) in visible.indexed)
+                    i < _fadeInMaxItems
+                        ? _FadeInTile(
+                            order: i,
+                            child: _TxTile(
+                              tx: t,
+                              selecting: _selecting,
+                              selected: _selected.contains(t.id),
+                              onTap: _selecting
+                                  ? () => _toggle(t)
+                                  : widget.onEdit == null
+                                  ? null
+                                  : () => _openEdit(t),
+                              onLongPress: _selecting
+                                  ? () => _toggle(t)
+                                  : () => _confirmDelete(t),
+                            ),
+                          )
+                        : _TxTile(
+                            tx: t,
+                            selecting: _selecting,
+                            selected: _selected.contains(t.id),
+                            onTap: _selecting
+                                ? () => _toggle(t)
+                                : widget.onEdit == null
+                                ? null
+                                : () => _openEdit(t),
+                            onLongPress: _selecting
+                                ? () => _toggle(t)
+                                : () => _confirmDelete(t),
+                          ),
                   _footer(),
                 ],
               ),
@@ -921,6 +942,37 @@ class _BulkBar extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Subtle first-build fade for feed rows — a slight per-row stagger so a
+/// fresh page settles in a wave instead of popping whole. Only the first
+/// [_fadeInMaxItems] rows get wrapped, and MediaQuery.disableAnimations
+/// skips the effect entirely.
+class _FadeInTile extends StatelessWidget {
+  const _FadeInTile({required this.order, required this.child});
+
+  /// Position in the stagger — later rows start deeper into the window.
+  final int order;
+  final Widget child;
+
+  static const _duration = Duration(milliseconds: 350);
+  static const _staggerStep = 0.045;
+  static const _latestStart = 0.55;
+
+  @override
+  Widget build(BuildContext context) {
+    if (MediaQuery.maybeOf(context)?.disableAnimations ?? false) {
+      return child;
+    }
+    final start = (order * _staggerStep).clamp(0.0, _latestStart);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: _duration,
+      curve: Interval(start, 1, curve: Curves.easeOut),
+      builder: (context, value, child) => Opacity(opacity: value, child: child),
+      child: child,
     );
   }
 }

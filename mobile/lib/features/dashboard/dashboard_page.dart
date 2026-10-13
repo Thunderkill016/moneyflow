@@ -454,6 +454,20 @@ class _EmptyLedgerIntro extends StatelessWidget {
   }
 }
 
+/// Count-up on first mount for big đồng figures — ~400ms easeOut,
+/// formatted during the tween so the grouping dots slide in naturally.
+/// MediaQuery.disableAnimations (accessibility) renders the final
+/// value directly.
+Widget _countUpMoney(BuildContext context, int amount, TextStyle? style) {
+  final reduced = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+  return TweenAnimationBuilder<int>(
+    tween: IntTween(begin: reduced ? amount : 0, end: amount),
+    duration: reduced ? Duration.zero : const Duration(milliseconds: 400),
+    curve: Curves.easeOut,
+    builder: (context, value, _) => Text(formatMoney(value), style: style),
+  );
+}
+
 class _TotalCard extends StatelessWidget {
   const _TotalCard({required this.total});
   final int total;
@@ -468,9 +482,10 @@ class _TotalCard extends StatelessWidget {
           children: [
             Text('Tổng số dư', style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 6),
-            Text(
-              formatMoney(total),
-              style: Theme.of(
+            _countUpMoney(
+              context,
+              total,
+              Theme.of(
                 context,
               ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
@@ -520,11 +535,10 @@ class _SafeSpendCard extends StatelessWidget {
                 style: text.bodyMedium,
               )
             else ...[
-              Text(
-                formatMoney(s.perDayMinor),
-                style: text.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+              _countUpMoney(
+                context,
+                s.perDayMinor,
+                text.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
               Text('trong hạn mức ngân sách tháng này', style: text.bodySmall),
               const SizedBox(height: 4),

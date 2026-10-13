@@ -95,7 +95,9 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    // These tests drive the login→demo path directly — the first-run
+    // welcome gate is covered by welcome_test.dart, so mark it seen.
+    SharedPreferences.setMockInitialValues({'mf_seen_welcome': true});
     // Session tokens live in secure storage now — an empty mock keeps the
     // AuthGate restore path off the platform channel, and tests seeding
     // 'neon.session_token' in prefs exercise the real migration instead.

@@ -33,6 +33,7 @@ import '../features/activity/trash_page.dart';
 import '../data/demo_store.dart';
 import '../data/google_sign_in.dart';
 import '../features/auth/login_page.dart';
+import '../features/auth/welcome_page.dart';
 import '../features/capture/capture_page.dart';
 import '../features/capture/capture_submit.dart';
 import '../features/capture/queue_banner.dart';
@@ -115,7 +116,7 @@ class AuthGate extends StatefulWidget {
   State<AuthGate> createState() => _AuthGateState();
 }
 
-enum _Gate { booting, login, signedIn, demo }
+enum _Gate { booting, welcome, login, signedIn, demo }
 
 class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   final _config = NeonConfig.fromEnvironment();
@@ -235,6 +236,10 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         final session = await _auth.restoreSession(stored.token);
         if (session != null) {
           _bindAccountStores(session.userId);
+          // A restorable session means this device passed the gate long
+          // ago — record it so a later sign-out lands on login, not a
+          // welcome screen written for first runs.
+          unawaited(WelcomePrefs.markSeen());
           setState(() => _gate = _Gate.signedIn);
           _drainPendingShare();
           unawaited(_drainQueue());
@@ -255,7 +260,11 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       await clearSignOutResidue(_prefs!);
     }
     _bindAccountStores(null);
-    setState(() => _gate = _Gate.login);
+    // First run only: the welcome surface sits ahead of the login form.
+    // A wiped flag (local-data deletion) is indistinguishable from a
+    // fresh install — showing it again stays honest.
+    final seenWelcome = _prefs?.getBool(WelcomePrefs.seenKey) ?? false;
+    setState(() => _gate = seenWelcome ? _Gate.login : _Gate.welcome);
   }
 
   /// (Re)binds the device-local stores to the account in charge. Scoping
@@ -286,6 +295,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   /// (see NeonDataApi.onSessionExpired).
   void _restoreOffline(String? userId) {
     _bindAccountStores(userId);
+    // Same "not a first run" marker as the online restore path.
+    unawaited(WelcomePrefs.markSeen());
     setState(() => _gate = _Gate.signedIn);
     _drainPendingShare();
     // The drain attempt will fail fast and just records an honest
@@ -746,6 +757,16 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       _Gate.booting => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       ),
+      _Gate.welcome => WelcomePage(
+        onStart: () {
+          unawaited(WelcomePrefs.markSeen());
+          setState(() => _gate = _Gate.login);
+        },
+        onDemo: () {
+          unawaited(WelcomePrefs.markSeen());
+          _enterDemo();
+        },
+      ),
       _Gate.login => LoginPage(
         auth: _auth,
         onSignedIn: _onSignedIn,
@@ -756,16 +777,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
             : PluginGoogleIdTokenSource(
                 serverClientId: _config.googleServerClientId,
               ),
-        onDemo: () {
-          // A fresh demo visit starts from seeds — leftover categories
-          // or rules from a previous visit would misreport what "demo"
-          // means.
-          _demoCategories = DemoCategoryStore();
-          _demoRules = DemoRuleStore(categories: () => _demoCategories.current);
-          _demoInbox = DemoInboxStore();
-          setState(() => _gate = _Gate.demo);
-          _drainQuickAction();
-        },
+        onDemo: _enterDemo,
       ),
       _Gate.demo => _demoDashboard(),
       _Gate.signedIn => BiometricGate(
@@ -917,6 +929,17 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         ),
       ),
     );
+  }
+
+  /// The demo seam shared by the welcome screen and the login form.
+  /// A fresh demo visit starts from seeds — leftover categories or
+  /// rules from a previous visit would misreport what "demo" means.
+  void _enterDemo() {
+    _demoCategories = DemoCategoryStore();
+    _demoRules = DemoRuleStore(categories: () => _demoCategories.current);
+    _demoInbox = DemoInboxStore();
+    setState(() => _gate = _Gate.demo);
+    _drainQuickAction();
   }
 
   /// "Đối soát" from the register — the statement workspace mirrors the

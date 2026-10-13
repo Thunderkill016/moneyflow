@@ -63,7 +63,9 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    // Straight to the login gate — the first-run welcome has its own
+    // coverage in welcome_test.dart.
+    SharedPreferences.setMockInitialValues({'mf_seen_welcome': true});
     // Session tokens moved to secure storage — the mock keeps AuthGate's
     // restore path off the platform channel.
     FlutterSecureStorage.setMockInitialValues({});

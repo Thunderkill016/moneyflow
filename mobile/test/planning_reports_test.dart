@@ -939,8 +939,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Thu'), findsOneWidget);
-      expect(find.text('Chi'), findsOneWidget);
+      // 'Thu'/'Chi' appear twice now — the totals cards and the weekly
+      // chart's legend.
+      expect(find.text('Thu'), findsWidgets);
+      expect(find.text('Chi'), findsWidgets);
       expect(find.text('Còn lại'), findsOneWidget);
       expect(find.text('Tiết kiệm'), findsOneWidget);
       expect(find.text('Ăn uống'), findsOneWidget);

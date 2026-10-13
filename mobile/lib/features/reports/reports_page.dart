@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/export_files.dart';
@@ -10,6 +11,7 @@ import '../../domain/models.dart';
 import '../../domain/net_worth.dart';
 import '../../domain/report.dart';
 import '../../domain/transaction_query.dart';
+import '../../domain/weekly_buckets.dart';
 
 /// Period report — mirrors the web /reports: month navigation plus a
 /// custom range, totals (Thu/Chi/Còn lại/tiết kiệm) and the income/expense
@@ -75,7 +77,13 @@ class ReportsPage extends StatefulWidget {
 }
 
 class ReportsPageState extends State<ReportsPage> {
-  late Future<({PeriodReport report, bool truncated})> _report;
+  /// [buckets] feeds the Thu/Chi weekly chart — computed on the same
+  /// range read as the report so the chart can never disagree with the
+  /// totals beside it.
+  late Future<
+    ({PeriodReport report, bool truncated, List<WeeklyBucket> buckets})
+  >
+  _report;
   late ReportPeriod _period;
 
   /// Net-worth series — period-independent, so it lives outside the
@@ -98,9 +106,15 @@ class ReportsPageState extends State<ReportsPage> {
     _netWorth = _loadNetWorth();
   }
 
-  Future<({PeriodReport report, bool truncated})> _load() async {
-    final range = await _rowsFor(_period);
-    return (report: buildPeriodReport(range.rows), truncated: range.truncated);
+  Future<({PeriodReport report, bool truncated, List<WeeklyBucket> buckets})>
+  _load() async {
+    final period = _period;
+    final range = await _rowsFor(period);
+    return (
+      report: buildPeriodReport(range.rows),
+      truncated: range.truncated,
+      buckets: weeklyIncomeExpense(range.rows, period.from, period.to),
+    );
   }
 
   /// Current balances + the trailing ledger window → month-end series.
@@ -438,6 +452,7 @@ class ReportsPageState extends State<ReportsPage> {
                 }
                 final r = snap.data!.report;
                 final truncated = snap.data!.truncated;
+                final buckets = snap.data!.buckets;
                 return RefreshIndicator(
                   onRefresh: _refresh,
                   child: ListView(
@@ -522,6 +537,11 @@ class ReportsPageState extends State<ReportsPage> {
                             ),
                           ],
                         ),
+                        // A transfer-only period has bars of all zeros —
+                        // an empty grid would fake a trend, so the chart
+                        // only mounts when something is drawable.
+                        if (buckets.any((b) => b.income > 0 || b.expense > 0))
+                          _WeeklyChart(buckets: buckets),
                         _ShareSection(
                           title: 'Chi theo danh mục',
                           rows: r.categories,
@@ -644,6 +664,152 @@ class _PeriodBar extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Thu/Chi-per-week grouped bar chart — same green/red pair the feed
+/// rows use, tooltips off (touch would only echo the axis anyway).
+/// Buckets come pre-computed from the period's own range read.
+class _WeeklyChart extends StatelessWidget {
+  const _WeeklyChart({required this.buckets});
+
+  final List<WeeklyBucket> buckets;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    const incomeColor = Color(0xFF388E3C); // Colors.green.shade700
+    const expenseColor = Color(0xFFD32F2F); // Colors.red.shade700
+    var maxV = 0;
+    for (final b in buckets) {
+      if (b.income > maxV) maxV = b.income;
+      if (b.expense > maxV) maxV = b.expense;
+    }
+    // fl_chart rejects a zero ceiling; 15% headroom keeps the tallest
+    // bar under the top edge.
+    final maxY = maxV <= 0 ? 1.0 : maxV * 1.15;
+    final interval = maxY / 2;
+    Widget legendDot(Color c, String label) => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 4),
+        Text(label, style: theme.textTheme.labelMedium),
+      ],
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 20),
+        Text('Thu chi theo tuần', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 16, 8),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    legendDot(incomeColor, 'Thu'),
+                    const SizedBox(width: 12),
+                    legendDot(expenseColor, 'Chi'),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 180,
+                  child: BarChart(
+                    BarChartData(
+                      maxY: maxY,
+                      minY: 0,
+                      // No tooltips — the tap would only repeat what the
+                      // axes already say; drill-in lives on the rows below.
+                      barTouchData: BarTouchData(enabled: false),
+                      borderData: FlBorderData(show: false),
+                      gridData: FlGridData(
+                        drawVerticalLine: false,
+                        horizontalInterval: interval,
+                        getDrawingHorizontalLine: (v) => FlLine(
+                          color: theme.colorScheme.outlineVariant,
+                          strokeWidth: 1,
+                        ),
+                      ),
+                      titlesData: FlTitlesData(
+                        topTitles: const AxisTitles(),
+                        rightTitles: const AxisTitles(),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 44,
+                            interval: interval,
+                            getTitlesWidget: (v, meta) => SideTitleWidget(
+                              meta: meta,
+                              child: Text(
+                                formatMoney(v.round(), compact: true),
+                                style: theme.textTheme.labelSmall,
+                              ),
+                            ),
+                          ),
+                        ),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 24,
+                            getTitlesWidget: (v, meta) {
+                              final i = v.round();
+                              if (i < 0 || i >= buckets.length) {
+                                return const SizedBox.shrink();
+                              }
+                              return SideTitleWidget(
+                                meta: meta,
+                                child: Text(
+                                  buckets[i].label,
+                                  style: theme.textTheme.labelSmall,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      barGroups: [
+                        for (var i = 0; i < buckets.length; i++)
+                          BarChartGroupData(
+                            x: i,
+                            barsSpace: 3,
+                            barRods: [
+                              BarChartRodData(
+                                toY: buckets[i].income.toDouble(),
+                                color: incomeColor,
+                                width: 7,
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(3),
+                                ),
+                              ),
+                              BarChartRodData(
+                                toY: buckets[i].expense.toDouble(),
+                                color: expenseColor,
+                                width: 7,
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(3),
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
