@@ -268,13 +268,19 @@ String accountFormErrorMessage(Object e) {
 
 /// The shared create/edit account form — the accounts page hosts it
 /// from the FAB and row actions, and other surfaces (capture's
-/// zero-account state, the empty-ledger intro) reuse it so a first
-/// wallet is never created two different ways. [onSave] performs the
-/// actual write; the dialog stays open with an honest error when it
-/// throws. Returns true only when a save actually landed.
+/// zero-account state, the empty-ledger intro, first-run onboarding)
+/// reuse it so a first wallet is never created two different ways.
+/// [onSave] performs the actual write; the dialog stays open with an
+/// honest error when it throws. Returns true only when a save actually
+/// landed. [title]/[submitLabel]/[initialName] let a host reword the
+/// chrome (e.g. onboarding's "Xác nhận ví tiền mặt") without forking
+/// the form.
 Future<bool> showAccountFormDialog(
   BuildContext context, {
   AccountSummary? editing,
+  String? title,
+  String? submitLabel,
+  String? initialName,
   required Future<void> Function(
     String name,
     AccountKind kind,
@@ -282,7 +288,7 @@ Future<bool> showAccountFormDialog(
   )
   onSave,
 }) async {
-  final name = TextEditingController(text: editing?.name ?? '');
+  final name = TextEditingController(text: editing?.name ?? initialName ?? '');
   final balance = TextEditingController(
     text: editing == null ? '' : editing.initialBalance.toString(),
   );
@@ -292,7 +298,9 @@ Future<bool> showAccountFormDialog(
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setDlg) => AlertDialog(
-        title: Text(editing == null ? 'Thêm tài khoản' : 'Sửa tài khoản'),
+        title: Text(
+          title ?? (editing == null ? 'Thêm tài khoản' : 'Sửa tài khoản'),
+        ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -377,7 +385,7 @@ Future<bool> showAccountFormDialog(
               }
               if (ctx.mounted) Navigator.pop(ctx, true);
             },
-            child: Text(editing == null ? 'Tạo' : 'Lưu'),
+            child: Text(submitLabel ?? (editing == null ? 'Tạo' : 'Lưu')),
           ),
         ],
       ),

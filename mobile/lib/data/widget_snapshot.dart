@@ -6,6 +6,7 @@
 // explicit "cập nhật lúc" label — last-known data only. The widget never
 // fetches, so a wiped, absent or >24h-old value renders an honest "—".
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
@@ -56,7 +57,10 @@ class WidgetSnapshotStore {
   /// on the previous value until the system felt like updating.
   Future<void> save(WidgetSnapshot snap) async {
     await _prefs.setString(key, jsonEncode(snap.toJson()));
-    await refresh();
+    // The nudge is a hint, not part of the write: a host without the
+    // channel (tests, iOS, desktop) can leave invokeMethod unanswered
+    // forever, so awaiting it here could stall the caller's render path.
+    unawaited(refresh());
   }
 
   /// Best-effort provider nudge. A missing channel (tests, iOS, desktop)

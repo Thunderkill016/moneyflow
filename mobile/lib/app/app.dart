@@ -47,6 +47,7 @@ import '../features/dashboard/dashboard_page.dart';
 import '../features/inbox/inbox_page.dart';
 import '../features/inbox/rules_page.dart';
 import '../features/notification_capture/notification_capture_page.dart';
+import '../features/onboarding/onboarding_page.dart';
 import '../features/planning/planning_page.dart';
 import '../features/planning/recurring_form_dialog.dart';
 import '../features/reports/reports_page.dart';
@@ -152,7 +153,7 @@ class AuthGate extends StatefulWidget {
   State<AuthGate> createState() => _AuthGateState();
 }
 
-enum _Gate { booting, welcome, login, signedIn, demo }
+enum _Gate { booting, welcome, login, onboarding, signedIn, demo }
 
 class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   final _config = NeonConfig.fromEnvironment();
@@ -236,6 +237,13 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   /// reachable so the prefill isn't lost behind the login screen.
   SharedTextPrefill? _pendingPrefill;
 
+  /// Post-auth first-run activation — the account the flow belongs to
+  /// (the done-flag is keyed by it) and the seeded cash wallet step 2
+  /// confirms, when the ledger already carries one. Both are set by
+  /// [_needsOnboarding] and cleared by [_finishOnboarding].
+  String? _onboardingUserId;
+  AccountSummary? _onboardingCash;
+
   @override
   void initState() {
     super.initState();
@@ -289,7 +297,18 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           // ago — record it so a later sign-out lands on login, not a
           // welcome screen written for first runs.
           unawaited(WelcomePrefs.markSeen());
-          setState(() => _gate = _Gate.signedIn);
+          // First-run activation only ever applies to an account this
+          // device hasn't finished it for — a restored session still
+          // earns the check (the flag is per account, not per device).
+          final showOnboarding = await _needsOnboarding(
+            session.userId,
+            isNewAccount: false,
+          );
+          if (!mounted) return;
+          _onboardingUserId = showOnboarding ? session.userId : null;
+          setState(
+            () => _gate = showOnboarding ? _Gate.onboarding : _Gate.signedIn,
+          );
           _drainPendingShare();
           unawaited(_drainQueue());
           unawaited(_refreshWeeklyDigest());
@@ -675,14 +694,125 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _onSignedIn(_) async {
+  /// First-run activation gate — the mobile mirror of the web's
+  /// register → /onboarding redirect plus its done-flag. Shown once per
+  /// account: a sign-up always qualifies (fresh account, flag cannot be
+  /// set), an ordinary sign-in or session restore qualifies only when
+  /// the ledger is still empty. An established ledger marks the flag
+  /// instead so later sessions skip the read entirely, and an
+  /// unverifiable read (offline) just defers — never blocks the shell
+  /// on a guess. [isNewAccount] comes from the login page's sign-up
+  /// path; Google sign-in cannot tell new from returning upstream, so
+  /// it falls back to the empty-ledger rule.
+  Future<bool> _needsOnboarding(
+    String? userId, {
+    required bool isNewAccount,
+  }) async {
+    if (userId == null || userId.isEmpty) return false;
+    final prefs = _prefs ?? await SharedPreferences.getInstance();
+    if (OnboardingPrefs.isDone(prefs, userId)) return false;
+    final List<AccountSummary> accounts;
+    try {
+      accounts = await _store.loadAccounts();
+    } catch (_) {
+      return false;
+    }
+    // The server seeds a 'Tiền mặt' cash wallet on sign-up — when the
+    // ledger already carries one, step 2 confirms it in place (the
+    // web's "Bạn đã có ví tiền mặt" variant) instead of creating a
+    // duplicate.
+    AccountSummary? cash;
+    for (final a in accounts) {
+      if (a.kind == AccountKind.cash && !a.isArchived) {
+        cash = a;
+        break;
+      }
+    }
+    if (isNewAccount || accounts.isEmpty) {
+      _onboardingCash = cash;
+      return true;
+    }
+    await OnboardingPrefs.markDone(prefs, userId);
+    return false;
+  }
+
+  /// Onboarding step 2 — confirms the seeded cash wallet through the
+  /// shared account form (update path, like the web's "Xác nhận ví"),
+  /// or creates it when the ledger has none. Returns the saved wallet's
+  /// name for the step-3 summary; null when the dialog was cancelled.
+  Future<String?> _onboardingWallet() async {
+    final cash = _onboardingCash;
+    String? savedName;
+    final saved = await showAccountFormDialog(
+      context,
+      editing: cash,
+      title: cash == null ? 'Tạo ví tiền mặt' : 'Xác nhận ví tiền mặt',
+      submitLabel: cash == null ? 'Tạo ví' : 'Xác nhận ví',
+      initialName: 'Tiền mặt',
+      onSave: (name, kind, bal) async {
+        if (cash == null) {
+          await _store.createAccount(
+            name: name,
+            kind: kind,
+            initialBalance: bal,
+          );
+        } else {
+          await _store.updateAccount(
+            accountId: cash.id,
+            name: name,
+            kind: kind,
+            initialBalance: bal,
+            icon: cash.icon,
+            color: cash.color,
+            expectedUpdatedAt: cash.updatedAt,
+          );
+        }
+        // Records only what the RPC actually accepted — the dialog
+        // reports failures inline and never reaches this line on error.
+        savedName = name;
+      },
+    );
+    return saved ? savedName : null;
+  }
+
+  /// Onboarding finished — completed, skipped, or exiting into the
+  /// first-expense capture. Marks the per-account flag so the flow is
+  /// once-ever for this account on this device, then lands on the real
+  /// shell; the capture request rides the held-quick-action drain so a
+  /// biometric lock still wins over it.
+  Future<void> _finishOnboarding({bool quickExpense = false}) async {
+    final uid = _onboardingUserId;
+    _onboardingUserId = null;
+    _onboardingCash = null;
+    if (uid != null) {
+      await OnboardingPrefs.markDone(
+        _prefs ?? await SharedPreferences.getInstance(),
+        uid,
+      );
+    }
+    if (!mounted) return;
+    setState(() => _gate = _Gate.signedIn);
+    _drainPendingShare();
+    if (quickExpense) {
+      _quickCapturePending = true;
+      _drainQuickAction();
+    }
+  }
+
+  Future<void> _onSignedIn(_, {bool isNewAccount = false}) async {
     final session = _auth.session;
     final token = session?.sessionToken;
     if (token != null) {
       await SessionStore.write(token, userId: session?.userId);
     }
     _bindAccountStores(session?.userId);
-    setState(() => _gate = _Gate.signedIn);
+    final showOnboarding = await _needsOnboarding(
+      session?.userId,
+      isNewAccount: isNewAccount,
+    );
+    if (!mounted) return;
+    _onboardingUserId = showOnboarding ? session?.userId : null;
+    setState(() => _gate = showOnboarding ? _Gate.onboarding : _Gate.signedIn);
     _drainPendingShare();
     unawaited(_drainQueue());
     unawaited(_refreshWeeklyDigest());
@@ -934,6 +1064,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       _Gate.login => LoginPage(
         auth: _auth,
         onSignedIn: _onSignedIn,
+        // Sign-up is the web's register → /onboarding boundary — the
+        // activation flow always follows a fresh account.
+        onSignedUp: (s) => _onSignedIn(s, isNewAccount: true),
         // Google sign-in is a capability gate: no configured server
         // client id → no button at all, never a dead-end affordance.
         googleIdTokens: _config.googleServerClientId.isEmpty
@@ -942,6 +1075,12 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
                 serverClientId: _config.googleServerClientId,
               ),
         onDemo: _enterDemo,
+      ),
+      _Gate.onboarding => OnboardingPage(
+        hasCashWallet: _onboardingCash != null,
+        onWalletStep: _onboardingWallet,
+        onQuickExpense: () => _finishOnboarding(quickExpense: true),
+        onDone: _finishOnboarding,
       ),
       _Gate.demo => _demoDashboard(),
       _Gate.signedIn => BiometricGate(

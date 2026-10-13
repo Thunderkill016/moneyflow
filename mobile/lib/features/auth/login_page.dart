@@ -16,12 +16,20 @@ class LoginPage extends StatefulWidget {
     super.key,
     required this.auth,
     required this.onSignedIn,
+    this.onSignedUp,
     this.onDemo,
     this.googleIdTokens,
   });
 
   final NeonAuthClient auth;
   final ValueChanged<NeonSession> onSignedIn;
+
+  /// Sign-up lands here instead of [onSignedIn] when set — the first-run
+  /// activation flow keys off the distinction, mirroring the web's
+  /// register → /onboarding redirect. Google sign-in cannot tell new
+  /// accounts from returning ones upstream, so it always rides
+  /// [onSignedIn].
+  final ValueChanged<NeonSession>? onSignedUp;
   final VoidCallback? onDemo;
   final GoogleIdTokenSource? googleIdTokens;
 
@@ -51,7 +59,11 @@ class _LoginPageState extends State<LoginPage> {
             )
           : await widget.auth.signIn(_email.text.trim(), _password.text);
       if (!mounted) return;
-      widget.onSignedIn(session);
+      if (_signUp && widget.onSignedUp != null) {
+        widget.onSignedUp!(session);
+      } else {
+        widget.onSignedIn(session);
+      }
     } on NeonAuthException catch (e) {
       setState(() => _error = _friendly(e));
     } catch (e) {

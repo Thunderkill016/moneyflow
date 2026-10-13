@@ -44,6 +44,22 @@ class _FakeTransport {
   final requests = <NeonRequest>[];
   NeonResponse? Function(NeonRequest req)? override;
 
+  /// The server seeds a 'Tiền mặt' wallet on every new account
+  /// (handle_new_user) — a signed-in account that can delete itself is
+  /// an established one, which also keeps it out of first-run
+  /// onboarding.
+  static const _seedAccount = {
+    'id': 'acc-1',
+    'name': 'Tiền mặt',
+    'kind': 'cash',
+    'currency_code': 'VND',
+    'initial_balance_minor': 0,
+    'is_archived': false,
+    'icon': null,
+    'color': null,
+    'updated_at': '2026-10-20T00:00:00Z',
+  };
+
   List<NeonRequest> to(String suffix) =>
       requests.where((r) => r.url.path.endsWith(suffix)).toList();
 
@@ -78,6 +94,9 @@ class _FakeTransport {
           'set-cookie': '${NeonAuthClient.sessionCookieName}=fresh.tok',
         },
       );
+    }
+    if (req.method == 'GET' && path.endsWith('/accounts')) {
+      return _json(200, [_seedAccount]);
     }
     if (path.endsWith('/rpc/delete_my_account')) {
       return _json(200, {'deleted_rows': 9, 'tenant_rows_remaining': 0});
