@@ -92,6 +92,32 @@ void main() {
     });
   });
 
+  group('googleSignInIsUserCancel', () {
+    test('a plain cancel is user intent', () {
+      const e = GoogleSignInException(code: GoogleSignInExceptionCode.canceled);
+      expect(googleSignInIsUserCancel(e), isTrue);
+    });
+
+    test('"[16] Account reauth failed" is a config error, not a cancel', () {
+      // Real description observed on-device: a canceled-code exception
+      // that means "app not registered in the server client's Google
+      // Cloud project" — it must surface as an error, never silence.
+      const e = GoogleSignInException(
+        code: GoogleSignInExceptionCode.canceled,
+        description: '[16] Account reauth failed.',
+      );
+      expect(googleSignInIsUserCancel(e), isFalse);
+    });
+
+    test('non-canceled codes are never treated as cancels', () {
+      const e = GoogleSignInException(
+        code: GoogleSignInExceptionCode.clientConfigurationError,
+        description: 'no android client',
+      );
+      expect(googleSignInIsUserCancel(e), isFalse);
+    });
+  });
+
   group('LoginPage Google sign-in', () {
     NeonAuthClient fakeAuth(List<NeonRequest> seen, {NeonResponse? onSocial}) =>
         NeonAuthClient(

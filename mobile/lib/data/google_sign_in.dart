@@ -1,4 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+
+// googleSignInIsUserCancel is part of this file's API and takes the
+// plugin's exception type — re-export it so callers/tests don't import
+// the plugin package themselves.
+export 'package:google_sign_in/google_sign_in.dart'
+    show GoogleSignInException, GoogleSignInExceptionCode;
 
 /// Source of a Google-issued id token for the Better Auth
 /// /sign-in/social exchange.
@@ -37,8 +44,20 @@ class PluginGoogleIdTokenSource implements GoogleIdTokenSource {
       final account = await GoogleSignIn.instance.authenticate();
       return account.authentication.idToken;
     } on GoogleSignInException catch (e) {
-      if (e.code == GoogleSignInExceptionCode.canceled) return null;
+      debugPrint(
+        'google_sign_in: exception code=${e.code} desc=${e.description} details=${e.details}',
+      );
+      if (googleSignInIsUserCancel(e)) return null;
       rethrow;
     }
   }
 }
+
+/// True only for a genuine user cancel. "[16] Account reauth failed"
+/// arrives under `canceled` but is a configuration failure — the Android
+/// app isn't registered in the server client's Google Cloud project. A
+/// silent return would misreport it as user intent; surface it as a
+/// real error.
+bool googleSignInIsUserCancel(GoogleSignInException e) =>
+    e.code == GoogleSignInExceptionCode.canceled &&
+    !(e.description ?? '').contains('[16]');
