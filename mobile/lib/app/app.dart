@@ -9,6 +9,7 @@ import '../data/csv_file_source.dart';
 import '../data/neon/auth_client.dart';
 import '../data/neon/data_api.dart';
 import '../data/neon/neon_config.dart';
+import '../data/neon/neon_transport.dart';
 import '../data/neon/real_store.dart';
 import '../data/notification_capture/notification_capture_channel.dart';
 import '../data/notification_capture/notification_capture_controller.dart';
@@ -25,6 +26,7 @@ import '../domain/models.dart';
 import '../domain/recurring_detection.dart';
 import '../domain/transaction_query.dart';
 import 'biometric_lock.dart';
+import 'delete_account.dart';
 import 'delete_data.dart';
 import 'url_opener.dart';
 import '../features/accounts/account_reconciliation_page.dart';
@@ -121,9 +123,9 @@ class _MoneyFlowAppState extends State<MoneyFlowApp> {
 /// Startup auth state: restore persisted session → dashboard, else login.
 /// Demo mode remains reachable from the login screen for offline exploration.
 ///
-/// [shareReceiver], [quickActions], [biometric], [urlOpener] and
-/// [notificationGateway] are seams for widget tests — production callers
-/// never pass them.
+/// [shareReceiver], [quickActions], [biometric], [urlOpener],
+/// [notificationGateway] and [requester] are seams for widget tests —
+/// production callers never pass them.
 class AuthGate extends StatefulWidget {
   const AuthGate({
     super.key,
@@ -132,6 +134,7 @@ class AuthGate extends StatefulWidget {
     this.biometric,
     this.urlOpener = const DeviceUrlOpener(),
     this.notificationGateway = const NotificationCaptureChannel(),
+    this.requester = httpNeonRequester,
   });
 
   final ShareIntentReceiver shareReceiver;
@@ -139,6 +142,10 @@ class AuthGate extends StatefulWidget {
   final BiometricService? biometric;
   final UrlOpener urlOpener;
   final NotificationCaptureGateway notificationGateway;
+
+  /// HTTP seam for the Neon auth + data clients — widget tests script a
+  /// fake transport instead of opening real sockets.
+  final NeonRequester requester;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -148,11 +155,15 @@ enum _Gate { booting, welcome, login, signedIn, demo }
 
 class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   final _config = NeonConfig.fromEnvironment();
-  late final _auth = NeonAuthClient(config: _config);
+  late final _auth = NeonAuthClient(
+    config: _config,
+    requester: widget.requester,
+  );
   late final _store = RealStore(
     NeonDataApi(
       config: _config,
       auth: _auth,
+      requester: widget.requester,
       onSessionExpired: _onSessionExpired,
     ),
   );
@@ -819,6 +830,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           deleteLocalDataLabel: demo
               ? 'Xóa dữ liệu demo'
               : 'Xóa dữ liệu trên máy',
+          onDeleteAccount: demo ? null : () => _deleteAccount(context),
           onOpenPrivacyPolicy: _openPrivacyPolicy,
           onReplayWelcome: _replayWelcome,
         ),
@@ -1015,24 +1027,71 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     if (restored == true) _reloadTabs();
   }
 
-  /// Local wipe + honest server-account status. Managed account deletion
-  /// is not implemented upstream (the web fails closed the same way), so
-  /// the dialog only removes device-local data and signs out.
+  /// Local wipe — device-local data only. The label and copy name the
+  /// honest scope ("trên máy"): server-side account deletion lives on
+  /// the separate "Xóa tài khoản" entry below.
   Future<void> _deleteLocalData(BuildContext context) async {
     final confirmed = await showDeleteDataDialog(
       context,
-      title: 'Xóa dữ liệu & tài khoản',
+      title: 'Xóa dữ liệu trên máy',
       body:
           'Dữ liệu trên thiết bị này (bộ nhớ đệm, lựa chọn gần nhất, khóa '
           'sinh trắc, phiên đăng nhập) sẽ bị xóa và bạn sẽ đăng xuất.',
       serverNote:
-          'Xóa tài khoản trên máy chủ chưa được hỗ trợ — sổ cái của bạn '
-          'không bị thay đổi.',
+          'Tài khoản và sổ trên máy chủ không bị ảnh hưởng — dùng "Xóa '
+          'tài khoản" nếu muốn xóa cả tài khoản.',
     );
     if (!confirmed) return;
     final prefs = await SharedPreferences.getInstance();
     await wipeLocalData(prefs);
     if (mounted) await _signOut();
+  }
+
+  /// Server-side account deletion — the dialog owns re-auth + the
+  /// delete_my_account call; on success the session is already dead
+  /// upstream, so the shell wipes local stores and lands on the login
+  /// gate without /sign-out or a session restore.
+  Future<void> _deleteAccount(BuildContext context) async {
+    final deleted = await showDeleteAccountFlow(
+      context,
+      auth: _auth,
+      deleteAccount: _store.deleteMyAccount,
+      // Same capability gate as the login page: a Google-only account
+      // can re-auth only when this build carries the server client id.
+      googleIdTokens: _config.googleServerClientId.isEmpty
+          ? null
+          : PluginGoogleIdTokenSource(
+              serverClientId: _config.googleServerClientId,
+            ),
+    );
+    if (!deleted || !mounted) return;
+    // Grab the messenger before the async wipe — a context read after an
+    // await gap is unsafe. `this.context` is the State's own element —
+    // the `mounted` guard covers it.
+    final messenger = ScaffoldMessenger.of(this.context);
+    _auth.discardSession();
+    unawaited(_notifCapture.unbind());
+    final prefs = _prefs ?? await SharedPreferences.getInstance();
+    // Full wipe — not the lighter sign-out residue sweep: the account no
+    // longer exists, so its scoped stores (dashboard snapshot, held
+    // captures) can never be read or replayed by anyone. Mirrors the
+    // web's clearLocalMoneyFlowStores after server deletion.
+    await wipeLocalData(prefs);
+    _bindAccountStores(null);
+    setState(() {
+      // The wiped opt-in keys must not linger in memory — the next
+      // sign-in starts from honest defaults.
+      _bioEnabled = false;
+      _digestEnabled = false;
+      _gate = _Gate.login;
+      _unlocked = false;
+    });
+    // Dropped scheduled digests too — a notification for a deleted
+    // account would be a lie, and the schedule prefs are already gone.
+    unawaited(NotificationService.cancelWeeklyDigest().catchError((_) {}));
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Tài khoản đã được xóa')),
+    );
   }
 
   /// Demo data is seed-only, but the device still holds prefs — same
@@ -1345,9 +1404,18 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         onTap: _openPrivacyPolicy,
       ),
       DashboardMenuItem(
-        label: 'Xóa dữ liệu & tài khoản',
-        icon: Icons.delete_forever,
+        label: 'Xóa dữ liệu trên máy',
+        icon: Icons.delete_sweep_outlined,
         onTap: () => _deleteLocalData(context),
+      ),
+      // Play-policy surface: permanent server-side deletion, styled
+      // dangerous and kept adjacent to the local wipe so the two scopes
+      // read as distinct choices.
+      DashboardMenuItem(
+        label: 'Xóa tài khoản',
+        icon: Icons.person_remove_outlined,
+        danger: true,
+        onTap: () => _deleteAccount(context),
       ),
       DashboardMenuItem(
         label: 'Cài đặt',

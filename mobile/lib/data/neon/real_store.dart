@@ -971,6 +971,31 @@ class RealStore {
   /// output IS the contract, so no mobile-side reshaping happens here.
   Future<Object?> exportArchive() => _api.rpc('export_user_archive', const {});
 
+  /// POST /rpc/delete_my_account — user-initiated full account deletion
+  /// (db/neon/migrations/20261010123000): purges every tenant row, then
+  /// deletes the neon_auth session/account/user rows — all in one
+  /// transaction, all server-side. The function itself raises
+  /// `tenant_data_purge_incomplete` before returning a partial result,
+  /// so a returned row means the purge verified empty; the remaining
+  /// count is still checked here so a malformed/shape-changed reply is
+  /// never reported as success.
+  ///
+  /// After success the auth identity is gone: the current JWT dies with
+  /// it and every later call 401s. Callers must not reuse the session.
+  /// Returns the deleted-row count the server reports.
+  Future<int> deleteMyAccount() async {
+    final result = await _api.rpc('delete_my_account', const {});
+    if (result is! Map) {
+      throw const FormatException('delete_my_account: malformed result');
+    }
+    final remaining = result['tenant_rows_remaining'];
+    if (remaining is! num || remaining != 0) {
+      throw StateError('delete_my_account: tenant_rows_remaining=$remaining');
+    }
+    final deleted = result['deleted_rows'];
+    return deleted is num ? deleted.toInt() : 0;
+  }
+
   /// The columns the mobile review surface reads — a subset of the web's
   /// CANDIDATE_BASE_COLUMNS (src/lib/inbox/inbox-map.ts). Source lineage,
   /// rule evidence and match metadata are web-only for now: no mobile flow

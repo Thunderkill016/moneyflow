@@ -180,6 +180,32 @@ class NeonAuthClient {
     return _session;
   }
 
+  /// Provider ids linked to the current account through Better Auth's
+  /// /list-accounts — 'credential' for password users, 'google' for
+  /// social-only sign-ups. The account-deletion flow picks its re-auth
+  /// step from this list instead of assuming a password exists.
+  /// A failure throws — the caller must not guess at providers.
+  Future<Set<String>> listProviders() async {
+    final res = await _call('/list-accounts');
+    if (!res.ok) {
+      throw NeonAuthException(res.status, _errorMessage(res));
+    }
+    final json = res.json;
+    if (json is! List) return const {};
+    return {
+      for (final a in json)
+        if (a is Map && a['providerId'] is String) a['providerId'] as String,
+    };
+  }
+
+  /// Drops the in-memory session without a network call — after
+  /// rpc/delete_my_account the server-side session row is already gone,
+  /// so /sign-out would only add a doomed round-trip.
+  void discardSession() {
+    _session = null;
+    _jwt = null;
+  }
+
   /// Email reset request. The emailed link completes on the web's
   /// /update-password page — this only fires the request; the caller
   /// owns the non-enumerating UX (same contract as the web action).

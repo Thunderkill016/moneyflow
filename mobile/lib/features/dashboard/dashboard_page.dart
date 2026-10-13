@@ -18,11 +18,17 @@ class DashboardMenuItem {
     required this.icon,
     required this.onTap,
     this.badge,
+    this.danger = false,
   });
 
   final String label;
   final IconData icon;
   final VoidCallback onTap;
+
+  /// Destructive entries (account deletion) render in the scheme's error
+  /// color — the icon and label must read as dangerous at a glance, not
+  /// rely on position next to sign-out.
+  final bool danger;
 
   /// Optional live count — fetched when the menu opens (itemBuilder runs per
   /// open, so this costs one cheap read per tap, never per dashboard build).
@@ -283,13 +289,21 @@ class DashboardPageState extends State<DashboardPage> {
                 for (var i = 0; i < widget.menuItems.length; i++)
                   PopupMenuItem(
                     value: i,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(widget.menuItems[i].icon),
-                      title: widget.menuItems[i].badge == null
-                          ? Text(widget.menuItems[i].label)
-                          : _MenuBadge(item: widget.menuItems[i]),
+                    child: Builder(
+                      builder: (itemCtx) {
+                        final item = widget.menuItems[i];
+                        final color = item.danger
+                            ? Theme.of(itemCtx).colorScheme.error
+                            : null;
+                        return ListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(item.icon, color: color),
+                          title: item.badge == null
+                              ? Text(item.label, style: TextStyle(color: color))
+                              : _MenuBadge(item: item),
+                        );
+                      },
                     ),
                   ),
               ],
