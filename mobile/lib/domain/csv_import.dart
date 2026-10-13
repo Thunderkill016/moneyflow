@@ -18,6 +18,7 @@
 //
 // Money stays integer VND đồng. No float ever reaches the wire.
 
+import 'inbox.dart';
 import 'models.dart';
 
 /// MAX_UPLOAD_BYTES from the web parser — the same 10 MB cap the web page
@@ -967,6 +968,79 @@ String csvImportSummary(CsvImportPlan plan) {
   }
   return parts.join(' · ');
 }
+
+// ---- Paste: pasted lines planned through the same prepare contract ----
+//
+// The hosted backend accepts user-table writes only through SECURITY
+// DEFINER RPCs — direct INSERTs on inbox_candidates fail 42501. The paste
+// flow therefore rides the same prepare_direct_csv_candidates_with_rules
+// contract the CSV sheet uses: one synthetic batch carries provenance in
+// `file_name`, and each parsed line becomes one `p_candidates` entry. The
+// RPC validates kind/account/category exactly like the CSV path (transfer
+// rows are rejected, unresolved ids fail the whole batch), so the drafts
+// reuse planCsvImport's guards unchanged instead of growing a second
+// planner.
+
+/// Adapt paste drafts to the shared ready-row plan — a pasted line carries
+/// no account/category evidence, so it borrows the same user-picked
+/// defaults the CSV sheet collects. Drafts are projected onto
+/// [CsvParsedRow] so every check (transfer skip, invalid skip, per-kind
+/// category resolution) is literally the code the CSV import runs.
+CsvImportPlan? planPasteImport(
+  List<InboxPasteDraft> drafts, {
+  required String accountId,
+  required String expenseCategoryId,
+  required String incomeCategoryId,
+  required List<AccountSummary> accounts,
+  required List<Category> categories,
+}) => planCsvImport(
+  [
+    for (var i = 0; i < drafts.length; i++)
+      CsvParsedRow(
+        kind: drafts[i].kind,
+        amountMinor: drafts[i].amountMinor,
+        merchant: drafts[i].merchant,
+        note: '',
+        occurredOn: drafts[i].occurredOn,
+        confidence: drafts[i].confidence,
+        uncertainFields: drafts[i].uncertainFields,
+        rawSnippet: drafts[i].rawSnippet,
+        rowIndex: i + 1,
+      ),
+  ],
+  accountId: accountId,
+  expenseCategoryId: expenseCategoryId,
+  incomeCategoryId: incomeCategoryId,
+  accounts: accounts,
+  categories: categories,
+);
+
+/// The batch metadata a paste honestly reports to the RPC:
+///  - `file_name` carries the provenance ("paste-…txt") — the function
+///    only bounds its length (1..260), it never checks an extension;
+///  - `headers`/`column_map` are empty because a paste has no columns;
+///  - `map_confidence` is 0 — no column mapping ever ran;
+///  - `warning_count` is the parsed-line count minus the produced
+///    candidate count: how many input lines did NOT become a reviewable
+///    row (clamped at 0 — the single-line multi-amount fallback can emit
+///    more drafts than lines);
+///  - `skipped_rows` totals unparseable lines plus the plan-level
+///    transfer/invalid skips — the same accounting [toCsvImportBatch]
+///    reports for a file.
+CsvImportBatch toPasteImportBatch({
+  required String fileName,
+  required int lineCount,
+  required int unparseableLines,
+  required CsvImportPlan plan,
+}) => CsvImportBatch(
+  fileName: fileName,
+  warningCount: lineCount > plan.readyCount ? lineCount - plan.readyCount : 0,
+  skippedRows: unparseableLines + plan.transferSkipped + plan.invalidSkipped,
+  mapConfidence: 0,
+  headers: const [],
+  columnMap: emptyCsvColumnMap,
+  rows: plan.ready,
+);
 
 /// Result of a successful preparation — what the RPC actually returned.
 class CsvImportResult {

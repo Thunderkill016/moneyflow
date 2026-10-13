@@ -13,6 +13,7 @@ import 'package:moneyflow/data/neon/neon_config.dart';
 import 'package:moneyflow/data/neon/neon_transport.dart';
 import 'package:moneyflow/data/neon/real_store.dart';
 import 'package:moneyflow/data/share/inbox_paste_parser.dart';
+import 'package:moneyflow/domain/csv_import.dart';
 import 'package:moneyflow/domain/inbox.dart';
 import 'package:moneyflow/domain/models.dart';
 import 'package:moneyflow/features/inbox/inbox_page.dart';
@@ -276,7 +277,7 @@ void main() {
     });
   });
 
-  group('plan + reject + create', () {
+  group('plan + reject', () {
     test('planInboxCandidate maps the dry-run verdict', () async {
       final h = Harness();
       await h.signIn();
@@ -336,49 +337,6 @@ void main() {
         );
       },
     );
-
-    test('createInboxCandidates POSTs the pending paste rows', () async {
-      final h = Harness();
-      await h.signIn();
-      h.t.queue.add(FakeTransport.json(200, [candidateRow()]));
-
-      final drafts = [
-        const InboxPasteDraft(
-          kind: TransactionKind.expense,
-          amountMinor: 45000,
-          merchant: 'PHO NGON',
-          occurredOn: '2026-10-14',
-          confidence: 'medium',
-          rawSnippet: 'TK 1234 GD -45,000 VND PHO NGON',
-          uncertainFields: ['date'],
-        ),
-      ];
-      final created = await h.store.createInboxCandidates(drafts);
-
-      expect(created.single.id, 'c1');
-      final req = h.t.requests.last;
-      expect(req.method, 'POST');
-      expect(req.url.path, '/neondb/rest/v1/inbox_candidates');
-      expect(req.headers['Prefer'], 'return=representation');
-      final rows = req.body as List;
-      expect(rows.length, 1);
-      final row = rows.single as Map;
-      expect(row['user_id'], 'u1');
-      expect(row['kind'], 'expense');
-      expect(row['amount_minor'], 45000);
-      expect(row['merchant'], 'PHO NGON');
-      expect(row['note'], '');
-      expect(row['occurred_on'], '2026-10-14');
-      expect(row['source'], 'paste');
-      expect(row['confidence'], 'medium');
-      expect(row['status'], 'pending');
-      expect(row['possible_duplicate'], false);
-      expect(row['parser_version'], 'paste_text@1.1');
-      expect(row['mapping_version'], 1);
-      expect(row['import_batch_id'], isNull);
-      // Nothing in the payload posts to the ledger — every row is pending.
-      expect(row.keys.contains('transaction_id'), isFalse);
-    });
   });
 
   group('paste parser', () {
@@ -533,7 +491,7 @@ void main() {
       required Future<List<InboxCandidate>> Function() load,
       Future<void> Function(InboxApproval)? onApprove,
       Future<void> Function(String)? onReject,
-      Future<void> Function(List<InboxPasteDraft>)? onCommit,
+      Future<CsvImportResult> Function(CsvImportBatch)? onImport,
       Future<InboxPlan?> Function(String)? onPlan,
     }) => InboxPage(
       loadCandidates: load,
@@ -542,7 +500,9 @@ void main() {
       onPlan: onPlan ?? (_) async => null,
       onApprove: onApprove ?? (_) async {},
       onReject: onReject ?? (_) async {},
-      onCommitDrafts: onCommit ?? (_) async {},
+      onImportCsv:
+          onImport ??
+          (_) async => const CsvImportResult(batchId: 'b', candidateCount: 0),
     );
 
     InboxCandidate row() => InboxCandidate(
@@ -691,10 +651,16 @@ void main() {
       expect(find.text('Hãy chọn danh mục.'), findsOneWidget);
     });
 
-    testWidgets('paste sheet parses, previews and commits pending rows', (
+    testWidgets('paste sheet parses, picks defaults and commits via RPC', (
       t,
     ) async {
-      List<InboxPasteDraft>? committed;
+      // Tall surface: the sheet is a lazy ListView, so the commit button
+      // only builds once it can scroll into the viewport.
+      t.view.physicalSize = const Size(1080, 2400);
+      t.view.devicePixelRatio = 1.0;
+      addTearDown(t.view.resetPhysicalSize);
+      addTearDown(t.view.resetDevicePixelRatio);
+      CsvImportBatch? sent;
       var loads = 0;
       await t.pumpWidget(
         MaterialApp(
@@ -703,7 +669,10 @@ void main() {
               loads++;
               return loads == 1 ? const [] : [row()];
             },
-            onCommit: (drafts) async => committed = drafts,
+            onImport: (batch) async {
+              sent = batch;
+              return const CsvImportResult(batchId: 'b1', candidateCount: 1);
+            },
           ),
         ),
       );
@@ -712,18 +681,28 @@ void main() {
       await t.pumpAndSettle();
       await t.enterText(
         find.byType(TextField).first,
-        'TK 1234 GD -50,000 VND PHO NGON',
+        'TK 1234 GD -50,000 VND PHO NGON\nkhong co so tien',
       );
       await t.tap(find.text('Phân tích'));
       await t.pumpAndSettle();
       expect(find.text('PHO NGON'), findsOneWidget);
       expect(find.text('50.000 ₫'), findsOneWidget);
+      expect(find.textContaining('1 dòng không đọc được'), findsOneWidget);
+      // Account + per-kind category defaults are pre-picked (the RPC
+      // demands real ids a pasted line cannot carry).
       await t.tap(find.text('Lưu 1 mục chờ duyệt'));
       await t.pumpAndSettle();
-      expect(committed, isNotNull);
-      expect(committed!.single.amountMinor, 50000);
-      expect(committed!.single.kind, TransactionKind.expense);
-      // The queue reloaded and now shows the pending row.
+      expect(sent, isNotNull);
+      expect(sent!.rows.single.amountMinor, 50000);
+      expect(sent!.rows.single.kind, TransactionKind.expense);
+      expect(sent!.rows.single.accountId, 'a1');
+      expect(sent!.rows.single.categoryId, 'k1');
+      expect(sent!.fileName, startsWith('paste-'));
+      expect(sent!.fileName, endsWith('.txt'));
+      expect(sent!.skippedRows, 1);
+      // Success message reports the server-verified count, then the queue
+      // reloads and shows the pending row.
+      expect(find.text('Đã tạo 1 mục chờ duyệt'), findsOneWidget);
       expect(find.text('Không có mục nào chờ duyệt'), findsNothing);
     });
   });

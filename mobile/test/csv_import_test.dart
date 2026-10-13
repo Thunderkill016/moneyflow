@@ -9,6 +9,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/data/csv_file_source.dart';
+import 'package:moneyflow/data/share/inbox_paste_parser.dart';
 import 'package:moneyflow/data/neon/auth_client.dart';
 import 'package:moneyflow/data/neon/data_api.dart';
 import 'package:moneyflow/data/neon/neon_config.dart';
@@ -472,6 +473,186 @@ void main() {
     });
   });
 
+  group('paste → the same prepare contract', () {
+    final drafts = parseInboxPasteText(
+      'TK 1234 GD -50,000 VND PHO NGON\n'
+      'TK 1234 GD +100000 VND LUONG\n'
+      'ck 300k noi bo giua tai khoan\n'
+      'khong co so tien o day',
+      today: '2026-10-14',
+    );
+
+    test('planPasteImport maps each draft to a ready row', () {
+      // 4 non-empty lines: expense + income + a transfer-hinted line the
+      // RPC cannot accept + an unparseable line (no draft at all).
+      expect(drafts.length, 3);
+      final plan = planPasteImport(
+        drafts,
+        accountId: 'a1',
+        expenseCategoryId: 'k1',
+        incomeCategoryId: 'k2',
+        accounts: [acc],
+        categories: [catExpense, catIncome],
+      )!;
+      expect(plan.totalParsed, 3);
+      expect(plan.readyCount, 2);
+      expect(plan.transferSkipped, 1);
+      expect(plan.invalidSkipped, 0);
+      final expense = plan.ready[0];
+      expect(expense.rowIndex, 1);
+      expect(expense.kind, TransactionKind.expense);
+      expect(expense.amountMinor, 50000);
+      expect(expense.merchant, 'PHO NGON');
+      expect(expense.occurredOn, '2026-10-14');
+      expect(expense.categoryId, 'k1');
+      expect(expense.accountId, 'a1');
+      expect(expense.rawSnippet, 'TK 1234 GD -50,000 VND PHO NGON');
+      final income = plan.ready[1];
+      expect(income.kind, TransactionKind.income);
+      expect(income.categoryId, 'k2');
+    });
+
+    test('toPasteImportBatch carries honest provenance and skips', () {
+      final plan = planPasteImport(
+        drafts,
+        accountId: 'a1',
+        expenseCategoryId: 'k1',
+        incomeCategoryId: 'k2',
+        accounts: [acc],
+        categories: [catExpense, catIncome],
+      )!;
+      final batch = toPasteImportBatch(
+        fileName: 'paste-20261014-0930.txt',
+        lineCount: 4,
+        unparseableLines: 1,
+        plan: plan,
+      );
+      expect(batch.fileName, 'paste-20261014-0930.txt');
+      // warning_count = parsed lines minus produced candidates (4 − 2).
+      expect(batch.warningCount, 2);
+      // skipped_rows = unparseable line + the transfer skip.
+      expect(batch.skippedRows, 2);
+      // A paste has no columns — honest minimal batch metadata.
+      expect(batch.mapConfidence, 0);
+      expect(batch.headers, isEmpty);
+      expect(batch.columnMap.toWire(), {
+        'date': null,
+        'amount': null,
+        'desc': null,
+        'debit': null,
+        'credit': null,
+      });
+      expect(batch.rows.length, 2);
+    });
+
+    test(
+      'store POSTs the exact paste p_batch + p_candidates payload',
+      () async {
+        final requests = <NeonRequest>[];
+        Future<NeonResponse> echo(NeonRequest req) async {
+          requests.add(req);
+          if (req.url.path.endsWith(
+            '/rpc/prepare_direct_csv_candidates_with_rules',
+          )) {
+            final body = req.body as Map;
+            final batch = body['p_batch'] as Map;
+            final candidates = body['p_candidates'] as List;
+            return FakeTransport.json(200, {
+              'batch_id': batch['id'],
+              'candidate_ids': [for (final c in candidates) (c as Map)['id']],
+              'candidate_count': candidates.length,
+            });
+          }
+          return FakeTransport.json(500, 'unexpected ${req.url}');
+        }
+
+        Future<NeonResponse> authStub(NeonRequest req) async {
+          if (req.url.path.endsWith('/sign-in/email')) {
+            return FakeTransport.json(
+              200,
+              {
+                'token': 't.s',
+                'user': {'id': 'u1', 'email': 'e', 'name': 'n'},
+              },
+              headers: {
+                'set-cookie': '${NeonAuthClient.sessionCookieName}=t.s',
+              },
+            );
+          }
+          return FakeTransport.json(
+            200,
+            {},
+            headers: {'set-auth-jwt': fakeJwt()},
+          );
+        }
+
+        final auth = NeonAuthClient(config: config, requester: authStub);
+        await auth.signIn('e', 'p');
+        final store = RealStore(
+          NeonDataApi(config: config, auth: auth, requester: echo),
+        );
+
+        final plan = planPasteImport(
+          drafts,
+          accountId: 'a1',
+          expenseCategoryId: 'k1',
+          incomeCategoryId: 'k2',
+          accounts: [acc],
+          categories: [catExpense, catIncome],
+        )!;
+        final result = await store.prepareCsvImport(
+          toPasteImportBatch(
+            fileName: 'paste-20261014-0930.txt',
+            lineCount: 4,
+            unparseableLines: 1,
+            plan: plan,
+          ),
+        );
+
+        expect(result.candidateCount, 2);
+        final body = requests.last.body as Map;
+        final batch = body['p_batch'] as Map;
+        expect(batch['id'], result.batchId);
+        expect(batch['file_name'], 'paste-20261014-0930.txt');
+        expect(batch['warning_count'], 2);
+        expect(batch['skipped_rows'], 2);
+        expect(batch['map_confidence'], 0);
+        expect(batch['headers'], isEmpty);
+        expect(batch['column_map'], {
+          'date': null,
+          'amount': null,
+          'desc': null,
+          'debit': null,
+          'credit': null,
+        });
+
+        final candidates = body['p_candidates'] as List;
+        expect(candidates.length, 2);
+        final uuid = RegExp(
+          r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+        );
+        final first = candidates.first as Map;
+        expect(first['id'] as String, matches(uuid));
+        expect(first['row_index'], 1);
+        expect(first['kind'], 'expense');
+        expect(first['amount_minor'], 50000);
+        expect(first['merchant'], 'PHO NGON');
+        expect(first['occurred_on'], '2026-10-14');
+        expect(first['confidence'], isIn(['high', 'medium', 'low']));
+        expect(first['category_id'], 'k1');
+        expect(first['account_id'], 'a1');
+        expect(first['raw_snippet'], 'TK 1234 GD -50,000 VND PHO NGON');
+        // The RPC rejects candidates carrying source_external_id — paste
+        // rows never send one, like every other contract consumer.
+        expect(first.containsKey('source_external_id'), isFalse);
+        final second = candidates[1] as Map;
+        expect(second['kind'], 'income');
+        expect(second['category_id'], 'k2');
+        expect(second['amount_minor'], 100000);
+      },
+    );
+  });
+
   group('error mapping', () {
     test('RPC tokens map to the web preparation messages', () {
       expect(
@@ -509,7 +690,6 @@ void main() {
       onPlan: (_) async => null,
       onApprove: (_) async {},
       onReject: (_) async {},
-      onCommitDrafts: (_) async {},
       pickCsvFile: pickCsvFile,
       onImportCsv: onImportCsv,
     );
@@ -533,7 +713,25 @@ void main() {
         PickedCsvFile(name: name, bytes: utf8.encode(text));
 
     testWidgets('import entry hidden when the seams are unset', (t) async {
+      // No write seam at all → both candidate-creation entries hide.
       await t.pumpWidget(MaterialApp(home: page(load: () async => const [])));
+      await t.pumpAndSettle();
+      expect(find.byTooltip('Nhập CSV'), findsNothing);
+      expect(find.text('Nhập file CSV'), findsNothing);
+      expect(find.byTooltip('Dán tin nhắn'), findsNothing);
+    });
+
+    testWidgets('write seam alone keeps paste, still hides CSV', (t) async {
+      // onImportCsv wired but no file picker → paste works, CSV hidden.
+      await t.pumpWidget(
+        MaterialApp(
+          home: page(
+            load: () async => const [],
+            onImportCsv: (_) async =>
+                const CsvImportResult(batchId: 'b', candidateCount: 0),
+          ),
+        ),
+      );
       await t.pumpAndSettle();
       expect(find.byTooltip('Nhập CSV'), findsNothing);
       expect(find.text('Nhập file CSV'), findsNothing);

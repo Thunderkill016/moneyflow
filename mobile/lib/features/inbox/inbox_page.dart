@@ -27,7 +27,6 @@ class InboxPage extends StatefulWidget {
     required this.onPlan,
     required this.onApprove,
     required this.onReject,
-    required this.onCommitDrafts,
     this.pickCsvFile,
     this.onImportCsv,
   });
@@ -41,11 +40,13 @@ class InboxPage extends StatefulWidget {
   final Future<InboxPlan?> Function(String candidateId) onPlan;
   final Future<void> Function(InboxApproval approval) onApprove;
   final Future<void> Function(String candidateId) onReject;
-  final Future<void> Function(List<InboxPasteDraft> drafts) onCommitDrafts;
 
-  /// CSV bank-statement import seams — both must be present for the
-  /// "Nhập CSV" entry to appear. The shell only wires them on the
-  /// authenticated store, so demo mode never shows the affordance.
+  /// Candidate-write seams — the "Nhập CSV" entry needs both, the "Dán
+  /// tin nhắn" flow only needs [onImportCsv]: the hosted backend accepts
+  /// table writes solely through SECURITY DEFINER RPCs, so pasted lines
+  /// ride the same prepare RPC a CSV batch does (direct inserts fail
+  /// 42501). The shell only wires them on the authenticated store, so
+  /// demo mode never shows either affordance.
   final CsvFilePicker? pickCsvFile;
   final Future<CsvImportResult> Function(CsvImportBatch batch)? onImportCsv;
 
@@ -181,21 +182,54 @@ class InboxPageState extends State<InboxPage> {
     }
   }
 
+  /// "Dán tin nhắn" — pasted lines become pending candidates through the
+  /// same prepare RPC the CSV sheet calls; the sheet returns the real
+  /// server result so the snackbar reports the created count honestly.
   Future<void> _openPaste() async {
-    final committed = await showModalBottomSheet<bool>(
+    final onImport = widget.onImportCsv;
+    if (onImport == null) return;
+    _InboxData data;
+    try {
+      data = await _data;
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Không tải được dữ liệu — thử lại khi có mạng'),
+          ),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+    final result = await showModalBottomSheet<CsvImportResult>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (ctx) => _PasteSheet(onCommit: widget.onCommitDrafts),
+      builder: (ctx) => _PasteSheet(
+        accounts: data.accounts,
+        categories: data.categories,
+        onImport: onImport,
+      ),
     );
-    if (committed == true) {
+    if (result != null) {
       _changed = true;
       _refresh();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Đã tạo ${result.candidateCount} mục chờ duyệt'),
+          ),
+        );
+      }
     }
   }
 
   bool get _csvImportEnabled =>
       widget.pickCsvFile != null && widget.onImportCsv != null;
+
+  /// Paste needs only the write seam — no file picker.
+  bool get _pasteEnabled => widget.onImportCsv != null;
 
   /// "Nhập CSV" — a picked bank statement becomes pending candidates via
   /// the shared prepare RPC; the sheet returns the server result so the
@@ -256,11 +290,12 @@ class InboxPageState extends State<InboxPage> {
                 icon: const Icon(Icons.upload_file_outlined),
                 onPressed: _openCsvImport,
               ),
-            IconButton(
-              tooltip: 'Dán tin nhắn',
-              icon: const Icon(Icons.content_paste),
-              onPressed: _openPaste,
-            ),
+            if (_pasteEnabled)
+              IconButton(
+                tooltip: 'Dán tin nhắn',
+                icon: const Icon(Icons.content_paste),
+                onPressed: _openPaste,
+              ),
             const SizedBox(width: 8),
           ],
         ),
@@ -313,11 +348,12 @@ class InboxPageState extends State<InboxPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    FilledButton.tonalIcon(
-                      onPressed: _openPaste,
-                      icon: const Icon(Icons.content_paste),
-                      label: const Text('Dán tin nhắn'),
-                    ),
+                    if (_pasteEnabled)
+                      FilledButton.tonalIcon(
+                        onPressed: _openPaste,
+                        icon: const Icon(Icons.content_paste),
+                        label: const Text('Dán tin nhắn'),
+                      ),
                     if (_csvImportEnabled) ...[
                       const SizedBox(height: 8),
                       FilledButton.tonalIcon(
@@ -915,12 +951,30 @@ class _ReviewPageState extends State<_ReviewPage> {
 }
 
 /// "Dán tin nhắn" — parses pasted bank/SMS text into pending candidates.
-/// Nothing commits until the preview's "Lưu" lands a successful insert;
+///
+/// Upstream reality this sheet encodes: the hosted backend refuses direct
+/// table writes (42501), so pasted lines go through the SAME SECURITY
+/// DEFINER prepare RPC a CSV batch uses. That contract requires a real
+/// account and a per-kind category on every candidate — fields a pasted
+/// line cannot carry — so after "Phân tích" the sheet collects the same
+/// defaults the CSV sheet asks for (same widgets, same replan). The RPC
+/// also rejects `transfer` kind, so transfer-hinted lines are reported as
+/// skipped exactly like the CSV plan does.
+/// Nothing commits until the preview's "Lưu" lands a successful call;
 /// the ledger itself is never touched here.
 class _PasteSheet extends StatefulWidget {
-  const _PasteSheet({required this.onCommit});
+  const _PasteSheet({
+    required this.accounts,
+    required this.categories,
+    required this.onImport,
+  });
 
-  final Future<void> Function(List<InboxPasteDraft>) onCommit;
+  final List<AccountSummary> accounts;
+  final List<Category> categories;
+
+  /// The prepare-RPC seam — the store's `prepareCsvImport`; the same call
+  /// the CSV import uses because the payload contract is identical.
+  final Future<CsvImportResult> Function(CsvImportBatch) onImport;
 
   @override
   State<_PasteSheet> createState() => _PasteSheetState();
@@ -929,51 +983,172 @@ class _PasteSheet extends StatefulWidget {
 class _PasteSheetState extends State<_PasteSheet> {
   final _text = TextEditingController();
   List<InboxPasteDraft>? _drafts;
+  CsvImportPlan? _plan;
   String? _error;
   bool _busy = false;
+
+  /// Non-empty input lines and how many produced no draft — the honest
+  /// skipped accounting the batch reports upstream.
+  int _lineCount = 0;
+  int _unparseableLines = 0;
+
+  /// Defaults mirror the CSV sheet's `accounts[0]` / first-of-kind
+  /// category preselects — the RPC demands a concrete account and
+  /// per-kind category, so the reviewer picks (or keeps) them here.
+  late String _accountId = widget.accounts.firstOrNull?.id ?? '';
+  late String _expenseCategoryId = _firstKind(TransactionKind.expense);
+  late String _incomeCategoryId = _firstKind(TransactionKind.income);
+
+  String _firstKind(TransactionKind kind) {
+    for (final c in widget.categories) {
+      if (c.kind == kind && !c.isArchived) return c.id;
+    }
+    return '';
+  }
+
+  List<Category> _kindCategories(TransactionKind kind) => [
+    for (final c in widget.categories)
+      if (!c.isArchived && c.kind == kind) c,
+  ];
+
+  void _replan() {
+    final drafts = _drafts;
+    if (drafts == null) {
+      _plan = null;
+      return;
+    }
+    _plan = planPasteImport(
+      drafts,
+      accountId: _accountId,
+      expenseCategoryId: _expenseCategoryId,
+      incomeCategoryId: _incomeCategoryId,
+      accounts: widget.accounts,
+      categories: widget.categories,
+    );
+  }
 
   void _analyze() {
     final raw = _text.text;
     if (raw.trim().isEmpty) {
       setState(() {
         _drafts = null;
+        _plan = null;
         _error = 'Dán nội dung trước khi phân tích.';
       });
       return;
     }
+    final lineCount = raw
+        .split(RegExp(r'\r?\n'))
+        .where((l) => l.trim().isNotEmpty)
+        .length;
     final drafts = parseInboxPasteText(raw);
     setState(() {
       if (drafts.isEmpty) {
         _drafts = null;
+        _plan = null;
         _error =
             'Không tìm thấy số tiền hợp lệ. Thử dạng "cafe 45k" '
             'hoặc "45.000 VND".';
       } else if (drafts.length > 500) {
         // Same bound the web action enforces per call.
         _drafts = null;
+        _plan = null;
         _error = 'Quá nhiều mục trong một lần (tối đa 500).';
       } else {
         _drafts = drafts;
+        _lineCount = lineCount;
+        // The parser drops unparseable lines silently; a single-line
+        // multi-amount fallback can emit more drafts than lines, so the
+        // skip count is floored at 0 rather than allowed to go negative.
+        _unparseableLines = lineCount > drafts.length
+            ? lineCount - drafts.length
+            : 0;
         _error = null;
+        _replan();
       }
     });
   }
 
+  /// Provenance carried in `file_name` — the RPC only bounds its length,
+  /// so an honest "paste-…txt" name marks where the batch came from
+  /// (the stored import_batches row keeps it verbatim).
+  String _pasteFileName() {
+    final now = DateTime.now();
+    String two(int v) => v.toString().padLeft(2, '0');
+    return 'paste-${now.year}${two(now.month)}${two(now.day)}-'
+        '${two(now.hour)}${two(now.minute)}.txt';
+  }
+
+  Future<void> _pickCategory({
+    required bool income,
+    required String currentId,
+    required ValueChanged<String> onPicked,
+  }) async {
+    final picked = await showCategoryPicker(
+      context,
+      categories: _kindCategories(
+        income ? TransactionKind.income : TransactionKind.expense,
+      ),
+      selectedId: currentId.isEmpty ? null : currentId,
+    );
+    if (picked != null) onPicked(picked.id);
+  }
+
+  /// One RPC, one atomic batch — the server rejects the whole paste on
+  /// any bad row, so the client never tracks partial progress.
   Future<void> _commit() async {
-    final drafts = _drafts;
-    if (drafts == null || drafts.isEmpty || _busy) return;
-    setState(() => _busy = true);
+    final plan = _plan;
+    if (_busy || plan == null || plan.ready.isEmpty) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
     try {
-      await widget.onCommit(drafts);
-      if (mounted) Navigator.of(context).pop(true);
-    } catch (_) {
+      final result = await widget.onImport(
+        toPasteImportBatch(
+          fileName: _pasteFileName(),
+          lineCount: _lineCount,
+          unparseableLines: _unparseableLines,
+          plan: plan,
+        ),
+      );
+      if (mounted) Navigator.of(context).pop(result);
+    } catch (e) {
       if (mounted) {
         setState(() {
           _busy = false;
-          _error = 'Không lưu được vào hộp thư — thử lại.';
+          _error = csvImportErrorMessage(e);
         });
       }
     }
+  }
+
+  Widget _categoryField({
+    required String label,
+    required String categoryId,
+    required VoidCallback onTap,
+  }) {
+    final name = widget.categories
+        .where((c) => c.id == categoryId)
+        .map((c) => c.name)
+        .firstOrNull;
+    return InkWell(
+      onTap: _busy ? null : onTap,
+      borderRadius: BorderRadius.circular(4),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+          suffixIcon: const Icon(Icons.arrow_drop_down),
+        ),
+        child: Text(
+          name ?? 'Chọn',
+          style: name == null
+              ? TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)
+              : null,
+        ),
+      ),
+    );
   }
 
   @override
@@ -985,6 +1160,7 @@ class _PasteSheetState extends State<_PasteSheet> {
   @override
   Widget build(BuildContext context) {
     final drafts = _drafts;
+    final plan = _plan;
     final needsReview = drafts == null
         ? 0
         : drafts
@@ -1025,6 +1201,7 @@ class _PasteSheetState extends State<_PasteSheet> {
                 if (_drafts != null || _error != null) {
                   setState(() {
                     _drafts = null;
+                    _plan = null;
                     _error = null;
                   });
                 }
@@ -1034,7 +1211,7 @@ class _PasteSheetState extends State<_PasteSheet> {
             Row(
               children: [
                 FilledButton.tonalIcon(
-                  onPressed: _analyze,
+                  onPressed: _busy ? null : _analyze,
                   icon: const Icon(Icons.search),
                   label: const Text('Phân tích'),
                 ),
@@ -1058,6 +1235,15 @@ class _PasteSheetState extends State<_PasteSheet> {
             ],
             if (drafts != null) ...[
               const SizedBox(height: 8),
+              if (_unparseableLines > 0 || plan != null)
+                Text(
+                  [
+                    if (_unparseableLines > 0)
+                      '$_unparseableLines dòng không đọc được',
+                    if (plan != null) csvImportSummary(plan),
+                  ].join(' · '),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               for (final d in drafts)
                 ListTile(
                   dense: true,
@@ -1070,9 +1256,60 @@ class _PasteSheetState extends State<_PasteSheet> {
                   ),
                   trailing: Text(formatMoney(d.amountMinor)),
                 ),
+              const SizedBox(height: 4),
+              // The RPC requires a real account + per-kind category on
+              // every candidate — a pasted line carries neither, so the
+              // reviewer picks the defaults here (same pickers the CSV
+              // sheet offers).
+              DropdownButtonFormField<String>(
+                key: ValueKey('acc-$_accountId'),
+                initialValue: _accountId.isEmpty ? null : _accountId,
+                decoration: const InputDecoration(
+                  labelText: 'Tài khoản',
+                  border: OutlineInputBorder(),
+                ),
+                items: [
+                  for (final a in widget.accounts)
+                    DropdownMenuItem(value: a.id, child: Text(a.name)),
+                ],
+                onChanged: _busy
+                    ? null
+                    : (v) => setState(() {
+                        _accountId = v ?? '';
+                        _replan();
+                      }),
+              ),
+              const SizedBox(height: 12),
+              _categoryField(
+                label: 'Danh mục chi',
+                categoryId: _expenseCategoryId,
+                onTap: () => _pickCategory(
+                  income: false,
+                  currentId: _expenseCategoryId,
+                  onPicked: (id) => setState(() {
+                    _expenseCategoryId = id;
+                    _replan();
+                  }),
+                ),
+              ),
+              const SizedBox(height: 12),
+              _categoryField(
+                label: 'Danh mục thu',
+                categoryId: _incomeCategoryId,
+                onTap: () => _pickCategory(
+                  income: true,
+                  currentId: _incomeCategoryId,
+                  onPicked: (id) => setState(() {
+                    _incomeCategoryId = id;
+                    _replan();
+                  }),
+                ),
+              ),
               const SizedBox(height: 12),
               FilledButton.icon(
-                onPressed: _busy ? null : _commit,
+                onPressed: _busy || plan == null || plan.readyCount == 0
+                    ? null
+                    : _commit,
                 icon: _busy
                     ? const SizedBox(
                         width: 18,
@@ -1080,7 +1317,11 @@ class _PasteSheetState extends State<_PasteSheet> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.move_to_inbox),
-                label: Text('Lưu ${drafts.length} mục chờ duyệt'),
+                label: Text(
+                  plan == null
+                      ? 'Lưu mục chờ duyệt'
+                      : 'Lưu ${plan.readyCount} mục chờ duyệt',
+                ),
               ),
             ],
           ],

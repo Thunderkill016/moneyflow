@@ -788,11 +788,12 @@ class _AuthGateState extends State<AuthGate> {
           onPlan: _store.planInboxCandidate,
           onApprove: (a) => _store.approveInboxCandidate(a).then((_) {}),
           onReject: _store.rejectInboxCandidate,
-          onCommitDrafts: (drafts) =>
-              _store.createInboxCandidates(drafts).then((_) {}),
           // CSV import stays authenticated-only: demo mode never reaches
           // this page (the demo menu has no "Cần xem" entry), and the
           // seams unset keep the "Nhập CSV" affordance hidden regardless.
+          // "Dán tin nhắn" rides the same seam — pasted lines become
+          // candidates through the prepare RPC, the only write path the
+          // hosted backend accepts for this table.
           pickCsvFile: pickCsvFileFromDevice,
           onImportCsv: _store.prepareCsvImport,
         ),

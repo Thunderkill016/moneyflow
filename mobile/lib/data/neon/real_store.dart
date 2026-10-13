@@ -983,62 +983,6 @@ class RealStore {
     if (rows.isEmpty) throw Exception('candidate_not_found');
   }
 
-  /// Paste-to-candidate — mirrors createInboxCandidatesAction /
-  /// candidateToInsertRow: pending rows with paste provenance
-  /// (parser_version paste_text@1.1, mapping_version 1), no batch, no
-  /// account/category suggestion. Insert is one statement, so a malformed
-  /// row fails the whole paste atomically like the web action.
-  Future<List<InboxCandidate>> createInboxCandidates(
-    List<InboxPasteDraft> drafts,
-  ) async {
-    if (drafts.isEmpty) return const [];
-    final userId = _api.userId;
-    if (userId == null || userId.isEmpty) {
-      throw NeonAuthException(401, 'not signed in');
-    }
-    final now = DateTime.now().toUtc().toIso8601String();
-    final rows = [
-      for (final d in drafts)
-        {
-          'id': newIdempotencyKey(),
-          'user_id': userId,
-          'kind': switch (d.kind) {
-            TransactionKind.income => 'income',
-            TransactionKind.transfer => 'transfer',
-            TransactionKind.expense => 'expense',
-          },
-          'amount_minor': d.amountMinor,
-          'merchant': d.merchant.length > 200
-              ? d.merchant.substring(0, 200)
-              : (d.merchant.isEmpty ? 'Không rõ' : d.merchant),
-          'note': '',
-          'occurred_on': d.occurredOn,
-          'source': 'paste',
-          'confidence': d.confidence,
-          'status': 'pending',
-          'possible_duplicate': false,
-          'category_id': null,
-          'category_name': null,
-          'account_id': null,
-          'account_name': null,
-          'raw_snippet': d.rawSnippet.length > 2000
-              ? d.rawSnippet.substring(0, 2000)
-              : d.rawSnippet,
-          'import_batch_id': null,
-          'local_id': null,
-          'source_row_index': null,
-          'source_external_id': null,
-          'source_lifecycle_state': null,
-          'source_predecessor_external_id': null,
-          'parser_version': 'paste_text@1.1',
-          'mapping_version': 1,
-          'created_at': now,
-        },
-    ];
-    final inserted = await _api.insertAll('inbox_candidates', rows);
-    return inserted.map(_candidateFromRow).toList();
-  }
-
   /// POST /rpc/prepare_direct_csv_candidates_with_rules — the SECURITY
   /// DEFINER ingestion the web's commitDirectCsvImportAction calls. Same
   /// params, same all-or-nothing transaction: one bad row fails the whole
