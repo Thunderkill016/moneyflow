@@ -12,11 +12,17 @@ class HomeShell extends StatefulWidget {
     required this.tabBuilders,
     required this.onCaptureTap,
     required this.onCaptureSaved,
+    this.banner,
   });
 
   /// Builders for the four real tabs, in nav order around the center
   /// capture action: Tổng quan, Hoạt động, Kế hoạch, Báo cáo.
   final List<Widget Function()> tabBuilders;
+
+  /// Optional strip pinned above the tab body on every tab — used for
+  /// the pending-captures notice. It sits outside the scrollable tab
+  /// content so per-tab offline labels keep their place.
+  final Widget? banner;
 
   /// Pushes the capture flow; the shell owns no capture logic of its own.
   /// A non-null result (saved or savedPartial) reloads the tabs — a
@@ -37,7 +43,11 @@ class _HomeShellState extends State<HomeShell> {
 
   Future<void> _capture() async {
     final result = await widget.onCaptureTap(context);
-    if (result != null) widget.onCaptureSaved();
+    // `queued` means nothing landed — the held intent replays later and
+    // its own drain report reloads the tabs then.
+    if (result != null && result != CaptureResult.queued) {
+      widget.onCaptureSaved();
+    }
   }
 
   @override
@@ -47,7 +57,17 @@ class _HomeShellState extends State<HomeShell> {
       return _built[i] ??= widget.tabBuilders[i]();
     });
     return Scaffold(
-      body: IndexedStack(index: _tab, children: children),
+      body: Column(
+        children: [
+          // The shell owns no top inset — without SafeArea the banner
+          // slides under the status bar and its action is untappable.
+          if (widget.banner != null)
+            SafeArea(bottom: false, child: widget.banner!),
+          Expanded(
+            child: IndexedStack(index: _tab, children: children),
+          ),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         // Display index: two real tabs, capture action, two real tabs.
         selectedIndex: _tab >= 2 ? _tab + 1 : _tab,

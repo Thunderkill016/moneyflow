@@ -11,6 +11,43 @@ class CommitmentFailed implements Exception {
   const CommitmentFailed();
 }
 
+/// The intent was held in the offline queue after a transport failure —
+/// the page pops with `CaptureResult.queued` so the shell can tell the
+/// user the write was kept, not lost.
+class CaptureQueued implements Exception {
+  const CaptureQueued();
+}
+
+/// The offline queue is full — surfaced as a normal submit error so a
+/// held write is never silently displaced by a newer one.
+class OfflineQueueFull implements Exception {
+  const OfflineQueueFull(this.limit);
+
+  /// The queue cap that refused the enqueue.
+  final int limit;
+}
+
+/// Honest message for a failed capture submit — shared by the form's
+/// inline error and the queue-replay drop report so the same failure is
+/// described the same way in both places.
+String submitErrorMessage(Object e) {
+  final msg = e.toString();
+  if (e is OfflineQueueFull) {
+    return 'Đã giữ tối đa ${e.limit} khoản chờ gửi — kết nối mạng để '
+        'gửi bớt rồi thử lại';
+  }
+  if (msg.contains('stale_write')) {
+    return 'Khoản này vừa thay đổi — thoát rồi mở lại để sửa bản mới';
+  }
+  if (msg.contains('recurring_payment_locked')) {
+    return 'Khoản trả định kỳ không sửa được — xóa rồi ghi lại';
+  }
+  if (msg.contains('transaction_kind_locked')) {
+    return 'Không đổi được kiểu của khoản chuyển';
+  }
+  return 'Không lưu được — thử lại';
+}
+
 /// One submit path for every capture surface — transaction vs transfer
 /// routes to the matching RPC; the intent's idempotency key guards replays.
 /// When [CaptureIntent.repeatMonthly] is set, a monthly commitment is

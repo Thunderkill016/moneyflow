@@ -9,7 +9,8 @@ import '../../domain/frequency.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/split.dart';
-import 'capture_submit.dart' show CommitmentFailed;
+import 'capture_submit.dart'
+    show CaptureQueued, CommitmentFailed, submitErrorMessage;
 import 'category_picker.dart';
 
 /// Result of one capture intent — carries the idempotency key generated when
@@ -63,8 +64,9 @@ class CaptureIntent {
 
 /// What the capture route returns — `saved` is a clean save;
 /// `savedPartial` means the transaction landed but its recurring
-/// commitment did not (the shell shows an honest snackbar).
-enum CaptureResult { saved, savedPartial }
+/// commitment did not (the shell shows an honest snackbar); `queued`
+/// means the submit failed offline and the intent is held for replay.
+enum CaptureResult { saved, savedPartial, queued }
 
 class _SplitRow {
   _SplitRow({this.categoryId});
@@ -336,28 +338,16 @@ class _CapturePageState extends State<CapturePage> {
       // The transaction saved; only the recurring commitment failed. The
       // caller turns savedPartial into an honest snackbar — still a save.
       if (mounted) Navigator.of(context).pop(CaptureResult.savedPartial);
+    } on CaptureQueued {
+      // The submit failed offline and the intent is held in the queue —
+      // close the form; the banner + snackbar explain it will replay.
+      if (mounted) Navigator.of(context).pop(CaptureResult.queued);
     } catch (e) {
       setState(() {
         _busy = false;
-        _error = _submitError(e);
+        _error = submitErrorMessage(e);
       });
     }
-  }
-
-  /// Named RPC guard failures get an honest action message; everything
-  /// else falls back to the generic retry.
-  String _submitError(Object e) {
-    final msg = e.toString();
-    if (msg.contains('stale_write')) {
-      return 'Khoản này vừa thay đổi — thoát rồi mở lại để sửa bản mới';
-    }
-    if (msg.contains('recurring_payment_locked')) {
-      return 'Khoản trả định kỳ không sửa được — xóa rồi ghi lại';
-    }
-    if (msg.contains('transaction_kind_locked')) {
-      return 'Không đổi được kiểu của khoản chuyển';
-    }
-    return 'Không lưu được — thử lại';
   }
 
   /// Category selection via a searchable bottom sheet — the flat list

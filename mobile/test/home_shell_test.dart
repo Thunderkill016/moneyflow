@@ -100,5 +100,42 @@ void main() {
       await t.pumpAndSettle();
       expect(savedCalls, 0);
     });
+
+    testWidgets('a queued capture does not trigger onCaptureSaved', (t) async {
+      var savedCalls = 0;
+      await t.pumpWidget(
+        _shell(
+          onCaptureTap: (_) async => CaptureResult.queued,
+          onCaptureSaved: () => savedCalls++,
+        ),
+      );
+      await t.pumpAndSettle();
+
+      await t.tap(find.text('Ghi'));
+      await t.pumpAndSettle();
+      // Nothing landed — reloading would only show an offline error.
+      expect(savedCalls, 0);
+    });
+
+    testWidgets('the banner slot renders above the tabs', (t) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: HomeShell(
+            banner: const Text('pending-banner'),
+            tabBuilders: [
+              () => const Text('dashboard-body'),
+              () => const Text('activity-body'),
+              () => const Text('planning-body'),
+              () => const Text('reports-body'),
+            ],
+            onCaptureTap: (_) async => null,
+            onCaptureSaved: () {},
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(find.text('pending-banner'), findsOneWidget);
+      expect(find.text('dashboard-body'), findsOneWidget);
+    });
   });
 }

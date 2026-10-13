@@ -1,0 +1,397 @@
+// Offline capture queue — a capture whose submit failed on a transport
+// or server fault is held here and replayed later through the exact same
+// submit path with the same idempotency key. The write is never silently
+// lost, and the server-enforced key means a replay is safe even when the
+// original request actually landed but its response never arrived.
+//
+// Business rejections never enter the queue (the server already
+// decided), and a business rejection during replay drops the entry with
+// an honest reason instead of retrying forever.
+
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../domain/models.dart';
+import '../domain/split.dart';
+import '../features/capture/capture_page.dart' show CaptureIntent;
+import '../features/capture/capture_submit.dart';
+import 'neon/auth_client.dart';
+
+/// SharedPreferences key. The `mf_` prefix keeps the queue inside the
+/// wipeLocalData sweep, same as the other product prefs.
+const offlineQueueStorageKey = 'mf_offline_capture_queue';
+
+/// Held-write cap. More than this means the device has been offline a
+/// very long time; the next enqueue is refused with [OfflineQueueFull] —
+/// a hard error, never a silent drop of someone's money record.
+const offlineQueueMaxPending = 20;
+
+/// A capture intent held for replay. [enqueuedAtMs] is diagnostic
+/// (ordering is the list position); [intent.idempotencyKey] is the
+/// unique handle used for removal.
+class QueuedCapture {
+  const QueuedCapture({required this.intent, required this.enqueuedAtMs});
+
+  final CaptureIntent intent;
+  final int enqueuedAtMs;
+
+  Map<String, Object?> toJson() => {
+    'enqueuedAtMs': enqueuedAtMs,
+    'kind': _kindToWire(intent.kind),
+    'accountId': intent.accountId,
+    'destinationAccountId': intent.destinationAccountId,
+    'categoryId': intent.categoryId,
+    'amount': intent.amount,
+    'occurredOn': intent.occurredOn,
+    'note': intent.note,
+    'payee': intent.payee,
+    'idempotencyKey': intent.idempotencyKey,
+    'repeatMonthly': intent.repeatMonthly,
+    'dueDay': intent.dueDay,
+    'commitmentName': intent.commitmentName,
+    'transactionId': intent.transactionId,
+    'expectedUpdatedAt': intent.expectedUpdatedAt,
+    'splitLines': [
+      for (final l in intent.splitLines)
+        {'categoryId': l.categoryId, 'amount': l.amount},
+    ],
+  };
+
+  /// Strict decode — a malformed entry throws [FormatException] so the
+  /// loader can drop just that entry instead of the whole queue.
+  factory QueuedCapture.fromJson(Map<String, Object?> json) => QueuedCapture(
+    enqueuedAtMs: _reqInt(json, 'enqueuedAtMs'),
+    intent: CaptureIntent(
+      kind: _kindFromWire(_reqString(json, 'kind')),
+      accountId: _reqString(json, 'accountId'),
+      destinationAccountId: _optString(json, 'destinationAccountId'),
+      categoryId: _optString(json, 'categoryId'),
+      amount: _reqInt(json, 'amount'),
+      occurredOn: _reqString(json, 'occurredOn'),
+      note: _optString(json, 'note') ?? '',
+      payee: _optString(json, 'payee') ?? '',
+      idempotencyKey: _reqString(json, 'idempotencyKey'),
+      repeatMonthly: _optBool(json, 'repeatMonthly') ?? false,
+      dueDay: _optInt(json, 'dueDay') ?? 1,
+      commitmentName: _optString(json, 'commitmentName') ?? '',
+      transactionId: _optString(json, 'transactionId'),
+      expectedUpdatedAt: _optString(json, 'expectedUpdatedAt'),
+      splitLines: [
+        for (final raw in _optList(json, 'splitLines') ?? const [])
+          _splitLineFromJson(raw),
+      ],
+    ),
+  );
+}
+
+/// FIFO store of held captures, persisted as one JSON blob so list order
+/// IS replay order. A [ChangeNotifier] so the pending-writes banner can
+/// follow queue changes without polling.
+class OfflineCaptureQueue extends ChangeNotifier {
+  OfflineCaptureQueue(this._prefs) {
+    _restore();
+  }
+
+  final SharedPreferences _prefs;
+
+  var _items = <QueuedCapture>[];
+  int? _lastAttemptAtMs;
+  bool _draining = false;
+
+  /// Held captures, oldest first.
+  List<QueuedCapture> get pending => List.unmodifiable(_items);
+
+  int get pendingCount => _items.length;
+
+  /// Epoch ms of the last replay pass — the banner's last-attempt hint.
+  int? get lastAttemptAtMs => _lastAttemptAtMs;
+
+  /// True while a replay pass is running — suppresses re-entrant drains
+  /// and disables the manual retry button.
+  bool get draining => _draining;
+
+  /// Append an intent. Throws [OfflineQueueFull] at the cap; the caller
+  /// surfaces it as a normal submit error so nothing is displaced
+  /// silently.
+  Future<void> enqueue(CaptureIntent intent) async {
+    if (_items.length >= offlineQueueMaxPending) {
+      throw const OfflineQueueFull(offlineQueueMaxPending);
+    }
+    _items.add(
+      QueuedCapture(
+        intent: intent,
+        enqueuedAtMs: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+    await _persist();
+    notifyListeners();
+  }
+
+  /// Remove the entry whose intent carries [idempotencyKey].
+  Future<void> remove(String idempotencyKey) async {
+    _items.removeWhere((i) => i.intent.idempotencyKey == idempotencyKey);
+    await _persist();
+    notifyListeners();
+  }
+
+  /// Drop every held entry — the sign-out/data-wipe path also reaches
+  /// this store via the `mf_` key prefix.
+  Future<void> clear() async {
+    _items = [];
+    _lastAttemptAtMs = null;
+    await _prefs.remove(offlineQueueStorageKey);
+    notifyListeners();
+  }
+
+  void _restore() {
+    final raw = _prefs.getString(offlineQueueStorageKey);
+    if (raw == null) return;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, Object?>) return;
+      _lastAttemptAtMs = (decoded['lastAttemptAtMs'] as num?)?.toInt();
+      final items = decoded['items'];
+      if (items is! List) return;
+      final restored = <QueuedCapture>[];
+      for (final raw in items) {
+        if (raw is! Map<String, Object?>) continue;
+        // A single corrupt entry is dropped; the rest still replay.
+        final item = _tryDecode(raw);
+        if (item != null) restored.add(item);
+      }
+      _items = restored;
+    } on Object {
+      // A corrupt blob reads as an empty queue — never crash startup.
+    }
+  }
+
+  static QueuedCapture? _tryDecode(Map<String, Object?> json) {
+    try {
+      return QueuedCapture.fromJson(json);
+    } on Object {
+      return null;
+    }
+  }
+
+  Future<void> _persist() => _prefs.setString(
+    offlineQueueStorageKey,
+    jsonEncode({
+      'v': 1,
+      'lastAttemptAtMs': _lastAttemptAtMs,
+      'items': [for (final i in _items) i.toJson()],
+    }),
+  );
+
+  void _setDraining(bool value) {
+    _draining = value;
+    notifyListeners();
+  }
+
+  Future<void> _markAttempt() async {
+    _lastAttemptAtMs = DateTime.now().millisecondsSinceEpoch;
+    await _persist();
+  }
+}
+
+/// True when the failure is transport- or server-side — the write may
+/// not have landed, so holding the intent for replay is honest.
+/// [NeonAuthException] carries the HTTP status: 5xx means the server
+/// faulted, while 4xx bodies carry PostgREST business codes
+/// (`invalid_transaction_entries`, `stale_write`, `*_locked`) — the
+/// server already decided, so those never queue.
+bool isQueueableSubmitFailure(Object e) => switch (e) {
+  SocketException() ||
+  HttpException() ||
+  TlsException() ||
+  TimeoutException() => true,
+  NeonAuthException(:final status) => status >= 500,
+  _ => false,
+};
+
+/// Runs [submit] on [intent]; on a queueable failure the intent is held
+/// and [CaptureQueued] signals the form to close with an honest result.
+/// Business errors and [CommitmentFailed] propagate untouched — the
+/// latter means the transaction already landed, so nothing may queue.
+Future<void> submitOrQueue(
+  CaptureIntent intent,
+  OfflineCaptureQueue queue,
+  Future<void> Function(CaptureIntent intent) submit,
+) async {
+  try {
+    await submit(intent);
+  } on CommitmentFailed {
+    rethrow;
+  } catch (e) {
+    if (isQueueableSubmitFailure(e)) {
+      await queue.enqueue(intent);
+      throw const CaptureQueued();
+    }
+    rethrow;
+  }
+}
+
+/// What one replay pass did — the shell reports each outcome honestly.
+class QueueDrainReport {
+  const QueueDrainReport({
+    required this.sent,
+    required this.partialCommitments,
+    required this.dropped,
+    required this.stoppedOffline,
+  });
+
+  /// Entries whose transaction landed on replay.
+  final int sent;
+
+  /// Subset of [sent] where the transaction landed but its monthly
+  /// commitment did not — the same honest partial as a live submit.
+  final int partialCommitments;
+
+  /// Entries the server rejected — removed from the queue with their
+  /// reasons for reporting.
+  final List<QueueDrainDrop> dropped;
+
+  /// True when a transport fault ended the pass early — the remaining
+  /// entries are still held for the next attempt.
+  final bool stoppedOffline;
+}
+
+/// A replayed entry the server refused; [error] feeds the shared
+/// submit-error mapping for the honest report.
+class QueueDrainDrop {
+  const QueueDrainDrop({required this.entry, required this.error});
+
+  final QueuedCapture entry;
+  final Object error;
+}
+
+/// Replay held intents FIFO through [submit] — the same call the live
+/// form uses, so RPC routing and idempotency keys stay identical.
+/// Successful and business-rejected entries leave the queue; a
+/// transport fault stops the pass because the next entry would fail the
+/// same way.
+Future<QueueDrainReport> drainQueuedCaptures(
+  OfflineCaptureQueue queue,
+  Future<void> Function(CaptureIntent intent) submit,
+) async {
+  if (queue.draining) {
+    return const QueueDrainReport(
+      sent: 0,
+      partialCommitments: 0,
+      dropped: [],
+      stoppedOffline: false,
+    );
+  }
+  queue._setDraining(true);
+  await queue._markAttempt();
+  var sent = 0;
+  var partials = 0;
+  final dropped = <QueueDrainDrop>[];
+  var stoppedOffline = false;
+  try {
+    for (final item in List.of(queue._items)) {
+      var keep = false;
+      try {
+        await submit(item.intent);
+        sent++;
+      } on CommitmentFailed {
+        sent++;
+        partials++;
+      } catch (e) {
+        if (isQueueableSubmitFailure(e)) {
+          keep = true;
+          stoppedOffline = true;
+        } else {
+          dropped.add(QueueDrainDrop(entry: item, error: e));
+        }
+      }
+      if (!keep) await queue.remove(item.intent.idempotencyKey);
+      if (stoppedOffline) break;
+    }
+  } finally {
+    queue._setDraining(false);
+  }
+  return QueueDrainReport(
+    sent: sent,
+    partialCommitments: partials,
+    dropped: dropped,
+    stoppedOffline: stoppedOffline,
+  );
+}
+
+// --- Serialization helpers ---------------------------------------------
+// Same strict-decode contract as offline_cache.dart: malformed data
+// throws FormatException and the caller decides the fallback.
+
+String _kindToWire(TransactionKind kind) => switch (kind) {
+  TransactionKind.expense => 'expense',
+  TransactionKind.income => 'income',
+  TransactionKind.transfer => 'transfer',
+};
+
+TransactionKind _kindFromWire(String raw) => switch (raw) {
+  'expense' => TransactionKind.expense,
+  'income' => TransactionKind.income,
+  'transfer' => TransactionKind.transfer,
+  _ => throw FormatException('unknown transaction kind: $raw'),
+};
+
+SplitLine _splitLineFromJson(Object? raw) {
+  final json = _reqMap(raw, 'split line');
+  return (
+    categoryId: _reqString(json, 'categoryId'),
+    amount: _reqInt(json, 'amount'),
+  );
+}
+
+String _reqString(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value is! String) throw FormatException('"$key" must be a string');
+  return value;
+}
+
+int _reqInt(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value is! num) throw FormatException('"$key" must be a number');
+  return value.toInt();
+}
+
+int? _optInt(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value == null) return null;
+  if (value is! num) throw FormatException('"$key" must be a number or null');
+  return value.toInt();
+}
+
+bool? _optBool(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value == null) return null;
+  if (value is! bool) throw FormatException('"$key" must be a bool or null');
+  return value;
+}
+
+String? _optString(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value == null) return null;
+  if (value is! String) {
+    throw FormatException('"$key" must be a string or null');
+  }
+  return value;
+}
+
+List<Object?>? _optList(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value == null) return null;
+  if (value is! List) throw FormatException('"$key" must be a list or null');
+  return value;
+}
+
+Map<String, Object?> _reqMap(Object? raw, String context) {
+  if (raw is! Map<String, Object?>) {
+    throw FormatException('$context entry must be a JSON object');
+  }
+  return raw;
+}

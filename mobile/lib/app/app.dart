@@ -10,6 +10,7 @@ import '../data/neon/neon_config.dart';
 import '../data/neon/real_store.dart';
 import '../data/notifications.dart';
 import '../data/offline_cache.dart';
+import '../data/offline_queue.dart';
 import '../data/session_store.dart';
 import '../data/share/share_intent.dart';
 import '../data/share/share_text_parser.dart';
@@ -24,6 +25,7 @@ import '../data/demo_store.dart';
 import '../features/auth/login_page.dart';
 import '../features/capture/capture_page.dart';
 import '../features/capture/capture_submit.dart';
+import '../features/capture/queue_banner.dart';
 import '../features/dashboard/dashboard_page.dart';
 import '../features/planning/planning_page.dart';
 import '../features/reports/reports_page.dart';
@@ -82,6 +84,7 @@ class _AuthGateState extends State<AuthGate> {
   _Gate _gate = _Gate.booting;
   bool _bioEnabled = false;
   OfflineCache? _offline;
+  OfflineCaptureQueue? _queue;
   StreamSubscription<String>? _shareSub;
 
   /// Tab keys — a saved capture reloads the surfaces that show its effect
@@ -108,12 +111,15 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void dispose() {
     _shareSub?.cancel();
+    _queue?.dispose();
     super.dispose();
   }
 
   Future<void> _restore() async {
     _bioEnabled = await BiometricPrefs.loadBiometricEnabled();
-    _offline = OfflineCache(await SharedPreferences.getInstance());
+    final prefs = await SharedPreferences.getInstance();
+    _offline = OfflineCache(prefs);
+    _queue = OfflineCaptureQueue(prefs);
     final token = await SessionStore.read();
     if (token != null) {
       try {
@@ -121,6 +127,7 @@ class _AuthGateState extends State<AuthGate> {
         if (session != null) {
           setState(() => _gate = _Gate.signedIn);
           _drainPendingShare();
+          unawaited(_drainQueue());
           return;
         }
       } on SocketException {
@@ -142,6 +149,9 @@ class _AuthGateState extends State<AuthGate> {
   void _restoreOffline() {
     setState(() => _gate = _Gate.signedIn);
     _drainPendingShare();
+    // The drain attempt will fail fast and just records an honest
+    // last-attempt time on the banner.
+    unawaited(_drainQueue());
   }
 
   void _initShare() {
@@ -175,9 +185,17 @@ class _AuthGateState extends State<AuthGate> {
   Future<void> _openSharedCapture(SharedTextPrefill prefill) async {
     final result = await Navigator.of(context).push<CaptureResult>(
       MaterialPageRoute(
-        builder: (_) => _SharedCaptureLoader(store: _store, prefill: prefill),
+        builder: (_) => _SharedCaptureLoader(
+          store: _store,
+          prefill: prefill,
+          submit: _captureSubmit,
+        ),
       ),
     );
+    if (result == CaptureResult.queued) {
+      if (mounted) _showQueuedSnack(context);
+      return; // nothing landed — the banner tracks the held intent
+    }
     if (result != null) _reloadTabs();
     if (result == CaptureResult.savedPartial && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -193,15 +211,19 @@ class _AuthGateState extends State<AuthGate> {
   /// what the dashboard has loaded.
   Future<CaptureResult?> _openCapture(BuildContext context) async {
     final result = await Navigator.of(context).push<CaptureResult>(
-      MaterialPageRoute(builder: (_) => _CaptureLoader(store: _store)),
+      MaterialPageRoute(
+        builder: (_) => _CaptureLoader(store: _store, submit: _captureSubmit),
+      ),
     );
-    if (result == CaptureResult.savedPartial && context.mounted) {
+    if (!context.mounted) return result;
+    if (result == CaptureResult.savedPartial) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Đã lưu khoản — chưa tạo được cam kết lặp lại'),
         ),
       );
     }
+    if (result == CaptureResult.queued) _showQueuedSnack(context);
     return result;
   }
 
@@ -210,10 +232,25 @@ class _AuthGateState extends State<AuthGate> {
   Future<void> _openEdit(BuildContext context, Transaction tx) async {
     final result = await Navigator.of(context).push<CaptureResult>(
       MaterialPageRoute(
-        builder: (_) => _EditLoader(store: _store, transaction: tx),
+        builder: (_) =>
+            _EditLoader(store: _store, transaction: tx, submit: _captureSubmit),
       ),
     );
+    if (result == CaptureResult.queued) {
+      if (context.mounted) _showQueuedSnack(context);
+      return;
+    }
     if (result != null) _reloadTabs();
+  }
+
+  /// The submit failed offline; the intent is held in the queue and the
+  /// banner already shows it — this snackbar explains the outcome.
+  void _showQueuedSnack(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Chưa có mạng — đã giữ lại, sẽ gửi lại khi có mạng'),
+      ),
+    );
   }
 
   /// After a capture save, every surface that shows its effect reloads.
@@ -224,11 +261,60 @@ class _AuthGateState extends State<AuthGate> {
     _reportKey.currentState?.reload();
   }
 
+  /// Capture submit with offline-hold semantics: a transport failure
+  /// holds the intent in the queue (replayed later with the same
+  /// idempotency key); a write that lands proves connectivity, so a
+  /// queue drain piggybacks on it.
+  Future<void> _captureSubmit(CaptureIntent intent) async {
+    final queue = _queue;
+    if (queue == null) return _storeSubmit(_store, intent);
+    await submitOrQueue(intent, queue, (i) => _storeSubmit(_store, i));
+    if (queue.pendingCount > 0) unawaited(_drainQueue());
+  }
+
+  /// Replay held captures FIFO through the same submit path — same
+  /// idempotency keys, so a retried write can never double-post. The
+  /// queue already records the pass; here we report it: a business
+  /// rejection drops the item with an honest reason, a transport stop
+  /// just leaves the banner up.
+  Future<void> _drainQueue() async {
+    final queue = _queue;
+    if (queue == null || queue.draining || queue.pendingCount == 0) {
+      return;
+    }
+    final report = await drainQueuedCaptures(
+      queue,
+      (intent) => _storeSubmit(_store, intent),
+    );
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    if (report.sent > 0) {
+      _reloadTabs();
+      final done = report.sent == 1
+          ? 'Đã gửi lại khoản đã giữ'
+          : 'Đã gửi lại ${report.sent} khoản đã giữ';
+      final partial = report.partialCommitments > 0
+          ? ' — chưa tạo được cam kết lặp lại'
+          : '';
+      messenger.showSnackBar(SnackBar(content: Text('$done$partial')));
+    }
+    for (final drop in report.dropped) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Khoản đã giữ không gửi được: ${submitErrorMessage(drop.error)}',
+          ),
+        ),
+      );
+    }
+  }
+
   Future<void> _onSignedIn(_) async {
     final token = _auth.session?.sessionToken;
     if (token != null) await SessionStore.write(token);
     setState(() => _gate = _Gate.signedIn);
     _drainPendingShare();
+    unawaited(_drainQueue());
   }
 
   Future<void> _toggleBiometric() async {
@@ -278,6 +364,9 @@ class _AuthGateState extends State<AuthGate> {
         enabled: _bioEnabled,
         service: _bioService,
         child: HomeShell(
+          banner: _queue == null
+              ? null
+              : QueuedCapturesBanner(queue: _queue!, onRetry: _drainQueue),
           tabBuilders: [
             () => DashboardPage(
               key: _dashKey,
@@ -610,9 +699,10 @@ class _AuthGateState extends State<AuthGate> {
 /// Loads accounts, categories and the recent feed before showing the
 /// capture form — the feed powers the "Mục hay dùng" category ranking.
 class _CaptureLoader extends StatelessWidget {
-  const _CaptureLoader({required this.store});
+  const _CaptureLoader({required this.store, required this.submit});
 
   final RealStore store;
+  final Future<void> Function(CaptureIntent intent) submit;
 
   @override
   Widget build(BuildContext context) {
@@ -623,6 +713,23 @@ class _CaptureLoader extends StatelessWidget {
         store.loadTransactions(),
       ]),
       builder: (context, snap) {
+        if (snap.hasError) {
+          // A failed load must say so — a spinner that never ends would
+          // read as "still working" while the network is simply down.
+          return Scaffold(
+            appBar: AppBar(title: const Text('Ghi khoản')),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  'Không tải được dữ liệu — thử lại khi có mạng',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+            ),
+          );
+        }
         if (!snap.hasData) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
@@ -632,7 +739,7 @@ class _CaptureLoader extends StatelessWidget {
           accounts: snap.data![0].cast(),
           categories: snap.data![1].cast(),
           transactions: snap.data![2].cast(),
-          onSubmit: (intent) => _submitIntent(store, intent),
+          onSubmit: submit,
         );
       },
     );
@@ -642,10 +749,15 @@ class _CaptureLoader extends StatelessWidget {
 /// Edit entry — accounts/categories load fresh; the row being edited
 /// carries its own updated_at as the optimistic-concurrency token.
 class _EditLoader extends StatelessWidget {
-  const _EditLoader({required this.store, required this.transaction});
+  const _EditLoader({
+    required this.store,
+    required this.transaction,
+    required this.submit,
+  });
 
   final RealStore store;
   final Transaction transaction;
+  final Future<void> Function(CaptureIntent intent) submit;
 
   @override
   Widget build(BuildContext context) {
@@ -669,7 +781,7 @@ class _EditLoader extends StatelessWidget {
           accounts: snap.data![0].cast(),
           categories: snap.data![1].cast(),
           editing: transaction,
-          onSubmit: (intent) => _submitIntent(store, intent),
+          onSubmit: submit,
         );
       },
     );
@@ -679,10 +791,15 @@ class _EditLoader extends StatelessWidget {
 /// Share-receive entry — accounts/categories are fetched on demand because
 /// a share can arrive before the dashboard has loaded anything.
 class _SharedCaptureLoader extends StatelessWidget {
-  const _SharedCaptureLoader({required this.store, required this.prefill});
+  const _SharedCaptureLoader({
+    required this.store,
+    required this.prefill,
+    required this.submit,
+  });
 
   final RealStore store;
   final SharedTextPrefill prefill;
+  final Future<void> Function(CaptureIntent intent) submit;
 
   @override
   Widget build(BuildContext context) {
@@ -713,7 +830,7 @@ class _SharedCaptureLoader extends StatelessWidget {
           accounts: snap.data![0].cast(),
           categories: snap.data![1].cast(),
           prefill: prefill,
-          onSubmit: (intent) => _submitIntent(store, intent),
+          onSubmit: submit,
         );
       },
     );
@@ -722,7 +839,9 @@ class _SharedCaptureLoader extends StatelessWidget {
 
 /// Wires the Data API calls into the shared capture-submit orchestration —
 /// transaction/transfer first, then the optional monthly commitment.
-Future<void> _submitIntent(RealStore store, CaptureIntent intent) {
+/// This is also the queue-replay path: replays call it directly so a
+/// failed replay can never re-enqueue the same intent.
+Future<void> _storeSubmit(RealStore store, CaptureIntent intent) {
   return submitCaptureIntent(
     intent: intent,
     createTransaction: (i) => store.createTransaction(

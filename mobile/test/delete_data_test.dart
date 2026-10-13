@@ -9,6 +9,7 @@ void main() {
       SharedPreferences.setMockInitialValues({
         'mf_dashboard_snapshot': '{}',
         'mf_last_capture_account': 'a1',
+        'mf_offline_capture_queue': '{}',
         'neon.session_token': 'tok',
         'other_plugin_pref': 'keep',
         'unrelated_key': 'keep',
@@ -21,10 +22,12 @@ void main() {
         containsAll(<String>[
           'mf_dashboard_snapshot',
           'mf_last_capture_account',
+          'mf_offline_capture_queue',
           'neon.session_token',
         ]),
       );
       expect(prefs.getString('mf_dashboard_snapshot'), isNull);
+      expect(prefs.getString('mf_offline_capture_queue'), isNull);
       expect(prefs.getString('neon.session_token'), isNull);
       expect(prefs.getString('other_plugin_pref'), 'keep');
       expect(prefs.getString('unrelated_key'), 'keep');
