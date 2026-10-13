@@ -158,4 +158,63 @@ void main() {
     await t.pumpAndSettle();
     expect(created, 'Quỹ');
   });
+
+  testWidgets('a mistyped opening balance rejects instead of saving 0', (
+    t,
+  ) async {
+    int? createdBalance;
+    await t.pumpWidget(
+      MaterialApp(
+        home: AccountsPage(
+          loadAccounts: () async => const [],
+          onCreate: (_, _, bal) async => createdBalance = bal,
+          onArchive: (_, _) async {},
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    await t.tap(find.text('Thêm tài khoản'));
+    await t.pumpAndSettle();
+    await t.enterText(find.widgetWithText(TextField, 'Tên tài khoản'), 'Quỹ');
+
+    // A rejected entry used to collapse to 0 via `?? 0` — now the dialog
+    // stays open with an honest error and nothing is saved.
+    await t.enterText(find.widgetWithText(TextField, 'vd: 500k'), 'abc');
+    await t.tap(find.text('Tạo'));
+    await t.pumpAndSettle();
+    expect(find.text('Số tiền không hợp lệ'), findsOneWidget);
+    expect(createdBalance, isNull);
+    expect(find.text('Tạo'), findsOneWidget); // dialog stayed open
+
+    // Shorthand parity on the same field: '2tr5' is 2.500.000, not
+    // 2.000.005 (the old tail-as-raw-đồng bug).
+    await t.enterText(find.widgetWithText(TextField, 'vd: 500k'), '2tr5');
+    await t.tap(find.text('Tạo'));
+    await t.pumpAndSettle();
+    expect(createdBalance, 2500000);
+  });
+
+  testWidgets('a failed load shows the retry surface, not a spinner', (
+    t,
+  ) async {
+    var loads = 0;
+    await t.pumpWidget(
+      MaterialApp(
+        home: AccountsPage(
+          loadAccounts: () async {
+            loads++;
+            throw Exception('network');
+          },
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    expect(find.text('Không tải được tài khoản'), findsOneWidget);
+    expect(find.text('Thử lại'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
+    await t.tap(find.text('Thử lại'));
+    await t.pumpAndSettle();
+    expect(loads, 2);
+  });
 }

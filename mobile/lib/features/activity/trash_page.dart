@@ -73,6 +73,32 @@ class _TrashPageState extends State<TrashPage> {
         body: FutureBuilder(
           future: _deleted,
           builder: (context, snap) {
+            // Same failure contract as the dashboard: an explicit
+            // friendly message + retry, never a forever spinner.
+            if (snap.hasError) {
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Không tải được thùng rác'),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Text(
+                        'Kiểm tra kết nối mạng rồi thử lại.',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: _refresh,
+                      child: const Text('Thử lại'),
+                    ),
+                  ],
+                ),
+              );
+            }
             if (!snap.hasData) {
               return const Center(child: CircularProgressIndicator());
             }

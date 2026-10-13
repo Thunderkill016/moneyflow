@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/data/neon/auth_client.dart';
@@ -275,6 +277,46 @@ void main() {
         requester: t.requester,
       );
       expect(() => api.select('accounts'), throwsA(isA<NeonAuthException>()));
+    });
+  });
+
+  group('httpNeonRequester', () {
+    NeonRequest req(int port) => NeonRequest(
+      method: 'GET',
+      url: Uri.parse('http://127.0.0.1:$port/ping'),
+    );
+
+    // A fast bound keeps the test quick; production uses the 30s default.
+    const quick = Duration(milliseconds: 200);
+
+    test('times out when the server accepts but never responds', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      // Swallow the request and stay silent — close() used to wait forever.
+      server.listen((_) {});
+      try {
+        await expectLater(
+          httpNeonRequester(req(server.port), inactivityTimeout: quick),
+          throwsA(isA<TimeoutException>()),
+        );
+      } finally {
+        await server.close(force: true);
+      }
+    });
+
+    test('times out when the body stalls after the headers', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((r) async {
+        r.response.write('{"partial":');
+        await r.response.flush(); // headers land, body never finishes
+      });
+      try {
+        await expectLater(
+          httpNeonRequester(req(server.port), inactivityTimeout: quick),
+          throwsA(isA<TimeoutException>()),
+        );
+      } finally {
+        await server.close(force: true);
+      }
     });
   });
 }

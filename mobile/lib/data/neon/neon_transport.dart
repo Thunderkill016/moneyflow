@@ -41,8 +41,17 @@ class NeonResponse {
 
 typedef NeonRequester = Future<NeonResponse> Function(NeonRequest req);
 
+/// Longest silence allowed mid-request: a hung server used to stall
+/// callers forever because only the connect phase was bounded. 30s is
+/// generous for a mobile API round-trip yet finite; the resulting
+/// TimeoutException is queueable like other transient transport faults.
+const _inactivityTimeout = Duration(seconds: 30);
+
 /// Production transport over dart:io HttpClient.
-Future<NeonResponse> httpNeonRequester(NeonRequest req) async {
+Future<NeonResponse> httpNeonRequester(
+  NeonRequest req, {
+  Duration inactivityTimeout = _inactivityTimeout,
+}) async {
   final client = HttpClient();
   // Without a bound, a dead connection stalls callers on the OS DNS/connect
   // timeout — in airplane mode that meant the app sat on a spinner forever.
@@ -54,8 +63,10 @@ Future<NeonResponse> httpNeonRequester(NeonRequest req) async {
       ioReq.headers.contentType = ContentType.json;
       ioReq.write(jsonEncode(req.body));
     }
-    final ioRes = await ioReq.close();
-    final body = await utf8.decodeStream(ioRes);
+    // The response-wait and every gap between body chunks get the same
+    // bound — close() alone was the unbounded wait.
+    final ioRes = await ioReq.close().timeout(inactivityTimeout);
+    final body = await utf8.decodeStream(ioRes.timeout(inactivityTimeout));
     final headers = <String, String>{};
     ioRes.headers.forEach((name, values) {
       // Join repeated headers (e.g. set-cookie) so nothing is lost.

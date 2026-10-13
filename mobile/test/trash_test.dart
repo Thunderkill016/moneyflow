@@ -79,6 +79,30 @@ void main() {
       expect(find.text('Thùng rác trống'), findsOneWidget);
     });
 
+    testWidgets('a failed load shows the retry surface, not a spinner', (
+      t,
+    ) async {
+      var loads = 0;
+      await t.pumpWidget(
+        MaterialApp(
+          home: TrashPage(
+            loadDeleted: () async {
+              loads++;
+              throw Exception('network');
+            },
+            onRestore: (_) async {},
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(find.text('Không tải được thùng rác'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+
+      await t.tap(find.text('Thử lại'));
+      await t.pumpAndSettle();
+      expect(loads, 2);
+    });
+
     testWidgets('failed restore keeps the row and shows an error', (t) async {
       await t.pumpWidget(
         MaterialApp(

@@ -153,15 +153,24 @@ class PlanningPageState extends State<PlanningPage> {
       body: FutureBuilder(
         future: _data,
         builder: (context, snap) {
-          if (!snap.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          // hasError first — a failed future also has no data, so the
+          // spinner branch would swallow it. Raw exception text is never
+          // rendered; the shared "Không tải được …" copy stands in.
           if (snap.hasError) {
             return Center(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('${snap.error}', textAlign: TextAlign.center),
+                  const Text('Không tải được kế hoạch'),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      'Kiểm tra kết nối mạng rồi thử lại.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   FilledButton(
                     onPressed: _refresh,
@@ -170,6 +179,9 @@ class PlanningPageState extends State<PlanningPage> {
                 ],
               ),
             );
+          }
+          if (!snap.hasData) {
+            return const Center(child: CircularProgressIndicator());
           }
           final d = snap.data!;
           // Active vs archived split — the web lists archived rows behind

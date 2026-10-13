@@ -147,7 +147,15 @@ class _AccountsPageState extends State<AccountsPage> {
               onPressed: () async {
                 final n = name.text.trim();
                 if (n.isEmpty) return;
-                final bal = parseMoneyInput(balance.text) ?? 0;
+                // An empty balance is a legitimate 0 opening; a non-empty
+                // entry the money parser rejects must fail visibly — `?? 0`
+                // here used to silently save a mistyped balance as 0.
+                final balRaw = balance.text.trim();
+                final bal = balRaw.isEmpty ? 0 : parseMoneyInput(balRaw);
+                if (bal == null) {
+                  setDlg(() => error = 'Số tiền không hợp lệ');
+                  return;
+                }
                 try {
                   if (editing == null) {
                     await widget.onCreate!(n, kind, bal);
@@ -187,6 +195,32 @@ class _AccountsPageState extends State<AccountsPage> {
       body: FutureBuilder(
         future: _accounts,
         builder: (context, snap) {
+          // Same failure contract as the dashboard/inbox: an explicit
+          // friendly message + retry, never a forever spinner.
+          if (snap.hasError) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Không tải được tài khoản'),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      'Kiểm tra kết nối mạng rồi thử lại.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: _refresh,
+                    child: const Text('Thử lại'),
+                  ),
+                ],
+              ),
+            );
+          }
           if (!snap.hasData) {
             return const Center(child: CircularProgressIndicator());
           }

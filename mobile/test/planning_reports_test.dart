@@ -1129,4 +1129,34 @@ void main() {
       expect(calls.last, _prevMonthStart());
     });
   });
+
+  group('PlanningPage load failure', () {
+    testWidgets('shows the friendly retry surface, never raw error text', (
+      tester,
+    ) async {
+      var loads = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PlanningPage(
+            loadData: () async {
+              loads++;
+              throw Exception('socket exploded');
+            },
+            actions: _actions(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The hasError branch must win over !hasData — the old ordering
+      // left a forever spinner, and the old body leaked the raw error.
+      expect(find.text('Không tải được kế hoạch'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.textContaining('socket exploded'), findsNothing);
+
+      await tester.tap(find.text('Thử lại'));
+      await tester.pumpAndSettle();
+      expect(loads, 2);
+    });
+  });
 }
