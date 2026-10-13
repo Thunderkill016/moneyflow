@@ -8,6 +8,7 @@ import '../../data/share/share_text_parser.dart';
 import '../../domain/frequency.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
+import '../../domain/quick_parse.dart';
 import '../../domain/split.dart';
 import 'capture_submit.dart'
     show CaptureQueued, CommitmentFailed, submitErrorMessage;
@@ -113,6 +114,19 @@ class _CapturePageState extends State<CapturePage> {
   final _amount = TextEditingController();
   final _note = TextEditingController();
   final _payee = TextEditingController();
+  // "Gõ nhanh" — Vietnamese quick-capture scratch field. It only ever
+  // PROPOSES (prefill); the normal fields stay the source of truth.
+  final _quick = TextEditingController();
+  QuickParseDraft? _quickDraft;
+
+  // The values the quick parse last auto-applied. A field the user has
+  // since edited by hand is never overwritten by a later re-parse —
+  // prefill accelerates entry, it does not fight corrections.
+  int? _autoAmount;
+  String? _autoNote;
+  TransactionKind? _autoKind;
+  String? _autoCategoryId;
+  DateTime? _autoDate;
 
   // One key per form-open — the idempotency key of this capture intent.
   final String _idempotencyKey = newIdempotencyKey();
@@ -136,6 +150,7 @@ class _CapturePageState extends State<CapturePage> {
     _amount.dispose();
     _note.dispose();
     _payee.dispose();
+    _quick.dispose();
     for (final r in [..._splitRows, ..._retiredSplitRows]) {
       r.amount.dispose();
     }
@@ -247,6 +262,134 @@ class _CapturePageState extends State<CapturePage> {
 
   String _fmtDate(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  /// Min chars before the scratch field is parsed — shorter input cannot
+  /// carry an amount + context worth proposing.
+  static const _minQuickChars = 4;
+
+  void _onQuickChanged(String text) {
+    final trimmed = text.trim();
+    final draft = trimmed.length >= _minQuickChars
+        ? parseQuickCapture(trimmed)
+        : null;
+    setState(() {
+      _quickDraft = draft;
+      if (draft != null) _applyQuickDraft(draft);
+    });
+  }
+
+  /// Prefill from the parse — each field is written only when it still
+  /// holds what the parser last proposed (or is untouched), so typing on
+  /// never stomps a manual correction.
+  void _applyQuickDraft(QuickParseDraft draft) {
+    // Kind first — the category hint resolves against this kind's list.
+    if (_autoKind != null
+        ? _kind == _autoKind
+        : _kind == TransactionKind.expense) {
+      _kind = draft.kind;
+    }
+    _autoKind = draft.kind;
+    if (_kind != TransactionKind.expense) _split = false;
+    // A category of the old kind cannot survive a kind switch.
+    if (_categoryId != null &&
+        !widget.categories.any((c) => c.id == _categoryId && c.kind == _kind)) {
+      _categoryId = null;
+    }
+    if (_autoAmount == null
+        ? _amount.text.trim().isEmpty
+        : _amount.text == _autoAmount.toString()) {
+      _amount.text = draft.amountMinor.toString();
+    }
+    _autoAmount = draft.amountMinor;
+    if (draft.note.isNotEmpty &&
+        (_autoNote == null
+            ? _note.text.trim().isEmpty
+            : _note.text == _autoNote)) {
+      _note.text = draft.note;
+      _autoNote = draft.note;
+    }
+    final hinted = _matchHintedCategory(draft.categoryHint);
+    if (hinted != null &&
+        (_autoCategoryId == null
+            ? _categoryId == null
+            : _categoryId == _autoCategoryId)) {
+      _categoryId = hinted.id;
+      _autoCategoryId = hinted.id;
+    }
+    if (draft.dateHint != null) {
+      final offset = switch (draft.dateHint!) {
+        'yesterday' => -1,
+        'dayBeforeYesterday' => -2,
+        _ => 0,
+      };
+      final resolved = DateTime.now().add(Duration(days: offset));
+      // Overwrite only an untouched (still-today) or parser-set date.
+      if (_autoDate == null
+          ? _sameDay(_date, DateTime.now())
+          : _sameDay(_date, _autoDate!)) {
+        _date = resolved;
+      }
+      _autoDate = resolved;
+    }
+  }
+
+  /// The parser returns a canonical category NAME ("Ăn uống"); the real
+  /// category must also match the current kind (an income draft can never
+  /// select an expense category).
+  Category? _matchHintedCategory(String? hint) {
+    if (hint == null) return null;
+    final folded = foldVietnameseText(hint);
+    for (final c in widget.categories) {
+      if (c.kind == _kind && foldVietnameseText(c.name) == folded) return c;
+    }
+    return null;
+  }
+
+  static bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  /// Inline readout of what the parser understood — shown BEFORE saving so
+  /// the suggestion never acts silently (the product's explicit-review law).
+  Widget _quickSuggestion(QuickParseDraft d) {
+    final kindLabel = switch (d.kind) {
+      TransactionKind.expense => 'Chi',
+      TransactionKind.income => 'Thu',
+      TransactionKind.transfer => 'Chuyển',
+    };
+    final dateLabel = switch (d.dateHint) {
+      'yesterday' => 'hôm qua',
+      'dayBeforeYesterday' => 'hôm kia',
+      'today' => 'hôm nay',
+      _ => null,
+    };
+    final parts = <String>[
+      kindLabel,
+      formatMoney(d.amountMinor),
+      ?d.categoryHint,
+      ?dateLabel,
+    ];
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        children: [
+          Icon(
+            Icons.bolt,
+            size: 16,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              '→ ${parts.join(' · ')}',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Future<void> _submit() async {
     var splitLines = <SplitLine>[];
@@ -494,6 +637,23 @@ class _CapturePageState extends State<CapturePage> {
                 subtitle: Text('Kiểm tra lại trước khi lưu'),
               ),
             ),
+            const SizedBox(height: 12),
+          ],
+          // "Gõ nhanh" sits first so a typed sentence prefills the form
+          // below; edit mode keeps the loaded row authoritative instead.
+          if (widget.editing == null) ...[
+            TextField(
+              key: const ValueKey('quick-field'),
+              controller: _quick,
+              onChanged: _onQuickChanged,
+              decoration: const InputDecoration(
+                labelText: 'Gõ nhanh',
+                hintText: 'vd: ăn trưa 45k, nhận lương 5tr',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.bolt),
+              ),
+            ),
+            if (_quickDraft != null) _quickSuggestion(_quickDraft!),
             const SizedBox(height: 12),
           ],
           SegmentedButton<TransactionKind>(
