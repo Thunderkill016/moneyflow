@@ -43,6 +43,9 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+    // Local JVM unit tests — BankNotificationSources is pure Kotlin, so the
+    // whitelist is verified without Robolectric or a device.
+    testImplementation("junit:junit:4.13.2")
 }
 
 flutter {

@@ -1,6 +1,8 @@
 package app.moneyflow.moneyflow
 
+import android.content.ComponentName
 import android.content.Intent
+import android.provider.Settings
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -83,7 +85,79 @@ class MainActivity : FlutterFragmentActivity() {
                 }
             },
         )
+
+        // Bank-notification capture pilot: the service has no engine of its
+        // own, so the stream forwards live events through a shared sink and
+        // the method channel answers permission state + drains the queue that
+        // parks events while Dart is detached.
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "app.moneyflow/notification_capture",
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "isAccessEnabled" ->
+                    result.success(isNotificationAccessEnabled())
+                "openAccessSettings" ->
+                    result.success(openNotificationAccessSettings())
+                "consumePendingCaptures" ->
+                    result.success(NotificationCaptureBridge.consumePending(this))
+                "clearPendingCaptures" -> {
+                    NotificationCaptureBridge.clearPending(this)
+                    result.success(true)
+                }
+                "supportedSources" ->
+                    result.success(BankNotificationSources.byPackage.values.toList())
+                else -> result.notImplemented()
+            }
+        }
+
+        EventChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "app.moneyflow/notification_capture_stream",
+        ).setStreamHandler(
+            object : EventChannel.StreamHandler {
+                override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                    NotificationCaptureBridge.sink = events
+                }
+
+                override fun onCancel(arguments: Any?) {
+                    NotificationCaptureBridge.sink = null
+                }
+            },
+        )
     }
+
+    /**
+     * True only when the user granted this app Notification Access in system
+     * settings — the OS-level switch. There is no runtime prompt for it; the
+     * enabled-listeners string is the only honest signal. Both flatten forms
+     * are matched because OEM builds differ on which they persist.
+     */
+    private fun isNotificationAccessEnabled(): Boolean {
+        val enabled =
+            Settings.Secure.getString(
+                contentResolver,
+                "enabled_notification_listeners",
+            ) ?: return false
+        val component = ComponentName(this, NotificationCaptureService::class.java)
+        val flat = component.flattenToString()
+        val flatShort = component.flattenToShortString()
+        return enabled.split(':').any { it == flat || it == flatShort }
+    }
+
+    /** Opens the system Notification Access screen. Returns false when the
+     *  device exposes no handler — the caller then shows an honest notice
+     *  instead of a dead end. */
+    private fun openNotificationAccessSettings(): Boolean =
+        try {
+            startActivity(
+                Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+            true
+        } catch (e: Exception) {
+            false
+        }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)

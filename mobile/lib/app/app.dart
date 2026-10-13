@@ -9,6 +9,8 @@ import '../data/neon/auth_client.dart';
 import '../data/neon/data_api.dart';
 import '../data/neon/neon_config.dart';
 import '../data/neon/real_store.dart';
+import '../data/notification_capture/notification_capture_channel.dart';
+import '../data/notification_capture/notification_capture_controller.dart';
 import '../data/notifications.dart';
 import '../data/offline_cache.dart';
 import '../data/offline_queue.dart';
@@ -35,6 +37,7 @@ import '../features/capture/queue_banner.dart';
 import '../features/categories/categories_page.dart';
 import '../features/dashboard/dashboard_page.dart';
 import '../features/inbox/inbox_page.dart';
+import '../features/notification_capture/notification_capture_page.dart';
 import '../features/planning/planning_page.dart';
 import '../features/planning/recurring_form_dialog.dart';
 import '../features/reports/reports_page.dart';
@@ -86,8 +89,9 @@ class MoneyFlowApp extends StatelessWidget {
 /// Startup auth state: restore persisted session → dashboard, else login.
 /// Demo mode remains reachable from the login screen for offline exploration.
 ///
-/// [shareReceiver], [quickActions], [biometric] and [urlOpener] are
-/// seams for widget tests — production callers never pass them.
+/// [shareReceiver], [quickActions], [biometric], [urlOpener] and
+/// [notificationGateway] are seams for widget tests — production callers
+/// never pass them.
 class AuthGate extends StatefulWidget {
   const AuthGate({
     super.key,
@@ -95,12 +99,14 @@ class AuthGate extends StatefulWidget {
     this.quickActions = const QuickActionReceiver(),
     this.biometric,
     this.urlOpener = const DeviceUrlOpener(),
+    this.notificationGateway = const NotificationCaptureChannel(),
   });
 
   final ShareIntentReceiver shareReceiver;
   final QuickActionSource quickActions;
   final BiometricService? biometric;
   final UrlOpener urlOpener;
+  final NotificationCaptureGateway notificationGateway;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -108,7 +114,7 @@ class AuthGate extends StatefulWidget {
 
 enum _Gate { booting, login, signedIn, demo }
 
-class _AuthGateState extends State<AuthGate> {
+class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   final _config = NeonConfig.fromEnvironment();
   late final _auth = NeonAuthClient(config: _config);
   late final _store = RealStore(
@@ -121,6 +127,11 @@ class _AuthGateState extends State<AuthGate> {
   late final _bioService = widget.biometric ?? DeviceBiometricService();
   ShareIntentReceiver get _shareReceiver => widget.shareReceiver;
   QuickActionSource get _quickActions => widget.quickActions;
+  NotificationCaptureGateway get _notifGateway => widget.notificationGateway;
+  late final _notifCapture = NotificationCaptureController(
+    gateway: widget.notificationGateway,
+    submit: _store.createNotificationCandidates,
+  );
 
   _Gate _gate = _Gate.booting;
   bool _bioEnabled = false;
@@ -132,6 +143,12 @@ class _AuthGateState extends State<AuthGate> {
 
   /// Weekly-digest opt-in — defaults OFF until the stored pref loads.
   bool _digestEnabled = false;
+
+  /// Notification-capture state for the menu label — refreshed on sign-in,
+  /// on resume and after the settings page closes. Both halves are real:
+  /// the OS grant AND the app opt-in must be on for "đang bật".
+  bool _notifCaptureOn = false;
+  int _supportedSourceCount = 0;
   SharedPreferences? _prefs;
   OfflineCache? _offline;
   OfflineCaptureQueue? _queue;
@@ -161,9 +178,11 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _restore();
     _initShare();
     _initQuick();
+    _notifCapture.start();
     // Reminder setup is best-effort — a denied notification permission
     // must not block app startup.
     unawaited(NotificationService.init().catchError((_) {}));
@@ -171,10 +190,19 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _shareSub?.cancel();
     _quickSub?.cancel();
     _queue?.dispose();
+    unawaited(_notifCapture.dispose());
     super.dispose();
+  }
+
+  /// Returning from system settings (or any backgrounding) re-reads the
+  /// real OS grant — the menu label must never quote a stale toggle.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refreshNotifCaptureState();
   }
 
   Future<void> _restore() async {
@@ -191,6 +219,7 @@ class _AuthGateState extends State<AuthGate> {
           _drainPendingShare();
           unawaited(_drainQueue());
           unawaited(_refreshWeeklyDigest());
+          unawaited(_refreshNotifCaptureState());
           return;
         }
       } on SocketException {
@@ -222,6 +251,9 @@ class _AuthGateState extends State<AuthGate> {
     _queue?.dispose();
     _queue = OfflineCaptureQueue(prefs, userId: userId);
     _offline = OfflineCache(prefs, userId: userId);
+    // Notification capture binds to the same account scope — its dedupe
+    // ring, counters and parked events follow the owner, never the device.
+    unawaited(_notifCapture.bind(userId));
     // A pre-scoping snapshot can't be attributed to any account — drop
     // it rather than serve it to whoever signs in next.
     unawaited(prefs.remove(OfflineCache.legacyKey));
@@ -242,6 +274,35 @@ class _AuthGateState extends State<AuthGate> {
     // The digest re-arm fails the same way — a failed range read leaves
     // whatever was previously armed untouched.
     unawaited(_refreshWeeklyDigest());
+    unawaited(_refreshNotifCaptureState());
+  }
+
+  /// The menu label's truth source: OS grant AND app opt-in, plus the
+  /// supported-source count for the "N nguồn" text. Channel failures read
+  /// as "off" — a state the UI can never overclaim.
+  Future<void> _refreshNotifCaptureState() async {
+    final granted = await _notifGateway.isAccessEnabled();
+    final optedIn = await _notifCapture.isEnabled();
+    final sources = await _notifGateway.supportedSources();
+    if (!mounted) return;
+    setState(() {
+      _notifCaptureOn = granted && optedIn;
+      _supportedSourceCount = sources.length;
+    });
+  }
+
+  /// The consent + state surface for the listener pilot. Popping it
+  /// re-reads the OS switch so the menu never quotes a stale grant.
+  Future<void> _openNotificationCapture(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => NotificationCapturePage(
+          gateway: _notifGateway,
+          controller: _notifCapture,
+        ),
+      ),
+    );
+    unawaited(_refreshNotifCaptureState());
   }
 
   /// The Data API proved the session dead (a 401 from /get-session or a
@@ -511,6 +572,7 @@ class _AuthGateState extends State<AuthGate> {
     _drainPendingShare();
     unawaited(_drainQueue());
     unawaited(_refreshWeeklyDigest());
+    unawaited(_refreshNotifCaptureState());
   }
 
   /// The weekly digest is opt-in — enabling arms the next Sunday 19:00
@@ -634,6 +696,9 @@ class _AuthGateState extends State<AuthGate> {
       /* upstream sign-out failure still logs out locally */
     }
     await SessionStore.clear();
+    // Signed-out capture must not keep parked raw notification text — the
+    // next account on this device can never inherit it.
+    unawaited(_notifCapture.unbind());
     final prefs = _prefs;
     if (prefs != null) {
       // Session-scoped residue (last-capture picks, dismissed patterns,
@@ -903,6 +968,17 @@ class _AuthGateState extends State<AuthGate> {
         // failed read degrades to the bare label instead of a fake count.
         badge: _store.loadPendingInboxCount,
         onTap: () => _openInbox(context),
+      ),
+      DashboardMenuItem(
+        // Opt-in bank-notification capture — the label is the real state:
+        // OS grant AND app opt-in. "Tắt" can never overclaim activity.
+        label: _notifCaptureOn
+            ? 'Thu gom thông báo · đang bật ($_supportedSourceCount nguồn)'
+            : 'Thu gom thông báo ngân hàng',
+        icon: _notifCaptureOn
+            ? Icons.mark_email_read_outlined
+            : Icons.notification_add_outlined,
+        onTap: () => _openNotificationCapture(context),
       ),
       DashboardMenuItem(
         label: 'Tài khoản',

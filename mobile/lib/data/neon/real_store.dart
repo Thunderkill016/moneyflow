@@ -3,6 +3,7 @@ import 'dart:math';
 import '../../domain/categories.dart';
 import '../../domain/csv_import.dart';
 import '../../domain/inbox.dart';
+import '../notification_capture/bank_notification_parser.dart';
 import '../../domain/models.dart';
 import '../../domain/reconciliation.dart';
 import '../../domain/transaction_query.dart';
@@ -1056,6 +1057,55 @@ class RealStore {
       throw const FormatException('incomplete_result');
     }
     return CsvImportResult(batchId: batchId, candidateCount: batch.rows.length);
+  }
+
+  /// POST /rpc/create_inbox_candidates — the SECURITY DEFINER create path
+  /// drafted in db/neon/migrations/20261010122000 for batch-less sources like
+  /// `notification`. It is NOT yet applied on the hosted Data API (verified
+  /// 2026-10-13: PGRST202), and the applied ingest paths all hardcode
+  /// paste/csv — so `source: 'notification'` has no working route yet and
+  /// callers must treat a missing function as blocked-on-migration, never
+  /// fall back to a table INSERT (42501).
+  ///
+  /// Re-broadcast dedup rides `source_external_id` ('notif:hash'): the RPC
+  /// refuses `local_id` by design (restore-owned), and the source-identity
+  /// machinery (plan_inbox_candidate → resolve_inbox_source_identity) gives
+  /// notification drafts a duplicate verdict at approval time. Status is
+  /// server-hardcoded 'pending' — the review queue owns approval.
+  Future<int> createNotificationCandidates(
+    List<BankNotificationDraft> drafts,
+  ) async {
+    if (drafts.isEmpty) return 0;
+    final res = await _api.rpc('create_inbox_candidates', {
+      'p_candidates': [
+        for (final d in drafts)
+          {
+            'id': newIdempotencyKey(),
+            'kind': switch (d.kind) {
+              TransactionKind.income => 'income',
+              TransactionKind.transfer => 'transfer',
+              TransactionKind.expense => 'expense',
+            },
+            'amount_minor': d.amountMinor,
+            'merchant': d.merchant,
+            'note': d.note,
+            'occurred_on': d.occurredOn,
+            'source': 'notification',
+            'confidence': d.confidence,
+            'account_name': d.accountName,
+            'raw_snippet': d.rawSnippet,
+            'source_external_id': d.dedupeKey,
+            'parser_version': 'notif_capture@1.0',
+          },
+      ],
+    });
+    // The RPC returns the inserted rows — a short response means some
+    // drafts may exist server-side without our knowing which, so this is
+    // an honest "check Cần xem" outcome, not a retryable failure.
+    if (res is! List || res.length != drafts.length) {
+      throw const FormatException('incomplete_result');
+    }
+    return drafts.length;
   }
 
   // ---- Account reconciliation (db/neon/migrations/20260803142000 + the

@@ -67,6 +67,20 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/moneyflow_widget"/>
         </receiver>
+        <!-- Opt-in bank-notification listener pilot. exported=true is required
+             for the system to bind it; BIND_NOTIFICATION_LISTENER_SERVICE is
+             the only permission that makes the binder callable, so no other
+             app can reach this service. It activates only after the user
+             explicitly grants Notification Access in system settings — there
+             is no runtime prompt and nothing is read by default. -->
+        <service
+            android:name=".NotificationCaptureService"
+            android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
         <!-- flutter_local_notifications >=16 scheduling plumbing (see the
              manifest-level comment above): the first receiver fires the
              pending alarms, the second re-arms them after reboot, app
