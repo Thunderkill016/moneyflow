@@ -135,6 +135,8 @@ void main() {
         'duplicate key value violates unique constraint '
             '"categories_user_id_name_kind_key"',
         'unique constraint failed',
+        // upsert_financial_category raises this on unique_violation.
+        'category_name_taken',
       ]) {
         expect(
           categoryErrorMessage(Exception(raw)),
@@ -153,9 +155,99 @@ void main() {
         'Đã lưu nhưng chưa tải lại được danh mục.',
       );
       expect(
+        categoryErrorMessage(Exception('category_kind_locked')),
+        'Không đổi được loại sau khi tạo.',
+      );
+      expect(
+        categoryErrorMessage(Exception('invalid_category_name')),
+        'Tên danh mục cần từ 1 đến 60 ký tự.',
+      );
+      expect(
         categoryErrorMessage(Exception('something_weird')),
         'Không thể cập nhật danh mục. Hãy thử lại.',
       );
+    });
+  });
+
+  group('vietnamCategoryPack', () {
+    /// Mirrors handle_new_user in the initial schema migration — the
+    /// names every real account starts with. A pack item colliding with
+    /// one of these would always render as disabled "Đã có" clutter.
+    const seededDefaults = {
+      (TransactionKind.expense, 'Ăn uống'),
+      (TransactionKind.expense, 'Di chuyển'),
+      (TransactionKind.expense, 'Mua sắm'),
+      (TransactionKind.expense, 'Nhà ở'),
+      (TransactionKind.expense, 'Hóa đơn'),
+      (TransactionKind.expense, 'Giải trí'),
+      (TransactionKind.expense, 'Sức khỏe'),
+      (TransactionKind.expense, 'Giáo dục'),
+      (TransactionKind.income, 'Lương'),
+      (TransactionKind.income, 'Thưởng'),
+      (TransactionKind.income, 'Thu nhập khác'),
+    };
+
+    test('every item is a valid draft in the writable vocabulary', () {
+      for (final item in vietnamCategoryPack) {
+        expect(isValidCategoryName(item.name), isTrue, reason: item.name);
+        expect(
+          pickableCategoryIcons.contains(item.icon),
+          isTrue,
+          reason: '${item.name} icon ${item.icon} must be pickable',
+        );
+        expect(
+          categoryColorKeys.contains(item.color),
+          isTrue,
+          reason: '${item.name} color ${item.color} must be a palette key',
+        );
+      }
+      // No duplicate (kind, name) pairs inside the pack itself.
+      expect(
+        {for (final i in vietnamCategoryPack) (i.kind, i.name)}.length,
+        vietnamCategoryPack.length,
+      );
+    });
+
+    test('no item duplicates a signup default name', () {
+      for (final item in vietnamCategoryPack) {
+        expect(
+          seededDefaults.contains((item.kind, item.name)),
+          isFalse,
+          reason: '${item.name} already ships as a default',
+        );
+      }
+    });
+
+    test('missing/present checks honor kind and normalized names', () {
+      const present = [
+        Category(
+          id: 'x1',
+          name: 'Hiếu  hỉ', // double space — still counts as present
+          kind: TransactionKind.expense,
+          isArchived: true, // archived names are not re-offered either
+        ),
+        // Same name on the OTHER kind does not block the expense item.
+        Category(id: 'x2', name: 'Lì xì', kind: TransactionKind.income),
+      ];
+      expect(missingCategoryPackItems(present).map((i) => i.name), [
+        'Lì xì',
+        'Con cái',
+        'Về quê',
+        'Gia đình',
+        'Lì xì nhận',
+        'Bán đồ',
+        'Hoàn tiền',
+      ]);
+      expect(
+        categoryPackItemPresent((
+          name: 'Lì xì',
+          kind: TransactionKind.expense,
+          icon: 'gift',
+          color: 'red',
+        ), present),
+        isFalse,
+      );
+      expect(missingCategoryPackItems(const []).length, 8);
     });
   });
 

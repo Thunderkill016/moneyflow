@@ -153,6 +153,11 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   OfflineCache? _offline;
   OfflineCaptureQueue? _queue;
 
+  /// Demo-mode category writes — session-scoped so the category pack
+  /// demo actually persists its adds for the visit; re-entering demo or
+  /// wiping demo data starts from seeds again.
+  var _demoCategories = DemoCategoryStore();
+
   /// Re-entrancy guard for the session-expired sign-out — several tab
   /// loaders can 401 in the same frame and each signals the callback.
   bool _expiredSignOut = false;
@@ -423,7 +428,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       MaterialPageRoute(
         builder: (_) => CapturePage(
           accounts: DemoStore.seedAccounts(),
-          categories: DemoStore.seedCategories(),
+          // The demo category store, not raw seeds — categories added
+          // via the pack must show in the picker like a real save.
+          categories: _demoCategories.active,
           transactions: DemoStore.seedTransactions(),
           onSubmit: (_) async => throw const DemoReadOnly(),
         ),
@@ -727,6 +734,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         auth: _auth,
         onSignedIn: _onSignedIn,
         onDemo: () {
+          // A fresh demo visit starts from seeds — leftover categories
+          // from a previous visit would misreport what "demo" means.
+          _demoCategories = DemoCategoryStore();
           setState(() => _gate = _Gate.demo);
           _drainQuickAction();
         },
@@ -1124,6 +1134,33 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
                 ),
               ),
             ),
+            // Demo is read-only except categories: the manager is the
+            // showcase surface for the one-tap pack, so writes land in
+            // the session-scoped DemoCategoryStore — honest local data,
+            // discarded when demo ends.
+            DashboardMenuItem(
+              label: 'Danh mục',
+              icon: Icons.category,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => CategoriesPage(
+                    loadCategories: _demoCategories.loadAll,
+                    onSave: (draft) => _demoCategories
+                        .save(
+                          id: draft.id,
+                          name: draft.name,
+                          kind: draft.kind,
+                          icon: draft.icon,
+                          color: draft.color,
+                        )
+                        .then((_) {}),
+                    onSetArchived: (id, archived) =>
+                        _demoCategories.setArchived(id, archived).then((_) {}),
+                    onDelete: _demoCategories.delete,
+                  ),
+                ),
+              ),
+            ),
             // Play requires the privacy policy reachable in-app; demo
             // mode is still in-app, so the link stays on this menu too.
             DashboardMenuItem(
@@ -1146,7 +1183,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         () => ActivityPage(
           loadPage: inMemoryPageLoader(DemoStore.seedTransactions()),
           loadAccounts: () async => DemoStore.seedAccounts(),
-          loadCategories: () async => DemoStore.seedCategories(),
+          // Session demo store — pack additions filter transactions too.
+          loadCategories: () async => _demoCategories.active,
           onDelete: (_) async {},
         ),
         () => PlanningPage(
@@ -1155,7 +1193,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
             commitments: DemoStore.seedCommitments(),
             goals: DemoStore.seedGoals(),
             accounts: DemoStore.seedAccounts(),
-            categories: DemoStore.seedCategories(),
+            categories: _demoCategories.active,
             monthStart: monthStart(),
           ),
           actions: _noopPlanningActions,

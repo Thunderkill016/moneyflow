@@ -183,6 +183,12 @@ void main() {
   testWidgets('archive goes through the confirm dialog, unarchive does not', (
     t,
   ) async {
+    // A taller surface keeps the archived row natively visible — the
+    // pack banner pushed it off the default 600px height, where the
+    // extended FAB would swallow the menu tap.
+    t.view.physicalSize = const Size(800, 1400);
+    t.view.devicePixelRatio = 1.0;
+    addTearDown(t.view.reset);
     final h = _Harness();
     await t.pumpWidget(h.page());
     await t.pumpAndSettle();

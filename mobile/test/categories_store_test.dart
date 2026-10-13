@@ -123,39 +123,34 @@ void main() {
       expect(req.url.queryParameters.containsKey('is_archived'), isFalse);
     });
 
-    test(
-      'saveCategory insert POSTs the same fields the web action writes',
-      () async {
-        final h = Harness();
-        await h.signIn();
-        h.t.queue.add(FakeTransport.json(200, [_row]));
+    test('saveCategory create POSTs the upsert RPC with p_* params', () async {
+      final h = Harness();
+      await h.signIn();
+      h.t.queue.add(FakeTransport.json(200, [_row]));
 
-        final c = await h.store.saveCategory(
-          name: 'Cà phê',
-          kind: TransactionKind.expense,
-          icon: 'coffee',
-          color: 'amber',
-        );
+      final c = await h.store.saveCategory(
+        name: 'Cà phê',
+        kind: TransactionKind.expense,
+        icon: 'coffee',
+        color: 'amber',
+      );
 
-        expect(c.id, 'c9');
-        final req = h.t.requests.last;
-        expect(req.method, 'POST');
-        expect(req.url.path, '/neondb/rest/v1/categories');
-        expect(req.headers['Prefer'], 'return=representation');
-        expect(req.body, {
-          'user_id': 'u1',
-          'name': 'Cà phê',
-          'kind': 'expense',
-          'icon': 'coffee',
-          'color': 'amber',
-          'is_default': false,
-          'is_archived': false,
-        });
-      },
-    );
+      expect(c.id, 'c9');
+      final req = h.t.requests.last;
+      expect(req.method, 'POST');
+      // RPC-only write path: user_id stays server-side (auth.uid()), and
+      // p_category_id absent means create.
+      expect(req.url.path, '/neondb/rest/v1/rpc/upsert_financial_category');
+      expect(req.body, {
+        'p_name': 'Cà phê',
+        'p_kind': 'expense',
+        'p_icon': 'coffee',
+        'p_color': 'amber',
+      });
+    });
 
     test(
-      'saveCategory create defaults icon/color per kind like the web',
+      'saveCategory create leaves null icon/color to the RPC kind defaults',
       () async {
         final h = Harness();
         await h.signIn();
@@ -165,20 +160,24 @@ void main() {
           ]),
         );
 
-        await h.store.saveCategory(
+        final c = await h.store.saveCategory(
           name: 'Freelance',
           kind: TransactionKind.income,
         );
 
+        // The function coalesces nulls to wallet/green on income — the
+        // same defaults the web's defaultCategoryMeta picks.
+        expect(c.icon, 'wallet');
+        expect(c.color, 'green');
         final body = h.t.requests.last.body as Map;
-        expect(body['kind'], 'income');
-        expect(body['icon'], 'wallet');
-        expect(body['color'], 'green');
+        expect(body['p_kind'], 'income');
+        expect(body['p_icon'], isNull);
+        expect(body['p_color'], isNull);
       },
     );
 
     test(
-      'saveCategory update PATCHes only name/icon/color — never kind',
+      'saveCategory update sends p_category_id and re-states the kind',
       () async {
         final h = Harness();
         await h.signIn();
@@ -198,44 +197,44 @@ void main() {
 
         expect(c.name, 'Cà phê sáng');
         final req = h.t.requests.last;
-        expect(req.method, 'PATCH');
-        expect(req.url.path, '/neondb/rest/v1/categories');
-        expect(req.url.queryParameters['id'], 'eq.c9');
-        expect(req.headers['Prefer'], 'return=representation');
+        expect(req.method, 'POST');
+        expect(req.url.path, '/neondb/rest/v1/rpc/upsert_financial_category');
         final body = req.body as Map;
-        expect(
-          body.keys.toSet(),
-          {'name', 'icon', 'color'},
-          reason: 'kind, user_id and flags must never be rewritten',
-        );
+        expect(body, {
+          'p_name': 'Cà phê sáng',
+          // The function requires p_kind and refuses a kind that differs
+          // from the stored row (category_kind_locked) — re-stating the
+          // current kind is how "kind immutable" stays honest.
+          'p_kind': 'expense',
+          'p_icon': 'coffee',
+          'p_color': 'coral',
+          'p_category_id': 'c9',
+        });
       },
     );
 
-    test(
-      'update with empty representation throws category_not_found',
-      () async {
-        final h = Harness();
-        await h.signIn();
-        h.t.queue.add(FakeTransport.json(200, []));
+    test('update with an empty RPC result throws category_not_found', () async {
+      final h = Harness();
+      await h.signIn();
+      h.t.queue.add(FakeTransport.json(200, []));
 
-        expect(
-          () => h.store.saveCategory(
-            id: 'ghost',
-            name: 'X',
-            kind: TransactionKind.expense,
-            icon: 'spark',
-            color: 'violet',
+      expect(
+        () => h.store.saveCategory(
+          id: 'ghost',
+          name: 'X',
+          kind: TransactionKind.expense,
+          icon: 'spark',
+          color: 'violet',
+        ),
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'message',
+            contains('category_not_found'),
           ),
-          throwsA(
-            isA<Exception>().having(
-              (e) => e.toString(),
-              'message',
-              contains('category_not_found'),
-            ),
-          ),
-        );
-      },
-    );
+        ),
+      );
+    });
 
     test(
       'setCategoryArchived PATCHes the flag and reads the row back',
@@ -279,12 +278,11 @@ void main() {
     test('a duplicate-name failure surfaces the server error body', () async {
       final h = Harness();
       await h.signIn();
+      // PostgREST echoes the function's raised message verbatim.
       h.t.queue.add(
-        FakeTransport.json(409, {
-          'code': '23505',
-          'message':
-              'duplicate key value violates unique constraint '
-              '"categories_user_id_name_kind_key"',
+        FakeTransport.json(400, {
+          'code': 'P0001',
+          'message': 'category_name_taken',
         }),
       );
 
@@ -299,7 +297,7 @@ void main() {
           isA<NeonAuthException>().having(
             (e) => e.message,
             'message',
-            contains('categories_user_id_name_kind_key'),
+            contains('category_name_taken'),
           ),
         ),
       );

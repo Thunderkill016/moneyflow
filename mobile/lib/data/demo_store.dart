@@ -1,3 +1,4 @@
+import '../domain/categories.dart';
 import '../domain/models.dart';
 
 /// Demo-mode seed — mirrors the web demo store semantics:
@@ -171,4 +172,95 @@ class DemoStore {
       deadline: '2027-03-01',
     ),
   ];
+}
+
+/// Demo-mode category writes — session-scoped in-memory, no network.
+/// Every other demo write stays read-only, but the category manager is
+/// the showcase surface for the "Gói danh mục Việt Nam" pack, and a pack
+/// that vanishes after the snackbar would be a lie: adds persist for the
+/// demo session (leaving demo resets to seeds, matching the web demo's
+/// disposable browser-local data).
+class DemoCategoryStore {
+  DemoCategoryStore() : _categories = List.of(DemoStore.seedCategories());
+
+  final List<Category> _categories;
+  var _seq = 0;
+
+  List<Category> get current => List.unmodifiable(_categories);
+
+  /// Pickers only offer active rows — the same boundary the real
+  /// loadCategories applies server-side.
+  List<Category> get active => [
+    for (final c in _categories)
+      if (!c.isArchived) c,
+  ];
+
+  /// The manager lists archived rows too (same as loadAllCategories).
+  Future<List<Category>> loadAll() async => current;
+
+  Future<List<Category>> loadActive() async => active;
+
+  /// Create (id == null) or rename/restyle in place — the same contract
+  /// RealStore.saveCategory fulfils: kind is immutable after create and
+  /// icon/color fall back to the kind meta when omitted.
+  Future<Category> save({
+    String? id,
+    required String name,
+    required TransactionKind kind,
+    String? icon,
+    String? color,
+  }) async {
+    final meta = defaultCategoryMeta(kind);
+    if (id == null) {
+      final created = Category(
+        id: 'demo-cat-${++_seq}',
+        name: name,
+        kind: kind,
+        icon: icon ?? meta.icon,
+        color: color ?? meta.color,
+      );
+      _categories.add(created);
+      return created;
+    }
+    final i = _categories.indexWhere((c) => c.id == id);
+    if (i < 0) throw Exception('category_not_found');
+    final old = _categories[i];
+    final updated = Category(
+      id: old.id,
+      name: name,
+      kind: old.kind,
+      icon: icon ?? meta.icon,
+      color: color ?? meta.color,
+      isDefault: old.isDefault,
+      isArchived: old.isArchived,
+    );
+    _categories[i] = updated;
+    return updated;
+  }
+
+  Future<Category> setArchived(String id, bool archived) async {
+    final i = _categories.indexWhere((c) => c.id == id);
+    if (i < 0) throw Exception('category_not_found');
+    final old = _categories[i];
+    final updated = Category(
+      id: old.id,
+      name: old.name,
+      kind: old.kind,
+      icon: old.icon,
+      color: old.color,
+      isDefault: old.isDefault,
+      isArchived: archived,
+    );
+    _categories[i] = updated;
+    return updated;
+  }
+
+  /// Hard delete — defaults stay undeletable, mirroring the server RLS
+  /// that only ever removes custom rows.
+  Future<bool> delete(String id) async {
+    final i = _categories.indexWhere((c) => c.id == id);
+    if (i < 0 || _categories[i].isDefault) return false;
+    _categories.removeAt(i);
+    return true;
+  }
 }

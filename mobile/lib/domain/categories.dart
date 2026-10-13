@@ -181,12 +181,94 @@ const categoryColorOptions = [
 List<String> get categoryColorKeys =>
     categoryColorOptions.map((option) => option.$1).toList();
 
+/// One offerable row of the "Gói danh mục Việt Nam" — a creatable draft
+/// (name + kind + icon/color from the same writable vocabulary the
+/// pickers use), never a stored row.
+typedef CategoryPackItem = ({
+  String name,
+  TransactionKind kind,
+  String icon,
+  String color,
+});
+
+/// Vietnamese-life categories the signup defaults don't ship
+/// (handle_new_user seeds 8 expense + 3 income rows; the seed list is
+/// mirrored in vietnam_pack_sheet_test.dart). Deliberately skipped:
+/// - 'Ăn uống', 'Di chuyển', 'Thưởng'… — already signup defaults, and
+///   offering them would only collide. The runtime presence check below
+///   also catches users who renamed or custom-added the same name.
+/// - 'Đi lại' — semantic duplicate of the default 'Di chuyển', which
+///   already covers xe/Grab/xăng.
+/// - 'Ma chay' — folded into 'Hiếu hỉ': hiếu is the funeral side, hỉ the
+///   wedding side, and both are the same envelope-money event.
+const vietnamCategoryPack = <CategoryPackItem>[
+  // Hiếu hỉ — weddings + funerals gifting, the most common Vietnamese
+  // social expense. 'charity' (hands giving) is the closest glyph.
+  (
+    name: 'Hiếu hỉ',
+    kind: TransactionKind.expense,
+    icon: 'charity',
+    color: 'red',
+  ),
+  // Lì xì given (Tết envelopes to kids/elders) — red like the envelope.
+  (name: 'Lì xì', kind: TransactionKind.expense, icon: 'gift', color: 'red'),
+  // Kids' costs beyond tuition (which 'Giáo dục' already covers).
+  (name: 'Con cái', kind: TransactionKind.expense, icon: 'baby', color: 'pink'),
+  // Hometown trips — xe khách is the iconic mode, hence 'bus'.
+  (name: 'Về quê', kind: TransactionKind.expense, icon: 'bus', color: 'amber'),
+  // Money for parents/siblings/family obligations.
+  (
+    name: 'Gia đình',
+    kind: TransactionKind.expense,
+    icon: 'heart',
+    color: 'coral',
+  ),
+  // Lucky money received — 'Lì xì nhận' keeps it distinct from the
+  // expense side even though uniqueness is only per-kind.
+  (
+    name: 'Lì xì nhận',
+    kind: TransactionKind.income,
+    icon: 'gift',
+    color: 'red',
+  ),
+  // Reselling second-hand (Chợ Tốt, pass groups) — 'bag' reads as goods.
+  (name: 'Bán đồ', kind: TransactionKind.income, icon: 'bag', color: 'amber'),
+  // Refunds / hoàn tiền / cashback landing back as income.
+  (
+    name: 'Hoàn tiền',
+    kind: TransactionKind.income,
+    icon: 'coins',
+    color: 'green',
+  ),
+];
+
+/// True when a same-kind category with this pack name already exists —
+/// judged on the normalized name by the same rule the write path
+/// enforces, so an archived row or a differently-spaced variant still
+/// counts as present and is never re-offered for creation.
+bool categoryPackItemPresent(
+  CategoryPackItem item,
+  Iterable<Category> categories,
+) => !isCategoryNameUnique(item.name, item.kind, categories);
+
+/// Pack entries not yet present — the offer card hides itself entirely
+/// once every name exists (idempotent re-open shows "Đã có" instead).
+List<CategoryPackItem> missingCategoryPackItems(
+  Iterable<Category> categories,
+) => [
+  for (final item in vietnamCategoryPack)
+    if (!categoryPackItemPresent(item, categories)) item,
+];
+
 /// The web action's categoryError() — map the PostgREST/Postgres failure to
 /// the same Vietnamese message; unknown strings degrade to the honest
-/// generic, never a crash.
+/// generic, never a crash. The `category_*`/`invalid_*` tokens are the
+/// raised exception messages of the upsert_financial_category RPC
+/// (db/neon/migrations/20261010120000) — PostgREST echoes them verbatim.
 String categoryErrorMessage(Object error) {
   final msg = error.toString();
   if (msg.contains('categories_user_id_name_kind_key') ||
+      msg.contains('category_name_taken') ||
       msg.contains('duplicate key') ||
       msg.contains('unique')) {
     return 'Đã có danh mục cùng tên trong loại này.';
@@ -194,6 +276,12 @@ String categoryErrorMessage(Object error) {
   if (msg.contains('category_not_found')) return 'Không tìm thấy danh mục.';
   if (msg.contains('saved_unread')) {
     return 'Đã lưu nhưng chưa tải lại được danh mục.';
+  }
+  if (msg.contains('category_kind_locked')) {
+    return 'Không đổi được loại sau khi tạo.';
+  }
+  if (msg.contains('invalid_category_name')) {
+    return 'Tên danh mục cần từ 1 đến $categoryNameMax ký tự.';
   }
   return 'Không thể cập nhật danh mục. Hãy thử lại.';
 }

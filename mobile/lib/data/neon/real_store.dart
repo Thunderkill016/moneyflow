@@ -1,13 +1,11 @@
 import 'dart:math';
 
-import '../../domain/categories.dart';
 import '../../domain/csv_import.dart';
 import '../../domain/inbox.dart';
 import '../notification_capture/bank_notification_parser.dart';
 import '../../domain/models.dart';
 import '../../domain/reconciliation.dart';
 import '../../domain/transaction_query.dart';
-import 'auth_client.dart';
 import 'data_api.dart';
 
 /// Neon Data API store — same domain shape as [DemoStore], real rows.
@@ -298,10 +296,17 @@ class RealStore {
     return rows.map(_categoryFromRow).toList();
   }
 
-  /// Direct table write under RLS — the web's saveCategoryAction:
-  /// create inserts user_id + is_default:false + is_archived:false;
-  /// update writes ONLY name/icon/color (kind is immutable after create).
-  /// Callers pass already-normalized names (normalizeCategoryName).
+  /// POST /rpc/upsert_financial_category — the Neon RPC-only write path
+  /// (db/neon/migrations/20261010120000). Direct table writes die 42501
+  /// under guard_oauth_mutation — the managed `authenticated` role lacks
+  /// USAGE on schema `auth` — so create AND update both go through the
+  /// SECURITY DEFINER function, which resolves auth.uid() as the
+  /// caller's tenant and normalizes/validates like the web action:
+  /// p_category_id null creates; otherwise it rewrites name/icon/color
+  /// with kind locked server-side (category_kind_locked). Null icon/color
+  /// params fall back to the same kind defaults defaultCategoryMeta
+  /// uses, so callers may pass them straight through. Callers pass
+  /// already-normalized names (normalizeCategoryName).
   Future<Category> saveCategory({
     String? id,
     required String name,
@@ -309,35 +314,20 @@ class RealStore {
     String? icon,
     String? color,
   }) async {
-    if (id == null) {
-      final userId = _api.userId;
-      if (userId == null || userId.isEmpty) {
-        throw NeonAuthException(401, 'not signed in');
-      }
-      final meta = defaultCategoryMeta(kind);
-      final rows = await _api.insert('categories', {
-        'user_id': userId,
-        'name': name,
-        'kind': kind == TransactionKind.income ? 'income' : 'expense',
-        'icon': icon ?? meta.icon,
-        'color': color ?? meta.color,
-        'is_default': false,
-        'is_archived': false,
-      });
-      if (rows.isEmpty) throw Exception('saved_unread');
-      return _categoryFromRow(rows.first);
+    final result = await _api.rpc('upsert_financial_category', {
+      'p_name': name,
+      'p_kind': kind == TransactionKind.income ? 'income' : 'expense',
+      'p_icon': icon,
+      'p_color': color,
+      'p_category_id': ?id,
+    });
+    if (result is! List || result.isEmpty) {
+      // The function always returns the written row; an empty result
+      // means the write landed but the read-back didn't — same honesty
+      // split the table path used.
+      throw Exception(id == null ? 'saved_unread' : 'category_not_found');
     }
-    final rows = await _api.update(
-      'categories',
-      {'id': 'eq.$id'},
-      {
-        'name': name,
-        'icon': icon ?? defaultCategoryMeta(kind).icon,
-        'color': color ?? defaultCategoryMeta(kind).color,
-      },
-    );
-    if (rows.isEmpty) throw Exception('category_not_found');
-    return _categoryFromRow(rows.first);
+    return _categoryFromRow(result.first as Map<String, dynamic>);
   }
 
   /// PATCH is_archived — setCategoryArchivedAction; defaults archive the

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../domain/categories.dart';
 import '../../domain/models.dart';
 import 'category_visuals.dart';
+import 'vietnam_pack_sheet.dart';
 
 /// Category management — mirrors the web's /categories page
 /// (categories-page.tsx): sections split active expense / active income /
@@ -236,6 +237,17 @@ class _CategoriesPageState extends State<CategoriesPage> {
     }
   }
 
+  /// The one-tap pack sheet — resolves true when at least one row
+  /// landed, so even a barrier-dismissed sheet refreshes the list.
+  Future<void> _showPack() async {
+    final added = await showVietnamCategoryPackSheet(
+      context,
+      existing: _loaded,
+      onSave: widget.onSave,
+    );
+    if (added) _refresh();
+  }
+
   /// Archiving needs the same review the web gives ("Ẩn danh mục?") — new
   /// transactions lose the picker entry but history is kept. Unarchiving is
   /// immediate, matching the web's no-confirm restore.
@@ -376,6 +388,23 @@ class _CategoriesPageState extends State<CategoriesPage> {
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 48),
                     child: Center(child: Text('Chưa có danh mục')),
+                  ),
+                // Offer the pack only while it still has something to
+                // give — once every name exists the card disappears and
+                // the categories themselves are the proof it ran.
+                if (missingCategoryPackItems(_loaded).isNotEmpty)
+                  Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      leading: const Icon(Icons.auto_awesome),
+                      title: const Text('Gói danh mục Việt Nam'),
+                      subtitle: const Text(
+                        'Thêm các danh mục đời sống Việt Nam — tùy chọn, '
+                        'có thể sửa/ẩn sau',
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: _showPack,
+                    ),
                   ),
                 ..._section('Chi tiêu đang dùng', expense),
                 ..._section('Thu nhập đang dùng', income),
