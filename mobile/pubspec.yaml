@@ -50,6 +50,8 @@ dependencies:
   # (2026-09-16) is pinned deliberately — bump on purpose, not via ^.
   # Requires minSdk 23+; the app's minSdk is Flutter's default 24.
   flutter_secure_storage: 11.2.0
+  google_sign_in: ^7.2.0
+  screen_protector: ^1.5.3
 
 dev_dependencies:
   flutter_test:

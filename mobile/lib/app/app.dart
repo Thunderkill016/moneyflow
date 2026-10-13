@@ -31,6 +31,7 @@ import '../features/accounts/accounts_page.dart';
 import '../features/activity/activity_page.dart';
 import '../features/activity/trash_page.dart';
 import '../data/demo_store.dart';
+import '../data/google_sign_in.dart';
 import '../features/auth/login_page.dart';
 import '../features/capture/capture_page.dart';
 import '../features/capture/capture_submit.dart';
@@ -748,6 +749,13 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       _Gate.login => LoginPage(
         auth: _auth,
         onSignedIn: _onSignedIn,
+        // Google sign-in is a capability gate: no configured server
+        // client id → no button at all, never a dead-end affordance.
+        googleIdTokens: _config.googleServerClientId.isEmpty
+            ? null
+            : PluginGoogleIdTokenSource(
+                serverClientId: _config.googleServerClientId,
+              ),
         onDemo: () {
           // A fresh demo visit starts from seeds — leftover categories
           // or rules from a previous visit would misreport what "demo"

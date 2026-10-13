@@ -454,3 +454,21 @@ Continuation (same owner instruction):
 Verified on-device: checkbox creates a real commitment ("Ăn uống · ngày 13"
 with Trả button in Kế hoạch); the sheet opens and filters; last-used
 account + category prefill make a repeat save a 3-tap flow. 109/109 tests.
+
+### Post-P6: Google sign-in + screen shield
+
+- **Google sign-in** (`data/google_sign_in.dart` + `/sign-in/social` in
+  `auth_client.dart`): native google_sign_in v7 sheet → id token → Better
+  Auth token exchange (idToken as a nested object; a bare string gets a
+  `redirect:true` browser-flow response this client refuses to follow).
+  Requires `--dart-define=MF_GOOGLE_SERVER_CLIENT_ID=<web OAuth client id>`
+  plus an Android OAuth client (package `app.moneyflow.moneyflow`, SHA-1 of
+  the debug and upload keys) in the **same Google Cloud project** as Neon
+  Auth's Google provider web client. Empty define → the login button is
+  hidden entirely. Account seeding stays server-side
+  (`on_auth_user_created`); unverifiable end-to-end until the owner
+  configures the OAuth clients.
+- **Screen shield** (`app/screen_shield.dart`, `screen_protector`):
+  `FLAG_SECURE` applied app-wide at startup — ledger amounts stay out of
+  screenshots, recordings and the recents thumbnail. Best-effort: an
+  unsupported device degrades to no shield instead of crashing.

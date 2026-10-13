@@ -7,10 +7,20 @@ import 'package:flutter/foundation.dart';
 // Production values come from Vercel env / Neon project settings — never
 // hardcode secrets here; endpoints are identifiers, not credentials.
 class NeonConfig {
-  const NeonConfig({required this.authBaseUrl, required this.dataApiUrl});
+  const NeonConfig({
+    required this.authBaseUrl,
+    required this.dataApiUrl,
+    this.googleServerClientId = '',
+  });
 
   final String authBaseUrl;
   final String dataApiUrl;
+
+  /// Web OAuth client id used as google_sign_in's `serverClientId` — the
+  /// same Google Cloud project where Neon Auth's Google provider is
+  /// configured. Optional capability gate: empty means the login page
+  /// hides the Google button entirely (no dead-end affordance).
+  final String googleServerClientId;
 
   factory NeonConfig.fromEnvironment() {
     // Read WITHOUT defaults first: the sandbox fallback below would mask
@@ -18,6 +28,7 @@ class NeonConfig {
     // tell "define passed" from "default filled in".
     const auth = String.fromEnvironment('MF_AUTH_BASE_URL');
     const api = String.fromEnvironment('MF_DATA_API_URL');
+    const google = String.fromEnvironment('MF_GOOGLE_SERVER_CLIENT_ID');
     requireEndpointsInRelease(
       authBaseUrl: auth,
       dataApiUrl: api,
@@ -26,6 +37,7 @@ class NeonConfig {
     return NeonConfig(
       authBaseUrl: auth.isEmpty ? _devAuth : auth,
       dataApiUrl: api.isEmpty ? _devApi : api,
+      googleServerClientId: google,
     );
   }
 

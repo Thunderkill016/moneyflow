@@ -90,13 +90,35 @@ class NeonAuthClient {
         'password': password,
       });
 
-  Future<NeonSession> _signIn(String path, Map<String, String> body) async {
+  /// Google sign-in through Better Auth's /sign-in/social. The native
+  /// google_sign_in flow produces the id token; the server verifies it
+  /// against the web client id and issues the same session cookie as
+  /// /sign-in/email. Account seeding stays server-side
+  /// (`on_auth_user_created`) — the client never seeds.
+  Future<NeonSession> signInWithGoogleIdToken(String idToken) =>
+      _signIn('/sign-in/social', {
+        'provider': 'google',
+        // idToken MUST be a nested object — posting a bare string makes
+        // Better Auth answer {"redirect":true,"url":…} for a browser
+        // flow this client must not follow (handled in _signIn).
+        'idToken': {'token': idToken},
+      });
+
+  Future<NeonSession> _signIn(String path, Map<String, Object?> body) async {
     final res = await _call(path, body: body);
     if (!res.ok) {
       throw NeonAuthException(res.status, _errorMessage(res));
     }
     final json = res.json as Map<String, dynamic>;
-    final user = json['user'] as Map<String, dynamic>;
+    if (json['redirect'] == true) {
+      // /sign-in/social falls back to a browser redirect when the native
+      // idToken exchange is rejected (e.g. a bare-string body). This
+      // client cannot follow the URL — fail honestly instead.
+      throw NeonAuthException(
+        res.status,
+        'sign-in requires a browser redirect — aborting',
+      );
+    }
     // The set-cookie value is the signed cookie (token.signature, encoded);
     // the bare JSON `token` lacks the signature and fails upstream checks.
     final token = _sessionTokenFromCookie(res) ?? json['token'] as String?;
@@ -104,13 +126,26 @@ class NeonAuthClient {
       throw NeonAuthException(res.status, 'missing session token');
     }
     _jwt = null; // stale JWT belongs to any previous session
-    _session = NeonSession(
-      sessionToken: token,
-      userId: user['id'] as String,
-      email: user['email'] as String? ?? '',
-      name: user['name'] as String? ?? '',
-    );
-    return _session!;
+    final user = json['user'] as Map<String, dynamic>?;
+    if (user != null) {
+      _session = NeonSession(
+        sessionToken: token,
+        userId: user['id'] as String,
+        email: user['email'] as String? ?? '',
+        name: user['name'] as String? ?? '',
+      );
+      return _session!;
+    }
+    // /sign-in/social may return only the token — hydrate the user through
+    // the same /get-session path as a cold-start session restore.
+    final restored = await restoreSession(token);
+    if (restored == null) {
+      throw NeonAuthException(
+        res.status,
+        'sign-in accepted but the session could not be verified',
+      );
+    }
+    return restored;
   }
 
   /// Restores a persisted session token (e.g. after app restart) and
