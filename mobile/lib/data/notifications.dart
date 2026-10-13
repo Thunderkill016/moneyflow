@@ -78,35 +78,63 @@ class NotificationService {
     // Self-heal — the caller may reach here before the startup init
     // finished; never no-op silently on a scheduler path.
     if (!_initialized) await init();
-    final liveIds = {for (final c in commitments) c.id};
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        _channelId,
+        _channelName,
+        importance: Importance.defaultImportance,
+      ),
+    );
+    // Map keys armed this run — anything persisted but not re-armed below
+    // is swept: removed/archived commitments, a changed dueDay (recurring
+    // ↔ slot keys differ), and end-of-month slots past the horizon.
+    final armed = <String>{};
+    final now = tz.TZDateTime.now(tz.local);
     for (final c in commitments) {
-      if (c.isArchived) {
-        await _plugin.cancel(id: await _idFor(c.id));
-        continue;
+      if (c.isArchived) continue;
+      final body = '${formatMoney(c.amountMinor)} đến hạn hôm nay';
+      if (c.dueDay <= maxRecurringDueDay) {
+        // The day exists in every month — one repeating alarm anchored on
+        // it is exact forever.
+        armed.add(c.id);
+        await _plugin.zonedSchedule(
+          id: await _idFor(c.id),
+          title: c.name,
+          body: body,
+          scheduledDate: _nextDue(c.dueDay),
+          notificationDetails: details,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          matchDateTimeComponents: DateTimeComponents.dayOfMonthAndTime,
+        );
+      } else {
+        // No fixed day-of-month can express "day 31 or month end" — see
+        // [maxRecurringDueDay]. Arm a horizon of clamped one-shots instead;
+        // each re-arm rolls the window forward.
+        for (final due in nextCommitmentDues(
+          c.dueDay,
+          now,
+          eomReminderHorizonMonths,
+        )) {
+          final key = eomSlotKey(c.id, due);
+          armed.add(key);
+          await _plugin.zonedSchedule(
+            id: await _idFor(key),
+            title: c.name,
+            body: body,
+            scheduledDate: due,
+            notificationDetails: details,
+            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          );
+        }
       }
-      await _plugin.zonedSchedule(
-        id: await _idFor(c.id),
-        title: c.name,
-        body: '${formatMoney(c.amountMinor)} đến hạn hôm nay',
-        scheduledDate: _nextDue(c.dueDay),
-        notificationDetails: const NotificationDetails(
-          android: AndroidNotificationDetails(
-            _channelId,
-            _channelName,
-            importance: Importance.defaultImportance,
-          ),
-        ),
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        matchDateTimeComponents: DateTimeComponents.dayOfMonthAndTime,
-      );
     }
-    // Sweep mapped ids whose commitments are gone entirely — the list
-    // only ever carries live+archived rows.
+    // Sweep mapped ids that were not armed this run — deleted commitments,
+    // archived ones, and expired slot keys all lose their alarms.
     final prefs = await SharedPreferences.getInstance();
     final map = readCommitmentNotifIds(prefs);
     var stale = false;
     for (final entry in map.entries.toList()) {
-      if (liveIds.contains(entry.key)) continue;
+      if (armed.contains(entry.key)) continue;
       await _plugin.cancel(id: entry.value);
       map.remove(entry.key);
       stale = true;
@@ -226,6 +254,46 @@ tz.TZDateTime nextCommitmentDue(int dueDay, tz.TZDateTime now) {
   }
   return due;
 }
+
+/// A monthly repeating notification anchors on ONE day-of-month — the
+/// plugin scans forward for an exact day match, so an anchor missing
+/// from a month (day 29–31 vs February, day 31 vs every 30-day month)
+/// silently skips that month entirely. 28 is the largest due day every
+/// month contains, so days ≤28 stay on the repeating path and 29–31 are
+/// armed as [eomReminderHorizonMonths] clamped one-shots instead.
+const maxRecurringDueDay = 28;
+
+/// Months pre-armed as one-shots for day-29–31 commitments — a year of
+/// correct end-of-month fires even if the app is never reopened; every
+/// [NotificationService.scheduleCommitmentReminders] run re-computes and
+/// rolls the window forward.
+const eomReminderHorizonMonths = 12;
+
+/// The next [count] monthly occurrences of [dueDay] at 09:00, each
+/// clamped to its month's real last day — the armed set for end-of-month
+/// commitments (see [maxRecurringDueDay]).
+List<tz.TZDateTime> nextCommitmentDues(
+  int dueDay,
+  tz.TZDateTime now,
+  int count,
+) {
+  final dues = <tz.TZDateTime>[];
+  var probe = now;
+  for (var i = 0; i < count; i++) {
+    // nextCommitmentDue is strictly-after, so probing just past each hit
+    // lands on the following month's clamped day.
+    final due = nextCommitmentDue(dueDay, probe);
+    dues.add(due);
+    probe = due.add(const Duration(minutes: 1));
+  }
+  return dues;
+}
+
+/// Persisted-id key for a day-29–31 slot — `'$commitmentId#yyyyMM'` keeps
+/// each month's one-shot under the same id allocator, so re-arms replace
+/// rather than stack and the sweep can retire expired slots.
+String eomSlotKey(String commitmentId, tz.TZDateTime due) =>
+    '$commitmentId#${due.year}${due.month.toString().padLeft(2, '0')}';
 
 /// Notification opt-ins — SharedPreferences only; the `mf_` prefix keeps
 /// them inside the wipeLocalData contract.

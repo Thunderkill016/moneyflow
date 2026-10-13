@@ -2,10 +2,20 @@
 <!-- Pre-Android 12 backup rules (android:fullBackupContent).
 
      Same contract as data_extraction_rules.xml: the shared_preferences
-     file holds the session token, the offline ledger snapshot and
-     queued captures, so the whole file stays off Auto Backup — a
-     restored phone re-authenticates instead of resurrecting a stale
-     credential. -->
+     file holds the offline ledger snapshot, queued captures and any
+     pre-migration plaintext session token, so the whole file stays off
+     Auto Backup — a restored phone re-authenticates instead of
+     resurrecting a stale credential.
+
+     The FlutterSecureStorage* files carry the session token's encrypted
+     form plus its KeyStore-wrapped keys and cipher markers. The wrapping
+     RSA key lives only in this device's AndroidKeyStore, so a restored
+     copy is undecryptable ciphertext — and worse, the unwrap failure can
+     throw on first read. Excluding them keeps both the token and the
+     crash off other devices. -->
 <full-backup-content>
     <exclude domain="sharedpref" path="FlutterSharedPreferences.xml"/>
+    <exclude domain="sharedpref" path="FlutterSecureStorage.xml"/>
+    <exclude domain="sharedpref" path="FlutterSecureKeyStorage.xml"/>
+    <exclude domain="sharedpref" path="FlutterSecureStorageConfiguration:FlutterSecureStorage.xml"/>
 </full-backup-content>

@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/app/app.dart';
 import 'package:moneyflow/data/neon/auth_client.dart';
@@ -40,6 +41,11 @@ BankNotificationDraft? parse(String text, {String? title}) =>
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  // The session token lives in secure storage — an empty mock keeps
+  // AuthGate's restore off the platform channel; the prefs-seeded token
+  // in the menu tests then exercises the real migration path.
+  setUp(() => FlutterSecureStorage.setMockInitialValues({}));
 
   group('bank notification parser', () {
     test('VCB debit — masked account, grouped amount, SD balance tail', () {

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 // Neon backend endpoints, supplied at build time via --dart-define.
 //
 // The dev defaults point at the owner-created acceptance sandbox
@@ -11,15 +13,44 @@ class NeonConfig {
   final String dataApiUrl;
 
   factory NeonConfig.fromEnvironment() {
-    const auth = String.fromEnvironment(
-      'MF_AUTH_BASE_URL',
-      defaultValue: _devAuth,
+    // Read WITHOUT defaults first: the sandbox fallback below would mask
+    // a missing --dart-define entirely, and String.fromEnvironment can't
+    // tell "define passed" from "default filled in".
+    const auth = String.fromEnvironment('MF_AUTH_BASE_URL');
+    const api = String.fromEnvironment('MF_DATA_API_URL');
+    requireEndpointsInRelease(
+      authBaseUrl: auth,
+      dataApiUrl: api,
+      releaseMode: kReleaseMode,
     );
-    const api = String.fromEnvironment(
-      'MF_DATA_API_URL',
-      defaultValue: _devApi,
+    return NeonConfig(
+      authBaseUrl: auth.isEmpty ? _devAuth : auth,
+      dataApiUrl: api.isEmpty ? _devApi : api,
     );
-    return NeonConfig(authBaseUrl: auth, dataApiUrl: api);
+  }
+
+  /// A release binary must name its real endpoints at build time —
+  /// shipping the sandbox defaults would silently point strangers'
+  /// sign-ins at the acceptance project. Throws at construction instead
+  /// of failing at the first request. Debug/profile keep the dev
+  /// defaults so `flutter run` and tests work with no defines.
+  ///
+  /// Pure — takes the raw values and the release flag — so tests can
+  /// drive every branch (the `fromEnvironment` reads are compile-time).
+  @visibleForTesting
+  static void requireEndpointsInRelease({
+    required String authBaseUrl,
+    required String dataApiUrl,
+    required bool releaseMode,
+  }) {
+    if (!releaseMode) return;
+    if (authBaseUrl.isEmpty || dataApiUrl.isEmpty) {
+      throw StateError(
+        'Release build missing MF_AUTH_BASE_URL / MF_DATA_API_URL '
+        '--dart-define values — refusing to fall back to the dev sandbox. '
+        'See mobile/README.md for the required release defines.',
+      );
+    }
   }
 
   bool get isConfigured => authBaseUrl.isNotEmpty && dataApiUrl.isNotEmpty;

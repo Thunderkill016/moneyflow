@@ -1,16 +1,32 @@
 # moneyflow
 
-A new Flutter project.
+MoneyFlow mobile — Flutter client for the Neon backend.
+
+## Build configuration (--dart-define)
+
+Debug/profile builds default to the acceptance sandbox so `flutter run`
+and `flutter test` work with no flags. **Release builds fail closed**:
+`NeonConfig.fromEnvironment` throws at construction when the endpoint
+defines are absent, so a shipped binary can never silently target the dev
+sandbox.
+
+Release builds must pass:
+
+```sh
+flutter build apk --release \
+  --dart-define=MF_AUTH_BASE_URL=https://<prod-auth-host>/neondb/auth \
+  --dart-define=MF_DATA_API_URL=https://<prod-data-api-host>/neondb/rest/v1
+```
+
+All build-time defines:
+
+| Define | Required | Meaning |
+| --- | --- | --- |
+| `MF_AUTH_BASE_URL` | release | Better Auth service base URL (Neon Auth). |
+| `MF_DATA_API_URL` | release | Neon Data API (PostgREST) base URL. |
+| `MF_ARCHIVE_BACKUP` | optional | `true` enables JSON archive export — off by default until the backend RPC is callable (see `lib/app/app.dart`). |
+| `MF_NOTIFICATION_DRAFT_SUBMIT` | optional | `true` enables the notification-capture draft submit path — off until `create_inbox_candidates` is applied upstream (see `lib/data/notification_capture/`). |
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Standard Flutter flow: `flutter pub get`, `flutter run`, `flutter test`.

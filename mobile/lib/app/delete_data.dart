@@ -3,16 +3,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/offline_cache.dart';
 import '../data/offline_queue.dart';
+import '../data/session_store.dart';
 
 /// Local MoneyFlow data wipe — mirrors the web's
 /// clearLocalMoneyFlowStores(): only keys this app wrote are removed
-/// (`mf_*` product prefs and the `neon.*` session token), foreign keys
-/// from other apps/plugins are untouched.
+/// (`mf_*` product prefs and any pre-migration `neon.*` plaintext),
+/// foreign keys from other apps/plugins are untouched.
 const _localKeyPrefixes = ['mf_', 'neon.'];
 
-/// Removes every MoneyFlow-owned preference key. Returns the keys that
-/// were removed; a read failure leaves foreign data intact either way.
+/// Removes every MoneyFlow-owned preference key plus the secure-storage
+/// session keys — the token no longer lives in the prefs file, so a
+/// prefix sweep alone would leave the credential behind. Returns the
+/// preference keys that were removed; a read failure leaves foreign data
+/// intact either way.
 Future<List<String>> wipeLocalData(SharedPreferences prefs) async {
+  await SessionStore.clear();
   final keys = prefs.getKeys().where(
     (k) => _localKeyPrefixes.any(k.startsWith),
   );

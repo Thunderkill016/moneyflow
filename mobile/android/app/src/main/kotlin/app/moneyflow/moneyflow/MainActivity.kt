@@ -177,12 +177,15 @@ class MainActivity : FlutterFragmentActivity() {
         }
 
     private fun quickAction(intent: Intent?): String? =
-        intent?.getStringExtra(EXTRA_QUICK_ACTION)?.takeIf { it.isNotBlank() }
+        // The activity is exported, so the extra is attacker-controllable —
+        // only allowlisted actions cross into Dart.
+        QuickActionContract.sanitize(intent?.getStringExtra(EXTRA_QUICK_ACTION))
 
     companion object {
         // Carries the one-tap action from the static shortcut and the
         // widget's PendingIntent; Dart maps the value to a route.
-        const val EXTRA_QUICK_ACTION = "quick"
-        const val QUICK_ACTION_CAPTURE = "capture"
+        // The accepted-value set lives in QuickActionContract.
+        const val EXTRA_QUICK_ACTION = QuickActionContract.EXTRA_QUICK_ACTION
+        const val QUICK_ACTION_CAPTURE = QuickActionContract.ACTION_CAPTURE
     }
 }

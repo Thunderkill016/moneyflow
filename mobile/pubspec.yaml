@@ -45,6 +45,11 @@ dependencies:
   # In-app privacy-policy link (Play requirement). Pinned to a release
   # well past its publish date — bump deliberately, not via ^.
   url_launcher: 6.3.2
+  # Session-token storage (KeyStore-wrapped AES-GCM). v10+ replaced the
+  # deprecated EncryptedSharedPreferences with its own ciphers; 11.2.0
+  # (2026-09-16) is pinned deliberately — bump on purpose, not via ^.
+  # Requires minSdk 23+; the app's minSdk is Flutter's default 24.
+  flutter_secure_storage: 11.2.0
 
 dev_dependencies:
   flutter_test:

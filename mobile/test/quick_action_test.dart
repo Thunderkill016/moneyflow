@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/app/app.dart';
 import 'package:moneyflow/app/biometric_lock.dart';
@@ -95,6 +96,10 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    // Session tokens live in secure storage now — an empty mock keeps the
+    // AuthGate restore path off the platform channel, and tests seeding
+    // 'neon.session_token' in prefs exercise the real migration instead.
+    FlutterSecureStorage.setMockInitialValues({});
   });
 
   group('quick=capture routing', () {

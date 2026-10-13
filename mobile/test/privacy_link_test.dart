@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/app/app.dart';
 import 'package:moneyflow/app/url_opener.dart';
@@ -63,6 +64,9 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    // Session tokens moved to secure storage — the mock keeps AuthGate's
+    // restore path off the platform channel.
+    FlutterSecureStorage.setMockInitialValues({});
   });
 
   group('dashboard privacy link', () {
