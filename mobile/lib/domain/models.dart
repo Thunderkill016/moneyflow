@@ -38,6 +38,22 @@ class AccountSummary {
 
 enum TransactionKind { expense, income, transfer }
 
+/// One category line of a split expense — mirrors the web's
+/// TransactionSplitLine ({categoryId, category, amount}). Populated only
+/// from feed rows whose `split_lines` parse cleanly, so an export can
+/// expand the same per-category rows the web writes.
+class TransactionSplitLine {
+  const TransactionSplitLine({
+    required this.categoryId,
+    required this.category,
+    required this.amount,
+  });
+
+  final String categoryId;
+  final String category;
+  final int amount;
+}
+
 /// Category row — mirrors public.categories. Kinds match transaction kinds;
 /// `icon`/`color` carry the web's stored vocabulary keys (unrendered legacy
 /// or unknown values stay intact so a save never silently drops them).
@@ -80,6 +96,7 @@ class Transaction {
     this.reviewStatus = TransactionReviewStatus.reviewed,
     this.updatedAt,
     this.splitCount = 0,
+    this.splitLines = const [],
   });
 
   final String id;
@@ -101,6 +118,11 @@ class Transaction {
   /// categories (0 = ordinary single-category row). Split rows are not
   /// editable in place — update_money_transaction rejects them.
   final int splitCount;
+
+  /// The resolved category lines behind [splitCount], when the feed row
+  /// carried them. Empty for ordinary rows; CSV export expands these into
+  /// one row per line exactly like the web.
+  final List<TransactionSplitLine> splitLines;
 
   bool get isSplit => splitCount > 1;
 
@@ -124,6 +146,7 @@ class Transaction {
         : TransactionReviewStatus.reviewed,
     updatedAt: updatedAt,
     splitCount: splitCount,
+    splitLines: splitLines,
   );
 }
 

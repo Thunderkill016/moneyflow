@@ -1,5 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
+import '../../data/export_files.dart';
+import '../../domain/export_csv.dart';
 import '../../domain/money.dart';
 import '../../domain/models.dart';
 import '../../domain/report.dart';
@@ -15,6 +19,9 @@ class ReportsPage extends StatefulWidget {
     required this.loadTransactions,
     this.loadRange,
     this.pickRange,
+    this.shareFile,
+    this.tempDir,
+    this.loadArchive,
   });
 
   final Future<List<Transaction>> Function() loadTransactions;
@@ -27,6 +34,17 @@ class ReportsPage extends StatefulWidget {
   /// Custom-window picker — injectable so tests don't fight the system
   /// dialog. Defaults to [showDateRangePicker].
   final Future<DateTimeRange?> Function(BuildContext context)? pickRange;
+
+  /// Share-sheet seam for exports — defaults to the system share sheet
+  /// ([shareFileToSheet]). Injected in tests to capture the call.
+  final ExportSharer? shareFile;
+
+  /// Temp-dir seam for export files (default: the app temp dir).
+  final ExportTempDir? tempDir;
+
+  /// Full-archive loader (`export_user_archive` RPC). Null — demo mode —
+  /// hides the JSON backup item entirely, like the web's capability gate.
+  final Future<Object?> Function()? loadArchive;
 
   @override
   State<ReportsPage> createState() => ReportsPageState();
@@ -48,18 +66,20 @@ class ReportsPageState extends State<ReportsPage> {
   }
 
   Future<PeriodReport> _load() async {
-    final period = _period;
+    return buildPeriodReport(await _rowsFor(_period));
+  }
+
+  /// Rows for [period] — the server-side range query when wired, else the
+  /// recent feed scoped to the same inclusive/exclusive window (the demo
+  /// fallback the report body already relies on).
+  Future<List<Transaction>> _rowsFor(ReportPeriod period) async {
     final load = widget.loadRange;
-    final all = load != null
-        ? await load(period.from, period.to)
-        : await widget.loadTransactions();
-    // The feed fallback (demo mode) applies the same inclusive/exclusive
-    // scoping the server query does.
-    final scoped = all.where((t) {
+    if (load != null) return load(period.from, period.to);
+    final all = await widget.loadTransactions();
+    return all.where((t) {
       final on = t.occurredOn;
       return on.compareTo(period.from) >= 0 && on.compareTo(period.to) < 0;
     }).toList();
-    return buildPeriodReport(scoped);
   }
 
   Future<void> _refresh() async {
@@ -76,6 +96,114 @@ class ReportsPageState extends State<ReportsPage> {
   /// Public reload for the nav shell after a capture save — refreshes the
   /// period the reader is looking at, not just the current month.
   void reload() => _refresh();
+
+  void _snack(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// Inclusive last day of [period] — `to` is exclusive, so the filename
+  /// names the last day the reader actually sees covered.
+  String _inclusiveEnd(ReportPeriod period) =>
+      ymd(dateAdd(parseYmd(period.to), -1));
+
+  /// Export sheet for the shown period. The CSV item is gated on the
+  /// loaded report: an empty period says so honestly instead of offering
+  /// a header-only file. A failed load leaves the item enabled — the
+  /// export refetches anyway and reports its own failure.
+  Future<void> _openExport() async {
+    int? count;
+    try {
+      count = (await _report).transactionCount;
+    } catch (_) {
+      count = null;
+    }
+    if (!mounted) return;
+    final period = _period;
+    final csvName = exportCsvFilename(period.from, _inclusiveEnd(period));
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.table_rows_outlined),
+              title: const Text('Xuất CSV kỳ này'),
+              subtitle: Text(
+                count == 0 ? 'Không có giao dịch trong kỳ này' : csvName,
+              ),
+              enabled: count != 0,
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _exportCsv();
+              },
+            ),
+            if (widget.loadArchive != null)
+              ListTile(
+                leading: const Icon(Icons.archive_outlined),
+                title: const Text('Sao lưu toàn bộ (JSON)'),
+                subtitle: Text(exportBackupFilename(DateTime.now())),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _exportArchive();
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// CSV of the shown period: fetch fresh rows (never the possibly stale
+  /// on-screen report), write `<temp>/moneyflow-<from>-<to>.csv`, then
+  /// hand it to the share sheet.
+  Future<void> _exportCsv() async {
+    final period = _period;
+    try {
+      final rows = await _rowsFor(period);
+      if (!mounted) return;
+      if (rows.isEmpty) {
+        // The ledger changed under the open page — say so instead of
+        // sharing a header-only file.
+        _snack('Không có giao dịch trong kỳ này');
+        return;
+      }
+      final file = await writeExportFile(
+        exportCsvFilename(period.from, _inclusiveEnd(period)),
+        transactionsToCsv(rows),
+        tempDir: widget.tempDir,
+      );
+      await (widget.shareFile ?? shareFileToSheet)(file.path, csvMimeType);
+    } catch (_) {
+      if (mounted) _snack('Không xuất được file');
+    }
+  }
+
+  /// Full JSON backup via `export_user_archive` — the real archive v1
+  /// document, written and shared unmodified.
+  Future<void> _exportArchive() async {
+    final load = widget.loadArchive;
+    if (load == null) return;
+    try {
+      final doc = await load();
+      // The RPC answers a jsonb document — anything else isn't an archive
+      // we can honestly hand over.
+      if (doc is! Map && doc is! List) {
+        throw const FormatException('unexpected archive shape');
+      }
+      final body = '${const JsonEncoder.withIndent('  ').convert(doc)}\n';
+      final file = await writeExportFile(
+        exportBackupFilename(DateTime.now()),
+        body,
+        tempDir: widget.tempDir,
+      );
+      await (widget.shareFile ?? shareFileToSheet)(file.path, jsonMimeType);
+    } catch (_) {
+      if (mounted) _snack('Không xuất được file');
+    }
+  }
 
   Future<void> _select(ReportPeriod period) async {
     setState(() {
@@ -136,7 +264,16 @@ class ReportsPageState extends State<ReportsPage> {
     final next = _period.next(DateTime.now());
     final isMonth = _period is MonthPeriod;
     return Scaffold(
-      appBar: AppBar(title: const Text('Báo cáo')),
+      appBar: AppBar(
+        title: const Text('Báo cáo'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.download_outlined),
+            tooltip: 'Xuất dữ liệu',
+            onPressed: _openExport,
+          ),
+        ],
+      ),
       body: Column(
         children: [
           // The period bar stays mounted during load errors — a failed

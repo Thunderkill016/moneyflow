@@ -54,28 +54,62 @@ class RealStore {
       'category_id,category_name,destination_account_id,'
       'destination_account_name,payee,updated_at,split_lines';
 
-  static Transaction _txFromRow(Map<String, dynamic> r) => Transaction(
-    id: r['id'] as String,
-    kind: switch (r['kind']) {
+  /// The resolved category lines of a split expense — mirrors the web
+  /// mapper's gate: expense kind only, 2+ lines, every line well-formed.
+  /// A malformed line drops the whole set so the row falls back to its
+  /// single-line export instead of writing partial amounts.
+  static List<TransactionSplitLine> _splitLinesFromRow(
+    TransactionKind kind,
+    Map<String, dynamic> r,
+  ) {
+    if (kind != TransactionKind.expense) return const [];
+    final raw = r['split_lines'];
+    if (raw is! List || raw.length < 2) return const [];
+    final lines = <TransactionSplitLine>[];
+    for (final item in raw) {
+      if (item is! Map) return const [];
+      final name = item['category_name'];
+      final amount = item['amount_minor'];
+      if (name is! String || name.isEmpty || amount is! num || amount <= 0) {
+        return const [];
+      }
+      lines.add(
+        TransactionSplitLine(
+          categoryId: item['category_id'] as String? ?? '',
+          category: name,
+          amount: amount.toInt(),
+        ),
+      );
+    }
+    return lines;
+  }
+
+  static Transaction _txFromRow(Map<String, dynamic> r) {
+    final kind = switch (r['kind']) {
       'income' => TransactionKind.income,
       'transfer' => TransactionKind.transfer,
       _ => TransactionKind.expense,
-    },
-    categoryId: r['category_id'] as String? ?? '',
-    category: r['category_name'] as String? ?? 'Khác',
-    note: r['note'] as String? ?? '',
-    accountId: r['account_id'] as String? ?? '',
-    account: r['account_name'] as String? ?? '',
-    amount: (r['amount_minor'] as num).toInt(),
-    occurredOn: r['occurred_on'] as String,
-    payee: r['payee'] as String?,
-    destinationAccountId: r['destination_account_id'] as String?,
-    destinationAccount: r['destination_account_name'] as String?,
-    updatedAt: r['updated_at'] as String?,
-    splitCount: r['split_lines'] is List
-        ? (r['split_lines'] as List).length
-        : 0,
-  );
+    };
+    return Transaction(
+      id: r['id'] as String,
+      kind: kind,
+      categoryId: r['category_id'] as String? ?? '',
+      category: r['category_name'] as String? ?? 'Khác',
+      note: r['note'] as String? ?? '',
+      accountId: r['account_id'] as String? ?? '',
+      account: r['account_name'] as String? ?? '',
+      amount: (r['amount_minor'] as num).toInt(),
+      occurredOn: r['occurred_on'] as String,
+      payee: r['payee'] as String?,
+      destinationAccountId: r['destination_account_id'] as String?,
+      destinationAccount: r['destination_account_name'] as String?,
+      updatedAt: r['updated_at'] as String?,
+      splitCount: r['split_lines'] is List
+          ? (r['split_lines'] as List).length
+          : 0,
+      splitLines: _splitLinesFromRow(kind, r),
+    );
+  }
 
   Future<List<Transaction>> loadTransactions({int limit = 50}) async {
     final rows = await _api.select(
@@ -809,6 +843,13 @@ class RealStore {
     });
     if (ok != true) throw Exception('goal_archive_blocked');
   }
+
+  /// POST /rpc/export_user_archive — the full MoneyFlow archive v1
+  /// document (the same producer the web's backup action calls). SECURITY
+  /// INVOKER under RLS: it only ever returns the caller's own tenant data.
+  /// The decoded jsonb body goes straight into the backup file — the RPC
+  /// output IS the contract, so no mobile-side reshaping happens here.
+  Future<Object?> exportArchive() => _api.rpc('export_user_archive', const {});
 }
 
 /// One UUIDv4 per form instance = one idempotency key per user intent.
