@@ -38,13 +38,27 @@ class AccountSummary {
 
 enum TransactionKind { expense, income, transfer }
 
-/// Category rows for the capture form — kinds match transaction kinds.
+/// Category row — mirrors public.categories. Kinds match transaction kinds;
+/// `icon`/`color` carry the web's stored vocabulary keys (unrendered legacy
+/// or unknown values stay intact so a save never silently drops them).
 class Category {
-  const Category({required this.id, required this.name, required this.kind});
+  const Category({
+    required this.id,
+    required this.name,
+    required this.kind,
+    this.icon,
+    this.color,
+    this.isDefault = false,
+    this.isArchived = false,
+  });
 
   final String id;
   final String name;
   final TransactionKind kind;
+  final String? icon;
+  final String? color;
+  final bool isDefault;
+  final bool isArchived;
 }
 
 enum TransactionReviewStatus { needsReview, reviewed }

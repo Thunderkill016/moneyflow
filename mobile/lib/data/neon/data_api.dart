@@ -34,6 +34,11 @@ class NeonDataApi {
     return json.cast<Map<String, dynamic>>();
   }
 
+  /// The signed-in user's id — direct table writes must send `user_id`
+  /// explicitly (the web action passes `viewer.id`; RLS checks it against
+  /// `auth.uid()`).
+  String? get userId => _auth.session?.userId;
+
   /// POST a SECURITY DEFINER RPC (the same functions the web's server
   /// actions call). Returns the decoded result (uuid string for creates).
   Future<Object?> rpc(String fn, Map<String, Object?> params) async {
@@ -42,14 +47,66 @@ class NeonDataApi {
     return res.json;
   }
 
-  Future<NeonResponse> _send(String method, Uri url, {Object? body}) async {
+  /// POST a table row with `Prefer: return=representation` — the same
+  /// insert+read-back the web's `.insert().select().single()` performs.
+  Future<List<Map<String, dynamic>>> insert(
+    String table,
+    Map<String, Object?> body,
+  ) => _rows(
+    _send(
+      'POST',
+      _url(table, const {}),
+      body: body,
+      prefer: _preferRepresentation,
+    ),
+  );
+
+  /// PATCH rows matching [query], reading back the written rows so the
+  /// caller sees what RLS actually persisted (empty = nothing matched).
+  Future<List<Map<String, dynamic>>> update(
+    String table,
+    Map<String, String> query,
+    Map<String, Object?> body,
+  ) => _rows(
+    _send(
+      'PATCH',
+      _url(table, query),
+      body: body,
+      prefer: _preferRepresentation,
+    ),
+  );
+
+  /// DELETE rows matching [query]. The representation tells "deleted" from
+  /// "RLS hid the row" — an empty list means nothing was removed.
+  Future<List<Map<String, dynamic>>> delete(
+    String table,
+    Map<String, String> query,
+  ) =>
+      _rows(_send('DELETE', _url(table, query), prefer: _preferRepresentation));
+
+  static const _preferRepresentation = 'return=representation';
+
+  static Future<List<Map<String, dynamic>>> _rows(
+    Future<NeonResponse> res,
+  ) async {
+    final json = (await res).json;
+    if (json is! List) return const [];
+    return json.cast<Map<String, dynamic>>();
+  }
+
+  Future<NeonResponse> _send(
+    String method,
+    Uri url, {
+    Object? body,
+    String? prefer,
+  }) async {
     final jwt = await _auth.sessionJwt();
     if (jwt == null) throw NeonAuthException(401, 'not signed in');
     final res = await _requester(
       NeonRequest(
         method: method,
         url: url,
-        headers: {'Authorization': 'Bearer $jwt'},
+        headers: {'Authorization': 'Bearer $jwt', 'Prefer': ?prefer},
         body: body,
       ),
     );

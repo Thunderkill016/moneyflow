@@ -82,15 +82,41 @@ class DemoStore {
     ),
   ];
 
+  // isDefault/icon/color mirror the signup-seeded rows the real store
+  // returns — the demo surface stays honest about what the backend owns.
   static List<Category> seedCategories() => const [
-    Category(id: 'cat-food', name: 'Ăn uống', kind: TransactionKind.expense),
+    Category(
+      id: 'cat-food',
+      name: 'Ăn uống',
+      kind: TransactionKind.expense,
+      icon: 'bowl',
+      color: 'coral',
+      isDefault: true,
+    ),
     Category(
       id: 'cat-transport',
       name: 'Di chuyển',
       kind: TransactionKind.expense,
+      icon: 'car',
+      color: 'blue',
+      isDefault: true,
     ),
-    Category(id: 'cat-bills', name: 'Hóa đơn', kind: TransactionKind.expense),
-    Category(id: 'cat-salary', name: 'Lương', kind: TransactionKind.income),
+    Category(
+      id: 'cat-bills',
+      name: 'Hóa đơn',
+      kind: TransactionKind.expense,
+      icon: 'receipt',
+      color: 'cyan',
+      isDefault: true,
+    ),
+    Category(
+      id: 'cat-salary',
+      name: 'Lương',
+      kind: TransactionKind.income,
+      icon: 'wallet',
+      color: 'green',
+      isDefault: true,
+    ),
   ];
 
   static List<BudgetProgress> seedBudgets(String monthStart) => [

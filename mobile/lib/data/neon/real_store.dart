@@ -1,7 +1,9 @@
 import 'dart:math';
 
+import '../../domain/categories.dart';
 import '../../domain/models.dart';
 import '../../domain/transaction_query.dart';
+import 'auth_client.dart';
 import 'data_api.dart';
 
 /// Neon Data API store — same domain shape as [DemoStore], real rows.
@@ -199,23 +201,109 @@ class RealStore {
         .toList();
   }
 
+  /// Full row shape the web's category workspace reads
+  /// (`mapCategoryRow` field-for-field).
+  static const _categoryColumns =
+      'id,name,kind,icon,color,is_default,is_archived';
+
+  static Category _categoryFromRow(Map<String, dynamic> r) => Category(
+    id: r['id'] as String,
+    name: r['name'] as String,
+    kind: r['kind'] == 'income'
+        ? TransactionKind.income
+        : TransactionKind.expense,
+    icon: r['icon'] as String?,
+    color: r['color'] as String?,
+    isDefault: r['is_default'] as bool? ?? false,
+    isArchived: r['is_archived'] as bool? ?? false,
+  );
+
   /// Capture-form categories (expense/income kinds; transfers use none).
+  /// Archived rows are hidden from pickers — same boundary the server
+  /// guards enforce on new writes.
   Future<List<Category>> loadCategories() async {
     final rows = await _api.select(
       'categories',
-      query: {'select': 'id,name,kind', 'order': 'kind.asc,name.asc'},
+      query: {
+        'select': _categoryColumns,
+        'is_archived': 'eq.false',
+        'order': 'kind.asc,name.asc',
+      },
     );
-    return rows
-        .map(
-          (r) => Category(
-            id: r['id'] as String,
-            name: r['name'] as String,
-            kind: r['kind'] == 'income'
-                ? TransactionKind.income
-                : TransactionKind.expense,
-          ),
-        )
-        .toList();
+    return rows.map(_categoryFromRow).toList();
+  }
+
+  /// Every category including archived — the management surface lists
+  /// "Đã ẩn" rows so they can be restored, like the web's /categories.
+  Future<List<Category>> loadAllCategories() async {
+    final rows = await _api.select(
+      'categories',
+      query: {'select': _categoryColumns, 'order': 'kind.asc,name.asc'},
+    );
+    return rows.map(_categoryFromRow).toList();
+  }
+
+  /// Direct table write under RLS — the web's saveCategoryAction:
+  /// create inserts user_id + is_default:false + is_archived:false;
+  /// update writes ONLY name/icon/color (kind is immutable after create).
+  /// Callers pass already-normalized names (normalizeCategoryName).
+  Future<Category> saveCategory({
+    String? id,
+    required String name,
+    required TransactionKind kind,
+    String? icon,
+    String? color,
+  }) async {
+    if (id == null) {
+      final userId = _api.userId;
+      if (userId == null || userId.isEmpty) {
+        throw NeonAuthException(401, 'not signed in');
+      }
+      final meta = defaultCategoryMeta(kind);
+      final rows = await _api.insert('categories', {
+        'user_id': userId,
+        'name': name,
+        'kind': kind == TransactionKind.income ? 'income' : 'expense',
+        'icon': icon ?? meta.icon,
+        'color': color ?? meta.color,
+        'is_default': false,
+        'is_archived': false,
+      });
+      if (rows.isEmpty) throw Exception('saved_unread');
+      return _categoryFromRow(rows.first);
+    }
+    final rows = await _api.update(
+      'categories',
+      {'id': 'eq.$id'},
+      {
+        'name': name,
+        'icon': icon ?? defaultCategoryMeta(kind).icon,
+        'color': color ?? defaultCategoryMeta(kind).color,
+      },
+    );
+    if (rows.isEmpty) throw Exception('category_not_found');
+    return _categoryFromRow(rows.first);
+  }
+
+  /// PATCH is_archived — setCategoryArchivedAction; defaults archive the
+  /// same way (the web offers Ẩn/Hiện lại on every row).
+  Future<Category> setCategoryArchived(String id, bool archived) async {
+    final rows = await _api.update(
+      'categories',
+      {'id': 'eq.$id'},
+      {'is_archived': archived},
+    );
+    if (rows.isEmpty) throw Exception('category_not_found');
+    return _categoryFromRow(rows.first);
+  }
+
+  /// Hard delete — RLS `categories_delete_custom_own` only allows rows with
+  /// is_default=false; FK-restrict references (transactions, budgets,
+  /// commitments) still block the delete server-side. Returns false when
+  /// nothing was removed (row missing or not deletable).
+  Future<bool> deleteCategory(String id) async {
+    final rows = await _api.delete('categories', {'id': 'eq.$id'});
+    return rows.isNotEmpty;
   }
 
   /// POST /rpc/create_money_transaction — same function the web's

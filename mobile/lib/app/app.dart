@@ -26,6 +26,7 @@ import '../features/auth/login_page.dart';
 import '../features/capture/capture_page.dart';
 import '../features/capture/capture_submit.dart';
 import '../features/capture/queue_banner.dart';
+import '../features/categories/categories_page.dart';
 import '../features/dashboard/dashboard_page.dart';
 import '../features/planning/planning_page.dart';
 import '../features/reports/reports_page.dart';
@@ -496,6 +497,35 @@ class _AuthGateState extends State<AuthGate> {
                     expectedUpdatedAt: a.updatedAt,
                   )
                   .then((_) => _reloadTabs()),
+            ),
+          ),
+        ),
+      ),
+      DashboardMenuItem(
+        label: 'Danh mục',
+        icon: Icons.category,
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => CategoriesPage(
+              loadCategories: _store.loadAllCategories,
+              onSave: (draft) => _store
+                  .saveCategory(
+                    id: draft.id,
+                    name: draft.name,
+                    kind: draft.kind,
+                    icon: draft.icon,
+                    color: draft.color,
+                  )
+                  // Category names/ids feed budgets, filters and pickers —
+                  // reload the tabs that display them after every write.
+                  .then((_) => _reloadTabs()),
+              onSetArchived: (id, archived) => _store
+                  .setCategoryArchived(id, archived)
+                  .then((_) => _reloadTabs()),
+              onDelete: (id) => _store.deleteCategory(id).then((deleted) {
+                if (deleted) _reloadTabs();
+                return deleted;
+              }),
             ),
           ),
         ),
