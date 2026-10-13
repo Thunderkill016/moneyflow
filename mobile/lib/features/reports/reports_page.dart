@@ -3,9 +3,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../../data/export_files.dart';
+import '../../domain/budget.dart';
 import '../../domain/export_csv.dart';
 import '../../domain/money.dart';
 import '../../domain/models.dart';
+import '../../domain/net_worth.dart';
 import '../../domain/report.dart';
 import '../../domain/transaction_query.dart';
 
@@ -19,6 +21,7 @@ class ReportsPage extends StatefulWidget {
     super.key,
     required this.loadTransactions,
     this.loadRange,
+    this.loadAccounts,
     this.pickRange,
     this.shareFile,
     this.tempDir,
@@ -38,6 +41,12 @@ class ReportsPage extends StatefulWidget {
     String to,
   )?
   loadRange;
+
+  /// Account-balance read for the net-worth trend — the reconstruction
+  /// starts from CURRENT balances and walks backwards over transaction
+  /// deltas. Null hides the section (a surface that cannot read balances
+  /// cannot honestly draw the series).
+  final Future<List<AccountSummary>> Function()? loadAccounts;
 
   /// Custom-window picker — injectable so tests don't fight the system
   /// dialog. Defaults to [showDateRangePicker].
@@ -69,6 +78,14 @@ class ReportsPageState extends State<ReportsPage> {
   late Future<({PeriodReport report, bool truncated})> _report;
   late ReportPeriod _period;
 
+  /// Net-worth series — period-independent, so it lives outside the
+  /// report future; `null` while [ReportsPage.loadAccounts] is unwired.
+  late Future<({List<NetWorthPoint> points, bool truncated})>? _netWorth;
+
+  /// Months in the trailing net-worth window — matches the domain
+  /// default so the label and the fold never disagree.
+  static const _netWorthMonths = 6;
+
   /// Oldest day the range picker offers — comfortably past the web's
   /// custom-window cap, so the limit the picker enforces is [lastDate].
   static final _pickerFirstDate = DateTime(2020);
@@ -78,11 +95,64 @@ class ReportsPageState extends State<ReportsPage> {
     super.initState();
     _period = MonthPeriod.of(DateTime.now());
     _report = _load();
+    _netWorth = _loadNetWorth();
   }
 
   Future<({PeriodReport report, bool truncated})> _load() async {
     final range = await _rowsFor(_period);
     return (report: buildPeriodReport(range.rows), truncated: range.truncated);
+  }
+
+  /// Current balances + the trailing ledger window → month-end series.
+  /// The range read covers [_netWorthMonths] calendar months ending at
+  /// next month's first day (exclusive) — the fold filters the same
+  /// window, so a capped read marks itself truncated rather than
+  /// understating early months.
+  Future<({List<NetWorthPoint> points, bool truncated})>? _loadNetWorth() {
+    final loadBalances = widget.loadAccounts;
+    if (loadBalances == null) return null;
+    return () async {
+      final now = DateTime.now();
+      final current = '${now.year}-${now.month.toString().padLeft(2, '0')}-01';
+      final first = shiftBudgetMonth(current, -(_netWorthMonths - 1));
+      final beyond = shiftBudgetMonth(current, 1);
+      final results = await Future.wait([
+        loadBalances(),
+        _rowsForWindow(first, beyond),
+      ]);
+      final range = results[1] as ({List<Transaction> rows, bool truncated});
+      return (
+        points: netWorthTrend(
+          accounts: results[0] as List<AccountSummary>,
+          transactions: range.rows,
+          currentMonthStart: current,
+          months: _netWorthMonths,
+        ),
+        truncated: range.truncated,
+      );
+    }();
+  }
+
+  /// Rows in [from, to) for the trend — the server range read when wired,
+  /// else the recent feed filtered the same way (demo parity with
+  /// [_rowsFor]).
+  Future<({List<Transaction> rows, bool truncated})> _rowsForWindow(
+    String from,
+    String to,
+  ) async {
+    final load = widget.loadRange;
+    if (load != null) return load(from, to);
+    final all = await widget.loadTransactions();
+    return (
+      rows: all
+          .where(
+            (t) =>
+                t.occurredOn.compareTo(from) >= 0 &&
+                t.occurredOn.compareTo(to) < 0,
+          )
+          .toList(),
+      truncated: false,
+    );
   }
 
   /// Rows for [period] — the server-side range query when wired, else the
@@ -104,11 +174,17 @@ class ReportsPageState extends State<ReportsPage> {
   Future<void> _refresh() async {
     setState(() {
       _report = _load();
+      _netWorth = _loadNetWorth();
     });
     try {
       await _report;
     } catch (_) {
       /* surfaced by the FutureBuilder */
+    }
+    try {
+      await _netWorth;
+    } catch (_) {
+      /* surfaced by the section's own FutureBuilder */
     }
   }
 
@@ -332,6 +408,9 @@ class ReportsPageState extends State<ReportsPage> {
                 ? null
                 : () => _select(MonthPeriod.of(DateTime.now())),
           ),
+          // The trend does not follow the period picker — net worth is a
+          // point-in-time figure, always "now + trailing months".
+          if (_netWorth != null) _NetWorthSection(future: _netWorth!),
           Expanded(
             child: FutureBuilder(
               future: _report,
@@ -644,4 +723,201 @@ class _TotalCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Trailing net-worth strip — current balances walked backwards over
+/// monthly deltas (domain/net_worth.dart). Honest by construction:
+/// fewer than two active months renders a reason, not a flat line that
+/// pretends to be a trend; a capped range read labels itself.
+class _NetWorthSection extends StatelessWidget {
+  const _NetWorthSection({required this.future});
+
+  final Future<({List<NetWorthPoint> points, bool truncated})> future;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return FutureBuilder(
+      future: future,
+      builder: (context, snap) {
+        if (snap.hasError) {
+          // The section fails on its own terms — never blocks the
+          // period report under it, never silently absent either.
+          return const Card(
+            margin: EdgeInsets.fromLTRB(16, 4, 16, 4),
+            child: Padding(
+              padding: EdgeInsets.all(12),
+              child: Text('Không tải được tài sản ròng'),
+            ),
+          );
+        }
+        if (!snap.hasData) {
+          return const Card(
+            margin: EdgeInsets.fromLTRB(16, 4, 16, 4),
+            child: Padding(
+              padding: EdgeInsets.all(12),
+              child: LinearProgressIndicator(),
+            ),
+          );
+        }
+        final points = snap.data!.points;
+        final mom = netWorthMomLabel(points, formatMoney);
+        return Card(
+          margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text('Tài sản ròng', style: theme.textTheme.labelLarge),
+                    const Spacer(),
+                    if (points.isNotEmpty)
+                      Text(
+                        formatMoney(points.last.balanceMinor),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                  ],
+                ),
+                if (snap.data!.truncated)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Dữ liệu 6 tháng có thể thiếu một phần',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.error,
+                      ),
+                    ),
+                  ),
+                if (netWorthActiveMonths(points) < 2)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      'Chưa đủ dữ liệu — cần ít nhất 2 tháng có giao '
+                      'dịch để vẽ xu hướng',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  )
+                else ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 56,
+                    width: double.infinity,
+                    child: CustomPaint(
+                      painter: _NetWorthPainter(
+                        points: points,
+                        lineColor: theme.colorScheme.primary,
+                        zeroColor: theme.colorScheme.outlineVariant,
+                        currentColor: theme.colorScheme.tertiary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(
+                        _monthTick(points.first.monthStart),
+                        style: theme.textTheme.labelSmall,
+                      ),
+                      const Spacer(),
+                      // The last point is "now", not a closed month-end
+                      // — the label says so instead of letting a live
+                      // figure pose as history.
+                      Text('hiện tại', style: theme.textTheme.labelSmall),
+                    ],
+                  ),
+                  if (mom != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(mom, style: theme.textTheme.bodySmall),
+                    ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// "thg M" — the compact axis tick; the window is always six months so
+  /// the year is implied by the period bar above.
+  static String _monthTick(String monthStart) =>
+      'thg ${int.parse(monthStart.substring(5, 7))}';
+}
+
+/// Sparkline for the net-worth points — a polyline across the window
+/// with a dashed-ish zero baseline when the series crosses it, and a
+/// dot marking "now" (the only non-month-end point).
+class _NetWorthPainter extends CustomPainter {
+  const _NetWorthPainter({
+    required this.points,
+    required this.lineColor,
+    required this.zeroColor,
+    required this.currentColor,
+  });
+
+  final List<NetWorthPoint> points;
+  final Color lineColor;
+  final Color zeroColor;
+  final Color currentColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (points.length < 2) return;
+    var min = points.first.balanceMinor;
+    var max = min;
+    for (final p in points) {
+      if (p.balanceMinor < min) min = p.balanceMinor;
+      if (p.balanceMinor > max) max = p.balanceMinor;
+    }
+    // A flat series still draws a flat line mid-canvas — zero-padding a
+    // single value would fake a climb from nothing.
+    if (min == max) {
+      min -= 1;
+      max += 1;
+    }
+    final span = (max - min).toDouble();
+    final dx = size.width / (points.length - 1);
+    double yFor(int v) =>
+        size.height - ((v - min) / span) * (size.height - 8) - 4;
+
+    // Zero baseline — only drawn when the series actually crosses it;
+    // an all-positive run gets no fake axis line.
+    if (min < 0 && max > 0) {
+      final zeroPaint = Paint()
+        ..color = zeroColor
+        ..strokeWidth = 1;
+      final y = yFor(0);
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), zeroPaint);
+    }
+
+    final paint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke
+      ..strokeJoin = StrokeJoin.round;
+    final path = Path()..moveTo(0, yFor(points.first.balanceMinor));
+    for (var i = 1; i < points.length; i++) {
+      path.lineTo(dx * i, yFor(points[i].balanceMinor));
+    }
+    canvas.drawPath(path, paint);
+
+    for (var i = 0; i < points.length; i++) {
+      canvas.drawCircle(
+        Offset(dx * i, yFor(points[i].balanceMinor)),
+        i == points.length - 1 ? 3.5 : 2,
+        Paint()
+          ..color = points[i].isCurrent ? currentColor : lineColor
+          ..style = PaintingStyle.fill,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_NetWorthPainter old) =>
+      old.points != points || old.lineColor != lineColor;
 }

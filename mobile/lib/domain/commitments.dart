@@ -25,6 +25,66 @@ String? commitmentDueDate(String monthStart, int dueDay) {
 
 final _isoDatePattern = RegExp(r'^\d{4}-\d{2}-\d{2}$');
 
+final _monthStartPattern = RegExp(r'^\d{4}-\d{2}-01$');
+
+/// Whole months from [fromMonthStart] to [toMonthStart] — positive when
+/// the target is later. Both are YYYY-MM-01; a malformed input returns
+/// null rather than fabricating a distance.
+int? monthDiff(String fromMonthStart, String toMonthStart) {
+  if (!_monthStartPattern.hasMatch(fromMonthStart) ||
+      !_monthStartPattern.hasMatch(toMonthStart)) {
+    return null;
+  }
+  final fy = int.parse(fromMonthStart.substring(0, 4));
+  final fm = int.parse(fromMonthStart.substring(5, 7));
+  final ty = int.parse(toMonthStart.substring(0, 4));
+  final tm = int.parse(toMonthStart.substring(5, 7));
+  return (ty - fy) * 12 + (tm - fm);
+}
+
+/// YYYY-MM-01 shifted by [months] whole months — DateTime normalization
+/// keeps the year boundary right; null on a malformed input.
+String? shiftMonthStart(String monthStart, int months) {
+  if (!_monthStartPattern.hasMatch(monthStart)) return null;
+  final y = int.parse(monthStart.substring(0, 4));
+  final m = int.parse(monthStart.substring(5, 7));
+  final d = DateTime(y, m + months);
+  return '${d.year}-${d.month.toString().padLeft(2, '0')}-01';
+}
+
+/// The month (YYYY-MM-01) the commitment's current due cycle lands in —
+/// never after a skipped cycle silently re-anchors: a missed payment
+/// stays due now instead of jumping a full interval ahead.
+///
+/// - `intervalMonths <= 1` (or an unreadable value) → the viewed month:
+///   monthly rows are due every month, unchanged contract.
+/// - `lastPaidMonth` set → `lastPaidMonth + interval`; a due month
+///   already past clamps to the viewed month (overdue, not skipped).
+/// - Never paid → the viewed month: the user just declared the
+///   commitment, so the first payment establishes the cycle anchor.
+String commitmentDueMonth(RecurringCommitment c, {required String monthStart}) {
+  if (c.intervalMonths <= 1) return monthStart;
+  final last = c.lastPaidMonth;
+  if (last == null || !_monthStartPattern.hasMatch(last)) {
+    return monthStart;
+  }
+  final due = shiftMonthStart(last, c.intervalMonths) ?? monthStart;
+  return due.compareTo(monthStart) < 0 ? monthStart : due;
+}
+
+/// "tháng M/YYYY" — the label style the web's `formatMonthLabel` uses.
+String commitmentMonthLabel(String monthStart) =>
+    'tháng ${int.parse(monthStart.substring(5, 7))}/'
+    '${monthStart.substring(0, 4)}';
+
+/// Cadence chip copy — null for monthly rows (the default needs no
+/// label, like the web). "mỗi năm" reads better than "mỗi 12 tháng".
+String? commitmentIntervalLabel(int intervalMonths) => switch (intervalMonths) {
+  <= 1 => null,
+  12 => 'mỗi năm',
+  final m => 'mỗi $m tháng',
+};
+
 /// Whole days from [today] to [dueDate] — negative means overdue. Both
 /// are YYYY-MM-DD; UTC parsing keeps DST out of the count, like the web.
 /// Returns null on a malformed input rather than throwing — an
@@ -66,6 +126,10 @@ enum CommitmentStatus {
   /// Unpaid, due date still ahead.
   upcoming,
 
+  /// A non-monthly commitment whose next cycle lands in a later month —
+  /// not due yet, so it cannot be overdue, but it is not paid either.
+  scheduled,
+
   /// An occurrence exists but its ledger amount differs from the
   /// commitment's declared amount — settled, yet worth a glance.
   paidDifferent,
@@ -93,6 +157,11 @@ CommitmentStatus commitmentStatus(
         ? CommitmentStatus.paidDifferent
         : CommitmentStatus.paid;
   }
+  // A non-monthly row whose cycle lands in a later month is scheduled,
+  // never due/overdue now — "Đến hạn tháng M" is the honest line.
+  if (commitmentDueMonth(c, monthStart: monthStart).compareTo(monthStart) > 0) {
+    return CommitmentStatus.scheduled;
+  }
   final due = commitmentDueDate(monthStart, c.dueDay);
   // A malformed month or due-day cannot be judged — the honest fallback
   // is "upcoming", never a fabricated overdue claim.
@@ -114,6 +183,11 @@ String commitmentStatusLabel(
   required String today,
   required int dueDay,
   int? paidAmountMinor,
+
+  /// The resolved due month for [CommitmentStatus.scheduled] —
+  /// `commitmentDueMonth` on the caller's row. Null falls back to a
+  /// generic line rather than naming a month that was not computed.
+  String? dueMonth,
   required String Function(int) format,
 }) {
   switch (status) {
@@ -123,6 +197,10 @@ String commitmentStatusLabel(
       return paidAmountMinor == null
           ? 'Đã trả khác số tiền'
           : 'Đã trả khác: ${format(paidAmountMinor)}';
+    case CommitmentStatus.scheduled:
+      return dueMonth == null
+          ? 'Chưa đến kỳ'
+          : 'Đến hạn ${commitmentMonthLabel(dueMonth)}';
     case CommitmentStatus.overdue:
     case CommitmentStatus.dueToday:
     case CommitmentStatus.upcoming:
@@ -138,8 +216,9 @@ String commitmentStatusLabel(
 
 /// Feed ordering — the task contract plus the web's paid-last rule:
 /// overdue first (longest wait first), then due-today, then upcoming by
-/// due day; every paid state sits at the bottom. Ties break on id so the
-/// order is total — Dart's sort is not stable.
+/// due day, then not-yet-due interval rows; every paid state sits at the
+/// bottom. Ties break on id so the order is total — Dart's sort is not
+/// stable.
 List<RecurringCommitment> sortCommitmentsForFeed(
   List<RecurringCommitment> commitments, {
   required String monthStart,
@@ -150,8 +229,9 @@ List<RecurringCommitment> sortCommitmentsForFeed(
         CommitmentStatus.overdue => 0,
         CommitmentStatus.dueToday => 1,
         CommitmentStatus.upcoming => 2,
-        CommitmentStatus.paidDifferent => 3,
-        CommitmentStatus.paid => 4,
+        CommitmentStatus.scheduled => 3,
+        CommitmentStatus.paidDifferent => 4,
+        CommitmentStatus.paid => 5,
       };
 
   final sorted = [...commitments];

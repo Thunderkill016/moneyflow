@@ -24,8 +24,10 @@ RecurringCommitment _commitment({
   int dueDay = 20,
   bool paid = false,
   bool archived = false,
+  int intervalMonths = 1,
+  String? lastPaidMonth,
 }) => RecurringCommitment(
-  id: 'cm-$dueDay-$amount',
+  id: 'cm-$dueDay-$amount-$intervalMonths',
   name: 'Internet',
   amountMinor: amount,
   dueDay: dueDay,
@@ -35,6 +37,8 @@ RecurringCommitment _commitment({
   categoryName: 'Hóa đơn',
   isArchived: archived,
   paidThisMonth: paid,
+  intervalMonths: intervalMonths,
+  lastPaidMonth: lastPaidMonth,
 );
 
 Widget _wrap(Widget child) =>
@@ -159,6 +163,62 @@ void main() {
       )!;
       expect(s.remainingMinor, 1500000);
       expect(s.perDayMinor, 88235);
+    });
+
+    test('a yearly bill due in a later month reserves a proportional '
+        'slice, not the full amount', () {
+      // Paid 2026-06, interval 12 → due 2027-06: eight monthly
+      // funding slots remain from October, so 2.400.000 ÷ 8 = 300.000
+      // is what this month sets aside — never the whole bill.
+      final s = safeDailySpend(
+        budgets: [_budget(spent: 500000)],
+        commitments: [
+          _commitment(
+            amount: 2400000,
+            intervalMonths: 12,
+            lastPaidMonth: '2026-06-01',
+          ),
+        ],
+        today: today,
+      )!;
+      expect(s.remainingMinor, 1500000 - 300000);
+    });
+
+    test('a non-monthly commitment whose cycle IS this month reserves '
+        'in full like a monthly one', () {
+      // Paid 2025-10, interval 12 → due this October — the slice logic
+      // is done; the full bill is what is owed now.
+      final s = safeDailySpend(
+        budgets: [_budget(spent: 500000)],
+        commitments: [
+          _commitment(
+            amount: 2400000,
+            dueDay: 20,
+            intervalMonths: 12,
+            lastPaidMonth: '2025-10-01',
+          ),
+        ],
+        today: today,
+      )!;
+      // Headroom 1.500.000 − full 2.400.000 reserve → clamped 0.
+      expect(s.remainingMinor, 0);
+    });
+
+    test('a missed non-monthly cycle stays fully reserved', () {
+      // Was due 2026-01, unpaid — overdue bills cannot amortize; the
+      // whole amount is owed now.
+      final s = safeDailySpend(
+        budgets: [_budget(spent: 500000)],
+        commitments: [
+          _commitment(
+            amount: 1200000,
+            intervalMonths: 12,
+            lastPaidMonth: '2025-01-01',
+          ),
+        ],
+        today: today,
+      )!;
+      expect(s.remainingMinor, 300000);
     });
 
     test('reservations larger than headroom clamp to 0, not negative', () {

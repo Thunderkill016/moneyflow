@@ -292,7 +292,8 @@ void main() {
         }
       }
       // Known seed math: MoMo received 500k then spent 32k — walking back
-      // from the stored 580k, the older expense row sits at 80k.
+      // from the stored 580k, the older expense row sits at 80k, and
+      // the net-worth trend seed's second top-up lands at 112k.
       final momo = buildAccountRegister(
         currentBalance: 580000,
         accountId: 'acc-momo',
@@ -303,9 +304,10 @@ void main() {
               tx,
         ],
       );
-      expect(momo.map((e) => e.impact), [500000, -32000]);
+      expect(momo.map((e) => e.impact), [500000, -32000, 500000]);
       expect(momo[0].balanceAfter, 580000);
       expect(momo[1].balanceAfter, 80000);
+      expect(momo[2].balanceAfter, 112000);
     });
   });
 

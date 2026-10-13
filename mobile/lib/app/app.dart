@@ -656,13 +656,14 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       categories: categories,
       income: false,
       suggestion: suggestion,
-      onSave: (name, amount, day, accountId, categoryId) => _store
+      onSave: (name, amount, day, accountId, categoryId, interval) => _store
           .upsertCommitment(
             name: name,
             amountMinor: amount,
             dueDay: day,
             accountId: accountId,
             categoryId: categoryId,
+            intervalMonths: interval,
           )
           .then((_) {}),
     );
@@ -812,6 +813,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
               key: _reportKey,
               loadTransactions: _store.loadTransactions,
               loadRange: _store.loadTransactionsInRange,
+              loadAccounts: _store.loadAccounts,
               loadArchive: kArchiveBackupEnabled ? _store.exportArchive : null,
               onOpenActivity: (q, title) =>
                   _openActivitySlice(context, q, title),
@@ -1333,22 +1335,36 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           onDelete: (_) async {},
         ),
         () => PlanningPage(
-          loadData: () async => PlanningData(
-            budgets: DemoStore.seedBudgets(monthStart()),
-            priorBudgets: DemoStore.seedPriorBudgets(monthStart()),
-            budgetSuggestionRows: DemoStore.seedBudgetSuggestionRows(
-              monthStart(),
+          loadData: (budgetMonth) async => PlanningData(
+            // A future viewed month is a PLAN — spend reads zero rather
+            // than re-showing this month's figures under next month's
+            // label.
+            budgets: DemoStore.seedBudgets(
+              budgetMonth,
+              planned: budgetMonth.compareTo(monthStart()) > 0,
             ),
+            priorBudgets: DemoStore.seedPriorBudgets(budgetMonth),
+            // One list feeds both consumers: budgetSuggestions takes the
+            // expense rows, averageMonthlyIncome the income rows —
+            // kind-filtered inside each, like the real range read.
+            budgetSuggestionRows: [
+              ...DemoStore.seedBudgetSuggestionRows(monthStart()),
+              ...DemoStore.seedIncomeBasisRows(monthStart()),
+            ],
             commitments: DemoStore.seedCommitments(),
             goals: DemoStore.seedGoals(),
             accounts: DemoStore.seedAccounts(),
             categories: _demoCategories.active,
             monthStart: monthStart(),
+            budgetMonth: budgetMonth,
           ),
           actions: _noopPlanningActions,
         ),
         () => ReportsPage(
           loadTransactions: () async => DemoStore.seedTransactions(),
+          // Demo net worth: seeded balances + the same in-memory feed —
+          // the window filter drops anything older than six months.
+          loadAccounts: () async => DemoStore.seedAccounts(),
           // Drill-in runs against the same in-memory feed the demo tab
           // uses — read-only rows, identical filter semantics.
           onOpenActivity: (q, title) => Navigator.of(context)
@@ -1389,9 +1405,13 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   }
 
   static final _noopPlanningActions = PlanningActions(
-    onBudgetSave: (_, _, _) async {},
+    onBudgetSave: (_, _, _, _) async {},
     onBudgetDelete: (_) async {},
-    onCommitmentSave: (_, _, _, _, _, _) async {},
+    // The cover sheet stays reachable in demo (donor list, preview,
+    // confirm), but the write pair reports read-only instead of lying
+    // "Đã bù" over unchanged rows.
+    onCoverOverspend: (_, _, _) async => throw const DemoReadOnly(),
+    onCommitmentSave: (_, _, _, _, _, _, _) async {},
     onCommitmentPay: (_) async {},
     onCommitmentUndo: (_) async {},
     onCommitmentArchived: (_, _) async {},
@@ -1413,19 +1433,26 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
 
   /// Signed-in planning loader — also reschedules due-day reminders
   /// against the just-fetched list (archived commitments get cancelled
-  /// inside the scheduler).
-  Future<PlanningData> _loadPlanning() async {
+  /// inside the scheduler). [budgetMonth] is the month the budgets
+  /// section is viewing (this month or next); commitments, income
+  /// receipts and the funding basis stay anchored on the real current
+  /// month.
+  Future<PlanningData> _loadPlanning(String budgetMonth) async {
     final monthStart = _monthStart();
-    // Same window the web workspace reads: rollover history inside
-    // [windowStart, monthStart] from budget_progress, plus the trailing
-    // expense slice the average-fill suggestion averages over.
-    final windowStart = budgetRolloverWindowStart(monthStart);
+    // Same window the web workspace reads, anchored on the VIEWED month:
+    // rollover history inside [windowStart, budgetMonth] from
+    // budget_progress. For the month-ahead view the current month is
+    // itself a "prior" row — its spend feeds next month's carry figures.
+    final windowStart = budgetRolloverWindowStart(budgetMonth);
+    // The suggestion/income basis always resolves against the CURRENT
+    // month — "trung bình 3 tháng" means three completed months
+    // whichever budget month is on screen.
     final suggestionStart = shiftBudgetMonth(
       monthStart,
       -budgetSuggestionMonths,
     );
     final results = await Future.wait([
-      _store.loadBudgetsInRange(windowStart, monthStart),
+      _store.loadBudgetsInRange(windowStart, budgetMonth),
       _store.loadCommitments(monthStart),
       _store.loadGoals(),
       _store.loadAccounts(),
@@ -1440,9 +1467,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     );
     final budgetRows = results[0] as List<BudgetProgress>;
     return PlanningData(
-      budgets: budgetRows.where((b) => b.monthStart == monthStart).toList(),
+      budgets: budgetRows.where((b) => b.monthStart == budgetMonth).toList(),
       priorBudgets: budgetRows
-          .where((b) => b.monthStart.compareTo(monthStart) < 0)
+          .where((b) => b.monthStart.compareTo(budgetMonth) < 0)
           .toList(),
       commitments: results[1] as List<RecurringCommitment>,
       goals: results[2] as List<SavingsGoal>,
@@ -1450,6 +1477,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       categories: results[4] as List<Category>,
       incomeTemplates: results[5] as List<RecurringIncome>,
       monthStart: monthStart,
+      budgetMonth: budgetMonth,
       // A truncated tail only narrows what the average sees — the sheet
       // proposes less, never invents rows.
       budgetSuggestionRows:
@@ -1469,10 +1497,12 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   PlanningActions _planningActions() => PlanningActions(
     // An edit re-sends the same (category, month) pair with the row's
     // updated_at as the stale-write guard — like the web's saveBudgetAction.
-    onBudgetSave: (editing, categoryId, limit) => _store
+    // A create lands on the viewed budget month (the page passes
+    // budgetMonth) — planning ahead writes next month, never this one.
+    onBudgetSave: (editing, categoryId, limit, monthStart) => _store
         .upsertBudget(
           categoryId: categoryId,
-          monthStart: editing?.monthStart ?? _monthStart(),
+          monthStart: editing?.monthStart ?? monthStart,
           limitMinor: limit,
           expectedUpdatedAt: editing?.updatedAt,
         )
@@ -1497,8 +1527,32 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       }
       return applied;
     },
-    onCommitmentSave: (editing, name, amount, day, accountId, categoryId) =>
-        _store
+    // YNAB Rule 3 — two upserts through the same RPC a manual save uses,
+    // donor −X then overspent +X. A failure AFTER the donor write lands
+    // throws cover_partial: the donor limit really did move, and the
+    // page says so instead of reporting "không bù được".
+    onCoverOverspend: (donor, overspent, amount) async {
+      await _store.upsertBudget(
+        categoryId: donor.categoryId,
+        monthStart: donor.monthStart,
+        limitMinor: donor.limitMinor - amount,
+        expectedUpdatedAt: donor.updatedAt,
+      );
+      try {
+        await _store.upsertBudget(
+          categoryId: overspent.categoryId,
+          monthStart: overspent.monthStart,
+          limitMinor: overspent.limitMinor + amount,
+          expectedUpdatedAt: overspent.updatedAt,
+        );
+      } catch (e) {
+        // The tag the page recognises: half the pair landed — re-read
+        // and say so, never pretend nothing happened.
+        throw Exception('cover_partial: $e');
+      }
+    },
+    onCommitmentSave:
+        (editing, name, amount, day, accountId, categoryId, interval) => _store
             .upsertCommitment(
               commitmentId: editing?.id,
               name: name,
@@ -1506,6 +1560,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
               dueDay: day,
               accountId: accountId,
               categoryId: categoryId,
+              intervalMonths: interval,
               expectedUpdatedAt: editing?.updatedAt,
             )
             .then((_) {}),

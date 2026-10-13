@@ -278,3 +278,32 @@ Map<String, BudgetSuggestion> budgetSuggestions(
   }
   return suggestions;
 }
+
+// -- Funding coverage ("% đã dự phòng") --------------------------------------
+
+/// Average monthly income over the [windowMonths] completed months before
+/// [monthStart] — the "% đã dự phòng" basis for the month-ahead view.
+///
+/// Same whole-window convention as [budgetSuggestions]: the income total
+/// divides by every month in the window, not just months that recorded
+/// income — a quiet month is real evidence, and dividing by the full
+/// window keeps the basis honest instead of flattering sparse history.
+/// Returns the rounded đồng average; throws [FormatException] on a
+/// malformed month like [budgetSuggestions]. Transfers never count
+/// (product invariant); a window with no income rows yields 0, which
+/// the UI reads as "no basis", not "funded 0%".
+int averageMonthlyIncome(
+  List<Transaction> transactions,
+  String monthStart, {
+  int windowMonths = budgetSuggestionMonths,
+}) {
+  final windowStart = shiftBudgetMonth(monthStart, -windowMonths);
+  var total = 0;
+  for (final tx in transactions) {
+    if (tx.kind != TransactionKind.income) continue;
+    if (tx.occurredOn.compareTo(windowStart) < 0) continue;
+    if (tx.occurredOn.compareTo(monthStart) >= 0) continue;
+    total += tx.amount;
+  }
+  return (total / windowMonths).round();
+}

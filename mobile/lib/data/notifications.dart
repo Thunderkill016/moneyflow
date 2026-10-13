@@ -92,6 +92,11 @@ class NotificationService {
     final now = tz.TZDateTime.now(tz.local);
     for (final c in commitments) {
       if (c.isArchived) continue;
+      // A monthly due-day alarm would fire twelve times a year for a
+      // yearly bill — no reminder beats a lying one. Non-monthly rows
+      // are simply not armed; the sweep cancels any id a previous
+      // version armed for them.
+      if (c.intervalMonths != 1) continue;
       final body = '${formatMoney(c.amountMinor)} đến hạn hôm nay';
       if (c.dueDay <= maxRecurringDueDay) {
         // The day exists in every month — one repeating alarm anchored on

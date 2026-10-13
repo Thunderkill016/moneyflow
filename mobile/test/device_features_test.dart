@@ -92,7 +92,14 @@ void main() {
             CapturePage(
               accounts: DemoStore.seedAccounts(),
               categories: DemoStore.seedCategories(),
-              transactions: DemoStore.seedTransactions(),
+              // The full seed feed now includes Hóa đơn trend rows —
+              // drop them so the category stays unused and the
+              // "unused stays out of the quick row" assertion keeps
+              // its original meaning.
+              transactions: [
+                for (final tx in DemoStore.seedTransactions())
+                  if (tx.categoryId != 'cat-bills') tx,
+              ],
               onSubmit: (_) async {},
             ),
           ),
@@ -100,7 +107,7 @@ void main() {
         await t.pumpAndSettle();
 
         expect(find.text('Mục hay dùng'), findsOneWidget);
-        // Expense categories used in the seed feed render as chips.
+        // Expense categories used in the feed render as chips.
         final foodChip = find.widgetWithText(ChoiceChip, 'Ăn uống');
         expect(foodChip, findsOneWidget);
         expect(find.widgetWithText(ChoiceChip, 'Di chuyển'), findsOneWidget);

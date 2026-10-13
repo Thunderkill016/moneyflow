@@ -484,30 +484,61 @@ class RealStore {
   /// rows come back too: the planning page lists them under "Đã lưu trữ",
   /// and the other consumers (safe-spend, reminder scheduler) already
   /// skip isArchived rows themselves.
+  ///
+  /// The occurrence read is newest-first, unfiltered by month: the same
+  /// rows resolve `paidThisMonth` (this month's occurrence) AND
+  /// `lastPaidMonth` (the first row per commitment — the anchor a
+  /// non-monthly interval counts its next due month from). The cap only
+  /// bounds extreme histories; desc order means the latest months always
+  /// arrive inside it.
   Future<List<RecurringCommitment>> loadCommitments(String monthStart) async {
-    final rows = await _api.select(
-      'recurring_commitment_feed',
-      query: {
-        'select':
-            'id,name,amount_minor,due_day,account_id,account_name,'
-            'category_id,category_name,is_archived,updated_at',
-        'order': 'due_day.asc',
-      },
-    );
+    // The feed column `interval_months` only exists once migration
+    // 20261015090000 is applied. Ask for it first; on the pre-migration
+    // column-missing error retry without it — every row is then monthly
+    // by definition, which is the migration's own default, never an
+    // invented cadence. A genuinely broken read still fails the list.
+    const baseSelect =
+        'id,name,amount_minor,due_day,account_id,account_name,'
+        'category_id,category_name,is_archived,updated_at';
+    List<Map<String, dynamic>> rows;
+    try {
+      rows = await _api.select(
+        'recurring_commitment_feed',
+        query: {
+          'select': '$baseSelect,interval_months',
+          'order': 'due_day.asc',
+        },
+      );
+    } catch (_) {
+      rows = await _api.select(
+        'recurring_commitment_feed',
+        query: {'select': baseSelect, 'order': 'due_day.asc'},
+      );
+    }
     final occurrences = await _api.select(
       'commitment_occurrences',
       query: {
-        'select': 'commitment_id,transaction_id',
-        'month_start': 'eq.$monthStart',
+        'select': 'commitment_id,month_start,transaction_id',
+        'order': 'month_start.desc',
+        'limit': '500',
       },
     );
-    final paidTxIds = {
-      for (final o in occurrences)
-        // transaction_id can be null on a partial write — that occurrence
-        // still proves "paid", it just cannot show the recorded amount.
-        if (o['commitment_id'] is String)
-          o['commitment_id'] as String: o['transaction_id'] as String?,
-    };
+    final paidTxIds = <String, String?>{};
+    final lastPaidMonths = <String, String>{};
+    for (final o in occurrences) {
+      final commitmentId = o['commitment_id'];
+      if (commitmentId is! String) continue;
+      final occMonth = o['month_start'];
+      // transaction_id can be null on a partial write — that occurrence
+      // still proves "paid", it just cannot show the recorded amount.
+      if (occMonth == monthStart) {
+        paidTxIds[commitmentId] = o['transaction_id'] as String?;
+      }
+      // Newest-first order: the first row per commitment is its latest.
+      if (occMonth is String) {
+        lastPaidMonths.putIfAbsent(commitmentId, () => occMonth);
+      }
+    }
     final paidAmounts = await _loadPaidAmounts(
       paidTxIds.values.whereType<String>().toSet(),
     );
@@ -525,6 +556,13 @@ class RealStore {
             isArchived: r['is_archived'] as bool? ?? false,
             paidThisMonth: paidTxIds.containsKey(r['id']),
             paidAmountMinor: paidAmounts[paidTxIds[r['id']]],
+            intervalMonths:
+                (r['interval_months'] as num?)?.toInt() ??
+                // Pre-migration rows (the column arrives with
+                // 20261015090000) read as monthly — the feed's own
+                // default, never an invented cadence.
+                1,
+            lastPaidMonth: lastPaidMonths[r['id']],
             updatedAt: r['updated_at'] as String?,
           ),
         )
@@ -821,6 +859,10 @@ class RealStore {
   /// POST /rpc/upsert_recurring_commitment — [commitmentId] null creates;
   /// a real id updates name/amount/due-day/account/category in place,
   /// [expectedUpdatedAt] failing closed on a stale read.
+  /// [intervalMonths] rides `p_interval_months` (migration 20261015090000);
+  /// it is only sent when > 1 — the server default is monthly anyway, so a
+  /// monthly save keeps working against the pre-migration signature while
+  /// a non-monthly save honestly errors until the RPC exists.
   Future<String> upsertCommitment({
     String? commitmentId,
     required String name,
@@ -828,6 +870,7 @@ class RealStore {
     required int dueDay,
     required String accountId,
     required String categoryId,
+    int intervalMonths = 1,
     String? expectedUpdatedAt,
   }) async {
     final id = await _api.rpc('upsert_recurring_commitment', {
@@ -837,6 +880,7 @@ class RealStore {
       'p_due_day': dueDay,
       'p_account_id': accountId,
       'p_category_id': categoryId,
+      if (intervalMonths > 1) 'p_interval_months': intervalMonths,
       'p_expected_updated_at': expectedUpdatedAt,
     });
     return id as String;

@@ -36,55 +36,149 @@ class DemoStore {
     ),
   ];
 
-  static List<Transaction> seedTransactions() => const [
-    Transaction(
-      id: 'tx-1',
-      kind: TransactionKind.expense,
-      categoryId: 'cat-food',
-      category: 'Ăn uống',
-      note: 'Bún bò sáng',
-      accountId: 'acc-cash',
-      account: 'Tiền mặt',
-      amount: 45000,
-      occurredOn: '2026-10-12',
-      payee: 'Quán gần nhà',
-    ),
-    Transaction(
-      id: 'tx-2',
-      kind: TransactionKind.income,
-      categoryId: 'cat-salary',
-      category: 'Lương',
-      note: 'Lương tháng 10',
-      accountId: 'acc-bank',
-      account: 'Ngân hàng VCB',
-      amount: 15000000,
-      occurredOn: '2026-10-10',
-    ),
-    Transaction(
-      id: 'tx-3',
-      kind: TransactionKind.transfer,
-      categoryId: 'cat-transfer',
-      category: 'Chuyển khoản',
-      note: 'Nạp ví MoMo',
-      accountId: 'acc-bank',
-      account: 'Ngân hàng VCB',
-      destinationAccountId: 'acc-momo',
-      destinationAccount: 'Ví MoMo',
-      amount: 500000,
-      occurredOn: '2026-10-09',
-    ),
-    Transaction(
-      id: 'tx-4',
-      kind: TransactionKind.expense,
-      categoryId: 'cat-transport',
-      category: 'Di chuyển',
-      note: 'Grab đi làm',
-      accountId: 'acc-momo',
-      account: 'Ví MoMo',
-      amount: 32000,
-      occurredOn: '2026-10-08',
-    ),
-  ];
+  static List<Transaction> seedTransactions() {
+    String ymd(DateTime d) =>
+        '${d.year}-${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+    final now = DateTime.now();
+    // Trailing-month rows — the fixed Oct-2026 rows above anchor the
+    // demo world's reports, while these track "now" so the net-worth
+    // trend always has ≥2 active months and a visible shape (rising,
+    // one dip, transfers neutral). Amounts stay modest so every
+    // month-end reconstructed from the 21.350.000 ₫ seeded balances
+    // reads as plausible rather than deeply negative.
+    final trendRows = [
+      Transaction(
+        id: 'tx-nw-1',
+        kind: TransactionKind.income,
+        categoryId: 'cat-salary',
+        category: 'Lương',
+        note: 'Lương',
+        accountId: 'acc-bank',
+        account: 'Ngân hàng VCB',
+        amount: 8000000,
+        occurredOn: ymd(now.subtract(const Duration(days: 1))),
+      ),
+      Transaction(
+        id: 'tx-nw-2',
+        kind: TransactionKind.expense,
+        categoryId: 'cat-food',
+        category: 'Ăn uống',
+        note: 'Đi chợ cuối tuần',
+        accountId: 'acc-bank',
+        account: 'Ngân hàng VCB',
+        amount: 700000,
+        occurredOn: ymd(now.subtract(const Duration(days: 2))),
+      ),
+      Transaction(
+        id: 'tx-nw-3',
+        kind: TransactionKind.income,
+        categoryId: 'cat-salary',
+        category: 'Lương',
+        note: 'Lương',
+        accountId: 'acc-bank',
+        account: 'Ngân hàng VCB',
+        amount: 8000000,
+        occurredOn: ymd(DateTime(now.year, now.month - 1, 10)),
+      ),
+      Transaction(
+        id: 'tx-nw-4',
+        kind: TransactionKind.expense,
+        categoryId: 'cat-bills',
+        category: 'Hóa đơn',
+        note: 'Tiền nhà',
+        accountId: 'acc-bank',
+        account: 'Ngân hàng VCB',
+        amount: 2000000,
+        occurredOn: ymd(DateTime(now.year, now.month - 1, 8)),
+      ),
+      Transaction(
+        id: 'tx-nw-5',
+        kind: TransactionKind.expense,
+        categoryId: 'cat-bills',
+        category: 'Hóa đơn',
+        note: 'Học phí',
+        accountId: 'acc-bank',
+        account: 'Ngân hàng VCB',
+        amount: 1500000,
+        occurredOn: ymd(DateTime(now.year, now.month - 2, 20)),
+      ),
+      Transaction(
+        id: 'tx-nw-6',
+        kind: TransactionKind.transfer,
+        categoryId: 'cat-transfer',
+        category: 'Chuyển khoản',
+        note: 'Nạp ví MoMo',
+        accountId: 'acc-bank',
+        account: 'Ngân hàng VCB',
+        destinationAccountId: 'acc-momo',
+        destinationAccount: 'Ví MoMo',
+        amount: 500000,
+        occurredOn: ymd(DateTime(now.year, now.month - 2, 25)),
+      ),
+      Transaction(
+        id: 'tx-nw-7',
+        kind: TransactionKind.income,
+        categoryId: 'cat-salary',
+        category: 'Lương',
+        note: 'Lương',
+        accountId: 'acc-bank',
+        account: 'Ngân hàng VCB',
+        amount: 8000000,
+        occurredOn: ymd(DateTime(now.year, now.month - 3, 10)),
+      ),
+    ];
+    return [
+      const Transaction(
+        id: 'tx-1',
+        kind: TransactionKind.expense,
+        categoryId: 'cat-food',
+        category: 'Ăn uống',
+        note: 'Bún bò sáng',
+        accountId: 'acc-cash',
+        account: 'Tiền mặt',
+        amount: 45000,
+        occurredOn: '2026-10-12',
+        payee: 'Quán gần nhà',
+      ),
+      const Transaction(
+        id: 'tx-2',
+        kind: TransactionKind.income,
+        categoryId: 'cat-salary',
+        category: 'Lương',
+        note: 'Lương tháng 10',
+        accountId: 'acc-bank',
+        account: 'Ngân hàng VCB',
+        amount: 15000000,
+        occurredOn: '2026-10-10',
+      ),
+      const Transaction(
+        id: 'tx-3',
+        kind: TransactionKind.transfer,
+        categoryId: 'cat-transfer',
+        category: 'Chuyển khoản',
+        note: 'Nạp ví MoMo',
+        accountId: 'acc-bank',
+        account: 'Ngân hàng VCB',
+        destinationAccountId: 'acc-momo',
+        destinationAccount: 'Ví MoMo',
+        amount: 500000,
+        occurredOn: '2026-10-09',
+      ),
+      const Transaction(
+        id: 'tx-4',
+        kind: TransactionKind.expense,
+        categoryId: 'cat-transport',
+        category: 'Di chuyển',
+        note: 'Grab đi làm',
+        accountId: 'acc-momo',
+        account: 'Ví MoMo',
+        amount: 32000,
+        occurredOn: '2026-10-08',
+      ),
+      ...trendRows,
+    ];
+  }
 
   // isDefault/icon/color mirror the signup-seeded rows the real store
   // returns — the demo surface stays honest about what the backend owns.
@@ -123,14 +217,20 @@ class DemoStore {
     ),
   ];
 
-  static List<BudgetProgress> seedBudgets(String monthStart) => [
+  /// Current-month budget rows. [planned] zeroes the spend — a future
+  /// month cannot have spend yet, and showing 532.000 ₫ "đã chi" on
+  /// tháng sau would read as a ledger fact that does not exist.
+  static List<BudgetProgress> seedBudgets(
+    String monthStart, {
+    bool planned = false,
+  }) => [
     BudgetProgress(
       id: 'b-1',
       categoryId: 'cat-food',
       categoryName: 'Ăn uống',
       monthStart: monthStart,
       limitMinor: 2000000,
-      spentMinor: 45000,
+      spentMinor: planned ? 0 : 45000,
     ),
     BudgetProgress(
       id: 'b-2',
@@ -138,7 +238,8 @@ class DemoStore {
       categoryName: 'Di chuyển',
       monthStart: monthStart,
       limitMinor: 500000,
-      spentMinor: 532000,
+      // Overspent — the row that offers "Bù từ danh mục khác".
+      spentMinor: planned ? 0 : 532000,
     ),
   ];
 
@@ -213,32 +314,82 @@ class DemoStore {
     ];
   }
 
-  static List<RecurringCommitment> seedCommitments() => const [
-    // Paid with a recorded amount above the declared figure — exercises
-    // the "Đã trả khác" state without inventing a server write.
-    RecurringCommitment(
-      id: 'cm-1',
-      name: 'Tiền nhà',
-      amountMinor: 3500000,
-      dueDay: 5,
-      accountId: 'acc-bank',
-      accountName: 'Ngân hàng VCB',
-      categoryId: 'cat-bills',
-      categoryName: 'Hóa đơn',
-      paidThisMonth: true,
-      paidAmountMinor: 3800000,
-    ),
-    RecurringCommitment(
-      id: 'cm-2',
-      name: 'Internet',
-      amountMinor: 250000,
-      dueDay: 15,
-      accountId: 'acc-bank',
-      accountName: 'Ngân hàng VCB',
-      categoryId: 'cat-bills',
-      categoryName: 'Hóa đơn',
-    ),
-  ];
+  /// Salary rows inside the same 3-completed-month window — the income
+  /// basis the "% đã dự phòng" chip divides next month's budgets by
+  /// (15.000.000 ₫ × 3 → a clean 15tr average). Separate from the
+  /// suggestion rows so the expense window stays pure expense.
+  static List<Transaction> seedIncomeBasisRows(String monthStart) {
+    final year = int.parse(monthStart.substring(0, 4));
+    final month = int.parse(monthStart.substring(5, 7));
+    return [
+      for (var i = 1; i <= 3; i++)
+        Transaction(
+          id: 'tx-income-$i',
+          kind: TransactionKind.income,
+          categoryId: 'cat-salary',
+          category: 'Lương',
+          note: 'Lương',
+          accountId: 'acc-bank',
+          account: 'Ngân hàng VCB',
+          amount: 15000000,
+          occurredOn:
+              '${DateTime(year, month - i, 5).year}-'
+              '${DateTime(year, month - i, 5).month.toString().padLeft(2, '0')}'
+              '-05',
+        ),
+    ];
+  }
+
+  static List<RecurringCommitment> seedCommitments() {
+    // Yearly insurance paid eight months ago — next due lands four
+    // months out, so the demo shows the "mỗi năm" cadence, the
+    // "Đến hạn tháng M" scheduled state and the proportional reserve
+    // slice without a fake server.
+    final lastPaid = DateTime.now();
+    final lastPaidMonth = DateTime(lastPaid.year, lastPaid.month - 8);
+    final lastPaidStart =
+        '${lastPaidMonth.year}-'
+        '${lastPaidMonth.month.toString().padLeft(2, '0')}-01';
+    return [
+      // Paid with a recorded amount above the declared figure —
+      // exercises the "Đã trả khác" state without inventing a server
+      // write.
+      const RecurringCommitment(
+        id: 'cm-1',
+        name: 'Tiền nhà',
+        amountMinor: 3500000,
+        dueDay: 5,
+        accountId: 'acc-bank',
+        accountName: 'Ngân hàng VCB',
+        categoryId: 'cat-bills',
+        categoryName: 'Hóa đơn',
+        paidThisMonth: true,
+        paidAmountMinor: 3800000,
+      ),
+      const RecurringCommitment(
+        id: 'cm-2',
+        name: 'Internet',
+        amountMinor: 250000,
+        dueDay: 15,
+        accountId: 'acc-bank',
+        accountName: 'Ngân hàng VCB',
+        categoryId: 'cat-bills',
+        categoryName: 'Hóa đơn',
+      ),
+      RecurringCommitment(
+        id: 'cm-3',
+        name: 'Bảo hiểm xe',
+        amountMinor: 2400000,
+        dueDay: 10,
+        accountId: 'acc-bank',
+        accountName: 'Ngân hàng VCB',
+        categoryId: 'cat-bills',
+        categoryName: 'Hóa đơn',
+        intervalMonths: 12,
+        lastPaidMonth: lastPaidStart,
+      ),
+    ];
+  }
 
   static List<SavingsGoal> seedGoals() => const [
     SavingsGoal(

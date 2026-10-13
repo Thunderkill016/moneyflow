@@ -171,6 +171,41 @@ void main() {
       expect(h.rpcBody['p_amount_minor'], 300000);
     });
 
+    test('upsertCommitment monthly omits p_interval_months — the '
+        'pre-migration RPC signature stays callable', () async {
+      final h = Harness();
+      await h.signIn();
+      h.t.queue.add(FakeTransport.json(200, 'cm-9'));
+
+      await h.store.upsertCommitment(
+        name: 'Tiền nhà',
+        amountMinor: 3500000,
+        dueDay: 5,
+        accountId: 'acc-1',
+        categoryId: 'cat-1',
+        intervalMonths: 1,
+      );
+
+      expect(h.rpcBody.containsKey('p_interval_months'), isFalse);
+    });
+
+    test('upsertCommitment non-monthly sends p_interval_months', () async {
+      final h = Harness();
+      await h.signIn();
+      h.t.queue.add(FakeTransport.json(200, 'cm-9'));
+
+      await h.store.upsertCommitment(
+        name: 'Bảo hiểm xe',
+        amountMinor: 2400000,
+        dueDay: 10,
+        accountId: 'acc-1',
+        categoryId: 'cat-1',
+        intervalMonths: 12,
+      );
+
+      expect(h.rpcBody['p_interval_months'], 12);
+    });
+
     test('undoCommitmentPayment posts commitment id + month', () async {
       final h = Harness();
       await h.signIn();
@@ -401,7 +436,11 @@ void main() {
         );
         h.t.queue.add(
           FakeTransport.json(200, [
-            {'commitment_id': 'cm-1', 'transaction_id': 'tx-pay-1'},
+            {
+              'commitment_id': 'cm-1',
+              'month_start': '2026-10-01',
+              'transaction_id': 'tx-pay-1',
+            },
           ]),
         );
         // The payment transaction's recorded amount — cm-1 declared
@@ -451,7 +490,11 @@ void main() {
         );
         h.t.queue.add(
           FakeTransport.json(200, [
-            {'commitment_id': 'cm-1', 'transaction_id': 'tx-pay-1'},
+            {
+              'commitment_id': 'cm-1',
+              'month_start': '2026-10-01',
+              'transaction_id': 'tx-pay-1',
+            },
           ]),
         );
         h.t.queue.add(FakeTransport.json(500, {'message': 'boom'}));
@@ -462,6 +505,107 @@ void main() {
         // amount unknown" beats no commitment list at all.
         expect(commitments.single.paidThisMonth, isTrue);
         expect(commitments.single.paidAmountMinor, isNull);
+      },
+    );
+
+    test('loadCommitments maps interval + derives lastPaidMonth from the '
+        'newest occurrence row', () async {
+      final h = Harness();
+      await h.signIn();
+      h.t.queue.add(
+        FakeTransport.json(200, [
+          {
+            'id': 'cm-1',
+            'name': 'Bảo hiểm xe',
+            'amount_minor': 2400000,
+            'due_day': 10,
+            'account_id': 'a1',
+            'account_name': 'Bank',
+            'category_id': 'c1',
+            'category_name': 'Hóa đơn',
+            'is_archived': false,
+            'updated_at': '2026-10-03T00:00:00Z',
+            'interval_months': 12,
+          },
+        ]),
+      );
+      h.t.queue.add(
+        FakeTransport.json(200, [
+          // Newest first — the first row is the cycle anchor.
+          {'commitment_id': 'cm-1', 'month_start': '2026-02-01'},
+          {'commitment_id': 'cm-1', 'month_start': '2025-02-01'},
+        ]),
+      );
+
+      final commitments = await h.store.loadCommitments('2026-10-01');
+
+      // The feed read asks for interval_months first; the occurrence
+      // read is newest-first and unfiltered by month.
+      final feedReq = h.t.requests[h.t.requests.length - 2];
+      expect(
+        feedReq.url.queryParameters['select'],
+        contains('interval_months'),
+      );
+      final occReq = h.lastRpc;
+      expect(occReq.url.path, '/neondb/rest/v1/commitment_occurrences');
+      expect(occReq.url.queryParameters['order'], 'month_start.desc');
+      expect(occReq.url.queryParameters.containsKey('month_start'), isFalse);
+      final c = commitments.single;
+      expect(c.intervalMonths, 12);
+      expect(c.lastPaidMonth, '2026-02-01');
+      // The occurrence is a PAST month — not paid this month.
+      expect(c.paidThisMonth, isFalse);
+    });
+
+    test(
+      'loadCommitments retries without interval_months when the column '
+      'is missing — pre-migration rows read monthly, never invented',
+      () async {
+        final h = Harness();
+        await h.signIn();
+        // First select (with interval_months) fails like PostgREST does
+        // on an unknown column; the retry without it succeeds.
+        h.t.queue.add(
+          FakeTransport.json(400, {
+            'code': '42703',
+            'message': 'column interval_months does not exist',
+          }),
+        );
+        h.t.queue.add(
+          FakeTransport.json(200, [
+            {
+              'id': 'cm-1',
+              'name': 'Tiền nhà',
+              'amount_minor': 3500000,
+              'due_day': 5,
+              'account_id': 'a1',
+              'account_name': 'Bank',
+              'category_id': 'c1',
+              'category_name': 'Hóa đơn',
+              'is_archived': false,
+              'updated_at': null,
+            },
+          ]),
+        );
+        h.t.queue.add(FakeTransport.json(200, []));
+
+        final commitments = await h.store.loadCommitments('2026-10-01');
+
+        // Two feed reads — the fallback's select lacks the new column.
+        final feedReqs = h.t.requests
+            .where((r) => r.url.path.endsWith('recurring_commitment_feed'))
+            .toList();
+        expect(feedReqs.length, 2);
+        expect(
+          feedReqs[0].url.queryParameters['select'],
+          contains('interval_months'),
+        );
+        expect(
+          feedReqs[1].url.queryParameters['select'],
+          isNot(contains('interval_months')),
+        );
+        expect(commitments.single.intervalMonths, 1);
+        expect(commitments.single.lastPaidMonth, isNull);
       },
     );
 

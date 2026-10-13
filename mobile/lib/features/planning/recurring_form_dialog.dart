@@ -3,14 +3,23 @@ import 'package:flutter/material.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/recurring_detection.dart';
+import '../capture/capture_submit.dart' show DemoReadOnly;
 
 /// Honest message for a failed planning write — the web server actions
 /// map the same RPC codes; stale_write reuses the edit flow's wording
 /// pattern ("đóng rồi mở lại để sửa bản mới").
 String planningErrorMessage(Object e, {required String fallback}) {
   final msg = e.toString();
+  // Same notice the capture form gives — a demo write is not a
+  // transient failure, so it must not invite a retry.
+  if (e is DemoReadOnly) {
+    return 'Demo chỉ xem — đăng nhập để ghi khoản';
+  }
   if (msg.contains('stale_write')) {
     return 'Dữ liệu vừa thay đổi — đóng rồi mở lại để sửa bản mới';
+  }
+  if (msg.contains('invalid_commitment_interval')) {
+    return 'Kỳ lặp phải từ 1 đến 24 tháng';
   }
   if (msg.contains('goal_not_found_or_target_below_allocated')) {
     return 'Mức đích không được thấp hơn tiền đã dành';
@@ -71,6 +80,7 @@ Future<bool> showRecurringFormDialog(
     int dueDay,
     String accountId,
     String categoryId,
+    int intervalMonths,
   )
   onSave,
 }) async {
@@ -122,6 +132,20 @@ Future<bool> showRecurringFormDialog(
   AccountSummary? acc =
       accounts.where((a) => a.id == initialAccountId).firstOrNull ??
       accounts.firstOrNull;
+  // Cadence picker — commitments only (income templates stay monthly).
+  // The stored interval rides through even when it is not one of the
+  // four offered steps so an edit never silently narrows the cadence.
+  var interval = commitment?.intervalMonths ?? 1;
+  const offeredIntervals = [1, 3, 6, 12];
+  final intervalItems = [
+    ...offeredIntervals,
+    if (!offeredIntervals.contains(interval)) interval,
+  ];
+  String intervalLabel(int months) => switch (months) {
+    1 => 'Mỗi tháng',
+    12 => 'Mỗi năm',
+    final m => 'Mỗi $m tháng',
+  };
   String? error;
   final ok = await showDialog<bool>(
     context: context,
@@ -162,6 +186,24 @@ Future<bool> showRecurringFormDialog(
                   border: OutlineInputBorder(),
                 ),
               ),
+              // Commitments can be non-monthly (Tết, bảo hiểm, học phí);
+              // recurring income stays monthly — the income RPC has no
+              // cadence column.
+              if (!income) ...[
+                const SizedBox(height: 12),
+                DropdownButtonFormField<int>(
+                  initialValue: interval,
+                  decoration: const InputDecoration(
+                    labelText: 'Lặp lại',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    for (final m in intervalItems)
+                      DropdownMenuItem(value: m, child: Text(intervalLabel(m))),
+                  ],
+                  onChanged: (v) => setDlg(() => interval = v ?? interval),
+                ),
+              ],
               const SizedBox(height: 12),
               DropdownButtonFormField<AccountSummary>(
                 initialValue: acc,
@@ -219,7 +261,16 @@ Future<bool> showRecurringFormDialog(
                 return;
               }
               try {
-                await onSave(n, a, day, acc!.id, cat!.id);
+                // Income has no interval field — the picker is hidden and
+                // the saved value is always the monthly default.
+                await onSave(
+                  n,
+                  a,
+                  day,
+                  acc!.id,
+                  cat!.id,
+                  income ? 1 : interval,
+                );
               } catch (e) {
                 setDlg(
                   () => error = planningErrorMessage(

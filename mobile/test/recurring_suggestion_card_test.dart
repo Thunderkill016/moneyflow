@@ -205,7 +205,7 @@ void main() {
     );
 
     testWidgets('prefills name, amount, day, account and category', (t) async {
-      (String, int, int, String, String)? saved;
+      (String, int, int, String, String, int)? saved;
       await t.pumpWidget(
         _wrap(
           Builder(
@@ -217,8 +217,8 @@ void main() {
                   categories: DemoStore.seedCategories(),
                   income: false,
                   suggestion: suggestion,
-                  onSave: (n, a, d, acc, cat) async {
-                    saved = (n, a, d, acc, cat);
+                  onSave: (n, a, d, acc, cat, interval) async {
+                    saved = (n, a, d, acc, cat, interval);
                   },
                 ),
                 child: const Text('open'),
@@ -240,7 +240,8 @@ void main() {
 
       await t.tap(find.text('Tạo'));
       await t.pumpAndSettle();
-      expect(saved, ('Tiền điện', 480000, 5, 'acc-bank', 'cat-bills'));
+      // Detected patterns are monthly — the cadence defaults to 1.
+      expect(saved, ('Tiền điện', 480000, 5, 'acc-bank', 'cat-bills', 1));
     });
   });
 }

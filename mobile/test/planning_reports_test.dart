@@ -28,25 +28,36 @@ PlanningData _seedPlanningData() => PlanningData(
   accounts: DemoStore.seedAccounts(),
   categories: DemoStore.seedCategories(),
   monthStart: _monthStart(),
+  budgetMonth: _monthStart(),
 );
 
 PlanningActions _actions({
   Future<void> Function(RecurringCommitment c)? onCommitmentPay,
   Future<void> Function(RecurringCommitment c)? onCommitmentUndo,
   Future<void> Function(String id, bool archived)? onCommitmentArchived,
-  Future<void> Function(RecurringCommitment?, String, int, int, String, String)?
+  Future<void> Function(
+    RecurringCommitment?,
+    String,
+    int,
+    int,
+    String,
+    String,
+    int,
+  )?
   onCommitmentSave,
-  Future<void> Function(BudgetProgress?, String, int)? onBudgetSave,
+  Future<void> Function(BudgetProgress?, String, int, String)? onBudgetSave,
   Future<void> Function(String id)? onBudgetDelete,
   Future<int> Function(List<BudgetDraft> drafts)? onBudgetFill,
+  Future<void> Function(BudgetProgress, BudgetProgress, int)? onCoverOverspend,
   Future<void> Function(SavingsGoal?, String, int, String?)? onGoalSave,
   Future<void> Function(String id, int amount)? onGoalAdjust,
   Future<void> Function(String id, bool archived)? onGoalArchived,
 }) => PlanningActions(
-  onBudgetSave: onBudgetSave ?? (a, b, c) async {},
+  onBudgetSave: onBudgetSave ?? (a, b, c, d) async {},
   onBudgetDelete: onBudgetDelete ?? (_) async {},
   onBudgetFill: onBudgetFill,
-  onCommitmentSave: onCommitmentSave ?? (a, b, c, d, e, f) async {},
+  onCoverOverspend: onCoverOverspend,
+  onCommitmentSave: onCommitmentSave ?? (a, b, c, d, e, f, g) async {},
   onCommitmentPay: onCommitmentPay ?? (_) async {},
   onCommitmentUndo: onCommitmentUndo ?? (_) async {},
   onCommitmentArchived: onCommitmentArchived ?? (_, _) async {},
@@ -69,7 +80,7 @@ Future<void> _pumpPlanning(
   await tester.pumpWidget(
     MaterialApp(
       home: PlanningPage(
-        loadData: () => Future.value(_seedPlanningData()),
+        loadData: (_) => Future.value(_seedPlanningData()),
         actions: actions,
       ),
     ),
@@ -143,7 +154,7 @@ Future<void> _pumpIncome(
   await tester.pumpWidget(
     MaterialApp(
       home: PlanningPage(
-        loadData: () => Future.value(
+        loadData: (_) => Future.value(
           PlanningData(
             budgets: const [],
             commitments: const [],
@@ -151,6 +162,7 @@ Future<void> _pumpIncome(
             accounts: DemoStore.seedAccounts(),
             categories: DemoStore.seedCategories(),
             monthStart: _monthStart(),
+            budgetMonth: _monthStart(),
             incomeTemplates: templates,
           ),
         ),
@@ -168,9 +180,9 @@ PlanningActions _incomeActions({
   onSave,
   Future<void> Function(String, bool)? onArchived,
 }) => PlanningActions(
-  onBudgetSave: (a, b, c) async {},
+  onBudgetSave: (a, b, c, d) async {},
   onBudgetDelete: (_) async {},
-  onCommitmentSave: (a, b, c, d, e, f) async {},
+  onCommitmentSave: (a, b, c, d, e, f, g) async {},
   onCommitmentPay: (_) async {},
   onCommitmentUndo: (_) async {},
   onCommitmentArchived: (_, _) async {},
@@ -401,7 +413,7 @@ void main() {
     testWidgets('renders section titles and seed item names', (tester) async {
       await _pumpPlanning(tester, actions: _actions());
 
-      expect(find.text('Ngân sách tháng'), findsOneWidget);
+      expect(find.textContaining('Ngân sách · tháng'), findsOneWidget);
       expect(find.text('Cam kết hàng tháng'), findsOneWidget);
       expect(find.text('Mục tiêu tiết kiệm'), findsOneWidget);
 
@@ -448,11 +460,12 @@ void main() {
         accounts: const [],
         categories: const [],
         monthStart: _monthStart(),
+        budgetMonth: _monthStart(),
       );
       await tester.pumpWidget(
         MaterialApp(
           home: PlanningPage(
-            loadData: () => Future.value(data),
+            loadData: (_) => Future.value(data),
             actions: _actions(),
           ),
         ),
@@ -516,8 +529,8 @@ void main() {
       await _pumpPlanning(
         tester,
         actions: _actions(
-          onCommitmentSave: (editing, n, a, d, acc, cat) async =>
-              saved = [editing, n, a, d, acc, cat],
+          onCommitmentSave: (editing, n, a, d, acc, cat, interval) async =>
+              saved = [editing, n, a, d, acc, cat, interval],
         ),
       );
 
@@ -558,7 +571,7 @@ void main() {
       await _pumpPlanning(
         tester,
         actions: _actions(
-          onCommitmentSave: (editing, n, a, d, acc, cat) async =>
+          onCommitmentSave: (editing, n, a, d, acc, cat, interval) async =>
               throw Exception('stale_write'),
         ),
       );
@@ -603,7 +616,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: PlanningPage(
-            loadData: () => Future.value(
+            loadData: (_) => Future.value(
               PlanningData(
                 budgets: data.budgets,
                 commitments: [
@@ -624,6 +637,7 @@ void main() {
                 accounts: data.accounts,
                 categories: data.categories,
                 monthStart: data.monthStart,
+                budgetMonth: _monthStart(),
               ),
             ),
             actions: _actions(
@@ -639,7 +653,9 @@ void main() {
 
       // The archived row is hidden until the collapsed group expands.
       expect(find.text('Netflix cũ'), findsNothing);
-      await tester.ensureVisible(find.text('Đã lưu trữ (1)'));
+      // The section can sit below the fold — scroll it into the tree
+      // before tapping (ListView children inflate lazily).
+      await tester.scrollUntilVisible(find.text('Đã lưu trữ (1)'), 200);
       await tester.tap(find.text('Đã lưu trữ (1)'));
       await tester.pumpAndSettle();
       expect(find.text('Netflix cũ'), findsOneWidget);
@@ -659,8 +675,8 @@ void main() {
       await _pumpPlanning(
         tester,
         actions: _actions(
-          onBudgetSave: (editing, categoryId, limit) async =>
-              saved = [editing, categoryId, limit],
+          onBudgetSave: (editing, categoryId, limit, month) async =>
+              saved = [editing, categoryId, limit, month],
         ),
       );
 
@@ -697,7 +713,7 @@ void main() {
       await _pumpPlanning(
         tester,
         actions: _actions(
-          onBudgetSave: (editing, categoryId, limit) async =>
+          onBudgetSave: (editing, categoryId, limit, month) async =>
               throw Exception('stale_write'),
         ),
       );
@@ -863,11 +879,12 @@ void main() {
         accounts: DemoStore.seedAccounts(),
         categories: DemoStore.seedCategories(),
         monthStart: _monthStart(),
+        budgetMonth: _monthStart(),
       );
       await tester.pumpWidget(
         MaterialApp(
           home: PlanningPage(
-            loadData: () => Future.value(data),
+            loadData: (_) => Future.value(data),
             actions: _actions(),
           ),
         ),
@@ -1357,7 +1374,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: PlanningPage(
-            loadData: () async {
+            loadData: (_) async {
               loads++;
               throw Exception('socket exploded');
             },
@@ -1391,7 +1408,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: PlanningPage(
-            loadData: () => Future.value(
+            loadData: (_) => Future.value(
               PlanningData(
                 budgets: DemoStore.seedBudgets(_monthStart()),
                 priorBudgets: DemoStore.seedPriorBudgets(_monthStart()),
@@ -1400,6 +1417,7 @@ void main() {
                 accounts: DemoStore.seedAccounts(),
                 categories: DemoStore.seedCategories(),
                 monthStart: _monthStart(),
+                budgetMonth: _monthStart(),
               ),
             ),
             actions: actions ?? _actions(),
@@ -1452,6 +1470,7 @@ void main() {
       accounts: DemoStore.seedAccounts(),
       categories: DemoStore.seedCategories(),
       monthStart: _monthStart(),
+      budgetMonth: _monthStart(),
     );
 
     Future<void> pumpFill(
@@ -1466,7 +1485,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: PlanningPage(
-            loadData: () => Future.value(data ?? fillData()),
+            loadData: (_) => Future.value(data ?? fillData()),
             actions: actions,
           ),
         ),
@@ -1592,6 +1611,7 @@ void main() {
           accounts: DemoStore.seedAccounts(),
           categories: DemoStore.seedCategories(),
           monthStart: _monthStart(),
+          budgetMonth: _monthStart(),
         ),
       );
 
@@ -1647,7 +1667,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: PlanningPage(
-            loadData: () => Future.value(
+            loadData: (_) => Future.value(
               PlanningData(
                 budgets: const [],
                 commitments: commitments,
@@ -1655,6 +1675,7 @@ void main() {
                 accounts: DemoStore.seedAccounts(),
                 categories: DemoStore.seedCategories(),
                 monthStart: monthStart,
+                budgetMonth: _monthStart(),
               ),
             ),
             actions: _actions(),
@@ -1717,6 +1738,434 @@ void main() {
       expect(find.textContaining('ngày'), findsWidgets);
       // Still payable — the Trả action survives the new status model.
       expect(find.text('Trả'), findsOneWidget);
+    });
+  });
+
+  group('PlanningPage month-ahead budgets + funding chip', () {
+    String nextMonth() => shiftBudgetMonth(_monthStart(), 1);
+
+    // Mirror of the page's private _monthLabel: "tháng M/YYYY".
+    String monthLabel(String monthStart) =>
+        'tháng ${int.parse(monthStart.substring(5, 7))}/'
+        '${monthStart.substring(0, 4)}';
+
+    Future<void> pumpMonthAhead(
+      WidgetTester tester, {
+      required PlanningActions actions,
+      List<String>? calls,
+      List<Transaction>? basisRows,
+    }) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PlanningPage(
+            loadData: (budgetMonth) {
+              calls?.add(budgetMonth);
+              return Future.value(
+                PlanningData(
+                  budgets: DemoStore.seedBudgets(
+                    budgetMonth,
+                    planned: budgetMonth.compareTo(_monthStart()) > 0,
+                  ),
+                  priorBudgets: DemoStore.seedPriorBudgets(budgetMonth),
+                  budgetSuggestionRows: basisRows ?? const [],
+                  commitments: DemoStore.seedCommitments(),
+                  goals: DemoStore.seedGoals(),
+                  accounts: DemoStore.seedAccounts(),
+                  categories: DemoStore.seedCategories(),
+                  monthStart: _monthStart(),
+                  budgetMonth: budgetMonth,
+                ),
+              );
+            },
+            actions: actions,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the ‹/› switcher moves budgets one month ahead and back', (
+      tester,
+    ) async {
+      final calls = <String>[];
+      await pumpMonthAhead(tester, actions: _actions(), calls: calls);
+
+      // Starts on the current month; the back chevron is disabled.
+      expect(
+        find.text('Ngân sách · ${monthLabel(_monthStart())}'),
+        findsOneWidget,
+      );
+      await tester.tap(find.byTooltip('Tháng sau'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Ngân sách · ${monthLabel(nextMonth())}'),
+        findsOneWidget,
+      );
+      expect(calls, [_monthStart(), nextMonth()]);
+      // A future month is a plan — spend reads zero, not this month's
+      // figures re-labeled.
+      expect(find.textContaining('0 ₫ /'), findsWidgets);
+      // The forward chevron stops at +1 — no deeper future.
+      expect(
+        tester
+            .widget<IconButton>(
+              find.widgetWithIcon(IconButton, Icons.chevron_right),
+            )
+            .onPressed,
+        isNull,
+      );
+      await tester.tap(find.byTooltip('Tháng trước'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Ngân sách · ${monthLabel(_monthStart())}'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the funded chip shows only ahead, labeled by the basis', (
+      tester,
+    ) async {
+      // 3 completed months × 15.000.000 income → basis 15.000.000; the
+      // seeded next-month limits total 2.500.000 → 17%.
+      await pumpMonthAhead(
+        tester,
+        actions: _actions(),
+        basisRows: DemoStore.seedIncomeBasisRows(_monthStart()),
+      );
+      // Current month: no chip.
+      expect(find.textContaining('Đã dự phòng'), findsNothing);
+      await tester.tap(find.byTooltip('Tháng sau'));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Đã dự phòng 17% · 2.500.000 ₫ / 15.000.000 ₫'),
+        findsOneWidget,
+      );
+      // The basis is named — never an unexplained divisor.
+      expect(find.text('theo thu nhập TB 3 tháng'), findsOneWidget);
+    });
+
+    testWidgets('no income basis reads honestly, not "funded 0%"', (
+      tester,
+    ) async {
+      await pumpMonthAhead(tester, actions: _actions());
+      await tester.tap(find.byTooltip('Tháng sau'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Chưa có thu nhập 3 tháng gần để đối chiếu'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Đã dự phòng'), findsNothing);
+    });
+
+    testWidgets('a budget created ahead lands on the viewed month', (
+      tester,
+    ) async {
+      List<Object?>? saved;
+      await pumpMonthAhead(
+        tester,
+        actions: _actions(
+          onBudgetSave: (editing, categoryId, limit, month) async =>
+              saved = [editing, categoryId, limit, month],
+        ),
+      );
+      await tester.tap(find.byTooltip('Tháng sau'));
+      await tester.pumpAndSettle();
+
+      // Both seeded categories already hold next-month limits, so the
+      // add sheet would still work — the form opens from the + icon.
+      await tester.tap(find.byIcon(Icons.add_circle_outline).first);
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Hạn mức'),
+        '900000',
+      );
+      await tester.tap(find.text('Tạo'));
+      await tester.pumpAndSettle();
+      expect(saved?[3], nextMonth());
+    });
+  });
+
+  group('PlanningPage cover overspend (Rule 3)', () {
+    // Seeded state: Di chuyển 532.000/500.000 with a −130.000 carry →
+    // effective −162.000 ₫; Ăn uống holds 2.255.000 effective remaining.
+    Future<void> pumpCover(
+      WidgetTester tester, {
+      required PlanningActions actions,
+    }) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PlanningPage(
+            loadData: (_) => Future.value(
+              PlanningData(
+                budgets: DemoStore.seedBudgets(_monthStart()),
+                priorBudgets: DemoStore.seedPriorBudgets(_monthStart()),
+                commitments: const [],
+                goals: const [],
+                accounts: DemoStore.seedAccounts(),
+                categories: DemoStore.seedCategories(),
+                monthStart: _monthStart(),
+                budgetMonth: _monthStart(),
+              ),
+            ),
+            actions: actions,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the sheet previews both limits and confirms the exact pair', (
+      tester,
+    ) async {
+      (BudgetProgress, BudgetProgress, int)? covered;
+      await pumpCover(
+        tester,
+        actions: _actions(
+          onCoverOverspend: (donor, overspent, amount) async =>
+              covered = (donor, overspent, amount),
+        ),
+      );
+
+      await tester.ensureVisible(find.text('Bù từ danh mục khác'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Bù từ danh mục khác'));
+      await tester.pumpAndSettle();
+
+      // Donor + target named; the deficit defaults the amount.
+      expect(
+        find.textContaining('Bù 162.000 ₫ cho "Di chuyển"'),
+        findsOneWidget,
+      );
+      expect(find.text('Ăn uống'), findsWidgets);
+      expect(find.textContaining('Còn dư 2.255.000 ₫'), findsOneWidget);
+      expect(
+        find.textContaining('Ăn uống: 2.000.000 ₫ → 1.838.000 ₫'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Di chuyển: 500.000 ₫ → 662.000 ₫'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Bù 162.000 ₫'));
+      await tester.pumpAndSettle();
+      expect(covered, isNotNull);
+      expect(covered!.$1.categoryId, 'cat-food');
+      expect(covered!.$2.categoryId, 'cat-transport');
+      expect(covered!.$3, 162000);
+    });
+
+    testWidgets('a partial apply says the donor moved, never a clean failure', (
+      tester,
+    ) async {
+      await pumpCover(
+        tester,
+        actions: _actions(
+          onCoverOverspend: (donor, overspent, amount) async =>
+              throw Exception('cover_partial: upstream'),
+        ),
+      );
+
+      await tester.ensureVisible(find.text('Bù từ danh mục khác'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Bù từ danh mục khác'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Bù 162.000 ₫'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('Đã giảm "Ăn uống" nhưng chưa bù được'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a well-covered month never offers the cover affordance', (
+      tester,
+    ) async {
+      await pumpCover(tester, actions: _actions());
+      // No onCoverOverspend wired → the button hides even though
+      // Di chuyển is over — surfaces without the write path stay
+      // read-only rather than opening a dead end.
+      expect(find.text('Bù từ danh mục khác'), findsNothing);
+    });
+  });
+
+  group('PlanningPage non-monthly commitments', () {
+    Future<void> pumpCadence(
+      WidgetTester tester, {
+      required PlanningActions actions,
+      List<RecurringCommitment>? commitments,
+    }) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PlanningPage(
+            loadData: (_) => Future.value(
+              PlanningData(
+                budgets: const [],
+                commitments: commitments ?? DemoStore.seedCommitments(),
+                goals: const [],
+                accounts: DemoStore.seedAccounts(),
+                categories: DemoStore.seedCategories(),
+                monthStart: _monthStart(),
+                budgetMonth: _monthStart(),
+              ),
+            ),
+            actions: actions,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a yearly row labels its cadence and the real due month', (
+      tester,
+    ) async {
+      // Seeded Bảo hiểm xe: 12-month interval, paid 8 months back →
+      // due 4 months out — the label names that month, not "Còn N ngày".
+      final now = DateTime.now();
+      final due = DateTime(now.year, now.month + 4);
+      await pumpCadence(tester, actions: _actions());
+      expect(find.textContaining('mỗi năm'), findsOneWidget);
+      expect(
+        find.text('Đến hạn tháng ${due.month}/${due.year}'),
+        findsOneWidget,
+      );
+      // Early pay stays available — the button is honest about it.
+      expect(find.text('Trả sớm'), findsOneWidget);
+    });
+
+    testWidgets('the cadence picker offers month/quarter/half/year', (
+      tester,
+    ) async {
+      (RecurringCommitment?, String, int, int, String, String, int)? saved;
+      await pumpCadence(
+        tester,
+        actions: _actions(
+          onCommitmentSave: (e, n, a, d, acc, cat, interval) async =>
+              saved = (e, n, a, d, acc, cat, interval),
+        ),
+      );
+
+      // Open the create form from the commitments section's + button —
+      // the budgets section + is the first, commitments is next.
+      await tester.ensureVisible(find.text('Cam kết hàng tháng'));
+      await tester.pumpAndSettle();
+      final addButtons = find.byIcon(Icons.add_circle_outline);
+      await tester.tap(addButtons.at(1));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cam kết mới'), findsOneWidget);
+      await tester.tap(
+        find.widgetWithText(DropdownButtonFormField<int>, 'Lặp lại'),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Mỗi tháng'), findsWidgets);
+      expect(find.text('Mỗi 3 tháng'), findsOneWidget);
+      expect(find.text('Mỗi 6 tháng'), findsOneWidget);
+      expect(find.text('Mỗi năm'), findsOneWidget);
+
+      await tester.tap(find.text('Mỗi năm').last);
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Tên'),
+        'Bảo hiểm nhà',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Số tiền'),
+        '2400000',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Ngày đến hạn (1-31)'),
+        '10',
+      );
+      await tester.tap(find.text('Tạo'));
+      await tester.pumpAndSettle();
+      expect(saved?.$7, 12);
+    });
+  });
+
+  group('ReportsPage net worth', () {
+    String prevMonthDay(int day) {
+      final prev = shiftBudgetMonth(_monthStart(), -1);
+      return '${prev.substring(0, 8)}${day.toString().padLeft(2, '0')}';
+    }
+
+    Future<void> pumpNetWorth(
+      WidgetTester tester, {
+      required List<Transaction> rows,
+      List<AccountSummary>? accounts,
+    }) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ReportsPage(
+            loadTransactions: () async => rows,
+            loadAccounts: accounts == null ? null : () async => accounts,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('renders the trend with a MoM delta when ≥2 months active', (
+      tester,
+    ) async {
+      await pumpNetWorth(
+        tester,
+        accounts: DemoStore.seedAccounts(),
+        rows: [
+          _tx('i1', TransactionKind.income, 'Lương', 8000000, _thisMonthDay()),
+          _tx(
+            'e1',
+            TransactionKind.expense,
+            'Hóa đơn',
+            2000000,
+            prevMonthDay(15),
+          ),
+          _tx(
+            'x1',
+            TransactionKind.transfer,
+            'Chuyển khoản',
+            500000,
+            prevMonthDay(20),
+          ),
+        ],
+      );
+      expect(find.text('Tài sản ròng'), findsOneWidget);
+      expect(find.textContaining('so với tháng trước'), findsOneWidget);
+      expect(find.text('hiện tại'), findsOneWidget);
+      expect(find.byType(CustomPaint), findsWidgets);
+    });
+
+    testWidgets('fewer than two active months reads as missing evidence', (
+      tester,
+    ) async {
+      await pumpNetWorth(
+        tester,
+        accounts: DemoStore.seedAccounts(),
+        rows: [
+          _tx('e1', TransactionKind.expense, 'Ăn uống', 50000, _thisMonthDay()),
+        ],
+      );
+      expect(find.text('Tài sản ròng'), findsOneWidget);
+      expect(find.textContaining('Chưa đủ dữ liệu'), findsOneWidget);
+      expect(find.textContaining('so với tháng trước'), findsNothing);
+    });
+
+    testWidgets('no balance read → the section hides entirely', (tester) async {
+      await pumpNetWorth(tester, rows: const []);
+      expect(find.text('Tài sản ròng'), findsNothing);
     });
   });
 }

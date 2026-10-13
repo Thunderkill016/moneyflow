@@ -406,4 +406,75 @@ void main() {
       expect(suggestions.containsKey('cat-small'), isFalse);
     });
   });
+
+  group('averageMonthlyIncome', () {
+    test('sums income over the 3 completed months, divides by all of them', () {
+      final avg = averageMonthlyIncome([
+        _expense(
+          'i1',
+          'cat-salary',
+          15000000,
+          '2026-07-05',
+          kind: TransactionKind.income,
+        ),
+        _expense(
+          'i2',
+          'cat-salary',
+          15000000,
+          '2026-08-05',
+          kind: TransactionKind.income,
+        ),
+        _expense(
+          'i3',
+          'cat-salary',
+          15000000,
+          '2026-09-05',
+          kind: TransactionKind.income,
+        ),
+      ], '2026-10-01');
+      expect(avg, 15000000);
+    });
+
+    test('a quiet month still divides — real evidence, not missing data', () {
+      final avg = averageMonthlyIncome([
+        _expense(
+          'i1',
+          'cat-salary',
+          15000000,
+          '2026-09-05',
+          kind: TransactionKind.income,
+        ),
+      ], '2026-10-01');
+      expect(avg, 5000000); // 15.000.000 / 3
+    });
+
+    test('expense and transfer rows never feed the basis', () {
+      final avg = averageMonthlyIncome([
+        _expense('e1', 'cat-food', 900000, '2026-08-10'),
+        _expense(
+          'x1',
+          'cat-transfer',
+          5000000,
+          '2026-09-10',
+          kind: TransactionKind.transfer,
+        ),
+      ], '2026-10-01');
+      expect(avg, 0);
+    });
+
+    test('the viewed month never leaks into its own basis', () {
+      // Anchored on October: October rows are "future" to the window —
+      // the month is still earning, so it cannot flatter the average.
+      final avg = averageMonthlyIncome([
+        _expense(
+          'i1',
+          'cat-salary',
+          90000000,
+          '2026-10-05',
+          kind: TransactionKind.income,
+        ),
+      ], '2026-10-01');
+      expect(avg, 0);
+    });
+  });
 }

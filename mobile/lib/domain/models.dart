@@ -211,6 +211,8 @@ class RecurringCommitment {
     this.isArchived = false,
     this.paidThisMonth = false,
     this.paidAmountMinor,
+    this.intervalMonths = 1,
+    this.lastPaidMonth,
     this.updatedAt,
   });
 
@@ -224,6 +226,17 @@ class RecurringCommitment {
   final String categoryName;
   final bool isArchived;
   final bool paidThisMonth;
+
+  /// Months between payment cycles — `interval_months` on the row (1 =
+  /// monthly, 3 quarterly, 6 half-yearly, 12 yearly; the server allows
+  /// 1-24). Defaults to monthly so rows read before the column existed
+  /// keep their exact contract.
+  final int intervalMonths;
+
+  /// Latest `commitment_occurrences.month_start` on record (YYYY-MM-01)
+  /// — the anchor the next due month counts from for interval > 1. Null
+  /// means never paid: the first payment establishes the cycle.
+  final String? lastPaidMonth;
 
   /// Amount the linked payment transaction recorded this month, when the
   /// feed could read it — null means "paid, amount unknown" (the honest

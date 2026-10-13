@@ -8,6 +8,8 @@ RecurringCommitment _c(
   int amountMinor = 300000,
   bool paidThisMonth = false,
   int? paidAmountMinor,
+  int intervalMonths = 1,
+  String? lastPaidMonth,
 }) => RecurringCommitment(
   id: id,
   name: id,
@@ -19,6 +21,8 @@ RecurringCommitment _c(
   categoryName: 'Hóa đơn',
   paidThisMonth: paidThisMonth,
   paidAmountMinor: paidAmountMinor,
+  intervalMonths: intervalMonths,
+  lastPaidMonth: lastPaidMonth,
 );
 
 void main() {
@@ -143,6 +147,82 @@ void main() {
         CommitmentStatus.upcoming,
       );
     });
+
+    test('a yearly row whose next cycle lands later is scheduled — never '
+        'overdue on an unpaid month', () {
+      expect(
+        commitmentStatus(
+          _c('a', intervalMonths: 12, lastPaidMonth: '2026-02-01'),
+          monthStart: '2026-10-01',
+          today: '2026-10-20',
+        ),
+        CommitmentStatus.scheduled,
+      );
+    });
+
+    test('a yearly row whose cycle IS this month judges like monthly', () {
+      // Paid 2025-10, interval 12 → due again 2026-10; an unpaid row
+      // past its day is genuinely overdue.
+      expect(
+        commitmentStatus(
+          _c('a', dueDay: 5, intervalMonths: 12, lastPaidMonth: '2025-10-01'),
+          monthStart: '2026-10-01',
+          today: '2026-10-06',
+        ),
+        CommitmentStatus.overdue,
+      );
+    });
+
+    test('a missed cycle stays due — never silently re-anchored ahead', () {
+      // Paid 2025-01, interval 12 → was due 2026-01 and missed; the due
+      // month clamps to the viewed month so the row stays overdue.
+      final c = _c(
+        'a',
+        dueDay: 5,
+        intervalMonths: 12,
+        lastPaidMonth: '2025-01-01',
+      );
+      expect(commitmentDueMonth(c, monthStart: '2026-10-01'), '2026-10-01');
+      expect(
+        commitmentStatus(c, monthStart: '2026-10-01', today: '2026-10-06'),
+        CommitmentStatus.overdue,
+      );
+    });
+  });
+
+  group('commitmentDueMonth', () {
+    test('monthly rows are always due in the viewed month', () {
+      final c = _c('a', intervalMonths: 1, lastPaidMonth: '2025-01-01');
+      expect(commitmentDueMonth(c, monthStart: '2026-10-01'), '2026-10-01');
+    });
+
+    test('interval + last paid derives the next cycle month', () {
+      final c = _c('a', intervalMonths: 12, lastPaidMonth: '2026-02-01');
+      expect(commitmentDueMonth(c, monthStart: '2026-10-01'), '2027-02-01');
+      final q = _c('a', intervalMonths: 3, lastPaidMonth: '2026-08-01');
+      expect(commitmentDueMonth(q, monthStart: '2026-10-01'), '2026-11-01');
+    });
+
+    test('never-paid non-monthly rows are due now — first pay anchors', () {
+      final c = _c('a', intervalMonths: 12);
+      expect(commitmentDueMonth(c, monthStart: '2026-10-01'), '2026-10-01');
+    });
+
+    test('an unreadable lastPaidMonth anchors like never-paid', () {
+      final c = _c('a', intervalMonths: 6, lastPaidMonth: 'not-a-month');
+      expect(commitmentDueMonth(c, monthStart: '2026-10-01'), '2026-10-01');
+    });
+  });
+
+  group('commitmentIntervalLabel', () {
+    test('monthly needs no label; named cadences read Vietnamese', () {
+      expect(commitmentIntervalLabel(1), isNull);
+      expect(commitmentIntervalLabel(0), isNull);
+      expect(commitmentIntervalLabel(3), 'mỗi 3 tháng');
+      expect(commitmentIntervalLabel(6), 'mỗi 6 tháng');
+      expect(commitmentIntervalLabel(12), 'mỗi năm');
+      expect(commitmentIntervalLabel(24), 'mỗi 24 tháng');
+    });
   });
 
   group('commitmentStatusLabel', () {
@@ -220,6 +300,31 @@ void main() {
         'Quá hạn 1 ngày',
       );
     });
+
+    test('scheduled names the real due month, never "Còn N ngày"', () {
+      expect(
+        commitmentStatusLabel(
+          CommitmentStatus.scheduled,
+          monthStart: month,
+          today: '2026-10-06',
+          dueDay: 5,
+          dueMonth: '2027-02-01',
+          format: fmt,
+        ),
+        'Đến hạn tháng 2/2027',
+      );
+      // No due month computed → generic honest line, not an invented one.
+      expect(
+        commitmentStatusLabel(
+          CommitmentStatus.scheduled,
+          monthStart: month,
+          today: '2026-10-06',
+          dueDay: 5,
+          format: fmt,
+        ),
+        'Chưa đến kỳ',
+      );
+    });
   });
 
   group('sortCommitmentsForFeed', () {
@@ -246,6 +351,32 @@ void main() {
         'upcoming',
         // Paid states sink to the bottom; the "khác" row surfaces first.
         'paid-diff',
+        'paid',
+      ]);
+    });
+
+    test('scheduled rows sort after upcoming, before paid', () {
+      const month = '2026-10-01';
+      const today = '2026-10-10';
+      final sorted = sortCommitmentsForFeed(
+        [
+          _c('paid', dueDay: 1, paidThisMonth: true),
+          _c(
+            'yearly',
+            intervalMonths: 12,
+            lastPaidMonth: '2026-05-01',
+            dueDay: 3,
+          ),
+          _c('upcoming', dueDay: 25),
+          _c('overdue', dueDay: 4),
+        ],
+        monthStart: month,
+        today: today,
+      );
+      expect(sorted.map((c) => c.id).toList(), [
+        'overdue',
+        'upcoming',
+        'yearly',
         'paid',
       ]);
     });

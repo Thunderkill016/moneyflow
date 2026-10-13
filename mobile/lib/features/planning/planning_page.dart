@@ -24,29 +24,44 @@ class PlanningData {
     required this.accounts,
     required this.categories,
     required this.monthStart,
+    required this.budgetMonth,
     this.incomeTemplates = const [],
     this.priorBudgets = const [],
     this.budgetSuggestionRows = const [],
   });
 
+  /// Budget rows for [budgetMonth] — the month the budgets section is
+  /// viewing (this month or next; the page's switcher never offers
+  /// further).
   final List<BudgetProgress> budgets;
   final List<RecurringIncome> incomeTemplates;
   final List<RecurringCommitment> commitments;
   final List<SavingsGoal> goals;
   final List<AccountSummary> accounts;
   final List<Category> categories;
-  final String monthStart; // YYYY-MM-01
+
+  /// The CURRENT calendar month (YYYY-MM-01) — the frame commitments,
+  /// income receipts and the funding-basis window resolve against,
+  /// independent of which month the budgets section is viewing.
+  final String monthStart;
+
+  /// The month the budgets section shows (YYYY-MM-01) — `budgets`,
+  /// `priorBudgets` and `budgetSuggestionRows` were loaded relative to
+  /// it. Equals [monthStart] unless the reader is planning a month
+  /// ahead.
+  final String budgetMonth;
 
   /// Budget rows from months inside the rollover window before
-  /// [monthStart] — the `budget_progress` range read the web workspace
+  /// [budgetMonth] — the `budget_progress` range read the web workspace
   /// makes. Feeds both the per-card carry ("Chuyển từ tháng trước") and
   /// the quick-fill "Dùng hạn mức tháng trước" action.
   final List<BudgetProgress> priorBudgets;
 
-  /// Trailing expense ledger rows covering the suggestion window (the
-  /// three completed months before [monthStart]) — the web's
-  /// `budgetSuggestions` input. Empty means the quick-fill average action
-  /// honestly has nothing to propose.
+  /// Trailing ledger rows covering the suggestion window and the income
+  /// basis — the web's `budgetSuggestions` input plus the income rows
+  /// `averageMonthlyIncome` reads for the "% đã dự phòng" chip. Empty
+  /// means both the quick-fill average and the chip honestly have
+  /// nothing to propose.
   final List<Transaction> budgetSuggestionRows;
 }
 
@@ -67,6 +82,7 @@ class PlanningActions {
     required this.onGoalSave,
     required this.onGoalAdjust,
     required this.onGoalArchived,
+    this.onCoverOverspend,
     this.onIncomeSave,
     this.onIncomeReceive,
     this.onIncomeUndo,
@@ -89,11 +105,14 @@ class PlanningActions {
   onIncomeArchived;
 
   /// Category is create-only (the web locks it on edit) — an edit re-sends
-  /// the same category with the new limit.
+  /// the same category with the new limit. [monthStart] is the viewed
+  /// budget month so a create lands on "Tháng sau" when the reader is
+  /// planning ahead.
   final Future<void> Function(
     BudgetProgress? editing,
     String categoryId,
     int limitMinor,
+    String monthStart,
   )
   onBudgetSave;
   final Future<void> Function(String budgetId) onBudgetDelete;
@@ -103,6 +122,22 @@ class PlanningActions {
   /// affordance entirely. Returns how many drafts actually wrote so the
   /// page can report a partial apply honestly.
   final Future<int> Function(List<BudgetDraft> drafts)? onBudgetFill;
+
+  /// YNAB Rule 3 — move [amountMinor] of limit from [donor] to
+  /// [overspent] inside the same month: two `upsert_monthly_budget`
+  /// writes (donor −X, overspent +X). Implementations must surface a
+  /// partial apply honestly — a failure after the donor write lands is
+  /// a different state than "nothing happened". Null hides the "Bù từ
+  /// danh mục khác" affordance.
+  final Future<void> Function(
+    BudgetProgress donor,
+    BudgetProgress overspent,
+    int amountMinor,
+  )?
+  onCoverOverspend;
+
+  /// [intervalMonths] is the chosen cadence (1 monthly, 3/6/12, …24) —
+  /// it rides `p_interval_months` where the RPC accepts it.
   final Future<void> Function(
     RecurringCommitment? editing,
     String name,
@@ -110,6 +145,7 @@ class PlanningActions {
     int dueDay,
     String accountId,
     String categoryId,
+    int intervalMonths,
   )
   onCommitmentSave;
   final Future<void> Function(RecurringCommitment c) onCommitmentPay;
@@ -140,7 +176,11 @@ class PlanningPage extends StatefulWidget {
     required this.actions,
   });
 
-  final Future<PlanningData> Function() loadData;
+  /// [budgetMonth] (YYYY-MM-01) is the month the budgets section should
+  /// show — the loader returns `budgets`, `priorBudgets` and
+  /// `budgetSuggestionRows` resolved against it while `monthStart`
+  /// (commitments, income, the funding basis) stays the current month.
+  final Future<PlanningData> Function(String budgetMonth) loadData;
   final PlanningActions actions;
 
   @override
@@ -150,15 +190,28 @@ class PlanningPage extends StatefulWidget {
 class PlanningPageState extends State<PlanningPage> {
   late Future<PlanningData> _data;
 
+  /// Viewed budget month as an offset from the current month — the
+  /// YNAB month-ahead range. The web workspace blocks every future
+  /// month (`resolveBudgetMonth` → adjustment "future"), so there is no
+  /// web range to mirror; +1 is the conservative mobile bound.
+  static const _maxBudgetMonthOffset = 1;
+  var _budgetOffset = 0;
+
+  String get _budgetMonth {
+    final now = DateTime.now();
+    final d = DateTime(now.year, now.month + _budgetOffset);
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-01';
+  }
+
   @override
   void initState() {
     super.initState();
-    _data = widget.loadData();
+    _data = widget.loadData(_budgetMonth);
   }
 
   Future<void> _refresh() async {
     setState(() {
-      _data = widget.loadData();
+      _data = widget.loadData(_budgetMonth);
     });
     try {
       await _data;
@@ -169,6 +222,17 @@ class PlanningPageState extends State<PlanningPage> {
 
   /// Public reload for the nav shell after a capture save.
   void reload() => _refresh();
+
+  /// ‹/› month switcher for the budgets section — reloads against the
+  /// picked month; the offset stays inside [0, _maxBudgetMonthOffset].
+  void _shiftBudgetMonth(int delta) {
+    final next = _budgetOffset + delta;
+    if (next < 0 || next > _maxBudgetMonthOffset) return;
+    setState(() {
+      _budgetOffset = next;
+      _data = widget.loadData(_budgetMonth);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -235,8 +299,12 @@ class PlanningPageState extends State<PlanningPage> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               children: [
-                _SectionHeader(
-                  title: 'Ngân sách tháng',
+                _BudgetSectionHeader(
+                  label: 'Ngân sách · ${_monthLabel(d.budgetMonth)}',
+                  canPrev: _budgetOffset > 0,
+                  canNext: _budgetOffset < _maxBudgetMonthOffset,
+                  onPrev: () => _shiftBudgetMonth(-1),
+                  onNext: () => _shiftBudgetMonth(1),
                   onAdd:
                       d.categories.any((c) => c.kind == TransactionKind.expense)
                       ? () => _showBudgetForm(d)
@@ -245,6 +313,7 @@ class PlanningPageState extends State<PlanningPage> {
                       ? null
                       : () => _showQuickFill(d),
                 ),
+                if (_budgetOffset > 0) _fundedChip(d),
                 if (d.budgets.isEmpty) _empty('Chưa có ngân sách nào'),
                 for (final b in d.budgets)
                   _BudgetTile(
@@ -252,6 +321,9 @@ class PlanningPageState extends State<PlanningPage> {
                     priorBudgets: d.priorBudgets,
                     onEdit: () => _showBudgetForm(d, editing: b),
                     onDelete: () => _deleteBudget(b),
+                    onCover: widget.actions.onCoverOverspend == null
+                        ? null
+                        : () => _showCoverSheet(d, b),
                   ),
                 if (widget.actions.onIncomeSave != null ||
                     d.incomeTemplates.isNotEmpty) ...[
@@ -361,6 +433,33 @@ class PlanningPageState extends State<PlanningPage> {
   }
 
   Widget _empty(String text) => Card(child: ListTile(title: Text(text)));
+
+  /// "% đã dự phòng" for the month-ahead view — next month's planned
+  /// limits against the average income of the three COMPLETED months
+  /// (the `averageMonthlyIncome` window anchored on [PlanningData
+  /// .monthStart], not the viewed month: this month is still earning,
+  /// so a partial month cannot flatter the basis). Over 100% reports
+  /// honestly — planning more than the average earns is allowed data.
+  Widget _fundedChip(PlanningData d) {
+    final planned = d.budgets.fold<int>(0, (s, b) => s + b.limitMinor);
+    final basis = averageMonthlyIncome(d.budgetSuggestionRows, d.monthStart);
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      color: scheme.surfaceContainerLow,
+      child: ListTile(
+        dense: true,
+        leading: const Icon(Icons.savings_outlined),
+        title: basis <= 0
+            ? const Text('Chưa có thu nhập 3 tháng gần để đối chiếu')
+            : Text(
+                'Đã dự phòng ${(planned / basis * 100).round()}% · '
+                '${formatMoney(planned)} / ${formatMoney(basis)}',
+              ),
+        subtitle: basis <= 0 ? null : const Text('theo thu nhập TB 3 tháng'),
+      ),
+    );
+  }
 
   /// A read-only archived row inside the collapsed "Đã lưu trữ" groups —
   /// restore is the only action the web offers on archived rows.
@@ -478,6 +577,9 @@ class PlanningPageState extends State<PlanningPage> {
                     editing,
                     categoryId,
                     amount,
+                    // Edits keep their stored month (== the viewed one);
+                    // creates land on the month the reader is planning.
+                    editing?.monthStart ?? d.budgetMonth,
                   );
                 } catch (e) {
                   setDlg(
@@ -515,19 +617,23 @@ class PlanningPageState extends State<PlanningPage> {
   /// web's `carryable`/`suggestionRows` useMemos, so a row written
   /// mid-session immediately drops out of both lists.
   List<BudgetDraft> _carryableDrafts(PlanningData d) {
-    final prevMonth = shiftBudgetMonth(d.monthStart, -1);
+    final prevMonth = shiftBudgetMonth(d.budgetMonth, -1);
     return budgetsToCarryForward(
       previousBudgets: d.priorBudgets
           .where((b) => b.monthStart == prevMonth)
           .toList(),
       currentBudgets: d.budgets,
-      monthStart: d.monthStart,
+      monthStart: d.budgetMonth,
     );
   }
 
-  /// Suggested limits for expense categories that have no budget this
-  /// month — the web's `budgetSuggestions` over the trailing 3 completed
-  /// months, restricted to categories that still exist.
+  /// Suggested limits for expense categories that have no budget in the
+  /// viewed month — the web's `budgetSuggestions` over the trailing 3
+  /// months before it, restricted to categories that still exist.
+  /// Anchored on `monthStart` like the funding basis: "3 tháng gần nhất"
+  /// means three COMPLETED months — this month is still being spent, so
+  /// counting it toward next month's average would flatter the figure
+  /// (and its rows are not even in the loaded window).
   List<({Category category, BudgetSuggestion suggestion})> _suggestionDrafts(
     PlanningData d,
   ) {
@@ -549,7 +655,7 @@ class PlanningPageState extends State<PlanningPage> {
   Future<void> _showQuickFill(PlanningData d) async {
     final carryable = _carryableDrafts(d);
     final suggestions = _suggestionDrafts(d);
-    final prevMonthLabel = _monthLabel(shiftBudgetMonth(d.monthStart, -1));
+    final prevMonthLabel = _monthLabel(shiftBudgetMonth(d.budgetMonth, -1));
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -663,7 +769,7 @@ class PlanningPageState extends State<PlanningPage> {
                                 if (checked.contains(r.category.id))
                                   (
                                     categoryId: r.category.id,
-                                    monthStart: d.monthStart,
+                                    monthStart: d.budgetMonth,
                                     limitMinor: r.suggestion.amount,
                                   ),
                             ]),
@@ -719,6 +825,222 @@ class PlanningPageState extends State<PlanningPage> {
       'tháng ${int.parse(monthStart.substring(5, 7))}/'
       '${monthStart.substring(0, 4)}';
 
+  // -- Cover overspend (YNAB Rule 3) -----------------------------------------
+
+  /// "Bù từ danh mục khác" — pick a donor budget with positive effective
+  /// remaining, choose the amount (default = the deficit capped at what
+  /// the donor can give), see BOTH writes before they land, then two
+  /// `upsert_monthly_budget` calls: donor −X, overspent +X. Nothing is
+  /// silent: the preview names the exact limits, and a partial apply
+  /// (donor written, target failed) says so.
+  Future<void> _showCoverSheet(PlanningData d, BudgetProgress overspent) async {
+    final cover = widget.actions.onCoverOverspend;
+    if (cover == null) return;
+    int effectiveAvailable(BudgetProgress b) => budgetEffectiveAvailable(
+      spentMinor: b.spentMinor,
+      limitMinor: b.limitMinor,
+      carry: budgetRollover(
+        priorBudgets: d.priorBudgets,
+        categoryId: b.categoryId,
+        monthStart: d.budgetMonth,
+      ).carry,
+    );
+
+    final deficit = -effectiveAvailable(overspent);
+    if (deficit <= 0) return;
+    // Donors need positive effective remaining AND at least 2 ₫ of own
+    // limit — the RPC floor is limit_minor > 0, so a donor can give at
+    // most limit − 1.
+    final donors = [
+      for (final b in d.budgets)
+        if (b.categoryId != overspent.categoryId && b.limitMinor > 1)
+          (budget: b, available: effectiveAvailable(b)),
+    ].where((r) => r.available > 0).toList();
+    if (donors.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không có danh mục nào còn dư để bù')),
+      );
+      return;
+    }
+
+    var picked = donors.first;
+    int maxForDonor(({BudgetProgress budget, int available}) r) =>
+        r.available < r.budget.limitMinor - 1
+        ? r.available
+        : r.budget.limitMinor - 1;
+    var maxFor = maxForDonor(picked);
+    final amount = TextEditingController(
+      text: '${deficit < maxFor ? deficit : maxFor}',
+    );
+    final chosen =
+        await showModalBottomSheet<({BudgetProgress donor, int amount})>(
+          context: context,
+          showDragHandle: true,
+          isScrollControlled: true,
+          builder: (ctx) => StatefulBuilder(
+            builder: (ctx, setSheet) {
+              final entered = parseMoneyInput(amount.text);
+              final donorNew = picked.budget.limitMinor - (entered ?? 0);
+              final overNew = overspent.limitMinor + (entered ?? 0);
+              final valid = entered != null && entered > 0 && entered <= maxFor;
+              return SafeArea(
+                child: Padding(
+                  // Lift above the keyboard so the amount stays visible.
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                        child: Text(
+                          'Bù ${formatMoney(deficit)} cho '
+                          '"${overspent.categoryName}"',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'Hạn mức chuyển đi — không đồng nào rời sổ cái, '
+                          'chỉ là phân bổ lại.',
+                        ),
+                      ),
+                      Flexible(
+                        child: ListView(
+                          shrinkWrap: true,
+                          children: [
+                            for (final r in donors)
+                              ListTile(
+                                leading: Icon(
+                                  identical(r.budget, picked.budget) ||
+                                          r.budget.id == picked.budget.id
+                                      ? Icons.check_circle
+                                      : Icons.circle_outlined,
+                                  color: r.budget.id == picked.budget.id
+                                      ? Theme.of(ctx).colorScheme.primary
+                                      : null,
+                                ),
+                                title: Text(r.budget.categoryName),
+                                subtitle: Text(
+                                  'Còn dư ${formatMoney(r.available)}',
+                                ),
+                                onTap: () {
+                                  setSheet(() {
+                                    picked = r;
+                                    maxFor = maxForDonor(picked);
+                                    final a = parseMoneyInput(amount.text);
+                                    if (a == null || a > maxFor) {
+                                      amount.text = '$maxFor';
+                                    }
+                                  });
+                                },
+                              ),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: TextField(
+                          controller: amount,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Số tiền bù',
+                            hintText: 'vd: 500k',
+                            helperText:
+                                'Tối đa ${formatMoney(maxFor)} theo danh '
+                                'mục đã chọn',
+                            border: const OutlineInputBorder(),
+                          ),
+                          onChanged: (_) => setSheet(() {}),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                        child: Text(
+                          '${picked.budget.categoryName}: '
+                          '${formatMoney(picked.budget.limitMinor)} → '
+                          '${formatMoney(donorNew)}\n'
+                          '${overspent.categoryName}: '
+                          '${formatMoney(overspent.limitMinor)} → '
+                          '${formatMoney(overNew)}',
+                          style: Theme.of(ctx).textTheme.bodySmall,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Hủy'),
+                            ),
+                            const Spacer(),
+                            FilledButton(
+                              onPressed: !valid
+                                  ? null
+                                  : () => Navigator.pop(ctx, (
+                                      donor: picked.budget,
+                                      amount: entered,
+                                    )),
+                              child: Text(
+                                entered == null
+                                    ? 'Bù'
+                                    : 'Bù ${formatMoney(entered)}',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+    if (chosen == null || !mounted) return;
+    try {
+      await cover(chosen.donor, overspent, chosen.amount);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Đã bù ${formatMoney(chosen.amount)} cho '
+              '"${overspent.categoryName}" từ '
+              '"${chosen.donor.categoryName}"',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              e.toString().contains('cover_partial')
+                  // The donor limit already moved — saying "không bù
+                  // được" alone would hide that half the apply landed.
+                  ? 'Đã giảm "${chosen.donor.categoryName}" nhưng chưa '
+                        'bù được cho "${overspent.categoryName}" — '
+                        'thử lại'
+                  : planningErrorMessage(
+                      e,
+                      fallback: 'Không bù được — thử lại',
+                    ),
+            ),
+          ),
+        );
+      }
+    }
+    _refresh();
+  }
+
   // -- Commitments + recurring income ---------------------------------------
 
   Future<void> _showCommitmentForm(
@@ -747,7 +1069,7 @@ class PlanningPageState extends State<PlanningPage> {
       income: income,
       commitment: commitment,
       template: template,
-      onSave: (name, amount, day, accountId, categoryId) => income
+      onSave: (name, amount, day, accountId, categoryId, interval) => income
           ? widget.actions.onIncomeSave!(
               template,
               name,
@@ -763,6 +1085,7 @@ class PlanningPageState extends State<PlanningPage> {
               day,
               accountId,
               categoryId,
+              interval,
             ),
     );
     if (ok) _refresh();
@@ -1118,14 +1441,66 @@ class PlanningPageState extends State<PlanningPage> {
   }
 }
 
+/// Budgets header with the ‹/› month switcher — the month-ahead entry.
+/// Chevrons disable at the range ends (this month .. next month), never
+/// hidden: a disabled arrow is more honest than one that vanishes.
+class _BudgetSectionHeader extends StatelessWidget {
+  const _BudgetSectionHeader({
+    required this.label,
+    required this.canPrev,
+    required this.canNext,
+    required this.onPrev,
+    required this.onNext,
+    this.onAdd,
+    this.onQuickFill,
+  });
+
+  final String label;
+  final bool canPrev;
+  final bool canNext;
+  final VoidCallback onPrev;
+  final VoidCallback onNext;
+  final VoidCallback? onAdd;
+  final VoidCallback? onQuickFill;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(label, style: Theme.of(context).textTheme.titleMedium),
+        ),
+        IconButton(
+          icon: const Icon(Icons.chevron_left),
+          tooltip: 'Tháng trước',
+          onPressed: canPrev ? onPrev : null,
+        ),
+        IconButton(
+          icon: const Icon(Icons.chevron_right),
+          tooltip: 'Tháng sau',
+          onPressed: canNext ? onNext : null,
+        ),
+        if (onQuickFill != null)
+          IconButton(
+            icon: const Icon(Icons.bolt_outlined),
+            tooltip: 'Điền nhanh',
+            onPressed: onQuickFill,
+          ),
+        if (onAdd != null)
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline),
+            onPressed: onAdd,
+          ),
+      ],
+    );
+  }
+}
+
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, this.onAdd, this.onQuickFill});
+  const _SectionHeader({required this.title, this.onAdd});
 
   final String title;
   final VoidCallback? onAdd;
-
-  /// Bulk-fill affordance — the budgets section's "Điền nhanh" entry.
-  final VoidCallback? onQuickFill;
 
   @override
   Widget build(BuildContext context) {
@@ -1134,12 +1509,6 @@ class _SectionHeader extends StatelessWidget {
         Expanded(
           child: Text(title, style: Theme.of(context).textTheme.titleMedium),
         ),
-        if (onQuickFill != null)
-          IconButton(
-            icon: const Icon(Icons.bolt_outlined),
-            tooltip: 'Điền nhanh',
-            onPressed: onQuickFill,
-          ),
         if (onAdd != null)
           IconButton(
             icon: const Icon(Icons.add_circle_outline),
@@ -1174,6 +1543,7 @@ class _BudgetTile extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     this.priorBudgets = const [],
+    this.onCover,
   });
 
   final BudgetProgress budget;
@@ -1183,6 +1553,10 @@ class _BudgetTile extends StatelessWidget {
   final List<BudgetProgress> priorBudgets;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+
+  /// "Bù từ danh mục khác" — shown only when the effective remainder is
+  /// negative (the sheet itself double-checks) and the action exists.
+  final VoidCallback? onCover;
 
   @override
   Widget build(BuildContext context) {
@@ -1242,6 +1616,21 @@ class _BudgetTile extends StatelessWidget {
             ),
             if (rolloverLine != null)
               Text(rolloverLine, style: Theme.of(context).textTheme.bodySmall),
+            // YNAB Rule 3 entry — only a genuinely overspent row offers
+            // it; the text button names the action (never color alone).
+            if (available < 0 && onCover != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: onCover,
+                  icon: const Icon(Icons.swap_horiz, size: 18),
+                  label: const Text('Bù từ danh mục khác'),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, 32),
+                  ),
+                ),
+              ),
           ],
         ),
         onTap: onEdit,
@@ -1324,6 +1713,8 @@ class _CommitmentTile extends StatelessWidget {
       CommitmentStatus.overdue => Colors.red.shade700,
       CommitmentStatus.dueToday => Colors.orange.shade800,
       CommitmentStatus.upcoming => scheme.onSurfaceVariant,
+      // Not due this month — the calmest unpaid band, like upcoming.
+      CommitmentStatus.scheduled => scheme.onSurfaceVariant,
       CommitmentStatus.paidDifferent => Colors.blue.shade700,
       CommitmentStatus.paid => Colors.green.shade700,
     };
@@ -1338,8 +1729,18 @@ class _CommitmentTile extends StatelessWidget {
             today: today,
             dueDay: commitment.dueDay,
             paidAmountMinor: commitment.paidAmountMinor,
+            // Scheduled rows name their real due month — "Đến hạn
+            // tháng 3/2026" — never the generic "Còn N ngày" a monthly
+            // reading would fabricate.
+            dueMonth: commitmentDueMonth(commitment, monthStart: monthStart),
             format: formatMoney,
           );
+    // Monthly rows need no cadence word; a yearly/quarterly one does —
+    // "ngày 5 · mỗi năm" is what stops it reading as due monthly.
+    final interval = commitmentIntervalLabel(commitment.intervalMonths);
+    final cadence = interval == null
+        ? 'ngày ${commitment.dueDay}'
+        : 'ngày ${commitment.dueDay} · $interval';
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
@@ -1349,8 +1750,7 @@ class _CommitmentTile extends StatelessWidget {
           children: [
             Text(
               '${commitment.categoryName} · ${commitment.accountName} · '
-              'ngày ${commitment.dueDay}'
-              ' · ${formatMoney(commitment.amountMinor)}',
+              '$cadence · ${formatMoney(commitment.amountMinor)}',
             ),
             if (statusLine != null)
               Text(statusLine, style: TextStyle(color: statusColor)),
@@ -1359,9 +1759,16 @@ class _CommitmentTile extends StatelessWidget {
         // "Đã trả" is tappable like the income tile's "Đã nhận" — it
         // undoes this month's payment (the web's Hoàn tác thanh toán).
         // A "khác số tiền" row undoes the same way.
+        // A scheduled (not-yet-due) row can still be paid early — the
+        // payment re-anchors the cycle, so the button says so honestly.
         trailing: commitment.paidThisMonth
             ? TextButton(onPressed: onUndo, child: const Text('Đã trả'))
-            : TextButton(onPressed: onPay, child: const Text('Trả')),
+            : TextButton(
+                onPressed: onPay,
+                child: Text(
+                  status == CommitmentStatus.scheduled ? 'Trả sớm' : 'Trả',
+                ),
+              ),
         onTap: onEdit,
         onLongPress: onArchive,
       ),
