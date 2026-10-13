@@ -311,6 +311,12 @@ String _fallbackNote(String original) {
   return s;
 }
 
+/// Lowercase + strip Vietnamese diacritics + unify dash signs — exposed for
+/// the inbox paste parser, which needs the same 1:1 index-preserving fold.
+/// Every substitution is one character, so offsets stay aligned with
+/// the original string.
+String foldVietnameseText(String s) => _normalize(s);
+
 /// Lowercase + strip Vietnamese diacritics + unify dash signs.
 /// Every substitution is one character, so offsets stay aligned with
 /// the original string.

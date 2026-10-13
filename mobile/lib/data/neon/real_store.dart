@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../../domain/categories.dart';
+import '../../domain/inbox.dart';
 import '../../domain/models.dart';
 import '../../domain/transaction_query.dart';
 import 'auth_client.dart';
@@ -850,6 +851,191 @@ class RealStore {
   /// The decoded jsonb body goes straight into the backup file — the RPC
   /// output IS the contract, so no mobile-side reshaping happens here.
   Future<Object?> exportArchive() => _api.rpc('export_user_archive', const {});
+
+  /// The columns the mobile review surface reads — a subset of the web's
+  /// CANDIDATE_BASE_COLUMNS (src/lib/inbox/inbox-map.ts). Source lineage,
+  /// rule evidence and match metadata are web-only for now: no mobile flow
+  /// produces or acts on them yet.
+  static const _candidateColumns =
+      'id,kind,amount_minor,merchant,note,occurred_on,source,confidence,'
+      'status,possible_duplicate,possible_transfer,category_id,category_name,'
+      'account_id,account_name,raw_snippet,created_at';
+
+  /// PostgREST can encode bigint as a JSON string — mirror the web's
+  /// safePositiveMoney (number | string, positive safe integer).
+  static int _moneyMinor(Object? v) {
+    final n = v is num ? v : num.tryParse('$v');
+    if (n == null || n <= 0 || n > 9007199254740991) {
+      throw const FormatException('invalid_amount_minor');
+    }
+    return n.toInt();
+  }
+
+  static InboxCandidate _candidateFromRow(Map<String, dynamic> r) =>
+      InboxCandidate(
+        id: r['id'] as String,
+        kind: switch (r['kind']) {
+          'income' => TransactionKind.income,
+          'transfer' => TransactionKind.transfer,
+          _ => TransactionKind.expense,
+        },
+        amountMinor: _moneyMinor(r['amount_minor']),
+        merchant: r['merchant'] as String? ?? 'Không rõ',
+        note: r['note'] as String? ?? '',
+        // occurred_on arrives as 'YYYY-MM-DD' — take the date head like the
+        // web mapper does for safety against timestamp shapes.
+        occurredOn: (r['occurred_on'] as String).substring(0, 10),
+        source: r['source'] as String? ?? 'paste',
+        confidence: r['confidence'] as String? ?? 'low',
+        possibleDuplicate: r['possible_duplicate'] as bool? ?? false,
+        possibleTransfer: r['possible_transfer'] as bool? ?? false,
+        categoryId: r['category_id'] as String?,
+        categoryName: r['category_name'] as String?,
+        accountId: r['account_id'] as String?,
+        accountName: r['account_name'] as String?,
+        rawSnippet: r['raw_snippet'] as String?,
+        createdAt: r['created_at'] as String?,
+      );
+
+  /// Pending review queue — same filter/order as the web's
+  /// listInboxFromServer display ordering, scoped to `status = pending`
+  /// (the only state this surface acts on). Bounded at 500 rows: a deeper
+  /// backlog is an import flow, which is a web surface today.
+  Future<List<InboxCandidate>> loadPendingInboxCandidates() async {
+    final rows = await _api.select(
+      'inbox_candidates',
+      query: {
+        'select': _candidateColumns,
+        'status': 'eq.pending',
+        'order': 'occurred_on.desc,created_at.desc,id.desc',
+        'limit': '500',
+      },
+    );
+    return rows.map(_candidateFromRow).toList();
+  }
+
+  /// Cheap badge count for the dashboard menu — reads only ids. The web
+  /// badge also counts due commitment suggestions; mobile surfaces those
+  /// through its own commitment reminders, so this count intentionally
+  /// covers real candidates only.
+  Future<int> loadPendingInboxCount() async {
+    final rows = await _api.select(
+      'inbox_candidates',
+      query: {'select': 'id', 'status': 'eq.pending'},
+    );
+    return rows.length;
+  }
+
+  /// POST /rpc/plan_inbox_candidate — the server's dry-run verdict
+  /// (would_create / duplicate / suspected_transfer / invalid). Advisory on
+  /// mobile: a failed read must not block review because the approve RPC
+  /// re-runs the same plan atomically and raises the same guards.
+  Future<InboxPlan?> planInboxCandidate(String candidateId) async {
+    final res = await _api.rpc('plan_inbox_candidate', {
+      'p_candidate_id': candidateId,
+    });
+    return parseInboxPlan(res);
+  }
+
+  /// POST /rpc/approve_inbox_candidate — exact parameter parity with the
+  /// web's approveInboxCandidateAction: the candidate id doubles as the
+  /// idempotency key (approvalIdempotencyKey), payee is the reviewed
+  /// merchant, and transfer rows carry no category/payee.
+  Future<String> approveInboxCandidate(InboxApproval approval) async {
+    final isTransfer = approval.kind == TransactionKind.transfer;
+    final payee = approval.payee.trim();
+    final id = await _api.rpc('approve_inbox_candidate', {
+      'p_candidate_id': approval.candidateId,
+      'p_kind': switch (approval.kind) {
+        TransactionKind.income => 'income',
+        TransactionKind.transfer => 'transfer',
+        TransactionKind.expense => 'expense',
+      },
+      'p_account_id': approval.accountId,
+      'p_category_id': isTransfer ? null : approval.categoryId,
+      'p_destination_account_id': isTransfer
+          ? approval.destinationAccountId
+          : null,
+      'p_amount_minor': approval.amountMinor,
+      'p_occurred_on': approval.occurredOn,
+      'p_note': approval.note,
+      'p_payee': isTransfer || payee.isEmpty ? null : payee,
+      'p_idempotency_key': approval.candidateId,
+      'p_allow_heuristic_duplicate': approval.allowHeuristicDuplicate,
+    });
+    if (id is! String) {
+      throw const FormatException('invalid_transaction_id');
+    }
+    return id;
+  }
+
+  /// Reject = the web's status update via updateInboxCandidateAction —
+  /// a PATCH on inbox_candidates under RLS, never a hard delete (the
+  /// rejected status keeps the audit trail).
+  Future<void> rejectInboxCandidate(String candidateId) async {
+    final rows = await _api.update(
+      'inbox_candidates',
+      {'id': 'eq.$candidateId'},
+      {'status': 'rejected'},
+    );
+    if (rows.isEmpty) throw Exception('candidate_not_found');
+  }
+
+  /// Paste-to-candidate — mirrors createInboxCandidatesAction /
+  /// candidateToInsertRow: pending rows with paste provenance
+  /// (parser_version paste_text@1.1, mapping_version 1), no batch, no
+  /// account/category suggestion. Insert is one statement, so a malformed
+  /// row fails the whole paste atomically like the web action.
+  Future<List<InboxCandidate>> createInboxCandidates(
+    List<InboxPasteDraft> drafts,
+  ) async {
+    if (drafts.isEmpty) return const [];
+    final userId = _api.userId;
+    if (userId == null || userId.isEmpty) {
+      throw NeonAuthException(401, 'not signed in');
+    }
+    final now = DateTime.now().toUtc().toIso8601String();
+    final rows = [
+      for (final d in drafts)
+        {
+          'id': newIdempotencyKey(),
+          'user_id': userId,
+          'kind': switch (d.kind) {
+            TransactionKind.income => 'income',
+            TransactionKind.transfer => 'transfer',
+            TransactionKind.expense => 'expense',
+          },
+          'amount_minor': d.amountMinor,
+          'merchant': d.merchant.length > 200
+              ? d.merchant.substring(0, 200)
+              : (d.merchant.isEmpty ? 'Không rõ' : d.merchant),
+          'note': '',
+          'occurred_on': d.occurredOn,
+          'source': 'paste',
+          'confidence': d.confidence,
+          'status': 'pending',
+          'possible_duplicate': false,
+          'category_id': null,
+          'category_name': null,
+          'account_id': null,
+          'account_name': null,
+          'raw_snippet': d.rawSnippet.length > 2000
+              ? d.rawSnippet.substring(0, 2000)
+              : d.rawSnippet,
+          'import_batch_id': null,
+          'local_id': null,
+          'source_row_index': null,
+          'source_external_id': null,
+          'source_lifecycle_state': null,
+          'source_predecessor_external_id': null,
+          'parser_version': 'paste_text@1.1',
+          'mapping_version': 1,
+          'created_at': now,
+        },
+    ];
+    final inserted = await _api.insertAll('inbox_candidates', rows);
+    return inserted.map(_candidateFromRow).toList();
+  }
 }
 
 /// One UUIDv4 per form instance = one idempotency key per user intent.

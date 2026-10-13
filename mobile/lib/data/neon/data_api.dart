@@ -61,6 +61,21 @@ class NeonDataApi {
     ),
   );
 
+  /// POST several rows in one request — PostgREST accepts a JSON array body
+  /// (the same bulk insert the web's `.insert(rows)` performs). The call is
+  /// a single statement, so a rejected row fails the whole batch atomically.
+  Future<List<Map<String, dynamic>>> insertAll(
+    String table,
+    List<Map<String, Object?>> rows,
+  ) => _rows(
+    _send(
+      'POST',
+      _url(table, const {}),
+      body: rows,
+      prefer: _preferRepresentation,
+    ),
+  );
+
   /// PATCH rows matching [query], reading back the written rows so the
   /// caller sees what RLS actually persisted (empty = nothing matched).
   Future<List<Map<String, dynamic>>> update(

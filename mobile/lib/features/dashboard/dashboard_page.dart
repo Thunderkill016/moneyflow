@@ -15,11 +15,17 @@ class DashboardMenuItem {
     required this.label,
     required this.icon,
     required this.onTap,
+    this.badge,
   });
 
   final String label;
   final IconData icon;
   final VoidCallback onTap;
+
+  /// Optional live count — fetched when the menu opens (itemBuilder runs per
+  /// open, so this costs one cheap read per tap, never per dashboard build).
+  /// A failure or 0 shows the bare label — a badge must never lie.
+  final Future<int> Function()? badge;
 }
 
 /// Dashboard loads its data through injected loaders so the same screen
@@ -248,7 +254,9 @@ class DashboardPageState extends State<DashboardPage> {
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(widget.menuItems[i].icon),
-                      title: Text(widget.menuItems[i].label),
+                      title: widget.menuItems[i].badge == null
+                          ? Text(widget.menuItems[i].label)
+                          : _MenuBadge(item: widget.menuItems[i]),
                     ),
                   ),
               ],
@@ -350,6 +358,26 @@ class DashboardPageState extends State<DashboardPage> {
           );
         },
       ),
+    );
+  }
+}
+
+/// Menu label with a lazy count badge — "Cần xem (3)". The future is
+/// awaited while the popup is already open, so the label shows first and
+/// the count fades in; an error just leaves the bare label.
+class _MenuBadge extends StatelessWidget {
+  const _MenuBadge({required this.item});
+
+  final DashboardMenuItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<int>(
+      future: item.badge!(),
+      builder: (context, snap) {
+        final n = snap.data;
+        return Text(n != null && n > 0 ? '${item.label} ($n)' : item.label);
+      },
     );
   }
 }

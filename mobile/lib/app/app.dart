@@ -30,6 +30,7 @@ import '../features/capture/capture_submit.dart';
 import '../features/capture/queue_banner.dart';
 import '../features/categories/categories_page.dart';
 import '../features/dashboard/dashboard_page.dart';
+import '../features/inbox/inbox_page.dart';
 import '../features/planning/planning_page.dart';
 import '../features/planning/recurring_form_dialog.dart';
 import '../features/reports/reports_page.dart';
@@ -691,10 +692,40 @@ class _AuthGateState extends State<AuthGate> {
     if (mounted) setState(() => _gate = _Gate.login);
   }
 
-  /// Menu items on the dashboard appbar — account management, device lock,
-  /// and sign-out stay one level deep; the day-to-day surfaces are tabs.
+  /// "Cần xem" — the review queue for pasted/imported data. Every mutation
+  /// inside can change the ledger (approve) or the queue (paste/reject), so
+  /// a `true` result reloads the shell tabs like a capture save does.
+  Future<void> _openInbox(BuildContext context) async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => InboxPage(
+          loadCandidates: _store.loadPendingInboxCandidates,
+          loadAccounts: _store.loadAccounts,
+          loadCategories: _store.loadCategories,
+          onPlan: _store.planInboxCandidate,
+          onApprove: (a) => _store.approveInboxCandidate(a).then((_) {}),
+          onReject: _store.rejectInboxCandidate,
+          onCommitDrafts: (drafts) =>
+              _store.createInboxCandidates(drafts).then((_) {}),
+        ),
+      ),
+    );
+    if (changed == true) _reloadTabs();
+  }
+
+  /// Menu items on the dashboard appbar — account management, the review
+  /// queue, device lock, and sign-out stay one level deep; the day-to-day
+  /// surfaces are tabs.
   List<DashboardMenuItem> _dashboardMenu(BuildContext context) {
     return [
+      DashboardMenuItem(
+        label: 'Cần xem',
+        icon: Icons.inbox_outlined,
+        // The badge reads pending ids once per menu open — cheap, and a
+        // failed read degrades to the bare label instead of a fake count.
+        badge: _store.loadPendingInboxCount,
+        onTap: () => _openInbox(context),
+      ),
       DashboardMenuItem(
         label: 'Tài khoản',
         icon: Icons.account_balance_wallet,
