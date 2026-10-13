@@ -87,6 +87,27 @@ class RealStore {
     return _withReviewStatus(txs);
   }
 
+  /// Every feed row with occurred_on in [from, to) — used by reports so a
+  /// busy month is never truncated to the recent-feed page. PostgREST's
+  /// server cap is far above a month of personal spending; the explicit
+  /// limit documents the assumption.
+  Future<List<Transaction>> loadTransactionsInRange(
+    String from,
+    String to, {
+    int limit = 5000,
+  }) async {
+    final rows = await _api.select(
+      'transaction_feed',
+      query: {
+        'select': _txColumns,
+        'and': '(occurred_on.gte.$from,occurred_on.lt.$to)',
+        'order': 'occurred_on.desc,created_at.desc',
+        'limit': '$limit',
+      },
+    );
+    return rows.map(_txFromRow).toList();
+  }
+
   /// transaction_feed has no review_status — it lives on
   /// financial_transactions (same read the web does). A failure here is
   /// non-fatal: rows keep the default "reviewed" rather than blocking the

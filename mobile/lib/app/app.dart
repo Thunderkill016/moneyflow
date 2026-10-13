@@ -313,6 +313,7 @@ class _AuthGateState extends State<AuthGate> {
             () => ReportsPage(
               key: _reportKey,
               loadTransactions: _store.loadTransactions,
+              loadRange: _store.loadTransactionsInRange,
             ),
           ],
           onCaptureTap: _openCapture,

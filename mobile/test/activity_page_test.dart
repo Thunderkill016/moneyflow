@@ -89,6 +89,31 @@ Widget _bulkPage(
 );
 
 void main() {
+  testWidgets('a failed load shows an error with retry, not an empty ledger', (
+    t,
+  ) async {
+    var calls = 0;
+    await t.pumpWidget(
+      MaterialApp(
+        home: ActivityPage(
+          loadTransactions: () async {
+            calls++;
+            if (calls == 1) throw Exception('offline');
+            return [_plain];
+          },
+          onDelete: (_) async {},
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    expect(find.text('Không tải được hoạt động'), findsOneWidget);
+    expect(find.text('Chưa có giao dịch nào'), findsNothing);
+
+    await t.tap(find.text('Thử lại'));
+    await t.pumpAndSettle();
+    expect(find.text('Bún bò'), findsOneWidget);
+  });
+
   group('ActivityPage bulk', () {
     testWidgets('demo (no bulk callbacks) has no select mode', (t) async {
       await t.pumpWidget(_bulkPage(_Bulk(), bulk: false));

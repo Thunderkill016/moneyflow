@@ -7,9 +7,18 @@ import '../../domain/report.dart';
 /// Month report — mirrors the web /reports totals: income, expense, net,
 /// savings rate and the expense category breakdown.
 class ReportsPage extends StatefulWidget {
-  const ReportsPage({super.key, required this.loadTransactions});
+  const ReportsPage({
+    super.key,
+    required this.loadTransactions,
+    this.loadRange,
+  });
 
   final Future<List<Transaction>> Function() loadTransactions;
+
+  /// Server-side month query (inclusive [from], exclusive [to], YYYY-MM-DD).
+  /// Preferred over [loadTransactions] — the recent-feed page is capped, so
+  /// filtering it client-side silently understates a busy month.
+  final Future<List<Transaction>> Function(String from, String to)? loadRange;
 
   @override
   State<ReportsPage> createState() => ReportsPageState();
@@ -30,10 +39,15 @@ class ReportsPageState extends State<ReportsPage> {
     final monthEnd = DateTime(now.year, now.month + 1);
     String d(DateTime x) =>
         '${x.year}-${x.month.toString().padLeft(2, '0')}-${x.day.toString().padLeft(2, '0')}';
-    final all = await widget.loadTransactions();
+    final from = d(monthStart);
+    final to = d(monthEnd);
+    final load = widget.loadRange;
+    final all = load != null
+        ? await load(from, to)
+        : await widget.loadTransactions();
     final scoped = all.where((t) {
       final on = t.occurredOn;
-      return on.compareTo(d(monthStart)) >= 0 && on.compareTo(d(monthEnd)) < 0;
+      return on.compareTo(from) >= 0 && on.compareTo(to) < 0;
     }).toList();
     return buildPeriodReport(scoped);
   }
@@ -60,15 +74,15 @@ class ReportsPageState extends State<ReportsPage> {
       body: FutureBuilder(
         future: _report,
         builder: (context, snap) {
-          if (!snap.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
           if (snap.hasError) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('${snap.error}', textAlign: TextAlign.center),
+                  const Text(
+                    'Không tải được báo cáo',
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: 12),
                   FilledButton(
                     onPressed: _refresh,
@@ -77,6 +91,9 @@ class ReportsPageState extends State<ReportsPage> {
                 ],
               ),
             );
+          }
+          if (!snap.hasData) {
+            return const Center(child: CircularProgressIndicator());
           }
           final r = snap.data!;
           return RefreshIndicator(

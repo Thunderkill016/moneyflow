@@ -154,7 +154,7 @@ class DashboardPageState extends State<DashboardPage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Text(
-                      '${snap.error}',
+                      'Kiểm tra kết nối mạng rồi thử lại.',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),

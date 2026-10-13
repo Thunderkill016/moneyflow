@@ -131,6 +131,58 @@ PlanningActions _incomeActions({
 );
 
 void main() {
+  group('ReportsPage loading', () {
+    testWidgets('a failed load shows the retry state instead of spinning', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ReportsPage(
+            loadTransactions: () => Future.error(Exception('offline')),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Không tải được báo cáo'), findsOneWidget);
+      expect(find.text('Thử lại'), findsOneWidget);
+    });
+
+    testWidgets('prefers the server-side month query over the feed page', (
+      tester,
+    ) async {
+      String? from, to;
+      var feedCalls = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ReportsPage(
+            loadTransactions: () async {
+              feedCalls++;
+              return const [];
+            },
+            loadRange: (f, t) async {
+              from = f;
+              to = t;
+              return [
+                _tx(
+                  'r1',
+                  TransactionKind.expense,
+                  'Ăn uống',
+                  70000,
+                  _thisMonthDay(),
+                ),
+              ];
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(feedCalls, 0);
+      expect(from, _monthStart());
+      expect(to!.endsWith('-01'), isTrue);
+      expect(find.textContaining('70.000'), findsWidgets);
+    });
+  });
+
   group('PlanningPage recurring income', () {
     testWidgets('demo (no income actions, no templates) hides the section', (
       tester,

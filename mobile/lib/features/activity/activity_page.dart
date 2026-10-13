@@ -251,7 +251,21 @@ class ActivityPageState extends State<ActivityPage> {
                       : () => _bulkCategory(all),
                 )
               : null,
-          body: !snap.hasData
+          body: snap.hasError
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('Không tải được hoạt động'),
+                      const SizedBox(height: 12),
+                      FilledButton(
+                        onPressed: _refresh,
+                        child: const Text('Thử lại'),
+                      ),
+                    ],
+                  ),
+                )
+              : !snap.hasData
               ? const Center(child: CircularProgressIndicator())
               : RefreshIndicator(
                   onRefresh: _refresh,
