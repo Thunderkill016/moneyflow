@@ -7,11 +7,14 @@
 
 import 'package:flutter/material.dart';
 
+import '../../data/csv_file_source.dart';
 import '../../data/share/inbox_paste_parser.dart';
+import '../../domain/csv_import.dart';
 import '../../domain/inbox.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../capture/category_picker.dart';
+import 'csv_import_sheet.dart';
 
 /// The pending review queue. Page pops `true` when anything changed so the
 /// shell can reload dashboard balances and the activity feed.
@@ -25,6 +28,8 @@ class InboxPage extends StatefulWidget {
     required this.onApprove,
     required this.onReject,
     required this.onCommitDrafts,
+    this.pickCsvFile,
+    this.onImportCsv,
   });
 
   final Future<List<InboxCandidate>> Function() loadCandidates;
@@ -37,6 +42,12 @@ class InboxPage extends StatefulWidget {
   final Future<void> Function(InboxApproval approval) onApprove;
   final Future<void> Function(String candidateId) onReject;
   final Future<void> Function(List<InboxPasteDraft> drafts) onCommitDrafts;
+
+  /// CSV bank-statement import seams — both must be present for the
+  /// "Nhập CSV" entry to appear. The shell only wires them on the
+  /// authenticated store, so demo mode never shows the affordance.
+  final CsvFilePicker? pickCsvFile;
+  final Future<CsvImportResult> Function(CsvImportBatch batch)? onImportCsv;
 
   @override
   State<InboxPage> createState() => InboxPageState();
@@ -183,6 +194,51 @@ class InboxPageState extends State<InboxPage> {
     }
   }
 
+  bool get _csvImportEnabled =>
+      widget.pickCsvFile != null && widget.onImportCsv != null;
+
+  /// "Nhập CSV" — a picked bank statement becomes pending candidates via
+  /// the shared prepare RPC; the sheet returns the server result so the
+  /// snackbar reports the real created count, and the queue reloads.
+  /// Nothing posts to the ledger here or inside the sheet.
+  Future<void> _openCsvImport() async {
+    final pickFile = widget.pickCsvFile;
+    final onImport = widget.onImportCsv;
+    if (pickFile == null || onImport == null) return;
+    _InboxData data;
+    try {
+      data = await _data;
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Không tải được dữ liệu — thử lại khi có mạng'),
+          ),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+    final result = await showCsvImportSheet(
+      context,
+      accounts: data.accounts,
+      categories: data.categories,
+      pickFile: pickFile,
+      onImport: onImport,
+    );
+    if (result != null) {
+      _changed = true;
+      _refresh();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Đã tạo ${result.candidateCount} mục chờ duyệt'),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -194,6 +250,12 @@ class InboxPageState extends State<InboxPage> {
         appBar: AppBar(
           title: const Text('Cần xem'),
           actions: [
+            if (_csvImportEnabled)
+              IconButton(
+                tooltip: 'Nhập CSV',
+                icon: const Icon(Icons.upload_file_outlined),
+                onPressed: _openCsvImport,
+              ),
             IconButton(
               tooltip: 'Dán tin nhắn',
               icon: const Icon(Icons.content_paste),
@@ -245,8 +307,8 @@ class InboxPageState extends State<InboxPage> {
                         leading: Icon(Icons.inbox_outlined),
                         title: Text('Không có mục nào chờ duyệt'),
                         subtitle: Text(
-                          'Dán tin nhắn ngân hàng để tạo mục chờ duyệt — '
-                          'chưa có gì ghi vào sổ.',
+                          'Dán tin nhắn ngân hàng hoặc nhập file CSV để '
+                          'tạo mục chờ duyệt — chưa có gì ghi vào sổ.',
                         ),
                       ),
                     ),
@@ -256,6 +318,14 @@ class InboxPageState extends State<InboxPage> {
                       icon: const Icon(Icons.content_paste),
                       label: const Text('Dán tin nhắn'),
                     ),
+                    if (_csvImportEnabled) ...[
+                      const SizedBox(height: 8),
+                      FilledButton.tonalIcon(
+                        onPressed: _openCsvImport,
+                        icon: const Icon(Icons.upload_file_outlined),
+                        label: const Text('Nhập file CSV'),
+                      ),
+                    ],
                   ],
                 ),
               );

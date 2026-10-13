@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../../domain/categories.dart';
+import '../../domain/csv_import.dart';
 import '../../domain/inbox.dart';
 import '../../domain/models.dart';
 import '../../domain/reconciliation.dart';
@@ -1036,6 +1037,64 @@ class RealStore {
     ];
     final inserted = await _api.insertAll('inbox_candidates', rows);
     return inserted.map(_candidateFromRow).toList();
+  }
+
+  /// POST /rpc/prepare_direct_csv_candidates_with_rules — the SECURITY
+  /// DEFINER ingestion the web's commitDirectCsvImportAction calls. Same
+  /// params, same all-or-nothing transaction: one bad row fails the whole
+  /// batch, nothing partial survives. Mobile stops here on purpose —
+  /// unlike the web action it never calls approve_inbox_candidates_batch,
+  /// so every accepted row lands in "Cần xem" as a pending candidate and
+  /// only the review queue can post it to the ledger.
+  ///
+  /// Direct table INSERTs stay avoided: they fail upstream with 42501.
+  Future<CsvImportResult> prepareCsvImport(CsvImportBatch batch) async {
+    final batchId = newIdempotencyKey();
+    final fileName = batch.fileName.trim();
+    final res = await _api.rpc('prepare_direct_csv_candidates_with_rules', {
+      'p_batch': {
+        'id': batchId,
+        'file_name': fileName.isEmpty
+            ? 'statement.csv'
+            : fileName.length > 260
+            ? fileName.substring(0, 260)
+            : fileName,
+        'warning_count': batch.warningCount,
+        'skipped_rows': batch.skippedRows,
+        'map_confidence': batch.mapConfidence,
+        'headers': batch.headers,
+        'column_map': batch.columnMap.toWire(),
+      },
+      'p_candidates': [
+        for (final row in batch.rows)
+          {
+            'id': newIdempotencyKey(),
+            'row_index': row.rowIndex,
+            'kind': row.kind == TransactionKind.income ? 'income' : 'expense',
+            'amount_minor': row.amountMinor,
+            'merchant': row.merchant,
+            'note': row.note,
+            'occurred_on': row.occurredOn,
+            'confidence': row.confidence,
+            'category_id': row.categoryId,
+            'account_id': row.accountId,
+            'raw_snippet': row.rawSnippet,
+          },
+      ],
+    });
+
+    // The web action validates {batch_id, candidate_ids, candidate_count}
+    // and refuses to report success when the response is incomplete —
+    // the batch may still exist server-side, so this is an honest
+    // "check Cần xem before retrying" outcome, not a retryable failure.
+    if (res is! Map ||
+        res['batch_id'] != batchId ||
+        res['candidate_count'] != batch.rows.length ||
+        res['candidate_ids'] is! List ||
+        (res['candidate_ids'] as List).length != batch.rows.length) {
+      throw const FormatException('incomplete_result');
+    }
+    return CsvImportResult(batchId: batchId, candidateCount: batch.rows.length);
   }
 
   // ---- Account reconciliation (db/neon/migrations/20260803142000 + the
