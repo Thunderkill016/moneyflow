@@ -34,6 +34,47 @@ void main() {
     });
   });
 
+  group('clearSignOutResidue', () {
+    test(
+      'clears session residue but keeps scoped + device opt-in keys',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          // Unscoped residue — must go.
+          'mf_last_capture_account': 'acc-1',
+          'mf_last_capture_category': 'cat-1',
+          'mf_recurring_dismissed': '["k1"]',
+          'mf_dashboard_snapshot': '{}',
+          'mf_offline_capture_queue': '{}',
+          // Account-scoped stores — survive for their owner's next session.
+          'mf_dashboard_snapshot_u-alice': '{}',
+          'mf_offline_capture_queue_u-alice': '{}',
+          // Device-level opt-ins — the next sign-in keeps its own choice.
+          'mf_biometric_enabled': true,
+          'mf_weekly_digest_enabled': true,
+          'other_plugin_pref': 'keep',
+        });
+        final prefs = await SharedPreferences.getInstance();
+        final removed = await clearSignOutResidue(prefs);
+
+        for (final key in [
+          'mf_last_capture_account',
+          'mf_last_capture_category',
+          'mf_recurring_dismissed',
+          'mf_dashboard_snapshot',
+          'mf_offline_capture_queue',
+        ]) {
+          expect(removed, contains(key), reason: key);
+          expect(prefs.getString(key), isNull, reason: key);
+        }
+        expect(prefs.getString('mf_dashboard_snapshot_u-alice'), isNotNull);
+        expect(prefs.getString('mf_offline_capture_queue_u-alice'), isNotNull);
+        expect(prefs.getBool('mf_biometric_enabled'), isTrue);
+        expect(prefs.getBool('mf_weekly_digest_enabled'), isTrue);
+        expect(prefs.getString('other_plugin_pref'), 'keep');
+      },
+    );
+  });
+
   group('showDeleteDataDialog', () {
     Future<void> pumpOpener(WidgetTester t) async {
       await t.pumpWidget(

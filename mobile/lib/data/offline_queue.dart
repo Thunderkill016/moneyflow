@@ -25,6 +25,14 @@ import 'neon/auth_client.dart';
 /// wipeLocalData sweep, same as the other product prefs.
 const offlineQueueStorageKey = 'mf_offline_capture_queue';
 
+/// Held captures belong to the account that wrote them — the storage key
+/// is scoped by userId so a different account signing in on the same
+/// device can never see or replay them. A null userId (pre-scoping
+/// sessions, demo) falls back to the legacy unscoped key.
+String offlineQueueKeyFor(String? userId) => userId == null
+    ? offlineQueueStorageKey
+    : '${offlineQueueStorageKey}_$userId';
+
 /// Held-write cap. More than this means the device has been offline a
 /// very long time; the next enqueue is refused with [OfflineQueueFull] —
 /// a hard error, never a silent drop of someone's money record.
@@ -92,11 +100,13 @@ class QueuedCapture {
 /// IS replay order. A [ChangeNotifier] so the pending-writes banner can
 /// follow queue changes without polling.
 class OfflineCaptureQueue extends ChangeNotifier {
-  OfflineCaptureQueue(this._prefs) {
+  OfflineCaptureQueue(this._prefs, {String? userId})
+    : _storageKey = offlineQueueKeyFor(userId) {
     _restore();
   }
 
   final SharedPreferences _prefs;
+  final String _storageKey;
 
   var _items = <QueuedCapture>[];
   int? _lastAttemptAtMs;
@@ -138,35 +148,75 @@ class OfflineCaptureQueue extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Drop every held entry — the sign-out/data-wipe path also reaches
-  /// this store via the `mf_` key prefix.
+  /// Drop every held entry — the data-wipe path also reaches this store
+  /// via the `mf_` key prefix.
   Future<void> clear() async {
     _items = [];
     _lastAttemptAtMs = null;
-    await _prefs.remove(offlineQueueStorageKey);
+    await _prefs.remove(_storageKey);
     notifyListeners();
   }
 
   void _restore() {
-    final raw = _prefs.getString(offlineQueueStorageKey);
+    _restoreFrom(_storageKey);
+    // Pre-scoping builds kept held captures under the unscoped key —
+    // adopt them (oldest first) instead of dropping someone's money
+    // records. The merged list re-persists under the scoped key and the
+    // legacy key is removed; idempotency-key dedup keeps a failed
+    // cleanup from doubling entries on the next bind.
+    if (_storageKey != offlineQueueStorageKey) {
+      final legacy = _itemsFrom(_prefs.getString(offlineQueueStorageKey));
+      if (legacy.isNotEmpty) {
+        final seen = {for (final i in _items) i.intent.idempotencyKey};
+        _items = [
+          for (final i in legacy)
+            if (seen.add(i.intent.idempotencyKey)) i,
+          ..._items,
+        ];
+        unawaited(() async {
+          await _persist();
+          await _prefs.remove(offlineQueueStorageKey);
+        }());
+      }
+    }
+  }
+
+  void _restoreFrom(String key) {
+    final raw = _prefs.getString(key);
     if (raw == null) return;
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! Map<String, Object?>) return;
       _lastAttemptAtMs = (decoded['lastAttemptAtMs'] as num?)?.toInt();
-      final items = decoded['items'];
-      if (items is! List) return;
-      final restored = <QueuedCapture>[];
-      for (final raw in items) {
-        if (raw is! Map<String, Object?>) continue;
-        // A single corrupt entry is dropped; the rest still replay.
-        final item = _tryDecode(raw);
-        if (item != null) restored.add(item);
-      }
-      _items = restored;
+      _items = _decodeItems(decoded['items']);
     } on Object {
       // A corrupt blob reads as an empty queue — never crash startup.
     }
+  }
+
+  /// Just the entry list of a stored blob — used by the legacy-key
+  /// adoption where lastAttempt belongs to the scoped blob alone.
+  List<QueuedCapture> _itemsFrom(String? raw) {
+    if (raw == null) return const [];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, Object?>) return const [];
+      return _decodeItems(decoded['items']);
+    } on Object {
+      return const [];
+    }
+  }
+
+  List<QueuedCapture> _decodeItems(Object? items) {
+    if (items is! List) return const [];
+    final restored = <QueuedCapture>[];
+    for (final raw in items) {
+      if (raw is! Map<String, Object?>) continue;
+      // A single corrupt entry is dropped; the rest still replay.
+      final item = _tryDecode(raw);
+      if (item != null) restored.add(item);
+    }
+    return restored;
   }
 
   static QueuedCapture? _tryDecode(Map<String, Object?> json) {
@@ -178,7 +228,7 @@ class OfflineCaptureQueue extends ChangeNotifier {
   }
 
   Future<void> _persist() => _prefs.setString(
-    offlineQueueStorageKey,
+    _storageKey,
     jsonEncode({
       'v': 1,
       'lastAttemptAtMs': _lastAttemptAtMs,

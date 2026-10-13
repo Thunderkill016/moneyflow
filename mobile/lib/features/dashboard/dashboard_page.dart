@@ -75,7 +75,10 @@ class DashboardPage extends StatefulWidget {
   /// [from, to) range contract of RealStore.loadTransactionsInRange.
   /// Absent (or a failed read) simply means no card: the dashboard never
   /// invents a pattern to fill the slot.
-  final Future<List<Transaction>> Function(String from, String to)?
+  final Future<({List<Transaction> rows, bool truncated})> Function(
+    String from,
+    String to,
+  )?
   loadSuggestionTransactions;
 
   /// "Tạo cam kết" on a suggestion — the app shell opens the shared
@@ -188,7 +191,9 @@ class DashboardPageState extends State<DashboardPage> {
     if (loader == null || commitments == null) return const [];
     try {
       final today = DateTime.now();
-      final txs = await loader(
+      // A truncated tail only narrows what detection can see — the card
+      // is advisory, so suggesting less stays honest.
+      final range = await loader(
         recurringDetectionStart(today),
         ymd(dateAdd(today, 1)),
       );
@@ -198,7 +203,7 @@ class DashboardPageState extends State<DashboardPage> {
       };
       final dismissed = await RecurringDismissals.load();
       return detectRecurring(
-        txs,
+        range.rows,
         covered,
         today: today,
       ).where((s) => !dismissed.contains(s.key)).toList();
@@ -224,7 +229,12 @@ class DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _refresh() async {
-    setState(() => _data = _load());
+    // Braces, not `=>` — setState rejects a closure that returns a
+    // Future, and `_data = _load()` evaluates to that Future (debug
+    // builds throw and the pull/capture refresh silently never ran).
+    setState(() {
+      _data = _load();
+    });
     try {
       await _data;
     } catch (_) {
@@ -297,7 +307,12 @@ class DashboardPageState extends State<DashboardPage> {
           final accounts = snap.data!.accounts;
           final txs = snap.data!.txs;
           final savedAtMs = snap.data!.savedAtMs;
-          final total = accounts.fold<int>(0, (s, a) => s + a.balance);
+          // Only VND balances fold into the đồng total — a foreign-
+          // currency account created on the web would otherwise corrupt
+          // it (the mobile create path is VND-only).
+          final total = accounts
+              .where((a) => a.currencyCode == 'VND')
+              .fold<int>(0, (s, a) => s + a.balance);
           final budgets = snap.data!.budgets;
           final commitments = snap.data!.commitments;
           final suggestions = snap.data!.suggestions

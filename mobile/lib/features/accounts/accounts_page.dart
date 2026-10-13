@@ -18,6 +18,8 @@ class AccountsPage extends StatefulWidget {
     this.onOpen,
   });
 
+  /// May return every account including archived — archived rows group
+  /// under "Đã lưu trữ" so the archive stays reversible from this page.
   final Future<List<AccountSummary>> Function() loadAccounts;
 
   /// Create — null hides the "Thêm tài khoản" action entirely.
@@ -28,7 +30,8 @@ class AccountsPage extends StatefulWidget {
   )?
   onCreate;
 
-  /// Long-press archive — null disables the gesture.
+  /// Long-press archive / "Khôi phục" on archived rows — null disables
+  /// both.
   final Future<void> Function(String accountId, bool archived)? onArchive;
 
   /// Tap-to-edit — shown as a trailing edit button when [onOpen] claims
@@ -224,6 +227,10 @@ class _AccountsPageState extends State<AccountsPage> {
           if (!snap.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
+          final archived = [
+            for (final a in snap.data!)
+              if (a.isArchived) a,
+          ];
           return RefreshIndicator(
             onRefresh: _refresh,
             child: ListView(
@@ -231,38 +238,16 @@ class _AccountsPageState extends State<AccountsPage> {
               padding: const EdgeInsets.all(16),
               children: [
                 for (final a in snap.data!)
-                  Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        child: Text(a.name.characters.first),
-                      ),
-                      title: Text(a.name),
-                      subtitle: Text(accountKindLabel(a.kind)),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(formatMoney(a.balance)),
-                          // The tap went to the register — keep edit one
-                          // tap away, like the web row's "Sửa" button.
-                          if (widget.onOpen != null && widget.onUpdate != null)
-                            IconButton(
-                              icon: const Icon(Icons.edit_outlined),
-                              tooltip: 'Sửa ${a.name}',
-                              onPressed: () => _showForm(editing: a),
-                            ),
-                        ],
-                      ),
-                      onTap: widget.onOpen != null
-                          ? () => widget.onOpen!(a)
-                          : widget.onUpdate == null
-                          ? null
-                          : () => _showForm(editing: a),
-                      onLongPress: widget.onArchive == null
-                          ? null
-                          : () => _confirmArchive(a),
-                    ),
+                  if (!a.isArchived) _accountTile(a),
+                if (archived.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  Text(
+                    'Đã lưu trữ',
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
+                  const SizedBox(height: 8),
+                  for (final a in archived) _accountTile(a),
+                ],
               ],
             ),
           );
@@ -275,6 +260,66 @@ class _AccountsPageState extends State<AccountsPage> {
               icon: const Icon(Icons.add),
               label: const Text('Thêm tài khoản'),
             ),
+    );
+  }
+
+  /// Archive asks first (it hides the account from pickers); restoring
+  /// is immediate, matching the categories page's no-confirm "Hiện lại".
+  /// A failed write surfaces instead of silently keeping the row put.
+  Future<void> _applyArchived(AccountSummary a, bool archived) async {
+    try {
+      await widget.onArchive!(a.id, archived);
+    } catch (e) {
+      if (mounted) _snack(_saveError(e));
+      return;
+    }
+    _snack(archived ? 'Đã lưu trữ tài khoản.' : 'Đã hiện lại tài khoản.');
+    _refresh();
+  }
+
+  void _snack(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Widget _accountTile(AccountSummary a) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: CircleAvatar(child: Text(a.name.characters.first)),
+        title: Text(a.name),
+        subtitle: Text(accountKindLabel(a.kind)),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(formatMoney(a.balance)),
+            // Archived rows get restore instead of edit — restore first,
+            // then edit, like the web/categories rule.
+            if (a.isArchived && widget.onArchive != null)
+              TextButton(
+                onPressed: () => _applyArchived(a, false),
+                child: const Text('Khôi phục'),
+              )
+            // The tap went to the register — keep edit one tap away,
+            // like the web row's "Sửa" button.
+            else if (widget.onOpen != null && widget.onUpdate != null)
+              IconButton(
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: 'Sửa ${a.name}',
+                onPressed: () => _showForm(editing: a),
+              ),
+          ],
+        ),
+        onTap: widget.onOpen != null
+            ? () => widget.onOpen!(a)
+            : widget.onUpdate == null || a.isArchived
+            ? null
+            : () => _showForm(editing: a),
+        onLongPress: widget.onArchive == null || a.isArchived
+            ? null
+            : () => _confirmArchive(a),
+      ),
     );
   }
 
@@ -298,9 +343,6 @@ class _AccountsPageState extends State<AccountsPage> {
         ],
       ),
     );
-    if (ok == true) {
-      await widget.onArchive!(a.id, true);
-      _refresh();
-    }
+    if (ok == true) await _applyArchived(a, true);
   }
 }

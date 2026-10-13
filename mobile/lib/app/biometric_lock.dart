@@ -59,6 +59,7 @@ class BiometricGate extends StatefulWidget {
     required this.service,
     this.enabled = true,
     this.onUnlocked,
+    this.onLocked,
   });
 
   final Widget child;
@@ -71,13 +72,19 @@ class BiometricGate extends StatefulWidget {
   /// opens over the lock screen.
   final VoidCallback? onUnlocked;
 
+  /// Fires when an unlocked gate drops back to the lock screen —
+  /// backgrounding re-arms the lock, so held deep links must wait for
+  /// the next [onUnlocked] instead of opening over the lock screen.
+  final VoidCallback? onLocked;
+
   @override
   State<BiometricGate> createState() => _BiometricGateState();
 }
 
 enum _LockPhase { checking, locked, unlocked }
 
-class _BiometricGateState extends State<BiometricGate> {
+class _BiometricGateState extends State<BiometricGate>
+    with WidgetsBindingObserver {
   _LockPhase _phase = _LockPhase.checking;
 
   /// True while a system auth prompt is in flight — blocks double-taps.
@@ -89,6 +96,7 @@ class _BiometricGateState extends State<BiometricGate> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     if (widget.enabled) {
       _probe();
     } else {
@@ -96,6 +104,45 @@ class _BiometricGateState extends State<BiometricGate> {
       // unlocked state as far as deep links are concerned.
       _notifyUnlocked();
     }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // Back in the foreground with the lock up — re-prompt
+        // immediately, same as the first-frame auto-attempt. Guarded by
+        // _authenticating, so a system sheet that persisted across the
+        // backgrounding never stacks a second prompt.
+        _attemptAuth();
+      case AppLifecycleState.inactive:
+        // The biometric prompt itself drops the app to inactive —
+        // re-locking here would deadlock it.
+        break;
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        _relockForBackground();
+    }
+  }
+
+  /// Leaving the unlocked state into the background re-arms the lock so
+  /// returning to the app always passes the prompt again. A prompt
+  /// already in flight keeps its result — a completed auth is a
+  /// completed auth even if it lands while paused.
+  void _relockForBackground() {
+    if (_phase != _LockPhase.unlocked) return;
+    setState(() {
+      _phase = _LockPhase.locked;
+      _failed = false;
+    });
+    widget.onLocked?.call();
   }
 
   @override

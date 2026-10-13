@@ -43,12 +43,22 @@ class DashboardSnapshot {
 }
 
 /// SharedPreferences-backed store for [DashboardSnapshot]s.
+///
+/// The storage key is scoped by the owning account's userId: a snapshot
+/// written under one account can never be served to a different account
+/// signed in on the same device. An absent userId (pre-scoping sessions,
+/// demo) falls back to the legacy unscoped key.
 class OfflineCache {
-  OfflineCache(this._prefs);
+  OfflineCache(this._prefs, {String? userId})
+    : _key = userId == null ? legacyKey : '${legacyKey}_$userId';
 
   final SharedPreferences _prefs;
 
-  static const _key = 'mf_dashboard_snapshot';
+  /// Pre-scoping storage key — public so the sign-out residue sweep and
+  /// the wipe contract can name it.
+  static const legacyKey = 'mf_dashboard_snapshot';
+
+  final String _key;
 
   Future<void> saveDashboard(DashboardSnapshot snap) =>
       _prefs.setString(_key, jsonEncode(snap.toJson()));

@@ -16,14 +16,20 @@ class RealStore {
 
   final NeonDataApi _api;
 
-  Future<List<AccountSummary>> loadAccounts() async {
+  Future<List<AccountSummary>> loadAccounts() => _loadAccounts(false);
+
+  /// Every account including archived — the management page lists them
+  /// under "Đã lưu trữ" so archiving stays reversible.
+  Future<List<AccountSummary>> loadAllAccounts() => _loadAccounts(true);
+
+  Future<List<AccountSummary>> _loadAccounts(bool includeArchived) async {
     final rows = await _api.select(
       'accounts',
       query: {
         'select':
             'id,name,kind,currency_code,initial_balance_minor,is_archived,'
             'icon,color,updated_at',
-        'is_archived': 'eq.false',
+        if (!includeArchived) 'is_archived': 'eq.false',
         'order': 'created_at.asc',
       },
     );
@@ -154,24 +160,35 @@ class RealStore {
   }
 
   /// Every feed row with occurred_on in [from, to) — used by reports so a
-  /// busy month is never truncated to the recent-feed page. PostgREST's
-  /// server cap is far above a month of personal spending; the explicit
-  /// limit documents the assumption.
-  Future<List<Transaction>> loadTransactionsInRange(
+  /// busy month is never truncated to the recent-feed page. Pages through
+  /// the whole range up to [_rangeMaxPages] × [_rangePageSize] rows;
+  /// beyond that `truncated` labels the result honestly instead of a
+  /// silent tail cut. `id.desc` makes the page order total so offset
+  /// paging can't skip or repeat rows (same rule as loadTransactionPage).
+  Future<({List<Transaction> rows, bool truncated})> loadTransactionsInRange(
     String from,
-    String to, {
-    int limit = 5000,
-  }) async {
-    final rows = await _api.select(
-      'transaction_feed',
-      query: {
-        'select': _txColumns,
-        'and': '(occurred_on.gte.$from,occurred_on.lt.$to)',
-        'order': 'occurred_on.desc,created_at.desc',
-        'limit': '$limit',
-      },
-    );
-    return rows.map(_txFromRow).toList();
+    String to,
+  ) async {
+    final rows = <Transaction>[];
+    var offset = 0;
+    for (var page = 0; page < _rangeMaxPages; page++) {
+      final batch = await _api.select(
+        'transaction_feed',
+        query: {
+          'select': _txColumns,
+          'and': '(occurred_on.gte.$from,occurred_on.lt.$to)',
+          'order': 'occurred_on.desc,created_at.desc,id.desc',
+          'limit': '${_rangePageSize + 1}',
+          'offset': '$offset',
+        },
+      );
+      rows.addAll(batch.take(_rangePageSize).map(_txFromRow));
+      if (batch.length <= _rangePageSize) {
+        return (rows: rows, truncated: false);
+      }
+      offset += _rangePageSize;
+    }
+    return (rows: rows, truncated: true);
   }
 
   /// transaction_feed has no review_status — it lives on
@@ -1294,6 +1311,12 @@ class RealStore {
   }
 
   static const _ledgerMaxPages = 20;
+
+  /// Range-read paging: [_rangeMaxPages] pages of [_rangePageSize] rows
+  /// — a 10k-row ceiling per range query, far past a personal ledger's
+  /// busiest window while still bounded.
+  static const _rangePageSize = 500;
+  static const _rangeMaxPages = 20;
 }
 
 /// One UUIDv4 per form instance = one idempotency key per user intent.

@@ -29,7 +29,13 @@ class ReportsPage extends StatefulWidget {
   /// Server-side range query (inclusive [from], exclusive [to], YYYY-MM-DD).
   /// Preferred over [loadTransactions] — the recent-feed page is capped, so
   /// filtering it client-side silently understates a busy period.
-  final Future<List<Transaction>> Function(String from, String to)? loadRange;
+  /// `truncated` tells the page the range hit the store's row cap so the
+  /// report can label itself instead of presenting partial totals as whole.
+  final Future<({List<Transaction> rows, bool truncated})> Function(
+    String from,
+    String to,
+  )?
+  loadRange;
 
   /// Custom-window picker — injectable so tests don't fight the system
   /// dialog. Defaults to [showDateRangePicker].
@@ -51,7 +57,7 @@ class ReportsPage extends StatefulWidget {
 }
 
 class ReportsPageState extends State<ReportsPage> {
-  late Future<PeriodReport> _report;
+  late Future<({PeriodReport report, bool truncated})> _report;
   late ReportPeriod _period;
 
   /// Oldest day the range picker offers — comfortably past the web's
@@ -65,21 +71,25 @@ class ReportsPageState extends State<ReportsPage> {
     _report = _load();
   }
 
-  Future<PeriodReport> _load() async {
-    return buildPeriodReport(await _rowsFor(_period));
+  Future<({PeriodReport report, bool truncated})> _load() async {
+    final range = await _rowsFor(_period);
+    return (report: buildPeriodReport(range.rows), truncated: range.truncated);
   }
 
   /// Rows for [period] — the server-side range query when wired, else the
   /// recent feed scoped to the same inclusive/exclusive window (the demo
   /// fallback the report body already relies on).
-  Future<List<Transaction>> _rowsFor(ReportPeriod period) async {
+  Future<({List<Transaction> rows, bool truncated})> _rowsFor(
+    ReportPeriod period,
+  ) async {
     final load = widget.loadRange;
     if (load != null) return load(period.from, period.to);
     final all = await widget.loadTransactions();
-    return all.where((t) {
+    final rows = all.where((t) {
       final on = t.occurredOn;
       return on.compareTo(period.from) >= 0 && on.compareTo(period.to) < 0;
     }).toList();
+    return (rows: rows, truncated: false);
   }
 
   Future<void> _refresh() async {
@@ -115,7 +125,7 @@ class ReportsPageState extends State<ReportsPage> {
   Future<void> _openExport() async {
     int? count;
     try {
-      count = (await _report).transactionCount;
+      count = (await _report).report.transactionCount;
     } catch (_) {
       count = null;
     }
@@ -162,9 +172,9 @@ class ReportsPageState extends State<ReportsPage> {
   Future<void> _exportCsv() async {
     final period = _period;
     try {
-      final rows = await _rowsFor(period);
+      final range = await _rowsFor(period);
       if (!mounted) return;
-      if (rows.isEmpty) {
+      if (range.rows.isEmpty) {
         // The ledger changed under the open page — say so instead of
         // sharing a header-only file.
         _snack('Không có giao dịch trong kỳ này');
@@ -172,9 +182,14 @@ class ReportsPageState extends State<ReportsPage> {
       }
       final file = await writeExportFile(
         exportCsvFilename(period.from, _inclusiveEnd(period)),
-        transactionsToCsv(rows),
+        transactionsToCsv(range.rows),
         tempDir: widget.tempDir,
       );
+      if (range.truncated && mounted) {
+        // The file writes what the range cap could fetch — say so before
+        // the share sheet hands over a partial export.
+        _snack('Kỳ này có quá nhiều giao dịch — file có thể thiếu một phần');
+      }
       await (widget.shareFile ?? shareFileToSheet)(file.path, csvMimeType);
     } catch (_) {
       if (mounted) _snack('Không xuất được file');
@@ -312,13 +327,24 @@ class ReportsPageState extends State<ReportsPage> {
                 if (!snap.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                final r = snap.data!;
+                final r = snap.data!.report;
+                final truncated = snap.data!.truncated;
                 return RefreshIndicator(
                   onRefresh: _refresh,
                   child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.all(16),
                     children: [
+                      if (truncated)
+                        const Card(
+                          child: Padding(
+                            padding: EdgeInsets.all(12),
+                            child: Text(
+                              'Kỳ này có quá nhiều giao dịch — báo cáo chỉ '
+                              'tải được một phần, số liệu có thể thiếu.',
+                            ),
+                          ),
+                        ),
                       if (r.transactionCount == 0)
                         const Card(
                           child: Padding(

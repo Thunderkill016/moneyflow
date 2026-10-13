@@ -240,10 +240,12 @@ void main() {
             },
           ]),
         );
-        final rows = await store.loadTransactionsInRange(
+        final range = await store.loadTransactionsInRange(
           '2026-10-01',
           '2026-11-01',
         );
+        expect(range.truncated, isFalse);
+        final rows = range.rows;
         expect(rows.single.splitCount, 2);
         expect(rows.single.splitLines.map((l) => l.category), [
           'Thực phẩm',
@@ -289,12 +291,56 @@ void main() {
             },
           ]),
         );
-        final rows = await store.loadTransactionsInRange(
+        final range = await store.loadTransactionsInRange(
           '2026-10-01',
           '2026-11-01',
         );
+        expect(range.truncated, isFalse);
+        final rows = range.rows;
         expect(rows.single.splitLines, isEmpty);
         expect(rows.single.amount, 90000);
+      },
+    );
+
+    test(
+      'loadTransactionsInRange pages through the window with stable offsets',
+      () async {
+        final (store, t) = await _signedInStore();
+        // Page 1: exactly the 500+1 lookahead rows → another page exists.
+        t.queue.add(_FakeTransport.json(200, _feedRows(501, startAt: 0)));
+        // Page 2: a short page ends the loop.
+        t.queue.add(_FakeTransport.json(200, _feedRows(10, startAt: 501)));
+        final range = await store.loadTransactionsInRange(
+          '2026-10-01',
+          '2026-11-01',
+        );
+        expect(range.truncated, isFalse);
+        expect(range.rows, hasLength(510));
+        final page2 = t.requests.last;
+        expect(page2.url.queryParameters['offset'], '500');
+        expect(page2.url.queryParameters['limit'], '501');
+      },
+    );
+
+    test(
+      'loadTransactionsInRange flags truncation after the page cap',
+      () async {
+        final (store, t) = await _signedInStore();
+        // Every page answers with the lookahead full — 20 pages later the
+        // cap forces the honest flag instead of another silent request.
+        for (var i = 0; i < 20; i++) {
+          t.queue.add(
+            _FakeTransport.json(200, _feedRows(501, startAt: i * 501)),
+          );
+        }
+        final range = await store.loadTransactionsInRange(
+          '2026-10-01',
+          '2026-11-01',
+        );
+        expect(range.truncated, isTrue);
+        expect(range.rows, hasLength(20 * 500));
+        // 2 auth calls + exactly 20 feed reads — the cap stopped paging.
+        expect(t.requests, hasLength(22));
       },
     );
 
@@ -340,6 +386,28 @@ class _FakeTransport {
     Map<String, String> headers = const {},
   }) => NeonResponse(status: status, headers: headers, body: jsonEncode(body));
 }
+
+/// One transaction_feed row — the minimum shape _txFromRow consumes.
+Map<String, Object?> _feedRow(int i) => {
+  'id': 'tx-$i',
+  'kind': 'expense',
+  'note': '',
+  'occurred_on': '2026-10-12',
+  'amount_minor': 1000,
+  'account_id': 'a1',
+  'account_name': 'Tiền mặt',
+  'category_id': 'c0',
+  'category_name': 'Ăn uống',
+  'destination_account_id': null,
+  'destination_account_name': null,
+  'payee': null,
+  'updated_at': null,
+  'split_lines': null,
+};
+
+List<Map<String, Object?>> _feedRows(int count, {required int startAt}) => [
+  for (var i = 0; i < count; i++) _feedRow(startAt + i),
+];
 
 const _config = NeonConfig(
   authBaseUrl: 'https://auth.test/neondb/auth',

@@ -53,7 +53,10 @@ class _ShareSpy {
 
 Future<void> _pumpReports(
   WidgetTester tester, {
-  required Future<List<Transaction>> Function(String from, String to)?
+  required Future<({List<Transaction> rows, bool truncated})> Function(
+    String from,
+    String to,
+  )?
   loadRange,
   required _ShareSpy share,
   Future<Object?> Function()? loadArchive,
@@ -109,7 +112,7 @@ void main() {
     final share = _ShareSpy();
     await _pumpReports(
       tester,
-      loadRange: (f, t) async => [_tx('a')],
+      loadRange: (f, t) async => (rows: [_tx('a')], truncated: false),
       share: share,
     );
     await _openSheet(tester);
@@ -128,7 +131,7 @@ void main() {
       tester,
       loadRange: (f, t) async {
         rangeCalls++;
-        return [_tx('a'), _tx('b', amount: 32000)];
+        return (rows: [_tx('a'), _tx('b', amount: 32000)], truncated: false);
       },
       share: share,
     );
@@ -158,7 +161,8 @@ void main() {
     final share = _ShareSpy();
     await _pumpReports(
       tester,
-      loadRange: (f, t) async => const [],
+      loadRange: (f, t) async =>
+          (rows: const <Transaction>[], truncated: false),
       share: share,
     );
     await _openSheet(tester);
@@ -184,7 +188,10 @@ void main() {
       tester,
       loadRange: (f, t) async {
         calls++;
-        return calls == 1 ? [_tx('a')] : const [];
+        return (
+          rows: calls == 1 ? [_tx('a')] : const <Transaction>[],
+          truncated: false,
+        );
       },
       share: share,
     );
@@ -209,7 +216,7 @@ void main() {
     };
     await _pumpReports(
       tester,
-      loadRange: (f, t) async => [_tx('a')],
+      loadRange: (f, t) async => (rows: [_tx('a')], truncated: false),
       share: share,
       loadArchive: () async => archive,
     );
@@ -230,7 +237,7 @@ void main() {
     final share = _ShareSpy();
     await _pumpReports(
       tester,
-      loadRange: (f, t) async => [_tx('a')],
+      loadRange: (f, t) async => (rows: [_tx('a')], truncated: false),
       share: share,
       loadArchive: () async => 'opaque-blob',
     );
@@ -247,7 +254,7 @@ void main() {
     final share = _ShareSpy()..error = Exception('no sheet');
     await _pumpReports(
       tester,
-      loadRange: (f, t) async => [_tx('a')],
+      loadRange: (f, t) async => (rows: [_tx('a')], truncated: false),
       share: share,
     );
     await _openSheet(tester);
@@ -269,7 +276,7 @@ void main() {
       loadRange: (f, t) async {
         calls++;
         if (calls == 1) throw Exception('offline');
-        return [_tx('a')];
+        return (rows: [_tx('a')], truncated: false);
       },
       share: share,
     );

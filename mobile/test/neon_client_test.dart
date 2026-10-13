@@ -278,6 +278,108 @@ void main() {
       );
       expect(() => api.select('accounts'), throwsA(isA<NeonAuthException>()));
     });
+
+    Future<NeonAuthClient> signedIn(FakeTransport t) async {
+      final auth = NeonAuthClient(config: config, requester: t.requester);
+      await auth.signIn('e', 'p');
+      return auth;
+    }
+
+    void signInOk(FakeTransport t) => t.queue.add(
+      FakeTransport.json(
+        200,
+        {
+          'token': 't.s',
+          'user': {'id': 'u1', 'email': 'e', 'name': 'n'},
+        },
+        headers: {'set-cookie': '${NeonAuthClient.sessionCookieName}=t.s'},
+      ),
+    );
+
+    test('a PostgREST 401 fires onSessionExpired once', () async {
+      final t = FakeTransport();
+      signInOk(t);
+      t.queue.add(
+        FakeTransport.json(200, {}, headers: {'set-auth-jwt': fakeJwt()}),
+      );
+      t.queue.add(FakeTransport.json(401, {'message': 'jwt expired'}));
+      final auth = await signedIn(t);
+      var expired = 0;
+      final api = NeonDataApi(
+        config: config,
+        auth: auth,
+        requester: t.requester,
+        onSessionExpired: () async => expired++,
+      );
+      await expectLater(
+        api.select('accounts'),
+        throwsA(isA<NeonAuthException>()),
+      );
+      expect(expired, 1);
+    });
+
+    test(
+      'a get-session 401 fires onSessionExpired — the cookie is dead',
+      () async {
+        final t = FakeTransport();
+        signInOk(t);
+        t.queue.add(FakeTransport.json(401, {'code': 'UNAUTHORIZED'}));
+        final auth = await signedIn(t);
+        var expired = 0;
+        final api = NeonDataApi(
+          config: config,
+          auth: auth,
+          requester: t.requester,
+          onSessionExpired: () async => expired++,
+        );
+        await expectLater(
+          api.select('accounts'),
+          throwsA(isA<NeonAuthException>()),
+        );
+        expect(expired, 1);
+      },
+    );
+
+    test('non-401 failures never fire onSessionExpired', () async {
+      for (final status in [403, 409, 500]) {
+        final t = FakeTransport();
+        signInOk(t);
+        t.queue.add(
+          FakeTransport.json(200, {}, headers: {'set-auth-jwt': fakeJwt()}),
+        );
+        t.queue.add(FakeTransport.json(status, {'code': 'anything'}));
+        final auth = await signedIn(t);
+        var expired = 0;
+        final api = NeonDataApi(
+          config: config,
+          auth: auth,
+          requester: t.requester,
+          onSessionExpired: () async => expired++,
+        );
+        await expectLater(
+          api.select('accounts'),
+          throwsA(isA<NeonAuthException>()),
+        );
+        expect(expired, 0, reason: 'status $status is not session death');
+      }
+    });
+
+    test('a missing local session is not an upstream session expiry', () async {
+      final t = FakeTransport();
+      final auth = NeonAuthClient(config: config, requester: t.requester);
+      var expired = 0;
+      final api = NeonDataApi(
+        config: config,
+        auth: auth,
+        requester: t.requester,
+        onSessionExpired: () async => expired++,
+      );
+      await expectLater(
+        api.select('accounts'),
+        throwsA(isA<NeonAuthException>()),
+      );
+      expect(expired, 0);
+    });
   });
 
   group('httpNeonRequester', () {

@@ -164,4 +164,25 @@ void main() {
 
     expect(cache.readDashboard()!.savedAtMs, 2222);
   });
+
+  group('account scoping', () {
+    test('a scoped cache writes <key>_<userId>, never the bare key', () async {
+      final scoped = OfflineCache(prefs, userId: 'u-alice');
+      await scoped.saveDashboard(sample());
+
+      expect(prefs.getString('mf_dashboard_snapshot_u-alice'), isNotNull);
+      expect(prefs.getString(OfflineCache.legacyKey), isNull);
+    });
+
+    test('a different account cannot read the snapshot', () async {
+      await OfflineCache(prefs, userId: 'u-alice').saveDashboard(sample());
+
+      expect(OfflineCache(prefs, userId: 'u-bob').readDashboard(), isNull);
+      // The unscoped store doesn't see it either — sign-out residue
+      // sweeps the bare key so it never re-attaches to anyone.
+      expect(OfflineCache(prefs).readDashboard(), isNull);
+      // The owner's re-bind still restores it.
+      expect(OfflineCache(prefs, userId: 'u-alice').readDashboard(), isNotNull);
+    });
+  });
 }

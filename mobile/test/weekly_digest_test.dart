@@ -216,7 +216,7 @@ void main() {
         enabled: false,
         loadRange: (from, to) async {
           loaded = true;
-          return const [];
+          return (rows: const <Transaction>[], truncated: false);
         },
         schedule: ({required title, required body, required fireAt}) async {
           scheduled = true;
@@ -239,7 +239,10 @@ void main() {
         loadRange: (f, t) async {
           from = f;
           to = t;
-          return [_tx(id: 'a', amount: 300000, occurredOn: '2026-10-20')];
+          return (
+            rows: [_tx(id: 'a', amount: 300000, occurredOn: '2026-10-20')],
+            truncated: false,
+          );
         },
         schedule: ({required title, required body, required fireAt}) async {
           gotTitle = title;
@@ -256,11 +259,35 @@ void main() {
       expect(gotBody, contains('Tuần 19/10 – 25/10: chi 300.000 ₫'));
     });
 
+    test(
+      'a truncated range leaves the previous schedule — no partial totals',
+      () async {
+        var cancelled = false, scheduled = false;
+        await refreshWeeklyDigest(
+          enabled: true,
+          loadRange: (from, to) async =>
+              (rows: const <Transaction>[], truncated: true),
+          schedule: ({required title, required body, required fireAt}) async {
+            scheduled = true;
+          },
+          cancel: () async {
+            cancelled = true;
+          },
+          now: now,
+        );
+        // Neither re-arm nor cancel — the armed digest keeps its last
+        // complete-data copy rather than quoting partial numbers.
+        expect(cancelled, isFalse);
+        expect(scheduled, isFalse);
+      },
+    );
+
     test('a week with no rows cancels instead of pinging', () async {
       var cancelled = false, scheduled = false;
       await refreshWeeklyDigest(
         enabled: true,
-        loadRange: (from, to) async => const [],
+        loadRange: (from, to) async =>
+            (rows: const <Transaction>[], truncated: false),
         schedule: ({required title, required body, required fireAt}) async {
           scheduled = true;
         },

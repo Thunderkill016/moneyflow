@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -24,12 +25,17 @@ class NotificationService {
   static const _digestChannelName = 'Tóm tắt tuần';
 
   /// Fixed id for the digest one-shot — re-arming replaces the pending
-  /// notification instead of stacking copies of it. Any int outside the
-  /// hash-derived commitment id space works; this just reads as a constant.
-  static const _weeklyDigestId = 70001;
+  /// notification instead of stacking copies of it. The commitment id
+  /// allocator skips it, so the spaces can never collide.
+  static const _weeklyDigestId = digestNotificationId;
 
-  /// Deterministic notification id from the commitment id.
-  static int _idFor(String commitmentId) => commitmentId.hashCode & 0x7fffffff;
+  /// Notification id for [commitmentId], allocating a fresh persisted
+  /// one on first sight.
+  static Future<int> _idFor(String commitmentId) async =>
+      commitmentNotificationId(
+        await SharedPreferences.getInstance(),
+        commitmentId,
+      );
 
   static Future<void> init() async {
     if (_initialized) return;
@@ -56,33 +62,30 @@ class NotificationService {
     );
   }
 
-  /// Next occurrence of `dueDay` at 09:00 local — rolls to next month when
-  /// today's already past it.
-  static tz.TZDateTime _nextDue(int dueDay) {
-    final now = tz.TZDateTime.now(tz.local);
-    var due = tz.TZDateTime(tz.local, now.year, now.month, dueDay, 9);
-    if (!due.isAfter(now)) {
-      due = tz.TZDateTime(tz.local, now.year, now.month + 1, dueDay, 9);
-    }
-    return due;
-  }
+  /// Next occurrence of `dueDay` at 09:00 local strictly after now —
+  /// rolls to next month when today's already past it.
+  static tz.TZDateTime _nextDue(int dueDay) =>
+      nextCommitmentDue(dueDay, tz.TZDateTime.now(tz.local));
 
   /// Reschedule all commitment reminders — call after planning data loads.
   /// Paid-this-month commitments still get next month's reminder (the
-  /// schedule rolls forward naturally).
+  /// schedule rolls forward naturally). Ids mapped to commitments that no
+  /// longer exist (deleted, not just archived) are cancelled too — a
+  /// vanished commitment must not keep firing.
   static Future<void> scheduleCommitmentReminders(
     List<RecurringCommitment> commitments,
   ) async {
     // Self-heal — the caller may reach here before the startup init
     // finished; never no-op silently on a scheduler path.
     if (!_initialized) await init();
+    final liveIds = {for (final c in commitments) c.id};
     for (final c in commitments) {
       if (c.isArchived) {
-        await _plugin.cancel(id: _idFor(c.id));
+        await _plugin.cancel(id: await _idFor(c.id));
         continue;
       }
       await _plugin.zonedSchedule(
-        id: _idFor(c.id),
+        id: await _idFor(c.id),
         title: c.name,
         body: '${formatMoney(c.amountMinor)} đến hạn hôm nay',
         scheduledDate: _nextDue(c.dueDay),
@@ -96,6 +99,20 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.dayOfMonthAndTime,
       );
+    }
+    // Sweep mapped ids whose commitments are gone entirely — the list
+    // only ever carries live+archived rows.
+    final prefs = await SharedPreferences.getInstance();
+    final map = readCommitmentNotifIds(prefs);
+    var stale = false;
+    for (final entry in map.entries.toList()) {
+      if (liveIds.contains(entry.key)) continue;
+      await _plugin.cancel(id: entry.value);
+      map.remove(entry.key);
+      stale = true;
+    }
+    if (stale) {
+      await prefs.setString(commitmentNotifIdMapKey, jsonEncode(map));
     }
   }
 
@@ -139,6 +156,77 @@ class NotificationService {
   }
 }
 
+/// Fixed notification id of the weekly digest — the commitment allocator
+/// skips it.
+const digestNotificationId = 70001;
+
+/// Commitment-id → notification-id map and its counter, both persisted —
+/// an id is never handed out twice and stays stable across app runs.
+/// (The old `hashCode & 0x7fffffff` derivation both collided and changed
+/// between runs, which orphaned scheduled notifications.)
+const commitmentNotifIdMapKey = 'mf_commitment_notif_ids';
+const commitmentNotifIdCounterKey = 'mf_commitment_notif_counter';
+
+/// Read the persisted id map; a corrupt blob reads as empty — a lost map
+/// only costs a few re-allocated ids, never a crash on a schedule path.
+Map<String, int> readCommitmentNotifIds(SharedPreferences prefs) {
+  try {
+    final decoded = jsonDecode(
+      prefs.getString(commitmentNotifIdMapKey) ?? '{}',
+    );
+    if (decoded is! Map) return {};
+    return {
+      for (final e in decoded.entries)
+        if (e.key is String && e.value is num) e.key: (e.value as num).toInt(),
+    };
+  } on Object {
+    return {};
+  }
+}
+
+/// The notification id for [commitmentId] — the stored one when known,
+/// else the next counter value (skipping the digest's fixed id).
+Future<int> commitmentNotificationId(
+  SharedPreferences prefs,
+  String commitmentId,
+) async {
+  final map = readCommitmentNotifIds(prefs);
+  final existing = map[commitmentId];
+  if (existing != null) return existing;
+  var next = (prefs.getInt(commitmentNotifIdCounterKey) ?? 0) + 1;
+  if (next == digestNotificationId) next++;
+  map[commitmentId] = next;
+  await prefs.setInt(commitmentNotifIdCounterKey, next);
+  await prefs.setString(commitmentNotifIdMapKey, jsonEncode(map));
+  return next;
+}
+
+/// Next occurrence of `dueDay` at 09:00 in [now]'s timezone, strictly
+/// after [now] — rolls to next month when today's occurrence already
+/// passed. The day is clamped to the month's real length: TZDateTime
+/// overflow-normalizes `day=31` in a 30-day month forward to the 1st of
+/// the following month — an end-of-month reminder firing a day late on
+/// the wrong date.
+tz.TZDateTime nextCommitmentDue(int dueDay, tz.TZDateTime now) {
+  tz.TZDateTime inMonth(int year, int month) {
+    final lastDay = DateTime(year, month + 1, 0).day;
+    return tz.TZDateTime(
+      now.location,
+      year,
+      month,
+      dueDay > lastDay ? lastDay : dueDay,
+      9,
+    );
+  }
+
+  var due = inMonth(now.year, now.month);
+  if (!due.isAfter(now)) {
+    final next = DateTime(now.year, now.month + 1);
+    due = inMonth(next.year, next.month);
+  }
+  return due;
+}
+
 /// Notification opt-ins — SharedPreferences only; the `mf_` prefix keeps
 /// them inside the wipeLocalData contract.
 class NotificationPrefs {
@@ -166,11 +254,17 @@ class NotificationPrefs {
 ///
 /// - disabled -> cancel only; the range read is skipped so an opted-out
 ///   digest never even costs a request;
+/// - a truncated range read -> leave the previous schedule untouched —
+///   a notification quoting totals we know may be incomplete would lie;
 /// - a week with no recorded rows -> cancel, never ping an empty summary;
 /// - otherwise -> re-arm with the just-computed title/body.
 Future<void> refreshWeeklyDigest({
   required bool enabled,
-  required Future<List<Transaction>> Function(String from, String to) loadRange,
+  required Future<({List<Transaction> rows, bool truncated})> Function(
+    String from,
+    String to,
+  )
+  loadRange,
   required Future<void> Function({
     required String title,
     required String body,
@@ -186,8 +280,9 @@ Future<void> refreshWeeklyDigest({
   }
   final fire = nextWeeklyDigestFire(now ?? DateTime.now());
   final window = weeklyDigestWindow(fire);
-  final txs = await loadRange(window.loadFrom, window.loadTo);
-  final copy = weeklyDigestCopy(buildWeeklyDigest(txs, fireDate: fire));
+  final range = await loadRange(window.loadFrom, window.loadTo);
+  if (range.truncated) return;
+  final copy = weeklyDigestCopy(buildWeeklyDigest(range.rows, fireDate: fire));
   if (copy == null) {
     await cancel();
     return;

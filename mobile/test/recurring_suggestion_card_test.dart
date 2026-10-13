@@ -74,7 +74,7 @@ void main() {
           loadBudgets: (_) async => const [],
           loadCommitments: (_) async => commitments,
           loadSuggestionTransactions: withLoader
-              ? (from, to) async => suggestionTxs
+              ? (from, to) async => (rows: suggestionTxs, truncated: false)
               : null,
           onCreateCommitment: onCreate,
         ),
@@ -152,6 +152,41 @@ void main() {
       await pumpDash(t, withLoader: false);
       await t.pumpAndSettle();
       expect(find.text('Có vẻ là khoản định kỳ'), findsNothing);
+    });
+
+    testWidgets('the balance total folds VND accounts only', (t) async {
+      const vnd = AccountSummary(
+        id: 'a-vnd',
+        name: 'Tiền mặt',
+        kind: AccountKind.cash,
+        currencyCode: 'VND',
+        initialBalance: 0,
+        balance: 500000,
+      );
+      const usd = AccountSummary(
+        id: 'a-usd',
+        name: 'USD savings',
+        kind: AccountKind.bank,
+        currencyCode: 'USD',
+        initialBalance: 0,
+        balance: 3000000,
+      );
+      await t.pumpWidget(
+        _wrap(
+          DashboardPage(
+            loadAccounts: () async => [vnd, usd],
+            loadTransactions: () async => const [],
+            loadBudgets: (_) async => const [],
+            loadCommitments: (_) async => const [],
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      // The VND row shows in the account list too — what proves the
+      // total is the absence of the folded-in USD figure.
+      expect(find.text('500.000 ₫'), findsWidgets);
+      expect(find.text('3.500.000 ₫'), findsNothing);
     });
   });
 

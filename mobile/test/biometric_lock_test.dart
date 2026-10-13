@@ -203,6 +203,142 @@ void main() {
     });
   });
 
+  group('lifecycle re-lock', () {
+    Future<void> unlock(
+      WidgetTester tester,
+      _FakeBiometricService service,
+    ) async {
+      await _pumpGate(tester, service: service);
+      await tester.pumpAndSettle();
+      expect(find.text('App content'), findsOneWidget);
+      expect(service.authCalls, 1);
+    }
+
+    testWidgets('paused drops an unlocked gate back to the lock screen', (
+      tester,
+    ) async {
+      final service = _FakeBiometricService();
+      // Only the first (foreground) unlock succeeds — the resumed
+      // re-prompt must be a real second attempt, not an auto-pass.
+      service.onAuthenticate = () => Future.value(service.authCalls == 1);
+      await unlock(tester, service);
+
+      // A backgrounded app stops painting frames — resume is what
+      // surfaces the lock UI + the re-prompt.
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+
+      expect(find.text('App content'), findsNothing);
+      expect(find.text('Mở khóa MoneyFlow'), findsOneWidget);
+      // Resumed re-prompted by itself — no tap needed.
+      expect(service.authCalls, 2);
+    });
+
+    testWidgets('hidden and detached re-lock the same way', (tester) async {
+      for (final state in [
+        AppLifecycleState.hidden,
+        AppLifecycleState.detached,
+      ]) {
+        final service = _FakeBiometricService();
+        service.onAuthenticate = () => Future.value(service.authCalls == 1);
+        await unlock(tester, service);
+        tester.binding.handleAppLifecycleStateChanged(state);
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.text('Mở khóa MoneyFlow'),
+          findsOneWidget,
+          reason: '$state must re-lock',
+        );
+        // Reset for the next state — pumpWidget alone leaves the old
+        // gate alive in the same tree.
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
+      }
+    });
+
+    testWidgets('inactive does NOT re-lock — the prompt needs that phase', (
+      tester,
+    ) async {
+      final service = _FakeBiometricService();
+      await unlock(tester, service);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pumpAndSettle();
+
+      // The system biometric sheet itself sends the app inactive —
+      // re-locking there would kill the in-flight prompt.
+      expect(find.text('App content'), findsOneWidget);
+    });
+
+    testWidgets('resumed re-prompts a locked gate exactly once', (
+      tester,
+    ) async {
+      final service = _FakeBiometricService();
+      final prompt = Completer<bool>();
+      service.onAuthenticate = () => prompt.future;
+      await _pumpGate(tester, service: service);
+      await tester.pumpAndSettle();
+      // First (auto) attempt still in flight — backgrounding a locked
+      // gate is a no-op for the phase.
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      // The persisted prompt is still in flight — no second attempt.
+      expect(service.authCalls, 1);
+
+      prompt.complete(false);
+      await tester.pumpAndSettle();
+      expect(find.text('Mở lại'), findsOneWidget);
+
+      // Resume with nothing in flight now re-prompts by itself.
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      expect(service.authCalls, 2);
+    });
+
+    testWidgets('onLocked fires when backgrounding re-arms the gate', (
+      tester,
+    ) async {
+      var locks = 0;
+      final service = _FakeBiometricService();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BiometricGate(
+            service: service,
+            onLocked: () => locks++,
+            child: _child,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('App content'), findsOneWidget);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pumpAndSettle();
+      expect(locks, 1);
+    });
+
+    testWidgets('a disabled gate ignores lifecycle events entirely', (
+      tester,
+    ) async {
+      final service = _FakeBiometricService();
+      await _pumpGate(tester, service: service, enabled: false);
+      await tester.pumpAndSettle();
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+
+      expect(find.text('App content'), findsOneWidget);
+      expect(service.authCalls, 0);
+    });
+  });
+
   group('BiometricPrefs', () {
     TestWidgetsFlutterBinding.ensureInitialized();
 

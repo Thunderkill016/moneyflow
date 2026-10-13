@@ -174,6 +174,57 @@ void main() {
     });
   });
 
+  group('account scoping', () {
+    test('a scoped queue writes its own key, not the unscoped one', () async {
+      final alice = OfflineCaptureQueue(prefs, userId: 'u-alice');
+      await alice.enqueue(_intent(key: 'held-alice'));
+
+      expect(prefs.getString('mf_offline_capture_queue_u-alice'), isNotNull);
+      expect(prefs.getString(offlineQueueStorageKey), isNull);
+    });
+
+    test('one account never sees another account’s held captures', () async {
+      final alice = OfflineCaptureQueue(prefs, userId: 'u-alice');
+      await alice.enqueue(_intent(key: 'held-alice'));
+
+      final bob = OfflineCaptureQueue(prefs, userId: 'u-bob');
+      expect(bob.pendingCount, 0);
+      final unscoped = OfflineCaptureQueue(prefs);
+      expect(unscoped.pendingCount, 0);
+      // Alice's own re-bind still sees them.
+      final aliceAgain = OfflineCaptureQueue(prefs, userId: 'u-alice');
+      expect(aliceAgain.pendingCount, 1);
+    });
+
+    test(
+      'pre-scoping unscoped captures adopt into the bound account',
+      () async {
+        // Written by a pre-scoping build: the blob sits under the bare key.
+        final legacy = OfflineCaptureQueue(prefs);
+        await legacy.enqueue(_intent(key: 'held-legacy'));
+
+        final alice = OfflineCaptureQueue(prefs, userId: 'u-alice');
+        expect(alice.pendingCount, 1);
+        expect(alice.pending.single.intent.idempotencyKey, 'held-legacy');
+        // The adoption re-persists under the scoped key and sweeps the
+        // legacy one — a second account can never inherit them.
+        await pumpEventQueue();
+        expect(prefs.getString(offlineQueueStorageKey), isNull);
+        expect(prefs.getString('mf_offline_capture_queue_u-alice'), isNotNull);
+      },
+    );
+
+    test('a scoped re-bind does not re-adopt cleared legacy keys', () async {
+      final alice = OfflineCaptureQueue(prefs, userId: 'u-alice');
+      await alice.enqueue(_intent(key: 'held-alice'));
+      // Sign-out removed the unscoped key — binding an unscoped store
+      // must not resurrect Alice's captures.
+      await prefs.remove(offlineQueueStorageKey);
+      final unscoped = OfflineCaptureQueue(prefs);
+      expect(unscoped.pendingCount, 0);
+    });
+  });
+
   group('isQueueableSubmitFailure', () {
     test('transport failures queue', () {
       expect(isQueueableSubmitFailure(const SocketException('down')), isTrue);

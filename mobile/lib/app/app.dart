@@ -111,7 +111,13 @@ enum _Gate { booting, login, signedIn, demo }
 class _AuthGateState extends State<AuthGate> {
   final _config = NeonConfig.fromEnvironment();
   late final _auth = NeonAuthClient(config: _config);
-  late final _store = RealStore(NeonDataApi(config: _config, auth: _auth));
+  late final _store = RealStore(
+    NeonDataApi(
+      config: _config,
+      auth: _auth,
+      onSessionExpired: _onSessionExpired,
+    ),
+  );
   late final _bioService = widget.biometric ?? DeviceBiometricService();
   ShareIntentReceiver get _shareReceiver => widget.shareReceiver;
   QuickActionSource get _quickActions => widget.quickActions;
@@ -126,8 +132,13 @@ class _AuthGateState extends State<AuthGate> {
 
   /// Weekly-digest opt-in — defaults OFF until the stored pref loads.
   bool _digestEnabled = false;
+  SharedPreferences? _prefs;
   OfflineCache? _offline;
   OfflineCaptureQueue? _queue;
+
+  /// Re-entrancy guard for the session-expired sign-out — several tab
+  /// loaders can 401 in the same frame and each signals the callback.
+  bool _expiredSignOut = false;
   StreamSubscription<String>? _shareSub;
   StreamSubscription<String>? _quickSub;
 
@@ -169,14 +180,13 @@ class _AuthGateState extends State<AuthGate> {
   Future<void> _restore() async {
     _bioEnabled = await BiometricPrefs.loadBiometricEnabled();
     _digestEnabled = await NotificationPrefs.loadWeeklyDigestEnabled();
-    final prefs = await SharedPreferences.getInstance();
-    _offline = OfflineCache(prefs);
-    _queue = OfflineCaptureQueue(prefs);
-    final token = await SessionStore.read();
-    if (token != null) {
+    _prefs = await SharedPreferences.getInstance();
+    final stored = await SessionStore.read();
+    if (stored != null) {
       try {
-        final session = await _auth.restoreSession(token);
+        final session = await _auth.restoreSession(stored.token);
         if (session != null) {
+          _bindAccountStores(session.userId);
           setState(() => _gate = _Gate.signedIn);
           _drainPendingShare();
           unawaited(_drainQueue());
@@ -184,22 +194,46 @@ class _AuthGateState extends State<AuthGate> {
           return;
         }
       } on SocketException {
-        return _restoreOffline();
+        return _restoreOffline(stored.userId);
       } on HttpException {
-        return _restoreOffline();
+        return _restoreOffline(stored.userId);
       } on TimeoutException {
-        return _restoreOffline();
+        return _restoreOffline(stored.userId);
       }
       await SessionStore.clear();
+      // A dead stored session is a silent sign-out — the same unscoped
+      // residue must go, or it reaches the next account on this device.
+      await clearSignOutResidue(_prefs!);
     }
+    _bindAccountStores(null);
     setState(() => _gate = _Gate.login);
+  }
+
+  /// (Re)binds the device-local stores to the account in charge. Scoping
+  /// by userId is the cross-account wall: a snapshot or held-capture list
+  /// written under one account can never be read or replayed under
+  /// another's JWT — and unlike a destructive sweep, the previous owner's
+  /// held captures survive sign-out for their next session.
+  void _bindAccountStores(String? userId) {
+    final prefs = _prefs;
+    if (prefs == null) return;
+    // The outgoing queue still belongs to its owner — drop our handle
+    // so it can never replay under the next account's JWT.
+    _queue?.dispose();
+    _queue = OfflineCaptureQueue(prefs, userId: userId);
+    _offline = OfflineCache(prefs, userId: userId);
+    // A pre-scoping snapshot can't be attributed to any account — drop
+    // it rather than serve it to whoever signs in next.
+    unawaited(prefs.remove(OfflineCache.legacyKey));
   }
 
   /// The stored token couldn't be validated because the network is down —
   /// trust it anyway and let the dashboard render its cached snapshot under
   /// the stale label. The JWT refresh path re-validates lazily on the next
-  /// request once connectivity returns; an upstream 401 still signs out.
-  void _restoreOffline() {
+  /// request once connectivity returns; an upstream 401 still signs out
+  /// (see NeonDataApi.onSessionExpired).
+  void _restoreOffline(String? userId) {
+    _bindAccountStores(userId);
     setState(() => _gate = _Gate.signedIn);
     _drainPendingShare();
     // The drain attempt will fail fast and just records an honest
@@ -208,6 +242,26 @@ class _AuthGateState extends State<AuthGate> {
     // The digest re-arm fails the same way — a failed range read leaves
     // whatever was previously armed untouched.
     unawaited(_refreshWeeklyDigest());
+  }
+
+  /// The Data API proved the session dead (a 401 from /get-session or a
+  /// PostgREST JWT rejection) — a shell whose every loader fails with
+  /// banners is broken UX, so sign out locally and say why. Only the
+  /// signed-in gate can expire: a 401 on the login screen is a wrong
+  /// password, not a dead session.
+  Future<void> _onSessionExpired() async {
+    if (!mounted || _expiredSignOut || _gate != _Gate.signedIn) return;
+    _expiredSignOut = true;
+    try {
+      await _signOut();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Hết phiên đăng nhập — đăng nhập lại')),
+        );
+      }
+    } finally {
+      _expiredSignOut = false;
+    }
   }
 
   void _initShare() {
@@ -447,8 +501,12 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<void> _onSignedIn(_) async {
-    final token = _auth.session?.sessionToken;
-    if (token != null) await SessionStore.write(token);
+    final session = _auth.session;
+    final token = session?.sessionToken;
+    if (token != null) {
+      await SessionStore.write(token, userId: session?.userId);
+    }
+    _bindAccountStores(session?.userId);
     setState(() => _gate = _Gate.signedIn);
     _drainPendingShare();
     unawaited(_drainQueue());
@@ -576,11 +634,22 @@ class _AuthGateState extends State<AuthGate> {
       /* upstream sign-out failure still logs out locally */
     }
     await SessionStore.clear();
-    setState(() {
-      _gate = _Gate.login;
-      // The next signed-in session starts behind the lock again.
-      _unlocked = false;
-    });
+    final prefs = _prefs;
+    if (prefs != null) {
+      // Session-scoped residue (last-capture picks, dismissed patterns,
+      // unscoped pre-scoping keys) must not reach the next sign-in on
+      // this device. Account-scoped stores survive on purpose — they
+      // can't leak, and sign-out must not destroy held captures.
+      await clearSignOutResidue(prefs);
+    }
+    _bindAccountStores(null);
+    if (mounted) {
+      setState(() {
+        _gate = _Gate.login;
+        // The next signed-in session starts behind the lock again.
+        _unlocked = false;
+      });
+    }
   }
 
   @override
@@ -602,6 +671,9 @@ class _AuthGateState extends State<AuthGate> {
         enabled: _bioEnabled,
         service: _bioService,
         onUnlocked: _onGateUnlocked,
+        // Backgrounding re-locks the gate — held deep links wait for the
+        // next unlock again instead of opening over the lock screen.
+        onLocked: () => _unlocked = false,
         child: HomeShell(
           banner: _queue == null
               ? null
@@ -838,7 +910,9 @@ class _AuthGateState extends State<AuthGate> {
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => AccountsPage(
-              loadAccounts: _store.loadAccounts,
+              // All accounts incl. archived — the page's "Đã lưu trữ"
+              // section keeps the archive reversible.
+              loadAccounts: _store.loadAllAccounts,
               onCreate: (name, kind, bal) => _store
                   .createAccount(name: name, kind: kind, initialBalance: bal)
                   .then((_) {}),
@@ -937,7 +1011,7 @@ class _AuthGateState extends State<AuthGate> {
           // pattern today, so the card simply stays absent — if a seed
           // ever qualifies, the create button repeats the read-only rule.
           loadSuggestionTransactions: (_, _) async =>
-              DemoStore.seedTransactions(),
+              (rows: DemoStore.seedTransactions(), truncated: false),
           onCreateCommitment: (s) async {
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(

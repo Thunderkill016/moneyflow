@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../data/offline_cache.dart';
+import '../data/offline_queue.dart';
+
 /// Local MoneyFlow data wipe — mirrors the web's
 /// clearLocalMoneyFlowStores(): only keys this app wrote are removed
 /// (`mf_*` product prefs and the `neon.*` session token), foreign keys
@@ -15,6 +18,37 @@ Future<List<String>> wipeLocalData(SharedPreferences prefs) async {
   );
   final removed = <String>[];
   for (final key in keys) {
+    if (await prefs.remove(key)) removed.add(key);
+  }
+  return removed;
+}
+
+/// Preference keys that belong to the signed-in account's session rather
+/// than the device — cleared on ordinary sign-out so the next account on
+/// this device never sees the previous one's leftovers.
+///
+/// Sign-out deliberately does NOT equal the wipe: device-level opt-ins
+/// (`mf_biometric_enabled`, `mf_weekly_digest_enabled`) survive because
+/// the user opted in on this device, not on this account; and
+/// account-scoped keys (`mf_dashboard_snapshot_<uid>`,
+/// `mf_offline_capture_queue_<uid>`) stay on disk because they cannot
+/// leak into another account — and destroying held captures on sign-out
+/// would silently lose unposted money records.
+const signOutResidueKeys = [
+  'mf_last_capture_account',
+  'mf_last_capture_category',
+  'mf_recurring_dismissed',
+  // Pre-scoping leftover keys — the scoped stores never read them, and
+  // they cannot be attributed to any particular account.
+  OfflineCache.legacyKey,
+  offlineQueueStorageKey,
+];
+
+/// The ordinary sign-out sweep — see [signOutResidueKeys] for the scope
+/// contract. Returns the keys that were removed.
+Future<List<String>> clearSignOutResidue(SharedPreferences prefs) async {
+  final removed = <String>[];
+  for (final key in signOutResidueKeys) {
     if (await prefs.remove(key)) removed.add(key);
   }
   return removed;

@@ -194,6 +194,80 @@ void main() {
     expect(createdBalance, 2500000);
   });
 
+  testWidgets('archived accounts group under Đã lưu trữ with Khôi phục', (
+    t,
+  ) async {
+    const archived = AccountSummary(
+      id: 'a-old',
+      name: 'Ví cũ',
+      kind: AccountKind.eWallet,
+      currencyCode: 'VND',
+      initialBalance: 0,
+      balance: 12000,
+      isArchived: true,
+    );
+    String? restoredId;
+    bool? restoredFlag;
+    await t.pumpWidget(
+      MaterialApp(
+        home: AccountsPage(
+          loadAccounts: () async => [_cash, archived],
+          onArchive: (id, flag) async {
+            restoredId = id;
+            restoredFlag = flag;
+          },
+          onUpdate: (_, _, _, _) async {},
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+
+    expect(find.text('Đã lưu trữ'), findsOneWidget);
+    expect(find.text('Ví cũ'), findsOneWidget);
+    expect(find.text('Khôi phục'), findsOneWidget);
+    // Archived rows stay read-only: tap edits nothing, long-press hides.
+    await t.tap(find.text('Ví cũ'));
+    await t.pumpAndSettle();
+    expect(find.text('Sửa tài khoản'), findsNothing);
+    await t.longPress(find.text('Ví cũ'));
+    await t.pumpAndSettle();
+    expect(find.textContaining('Lưu trữ "'), findsNothing);
+
+    await t.tap(find.text('Khôi phục'));
+    await t.pumpAndSettle();
+    expect(restoredId, 'a-old');
+    expect(restoredFlag, isFalse);
+  });
+
+  testWidgets('an archive failure surfaces instead of silently keeping put', (
+    t,
+  ) async {
+    var loads = 0;
+    await t.pumpWidget(
+      MaterialApp(
+        home: AccountsPage(
+          loadAccounts: () async {
+            loads++;
+            return [_cash];
+          },
+          onArchive: (_, _) async => throw Exception('network'),
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    expect(loads, 1);
+
+    await t.longPress(find.text('Tiền mặt').first);
+    await t.pumpAndSettle();
+    await t.tap(find.text('Lưu trữ'));
+    await t.pumpAndSettle();
+
+    expect(find.text('Không lưu được — thử lại'), findsOneWidget);
+    // A failed write must NOT refresh — the list would repaint as if
+    // the archive landed.
+    expect(loads, 1);
+  });
+
   testWidgets('a failed load shows the retry surface, not a spinner', (
     t,
   ) async {

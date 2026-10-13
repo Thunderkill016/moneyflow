@@ -209,15 +209,18 @@ void main() {
             loadRange: (f, t) async {
               from = f;
               to = t;
-              return [
-                _tx(
-                  'r1',
-                  TransactionKind.expense,
-                  'Ăn uống',
-                  70000,
-                  _thisMonthDay(),
-                ),
-              ];
+              return (
+                rows: [
+                  _tx(
+                    'r1',
+                    TransactionKind.expense,
+                    'Ăn uống',
+                    70000,
+                    _thisMonthDay(),
+                  ),
+                ],
+                truncated: false,
+              );
             },
           ),
         ),
@@ -996,7 +999,7 @@ void main() {
             loadTransactions: () async => const [],
             loadRange: (f, t) async {
               calls.add([f, t]);
-              return const [];
+              return (rows: const <Transaction>[], truncated: false);
             },
           ),
         ),
@@ -1035,7 +1038,7 @@ void main() {
             loadTransactions: () async => const [],
             loadRange: (f, t) async {
               calls.add(f);
-              return const [];
+              return (rows: const <Transaction>[], truncated: false);
             },
           ),
         ),
@@ -1068,7 +1071,7 @@ void main() {
             loadRange: (f, t) async {
               from = f;
               to = t;
-              return const [];
+              return (rows: const <Transaction>[], truncated: false);
             },
             pickRange: (_) async => DateTimeRange(start: start, end: end),
           ),
@@ -1106,7 +1109,7 @@ void main() {
             loadRange: (f, t) async {
               calls.add(f);
               if (fail) throw Exception('offline');
-              return const [];
+              return (rows: const <Transaction>[], truncated: false);
             },
           ),
         ),

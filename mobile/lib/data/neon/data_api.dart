@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'neon_config.dart';
 import 'neon_transport.dart';
 import 'auth_client.dart';
@@ -10,6 +12,7 @@ class NeonDataApi {
     required NeonConfig config,
     required NeonAuthClient auth,
     NeonRequester requester = httpNeonRequester,
+    this.onSessionExpired,
   }) : _config = config,
        _auth = auth,
        _requester = requester;
@@ -17,6 +20,13 @@ class NeonDataApi {
   final NeonConfig _config;
   final NeonAuthClient _auth;
   final NeonRequester _requester;
+
+  /// Called when the transport proves the session is dead — the auth
+  /// service refuses the session cookie, or PostgREST rejects a
+  /// still-fresh JWT. Only status 401 fires it: 4xx business codes from
+  /// RPCs are ordinary errors, never session death. Fires at most once
+  /// per failed request and never blocks it.
+  final Future<void> Function()? onSessionExpired;
 
   Uri _url(String table, Map<String, String> query) {
     final base = _config.dataApiUrl.replaceAll(RegExp(r'/+$'), '');
@@ -94,13 +104,28 @@ class NeonDataApi {
     return json.cast<Map<String, dynamic>>();
   }
 
+  void _signalSessionExpired() {
+    final cb = onSessionExpired;
+    if (cb != null) unawaited(cb());
+  }
+
   Future<NeonResponse> _send(
     String method,
     Uri url, {
     Object? body,
     String? prefer,
   }) async {
-    final jwt = await _auth.sessionJwt();
+    final String? jwt;
+    try {
+      jwt = await _auth.sessionJwt();
+    } on NeonAuthException catch (e) {
+      // The auth service refusing /get-session with a 401 means the
+      // session cookie itself is dead — not a request-specific failure.
+      if (e.status == 401) _signalSessionExpired();
+      rethrow;
+    }
+    // No session client-side: local sign-out already happened or never
+    // occurred — that is state, not an upstream session-death signal.
     if (jwt == null) throw NeonAuthException(401, 'not signed in');
     final res = await _requester(
       NeonRequest(
@@ -111,6 +136,9 @@ class NeonDataApi {
       ),
     );
     if (!res.ok) {
+      // PostgREST rejecting a just-issued JWT means the session behind
+      // it was revoked server-side.
+      if (res.status == 401) _signalSessionExpired();
       throw NeonAuthException(
         res.status,
         '${url.host}${url.path} -> ${res.body}',
