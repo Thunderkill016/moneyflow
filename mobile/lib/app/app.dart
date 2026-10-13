@@ -21,6 +21,7 @@ import '../domain/recurring_detection.dart';
 import '../domain/transaction_query.dart';
 import 'biometric_lock.dart';
 import 'delete_data.dart';
+import 'url_opener.dart';
 import '../features/accounts/account_reconciliation_page.dart';
 import '../features/accounts/account_register_page.dart';
 import '../features/accounts/accounts_page.dart';
@@ -85,19 +86,21 @@ class MoneyFlowApp extends StatelessWidget {
 /// Startup auth state: restore persisted session → dashboard, else login.
 /// Demo mode remains reachable from the login screen for offline exploration.
 ///
-/// [shareReceiver], [quickActions] and [biometric] are seams for widget
-/// tests — production callers never pass them.
+/// [shareReceiver], [quickActions], [biometric] and [urlOpener] are
+/// seams for widget tests — production callers never pass them.
 class AuthGate extends StatefulWidget {
   const AuthGate({
     super.key,
     this.shareReceiver = const ShareIntentReceiver(),
     this.quickActions = const QuickActionReceiver(),
     this.biometric,
+    this.urlOpener = const DeviceUrlOpener(),
   });
 
   final ShareIntentReceiver shareReceiver;
   final QuickActionSource quickActions;
   final BiometricService? biometric;
+  final UrlOpener urlOpener;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -552,6 +555,20 @@ class _AuthGateState extends State<AuthGate> {
     });
   }
 
+  /// "Chính sách bảo mật" — Play requires the privacy policy reachable
+  /// in-app; the hosted page opens in the device browser. A device with
+  /// no handler gets an honest notice instead of a dead menu tap.
+  Future<void> _openPrivacyPolicy() async {
+    final opened = await widget.urlOpener
+        .open(Uri.parse(kPrivacyPolicyUrl))
+        .catchError((_) => false);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không mở được liên kết — thử lại sau')),
+      );
+    }
+  }
+
   Future<void> _signOut() async {
     try {
       await _auth.signOut();
@@ -884,6 +901,11 @@ class _AuthGateState extends State<AuthGate> {
         onTap: _toggleBiometric,
       ),
       DashboardMenuItem(
+        label: 'Chính sách bảo mật',
+        icon: Icons.privacy_tip_outlined,
+        onTap: _openPrivacyPolicy,
+      ),
+      DashboardMenuItem(
         label: 'Xóa dữ liệu & tài khoản',
         icon: Icons.delete_forever,
         onTap: () => _deleteLocalData(context),
@@ -951,6 +973,13 @@ class _AuthGateState extends State<AuthGate> {
                   ),
                 ),
               ),
+            ),
+            // Play requires the privacy policy reachable in-app; demo
+            // mode is still in-app, so the link stays on this menu too.
+            DashboardMenuItem(
+              label: 'Chính sách bảo mật',
+              icon: Icons.privacy_tip_outlined,
+              onTap: _openPrivacyPolicy,
             ),
             DashboardMenuItem(
               label: 'Xóa dữ liệu demo',
