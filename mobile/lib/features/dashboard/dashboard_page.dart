@@ -604,19 +604,11 @@ class _AccountTile extends StatelessWidget {
       child: ListTile(
         leading: CircleAvatar(child: Text(account.name.characters.first)),
         title: Text(account.name),
-        subtitle: Text(_kindLabel(account.kind)),
+        subtitle: Text(accountKindLabel(account.kind)),
         trailing: Text(formatMoney(account.balance)),
       ),
     );
   }
-
-  String _kindLabel(AccountKind kind) => switch (kind) {
-    AccountKind.cash => 'Tiền mặt',
-    AccountKind.bank => 'Ngân hàng',
-    AccountKind.eWallet => 'Ví điện tử',
-    AccountKind.creditCard => 'Thẻ tín dụng',
-    AccountKind.savings => 'Tiết kiệm',
-  };
 }
 
 class _TransactionTile extends StatelessWidget {

@@ -5,21 +5,34 @@ import '../../domain/money.dart';
 
 /// Account list + create/archive — mirrors the web's account management
 /// surface (create_financial_account, set_financial_account_archived).
+/// A row tap opens the register via [onOpen] — the web's "Xem sổ" link;
+/// create/archive/edit callbacks are nullable so the demo surface stays
+/// honestly read-only.
 class AccountsPage extends StatefulWidget {
   const AccountsPage({
     super.key,
     required this.loadAccounts,
-    required this.onCreate,
-    required this.onArchive,
+    this.onCreate,
+    this.onArchive,
     this.onUpdate,
+    this.onOpen,
   });
 
   final Future<List<AccountSummary>> Function() loadAccounts;
-  final Future<void> Function(String name, AccountKind kind, int initialBalance)
-  onCreate;
-  final Future<void> Function(String accountId, bool archived) onArchive;
 
-  /// Tap-to-edit — null keeps rows read-only.
+  /// Create — null hides the "Thêm tài khoản" action entirely.
+  final Future<void> Function(
+    String name,
+    AccountKind kind,
+    int initialBalance,
+  )?
+  onCreate;
+
+  /// Long-press archive — null disables the gesture.
+  final Future<void> Function(String accountId, bool archived)? onArchive;
+
+  /// Tap-to-edit — shown as a trailing edit button when [onOpen] claims
+  /// the row tap; when [onOpen] is null the tap itself edits.
   final Future<void> Function(
     AccountSummary account,
     String name,
@@ -27,6 +40,10 @@ class AccountsPage extends StatefulWidget {
     int initialBalance,
   )?
   onUpdate;
+
+  /// Row tap opens the account register — null keeps the legacy
+  /// tap-to-edit behavior.
+  final void Function(AccountSummary account)? onOpen;
 
   @override
   State<AccountsPage> createState() => _AccountsPageState();
@@ -133,7 +150,7 @@ class _AccountsPageState extends State<AccountsPage> {
                 final bal = parseMoneyInput(balance.text) ?? 0;
                 try {
                   if (editing == null) {
-                    await widget.onCreate(n, kind, bal);
+                    await widget.onCreate!(n, kind, bal);
                   } else {
                     await widget.onUpdate!(editing, n, kind, bal);
                   }
@@ -187,12 +204,29 @@ class _AccountsPageState extends State<AccountsPage> {
                         child: Text(a.name.characters.first),
                       ),
                       title: Text(a.name),
-                      subtitle: Text(_kindLabel(a.kind)),
-                      trailing: Text(formatMoney(a.balance)),
-                      onTap: widget.onUpdate == null
+                      subtitle: Text(accountKindLabel(a.kind)),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(formatMoney(a.balance)),
+                          // The tap went to the register — keep edit one
+                          // tap away, like the web row's "Sửa" button.
+                          if (widget.onOpen != null && widget.onUpdate != null)
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined),
+                              tooltip: 'Sửa ${a.name}',
+                              onPressed: () => _showForm(editing: a),
+                            ),
+                        ],
+                      ),
+                      onTap: widget.onOpen != null
+                          ? () => widget.onOpen!(a)
+                          : widget.onUpdate == null
                           ? null
                           : () => _showForm(editing: a),
-                      onLongPress: () => _confirmArchive(a),
+                      onLongPress: widget.onArchive == null
+                          ? null
+                          : () => _confirmArchive(a),
                     ),
                   ),
               ],
@@ -200,11 +234,13 @@ class _AccountsPageState extends State<AccountsPage> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showForm,
-        icon: const Icon(Icons.add),
-        label: const Text('Thêm tài khoản'),
-      ),
+      floatingActionButton: widget.onCreate == null
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: _showForm,
+              icon: const Icon(Icons.add),
+              label: const Text('Thêm tài khoản'),
+            ),
     );
   }
 
@@ -229,16 +265,8 @@ class _AccountsPageState extends State<AccountsPage> {
       ),
     );
     if (ok == true) {
-      await widget.onArchive(a.id, true);
+      await widget.onArchive!(a.id, true);
       _refresh();
     }
   }
-
-  String _kindLabel(AccountKind kind) => switch (kind) {
-    AccountKind.cash => 'Tiền mặt',
-    AccountKind.bank => 'Ngân hàng',
-    AccountKind.eWallet => 'Ví điện tử',
-    AccountKind.creditCard => 'Thẻ tín dụng',
-    AccountKind.savings => 'Tiết kiệm',
-  };
 }

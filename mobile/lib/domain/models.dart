@@ -10,6 +10,15 @@ AccountKind accountKindFromString(String raw) => switch (raw) {
   _ => AccountKind.cash,
 };
 
+/// Vietnamese display label — mirrors the web's `accountKindLabels`.
+String accountKindLabel(AccountKind kind) => switch (kind) {
+  AccountKind.cash => 'Tiền mặt',
+  AccountKind.bank => 'Ngân hàng',
+  AccountKind.eWallet => 'Ví điện tử',
+  AccountKind.creditCard => 'Thẻ tín dụng',
+  AccountKind.savings => 'Tiết kiệm',
+};
+
 class AccountSummary {
   const AccountSummary({
     required this.id,

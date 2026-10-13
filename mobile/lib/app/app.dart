@@ -20,6 +20,7 @@ import '../domain/recurring_detection.dart';
 import '../domain/transaction_query.dart';
 import 'biometric_lock.dart';
 import 'delete_data.dart';
+import '../features/accounts/account_register_page.dart';
 import '../features/accounts/accounts_page.dart';
 import '../features/activity/activity_page.dart';
 import '../features/activity/trash_page.dart';
@@ -692,6 +693,35 @@ class _AuthGateState extends State<AuthGate> {
     if (mounted) setState(() => _gate = _Gate.login);
   }
 
+  /// Row tap from the accounts list — the register anchors its
+  /// running-balance chain on the account snapshot the list just loaded
+  /// and re-anchors through loadAccounts after every edit/delete inside
+  /// the page, so the ledger and the "Số dư hiện tại" header never drift.
+  Future<void> _openAccountRegister(
+    BuildContext context,
+    AccountSummary account,
+  ) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AccountRegisterPage(
+          account: account,
+          loadPage: _store.loadTransactionPage,
+          onDelete: _deleteTransaction,
+          onEdit: (tx) => _openEdit(context, tx),
+          // loadAccounts filters out archived rows — a null result keeps
+          // the last snapshot, so an archived register stays readable.
+          loadAccount: () async {
+            final accounts = await _store.loadAccounts();
+            for (final a in accounts) {
+              if (a.id == account.id) return a;
+            }
+            return null;
+          },
+        ),
+      ),
+    );
+  }
+
   /// "Cần xem" — the review queue for pasted/imported data. Every mutation
   /// inside can change the ledger (approve) or the queue (paste/reject), so
   /// a `true` result reloads the shell tabs like a capture save does.
@@ -748,6 +778,7 @@ class _AuthGateState extends State<AuthGate> {
                     expectedUpdatedAt: a.updatedAt,
                   )
                   .then((_) => _reloadTabs()),
+              onOpen: (a) => _openAccountRegister(context, a),
             ),
           ),
         ),
@@ -839,6 +870,30 @@ class _AuthGateState extends State<AuthGate> {
           modeLabel: 'demo',
           menuItems: [
             DashboardMenuItem(
+              label: 'Tài khoản',
+              icon: Icons.account_balance_wallet,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => AccountsPage(
+                    loadAccounts: () async => DemoStore.seedAccounts(),
+                    // Read-only register over the same seeds — no create,
+                    // archive, edit or delete seams in demo.
+                    onOpen: (a) => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => AccountRegisterPage(
+                          account: a,
+                          loadPage: inMemoryPageLoader(
+                            DemoStore.seedTransactions(),
+                          ),
+                          loadAccount: () async => _demoAccount(a.id),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            DashboardMenuItem(
               label: 'Xóa dữ liệu demo',
               icon: Icons.delete_forever,
               onTap: () => _deleteDemoData(context),
@@ -881,6 +936,15 @@ class _AuthGateState extends State<AuthGate> {
       },
       onCaptureSaved: () {},
     );
+  }
+
+  /// Demo register anchor — seeds are constant, but the reload seam stays
+  /// identical to the signed-in path.
+  static AccountSummary? _demoAccount(String id) {
+    for (final a in DemoStore.seedAccounts()) {
+      if (a.id == id) return a;
+    }
+    return null;
   }
 
   static final _noopPlanningActions = PlanningActions(
