@@ -40,9 +40,17 @@ where n.nspname = 'public'
 -- helper can run with caller privileges while RLS remains authoritative.
 -- #720 adds one reviewed viewer-state boundary: caller-scoped advisory
 -- dismissals where the RPC derives user_id from auth.uid().
+-- 20261010120000 adds six reviewed write RPCs (category upsert/archive/delete,
+-- candidate reject, rule upsert/delete); 20261010121000 flips four readers to
+-- definer (export_user_archive, get_dashboard_bundle, ledger_trust_summary,
+-- reconciliation_snapshot_for_user) because hosted Neon's authenticated role
+-- cannot resolve auth.uid() — the functions' own predicates are the tenant
+-- boundary; 20261010122000 adds seven reviewed write RPCs (candidate create/
+-- update, batch create/status/delete, backup stamp, agent propose);
+-- 20261010123000 adds delete_my_account. +18 reviewed boundaries.
 select is(
   (select count(*)::integer from flagged_security_definer_functions),
-  43,
+  61,
   'the reviewed authenticated SECURITY DEFINER inventory stays explicit'
 );
 
@@ -110,8 +118,8 @@ select is(
     from pg_proc
     where oid = 'public.reconciliation_snapshot_for_user(uuid,uuid,date)'::regprocedure
   ),
-  false,
-  '#567 reconciliation snapshot executes with caller privileges'
+  true,
+  'reconciliation snapshot executes as owner: hosted Neon authenticated cannot resolve auth.uid(), so its own predicates are the tenant boundary (reverses #567)'
 );
 
 select * from finish();

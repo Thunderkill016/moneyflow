@@ -15,8 +15,8 @@ select is(
    where n.nspname = 'public'
      and p.proname = 'ledger_trust_summary'
      and p.pronargs = 0),
-  false,
-  'ledger trust summary is SECURITY INVOKER'
+  true,
+  'ledger trust summary is SECURITY DEFINER: hosted Neon authenticated cannot resolve auth.uid(), so its own predicates are the tenant boundary'
 );
 
 select ok(
