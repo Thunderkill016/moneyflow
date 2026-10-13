@@ -78,18 +78,45 @@ Transaction _tx(
   TransactionKind kind,
   String category,
   int amount,
-  String occurredOn,
-) => Transaction(
+  String occurredOn, {
+  String? payee,
+  String account = 'Tiền mặt',
+}) => Transaction(
   id: id,
   kind: kind,
   categoryId: 'cat-$id',
   category: category,
   note: '',
   accountId: 'acc-cash',
-  account: 'Tiền mặt',
+  account: account,
   amount: amount,
   occurredOn: occurredOn,
+  payee: payee,
 );
+
+/// YYYY-MM-01 of the month before the current one — the window the
+/// reports chevron-left must load.
+String _prevMonthStart() {
+  final now = DateTime.now();
+  final prev = DateTime(now.year, now.month - 1);
+  return '${prev.year}-${prev.month.toString().padLeft(2, '0')}-01';
+}
+
+/// "Tháng M/YYYY" label of the month before the current one.
+String _prevMonthLabel() {
+  final now = DateTime.now();
+  final prev = DateTime(now.year, now.month - 1);
+  return 'Tháng ${prev.month}/${prev.year}';
+}
+
+/// A taller viewport — the report's sections outgrow the default 800x600
+/// surface and ListView builds offscreen rows lazily.
+void _tallViewport(WidgetTester tester) {
+  tester.view.physicalSize = const Size(800, 2800);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+}
 
 const _salary = RecurringIncome(
   id: 'inc-1',
@@ -826,6 +853,7 @@ void main() {
 
   group('ReportsPage', () {
     testWidgets('renders totals labels and a category name', (tester) async {
+      _tallViewport(tester);
       final day = _thisMonthDay();
       await tester.pumpWidget(
         MaterialApp(
@@ -852,7 +880,68 @@ void main() {
       expect(find.text('Khác'), findsNothing);
     });
 
-    testWidgets('empty transaction list shows the empty-state message', (
+    testWidgets('renders the income, account and payee breakdowns', (
+      tester,
+    ) async {
+      _tallViewport(tester);
+      final day = _thisMonthDay();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ReportsPage(
+            loadTransactions: () => Future.value([
+              _tx(
+                't1',
+                TransactionKind.expense,
+                'Ăn uống',
+                45000,
+                day,
+                payee: 'Quán gần nhà',
+              ),
+              _tx(
+                't2',
+                TransactionKind.expense,
+                'Di chuyển',
+                32000,
+                day,
+                account: 'Ví MoMo',
+              ),
+              _tx(
+                't3',
+                TransactionKind.income,
+                'Lương',
+                15000000,
+                day,
+                account: 'Ngân hàng VCB',
+              ),
+              // A transfer must not inflate any breakdown.
+              _tx(
+                't4',
+                TransactionKind.transfer,
+                'Chuyển khoản',
+                500000,
+                day,
+                account: 'Ngân hàng VCB',
+              ),
+            ]),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Chi theo danh mục'), findsOneWidget);
+      expect(find.text('Thu theo danh mục'), findsOneWidget);
+      expect(find.text('Chi theo tài khoản'), findsOneWidget);
+      expect(find.text('Chi theo người nhận'), findsOneWidget);
+      expect(find.text('Quán gần nhà'), findsOneWidget);
+      // t2 carried no payee — it lands in the honest unnamed bucket.
+      expect(find.text('Không tên'), findsOneWidget);
+      expect(find.text('Ví MoMo'), findsOneWidget);
+      // Only income and a transfer touched VCB — never an expense row.
+      expect(find.text('Ngân hàng VCB'), findsNothing);
+      expect(find.text('Chuyển khoản'), findsNothing);
+    });
+
+    testWidgets('empty transaction list shows the honest empty period', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -862,7 +951,182 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Chưa có khoản chi nào'), findsOneWidget);
+      expect(find.text('Không có giao dịch trong kỳ này'), findsOneWidget);
+    });
+  });
+
+  group('ReportsPage periods', () {
+    testWidgets('next chevron is disabled while viewing the current month', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(home: ReportsPage(loadTransactions: () async => const [])),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<IconButton>(
+              find.widgetWithIcon(IconButton, Icons.chevron_right),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(
+        tester
+            .widget<IconButton>(
+              find.widgetWithIcon(IconButton, Icons.chevron_left),
+            )
+            .onPressed,
+        isNotNull,
+      );
+      expect(
+        find.text('Tháng ${DateTime.now().month}/${DateTime.now().year}'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('prev chevron loads the previous month via loadRange', (
+      tester,
+    ) async {
+      final calls = <List<String>>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ReportsPage(
+            loadTransactions: () async => const [],
+            loadRange: (f, t) async {
+              calls.add([f, t]);
+              return const [];
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(calls.single.first, _monthStart());
+
+      await tester.tap(find.byIcon(Icons.chevron_left));
+      await tester.pumpAndSettle();
+
+      // Previous month: [prev-1st, this-1st) — server-side, not the feed.
+      expect(calls.last, [_prevMonthStart(), _monthStart()]);
+      expect(find.text(_prevMonthLabel()), findsOneWidget);
+      // Now one month back, next is enabled again.
+      expect(
+        tester
+            .widget<IconButton>(
+              find.widgetWithIcon(IconButton, Icons.chevron_right),
+            )
+            .onPressed,
+        isNotNull,
+      );
+      // An empty period is honest, not a zeroed report.
+      expect(find.text('Không có giao dịch trong kỳ này'), findsOneWidget);
+    });
+
+    testWidgets('reload() refreshes the selected period, not "now"', (
+      tester,
+    ) async {
+      final key = GlobalKey<ReportsPageState>();
+      final calls = <String>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ReportsPage(
+            key: key,
+            loadTransactions: () async => const [],
+            loadRange: (f, t) async {
+              calls.add(f);
+              return const [];
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.chevron_left));
+      await tester.pumpAndSettle();
+
+      key.currentState!.reload();
+      await tester.pumpAndSettle();
+
+      expect(calls.last, _prevMonthStart());
+      expect(find.text(_prevMonthLabel()), findsOneWidget);
+    });
+
+    testWidgets('Tùy chọn applies the picked range and labels the report', (
+      tester,
+    ) async {
+      String? from, to;
+      // Two months back keeps the window safely in the past — a picked end
+      // beyond today would clamp and break the expected bounds.
+      final now = DateTime.now();
+      final start = DateTime(now.year, now.month - 2, 5);
+      final end = DateTime(now.year, now.month - 2, 20);
+      String pad(int v) => v.toString().padLeft(2, '0');
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ReportsPage(
+            loadTransactions: () async => const [],
+            loadRange: (f, t) async {
+              from = f;
+              to = t;
+              return const [];
+            },
+            pickRange: (_) async => DateTimeRange(start: start, end: end),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Tùy chọn'));
+      await tester.pumpAndSettle();
+
+      // Inclusive end 20th -> exclusive bound 21st.
+      expect(from, '${start.year}-${pad(start.month)}-05');
+      expect(to, '${start.year}-${pad(start.month)}-21');
+      expect(
+        find.text('5/${start.month} – 20/${start.month}/${start.year}'),
+        findsOneWidget,
+      );
+
+      // A way back to the default month while a custom window is up.
+      await tester.tap(find.text('Tháng này'));
+      await tester.pumpAndSettle();
+      expect(find.text('Tháng ${now.month}/${now.year}'), findsOneWidget);
+      expect(from, _monthStart());
+    });
+
+    testWidgets('a failed period keeps its label; retry reloads it', (
+      tester,
+    ) async {
+      var fail = false;
+      final calls = <String>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ReportsPage(
+            loadTransactions: () async => const [],
+            loadRange: (f, t) async {
+              calls.add(f);
+              if (fail) throw Exception('offline');
+              return const [];
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      fail = true;
+      await tester.tap(find.byIcon(Icons.chevron_left));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Không tải được báo cáo'), findsOneWidget);
+      // The bar still names the failed period — not the previous data's.
+      expect(find.text(_prevMonthLabel()), findsOneWidget);
+
+      fail = false;
+      await tester.tap(find.text('Thử lại'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Không có giao dịch trong kỳ này'), findsOneWidget);
+      expect(calls.last, _prevMonthStart());
     });
   });
 }
