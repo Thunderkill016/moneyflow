@@ -3,6 +3,7 @@ import '../../data/demo_store.dart';
 import '../../data/offline_cache.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
+import '../../domain/safe_to_spend.dart';
 
 /// One entry in the dashboard overflow menu — keeps the appbar to a single
 /// quick action (activity) as the surface count grows.
@@ -25,6 +26,8 @@ class DashboardPage extends StatefulWidget {
     super.key,
     required this.loadAccounts,
     required this.loadTransactions,
+    this.loadBudgets,
+    this.loadCommitments,
     this.modeLabel,
     this.menuItems = const [],
     this.readSnapshot,
@@ -34,6 +37,8 @@ class DashboardPage extends StatefulWidget {
   factory DashboardPage.demo({VoidCallback? onSignOut}) => DashboardPage(
     loadAccounts: () async => DemoStore.seedAccounts(),
     loadTransactions: () async => DemoStore.seedTransactions(),
+    loadBudgets: (monthStart) async => DemoStore.seedBudgets(monthStart),
+    loadCommitments: (_) async => DemoStore.seedCommitments(),
     modeLabel: 'demo',
     menuItems: [
       if (onSignOut != null)
@@ -47,6 +52,13 @@ class DashboardPage extends StatefulWidget {
 
   final Future<List<AccountSummary>> Function() loadAccounts;
   final Future<List<Transaction>> Function() loadTransactions;
+
+  /// Optional planning loaders for the "Chi được hôm nay" tile — both are
+  /// keyed on the YYYY-MM-01 month start. When either is absent the tile
+  /// is hidden entirely rather than guessing at a number.
+  final Future<List<BudgetProgress>> Function(String monthStart)? loadBudgets;
+  final Future<List<RecurringCommitment>> Function(String monthStart)?
+  loadCommitments;
   final String? modeLabel;
   final List<DashboardMenuItem> menuItems;
 
@@ -61,11 +73,19 @@ class DashboardPage extends StatefulWidget {
   State<DashboardPage> createState() => DashboardPageState();
 }
 
+/// Loaded dashboard payload — planning rows ride along so the safe-spend
+/// tile renders in the same pass; they stay null when the loaders are
+/// absent or their reads fail.
+typedef _DashboardData = ({
+  List<AccountSummary> accounts,
+  List<Transaction> txs,
+  int? savedAtMs,
+  List<BudgetProgress>? budgets,
+  List<RecurringCommitment>? commitments,
+});
+
 class DashboardPageState extends State<DashboardPage> {
-  late Future<
-    ({List<AccountSummary> accounts, List<Transaction> txs, int? savedAtMs})
-  >
-  _data;
+  late Future<_DashboardData> _data;
 
   @override
   void initState() {
@@ -76,10 +96,7 @@ class DashboardPageState extends State<DashboardPage> {
   /// Fresh load wins; on failure the saved snapshot renders under a stale
   /// label. A snapshot is only a fallback — it never masks a loader error
   /// as success.
-  Future<
-    ({List<AccountSummary> accounts, List<Transaction> txs, int? savedAtMs})
-  >
-  _load() async {
+  Future<_DashboardData> _load() async {
     try {
       final accounts = await widget.loadAccounts();
       final txs = await widget.loadTransactions();
@@ -90,7 +107,14 @@ class DashboardPageState extends State<DashboardPage> {
       );
       // Persisting must not fail the render path.
       await widget.writeSnapshot?.call(snap).catchError((_) {});
-      return (accounts: accounts, txs: txs, savedAtMs: null);
+      final planning = await _loadPlanningRows();
+      return (
+        accounts: accounts,
+        txs: txs,
+        savedAtMs: null,
+        budgets: planning.$1,
+        commitments: planning.$2,
+      );
     } catch (e) {
       final cached = widget.readSnapshot?.call();
       if (cached == null) rethrow;
@@ -98,7 +122,27 @@ class DashboardPageState extends State<DashboardPage> {
         accounts: cached.accounts,
         txs: cached.transactions,
         savedAtMs: cached.savedAtMs,
+        budgets: null,
+        commitments: null,
       );
+    }
+  }
+
+  /// The safe-spend tile is auxiliary — a planning-read failure hides the
+  /// tile rather than failing the whole dashboard. No fake numbers.
+  Future<(List<BudgetProgress>?, List<RecurringCommitment>?)>
+  _loadPlanningRows() async {
+    if (widget.loadBudgets == null || widget.loadCommitments == null) {
+      return (null, null);
+    }
+    final n = DateTime.now();
+    final monthStart = '${n.year}-${n.month.toString().padLeft(2, '0')}-01';
+    try {
+      final budgets = await widget.loadBudgets!(monthStart);
+      final commitments = await widget.loadCommitments!(monthStart);
+      return (budgets, commitments);
+    } catch (_) {
+      return (null, null);
     }
   }
 
@@ -175,6 +219,8 @@ class DashboardPageState extends State<DashboardPage> {
           final txs = snap.data!.txs;
           final savedAtMs = snap.data!.savedAtMs;
           final total = accounts.fold<int>(0, (s, a) => s + a.balance);
+          final budgets = snap.data!.budgets;
+          final commitments = snap.data!.commitments;
           return RefreshIndicator(
             onRefresh: _refresh,
             child: ListView(
@@ -183,6 +229,16 @@ class DashboardPageState extends State<DashboardPage> {
               children: [
                 if (savedAtMs != null) _StaleBanner(savedAtMs: savedAtMs),
                 _TotalCard(total: total),
+                if (budgets != null && commitments != null) ...[
+                  const SizedBox(height: 12),
+                  _SafeSpendCard(
+                    spend: safeDailySpend(
+                      budgets: budgets,
+                      commitments: commitments,
+                      today: DateTime.now(),
+                    ),
+                  ),
+                ],
                 if (accounts.isEmpty && txs.isEmpty)
                   const _EmptyLedgerIntro()
                 else ...[
@@ -291,6 +347,66 @@ class _TotalCard extends StatelessWidget {
                 context,
               ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "Chi được hôm nay" tile — a safe-per-day spend figure under the
+/// balance hero (Simplifi spending plan / PocketGuard "In My Pocket").
+/// It stays visibly secondary to the hero, is labeled as budget headroom
+/// so nobody mistakes it for an account balance, and carries no action —
+/// with no budgets it shows an honest setup nudge instead of a number.
+class _SafeSpendCard extends StatelessWidget {
+  const _SafeSpendCard({required this.spend});
+
+  final SafeDailySpend? spend;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final text = theme.textTheme;
+    final s = spend;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.today_outlined,
+                  size: 18,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 6),
+                Text('Chi được hôm nay', style: text.labelLarge),
+              ],
+            ),
+            const SizedBox(height: 6),
+            if (s == null)
+              Text(
+                'Đặt ngân sách tháng để biết hôm nay nên chi tối đa bao nhiêu',
+                style: text.bodyMedium,
+              )
+            else ...[
+              Text(
+                formatMoney(s.perDayMinor),
+                style: text.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text('trong hạn mức ngân sách tháng này', style: text.bodySmall),
+              const SizedBox(height: 4),
+              Text(
+                'Còn ${formatMoney(s.remainingMinor)} đến hết tháng '
+                '(${s.daysLeft} ngày)',
+                style: text.bodySmall,
+              ),
+            ],
           ],
         ),
       ),

@@ -283,6 +283,8 @@ class _AuthGateState extends State<AuthGate> {
               key: _dashKey,
               loadAccounts: _store.loadAccounts,
               loadTransactions: _store.loadTransactions,
+              loadBudgets: _store.loadBudgets,
+              loadCommitments: _store.loadCommitments,
               readSnapshot: () => _offline?.readDashboard(),
               writeSnapshot: (snap) =>
                   _offline?.saveDashboard(snap) ?? Future.value(),
@@ -440,6 +442,8 @@ class _AuthGateState extends State<AuthGate> {
         () => DashboardPage(
           loadAccounts: () async => DemoStore.seedAccounts(),
           loadTransactions: () async => DemoStore.seedTransactions(),
+          loadBudgets: (m) async => DemoStore.seedBudgets(m),
+          loadCommitments: (_) async => DemoStore.seedCommitments(),
           modeLabel: 'demo',
           menuItems: [
             DashboardMenuItem(
