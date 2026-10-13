@@ -3,6 +3,7 @@ import 'dart:math';
 import '../../domain/categories.dart';
 import '../../domain/inbox.dart';
 import '../../domain/models.dart';
+import '../../domain/reconciliation.dart';
 import '../../domain/transaction_query.dart';
 import 'auth_client.dart';
 import 'data_api.dart';
@@ -1036,6 +1037,260 @@ class RealStore {
     final inserted = await _api.insertAll('inbox_candidates', rows);
     return inserted.map(_candidateFromRow).toList();
   }
+
+  // ---- Account reconciliation (db/neon/migrations/20260803142000 + the
+  // workspace read model + the 20260923013000 adjustment contract) ----
+
+  /// Columns the mobile workspace reads — same list the web's
+  /// src/server/reconciliation.ts selects on both views.
+  static const _reconEntryColumns =
+      'entry_id,transaction_id,account_id,reconciliation_state,cleared_at,'
+      'reconciliation_id,entry_count';
+  static const _reconSummaryColumns =
+      'id,account_id,statement_date,statement_balance_minor,status,'
+      'calculated_balance_minor,cleared_balance_minor,difference_minor,'
+      'pending_account_leg_count,cleared_account_leg_count,'
+      'reconciled_account_leg_count,started_at,completed_at,'
+      'last_reopened_at,created_at,updated_at';
+  static const _reconTableColumns =
+      'id,account_id,statement_date,statement_balance_minor,status,'
+      'calculated_balance_minor,pending_account_leg_count,'
+      'cleared_account_leg_count,reconciled_account_leg_count,started_at,'
+      'completed_at,last_reopened_at,created_at,updated_at';
+
+  /// PostgREST can encode bigint as a JSON string, and reconciliation
+  /// values legitimately go negative — unlike [_moneyMinor] this accepts
+  /// any integer inside the server check bounds (±2^53−1). Null stays
+  /// null so callers can tell "absent" from zero.
+  static int? _intOrNull(Object? v) {
+    if (v == null) return null;
+    final n = v is num ? v : num.tryParse('$v');
+    if (n == null || n.abs() > 9007199254740991) return null;
+    return n.toInt();
+  }
+
+  static int _intField(Object? v, String field) {
+    final n = _intOrNull(v);
+    if (n == null) throw FormatException('invalid_$field');
+    return n;
+  }
+
+  static ReconciliationEntryRow _reconEntryFromRow(Map<String, dynamic> r) =>
+      ReconciliationEntryRow(
+        entryId: r['entry_id'] as String,
+        transactionId: r['transaction_id'] as String,
+        accountId: r['account_id'] as String,
+        state: entryStateFromString(r['reconciliation_state'] as String),
+        clearedAt: r['cleared_at'] as String?,
+        reconciliationId: r['reconciliation_id'] as String?,
+        entryCount: _intField(r['entry_count'], 'reconciliation_entry_count'),
+      );
+
+  /// [live] distinguishes the two session sources: the summaries view
+  /// always carries computed cleared/difference/count values, while the
+  /// base-table fallback stores them only on completed rows — an open
+  /// row read from the table keeps them null until
+  /// [resolveSessionSnapshots] computes the same snapshot locally.
+  static ReconciliationSession _reconSessionFromRow(
+    Map<String, dynamic> r, {
+    required bool live,
+  }) {
+    final status = r['status'] == 'open'
+        ? ReconciliationStatus.open
+        : ReconciliationStatus.completed;
+    final completed = status == ReconciliationStatus.completed;
+    final statement = _intField(
+      r['statement_balance_minor'],
+      'reconciliation_statement_balance',
+    );
+    // A completed row's cleared balance IS its stored calculated balance;
+    // the view defines cleared_balance_minor the same way. Its difference
+    // is statement − calculated, matching the view's difference_minor.
+    final calculated = _intOrNull(r['calculated_balance_minor']);
+    final cleared = live
+        ? _intOrNull(r['cleared_balance_minor'])
+        : (completed ? calculated : null);
+    final difference = live
+        ? _intOrNull(r['difference_minor'])
+        : (completed && calculated != null ? statement - calculated : null);
+    return ReconciliationSession(
+      id: r['id'] as String,
+      accountId: r['account_id'] as String,
+      statementDate: (r['statement_date'] as String).substring(0, 10),
+      statementBalance: statement,
+      status: status,
+      calculatedBalance: calculated,
+      clearedBalance: cleared,
+      difference: difference,
+      pendingLegCount: _intOrNull(r['pending_account_leg_count']),
+      clearedLegCount: _intOrNull(r['cleared_account_leg_count']),
+      reconciledLegCount: _intOrNull(r['reconciled_account_leg_count']),
+      startedAt: r['started_at'] as String?,
+      completedAt: r['completed_at'] as String?,
+      lastReopenedAt: r['last_reopened_at'] as String?,
+      createdAt: r['created_at'] as String?,
+      updatedAt: r['updated_at'] as String?,
+    );
+  }
+
+  /// Entry legs + statement sessions for one account — the mobile
+  /// counterpart of the web's loadAuthenticatedState.
+  ///
+  /// READ-PATH NOTE: `account_reconciliation_summaries` is the canonical
+  /// read, but its lateral join calls the SECURITY INVOKER snapshot,
+  /// which the Neon Data API refuses with 42501 (no USAGE on schema
+  /// `auth`) once a session row exists — the view only answers while the
+  /// join never fires. On any view failure we fall back to the
+  /// `account_reconciliations` base table (RLS-readable): completed rows
+  /// carry their stored values, and open rows get the same snapshot
+  /// computed locally by [resolveSessionSnapshots].
+  Future<ReconciliationStateData> loadReconciliationState(
+    String accountId,
+  ) async {
+    List<Map<String, dynamic>> entryRows;
+    try {
+      entryRows = await _api.select(
+        'account_reconciliation_entry_feed',
+        query: {'select': _reconEntryColumns, 'account_id': 'eq.$accountId'},
+      );
+    } catch (e) {
+      if (isMissingReconciliationContract(e)) {
+        return const ReconciliationStateData(
+          featureAvailable: false,
+          rows: [],
+          sessions: [],
+        );
+      }
+      rethrow;
+    }
+
+    List<Map<String, dynamic>> sessionRows;
+    var live = true;
+    try {
+      sessionRows = await _api.select(
+        'account_reconciliation_summaries',
+        query: {
+          'select': _reconSummaryColumns,
+          'account_id': 'eq.$accountId',
+          'order': 'statement_date.desc,created_at.desc',
+        },
+      );
+    } catch (e) {
+      if (isMissingReconciliationContract(e)) {
+        return const ReconciliationStateData(
+          featureAvailable: false,
+          rows: [],
+          sessions: [],
+        );
+      }
+      sessionRows = await _api.select(
+        'account_reconciliations',
+        query: {
+          'select': _reconTableColumns,
+          'account_id': 'eq.$accountId',
+          'order': 'statement_date.desc,created_at.desc',
+        },
+      );
+      live = false;
+    }
+
+    return ReconciliationStateData(
+      featureAvailable: true,
+      rows: entryRows.map(_reconEntryFromRow).toList(),
+      sessions: [
+        for (final r in sessionRows) _reconSessionFromRow(r, live: live),
+      ],
+    );
+  }
+
+  /// POST /rpc/start_account_reconciliation — opens a statement period;
+  /// the server validates the date is not in the future and not before
+  /// the latest completed period.
+  Future<String> startAccountReconciliation({
+    required String accountId,
+    required String statementDate,
+    required int statementBalance,
+  }) async {
+    final id = await _api.rpc('start_account_reconciliation', {
+      'p_account_id': accountId,
+      'p_statement_date': statementDate,
+      'p_statement_balance_minor': statementBalance,
+    });
+    if (id is! String) {
+      throw const FormatException('invalid_reconciliation_id');
+    }
+    return id;
+  }
+
+  /// POST /rpc/set_account_entry_reconciliation_state — flips one logical
+  /// (transaction, account) leg between pending and cleared; the server
+  /// moves every entry of the leg together and refuses 'reconciled'
+  /// (that state is only ever set by completion).
+  Future<void> setAccountEntryReconciliationState({
+    required String entryId,
+    required EntryReconciliationState state,
+  }) => _api.rpc('set_account_entry_reconciliation_state', {
+    'p_entry_id': entryId,
+    'p_state': entryStateWire(state),
+  });
+
+  /// POST /rpc/complete_account_reconciliation — locks every cleared leg
+  /// into 'reconciled'. A zero difference closes directly; a nonzero
+  /// difference closes ONLY through the explicit adjustment the params
+  /// name (kind forced server-side by the difference sign) — the RPC
+  /// never auto-fixes a gap silently. Mirrors the web action: the
+  /// optional adjustment note param stays unset.
+  Future<void> completeAccountReconciliation({
+    required String reconciliationId,
+    String? adjustmentCategoryId,
+    String? adjustmentPayee,
+  }) async {
+    final ok = await _api.rpc('complete_account_reconciliation', {
+      'p_reconciliation_id': reconciliationId,
+      'p_adjustment_category_id': adjustmentCategoryId,
+      'p_adjustment_payee': adjustmentPayee,
+    });
+    if (ok != true) {
+      throw const FormatException('invalid_reconciliation_result');
+    }
+  }
+
+  /// POST /rpc/reopen_account_reconciliation — only the latest completed
+  /// period, and only while nothing else is open; the server enforces
+  /// both rules again (only_latest_reconciliation_can_reopen).
+  Future<void> reopenAccountReconciliation(String reconciliationId) async {
+    final ok = await _api.rpc('reopen_account_reconciliation', {
+      'p_reconciliation_id': reconciliationId,
+    });
+    if (ok != true) {
+      throw const FormatException('invalid_reconciliation_result');
+    }
+  }
+
+  /// Every ledger row touching [accountId], newest first — the
+  /// reconciliation workspace joins these to entry-feed legs by
+  /// transaction id, and statement periods run as far back as the
+  /// ledger does. Bounded by [_ledgerMaxPages] pages: beyond that the
+  /// workspace tells the user the tail is missing rather than paging
+  /// forever; summary figures stay honest because they count legs, not
+  /// loaded rows.
+  Future<({List<Transaction> rows, bool truncated})> loadAccountLedger(
+    String accountId,
+  ) async {
+    const query = TransactionQuery();
+    final scoped = query.copyWith(accountId: accountId);
+    final rows = <Transaction>[];
+    var offset = 0;
+    for (var page = 0; page < _ledgerMaxPages; page++) {
+      final next = await loadTransactionPage(scoped, offset: offset);
+      rows.addAll(next.rows);
+      offset += next.rows.length;
+      if (!next.hasMore) return (rows: rows, truncated: false);
+    }
+    return (rows: rows, truncated: true);
+  }
+
+  static const _ledgerMaxPages = 20;
 }
 
 /// One UUIDv4 per form instance = one idempotency key per user intent.

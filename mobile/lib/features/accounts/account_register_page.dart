@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../domain/models.dart';
 import '../../domain/money.dart';
+import '../../domain/reconciliation.dart';
 import '../../domain/register.dart';
 import '../../domain/transaction_query.dart';
 
@@ -26,6 +29,8 @@ class AccountRegisterPage extends StatefulWidget {
     this.onEdit,
     this.onDelete,
     this.loadAccount,
+    this.loadReconciliation,
+    this.onOpenReconciliation,
   });
 
   /// The account being viewed; [AccountSummary.balance] anchors the
@@ -46,6 +51,15 @@ class AccountRegisterPage extends StatefulWidget {
   /// account left the unarchived list) keeps the last known snapshot.
   final Future<AccountSummary?> Function()? loadAccount;
 
+  /// "Đối soát" status strip — feeds the one-line state under the
+  /// header ("Đã đối soát đến …" / "Đang đối soát kỳ …"). Null hides the
+  /// affordance entirely (demo mode has no server contract).
+  final Future<ReconciliationStateData> Function()? loadReconciliation;
+
+  /// Opens the statement workspace; the register refreshes after it
+  /// returns because a completion can post an adjustment transaction.
+  final Future<void> Function()? onOpenReconciliation;
+
   @override
   State<AccountRegisterPage> createState() => _AccountRegisterPageState();
 }
@@ -64,6 +78,11 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
   bool _hasMore = false;
   bool _loadingMore = false;
   bool _moreFailed = false;
+
+  /// Reconciliation strip state — auxiliary to the ledger, so its
+  /// failure never degrades the register itself.
+  ReconciliationStateData? _recon;
+  bool _reconFailed = false;
 
   /// Bumped per first-page request so a slow older response can never
   /// overwrite a newer one (same guard as the activity feed).
@@ -90,7 +109,10 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
       _error = null;
       _moreFailed = false;
       _loadingMore = false;
+      _recon = null;
+      _reconFailed = false;
     });
+    unawaited(_loadRecon(gen));
     try {
       final page = await widget.loadPage(_query, offset: 0);
       if (!mounted || gen != _gen) return;
@@ -105,6 +127,34 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
         _error = e;
       });
     }
+  }
+
+  /// The reconciliation strip loads beside the ledger, never inside it —
+  /// a workspace read failure leaves the register rows fully usable.
+  Future<void> _loadRecon(int gen) async {
+    final loader = widget.loadReconciliation;
+    if (loader == null) return;
+    try {
+      final data = await loader();
+      if (!mounted || gen != _gen) return;
+      setState(() {
+        _recon = data;
+        _reconFailed = false;
+      });
+    } catch (_) {
+      if (!mounted || gen != _gen) return;
+      setState(() => _reconFailed = true);
+    }
+  }
+
+  /// Opens the statement workspace, then re-anchors everything: a
+  /// completion can post an adjustment transaction, so the ledger, the
+  /// balance header and the strip all re-read together.
+  Future<void> _openReconciliation() async {
+    final open = widget.onOpenReconciliation;
+    if (open == null) return;
+    await open();
+    if (mounted) await _refresh();
   }
 
   Future<void> _loadMore() async {
@@ -277,6 +327,34 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
     );
   }
 
+  /// "Đối soát" strip — one honest line from
+  /// public.account_reconciliation_summaries: the open period, else the
+  /// latest completed statement date, else "Chưa có kỳ đối soát". Hidden
+  /// when the seam is absent (demo) or the contract is not deployed.
+  Widget _reconCard() {
+    if (widget.loadReconciliation == null) return const SizedBox.shrink();
+    final String? label;
+    if (_reconFailed) {
+      label = 'Chưa tải được trạng thái đối soát';
+    } else {
+      label = _recon == null ? null : reconciliationStatusLabel(_recon!);
+    }
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: const Icon(Icons.fact_check_outlined),
+        title: Text(label ?? 'Đang tải trạng thái đối soát...'),
+        trailing: widget.onOpenReconciliation == null
+            ? null
+            : TextButton(
+                onPressed: _openReconciliation,
+                child: const Text('Đối soát'),
+              ),
+        onTap: widget.onOpenReconciliation == null ? null : _openReconciliation,
+      ),
+    );
+  }
+
   Widget _entryTile(AccountRegisterEntry e) {
     final tx = e.transaction;
     // Web signed-mode tone: + green, − red; the subtitle's "Nhận
@@ -374,6 +452,7 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
                 padding: const EdgeInsets.all(16),
                 children: [
                   _header(),
+                  _reconCard(),
                   if (entries.isEmpty)
                     const Card(
                       child: ListTile(

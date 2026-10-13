@@ -98,6 +98,17 @@ int? parseMoneyInput(String raw) {
   return _parseGroupedNumber(value);
 }
 
+/// Signed variant for statement balances — a leading '-' before the
+/// usual grouped/shorthand syntax (port of the web reconciliation
+/// page's parseSignedMoneyInput; "-50.000" -> -50000).
+int? parseSignedMoneyInput(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty || trimmed == '-') return null;
+  final negative = trimmed.startsWith('-');
+  final amount = parseMoneyInput(negative ? trimmed.substring(1) : trimmed);
+  return amount == null ? null : (negative ? -amount : amount);
+}
+
 /// "1.234.567" / "1,234,567" / "1234567" -> 1234567. Groups must be 3 digits.
 int? _parseGroupedNumber(String text) {
   final cleaned = text.trim().replaceAll(' ', ' ');

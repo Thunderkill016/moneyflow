@@ -20,6 +20,7 @@ import '../domain/recurring_detection.dart';
 import '../domain/transaction_query.dart';
 import 'biometric_lock.dart';
 import 'delete_data.dart';
+import '../features/accounts/account_reconciliation_page.dart';
 import '../features/accounts/account_register_page.dart';
 import '../features/accounts/accounts_page.dart';
 import '../features/activity/activity_page.dart';
@@ -717,9 +718,60 @@ class _AuthGateState extends State<AuthGate> {
             }
             return null;
           },
+          loadReconciliation: () => _store.loadReconciliationState(account.id),
+          onOpenReconciliation: () => _openReconciliation(context, account),
         ),
       ),
     );
+  }
+
+  /// "Đối soát" from the register — the statement workspace mirrors the
+  /// web's /accounts/[id]/reconcile flow. It pops `true` whenever a
+  /// mutation landed (a completed-with-adjustment posts a real ledger
+  /// transaction), so the shell tabs reload like after a capture save.
+  /// Demo never reaches here: the register hides the affordance when the
+  /// seams are unset.
+  Future<void> _openReconciliation(
+    BuildContext context,
+    AccountSummary account,
+  ) async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => AccountReconciliationPage(
+          account: account,
+          loadState: () => _store.loadReconciliationState(account.id),
+          loadLedger: () => _store.loadAccountLedger(account.id),
+          loadCategories: _store.loadCategories,
+          actions: ReconciliationActions(
+            start: ({required statementDate, required statementBalance}) =>
+                _store
+                    .startAccountReconciliation(
+                      accountId: account.id,
+                      statementDate: statementDate,
+                      statementBalance: statementBalance,
+                    )
+                    .then((_) {}),
+            setEntryState: ({required entryId, required state}) =>
+                _store.setAccountEntryReconciliationState(
+                  entryId: entryId,
+                  state: state,
+                ),
+            complete:
+                ({
+                  required reconciliationId,
+                  adjustmentCategoryId,
+                  adjustmentPayee,
+                }) => _store.completeAccountReconciliation(
+                  reconciliationId: reconciliationId,
+                  adjustmentCategoryId: adjustmentCategoryId,
+                  adjustmentPayee: adjustmentPayee,
+                ),
+            reopen: _store.reopenAccountReconciliation,
+          ),
+        ),
+      ),
+    );
+    if (changed == true) _reloadTabs();
   }
 
   /// "Cần xem" — the review queue for pasted/imported data. Every mutation
