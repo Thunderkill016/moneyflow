@@ -365,6 +365,8 @@ void main() {
       );
       await t.pumpAndSettle();
       expect(find.textContaining('Chuyển đến VCB'), findsOneWidget);
+      // The web register's suffix — a transfer must never read as spend.
+      expect(find.textContaining('không tính chi tiêu'), findsOneWidget);
       expect(find.text('− ${formatMoney(500000)}'), findsOneWidget);
     });
 
@@ -393,6 +395,7 @@ void main() {
       );
       await t.pumpAndSettle();
       expect(find.textContaining('Nhận từ Tiền mặt'), findsOneWidget);
+      expect(find.textContaining('không tính thu nhập'), findsOneWidget);
       expect(find.text('+ ${formatMoney(500000)}'), findsOneWidget);
     });
 

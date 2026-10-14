@@ -266,8 +266,10 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
     // signed amount can never read as income/expense.
     final base = t.kind == TransactionKind.transfer
         ? (e.direction == RegisterDirection.inflow
-              ? 'Nhận từ ${e.transferCounterparty ?? 'tài khoản khác'}'
-              : 'Chuyển đến ${e.transferCounterparty ?? 'tài khoản khác'}')
+              ? 'Nhận từ ${e.transferCounterparty ?? 'tài khoản khác'} · '
+                    'không tính thu nhập'
+              : 'Chuyển đến ${e.transferCounterparty ?? 'tài khoản khác'} · '
+                    'không tính chi tiêu')
         : t.category;
     final review = t.reviewStatus == TransactionReviewStatus.needsReview
         ? '\nCần xem lại'
