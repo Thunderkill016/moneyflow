@@ -286,12 +286,16 @@ test("workspaces thread goals into the hook and both dialogs", () => {
 test("archive surface carries goal_id only through the generation-aware layer", () => {
   const backup = read("src/lib/archive/archive-backup.ts");
   const settings = read("src/components/backup-settings-page.tsx");
+  const producerVerifier = read("scripts/verify-archive-producer.mjs");
   const validator = read("src/lib/archive/goal-linkage-archive-validator.ts");
   const base = read("src/lib/archive/moneyflow-archive.ts");
-  // Both ingress points go through the newest generation-aware layer (the
-  // cadence wrapper delegates to the goal-aware chain unchanged).
+  // Every ingress point — app restore, backup describe and the CI producer
+  // verifier — goes through the newest generation-aware layer (the cadence
+  // wrapper delegates to the goal-aware chain unchanged). A stale pointer
+  // here is how the producer round-trip slipped past the new field.
   assert.match(backup, /interval-commitment-archive-ingress/);
   assert.match(settings, /interval-commitment-archive-ingress/);
+  assert.match(producerVerifier, /interval-commitment-archive-ingress/);
   // The current generation owns the field; the base transactions spec must
   // not grow it (other tables legitimately carry their own goal_id refs).
   assert.match(validator, /20260924120000/);

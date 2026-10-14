@@ -14,7 +14,7 @@ import {
   ALL_ARCHIVE_COLLECTIONS,
   ARCHIVE_ROW_SPECS,
 } from "../src/lib/archive/moneyflow-archive.ts";
-import { ingestArchiveBytes } from "../src/lib/archive/goal-linkage-archive-ingress.ts";
+import { ingestArchiveBytes } from "../src/lib/archive/interval-commitment-archive-ingress.ts";
 
 const failures = [];
 const CURRENT_INBOX_SOURCE_FIELDS = new Set([
@@ -22,6 +22,7 @@ const CURRENT_INBOX_SOURCE_FIELDS = new Set([
   "source_predecessor_external_id",
 ]);
 const CURRENT_TRANSACTION_FIELDS = new Set(["payee", "goal_id"]);
+const CURRENT_COMMITMENT_FIELDS = new Set(["interval_months"]);
 
 function check(condition, message) {
   if (!condition) failures.push(message);
@@ -47,7 +48,9 @@ const ingress = ingestArchiveBytes(
   new Uint8Array(rawBytes.buffer, rawBytes.byteOffset, rawBytes.byteLength),
 );
 if (!ingress.ok) {
-  console.error(`Archive ingress rejected the producer output: ${ingress.code}`);
+  console.error(
+    `Archive ingress rejected the producer output: ${ingress.code}`,
+  );
   // Codes only. Validator paths are redacted at the boundary, but CI logs are a
   // durable surface and an archive is a whole financial history.
   for (const rejection of ingress.errors ?? []) {
@@ -69,7 +72,10 @@ for (const collection of ALL_ARCHIVE_COLLECTIONS) {
     );
     continue;
   }
-  check(Array.isArray(tables[collection]), `${collection} must be a JSON array, not null`);
+  check(
+    Array.isArray(tables[collection]),
+    `${collection} must be a JSON array, not null`,
+  );
   check(
     Array.isArray(tables[collection]) && tables[collection].length > 0,
     `${collection} is empty — the fixture must exercise every collection so an incomplete producer cannot pass`,
@@ -77,9 +83,11 @@ for (const collection of ALL_ARCHIVE_COLLECTIONS) {
 }
 
 // 3. Field-level completeness against the archive-v1 contract, row by row, on
-// real output. The current #442 generation deliberately extends Inbox rows with
-// exactly two source-evidence fields; the generation-aware ingress above proves
-// their types/shape, while this loop keeps the legacy field inventory fail-closed.
+// real output. The current generation deliberately extends Inbox rows with
+// two source-evidence fields, transaction rows with payee/goal_id and
+// recurring-commitment rows with interval_months; the generation-aware
+// ingress above proves their types/shape, while this loop keeps the legacy
+// field inventory fail-closed.
 for (const [collection, spec] of Object.entries(ARCHIVE_ROW_SPECS)) {
   const rows = collection === "profile" ? [tables.profile] : tables[collection];
   if (!Array.isArray(rows) && collection !== "profile") continue;
@@ -108,11 +116,23 @@ for (const [collection, spec] of Object.entries(ARCHIVE_ROW_SPECS)) {
         );
       }
     }
+    if (collection === "recurringCommitments") {
+      for (const field of CURRENT_COMMITMENT_FIELDS) {
+        check(
+          field in row,
+          `${collection}[${index}] is missing the current field ${field}`,
+        );
+      }
+    }
     for (const field of Object.keys(row)) {
       check(
         field in spec.fields ||
-          (collection === "inboxCandidates" && CURRENT_INBOX_SOURCE_FIELDS.has(field)) ||
-          (collection === "transactions" && CURRENT_TRANSACTION_FIELDS.has(field)),
+          (collection === "inboxCandidates" &&
+            CURRENT_INBOX_SOURCE_FIELDS.has(field)) ||
+          (collection === "transactions" &&
+            CURRENT_TRANSACTION_FIELDS.has(field)) ||
+          (collection === "recurringCommitments" &&
+            CURRENT_COMMITMENT_FIELDS.has(field)),
         `${collection}[${index}] carries ${field}, which is not in the contract`,
       );
     }
@@ -133,7 +153,10 @@ for (const forbidden of [
   '"refresh_token"',
   '"service_role"',
 ]) {
-  check(!serialized.includes(forbidden), `the archive must not contain ${forbidden}`);
+  check(
+    !serialized.includes(forbidden),
+    `the archive must not contain ${forbidden}`,
+  );
 }
 check(
   !("id" in (tables.profile ?? {})),
@@ -141,7 +164,9 @@ check(
 );
 
 // 5. Money must survive as exact integers, not through a lossy float path.
-const entries = Array.isArray(tables.transactionEntries) ? tables.transactionEntries : [];
+const entries = Array.isArray(tables.transactionEntries)
+  ? tables.transactionEntries
+  : [];
 check(
   entries.some((entry) => entry.amount_minor === 9007199254740991),
   "the largest safe integer amount must survive the export exactly",
@@ -155,7 +180,8 @@ for (const entry of entries) {
 
 // 6. Counts must describe the payload actually emitted.
 for (const collection of ALL_ARCHIVE_COLLECTIONS) {
-  const expected = collection === "profile" ? 1 : (tables[collection] ?? []).length;
+  const expected =
+    collection === "profile" ? 1 : (tables[collection] ?? []).length;
   check(
     archive.tenant_row_counts?.[collection] === expected,
     `tenant_row_counts.${collection} does not match the serialized payload`,
@@ -163,7 +189,9 @@ for (const collection of ALL_ARCHIVE_COLLECTIONS) {
 }
 
 // 7. Historical state must not be filtered out by the producer.
-const transactions = Array.isArray(tables.transactions) ? tables.transactions : [];
+const transactions = Array.isArray(tables.transactions)
+  ? tables.transactions
+  : [];
 check(
   transactions.some((transaction) => transaction.deleted_at !== null),
   "a soft-deleted transaction must survive the export",
@@ -178,9 +206,12 @@ check(
 );
 
 // 8. The self-reference the contract singles out.
-const candidates = Array.isArray(tables.inboxCandidates) ? tables.inboxCandidates : [];
+const candidates = Array.isArray(tables.inboxCandidates)
+  ? tables.inboxCandidates
+  : [];
 check(
-  candidates.filter((candidate) => candidate.transfer_pair_id !== null).length >= 2,
+  candidates.filter((candidate) => candidate.transfer_pair_id !== null)
+    .length >= 2,
   "mutually paired inbox candidates must survive the export",
 );
 
@@ -193,6 +224,10 @@ if (failures.length > 0) {
 const counts = ALL_ARCHIVE_COLLECTIONS.map(
   (collection) => `${collection}=${archive.tenant_row_counts[collection]}`,
 ).join(" ");
-console.log("Archive producer verification passed (through the current R8 file-ingress boundary).");
-console.log(`  archive_version=${archive.archive_version} schema_generation=${archive.schema_generation}`);
+console.log(
+  "Archive producer verification passed (through the current R8 file-ingress boundary).",
+);
+console.log(
+  `  archive_version=${archive.archive_version} schema_generation=${archive.schema_generation}`,
+);
 console.log(`  ${counts}`);
