@@ -49,6 +49,7 @@ import '../features/categories/categories_page.dart';
 import '../features/dashboard/dashboard_page.dart';
 import '../features/inbox/inbox_page.dart';
 import '../features/inbox/rules_page.dart';
+import '../features/timeline/timeline_page.dart';
 import '../features/notification_capture/notification_capture_page.dart';
 import '../features/onboarding/onboarding_page.dart';
 import '../features/planning/planning_page.dart';
@@ -1577,6 +1578,17 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         onTap: () => _openInbox(context),
       ),
       DashboardMenuItem(
+        // Read-only approved-ledger view — the timeline never mutates;
+        // edits stay on Hoạt động like the web's /timeline contract.
+        label: 'Dòng thời gian',
+        icon: Icons.timeline,
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => TimelinePage(loadPage: _store.loadTransactionPage),
+          ),
+        ),
+      ),
+      DashboardMenuItem(
         // Opt-in bank-notification capture — the label is the real state:
         // OS grant AND app opt-in. "Tắt" can never overclaim activity.
         label: _notifCaptureOn
@@ -1730,6 +1742,18 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           },
           modeLabel: 'demo',
           menuItems: [
+            DashboardMenuItem(
+              // Same read-only approved view over seed data.
+              label: 'Dòng thời gian',
+              icon: Icons.timeline,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => TimelinePage(
+                    loadPage: inMemoryPageLoader(DemoStore.seedTransactions()),
+                  ),
+                ),
+              ),
+            ),
             DashboardMenuItem(
               label: 'Tài khoản',
               icon: Icons.account_balance_wallet,
