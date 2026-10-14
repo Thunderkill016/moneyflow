@@ -12,6 +12,10 @@
          SCHEDULE_EXACT_ALARM / USE_EXACT_ALARM is declared — an
          exact-alarm permission triggers Play review. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- "Nói để ghi" voice capture — SpeechRecognizer via speech_to_text.
+         Runtime permission, requested only when the user taps the mic;
+         the app never records without that explicit action. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <application
         android:label="MoneyFlow"
         android:name="${applicationName}"
@@ -120,6 +124,12 @@
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />
+        </intent>
+        <!-- speech_to_text checks for an on-device speech-recognition
+             service; without this query Android 11+ reports the feature
+             unavailable even when Google Speech Services is installed. -->
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
         </intent>
     </queries>
 </manifest>

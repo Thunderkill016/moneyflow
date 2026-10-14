@@ -58,6 +58,11 @@ dependencies:
   screen_protector: ^1.5.3
   fl_chart: ^1.2.0
   excel: ^4.0.6
+  # Android SpeechRecognizer for "Nói để ghi" — pinned release, well past
+  # publish (7.4.0, 2026-05-19). 7.5.x requires Dart >=3.12 which is newer
+  # than the pinned Flutter SDK (3.38.5 → Dart 3.10.4). Only permission it
+  # adds is RECORD_AUDIO, requested at mic-tap, never at install/startup.
+  speech_to_text: 7.4.0
 
 dev_dependencies:
   flutter_test:
