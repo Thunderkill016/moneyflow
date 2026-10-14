@@ -419,6 +419,51 @@ void main() {
       final innerReport = await inner;
       expect(innerReport.sent, 0);
     });
+
+    test(
+      'an unbind mid-pass stops replay — nothing submits or leaves the queue under the next owner',
+      () async {
+        // The reviewed A→B race: disposing the queue is the unbind
+        // signal (_bindAccountStores releases the old queue exactly
+        // this way). A stale pass must not let the shared auth client's
+        // new session send or remove this owner's held captures.
+        for (final k in ['k1', 'k2', 'k3']) {
+          await queue.enqueue(_intent(key: k));
+        }
+        final attempted = <String>[];
+        final report = await drainQueuedCaptures(queue, (intent) async {
+          attempted.add(intent.idempotencyKey);
+          queue.dispose(); // owner flips while k1's request is in flight
+        });
+        // k1 landed under its own session and stays held (the next pass
+        // replays it — the server idempotency key dedupes); k2/k3 were
+        // never attempted under the foreign session.
+        expect(attempted, ['k1']);
+        expect(report.sent, 1);
+        expect(queue.pending.map((i) => i.intent.idempotencyKey), [
+          'k1',
+          'k2',
+          'k3',
+        ]);
+        expect(queue.draining, isFalse);
+      },
+    );
+
+    test(
+      'a business verdict reached under a foreign session drops nothing',
+      () async {
+        // The same race, failure side: the submit throws a rejection
+        // after the owner flipped — that verdict is not this owner's to
+        // act on, so the entry stays held.
+        await queue.enqueue(_intent(key: 'k1'));
+        final report = await drainQueuedCaptures(queue, (intent) async {
+          queue.dispose();
+          throw NeonAuthException(400, 'stale_write');
+        });
+        expect(report.dropped, isEmpty);
+        expect(queue.pendingCount, 1);
+      },
+    );
   });
 
   group('QueuedCapturesBanner', () {

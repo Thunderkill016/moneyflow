@@ -59,6 +59,37 @@ class BankNotificationDraft {
   /// for the reviewer, never a silent account match: an unmatched name
   /// resolves to nothing in `resolveInboxAccountId`.
   final String? accountName;
+
+  /// Durable-outbox codec — a held draft survives a process kill under
+  /// its owner's prefs key, so the next session still submits it.
+  Map<String, Object?> toJson() => {
+    'kind': kind == TransactionKind.income ? 'income' : 'expense',
+    'amountMinor': amountMinor,
+    'merchant': merchant,
+    'note': note,
+    'occurredOn': occurredOn,
+    'confidence': confidence,
+    'rawSnippet': rawSnippet,
+    'dedupeKey': dedupeKey,
+    'accountName': accountName,
+  };
+
+  factory BankNotificationDraft.fromJson(Map<String, Object?> json) {
+    String str(String k) => json[k] as String? ?? '';
+    return BankNotificationDraft(
+      kind: json['kind'] == 'income'
+          ? TransactionKind.income
+          : TransactionKind.expense,
+      amountMinor: (json['amountMinor'] as num?)?.toInt() ?? 0,
+      merchant: str('merchant'),
+      note: str('note'),
+      occurredOn: str('occurredOn'),
+      confidence: str('confidence'),
+      rawSnippet: str('rawSnippet'),
+      dedupeKey: str('dedupeKey'),
+      accountName: json['accountName'] as String?,
+    );
+  }
 }
 
 /// `raw_snippet` allows 2000 chars; drafts clip well under that — a

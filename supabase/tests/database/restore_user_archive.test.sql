@@ -1,5 +1,5 @@
 begin;
-select plan(42);
+select plan(46);
 
 -- R7 — restore must reconstruct a tenant faithfully in one transaction, or leave
 -- the target exactly as it was. Every identity and row here is transaction-scoped
@@ -64,6 +64,7 @@ insert into restore_ctx values
 select public.adjust_savings_goal((select id from restore_ctx where key='src_goal'), 1500000);
 insert into restore_ctx values
   ('src_commitment', public.upsert_recurring_commitment(null,'Tiền nhà',4000000,5,(select id from restore_ctx where key='src_account'),(select id from restore_ctx where key='src_expense'))),
+  ('src_commitment_yearly', public.upsert_recurring_commitment(null,'Bảo hiểm xe',2400000,15,(select id from restore_ctx where key='src_account'),(select id from restore_ctx where key='src_expense'),null,12)),
   ('src_template', public.upsert_recurring_income_template(null,'Lương',15000000,10,(select id from restore_ctx where key='src_account'),(select id from restore_ctx where key='src_income')));
 select public.pay_recurring_commitment((select id from restore_ctx where key='src_commitment'), date_trunc('month',current_date)::date, current_date, '00000000-0000-4000-8000-00000000c106');
 select public.record_recurring_income_template((select id from restore_ctx where key='src_template'), date_trunc('month',current_date)::date, current_date, '00000000-0000-4000-8000-00000000c107');
@@ -277,6 +278,57 @@ select is(
    where exported.key='restored_archive' and candidate ->> 'transfer_pair_id' is not null),
   2,
   'the mutually paired candidates survive restore'
+);
+
+-- ---------------------------------------------------------------------------
+-- Commitment cadence (schema generation 20261016090000)
+-- ---------------------------------------------------------------------------
+select is(
+  (select interval_months from public.recurring_commitments
+   where user_id = '00000000-0000-4000-8000-00000000c002' and name = 'Bảo hiểm xe'),
+  12,
+  'a yearly cadence survives the archive round trip'
+);
+
+-- A pre-cadence archive (stripped key, prior generation) still validates.
+select is(
+  pg_temp.restore_error($$select public.validate_archive_for_restore(
+    jsonb_set(
+      jsonb_set(
+        (select payload from restore_out where key = 'archive'),
+        '{schema_generation}', '"20260924120000"'::jsonb),
+      '{tables,recurringCommitments}',
+      (select jsonb_agg(commitment - 'interval_months')
+       from restore_out, jsonb_array_elements(payload -> 'tables' -> 'recurringCommitments') as commitment
+       where key = 'archive')))$$),
+  'unexpected_success',
+  'a 20260924120000 archive without interval_months still validates'
+);
+
+-- A current-generation archive missing the cadence fails closed.
+select is(
+  pg_temp.restore_error($$select public.validate_archive_for_restore(
+    jsonb_set(
+      (select payload from restore_out where key = 'archive'),
+      '{tables,recurringCommitments}',
+      (select jsonb_agg(commitment - 'interval_months')
+       from restore_out, jsonb_array_elements(payload -> 'tables' -> 'recurringCommitments') as commitment
+       where key = 'archive')))$$),
+  'archive_commitment_interval_invalid',
+  'a 20261016090000 row missing interval_months is refused'
+);
+
+-- An out-of-range cadence fails closed instead of restoring invented data.
+select is(
+  pg_temp.restore_error($$select public.validate_archive_for_restore(
+    jsonb_set(
+      (select payload from restore_out where key = 'archive'),
+      '{tables,recurringCommitments}',
+      (select jsonb_agg(commitment || '{"interval_months":25}'::jsonb)
+       from restore_out, jsonb_array_elements(payload -> 'tables' -> 'recurringCommitments') as commitment
+       where key = 'archive')))$$),
+  'archive_commitment_interval_invalid',
+  'interval_months outside 1..24 is refused'
 );
 
 -- ---------------------------------------------------------------------------

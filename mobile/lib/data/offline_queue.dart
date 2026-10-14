@@ -111,6 +111,15 @@ class OfflineCaptureQueue extends ChangeNotifier {
   var _items = <QueuedCapture>[];
   int? _lastAttemptAtMs;
   bool _draining = false;
+  bool _disposed = false;
+
+  /// Ownership fence — bumped when the queue is released on a bind
+  /// change. A drain pass captures it at entry: an in-flight replay
+  /// that outlives the owner's session must neither submit (the shared
+  /// auth client may already carry the next account's JWT) nor remove
+  /// entries on a verdict reached under a foreign session.
+  var _epoch = 0;
+  int get epoch => _epoch;
 
   /// Held captures, oldest first.
   List<QueuedCapture> get pending => List.unmodifiable(_items);
@@ -123,6 +132,17 @@ class OfflineCaptureQueue extends ChangeNotifier {
   /// True while a replay pass is running — suppresses re-entrant drains
   /// and disables the manual retry button.
   bool get draining => _draining;
+
+  /// The queue outlives the widget tree (account-scoped, not
+  /// screen-scoped), so dispose means "the owner changed" — bump the
+  /// epoch so a stale drain pass can never send or delete this
+  /// account's held captures under the next sign-in.
+  @override
+  void dispose() {
+    _epoch++;
+    _disposed = true;
+    super.dispose();
+  }
 
   /// Append an intent. Throws [OfflineQueueFull] at the cap; the caller
   /// surfaces it as a normal submit error so nothing is displaced
@@ -138,14 +158,14 @@ class OfflineCaptureQueue extends ChangeNotifier {
       ),
     );
     await _persist();
-    notifyListeners();
+    _notify();
   }
 
   /// Remove the entry whose intent carries [idempotencyKey].
   Future<void> remove(String idempotencyKey) async {
     _items.removeWhere((i) => i.intent.idempotencyKey == idempotencyKey);
     await _persist();
-    notifyListeners();
+    _notify();
   }
 
   /// Drop every held entry — the data-wipe path also reaches this store
@@ -154,7 +174,14 @@ class OfflineCaptureQueue extends ChangeNotifier {
     _items = [];
     _lastAttemptAtMs = null;
     await _prefs.remove(_storageKey);
-    notifyListeners();
+    _notify();
+  }
+
+  /// ChangeNotifier throws when listeners are notified after dispose —
+  /// a stale drain finishing post-unbind must still persist honestly,
+  /// just without a UI pulse.
+  void _notify() {
+    if (!_disposed) notifyListeners();
   }
 
   void _restore() {
@@ -238,7 +265,7 @@ class OfflineCaptureQueue extends ChangeNotifier {
 
   void _setDraining(bool value) {
     _draining = value;
-    notifyListeners();
+    _notify();
   }
 
   Future<void> _markAttempt() async {
@@ -337,12 +364,17 @@ Future<QueueDrainReport> drainQueuedCaptures(
   }
   queue._setDraining(true);
   await queue._markAttempt();
+  final epoch = queue.epoch;
   var sent = 0;
   var partials = 0;
   final dropped = <QueueDrainDrop>[];
   var stoppedOffline = false;
   try {
     for (final item in List.of(queue._items)) {
+      // The owner changed mid-pass — stop without a verdict. The held
+      // entries stay under their own account key; a replay under the
+      // next session's JWT could submit or wrongly drop them.
+      if (queue.epoch != epoch) break;
       var keep = false;
       try {
         await submit(item.intent);
@@ -351,6 +383,11 @@ Future<QueueDrainReport> drainQueuedCaptures(
         sent++;
         partials++;
       } catch (e) {
+        if (queue.epoch != epoch) {
+          // The verdict was reached under a foreign session — never a
+          // basis for dropping this owner's held capture.
+          break;
+        }
         if (isQueueableSubmitFailure(e)) {
           keep = true;
           stoppedOffline = true;
@@ -358,6 +395,10 @@ Future<QueueDrainReport> drainQueuedCaptures(
           dropped.add(QueueDrainDrop(entry: item, error: e));
         }
       }
+      // A landed submit whose owner flipped mid-flight still counts as
+      // sent — the entry just stays held and the next pass replays it;
+      // the server-side idempotency key makes that replay a no-op.
+      if (queue.epoch != epoch) break;
       if (!keep) await queue.remove(item.intent.idempotencyKey);
       if (stoppedOffline) break;
     }

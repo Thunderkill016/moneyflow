@@ -47,6 +47,9 @@ class NeonConfig {
   /// of failing at the first request. Debug/profile keep the dev
   /// defaults so `flutter run` and tests work with no defines.
   ///
+  /// Non-empty defines are then validated in every mode — a malformed
+  /// or non-HTTPS endpoint is a build-config bug, not a runtime 404.
+  ///
   /// Pure — takes the raw values and the release flag — so tests can
   /// drive every branch (the `fromEnvironment` reads are compile-time).
   @visibleForTesting
@@ -55,12 +58,41 @@ class NeonConfig {
     required String dataApiUrl,
     required bool releaseMode,
   }) {
-    if (!releaseMode) return;
-    if (authBaseUrl.isEmpty || dataApiUrl.isEmpty) {
+    if (releaseMode && (authBaseUrl.isEmpty || dataApiUrl.isEmpty)) {
       throw StateError(
         'Release build missing MF_AUTH_BASE_URL / MF_DATA_API_URL '
         '--dart-define values — refusing to fall back to the dev sandbox. '
         'See mobile/README.md for the required release defines.',
+      );
+    }
+    _requireTrustedEndpoint('MF_AUTH_BASE_URL', authBaseUrl);
+    _requireTrustedEndpoint('MF_DATA_API_URL', dataApiUrl);
+  }
+
+  /// Session tokens and credentials travel to these URLs — a mistyped or
+  /// non-HTTPS define must fail at construction, never at the first auth
+  /// request. The mobile client only talks to Neon (`*.neon.tech`);
+  /// loopback stays allowed for local development backends.
+  static void _requireTrustedEndpoint(String label, String raw) {
+    if (raw.isEmpty) return; // debug-mode callers use the sandbox defaults
+    final uri = Uri.tryParse(raw);
+    if (uri == null ||
+        !uri.isAbsolute ||
+        uri.host.isEmpty ||
+        uri.userInfo.isNotEmpty ||
+        uri.hasFragment) {
+      throw StateError('$label is not an absolute URI: "$raw"');
+    }
+    final loopback = uri.host == 'localhost' || uri.host == '127.0.0.1';
+    if (uri.scheme != 'https' && !(loopback && uri.scheme == 'http')) {
+      throw StateError(
+        '$label must be an https endpoint — got "${uri.scheme}://"',
+      );
+    }
+    if (!loopback && !uri.host.endsWith('.neon.tech')) {
+      throw StateError(
+        '$label host "${uri.host}" is not a neon.tech backend — '
+        'refusing to send session tokens outside the configured provider.',
       );
     }
   }

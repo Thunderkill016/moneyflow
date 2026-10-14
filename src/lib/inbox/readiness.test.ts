@@ -179,6 +179,16 @@ test("explicit names can resolve exactly but category kind must match", () => {
       "category_kind_mismatch",
     ),
   );
+
+  // The single-name-match fallback must not return a wrong-kind
+  // category: an expense hinting "Lương" stays unresolved and asks the
+  // reviewer to pick, rather than prefilling an income id the server
+  // would reject.
+  const wrongKindName = reasonsFor({
+    categoryId: undefined,
+    category: "Lương",
+  });
+  assert.ok(wrongKindName.includes("category_missing_or_unresolved"));
 });
 
 test("partition contains only pending candidates and preserves attention reasons", () => {

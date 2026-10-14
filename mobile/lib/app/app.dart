@@ -736,6 +736,23 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       _onboardingCash = cash;
       return true;
     }
+    // A seeded cash wallet alone is not ledger use — the server creates
+    // it at sign-up, so its presence must not auto-complete onboarding
+    // (the reviewed bug: a fresh Google sign-in skipped the flow
+    // entirely). Only real activity counts: a second account, or any
+    // transaction. An unverifiable read defers like the accounts read
+    // above — never marks done on a guess.
+    try {
+      final ledgerUsed =
+          accounts.length > 1 ||
+          (await _store.loadTransactions(limit: 1)).isNotEmpty;
+      if (!ledgerUsed) {
+        _onboardingCash = cash;
+        return true;
+      }
+    } catch (_) {
+      return false;
+    }
     await OnboardingPrefs.markDone(prefs, userId);
     return false;
   }

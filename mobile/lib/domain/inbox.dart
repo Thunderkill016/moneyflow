@@ -295,8 +295,12 @@ String? resolveInboxCategoryId(
     for (final c in named)
       if (c.kind == kind) c,
   ];
+  // A wrong-kind name match is not evidence — returning it would seed the
+  // review sheet with a category the server must reject
+  // (`category_kind_mismatch`). Only a matching-kind id may resolve; the
+  // user picks from the valid pool otherwise.
   if (matchingKind.length == 1) return matchingKind.first.id;
-  return named.length == 1 ? named.first.id : null;
+  return null;
 }
 
 /// Human message for a failed `approve_inbox_candidate` call — a port of the

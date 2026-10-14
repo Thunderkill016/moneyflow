@@ -12,7 +12,7 @@ import {
   type MoneyFlowArchive,
 } from "./moneyflow-archive.ts";
 import type { ArchiveIngressRejectionCode } from "./archive-ingress.ts";
-import { ingestArchiveBytes } from "./goal-linkage-archive-ingress.ts";
+import { ingestArchiveBytes } from "./interval-commitment-archive-ingress.ts";
 
 /**
  * A human-recognisable, private-by-default backup filename.
@@ -192,7 +192,9 @@ export function describeArchiveCollection(collection: string): string {
 }
 
 /** Vietnamese message for a file that never reached the database. */
-export function describeIngressRejection(code: ArchiveIngressRejectionCode): string {
+export function describeIngressRejection(
+  code: ArchiveIngressRejectionCode,
+): string {
   switch (code) {
     case "file_empty":
       return "Tệp trống. Hãy chọn tệp bản sao lưu MoneyFlow bạn đã tải về.";
@@ -247,7 +249,10 @@ export function classifyRestoreFailure(input: {
   const message = input.message ?? "";
   // PostgREST reports an absent function as PGRST202 — the backend migration is
   // not applied yet, which is a deployment state, not a user mistake.
-  if (input.code === "PGRST202" || /could not find the function/iu.test(message)) {
+  if (
+    input.code === "PGRST202" ||
+    /could not find the function/iu.test(message)
+  ) {
     return "capability_missing";
   }
   if (message.includes("authentication_required")) return "not_authenticated";

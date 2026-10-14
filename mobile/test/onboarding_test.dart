@@ -80,12 +80,23 @@ Map<String, Object?> _accountRow(
   'updated_at': '2026-10-20T00:00:00Z',
 };
 
+/// Minimal transaction_feed row — `loadTransactions` only needs the row
+/// to decode; every other column reads through `as String?`-style
+/// fallbacks in `_txFromRow`.
+Map<String, Object?> _txRow(String id) => {
+  'id': id,
+  'kind': 'expense',
+  'amount_minor': 45000,
+  'occurred_on': '2026-10-20',
+};
+
 /// Fake transport with a mutable accounts table — create/update RPCs
 /// mutate it so "the wallet shows on the dashboard" is a real read-back,
 /// not a scripted coincidence. Unmatched reads answer [].
 class _FakeTransport {
   final requests = <NeonRequest>[];
   final accounts = <Map<String, Object?>>[];
+  final transactions = <Map<String, Object?>>[];
   var _nextId = 0;
 
   List<NeonRequest> to(String suffix) =>
@@ -118,6 +129,9 @@ class _FakeTransport {
     }
     if (req.method == 'GET' && path.endsWith('/accounts')) {
       return _json(200, accounts);
+    }
+    if (req.method == 'GET' && path.endsWith('/transaction_feed')) {
+      return _json(200, transactions);
     }
     if (path.endsWith('/rpc/create_financial_account')) {
       final body = req.body as Map<String, dynamic>;
@@ -409,8 +423,11 @@ void main() {
     testWidgets('an established ledger bypasses the flow and marks done', (
       t,
     ) async {
+      // Established = real activity (a transaction exists), not just the
+      // seeded wallet the server creates at sign-up.
       final transport = _FakeTransport()
-        ..accounts.add(_accountRow('acc-1', 'Ví chính'));
+        ..accounts.add(_accountRow('acc-1', 'Ví chính'))
+        ..transactions.add(_txRow('tx-1'));
       FlutterSecureStorage.setMockInitialValues({
         'neon.session_token': 'tok.s',
         'neon.user_id': 'u1',
@@ -422,6 +439,27 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getBool('mf_onboarded_u1'), isTrue);
     });
+
+    testWidgets(
+      'a seeded wallet alone is not ledger use — the flow still shows',
+      (t) async {
+        // The reviewed bug: a restored session with only the server's
+        // seeded cash wallet and zero transactions used to mark itself
+        // onboarded. It must show the flow and leave the flag unset.
+        final transport = _FakeTransport()
+          ..accounts.add(_accountRow('acc-seed', 'Tiền mặt'));
+        FlutterSecureStorage.setMockInitialValues({
+          'neon.session_token': 'tok.s',
+          'neon.user_id': 'u1',
+        });
+        await _pumpGate(t, transport);
+
+        expect(find.byType(OnboardingPage), findsOneWidget);
+        expect(find.byType(DashboardPage), findsNothing);
+        final prefs = await SharedPreferences.getInstance();
+        expect(prefs.getBool('mf_onboarded_u1'), isNot(true));
+      },
+    );
 
     testWidgets('a done flag skips the flow on the next session', (t) async {
       SharedPreferences.setMockInitialValues({

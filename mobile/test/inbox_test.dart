@@ -515,6 +515,30 @@ void main() {
       expect(resolveInboxAccountId(dup, accounts), isNull);
       expect(resolveInboxCategoryId(dup, cats), isNull);
     });
+
+    test('a single wrong-kind name match resolves to null, never that id', () {
+      // The reviewed fallback bug: an expense hinting "Lương" used to
+      // resolve to the income category of that name — an id the server
+      // must reject (`category_kind_mismatch`). Null keeps the pick in
+      // the reviewer's hands.
+      final incomeOnly = Category(
+        id: 'k-income',
+        name: 'Lương',
+        kind: TransactionKind.income,
+      );
+      final c = InboxCandidate(
+        id: 'c3',
+        kind: TransactionKind.expense,
+        amountMinor: 50000,
+        merchant: 'x',
+        note: '',
+        occurredOn: '2026-10-14',
+        source: 'paste',
+        confidence: 'low',
+        categoryName: 'Lương',
+      );
+      expect(resolveInboxCategoryId(c, [incomeOnly]), isNull);
+    });
   });
 
   group('InboxPage widget states', () {

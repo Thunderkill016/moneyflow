@@ -465,6 +465,16 @@ int? _parseVndAmountToken(String rawNumber, String? unit) {
   return (amount: amount, signedNegative: signedNegative);
 }
 
+/// Strict calendar check — a regex-shaped date can still be impossible
+/// (31/02, 30/02, non-leap 29/02). A supplied-but-impossible date is an
+/// invalid row, never a normalized one: it reports `found: false` so the
+/// row is flagged, not silently re-dated.
+bool _isRealDate(int year, int month, int day) {
+  if (month < 1 || month > 12 || day < 1) return false;
+  final dt = DateTime.utc(year, month, day);
+  return dt.year == year && dt.month == month && dt.day == day;
+}
+
 /// Port of parseCsvDateCell: ISO first, then D/M/Y (Vietnamese order),
 /// Y.M.D, and bare D/M which borrows the year from [today]. Anything else
 /// falls back to [today] with `found: false` — never a guessed date.
@@ -473,7 +483,12 @@ int? _parseVndAmountToken(String rawNumber, String? unit) {
   if (text.isEmpty) return (date: today, found: false);
 
   final iso = _isoDate.firstMatch(text);
-  if (iso != null) {
+  if (iso != null &&
+      _isRealDate(
+        int.parse(iso.group(1)!),
+        int.parse(iso.group(2)!),
+        int.parse(iso.group(3)!),
+      )) {
     return (
       date: '${iso.group(1)}-${iso.group(2)}-${iso.group(3)}',
       found: true,
@@ -481,14 +496,24 @@ int? _parseVndAmountToken(String rawNumber, String? unit) {
   }
 
   final dmyFull = _dmyDate.firstMatch(text);
-  if (dmyFull != null) {
+  if (dmyFull != null &&
+      _isRealDate(
+        int.parse(dmyFull.group(3)!),
+        int.parse(dmyFull.group(2)!),
+        int.parse(dmyFull.group(1)!),
+      )) {
     final dd = dmyFull.group(1)!.padLeft(2, '0');
     final mm = dmyFull.group(2)!.padLeft(2, '0');
     return (date: '${dmyFull.group(3)}-$mm-$dd', found: true);
   }
 
   final ymd = _ymdDate.firstMatch(text);
-  if (ymd != null) {
+  if (ymd != null &&
+      _isRealDate(
+        int.parse(ymd.group(1)!),
+        int.parse(ymd.group(2)!),
+        int.parse(ymd.group(3)!),
+      )) {
     final mm = ymd.group(2)!.padLeft(2, '0');
     final dd = ymd.group(3)!.padLeft(2, '0');
     return (date: '${ymd.group(1)}-$mm-$dd', found: true);
@@ -496,10 +521,12 @@ int? _parseVndAmountToken(String rawNumber, String? unit) {
 
   final dmy = _dmDate.firstMatch(text);
   if (dmy != null) {
-    final year = today.substring(0, 4);
-    final dd = dmy.group(1)!.padLeft(2, '0');
-    final mm = dmy.group(2)!.padLeft(2, '0');
-    return (date: '$year-$mm-$dd', found: true);
+    final year = int.parse(today.substring(0, 4));
+    if (_isRealDate(year, int.parse(dmy.group(2)!), int.parse(dmy.group(1)!))) {
+      final dd = dmy.group(1)!.padLeft(2, '0');
+      final mm = dmy.group(2)!.padLeft(2, '0');
+      return (date: '${today.substring(0, 4)}-$mm-$dd', found: true);
+    }
   }
 
   return (date: today, found: false);
@@ -848,6 +875,18 @@ class CsvImportPlan {
 
 final _isoDateShape = RegExp(r'^\d{4}-\d{2}-\d{2}$');
 
+/// Ready-batch date gate: ISO shape plus a real calendar day — the same
+/// strictness parseCsvDateCell enforces, kept here so any producer of a
+/// CsvParsedRow meets the contract before an atomic server commit.
+bool _validImportDate(String date) {
+  if (!_isoDateShape.hasMatch(date)) return false;
+  return _isRealDate(
+    int.parse(date.substring(0, 4)),
+    int.parse(date.substring(5, 7)),
+    int.parse(date.substring(8, 10)),
+  );
+}
+
 String? _resolveCategoryId(
   TransactionKind kind, {
   required String expenseCategoryId,
@@ -909,7 +948,10 @@ CsvImportPlan? planCsvImport(
     }
     final safeAmount =
         item.amountMinor > 0 && item.amountMinor <= _maxSafeAmount;
-    if (!safeAmount || !_isoDateShape.hasMatch(item.occurredOn)) {
+    // Shape AND calendar — a date that cannot exist never enters the
+    // ready batch; the row reports invalid instead of breaking the
+    // atomic server commit downstream.
+    if (!safeAmount || !_validImportDate(item.occurredOn)) {
       invalidSkipped += 1;
       continue;
     }

@@ -60,6 +60,16 @@ class _FakeTransport {
     'updated_at': '2026-10-20T00:00:00Z',
   };
 
+  // One feed row marks the ledger as used — the onboarding gate checks
+  // `loadTransactions(limit: 1)`, and these fixtures model an established
+  // account, not a fresh seed.
+  static const _seedTx = {
+    'id': 'tx-1',
+    'kind': 'expense',
+    'amount_minor': 45000,
+    'occurred_on': '2026-10-20',
+  };
+
   List<NeonRequest> to(String suffix) =>
       requests.where((r) => r.url.path.endsWith(suffix)).toList();
 
@@ -97,6 +107,9 @@ class _FakeTransport {
     }
     if (req.method == 'GET' && path.endsWith('/accounts')) {
       return _json(200, [_seedAccount]);
+    }
+    if (req.method == 'GET' && path.endsWith('/transaction_feed')) {
+      return _json(200, [_seedTx]);
     }
     if (path.endsWith('/rpc/delete_my_account')) {
       return _json(200, {'deleted_rows': 9, 'tenant_rows_remaining': 0});

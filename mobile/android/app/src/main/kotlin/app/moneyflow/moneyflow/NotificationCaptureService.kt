@@ -40,6 +40,10 @@ class NotificationCaptureService : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         // Whitelist FIRST: a non-bank package must not have its content read.
         val sourceLabel = BankNotificationSources.labelFor(sbn.packageName) ?: return
+        // Consent+owner gate SECOND: capture turned off in-app or a signed-out
+        // device means the notification body is never even read, let alone
+        // parked. OS-level access alone is not permission to collect.
+        if (!NotificationCaptureBridge.isActive(applicationContext)) return
 
         val notification = sbn.notification
         // Group summaries re-state what their children already carry; the
@@ -89,6 +93,17 @@ object NotificationCaptureBridge {
     private const val PREFS = "mf_notif_pending"
     private const val KEY_EVENTS = "events"
 
+    /** Account that parked the current events — raw notification text is
+     *  account-bound, so the file also carries its owner. Only that owner
+     *  may consume the queue; anyone else gets it dropped unread. */
+    private const val KEY_OWNER = "owner"
+
+    /** Mirror of the app-level opt-in the Dart side pushes through
+     *  [setCaptureSession]. OS Notification Access alone is not consent:
+     *  capture off or signed out means [isActive] is false and nothing is
+     *  read or persisted. */
+    private const val KEY_CAPTURE_ENABLED = "captureEnabled"
+
     /** Pending-cap bound: enough for a weekend of bank pushes without letting
      *  uncollected raw text accumulate on disk forever. */
     private const val MAX_PENDING = 50
@@ -96,7 +111,32 @@ object NotificationCaptureBridge {
     @Volatile
     var sink: EventChannel.EventSink? = null
 
+    /** True only while capture is consented AND an account owns the session —
+     *  the service checks this before touching a notification's body. */
+    fun isActive(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        return prefs.getBoolean(KEY_CAPTURE_ENABLED, false) &&
+            prefs.getString(KEY_OWNER, null) != null
+    }
+
+    /** Syncs the app-level capture state down from Dart. An owner change or
+     *  a disable discards parked raw text in the same write — it may never
+     *  cross a session boundary. */
+    @Synchronized
+    fun setCaptureSession(context: Context, userId: String?, enabled: Boolean) {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val currentOwner = prefs.getString(KEY_OWNER, null)
+        val edit = prefs.edit()
+        if (currentOwner != userId || !enabled) edit.remove(KEY_EVENTS)
+        if (userId == null) edit.remove(KEY_OWNER) else edit.putString(KEY_OWNER, userId)
+        edit.putBoolean(KEY_CAPTURE_ENABLED, enabled && userId != null)
+        edit.apply()
+    }
+
     fun dispatch(context: Context, event: Map<String, Any?>) {
+        // Re-gate here: consent could flip between the service's isActive
+        // check and this call, and the enqueue path parks raw text on disk.
+        if (!isActive(context)) return
         val active = sink
         if (active != null) {
             active.success(event)
@@ -114,12 +154,18 @@ object NotificationCaptureBridge {
         prefs.edit().putString(KEY_EVENTS, list.toString()).apply()
     }
 
-    /** Drains the persisted queue — returned once, then cleared. */
+    /** Drains the persisted queue — returned once, then cleared. Only the
+     *  owner that parked the events may read them; a signed-out or
+     *  different-account caller gets the queue dropped unread. */
     @Synchronized
-    fun consumePending(context: Context): List<Map<String, Any?>> {
+    fun consumePending(context: Context, userId: String?): List<Map<String, Any?>> {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val owner = prefs.getString(KEY_OWNER, null)
         val list = readAll(prefs)
         prefs.edit().remove(KEY_EVENTS).apply()
+        if (userId == null || owner == null || owner != userId) {
+            return emptyList()
+        }
         val out = ArrayList<Map<String, Any?>>(list.length())
         for (i in 0 until list.length()) {
             val item = list.optJSONObject(i) ?: continue

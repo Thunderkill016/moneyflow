@@ -9,9 +9,10 @@ plugins {
 
 // Upload-keystore signing for release builds. `key.properties` lives next to
 // settings.gradle.kts at mobile/android/key.properties and is gitignored —
-// local-only, never committed. When it is absent we keep the previous debug
-// fallback so `flutter run --release` still works, but warn during
-// configuration so a debug-signed release is never silent.
+// local-only, never committed. A release task without it FAILS the build:
+// a debug-signed Play artifact must be impossible, not just warned about.
+// Local release runs opt in explicitly via
+//   -PmfAllowDebugRelease=true   or   MF_ALLOW_DEBUG_RELEASE=true
 val keyPropertiesFile = rootProject.file("key.properties")
 val hasUploadKey = keyPropertiesFile.exists()
 val keyProperties = Properties().apply {
@@ -20,10 +21,33 @@ val keyProperties = Properties().apply {
     }
 }
 
-if (!hasUploadKey) {
+val allowDebugRelease =
+    providers.gradleProperty("mfAllowDebugRelease")
+        .orElse(providers.environmentVariable("MF_ALLOW_DEBUG_RELEASE"))
+        .map { it.equals("true", ignoreCase = true) }
+        .orElse(false)
+
+// The requested invocation touches release artifacts — `build`/`assemble`
+// alone run every variant, so they count too.
+val releaseRequested =
+    gradle.startParameter.taskNames.any { name ->
+        name.contains("Release", ignoreCase = true) ||
+            name == "assemble" ||
+            name == "build" ||
+            name == "bundle"
+    }
+
+if (!hasUploadKey && !allowDebugRelease) {
+    check(!releaseRequested) {
+        "key.properties not found at ${keyPropertiesFile.path} — refusing " +
+            "to build a release artifact signed with the debug key. Restore " +
+            "the upload keystore for Play builds, or pass " +
+            "-PmfAllowDebugRelease=true / MF_ALLOW_DEBUG_RELEASE=true for a " +
+            "local-only release run."
+    }
     logger.warn(
         "key.properties not found at ${keyPropertiesFile.path} — " +
-            "release builds fall back to the debug signing key. " +
+            "release builds will use the debug signing key. " +
             "Restore the upload keystore before building a Play AAB.",
     )
 }

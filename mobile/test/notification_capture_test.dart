@@ -348,6 +348,144 @@ void main() {
       await c.dispose();
     });
 
+    test(
+      'a rebind mid-handle never submits the old owner\'s event under the new account',
+      () async {
+        // Repro of the reviewed race: the event arrives while A is bound
+        // and its handler is already in-flight inside the isEnabled
+        // await; bind(B) lands in that window. The draft belongs to A —
+        // it must not go out under B's session. A sync stream starts
+        // _handle inside emit() so the yield window is deterministic.
+        var sessionOwner = 'A'; // the live auth session, like _store's
+        final submittedUnder = <String>[];
+        final gw = _FakeGateway(syncEvents: true);
+        final c = NotificationCaptureController(
+          gateway: gw,
+          submitEnabled: true,
+          submit: (drafts) async => submittedUnder.add(sessionOwner),
+        )..start();
+        await getPrefs();
+        await c.setEnabled(true);
+        await c.bind('A');
+        gw.emit(raw('GD -50,000VND')); // handler in-flight under A
+        sessionOwner = 'B';
+        await c.bind('B');
+        await pumpEventQueue(times: 30);
+        expect(submittedUnder, isNot(contains('B')));
+        await c.dispose();
+      },
+    );
+
+    test(
+      'a parked flush abandons remaining events on rebind instead of reattributing them',
+      () async {
+        // Two events parked under A; B binds mid-flush — neither may be
+        // submitted under B's session.
+        var sessionOwner = 'A';
+        final submittedUnder = <String>[];
+        final gw = _FakeGateway(
+          pending: [raw('GD -10,000VND'), raw('GD -20,000VND')],
+          pendingOwner: 'A',
+          syncEvents: true,
+        );
+        var gate = 0;
+        late final NotificationCaptureController c;
+        c = NotificationCaptureController(
+          gateway: gw,
+          submitEnabled: true,
+          submit: (drafts) async {
+            gate++;
+            if (gate == 1) await c.bind('B'); // rebind inside first submit
+            submittedUnder.add(sessionOwner);
+          },
+        )..start();
+        await getPrefs();
+        await c.setEnabled(true);
+        await c.bind('A');
+        sessionOwner = 'B';
+        await pumpEventQueue(times: 30);
+        expect(submittedUnder, isNot(contains('B')));
+        await c.dispose();
+      },
+    );
+
+    test(
+      'parked raw events never answer to a different account\'s bind',
+      () async {
+        // The reviewed native gap: A's parked events must be dropped,
+        // not served, when B's session opens. The fake mirrors the
+        // bridge's owner check — consumePending(userId) only answers to
+        // the recorded disk owner, and setCaptureSession drops the queue
+        // on an owner change.
+        final gw = _FakeGateway(
+          pending: [raw('GD -50,000VND')],
+          pendingOwner: 'A',
+        );
+        var parsed = 0;
+        final c = NotificationCaptureController(
+          gateway: gw,
+          submitEnabled: true,
+          submit: (_) async => parsed++,
+        )..start();
+        await getPrefs();
+        await c.setEnabled(true);
+        await c.bind('B'); // B's session — A's parked event must die unread
+        await pumpEventQueue(times: 30);
+        expect(gw.consumeCalls, greaterThan(0));
+        expect(parsed, 0);
+        expect(c.stats.received, 0);
+        await c.dispose();
+      },
+    );
+
+    test(
+      'a held draft survives controller recreation — durable outbox drains on the next bind',
+      () async {
+        // The reviewed loss: submit fails offline, the process dies, the
+        // event was already marked seen — previously the draft was gone.
+        // With the durable outbox the next bind's drain still submits
+        // it, and a re-broadcast of the same event dedupes instead of
+        // double-posting.
+        final submitted = <BankNotificationDraft>[];
+        var offline = true;
+        Future<void> submit(List<BankNotificationDraft> drafts) async {
+          if (offline) throw const SocketException('offline');
+          submitted.addAll(drafts);
+        }
+
+        final gw = _FakeGateway(syncEvents: true);
+        final c1 = NotificationCaptureController(
+          gateway: gw,
+          submitEnabled: true,
+          submit: submit,
+        )..start();
+        await getPrefs();
+        await c1.setEnabled(true);
+        await c1.bind('u1');
+        gw.emit(raw('GD -50,000VND'));
+        await pumpEventQueue(times: 30);
+        expect(submitted, isEmpty); // held, not delivered
+
+        // Process death → new controller, same prefs, same account.
+        await c1.dispose(); // single-subscription stream: c1 must let go first
+        offline = false;
+        final c2 = NotificationCaptureController(
+          gateway: gw,
+          submitEnabled: true,
+          submit: submit,
+        )..start();
+        await c2.bind('u1');
+        await pumpEventQueue(times: 30);
+        expect(submitted.single.amountMinor, 50000);
+
+        // A re-broadcast after recovery dedupes — no double draft.
+        gw.emit(raw('GD -50,000VND'));
+        await pumpEventQueue(times: 30);
+        expect(submitted, hasLength(1));
+        await c2.dispose();
+      },
+    );
+
     test('queueable submit failure holds the draft for retry', () async {
       var calls = 0;
       final gw = _FakeGateway(pending: [raw('GD -50,000VND')]);
@@ -390,7 +528,7 @@ void main() {
       'dedupe ring persists per account — other accounts unaffected',
       () async {
         final gw = _FakeGateway(pending: [raw('GD -50,000VND')]);
-        final c = controller(gw);
+        final c = controller(gw)..start();
         await getPrefs();
         await c.setEnabled(true);
         await c.bind('u1');
@@ -399,9 +537,15 @@ void main() {
         gw.pending = [raw('GD -50,000VND')];
         await c.bind('u1');
         expect(c.stats.received, 1);
-        // Another account sees it as new evidence for its own queue.
+        // Another account must NOT inherit u1's parked raw text — the
+        // owner-scoped pending contract drops it unread on the swap.
         gw.pending = [raw('GD -50,000VND')];
         await c.bind('u2');
+        expect(c.stats.received, 0);
+        // ...but u2's own dedupe ring is fresh: the same notification
+        // arriving LIVE under u2 counts as u2's own evidence.
+        gw.emit(raw('GD -50,000VND'));
+        await pumpEventQueue(times: 30);
         expect(c.stats.received, 1);
       },
     );
@@ -617,13 +761,23 @@ void main() {
 /// Two-source fake — the page's "N nguồn" copy follows whatever the
 /// platform reports, so tests pin the count too.
 class _FakeGateway extends NotificationCaptureGateway {
-  _FakeGateway({this.pending = const []});
+  _FakeGateway({
+    this.pending = const [],
+    this.pendingOwner = 'u1',
+    bool syncEvents = false,
+  }) : _events = StreamController<RawBankNotification>.broadcast(
+         sync: syncEvents,
+       );
 
   bool accessEnabled = false;
   int openSettingsCalls = 0;
   int consumeCalls = 0;
   List<RawBankNotification> pending;
-  final _events = StreamController<RawBankNotification>();
+
+  /// The account that parked [pending] — the disk-side owner native
+  /// would have recorded when the events were captured.
+  final String pendingOwner;
+  final StreamController<RawBankNotification> _events;
 
   void emit(RawBankNotification n) => _events.add(n);
 
@@ -642,12 +796,28 @@ class _FakeGateway extends NotificationCaptureGateway {
     'MoMo',
   ];
 
+  /// Disk-side owner recorded for the parked events — seeded from
+  /// [pendingOwner] like the native KEY_OWNER surviving a process kill.
+  String? _diskOwner;
+
   @override
-  Future<List<RawBankNotification>> consumePending() async {
+  Future<List<RawBankNotification>> consumePending(String userId) async {
     consumeCalls++;
-    final out = pending;
+    // Same contract as native: parked raw text answers only to the owner
+    // that captured it — anything else gets the queue dropped unread.
+    final disk = _diskOwner ??= pending.isNotEmpty ? pendingOwner : null;
+    final out = disk == userId ? pending : <RawBankNotification>[];
     pending = const [];
     return out;
+  }
+
+  @override
+  Future<void> setCaptureSession(String? userId, bool enabled) async {
+    // The native bridge drops parked raw text on any owner change or
+    // disable — mirror that so tests exercise the real contract.
+    final disk = _diskOwner ??= pending.isNotEmpty ? pendingOwner : null;
+    if (disk != userId || !enabled) pending = const [];
+    _diskOwner = userId;
   }
 
   @override

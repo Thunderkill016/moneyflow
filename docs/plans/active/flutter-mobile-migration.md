@@ -1,12 +1,12 @@
 # Flutter native client for MoneyFlow
 
-**Status:** specified  
-**Execution state:** specified  
-**Active role:** planner  
-**Permission scope:** read_only  
-**Owner:** human owner (explicit direction: "chuyển toàn bộ sang flutter", 2026-10-12)  
-**Issue/PR:** TBD — create tracking issue before implementation  
-**Last updated:** 2026-10-12
+**Status:** implementing
+**Execution state:** hardening — external review findings in remediation
+**Active role:** implementer
+**Permission scope:** branch_write; merge/deploy/provider writes remain owner decisions
+**Owner:** human owner (explicit direction: "chuyển toàn bộ sang flutter", 2026-10-12)
+**Issue/PR:** https://github.com/Thunderkill016/moneyflow/pull/787 on branch `feat/mobile-flutter`
+**Last updated:** 2026-10-14
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. State labels describe evidence and next allowed actions, not percentage complete.
 
@@ -156,7 +156,7 @@ backend (unchanged)
 - No backend schema, RLS or provider changes.
 - No changes to the web app's features or screens in this packet.
 
-## Plan
+## Implementation plan
 
 1. Land this packet (PR) + open tracking issue.
 2. Verify auth transport in isolation: Dart script exercising
@@ -257,6 +257,39 @@ backend (unchanged)
 - Test totals after P5: 74/74 (`money` 9, `neon_client` 8, `report` 4,
   `planning_reports` 5, `share_text_parser` 27, `offline_cache` 9,
   `biometric_lock` 7, `device_features` 5); `flutter analyze` clean.
+
+## Evaluation
+
+Current state is *implemented and device-verified through P6 plus a
+hardening tranche, not release-ready*. Nothing here is merged to `main`,
+deployed or submitted to a store.
+
+Evidence in hand:
+
+- ~1000 Dart unit/widget tests and `flutter analyze` green on
+  `feat/mobile-flutter`; Kotlin allowlist covered by JVM tests.
+- On-device verification (OPPO CPH2001) for auth, capture, planning,
+  reports, share receive, biometric lock, offline snapshot and local
+  reminders — all against the acceptance sandbox, not production.
+- An external branch review (2026-10-14) reproduced six client-side
+  defects with out-of-tree tests; remediation on this branch covers:
+  session/owner fencing for notification capture, offline-queue drain
+  and sign-out; native pending-notification ownership + capture-enabled
+  gate; Android backup exclusion of raw pending notifications; durable
+  notification-draft outbox; wrong-kind category fallback; strict CSV
+  calendar validation; onboarding no longer treats the seeded wallet as
+  ledger use; release builds fail without the upload key unless
+  explicitly opted in; release endpoints are validated (absolute HTTPS
+  URI on the configured provider host).
+
+Still unproven:
+
+- No Android release-artifact acceptance on a physical device (signer,
+  applicationId, dart-define endpoints, upgrade/restore flows).
+- No Flutter gate in CI — checks run locally only.
+- Production Neon auth/RLS/account deletion not exercised from mobile.
+- Archive restore does not yet preserve `interval_months` cadence for
+  commitments (migration documents the limitation; owner-gated).
 
 ## P6 — parity review and release decision (2026-10-12)
 

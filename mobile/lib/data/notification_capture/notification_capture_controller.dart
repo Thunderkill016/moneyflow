@@ -123,6 +123,11 @@ class NotificationCaptureController {
   static String seenKeyFor(String userId) => 'mf_notif_seen_$userId';
   static String statsKeyFor(String userId) => 'mf_notif_stats_$userId';
 
+  /// Per-account durable outbox — drafts held on a queueable failure
+  /// survive the process, scoped to the owner exactly like the offline
+  /// capture queue.
+  static String outboxKeyFor(String userId) => 'mf_notif_outbox_$userId';
+
   /// Dedupe ring bound — weeks of bank pushes; oldest ids evict FIFO.
   static const seenSetMax = 300;
 
@@ -139,6 +144,12 @@ class NotificationCaptureController {
   final _outbox = <BankNotificationDraft>[];
   bool _submitting = false;
 
+  /// Ownership fence — bumped on every bind/unbind/dispose. Async work
+  /// captures it at entry and re-checks after each await: an event that
+  /// arrived under account A can never submit, dedupe, or bump counters
+  /// under account B just because the bind flipped mid-flight.
+  var _generation = 0;
+
   NotificationCaptureStats get stats => _stats;
 
   /// Opt-in state — OFF by default, device-scoped.
@@ -150,6 +161,14 @@ class NotificationCaptureController {
   Future<void> setEnabled(bool enabled) async {
     final prefs = _prefs ?? await SharedPreferences.getInstance();
     await prefs.setBool(enabledKey, enabled);
+    // The native listener only runs (and only persists raw text) while it
+    // sees a live owner + enabled mirror — sync it on every toggle. A
+    // null owner would read as sign-out and wipe a parked queue the
+    // next bind could have drained, so unbound toggles stay device-side.
+    final userId = _userId;
+    if (userId != null) {
+      await _gateway.setCaptureSession(userId, enabled);
+    }
   }
 
   /// Subscribe to live events once — cheap even before opt-in because the
@@ -164,6 +183,7 @@ class NotificationCaptureController {
   }
 
   Future<void> dispose() async {
+    _generation++;
     await _sub?.cancel();
     _sub = null;
   }
@@ -172,13 +192,21 @@ class NotificationCaptureController {
   /// drains events parked while the engine was detached, and retries held
   /// drafts. A null userId unbinds — signed-out handling drops everything.
   Future<void> bind(String? userId) async {
+    _generation++;
+    final gen = _generation;
     _prefs ??= await SharedPreferences.getInstance();
+    // A newer bind that started during the prefs await already owns the
+    // controller — this stale bind must not clobber _userId back.
+    if (gen != _generation) return;
     _userId = userId;
     _seen.clear();
     _seenSet = {};
     _stats = const NotificationCaptureStats();
     if (userId == null) {
       _outbox.clear();
+      // Same native cleanup as unbind: no owner, no parked raw text.
+      await _gateway.setCaptureSession(null, false);
+      await _gateway.clearPending();
       return;
     }
     try {
@@ -188,9 +216,14 @@ class NotificationCaptureController {
       if (statsRaw != null) {
         _stats = NotificationCaptureStats.fromJson(jsonDecode(statsRaw));
       }
+      _restoreOutbox(userId);
     } on Object {
       // Corrupt prefs read as fresh state — never crash a bind.
     }
+    // Establish ownership natively before draining: the parked queue
+    // answers only to this userId, and another owner's leftovers were
+    // already discarded by the session swap.
+    await _gateway.setCaptureSession(userId, await isEnabled());
     await flushPending();
     await _drainOutbox();
   }
@@ -198,22 +231,32 @@ class NotificationCaptureController {
   /// Signed out — release account state and the parked raw events; nothing
   /// notification-derived may persist unattributed.
   Future<void> unbind() async {
+    _generation++;
     _userId = null;
     _seen.clear();
     _seenSet = {};
     _outbox.clear();
     _stats = const NotificationCaptureStats();
+    await _gateway.setCaptureSession(null, false);
     await _gateway.clearPending();
   }
 
   /// Events parked by the service while Dart was detached — drained once,
-  /// then cleared Kotlin-side.
+  /// then cleared Kotlin-side. Each parked event is handled under the
+  /// owner that STARTED the flush; a rebind mid-drain abandons the rest
+  /// rather than reattributing them to the new account.
   Future<void> flushPending() async {
-    if (_userId == null) return;
+    final gen = _generation;
+    final userId = _userId;
+    if (userId == null) return;
     try {
-      final pending = await _gateway.consumePending();
+      // The owner check rides into native: parked raw text only answers
+      // to the account that captured it.
+      final pending = await _gateway.consumePending(userId);
+      if (gen != _generation) return;
       for (final raw in pending) {
-        await _handle(raw);
+        if (gen != _generation) return;
+        await _handle(raw, gen, userId);
       }
     } on Object catch (e) {
       debugPrint('notif-capture: pending flush failed: $e');
@@ -221,13 +264,18 @@ class NotificationCaptureController {
   }
 
   void _onEvent(RawBankNotification raw) {
-    if (_userId == null) return;
-    unawaited(_handle(raw));
+    final gen = _generation;
+    final userId = _userId;
+    if (userId == null) return;
+    unawaited(_handle(raw, gen, userId));
   }
 
-  Future<void> _handle(RawBankNotification raw) async {
-    final userId = _userId;
-    if (userId == null || !await isEnabled()) return;
+  Future<void> _handle(RawBankNotification raw, int gen, String userId) async {
+    if (!await isEnabled()) return;
+    // The isEnabled await is a rebind window — if the account flipped,
+    // this event belongs to the old owner and must not touch the new
+    // one's dedupe ring, stats, or session-bound submit.
+    if (gen != _generation || _userId != userId) return;
 
     final key = notificationDedupeKey(
       packageName: raw.packageName,
@@ -236,8 +284,6 @@ class NotificationCaptureController {
       postTimeMs: raw.postTimeMs,
     );
     if (_seenSet.contains(key)) return; // re-broadcast — already handled
-    _markSeen(key);
-    _bump(received: 1);
 
     final draft = parseBankNotification(
       packageName: raw.packageName,
@@ -249,16 +295,28 @@ class NotificationCaptureController {
     if (draft == null) {
       // No provable amount → no draft can exist (see parser header). The
       // notification is still counted so the drop is visible.
+      _markSeen(key);
+      _bump(received: 1);
       _bump(parseFailed: 1);
       return;
     }
+
+    // The draft must exist durably before the event counts as handled —
+    // the reviewed loss was exactly "seen" persisted while the only copy
+    // of the draft lived in RAM. A crash between these two lines still
+    // leaves the draft in the outbox for the next bind's drain.
+    await _persistOutbox(draft, userId);
+    if (gen != _generation || _userId != userId) return;
+    _markSeen(key);
+    _bump(received: 1);
     _bump(parsed: 1);
 
     if (!_submitEnabled) {
-      // Blocked-on-migration state — counted as parsed, never submitted.
+      // Blocked-on-migration state — the draft stays held in the durable
+      // outbox and a flag-on build's bind drains it.
       return;
     }
-    await _submitOne(draft);
+    await _submitOne(draft, gen);
   }
 
   void _markSeen(String key) {
@@ -272,46 +330,110 @@ class NotificationCaptureController {
     );
   }
 
-  Future<void> _submitOne(BankNotificationDraft draft) async {
+  Future<void> _submitOne(BankNotificationDraft draft, int gen) async {
+    // Submit only while the captured generation still owns the session —
+    // _submit rides the live auth session, so a rebind mid-pipeline must
+    // not let an old-owner draft go out under the new account.
+    if (gen != _generation) return;
     try {
       await _submit([draft]);
+      if (gen != _generation) return;
+      await _removeOutbox(draft, gen);
       _bump(submitted: 1);
       // A landed write proves connectivity — retry anything held.
       if (_outbox.isNotEmpty) unawaited(_drainOutbox());
     } catch (e) {
+      if (gen != _generation) return;
       if (isQueueableSubmitFailure(e)) {
-        _hold(draft);
-      } else {
-        // The server already decided (business rejection, missing RPC) —
-        // retrying changes nothing; count the drop honestly.
-        _bump(dropped: 1);
-        debugPrint('notif-capture: draft rejected: $e');
+        // The draft is already in the durable outbox — the next
+        // connectivity-proven drain retries it with the same dedupe key.
+        return;
       }
+      // The server already decided (business rejection, missing RPC) —
+      // retrying changes nothing; count the drop honestly.
+      await _removeOutbox(draft, gen);
+      _bump(dropped: 1);
+      debugPrint('notif-capture: draft rejected: $e');
     }
   }
 
-  void _hold(BankNotificationDraft draft) {
+  /// Persist-first outbox: drafts enter durable storage before their
+  /// event marks seen, and leave only on a server ACK or a business
+  /// rejection. The dedupeKey guard makes a persist→markSeen crash
+  /// re-handle idempotent.
+  Future<void> _persistOutbox(
+    BankNotificationDraft draft,
+    String userId,
+  ) async {
+    if (_outbox.any((d) => d.dedupeKey == draft.dedupeKey)) return;
     _outbox.add(draft);
     while (_outbox.length > outboxMax) {
       _outbox.removeAt(0);
       _bump(dropped: 1);
       debugPrint('notif-capture: outbox full, dropped oldest draft');
     }
+    final prefs = _prefs;
+    if (prefs == null) return;
+    // Snapshot before the sole await — a rebind inside the write must
+    // not let a cleared _outbox serialize over this owner's file.
+    final snapshot = jsonEncode([for (final d in _outbox) d.toJson()]);
+    await prefs.setString(outboxKeyFor(userId), snapshot);
+  }
+
+  Future<void> _removeOutbox(BankNotificationDraft draft, int gen) async {
+    if (gen != _generation) return;
+    final userId = _userId;
+    if (userId == null) return;
+    if (!_outbox.remove(draft)) return;
+    final snapshot = jsonEncode([for (final d in _outbox) d.toJson()]);
+    await _prefs?.setString(outboxKeyFor(userId), snapshot);
+  }
+
+  /// Held drafts this account parked in an earlier session — restored on
+  /// bind so a killed process never quietly loses evidence. Malformed
+  /// entries drop individually, same contract as the offline queue.
+  void _restoreOutbox(String userId) {
+    final raw = _prefs!.getString(outboxKeyFor(userId));
+    if (raw == null) return;
+    final decoded = jsonDecode(raw);
+    if (decoded is! List) return;
+    for (final entry in decoded) {
+      if (entry is! Map) continue;
+      final draft = BankNotificationDraft.fromJson(
+        entry.cast<String, Object?>(),
+      );
+      // A draft without provable amount or identity could never submit —
+      // it is corrupt storage, not evidence.
+      if (draft.dedupeKey.isEmpty || draft.amountMinor <= 0) continue;
+      _outbox.add(draft);
+    }
+    while (_outbox.length > outboxMax) {
+      _outbox.removeAt(0);
+      _bump(dropped: 1);
+    }
   }
 
   Future<void> _drainOutbox() async {
-    if (_submitting || _outbox.isEmpty) return;
+    // The submit flag gates the whole outbox too — a flag-off build
+    // still persists drafts (parsed, counted) but never sends them.
+    if (_submitting || _outbox.isEmpty || !_submitEnabled) return;
     _submitting = true;
+    final gen = _generation;
     try {
       final pending = List.of(_outbox);
       for (final draft in pending) {
+        // Stop the whole pass on a rebind — the outbox was cleared for
+        // the new owner, and resubmitting under it would misattribute.
+        if (gen != _generation) return;
         try {
           await _submit([draft]);
-          _outbox.remove(draft);
+          if (gen != _generation) return;
+          await _removeOutbox(draft, gen);
           _bump(submitted: 1);
         } catch (e) {
+          if (gen != _generation) return;
           if (isQueueableSubmitFailure(e)) break; // still offline — keep rest
-          _outbox.remove(draft);
+          await _removeOutbox(draft, gen);
           _bump(dropped: 1);
         }
       }

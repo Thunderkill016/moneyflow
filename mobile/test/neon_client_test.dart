@@ -306,6 +306,40 @@ void main() {
       },
     );
 
+    test(
+      'signOut drops the local session even when the revoke call dies',
+      () async {
+        // Offline logout must never leave a live session/JWT in memory —
+        // the server revoke is best-effort after the local clear.
+        final t = FakeTransport()
+          ..queue.add(
+            FakeTransport.json(
+              200,
+              {
+                'token': 't.s',
+                'user': {'id': 'u1', 'email': 'a@b.c', 'name': 'A'},
+              },
+              headers: {
+                'set-cookie': '${NeonAuthClient.sessionCookieName}=t.s',
+              },
+            ),
+          );
+        final auth = NeonAuthClient(
+          config: config,
+          requester: (req) async {
+            if (req.url.path.endsWith('/sign-out')) {
+              throw const SocketException('offline');
+            }
+            return t.requester(req);
+          },
+        );
+        await auth.signIn('a@b.c', 'pw');
+        expect(auth.session, isNotNull);
+        await auth.signOut();
+        expect(auth.session, isNull);
+      },
+    );
+
     test('requestPasswordReset surfaces upstream failure', () async {
       final t = FakeTransport()
         ..queue.add(FakeTransport.json(500, {'message': 'down'}));

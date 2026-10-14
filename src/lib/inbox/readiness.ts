@@ -59,8 +59,11 @@ function resolveExplicitCategory(
     (item) => normalizeLabel(item.name) === wanted,
   );
   const matchingKind = matches.filter((item) => item.kind === kind);
+  // A wrong-kind name match is not evidence — it would prefill a category
+  // the server must reject (`category_kind_mismatch`). Only a
+  // matching-kind id may resolve; the reviewer picks from the valid pool.
   if (matchingKind.length === 1) return matchingKind[0];
-  return matches.length === 1 ? matches[0] : null;
+  return null;
 }
 
 export function classifyCandidateReadiness(

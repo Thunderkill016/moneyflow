@@ -244,11 +244,20 @@ class NeonAuthClient {
   }
 
   Future<void> signOut() async {
-    if (_session != null) {
-      await _call('/sign-out', body: const {});
-    }
+    // Drop the local session FIRST — a dead network must never leave a
+    // live session/JWT in memory for in-flight work to keep using. The
+    // server revoke is best-effort on top of that.
+    final hadSession = _session != null;
     _session = null;
     _jwt = null;
+    if (hadSession) {
+      try {
+        await _call('/sign-out', body: const {});
+      } catch (_) {
+        // Server-side revoke failed — the session token stays valid
+        // upstream until expiry, but this client no longer holds it.
+      }
+    }
   }
 
   /// Data-API-bound JWT for the current session. Refreshes through

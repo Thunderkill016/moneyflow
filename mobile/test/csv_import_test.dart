@@ -155,6 +155,28 @@ void main() {
       expect(r.date, '2026-07-15');
     });
 
+    test('date cell: impossible calendar days are not found', () {
+      // The reviewed hole: 31/02 regex-matched but cannot exist — it
+      // must flag the row (found: false), never produce 2026-02-31 or
+      // normalize into March.
+      for (final raw in [
+        '31/02/2026',
+        '2026-02-31',
+        '30/02/2026',
+        '29/02/2026', // 2026 is not a leap year
+        '2026.02.30',
+        '31/02', // borrowed-year form
+        '13/13/2026',
+      ]) {
+        final r = parseCsvDateCell(raw, '2026-07-15');
+        expect(r.found, isFalse, reason: '$raw must not parse as certain');
+        expect(r.date, '2026-07-15', reason: '$raw must fall back to today');
+      }
+      // …while real leap/calendar days still parse.
+      expect(parseCsvDateCell('29/02/2024', '2026-07-15').date, '2024-02-29');
+      expect(parseCsvDateCell('28/02/2026', '2026-07-15').found, isTrue);
+    });
+
     test('column map: Vietnamese headers and debit/credit layouts', () {
       final vn = mapCsvColumns(['Ngày', 'Mô tả', 'Số tiền']);
       expect(vn.map.date, 0);

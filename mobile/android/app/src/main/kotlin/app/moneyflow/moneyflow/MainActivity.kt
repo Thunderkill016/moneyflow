@@ -116,7 +116,20 @@ class MainActivity : FlutterFragmentActivity() {
                 "openAccessSettings" ->
                     result.success(openNotificationAccessSettings())
                 "consumePendingCaptures" ->
-                    result.success(NotificationCaptureBridge.consumePending(this))
+                    result.success(
+                        NotificationCaptureBridge.consumePending(
+                            this,
+                            call.argument<String>("userId"),
+                        ),
+                    )
+                "setCaptureSession" -> {
+                    NotificationCaptureBridge.setCaptureSession(
+                        this,
+                        call.argument<String>("userId"),
+                        call.argument<Boolean>("enabled") ?: false,
+                    )
+                    result.success(true)
+                }
                 "clearPendingCaptures" -> {
                     NotificationCaptureBridge.clearPending(this)
                     result.success(true)

@@ -1,5 +1,5 @@
 begin;
-select plan(40);
+select plan(42);
 
 -- R6 — the archive producer must emit the complete archive v1 contract for the
 -- calling tenant, and only for the calling tenant. Every identity and row below
@@ -164,6 +164,12 @@ insert into archive_ctx values
     null, 'Tiền nhà', 4000000, 5,
     (select id from archive_ctx where key = 'a_account'),
     (select id from archive_ctx where key = 'a_expense_category')
+  )),
+  ('a_commitment_yearly', public.upsert_recurring_commitment(
+    null, 'Bảo hiểm xe', 2400000, 15,
+    (select id from archive_ctx where key = 'a_account'),
+    (select id from archive_ctx where key = 'a_expense_category'),
+    null, 12
   )),
   ('a_template', public.upsert_recurring_income_template(
     null, 'Lương', 15000000, 10,
@@ -369,7 +375,7 @@ select is(
 
 select is(
   (select payload ->> 'schema_generation' from archive_out where key = 'a'),
-  '20260924120000',
+  '20261016090000',
   'the envelope carries the contract schema generation'
 );
 
@@ -722,6 +728,33 @@ select is(
   ),
   1,
   'the deterministic rule survives'
+);
+
+-- ---------------------------------------------------------------------------
+-- Commitment cadence (schema generation 20261016090000)
+-- ---------------------------------------------------------------------------
+select is(
+  (
+    select count(*)::integer
+    from archive_out as exported,
+      jsonb_array_elements(exported.payload #> '{tables,recurringCommitments}') as commitment
+    where exported.key = 'a'
+      and not (commitment.value ? 'interval_months')
+  ),
+  0,
+  'every recurring commitment row carries its interval_months cadence'
+);
+
+select is(
+  (
+    select (commitment.value ->> 'interval_months')::integer
+    from archive_out as exported,
+      jsonb_array_elements(exported.payload #> '{tables,recurringCommitments}') as commitment
+    where exported.key = 'a'
+      and commitment.value ->> 'name' = 'Bảo hiểm xe'
+  ),
+  12,
+  'a yearly cadence exports as interval_months 12, not a reset to monthly'
 );
 
 -- ---------------------------------------------------------------------------

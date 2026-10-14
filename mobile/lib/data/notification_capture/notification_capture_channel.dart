@@ -52,8 +52,9 @@ abstract class NotificationCaptureGateway {
   Future<List<String>> supportedSources();
 
   /// Events parked while Dart was detached — returned once, then cleared
-  /// on the Kotlin side.
-  Future<List<RawBankNotification>> consumePending();
+  /// on the Kotlin side. [userId] is proof of ownership: parked raw text
+  /// answers only to the account that captured it.
+  Future<List<RawBankNotification>> consumePending(String userId);
 
   /// Live events while Dart is attached.
   Stream<RawBankNotification> stream();
@@ -61,6 +62,12 @@ abstract class NotificationCaptureGateway {
   /// Drop every parked event (sign-out / data wipe — raw notification text
   /// must not outlive the account it was captured for).
   Future<void> clearPending();
+
+  /// Push the app-level capture state down to the native listener: capture
+  /// only runs (and raw text only persists) while [enabled] and a session
+  /// owner are both present. A null [userId] or false [enabled] parks
+  /// nothing and discards what another owner left parked.
+  Future<void> setCaptureSession(String? userId, bool enabled);
 }
 
 class NotificationCaptureChannel extends NotificationCaptureGateway {
@@ -96,13 +103,33 @@ class NotificationCaptureChannel extends NotificationCaptureGateway {
       ))?.whereType<String>().toList() ??
       const [];
 
+  Future<T?> _callArgs<T>(String method, Object? arguments) async {
+    try {
+      return await _method.invokeMethod<T>(method, arguments);
+    } on MissingPluginException {
+      return null;
+    } on PlatformException {
+      return null;
+    }
+  }
+
   @override
-  Future<List<RawBankNotification>> consumePending() async =>
-      (await _call<List<Object?>>('consumePendingCaptures'))
+  Future<List<RawBankNotification>> consumePending(String userId) async =>
+      (await _callArgs<List<Object?>>('consumePendingCaptures', {
+            'userId': userId,
+          }))
           ?.whereType<Map<Object?, Object?>>()
           .map(RawBankNotification.fromMap)
           .toList() ??
       const [];
+
+  @override
+  Future<void> setCaptureSession(String? userId, bool enabled) async {
+    await _callArgs<bool>('setCaptureSession', {
+      'userId': userId,
+      'enabled': enabled,
+    });
+  }
 
   @override
   Stream<RawBankNotification> stream() => _stream
