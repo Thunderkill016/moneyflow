@@ -1,7 +1,17 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart'
+    show GoogleSignIn, GoogleSignInException, GoogleSignInExceptionCode;
+
 import 'neon/auth_client.dart';
+
+// googleSignInIsUserCancel is part of this file's API and takes the
+// plugin's exception type — re-export it so callers/tests don't import
+// the plugin package themselves.
+export 'package:google_sign_in/google_sign_in.dart'
+    show GoogleSignInException, GoogleSignInExceptionCode;
 
 /// Opens a URL in the system browser. Injectable so tests can run the
 /// whole loopback round-trip without a platform channel.
@@ -50,6 +60,9 @@ abstract class GoogleSignInFlow {
 /// The listener answers the browser "quay lại app" page; only a request
 /// to the callback path carrying the verifier (or an OAuth `error`)
 /// ends the wait — probes and stray traffic get a closed answer.
+///
+/// Used through [HybridGoogleSignIn] in production — direct use is for
+/// tests and for builds with no Android OAuth client at all.
 class LoopbackGoogleSignIn implements GoogleSignInFlow {
   LoopbackGoogleSignIn({
     required NeonAuthClient auth,
@@ -156,5 +169,97 @@ class LoopbackGoogleSignIn implements GoogleSignInFlow {
       );
     }
     unawaited(request.response.close());
+  }
+}
+
+/// Native Credential Manager sheet → idToken → /sign-in/social.
+///
+/// Only works when the Neon Auth Google provider's Google Cloud project
+/// registered an Android OAuth client for this package + SHA-1 — i.e.
+/// an owner-created project configured as a NON-shared provider. With
+/// Neon's shared provider that registration can never exist, so this
+/// path throws and [HybridGoogleSignIn] falls back to the loopback.
+///
+/// google_sign_in v7: `initialize` binds the server's web OAuth client
+/// id, `authenticate` shows the account sheet, and the account's
+/// `authentication.idToken` is what Better Auth verifies. No
+/// google-services.json needed — the client id arrives via config.
+class NativeGoogleSignIn implements GoogleSignInFlow {
+  NativeGoogleSignIn({
+    required NeonAuthClient auth,
+    required this.serverClientId,
+  }) : _auth = auth;
+
+  final NeonAuthClient _auth;
+  final String serverClientId;
+  bool _initialized = false;
+
+  @override
+  Future<NeonSession?> signIn() async {
+    if (!_initialized) {
+      await GoogleSignIn.instance.initialize(serverClientId: serverClientId);
+      _initialized = true;
+    }
+    try {
+      final account = await GoogleSignIn.instance.authenticate();
+      final idToken = account.authentication.idToken;
+      if (idToken == null) return null; // no token → nothing to exchange
+      return await _auth.signInWithGoogleIdToken(idToken);
+    } on GoogleSignInException catch (e) {
+      debugPrint(
+        'google_sign_in: exception code=${e.code} desc=${e.description} details=${e.details}',
+      );
+      if (googleSignInIsUserCancel(e)) return null;
+      rethrow;
+    }
+  }
+
+  /// The sheet dismisses itself on back/close — there is no in-flight
+  /// future of ours to abort; present for the [GoogleSignInFlow] seam.
+  @override
+  void cancel() {}
+}
+
+/// True only for a genuine user cancel. "[16] Account reauth failed"
+/// arrives under `canceled` but is a configuration failure — the Android
+/// app isn't registered in the server client's Google Cloud project. A
+/// silent return would misreport it as user intent; surface it so the
+/// hybrid can fall back to the loopback redirect.
+bool googleSignInIsUserCancel(GoogleSignInException e) =>
+    e.code == GoogleSignInExceptionCode.canceled &&
+    !(e.description ?? '').contains('[16]');
+
+/// Preferred sign-in: native sheet when an Android OAuth client exists
+/// ([native] non-null), browser loopback otherwise — and ALWAYS the
+/// loopback after a native failure (misconfigured client, missing Play
+/// Services, redirect:true rejection). A null return from the native
+/// leg is user cancel → propagates without opening the browser.
+class HybridGoogleSignIn implements GoogleSignInFlow {
+  HybridGoogleSignIn({
+    GoogleSignInFlow? native,
+    required GoogleSignInFlow loopback,
+  }) : _native = native,
+       _loopback = loopback;
+
+  final GoogleSignInFlow? _native;
+  final GoogleSignInFlow _loopback;
+
+  @override
+  Future<NeonSession?> signIn() async {
+    final native = _native;
+    if (native != null) {
+      try {
+        return await native.signIn();
+      } catch (e) {
+        debugPrint('native Google sign-in failed, falling back to browser: $e');
+      }
+    }
+    return _loopback.signIn();
+  }
+
+  @override
+  void cancel() {
+    _native?.cancel();
+    _loopback.cancel();
   }
 }

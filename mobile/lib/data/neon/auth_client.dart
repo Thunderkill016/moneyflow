@@ -105,10 +105,25 @@ class NeonAuthClient {
         'password': password,
       });
 
-  /// First leg of the loopback-redirect Google sign-in — the only
-  /// Google path this client supports. Neon's shared Google provider
-  /// owns a web OAuth client the app cannot add an Android client to,
-  /// so the native idToken exchange is unavailable; instead the app
+  /// Native-sheet Google sign-in: a plugin-issued idToken exchanged at
+  /// /sign-in/social — valid only when the provider's Google Cloud
+  /// project registered an Android OAuth client for this package+SHA-1
+  /// (owner's own project; Neon's shared provider can never have one).
+  /// When that registration is absent upstream answers redirect:true —
+  /// [_signIn] throws so the caller falls back to [beginGoogleRedirect].
+  Future<NeonSession> signInWithGoogleIdToken(String idToken) =>
+      _signIn('/sign-in/social', {
+        'provider': 'google',
+        // idToken MUST be a nested object — posting a bare string makes
+        // Better Auth answer {"redirect":true,"url":…} for a browser
+        // flow this client must not follow (handled in _signIn).
+        'idToken': {'token': idToken},
+      });
+
+  /// First leg of the loopback-redirect Google sign-in — the fallback
+  /// for [signInWithGoogleIdToken] and the only path against Neon's
+  /// shared Google provider. The shared provider's Google Cloud project
+  /// cannot register this app as an Android client, so instead the app
   /// opens the returned authorize URL in a browser and waits for Neon
   /// to redirect back to a `http://localhost:<port>/…` callbackURL
   /// (upstream allows `localhost` via `allow_localhost`).

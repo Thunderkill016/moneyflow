@@ -180,6 +180,58 @@ void main() {
       expect(() => auth.signIn('x', 'y'), throwsA(isA<NeonAuthException>()));
     });
 
+    test('signInWithGoogleIdToken posts the idToken as a NESTED object '
+        '(native-sheet path)', () async {
+      final t = FakeTransport()
+        ..queue.add(
+          FakeTransport.json(
+            200,
+            {
+              'redirect': false,
+              'token': 't.s',
+              'user': {'id': 'u-g', 'email': 'g@x.c', 'name': 'G'},
+            },
+            headers: {'set-cookie': '${NeonAuthClient.sessionCookieName}=t.s'},
+          ),
+        );
+      final auth = NeonAuthClient(config: config, requester: t.requester);
+      final session = await auth.signInWithGoogleIdToken('google-id-token');
+
+      final req = t.requests.single;
+      expect(req.url.path, '/neondb/auth/sign-in/social');
+      final body = req.body as Map<String, dynamic>;
+      expect(body['provider'], 'google');
+      // Regression: posting a bare STRING idToken makes Better Auth
+      // answer {"redirect":true,"url":…} instead of a session.
+      expect(body['idToken'], isA<Map>());
+      expect(body['idToken'], {'token': 'google-id-token'});
+      expect(session.sessionToken, 't.s');
+      expect(session.userId, 'u-g');
+    });
+
+    test('a redirect:true social answer throws so the caller can fall '
+        'back to the loopback flow', () async {
+      final t = FakeTransport()
+        ..queue.add(
+          FakeTransport.json(200, {
+            'redirect': true,
+            'url': 'https://accounts.google.com/o/oauth2/…',
+          }),
+        );
+      final auth = NeonAuthClient(config: config, requester: t.requester);
+      await expectLater(
+        auth.signInWithGoogleIdToken('x'),
+        throwsA(
+          isA<NeonAuthException>().having(
+            (e) => e.message,
+            'message',
+            contains('browser redirect'),
+          ),
+        ),
+      );
+      expect(auth.session, isNull);
+    });
+
     test('beginGoogleRedirect posts the loopback callbackURL and keeps '
         'the challenge cookies', () async {
       final t = FakeTransport()

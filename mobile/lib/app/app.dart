@@ -181,9 +181,23 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     ),
   );
   late final _bioService = widget.biometric ?? DeviceBiometricService();
+  // Native sheet only exists when an Android OAuth client was
+  // registered for this package (owner's own Google Cloud project) —
+  // against Neon's shared provider it's skipped and the loopback runs.
   late final GoogleSignInFlow _googleFlow =
       widget.googleFlow ??
-      LoopbackGoogleSignIn(auth: _auth, launcher: widget.urlOpener.open);
+      HybridGoogleSignIn(
+        native: _config.googleServerClientId.isEmpty
+            ? null
+            : NativeGoogleSignIn(
+                auth: _auth,
+                serverClientId: _config.googleServerClientId,
+              ),
+        loopback: LoopbackGoogleSignIn(
+          auth: _auth,
+          launcher: widget.urlOpener.open,
+        ),
+      );
   ShareIntentReceiver get _shareReceiver => widget.shareReceiver;
   QuickActionSource get _quickActions => widget.quickActions;
   NotificationCaptureGateway get _notifGateway => widget.notificationGateway;

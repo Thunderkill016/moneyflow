@@ -55,6 +55,10 @@ dependencies:
   # Requires minSdk 23+; the app's minSdk is Flutter's default 24.
   flutter_secure_storage: 11.2.0
 
+  # Native Credential Manager sheet for Google sign-in — used only when
+  # an Android OAuth client exists for this package (owner's Google
+  # Cloud project); the loopback redirect stays the fallback.
+  google_sign_in: ^7.2.0
   screen_protector: ^1.5.3
   fl_chart: ^1.2.0
   excel: ^4.0.6

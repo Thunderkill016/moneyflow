@@ -95,8 +95,9 @@ class _LoginPageState extends State<LoginPage> {
         builder: (ctx) => AlertDialog(
           title: const Text('Đang chờ Google…'),
           content: const Text(
-            'Hoàn tất đăng nhập trong trình duyệt vừa mở — MoneyFlow '
-            'sẽ tự tiếp tục khi bạn quay lại.',
+            'Hoàn tất bước đăng nhập Google — trong khung vừa hiện '
+            'hoặc trình duyệt — rồi quay lại đây. MoneyFlow sẽ tự '
+            'tiếp tục.',
           ),
           actions: [
             TextButton(

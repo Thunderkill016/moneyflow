@@ -41,6 +41,25 @@ NeonResponse _finishOk() => NeonResponse(
   }),
 );
 
+/// Scripted leg — models either the native sheet or the loopback inside
+/// HybridGoogleSignIn.
+class _Leg implements GoogleSignInFlow {
+  _Leg({this.result, this.error});
+  final NeonSession? result;
+  final Object? error;
+  var calls = 0;
+  var cancels = 0;
+  @override
+  Future<NeonSession?> signIn() async {
+    calls++;
+    if (error != null) throw error!;
+    return result;
+  }
+
+  @override
+  void cancel() => cancels++;
+}
+
 /// Waits until [condition] holds or the deadline passes — the loopback
 /// listener and the test's fake browser run concurrently.
 Future<void> _until(bool Function() condition) async {
@@ -215,6 +234,86 @@ void main() {
       );
       expect(s3, 200);
       expect((await future)?.userId, 'u-g');
+    });
+  });
+
+  group('HybridGoogleSignIn', () {
+    const session = NeonSession(
+      sessionToken: 't.s',
+      userId: 'u1',
+      email: 'a@b.c',
+      name: 'A',
+    );
+
+    test('native success short-circuits — loopback never runs', () async {
+      final native = _Leg(result: session);
+      final loopback = _Leg();
+      final flow = HybridGoogleSignIn(native: native, loopback: loopback);
+
+      expect((await flow.signIn())?.userId, 'u1');
+      expect(native.calls, 1);
+      expect(loopback.calls, 0);
+    });
+
+    test(
+      'a native user-cancel stays silent — the browser never opens',
+      () async {
+        final native = _Leg(); // null result = user closed the sheet
+        final loopback = _Leg(result: session);
+        final flow = HybridGoogleSignIn(native: native, loopback: loopback);
+
+        expect(await flow.signIn(), isNull);
+        expect(loopback.calls, 0); // cancel is intent, not failure
+      },
+    );
+
+    test('a native failure falls back to the loopback leg', () async {
+      final native = _Leg(error: Exception('no android client'));
+      final loopback = _Leg(result: session);
+      final flow = HybridGoogleSignIn(native: native, loopback: loopback);
+
+      expect((await flow.signIn())?.userId, 'u1');
+      expect(native.calls, 1);
+      expect(loopback.calls, 1);
+    });
+
+    test('with no native leg the loopback runs directly', () async {
+      final loopback = _Leg(result: session);
+      final flow = HybridGoogleSignIn(loopback: loopback);
+
+      expect((await flow.signIn())?.userId, 'u1');
+      expect(loopback.calls, 1);
+    });
+
+    test('cancel() reaches whichever leg is in flight', () {
+      final native = _Leg();
+      final loopback = _Leg();
+      HybridGoogleSignIn(native: native, loopback: loopback).cancel();
+      expect(native.cancels, 1);
+      expect(loopback.cancels, 1);
+    });
+  });
+
+  group('googleSignInIsUserCancel', () {
+    test('a plain cancel is user intent', () {
+      const e = GoogleSignInException(code: GoogleSignInExceptionCode.canceled);
+      expect(googleSignInIsUserCancel(e), isTrue);
+    });
+
+    test('"[16] Account reauth failed" is a config error, not a cancel', () {
+      const e = GoogleSignInException(
+        code: GoogleSignInExceptionCode.canceled,
+        description: '[16] Account reauth failed.',
+      );
+      expect(googleSignInIsUserCancel(e), isFalse);
+    });
+
+    test('non-canceled codes are never treated as cancels', () {
+      const e = GoogleSignInException(
+        code: GoogleSignInExceptionCode.clientConfigurationError,
+        description: 'no android client',
+      );
+      expect(googleSignInIsUserCancel(e), isFalse);
     });
   });
 }

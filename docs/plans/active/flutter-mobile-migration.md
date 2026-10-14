@@ -515,13 +515,18 @@ account + category prefill make a repeat save a 3-tap flow. 109/109 tests.
   redirect carrying `neon_auth_session_verifier`. The verifier plus the
   `session_challenge` cookies planted at sign-in/social exchange through
   `/get-session` for the signed session token — the same cookie model as
-  the web, minus a cookie jar. Works with Neon's **shared** Google
-  provider — the native `google_sign_in` idToken path was removed
-  because the shared Google Cloud project cannot register MoneyFlow's
-  Android package+SHA-1. No client-id define; the button shows whenever
-  auth is configured. Abort (browser closed / Hủy) is silent; transport
-  or provider failures surface the honest snackbar. Account seeding
-  stays server-side (`on_auth_user_created`).
+  the web, minus a cookie jar. It is the fallback leg of a hybrid:
+  `HybridGoogleSignIn` runs `NativeGoogleSignIn` (Credential Manager
+  sheet → idToken → `/sign-in/social`) only when
+  `MF_GOOGLE_SERVER_CLIENT_ID` names a web client whose Google Cloud
+  project also registered an Android OAuth client for this
+  package+SHA-1 — which only an owner-created (non-shared) Neon Auth
+  provider can be. Against Neon's **shared** provider that registration
+  can never exist, so the native leg throws/returns redirect:true and
+  the loopback takes over; a native user-cancel propagates silently
+  without opening the browser. Abort (browser closed / Hủy) is silent;
+  transport or provider failures surface the honest snackbar. Account
+  seeding stays server-side (`on_auth_user_created`).
 - **Screen shield** (`app/screen_shield.dart`, `screen_protector`):
   `FLAG_SECURE` applied app-wide at startup — ledger amounts stay out of
   screenshots, recordings and the recents thumbnail. Best-effort: an
