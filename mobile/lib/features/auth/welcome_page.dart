@@ -16,8 +16,9 @@ class WelcomePrefs {
       (await SharedPreferences.getInstance()).setBool(seenKey, true);
 }
 
-/// Same brand seed as `app.dart`'s kBrandColor — kept local so the
-/// feature file never has to import the app shell that hosts it.
+/// Brand identity tint (brand-500) for the first-run welcome — the one
+/// place the bright identity color leads rather than the deeper action
+/// blue used through the signed-in app.
 const _brandColor = Color(0xFF0EA5E9);
 
 /// First-run welcome — a dark brand surface ahead of the login gate.

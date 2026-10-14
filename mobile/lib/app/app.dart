@@ -57,11 +57,8 @@ import '../features/planning/recurring_form_dialog.dart';
 import '../features/reports/reports_page.dart';
 import '../features/settings/change_password_page.dart';
 import '../features/settings/settings_page.dart';
+import '../theme/mf_theme.dart';
 import 'home_shell.dart';
-
-/// MoneyFlow brand tokens (from src/app/manifest.ts).
-const kBrandColor = Color(0xFF0EA5E9);
-const kBrandBackground = Color(0xFFF8FAFC);
 
 /// JSON backup ships through `export_user_archive` — live on both
 /// acceptance and production Neon since the 20261010121000 reader-definer
@@ -107,21 +104,11 @@ class _MoneyFlowAppState extends State<MoneyFlowApp> {
         ],
         supportedLocales: const [Locale('vi'), Locale('en')],
         locale: const Locale('vi'),
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: kBrandColor,
-            brightness: Brightness.light,
-          ),
-          scaffoldBackgroundColor: kBrandBackground,
-        ),
-        darkTheme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: kBrandColor,
-            brightness: Brightness.dark,
-          ),
-        ),
+        // Owner-approved Fresh Blue system (document-theme.css →
+        // theme/mf_theme.dart): semantic income/expense/transfer tokens,
+        // bordered cards, 48px targets — the same language as the web.
+        theme: MfTheme.light(),
+        darkTheme: MfTheme.dark(),
         home: const AuthGate(),
       ),
     );

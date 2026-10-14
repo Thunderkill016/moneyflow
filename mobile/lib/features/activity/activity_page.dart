@@ -8,6 +8,7 @@ import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/report.dart' show unnamedPayeeBucket;
 import '../../domain/transaction_query.dart';
+import '../../theme/mf_theme.dart';
 import '../capture/category_picker.dart';
 import '../shared/empty_state.dart';
 
@@ -1103,10 +1104,13 @@ class _TxTile extends StatelessWidget {
       TransactionKind.expense => MoneySignKind.expense,
       TransactionKind.transfer => MoneySignKind.transfer,
     };
+    // Same semantic money tokens as the dashboard tile — one source of
+    // truth for income/expense/transfer color across money lists.
+    final mf = context.mf;
     final color = switch (tx.kind) {
-      TransactionKind.income => Colors.green.shade700,
-      TransactionKind.expense => Colors.red.shade700,
-      TransactionKind.transfer => Colors.blueGrey.shade700,
+      TransactionKind.income => mf.incomeText,
+      TransactionKind.expense => mf.expenseText,
+      TransactionKind.transfer => mf.transferText,
     };
     final accountLine = tx.destinationAccount == null
         ? tx.account

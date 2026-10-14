@@ -9,6 +9,7 @@ import '../../domain/recurring_detection.dart';
 import '../../domain/report.dart' show dateAdd, ymd;
 import '../../domain/safe_to_spend.dart';
 import '../../domain/spoken_vnd.dart';
+import '../../theme/mf_theme.dart';
 import '../shared/empty_state.dart';
 
 /// One entry in the dashboard overflow menu — keeps the appbar to a single
@@ -610,8 +611,27 @@ class _TotalCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Tổng số dư', style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 6),
+            Row(
+              children: [
+                // The one brand moment on the dashboard — identity tint
+                // on the hero's label, never on money itself.
+                CircleAvatar(
+                  radius: 14,
+                  backgroundColor: context.mf.brandSubtle,
+                  child: Icon(
+                    Icons.account_balance_wallet_outlined,
+                    size: 16,
+                    color: context.mf.brandText,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Tổng số dư',
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
             // The spoken label is the real figure — the animated glyph
             // string ("45.000 ₫") would read digit-by-digit otherwise.
             // FittedBox keeps one line at 2x text scale instead of
@@ -625,8 +645,10 @@ class _TotalCard extends StatelessWidget {
                 child: _countUpMoney(
                   context,
                   total,
-                  Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+                  mfMoneyStyle(
+                    Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),
@@ -790,7 +812,7 @@ class _AccountTile extends StatelessWidget {
         leading: CircleAvatar(child: Text(account.name.characters.first)),
         title: Text(account.name),
         subtitle: Text(accountKindLabel(account.kind)),
-        trailing: Text(formatMoney(account.balance)),
+        trailing: Text(formatMoney(account.balance), style: mfMoneyStyle(null)),
       ),
     );
   }
@@ -807,10 +829,13 @@ class _TransactionTile extends StatelessWidget {
       TransactionKind.expense => MoneySignKind.expense,
       TransactionKind.transfer => MoneySignKind.transfer,
     };
+    // Semantic money tokens (mf_theme.dart) — the +/−/↔ glyph carries
+    // the direction, the color only reinforces it.
+    final mf = context.mf;
     final color = switch (tx.kind) {
-      TransactionKind.income => Colors.green.shade700,
-      TransactionKind.expense => Colors.red.shade700,
-      TransactionKind.transfer => Colors.blueGrey.shade700,
+      TransactionKind.income => mf.incomeText,
+      TransactionKind.expense => mf.expenseText,
+      TransactionKind.transfer => mf.transferText,
     };
     final accountLine = tx.destinationAccount == null
         ? tx.account
@@ -823,7 +848,9 @@ class _TransactionTile extends StatelessWidget {
         subtitle: Text('${tx.category} · $accountLine · ${tx.occurredOn}'),
         trailing: Text(
           formatMoneyWithKind(tx.amount, kind),
-          style: TextStyle(color: color, fontWeight: FontWeight.w600),
+          style: mfMoneyStyle(
+            TextStyle(color: color, fontWeight: FontWeight.w600),
+          ),
         ),
       ),
     );
