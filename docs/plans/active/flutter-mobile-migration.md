@@ -286,10 +286,14 @@ Still unproven:
 
 - No Android release-artifact acceptance on a physical device (signer,
   applicationId, dart-define endpoints, upgrade/restore flows).
-- No Flutter gate in CI — checks run locally only.
+- A Flutter CI gate now exists in `ci.yml` (pinned SDK from
+  `mobile/.metadata`, enforce-lockfile, analyze, test, debug APK against
+  the acceptance sandbox) but has not yet run green on a real runner.
 - Production Neon auth/RLS/account deletion not exercised from mobile.
-- Archive restore does not yet preserve `interval_months` cadence for
-  commitments (migration documents the limitation; owner-gated).
+- Archive cadence: a compatibility migration plus TS validator/ingress
+  now preserve `interval_months`; applying the migration remains
+  owner-gated and the pgTAP suite was not replayed locally (no
+  Docker/Podman in the build environment).
 
 ## P6 — parity review and release decision (2026-10-12)
 
