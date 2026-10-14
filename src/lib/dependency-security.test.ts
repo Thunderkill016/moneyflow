@@ -27,7 +27,7 @@ const MIN_FAST_URI = "3.1.8"; // GHSA-hrr3-gc8f-f4qj host normalization fix
 const MIN_HONO = "4.13.7"; // GHSA-hxh3-vqpv-xpqv JSX attribute escaping fix
 const MIN_JS_YAML = "4.3.2"; // GHSA-2883-xcg3-v3hh merge-key CPU exhaustion
 const VETTED_NEXT = "16.3.8"; // Includes the 16.3.6 fix for GHSA-vcvr-r3jv-pc5j
-const VETTED_SHARP = "0.35.4";
+const VETTED_SHARP = "0.35.5"; // librsvg fix for GHSA-wq5f-xc86-pv6w
 
 function isAtLeast(version: string, minimum: string): boolean {
   const parse = (value: string) => value.split(".").map((part) => Number(part));
