@@ -31,6 +31,7 @@ class AccountRegisterPage extends StatefulWidget {
     this.loadAccount,
     this.loadReconciliation,
     this.onOpenReconciliation,
+    this.onAdjustBalance,
   });
 
   /// The account being viewed; [AccountSummary.balance] anchors the
@@ -59,6 +60,11 @@ class AccountRegisterPage extends StatefulWidget {
   /// Opens the statement workspace; the register refreshes after it
   /// returns because a completion can post an adjustment transaction.
   final Future<void> Function()? onOpenReconciliation;
+
+  /// "Điều chỉnh số dư" — the quick drift fix (posts a real labeled
+  /// adjustment transaction through the host's dialog, never a silent
+  /// balance overwrite). Null hides it — demo has no writes.
+  final Future<bool> Function()? onAdjustBalance;
 
   @override
   State<AccountRegisterPage> createState() => _AccountRegisterPageState();
@@ -231,6 +237,13 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
     }
   }
 
+  /// The adjustment posts a real ledger transaction — refresh both the
+  /// balance anchor and the feed when the host reports it landed.
+  Future<void> _adjustBalance() async {
+    final adjusted = await widget.onAdjustBalance!();
+    if (adjusted) _refresh();
+  }
+
   Future<void> _openEdit(Transaction t) async {
     // update_money_transaction rejects multi-line splits — say so
     // instead of failing on save (same guard as the activity feed).
@@ -321,6 +334,12 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
               'Số dư ban đầu: ${formatMoney(a.initialBalance)}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
+            if (widget.onAdjustBalance != null)
+              TextButton.icon(
+                onPressed: _adjustBalance,
+                icon: const Icon(Icons.tune, size: 18),
+                label: const Text('Điều chỉnh số dư'),
+              ),
           ],
         ),
       ),

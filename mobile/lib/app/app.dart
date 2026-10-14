@@ -23,6 +23,7 @@ import '../data/widget_snapshot.dart';
 import '../data/share/share_intent.dart';
 import '../data/share/share_text_parser.dart';
 import '../domain/budget.dart';
+import '../domain/report.dart' show ymd;
 import '../domain/models.dart';
 import '../domain/recurring_detection.dart';
 import '../domain/transaction_query.dart';
@@ -32,6 +33,7 @@ import 'delete_data.dart';
 import 'url_opener.dart';
 import '../features/accounts/account_reconciliation_page.dart';
 import '../features/accounts/account_register_page.dart';
+import '../features/accounts/balance_adjustment_dialog.dart';
 import '../features/accounts/accounts_page.dart';
 import '../features/activity/activity_page.dart';
 import '../features/activity/trash_page.dart';
@@ -1337,6 +1339,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           },
           loadReconciliation: () => _store.loadReconciliationState(account.id),
           onOpenReconciliation: () => _openReconciliation(context, account),
+          onAdjustBalance: () => _adjustBalance(context, account),
         ),
       ),
     );
@@ -1351,6 +1354,36 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     _demoInbox = DemoInboxStore();
     setState(() => _gate = _Gate.demo);
     _drainQuickAction();
+  }
+
+  /// "Điều chỉnh số dư" from the register header — the quick drift fix
+  /// MISA/Money Lover users expect. Posts a real labeled transaction
+  /// (payee 'Điều chỉnh số dư', note carrying ghi → thực tế, kind forced
+  /// by the difference sign), never a silent field overwrite.
+  Future<bool> _adjustBalance(BuildContext context, AccountSummary account) {
+    return showBalanceAdjustmentDialog(
+      context,
+      account: account,
+      loadCategories: _store.loadCategories,
+      submit:
+          ({
+            required kind,
+            required amountMinor,
+            required categoryId,
+            required note,
+          }) => _store
+              .createTransaction(
+                accountId: account.id,
+                categoryId: categoryId,
+                kind: kind,
+                amount: amountMinor,
+                occurredOn: ymd(DateTime.now()),
+                note: note,
+                payee: 'Điều chỉnh số dư',
+                idempotencyKey: newIdempotencyKey(),
+              )
+              .then((_) {}),
+    );
   }
 
   /// "Đối soát" from the register — the statement workspace mirrors the
