@@ -9,3 +9,12 @@ String formatDeletedAtLabel(String iso) {
   return '${two(vn.hour)}:${two(vn.minute)} · '
       '${two(vn.day)}/${two(vn.month)}/${vn.year}';
 }
+
+/// "YYYY-MM-DD" ledger date → "DD/MM/YYYY". Returns the input unchanged
+/// for anything not shaped like a ledger date — the caller decides what
+/// to show rather than inventing a date.
+String formatYmdAsDmy(String ymd) {
+  final m = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(ymd);
+  if (m == null) return ymd;
+  return '${m[3]}/${m[2]}/${m[1]}';
+}

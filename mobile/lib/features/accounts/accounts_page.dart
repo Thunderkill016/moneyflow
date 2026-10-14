@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../domain/datetime_label.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../shared/empty_state.dart';
@@ -17,6 +18,7 @@ class AccountsPage extends StatefulWidget {
     this.onArchive,
     this.onUpdate,
     this.onOpen,
+    this.latestActivityFor,
   });
 
   /// May return every account including archived — archived rows group
@@ -49,6 +51,12 @@ class AccountsPage extends StatefulWidget {
   /// tap-to-edit behavior.
   final void Function(AccountSummary account)? onOpen;
 
+  /// Latest ledger date per account — null return means "no data yet".
+  /// A null callback omits the freshness line entirely (demo or tests
+  /// that don't need it). The row stays silent until the lookup
+  /// resolves — a spinner-free "Chưa có giao dịch" would be a lie.
+  final Future<String?> Function(String accountId)? latestActivityFor;
+
   @override
   State<AccountsPage> createState() => _AccountsPageState();
 }
@@ -56,19 +64,55 @@ class AccountsPage extends StatefulWidget {
 class _AccountsPageState extends State<AccountsPage> {
   late Future<List<AccountSummary>> _accounts;
 
+  /// accountId → latest occurred_on; absent key = lookup still running.
+  final _freshness = <String, String?>{};
+
   @override
   void initState() {
     super.initState();
     _accounts = widget.loadAccounts();
+    _loadFreshness();
   }
 
   Future<void> _refresh() async {
     setState(() {
       _accounts = widget.loadAccounts();
+      _freshness.clear();
     });
+    _loadFreshness();
     try {
       await _accounts;
     } catch (_) {}
+  }
+
+  /// Fills [_freshness] after the account list lands. A lookup failure
+  /// just leaves the row without a freshness line — the account-load
+  /// error already has its own surface in the FutureBuilder.
+  Future<void> _loadFreshness() async {
+    final lookup = widget.latestActivityFor;
+    if (lookup == null) return;
+    try {
+      final accounts = await _accounts;
+      final results = <String, String?>{};
+      await Future.wait([
+        for (final a in accounts)
+          lookup(a.id)
+              .then((date) => results[a.id] = date)
+              // One failing lookup must not blank the whole column.
+              .catchError((_) => null),
+      ]);
+      if (!mounted) return;
+      setState(() => _freshness.addAll(results));
+    } catch (_) {}
+  }
+
+  String _subtitleFor(AccountSummary a) {
+    final kind = accountKindLabel(a.kind);
+    if (!_freshness.containsKey(a.id)) return kind;
+    final date = _freshness[a.id];
+    return date == null
+        ? '$kind · Chưa có giao dịch'
+        : '$kind · Dữ liệu đến ${formatYmdAsDmy(date)}';
   }
 
   /// Create when [editing] is null, otherwise edit that account in
@@ -194,7 +238,7 @@ class _AccountsPageState extends State<AccountsPage> {
       child: ListTile(
         leading: CircleAvatar(child: Text(a.name.characters.first)),
         title: Text(a.name),
-        subtitle: Text(accountKindLabel(a.kind)),
+        subtitle: Text(_subtitleFor(a)),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
