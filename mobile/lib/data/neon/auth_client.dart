@@ -220,6 +220,29 @@ class NeonAuthClient {
     }
   }
 
+  /// POST /change-password — credential accounts only; a social-only
+  /// account has no current password to prove, so callers gate the
+  /// surface on `listProviders()` containing 'credential'.
+  /// `revokeOtherSessions` drops every other device's session so a
+  /// leaked password stops working elsewhere the moment it changes —
+  /// the current session (this device) stays valid.
+  Future<void> changePassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
+    final res = await _call(
+      '/change-password',
+      body: {
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+        'revokeOtherSessions': true,
+      },
+    );
+    if (!res.ok) {
+      throw NeonAuthException(res.status, _errorMessage(res));
+    }
+  }
+
   Future<void> signOut() async {
     if (_session != null) {
       await _call('/sign-out', body: const {});

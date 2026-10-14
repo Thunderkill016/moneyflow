@@ -34,6 +34,7 @@ class SettingsPage extends StatefulWidget {
     this.tempDir,
     this.onDeleteLocalData,
     this.deleteLocalDataLabel = 'Xóa dữ liệu trên máy',
+    this.onChangePassword,
     this.onDeleteAccount,
     this.appVersion = kAppVersionLabel,
     this.onOpenPrivacyPolicy,
@@ -67,6 +68,12 @@ class SettingsPage extends StatefulWidget {
   /// the demo wipe is not an account deletion.
   final Future<void> Function()? onDeleteLocalData;
   final String deleteLocalDataLabel;
+
+  /// Password change — auth-only AND credential-accounts-only (a
+  /// Google-only account has no current password; the host gates the
+  /// seam on `listProviders()` so the row never lies). The host pushes
+  /// the form page and owns the success snackbar.
+  final VoidCallback? onChangePassword;
 
   /// Server-side account deletion — the host owns the re-auth dialog +
   /// the `delete_my_account` call + the post-wipe landing. Auth-only;
@@ -226,15 +233,24 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
           ),
-          if (widget.onSetBiometricEnabled != null) ...[
+          if (widget.onSetBiometricEnabled != null ||
+              widget.onChangePassword != null) ...[
             const _SectionHeader('Bảo mật'),
-            SwitchListTile(
-              secondary: const Icon(Icons.fingerprint),
-              title: const Text('Khóa sinh trắc'),
-              subtitle: const Text('Yêu cầu xác thực khi mở app'),
-              value: _bioEnabled,
-              onChanged: _bioBusy ? null : _setBiometric,
-            ),
+            if (widget.onChangePassword != null)
+              ListTile(
+                leading: const Icon(Icons.password_outlined),
+                title: const Text('Đổi mật khẩu'),
+                subtitle: const Text('Đăng xuất các thiết bị khác'),
+                onTap: widget.onChangePassword,
+              ),
+            if (widget.onSetBiometricEnabled != null)
+              SwitchListTile(
+                secondary: const Icon(Icons.fingerprint),
+                title: const Text('Khóa sinh trắc'),
+                subtitle: const Text('Yêu cầu xác thực khi mở app'),
+                value: _bioEnabled,
+                onChanged: _bioBusy ? null : _setBiometric,
+              ),
           ],
           if (widget.onSetDigestEnabled != null) ...[
             const _SectionHeader('Nhắc nhở'),

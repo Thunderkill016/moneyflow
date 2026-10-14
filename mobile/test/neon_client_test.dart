@@ -315,6 +315,31 @@ void main() {
         throwsA(isA<NeonAuthException>()),
       );
     });
+
+    test(
+      'changePassword posts both passwords and revokes other sessions',
+      () async {
+        final t = FakeTransport()..queue.add(FakeTransport.json(200, {}));
+        final auth = NeonAuthClient(config: config, requester: t.requester);
+        await auth.changePassword('old-pass', 'new-pass');
+        final req = t.requests.single;
+        expect(req.url.path, '/neondb/auth/change-password');
+        final body = req.body as Map;
+        expect(body['currentPassword'], 'old-pass');
+        expect(body['newPassword'], 'new-pass');
+        expect(body['revokeOtherSessions'], true);
+      },
+    );
+
+    test('changePassword surfaces upstream failure', () async {
+      final t = FakeTransport()
+        ..queue.add(FakeTransport.json(400, {'code': 'INVALID_PASSWORD'}));
+      final auth = NeonAuthClient(config: config, requester: t.requester);
+      expect(
+        () => auth.changePassword('wrong', 'new-pass'),
+        throwsA(isA<NeonAuthException>()),
+      );
+    });
   });
 
   group('NeonDataApi', () {

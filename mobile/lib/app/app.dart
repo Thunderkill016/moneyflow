@@ -51,6 +51,7 @@ import '../features/onboarding/onboarding_page.dart';
 import '../features/planning/planning_page.dart';
 import '../features/planning/recurring_form_dialog.dart';
 import '../features/reports/reports_page.dart';
+import '../features/settings/change_password_page.dart';
 import '../features/settings/settings_page.dart';
 import 'home_shell.dart';
 
@@ -957,6 +958,20 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   /// wipe, policy link, welcome replay — without fake affordances.
   Future<void> _openSettings(BuildContext context) async {
     final demo = _gate == _Gate.demo;
+    // Password change only exists for credential accounts — a
+    // Google-only user has no current password to prove. Resolve the
+    // provider list before pushing so the row either works or isn't
+    // there; an unreachable server just hides it (offline can't change
+    // a server password anyway).
+    var canChangePassword = false;
+    if (!demo) {
+      try {
+        canChangePassword = (await _auth.listProviders()).contains(
+          'credential',
+        );
+      } catch (_) {}
+    }
+    if (!context.mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => SettingsPage(
@@ -974,6 +989,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           deleteLocalDataLabel: demo
               ? 'Xóa dữ liệu demo'
               : 'Xóa dữ liệu trên máy',
+          onChangePassword: canChangePassword
+              ? () => _changePassword(context)
+              : null,
           onDeleteAccount: demo ? null : () => _deleteAccount(context),
           onOpenPrivacyPolicy: _openPrivacyPolicy,
           onReplayWelcome: _replayWelcome,
@@ -1208,6 +1226,23 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     final prefs = await SharedPreferences.getInstance();
     await wipeLocalData(prefs);
     if (mounted) await _signOut();
+  }
+
+  /// "Đổi mật khẩu" — the page owns the form + error surfacing; the
+  /// shell supplies the real auth call and confirms success once the
+  /// page pops true. Other devices' sessions are revoked server-side
+  /// (`revokeOtherSessions`), this one keeps working.
+  Future<void> _changePassword(BuildContext context) async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => ChangePasswordPage(onSubmit: _auth.changePassword),
+      ),
+    );
+    if (changed == true && mounted) {
+      ScaffoldMessenger.of(
+        this.context,
+      ).showSnackBar(const SnackBar(content: Text('Đã đổi mật khẩu')));
+    }
   }
 
   /// Server-side account deletion — the dialog owns re-auth + the
