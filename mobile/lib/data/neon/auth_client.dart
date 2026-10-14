@@ -19,6 +19,21 @@ class NeonAuthException implements Exception {
   String toString() => 'NeonAuthException($status): $message';
 }
 
+/// Result of POST /sign-in/social for the loopback-redirect Google flow:
+/// the authorize URL the browser must open plus the session_challenge
+/// cookies the /get-session exchange replays as a Cookie header. The
+/// cookies never leave memory — they only prove the exchange request
+/// belongs to this sign-in attempt.
+class NeonOAuthAttempt {
+  const NeonOAuthAttempt({
+    required this.authorizeUrl,
+    required this.challengeCookies,
+  });
+
+  final Uri authorizeUrl;
+  final List<String> challengeCookies;
+}
+
 class NeonSession {
   const NeonSession({
     required this.sessionToken,
@@ -90,19 +105,111 @@ class NeonAuthClient {
         'password': password,
       });
 
-  /// Google sign-in through Better Auth's /sign-in/social. The native
-  /// google_sign_in flow produces the id token; the server verifies it
-  /// against the web client id and issues the same session cookie as
-  /// /sign-in/email. Account seeding stays server-side
-  /// (`on_auth_user_created`) — the client never seeds.
-  Future<NeonSession> signInWithGoogleIdToken(String idToken) =>
-      _signIn('/sign-in/social', {
-        'provider': 'google',
-        // idToken MUST be a nested object — posting a bare string makes
-        // Better Auth answer {"redirect":true,"url":…} for a browser
-        // flow this client must not follow (handled in _signIn).
-        'idToken': {'token': idToken},
-      });
+  /// First leg of the loopback-redirect Google sign-in — the only
+  /// Google path this client supports. Neon's shared Google provider
+  /// owns a web OAuth client the app cannot add an Android client to,
+  /// so the native idToken exchange is unavailable; instead the app
+  /// opens the returned authorize URL in a browser and waits for Neon
+  /// to redirect back to a `http://localhost:<port>/…` callbackURL
+  /// (upstream allows `localhost` via `allow_localhost`).
+  ///
+  /// The response plants `session_challenge` cookies; they are captured
+  /// here and replayed verbatim by [finishGoogleRedirect] — upstream
+  /// only issues the session token when the challenge cookie from this
+  /// exact sign-in attempt accompanies the verifier.
+  Future<NeonOAuthAttempt> beginGoogleRedirect(String callbackUrl) async {
+    final res = await _call(
+      '/sign-in/social',
+      body: {'provider': 'google', 'callbackURL': callbackUrl},
+    );
+    if (!res.ok) {
+      throw NeonAuthException(res.status, _errorMessage(res));
+    }
+    final json = res.json as Map<String, dynamic>;
+    final url = json['url'] as String?;
+    if (url == null || url.isEmpty) {
+      throw NeonAuthException(
+        res.status,
+        'social sign-in returned no authorize URL',
+      );
+    }
+    final cookies = _challengeCookies(res);
+    if (cookies.isEmpty) {
+      throw NeonAuthException(
+        res.status,
+        'social sign-in set no session challenge cookie',
+      );
+    }
+    return NeonOAuthAttempt(
+      authorizeUrl: Uri.parse(url),
+      challengeCookies: cookies,
+    );
+  }
+
+  /// Second leg: Neon redirected the browser back to the loopback
+  /// listener — the redirect URI's whole query (the
+  /// `neon_auth_session_verifier` plus anything upstream adds) is
+  /// replayed to /get-session with the challenge cookies as proof of
+  /// attempt. Mirrors the Neon SDK's exchangeOAuthToken, minus the
+  /// browser cookie jar this app does not have.
+  Future<NeonSession> finishGoogleRedirect({
+    required Uri redirectUri,
+    required List<String> challengeCookies,
+  }) async {
+    final providerError = redirectUri.queryParameters['error'];
+    if (providerError != null) {
+      throw NeonAuthException(
+        0,
+        'Google redirect returned an error: $providerError',
+      );
+    }
+    final exchangeUrl = Uri.parse(
+      '${_config.authBaseUrl}/get-session',
+    ).replace(query: redirectUri.query);
+    final res = await _requester(
+      NeonRequest(
+        method: 'GET',
+        url: exchangeUrl,
+        headers: {
+          'Origin': _config.origin,
+          'Cookie': challengeCookies.join('; '),
+        },
+      ),
+    );
+    if (!res.ok) {
+      throw NeonAuthException(res.status, _errorMessage(res));
+    }
+    final token = _sessionTokenFromCookie(res);
+    if (token == null) {
+      throw NeonAuthException(
+        res.status,
+        'verifier exchange issued no session token',
+      );
+    }
+    _jwt = null; // stale JWT belongs to any previous session
+    _cacheJwt(res); // the exchange is itself a get-session response
+    final json = res.json;
+    if (json is Map<String, dynamic>) {
+      final user = json['user'] as Map<String, dynamic>?;
+      if (user != null) {
+        _session = NeonSession(
+          sessionToken: token,
+          userId: user['id'] as String,
+          email: user['email'] as String? ?? '',
+          name: user['name'] as String? ?? '',
+        );
+        return _session!;
+      }
+    }
+    final restored = await restoreSession(token);
+    if (restored == null) {
+      throw NeonAuthException(
+        res.status,
+        'sign-in accepted but the session could not be verified',
+      );
+    }
+    return restored;
+  }
 
   Future<NeonSession> _signIn(String path, Map<String, Object?> body) async {
     final res = await _call(path, body: body);
@@ -310,6 +417,20 @@ class NeonAuthClient {
       '${RegExp.escape(sessionCookieName)}=([^;]+)',
     ).firstMatch(cookie);
     return match?.group(1);
+  }
+
+  // Upstream plants BOTH spellings of the challenge cookie (the second
+  // is a known misspelling kept for compat); replay whichever arrived.
+  static final _challengeCookiePattern = RegExp(
+    r'(__Secure-neon-auth\.session_chall[ea]nge=[^;,]+)',
+  );
+
+  static List<String> _challengeCookies(NeonResponse res) {
+    final cookie = res.header('set-cookie');
+    if (cookie == null) return const [];
+    return [
+      for (final m in _challengeCookiePattern.allMatches(cookie)) m.group(1)!,
+    ];
   }
 
   static String _errorMessage(NeonResponse res) {

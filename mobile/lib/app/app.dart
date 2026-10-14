@@ -132,8 +132,8 @@ class _MoneyFlowAppState extends State<MoneyFlowApp> {
 /// Demo mode remains reachable from the login screen for offline exploration.
 ///
 /// [shareReceiver], [quickActions], [biometric], [urlOpener],
-/// [notificationGateway] and [requester] are seams for widget tests —
-/// production callers never pass them.
+/// [notificationGateway], [googleFlow] and [requester] are seams for
+/// widget tests — production callers never pass them.
 class AuthGate extends StatefulWidget {
   const AuthGate({
     super.key,
@@ -142,6 +142,7 @@ class AuthGate extends StatefulWidget {
     this.biometric,
     this.urlOpener = const DeviceUrlOpener(),
     this.notificationGateway = const NotificationCaptureChannel(),
+    this.googleFlow,
     this.requester = httpNeonRequester,
   });
 
@@ -150,6 +151,10 @@ class AuthGate extends StatefulWidget {
   final BiometricService? biometric;
   final UrlOpener urlOpener;
   final NotificationCaptureGateway notificationGateway;
+
+  /// Google sign-in seam — production builds the loopback redirect on
+  /// first use; widget tests inject a fake that never opens a browser.
+  final GoogleSignInFlow? googleFlow;
 
   /// HTTP seam for the Neon auth + data clients — widget tests script a
   /// fake transport instead of opening real sockets.
@@ -176,6 +181,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     ),
   );
   late final _bioService = widget.biometric ?? DeviceBiometricService();
+  late final GoogleSignInFlow _googleFlow =
+      widget.googleFlow ??
+      LoopbackGoogleSignIn(auth: _auth, launcher: widget.urlOpener.open);
   ShareIntentReceiver get _shareReceiver => widget.shareReceiver;
   QuickActionSource get _quickActions => widget.quickActions;
   NotificationCaptureGateway get _notifGateway => widget.notificationGateway;
@@ -1113,13 +1121,10 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         // Sign-up is the web's register → /onboarding boundary — the
         // activation flow always follows a fresh account.
         onSignedUp: (s) => _onSignedIn(s, isNewAccount: true),
-        // Google sign-in is a capability gate: no configured server
-        // client id → no button at all, never a dead-end affordance.
-        googleIdTokens: _config.googleServerClientId.isEmpty
-            ? null
-            : PluginGoogleIdTokenSource(
-                serverClientId: _config.googleServerClientId,
-              ),
+        // Browser loopback redirect — works with Neon's shared Google
+        // provider, no per-app Android OAuth client needed. The seam
+        // stays injectable so tests never touch a browser/socket.
+        googleFlow: _googleFlow,
         onDemo: _enterDemo,
       ),
       _Gate.onboarding => OnboardingPage(
@@ -1281,13 +1286,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       context,
       auth: _auth,
       deleteAccount: _store.deleteMyAccount,
-      // Same capability gate as the login page: a Google-only account
-      // can re-auth only when this build carries the server client id.
-      googleIdTokens: _config.googleServerClientId.isEmpty
-          ? null
-          : PluginGoogleIdTokenSource(
-              serverClientId: _config.googleServerClientId,
-            ),
+      // Same seam as the login page: a Google-only account re-auths
+      // through the loopback redirect.
+      googleFlow: _googleFlow,
     );
     if (!deleted || !mounted) return;
     // Grab the messenger before the async wipe — a context read after an

@@ -14,8 +14,9 @@ import 'delete_data.dart' show deleteConfirmText;
 ///   * a fresh authentication proves the session owner before the delete —
 ///     the web's edge function enforces a recent-auth window server-side;
 ///     the Neon RPC has no such check, so this flow re-authenticates
-///     first (password for `credential` accounts, a fresh Google idToken
-///     for social-only ones) instead of trusting the ambient cookie;
+///     first (password for `credential` accounts, a fresh Google
+///     loopback sign-in for social-only ones) instead of trusting the
+///     ambient cookie;
 ///   * the server deletes FIRST — the caller wipes local stores only
 ///     after this returns true, and a failure leaves the signed-in
 ///     session and every local byte untouched;
@@ -27,7 +28,7 @@ Future<bool> showDeleteAccountFlow(
   BuildContext context, {
   required NeonAuthClient auth,
   required Future<int> Function() deleteAccount,
-  GoogleIdTokenSource? googleIdTokens,
+  GoogleSignInFlow? googleFlow,
 }) async {
   final confirmed = await showDialog<bool>(
     context: context,
@@ -35,7 +36,7 @@ Future<bool> showDeleteAccountFlow(
     builder: (ctx) => _DeleteAccountDialog(
       auth: auth,
       deleteAccount: deleteAccount,
-      googleIdTokens: googleIdTokens,
+      googleFlow: googleFlow,
     ),
   );
   return confirmed ?? false;
@@ -49,12 +50,12 @@ class _DeleteAccountDialog extends StatefulWidget {
   const _DeleteAccountDialog({
     required this.auth,
     required this.deleteAccount,
-    this.googleIdTokens,
+    this.googleFlow,
   });
 
   final NeonAuthClient auth;
   final Future<int> Function() deleteAccount;
-  final GoogleIdTokenSource? googleIdTokens;
+  final GoogleSignInFlow? googleFlow;
 
   @override
   State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
@@ -94,11 +95,10 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
         _methodLoading = false;
         // A password re-entry is the deterministic path whenever the
         // account has one; social-only accounts re-auth through Google —
-        // but only when this build carries a configured token source.
+        // but only when this build carries a configured sign-in flow.
         if (providers.contains('credential')) {
           _method = _ReauthMethod.password;
-        } else if (providers.contains('google') &&
-            widget.googleIdTokens != null) {
+        } else if (providers.contains('google') && widget.googleFlow != null) {
           _method = _ReauthMethod.google;
         } else {
           _method = null;
@@ -143,14 +143,31 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
             _password.text,
           );
         case _ReauthMethod.google:
-          final token = await widget.googleIdTokens!.idToken();
-          if (token == null) {
-            // A cancelled Google sheet is user intent — back to the
+          // The redirect sign-in replaces the session wholesale — the
+          // user could pick a DIFFERENT Google account in the browser,
+          // and deleting would then hit that account. Pin the expected
+          // identity and abort on mismatch.
+          final prior = widget.auth.session;
+          final session = await widget.googleFlow!.signIn();
+          if (session == null) {
+            // User aborted the browser leg — user intent, back to the
             // confirm step with no error banner.
             setState(() => _busy = false);
             return;
           }
-          await widget.auth.signInWithGoogleIdToken(token);
+          if (prior != null && session.userId != prior.userId) {
+            // Restore the original session — the stranger's session
+            // token is dropped, never persisted anywhere.
+            await widget.auth.restoreSession(prior.sessionToken);
+            if (!mounted) return;
+            setState(() {
+              _busy = false;
+              _error =
+                  'Tài khoản Google vừa đăng nhập không khớp tài khoản '
+                  'cần xóa — đã hủy, chưa có gì thay đổi.';
+            });
+            return;
+          }
         case null:
           return;
       }

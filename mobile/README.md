@@ -26,7 +26,11 @@ All build-time defines:
 | `MF_DATA_API_URL` | release | Neon Data API (PostgREST) base URL. |
 | `MF_ARCHIVE_BACKUP` | optional | `true` enables JSON archive export — off by default until the backend RPC is callable (see `lib/app/app.dart`). |
 | `MF_NOTIFICATION_DRAFT_SUBMIT` | optional | `true` enables the notification-capture draft submit path — off until `create_inbox_candidates` is applied upstream (see `lib/data/notification_capture/`). |
-| `MF_GOOGLE_SERVER_CLIENT_ID` | optional | Web OAuth client id that makes the "Đăng nhập bằng Google" button appear (empty → hidden). Needs an Android OAuth client for package `app.moneyflow.moneyflow` (SHA-1 of debug + upload keys) in the same Google Cloud project as Neon Auth's Google web client. |
+
+Google sign-in needs no client-id define: it runs a browser loopback
+redirect through Neon Auth's shared Google provider
+(`lib/data/google_sign_in.dart`). The button shows whenever the auth
+backend is configured.
 
 ## Getting Started
 
