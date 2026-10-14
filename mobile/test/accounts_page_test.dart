@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/domain/models.dart';
@@ -292,5 +294,52 @@ void main() {
     await t.tap(find.text('Thử lại'));
     await t.pumpAndSettle();
     expect(loads, 2);
+  });
+  group('data freshness', () {
+    testWidgets('shows the latest data date per account', (t) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: AccountsPage(
+            loadAccounts: () async => [_cash],
+            latestActivityFor: (id) async => '2026-10-19',
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(find.textContaining('19/10/2026'), findsOneWidget);
+    });
+
+    testWidgets('says "Chưa có giao dịch" when the account has none', (
+      t,
+    ) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: AccountsPage(
+            loadAccounts: () async => [_cash],
+            latestActivityFor: (id) async => null,
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(find.textContaining('Chưa có giao dịch'), findsOneWidget);
+    });
+
+    testWidgets('omits the freshness line while it is still loading', (
+      t,
+    ) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: AccountsPage(
+            loadAccounts: () async => [_cash],
+            // A completer that never completes — no pending timer left
+            // for the test binding to trip on at teardown.
+            latestActivityFor: (id) => Completer<String?>().future,
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(find.textContaining('Dữ liệu'), findsNothing);
+      expect(find.textContaining('Chưa có giao dịch'), findsNothing);
+    });
   });
 }

@@ -1612,6 +1612,15 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
                   )
                   .then((_) => _reloadTabs()),
               onOpen: (a) => _openAccountRegister(context, a),
+              // Newest-first page ⇒ row 0 is the account's latest data
+              // date; an empty page means the account has never seen a
+              // transaction.
+              latestActivityFor: (id) async {
+                final page = await _store.loadTransactionPage(
+                  TransactionQuery(accountId: id),
+                );
+                return page.rows.isEmpty ? null : page.rows.first.occurredOn;
+              },
             ),
           ),
         ),
@@ -1730,6 +1739,14 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
                     loadAccounts: () async => DemoStore.seedAccounts(),
                     // Read-only register over the same seeds — no create,
                     // archive, edit or delete seams in demo.
+                    latestActivityFor: (id) async {
+                      final page = await inMemoryPageLoader(
+                        DemoStore.seedTransactions(),
+                      )(TransactionQuery(accountId: id));
+                      return page.rows.isEmpty
+                          ? null
+                          : page.rows.first.occurredOn;
+                    },
                     onOpen: (a) => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => AccountRegisterPage(
