@@ -35,8 +35,11 @@ void main() {
         'Kế hoạch',
         'Báo cáo',
       ]) {
-        expect(find.text(label), findsOneWidget);
+        expect(find.byKey(ValueKey('nav:$label')), findsOneWidget);
       }
+      // Only the active destination shows its label (icon-only otherwise).
+      expect(find.text('Tổng quan'), findsOneWidget);
+      expect(find.text('Hoạt động'), findsNothing);
       // First tab renders eagerly.
       expect(find.text('dashboard-body'), findsOneWidget);
       // Unvisited tabs stay unbuilt.
@@ -47,14 +50,14 @@ void main() {
       await t.pumpWidget(_shell());
       await t.pumpAndSettle();
 
-      await t.tap(find.text('Kế hoạch'));
+      await t.tap(find.byKey(const ValueKey('nav:Kế hoạch')));
       await t.pumpAndSettle();
       expect(find.text('planning-body'), findsOneWidget);
 
       // IndexedStack keeps visited tabs mounted but offstage.
       expect(find.text('dashboard-body', skipOffstage: false), findsOneWidget);
 
-      await t.tap(find.text('Báo cáo'));
+      await t.tap(find.byKey(const ValueKey('nav:Báo cáo')));
       await t.pumpAndSettle();
       expect(find.text('reports-body'), findsOneWidget);
     });
@@ -75,7 +78,7 @@ void main() {
       );
       await t.pumpAndSettle();
 
-      await t.tap(find.text('Ghi'));
+      await t.tap(find.byKey(const ValueKey('nav:Ghi')));
       await t.pumpAndSettle();
 
       expect(captureCalls, 1);
@@ -96,7 +99,7 @@ void main() {
       );
       await t.pumpAndSettle();
 
-      await t.tap(find.text('Ghi'));
+      await t.tap(find.byKey(const ValueKey('nav:Ghi')));
       await t.pumpAndSettle();
       expect(savedCalls, 0);
     });
@@ -111,7 +114,7 @@ void main() {
       );
       await t.pumpAndSettle();
 
-      await t.tap(find.text('Ghi'));
+      await t.tap(find.byKey(const ValueKey('nav:Ghi')));
       await t.pumpAndSettle();
       // Nothing landed — reloading would only show an offline error.
       expect(savedCalls, 0);

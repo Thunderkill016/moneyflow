@@ -316,6 +316,11 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         return _restoreOffline(stored.userId);
       } on TimeoutException {
         return _restoreOffline(stored.userId);
+      } on NeonAuthException {
+        // restoreSession only throws this for a transient auth-service
+        // fault (5xx / 429 / 408 / unreadable body) — the stored session
+        // is untouched and re-validates on the next request.
+        return _restoreOffline(stored.userId);
       }
       await SessionStore.clear();
       // A dead stored session is a silent sign-out — the same unscoped
@@ -507,18 +512,19 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
 
   /// The quick-entry path — same capture route as the nav "Ghi" button,
   /// plus the tab reload the shell performs on a real save.
-  Future<void> _openQuickCapture() async {
-    final result = await _openCapture(context);
+  Future<void> _openQuickCapture([TransactionKind? kind]) async {
+    final result = await _openCapture(context, kind: kind);
     if (result != null && result != CaptureResult.queued) _reloadTabs();
   }
 
   /// Demo is read-only, but the form still opens on seed data so the
   /// one-tap entry points land somewhere honest — a save attempt
   /// answers with the same "Demo chỉ xem" notice every write path shows.
-  Future<void> _openDemoCapture() async {
+  Future<void> _openDemoCapture([TransactionKind? kind]) async {
     await Navigator.of(context).push<CaptureResult>(
       MaterialPageRoute(
         builder: (_) => CapturePage(
+          initialKind: kind,
           accounts: DemoStore.seedAccounts(),
           // The demo category store, not raw seeds — categories added
           // via the pack must show in the picker like a real save.
@@ -582,10 +588,14 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   /// Center-nav capture: loads its own accounts/categories/transactions so
   /// the form gets fresh data plus the "Mục hay dùng" ranking regardless of
   /// what the dashboard has loaded.
-  Future<CaptureResult?> _openCapture(BuildContext context) async {
+  Future<CaptureResult?> _openCapture(
+    BuildContext context, {
+    TransactionKind? kind,
+  }) async {
     final result = await Navigator.of(context).push<CaptureResult>(
       MaterialPageRoute(
         builder: (_) => _CaptureLoader(
+          initialKind: kind,
           store: _store,
           submit: _captureSubmit,
           onCreateAccount: _createAccountForCapture,
@@ -1130,6 +1140,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           tabBuilders: [
             () => DashboardPage(
               key: _dashKey,
+              onCapture: _openQuickCapture,
               loadAccounts: _store.loadAccounts,
               loadTransactions: _store.loadTransactions,
               loadBudgets: _store.loadBudgets,
@@ -1708,6 +1719,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     return HomeShell(
       tabBuilders: [
         () => DashboardPage(
+          onCapture: _openDemoCapture,
           loadAccounts: () async => DemoStore.seedAccounts(),
           loadTransactions: () async => DemoStore.seedTransactions(),
           loadBudgets: (m) async => DemoStore.seedBudgets(m),
@@ -2171,7 +2183,10 @@ class _CaptureLoader extends StatelessWidget {
     required this.store,
     required this.submit,
     this.onCreateAccount,
+    this.initialKind,
   });
+
+  final TransactionKind? initialKind;
 
   final RealStore store;
   final Future<void> Function(CaptureIntent intent) submit;
@@ -2209,6 +2224,7 @@ class _CaptureLoader extends StatelessWidget {
           );
         }
         return CapturePage(
+          initialKind: initialKind,
           accounts: snap.data![0].cast(),
           categories: snap.data![1].cast(),
           transactions: snap.data![2].cast(),

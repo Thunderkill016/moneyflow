@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'neon_config.dart';
 import 'neon_transport.dart';
@@ -160,10 +161,39 @@ class NeonAuthClient {
     );
     final res = await _call('/get-session');
     if (!res.ok) {
+      // Status only — never the token. Lets logcat show WHY a stored
+      // session stopped restoring.
+      developer.log(
+        'restoreSession -> HTTP ${res.status}',
+        name: 'moneyflow.auth',
+      );
+    }
+    // Only a definitive refusal ends the session. A 5xx / 429 / 408 is the
+    // auth service (or its scale-to-zero database) hiccuping — throwing
+    // keeps the stored token and the in-memory session so the caller can
+    // restore offline and re-validate lazily, instead of destroying a
+    // perfectly good credential.
+    if (res.status >= 500 || res.status == 408 || res.status == 429) {
+      throw NeonAuthException(res.status, 'auth service unavailable');
+    }
+    if (!res.ok) {
       _session = null;
       return null;
     }
-    final json = res.json as Map<String, dynamic>;
+    // Better Auth answers 200 with a literal `null` for an expired or
+    // unknown cookie, and a gateway can answer 200 with an HTML page —
+    // neither is a session, and neither may crash the boot.
+    final Object? decoded;
+    try {
+      decoded = res.json;
+    } on FormatException {
+      throw NeonAuthException(res.status, 'unreadable auth response');
+    }
+    if (decoded is! Map<String, dynamic>) {
+      _session = null;
+      return null;
+    }
+    final json = decoded;
     final user = json['user'] as Map<String, dynamic>?;
     final session = json['session'] as Map<String, dynamic>?;
     if (user == null || session == null) {

@@ -157,17 +157,17 @@ void main() {
   });
 
   group('SettingsPrefs', () {
-    test('theme mode defaults to system and round-trips', () async {
-      expect(await SettingsPrefs.loadThemeMode(), ThemeMode.system);
+    test('theme mode defaults to light and round-trips', () async {
+      expect(await SettingsPrefs.loadThemeMode(), ThemeMode.light);
       await SettingsPrefs.saveThemeMode(ThemeMode.dark);
       expect(await SettingsPrefs.loadThemeMode(), ThemeMode.dark);
-      await SettingsPrefs.saveThemeMode(ThemeMode.light);
-      expect(await SettingsPrefs.loadThemeMode(), ThemeMode.light);
+      await SettingsPrefs.saveThemeMode(ThemeMode.system);
+      expect(await SettingsPrefs.loadThemeMode(), ThemeMode.system);
     });
 
-    test('an unrecognised stored mode falls back to system', () async {
+    test('an unrecognised stored mode falls back to light', () async {
       SharedPreferences.setMockInitialValues({'mf_theme_mode': 'neon'});
-      expect(await SettingsPrefs.loadThemeMode(), ThemeMode.system);
+      expect(await SettingsPrefs.loadThemeMode(), ThemeMode.light);
     });
 
     test('digest time defaults to 19:00 and round-trips', () async {

@@ -26,7 +26,7 @@ class SettingsPrefs {
   /// it at startup and `saveThemeMode` keeps it in sync. A notifier (not
   /// a callback threaded through the tree) because the settings page sits
   /// several routes deep.
-  static final themeMode = ValueNotifier<ThemeMode>(ThemeMode.system);
+  static final themeMode = ValueNotifier<ThemeMode>(ThemeMode.light);
 
   /// Reads the stored mode and publishes it on [themeMode]. Anything
   /// unrecognised falls back to system — the app can never trap itself
@@ -36,7 +36,8 @@ class SettingsPrefs {
     final mode = switch (prefs.getString(_themeModeKey)) {
       'light' => ThemeMode.light,
       'dark' => ThemeMode.dark,
-      _ => ThemeMode.system,
+      'system' => ThemeMode.system,
+      _ => ThemeMode.light,
     };
     themeMode.value = mode;
     return mode;

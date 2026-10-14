@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/mf_theme.dart';
+
 import '../../data/google_sign_in.dart';
 import '../../data/neon/auth_client.dart';
 
@@ -150,16 +152,36 @@ class _LoginPageState extends State<LoginPage> {
               shrinkWrap: true,
               padding: const EdgeInsets.all(24),
               children: [
+                Center(
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: context.mf.brand,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: const Icon(
+                      Icons.account_balance_wallet_outlined,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Text(
                   'MoneyFlow',
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineMedium,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Sổ tiền của bạn',
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: context.mf.textMuted),
                 ),
                 const SizedBox(height: 28),
                 if (_signUp) ...[
@@ -198,7 +220,7 @@ class _LoginPageState extends State<LoginPage> {
                   Text(
                     _error!,
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.red.shade700),
+                    style: TextStyle(color: context.mf.expenseText),
                   ),
                   const SizedBox(height: 8),
                 ],

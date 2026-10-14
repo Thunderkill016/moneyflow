@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/mf_theme.dart';
+
 import '../../domain/budget.dart';
 import '../../domain/commitments.dart';
 import '../../domain/goal_projection.dart';
@@ -1720,32 +1722,9 @@ class _PaceBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return LayoutBuilder(
-      builder: (context, c) => Semantics(
-        label: 'Đã chi ${(ratio * 100).round()}% ngân sách',
-        child: SizedBox(
-          height: 14,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: ratio,
-                  minHeight: 6,
-                  color: color ?? scheme.primary,
-                  backgroundColor: scheme.surfaceContainerHighest,
-                ),
-              ),
-              Positioned(
-                left: (pace * c.maxWidth).clamp(0.0, c.maxWidth - 2),
-                child: Container(width: 2, height: 14, color: scheme.outline),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return Semantics(
+      label: 'Đã chi ${(ratio * 100).round()}% ngân sách',
+      child: MfTickBar(ratio: ratio, color: color, marker: pace),
     );
   }
 }
@@ -1923,11 +1902,12 @@ class _GoalTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
+        leading: const MfSquareIcon(icon: Icons.savings_outlined),
         title: Text(goal.name),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            LinearProgressIndicator(value: goal.progress.clamp(0.0, 1.0)),
+            MfTickBar(ratio: goal.progress.clamp(0.0, 1.0), height: 18),
             const SizedBox(height: 4),
             Text(
               '${formatMoney(goal.allocatedMinor)} / ${formatMoney(goal.targetMinor)} · $pct%',
@@ -1944,12 +1924,13 @@ class _GoalTile extends StatelessWidget {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            IconButton(
+            IconButton.outlined(
               icon: const Icon(Icons.add),
               tooltip: 'Nạp tiền',
               onPressed: onDeposit,
             ),
-            IconButton(
+            const SizedBox(width: 4),
+            IconButton.outlined(
               icon: const Icon(Icons.remove),
               tooltip: 'Rút tiền',
               onPressed: onWithdraw,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../domain/datetime_label.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
+import '../../theme/mf_theme.dart';
 import '../shared/empty_state.dart';
 
 /// Account list + create/archive — mirrors the web's account management
@@ -186,8 +187,12 @@ class _AccountsPageState extends State<AccountsPage> {
                         ? null
                         : () => _showForm(),
                   ),
-                for (final a in snap.data!)
-                  if (!a.isArchived) _accountTile(a),
+                for (final (i, a)
+                    in snap.data!.where((a) => !a.isArchived).indexed)
+                  _accountTile(
+                    a,
+                    fill: mfPastelFills[i % mfPastelFills.length],
+                  ),
                 if (archived.isNotEmpty) ...[
                   const SizedBox(height: 20),
                   Text(
@@ -232,17 +237,42 @@ class _AccountsPageState extends State<AccountsPage> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Widget _accountTile(AccountSummary a) {
+  static IconData _kindIcon(AccountKind k) => switch (k) {
+    AccountKind.cash => Icons.payments_outlined,
+    AccountKind.bank => Icons.account_balance_outlined,
+    AccountKind.eWallet => Icons.smartphone_outlined,
+    AccountKind.creditCard => Icons.credit_card_outlined,
+    AccountKind.savings => Icons.savings_outlined,
+  };
+
+  Widget _accountTile(AccountSummary a, {Color? fill}) {
+    // Active wallets sit on a pastel fill (the reference's wallet card);
+    // archived rows stay on the neutral card so they read as inactive.
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
+      color: fill,
       child: ListTile(
-        leading: CircleAvatar(child: Text(a.name.characters.first)),
+        leading: MfSquareIcon(
+          icon: _kindIcon(a.kind),
+          fill: fill == null
+              ? mfPastelFills.first
+              : Colors.white.withValues(alpha: 0.6),
+        ),
         title: Text(a.name),
         subtitle: Text(_subtitleFor(a)),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(formatMoney(a.balance)),
+            Text(
+              formatMoney(a.balance),
+              style: mfMoneyStyle(
+                TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: fill == null ? null : mfPastelInk,
+                ),
+              ),
+            ),
             // Archived rows get restore instead of edit — restore first,
             // then edit, like the web/categories rule.
             if (a.isArchived && widget.onArchive != null)

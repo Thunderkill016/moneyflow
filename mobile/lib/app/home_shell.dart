@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../features/capture/capture_page.dart' show CaptureResult;
+import '../theme/mf_theme.dart';
 
 /// Bottom-navigation shell — the reference-app layout: Tổng quan /
 /// Hoạt động / [Ghi] / Kế hoạch / Báo cáo, with the center destination
@@ -68,60 +69,166 @@ class _HomeShellState extends State<HomeShell> {
           ),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        // Display index: two real tabs, capture action, two real tabs.
-        selectedIndex: _tab >= 2 ? _tab + 1 : _tab,
-        onDestinationSelected: (i) {
-          if (i == 2) {
-            _capture();
-            return;
-          }
-          final tab = i > 2 ? i - 1 : i;
-          setState(() {
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: _FloatingNav(
+          selected: _tab,
+          onSelect: (tab) => setState(() {
             _tab = tab;
             _visited.add(tab);
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Tổng quan',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
-            label: 'Hoạt động',
-          ),
-          NavigationDestination(icon: _CaptureIcon(), label: 'Ghi'),
-          NavigationDestination(
-            icon: Icon(Icons.event_note_outlined),
-            selectedIcon: Icon(Icons.event_note),
-            label: 'Kế hoạch',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.bar_chart_outlined),
-            selectedIcon: Icon(Icons.bar_chart),
-            label: 'Báo cáo',
-          ),
-        ],
+          }),
+          onCapture: _capture,
+        ),
       ),
     );
   }
 }
 
-/// Filled-circle center action — visually the "big middle button" of the
-/// reference apps without breaking NavigationBar layout.
-class _CaptureIcon extends StatelessWidget {
-  const _CaptureIcon();
+class _NavItem {
+  const _NavItem(this.label, this.icon, this.selectedIcon);
+  final String label;
+  final IconData icon;
+  final IconData selectedIcon;
+}
+
+/// Floating pill navigation (Savor reference): a soft grey capsule inset
+/// from the screen edges; the active tab is a solid ink capsule showing
+/// icon + label side by side, inactive tabs are icon-only, and the capture
+/// action is a round accent button. Every destination keeps its label as
+/// a screen-reader name (and the active one as visible text).
+class _FloatingNav extends StatelessWidget {
+  const _FloatingNav({
+    required this.selected,
+    required this.onSelect,
+    required this.onCapture,
+  });
+
+  final int selected;
+  final ValueChanged<int> onSelect;
+  final VoidCallback onCapture;
+
+  static const _items = [
+    _NavItem('Tổng quan', Icons.home_outlined, Icons.home),
+    _NavItem('Hoạt động', Icons.receipt_long_outlined, Icons.receipt_long),
+    _NavItem('Kế hoạch', Icons.event_note_outlined, Icons.event_note),
+    _NavItem('Báo cáo', Icons.bar_chart_outlined, Icons.bar_chart),
+  ];
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return CircleAvatar(
-      radius: 20,
-      backgroundColor: scheme.primary,
-      child: Icon(Icons.add, color: scheme.onPrimary, size: 26),
+    final mf = context.mf;
+    final dark = scheme.brightness == Brightness.dark;
+    Widget tab(int i) {
+      final item = _items[i];
+      final active = i == selected;
+      return Semantics(
+        button: true,
+        selected: active,
+        label: item.label,
+        excludeSemantics: true,
+        child: InkWell(
+          key: ValueKey('nav:${item.label}'),
+          customBorder: const StadiumBorder(),
+          onTap: () => onSelect(i),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            height: 48,
+            padding: EdgeInsets.symmetric(horizontal: active ? 14 : 10),
+            decoration: ShapeDecoration(
+              color: active ? scheme.primary : Colors.transparent,
+              shape: const StadiumBorder(),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  active ? item.selectedIcon : item.icon,
+                  size: 22,
+                  color: active ? scheme.onPrimary : mf.textSoft,
+                ),
+                if (active) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    item.label,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onPrimary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: SizedBox(
+        width: double.infinity,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: dark ? const Color(0xFF101623) : const Color(0xFFF0F0EE),
+            borderRadius: BorderRadius.circular(36),
+            border: Border.all(color: mf.borderSubtle),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x14000000),
+                blurRadius: 24,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            // Natural-width row, centred; FittedBox only scales it down
+            // when the labels + scale factor would overflow the pill.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  tab(0),
+                  const SizedBox(width: 8),
+                  tab(1),
+                  const SizedBox(width: 8),
+                  Semantics(
+                    button: true,
+                    label: 'Ghi',
+                    excludeSemantics: true,
+                    child: InkWell(
+                      key: const ValueKey('nav:Ghi'),
+                      customBorder: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      onTap: onCapture,
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: mf.brand,
+                          // Rounded square like the reference's orange "+".
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(Icons.add, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  tab(2),
+                  const SizedBox(width: 8),
+                  tab(3),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

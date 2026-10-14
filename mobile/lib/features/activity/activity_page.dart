@@ -1123,20 +1123,43 @@ class _TxTile extends StatelessWidget {
       child: ListTile(
         leading: selecting
             ? Icon(selected ? Icons.check_circle : Icons.circle_outlined)
-            : null,
+            : MfKindIcon(tx.kind.name),
         title: Text(tx.note.isEmpty ? tx.category : tx.note),
         subtitle: Text(
-          '${tx.category} · $accountLine · ${tx.occurredOn}'
+          '${tx.category} · $accountLine'
           '${needsReview ? '\nCần xem lại' : ''}',
         ),
         isThreeLine: needsReview,
-        trailing: Text(
-          formatMoneyWithKind(tx.amount, kind),
-          style: TextStyle(color: color, fontWeight: FontWeight.w600),
+        trailing: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              formatMoneyWithKind(tx.amount, kind),
+              style: mfMoneyStyle(
+                TextStyle(color: color, fontWeight: FontWeight.w700),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              _dayLabel(tx.occurredOn),
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: context.mf.textSoft),
+            ),
+          ],
         ),
         onTap: onTap,
         onLongPress: onLongPress,
       ),
     );
   }
+}
+
+/// 'yyyy-MM-dd' → 'dd/MM/yyyy' (the reference's date format). An
+/// unexpected shape is shown as stored rather than guessed at.
+String _dayLabel(String isoDay) {
+  final p = isoDay.split('-');
+  return p.length == 3 ? '${p[2]}/${p[1]}/${p[0]}' : isoDay;
 }

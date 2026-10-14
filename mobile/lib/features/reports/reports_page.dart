@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/export_files.dart';
+import '../../theme/mf_theme.dart';
 import '../../domain/budget.dart';
 import '../../domain/export_csv.dart';
 import '../../domain/money.dart';
@@ -866,11 +867,17 @@ class _TotalCard extends StatelessWidget {
           children: [
             Text(label, style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 6),
-            Text(
-              formatMoney(amount),
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                formatMoney(amount),
+                style: mfMoneyStyle(
+                  Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                ),
+              ),
             ),
           ],
         ),
@@ -958,12 +965,12 @@ class _NetWorthSection extends StatelessWidget {
                 else ...[
                   const SizedBox(height: 8),
                   SizedBox(
-                    height: 56,
+                    height: 96,
                     width: double.infinity,
                     child: CustomPaint(
                       painter: _NetWorthPainter(
                         points: points,
-                        lineColor: theme.colorScheme.primary,
+                        lineColor: context.mf.brand,
                         zeroColor: theme.colorScheme.outlineVariant,
                         currentColor: theme.colorScheme.tertiary,
                       ),
@@ -1058,6 +1065,24 @@ class _NetWorthPainter extends CustomPainter {
     for (var i = 1; i < points.length; i++) {
       path.lineTo(dx * i, yFor(points[i].balanceMinor));
     }
+    // Soft area under the line, fading to transparent — the reference's
+    // "Market" chart.
+    final area = Path.from(path)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(
+      area,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            lineColor.withValues(alpha: 0.32),
+            lineColor.withValues(alpha: 0),
+          ],
+        ).createShader(Offset.zero & size),
+    );
     canvas.drawPath(path, paint);
 
     for (var i = 0; i < points.length; i++) {

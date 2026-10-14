@@ -50,6 +50,7 @@ class DashboardPage extends StatefulWidget {
     this.loadSuggestionTransactions,
     this.onCreateCommitment,
     this.onCreateAccount,
+    this.onCapture,
     this.modeLabel,
     this.menuItems = const [],
     this.readSnapshot,
@@ -105,6 +106,11 @@ class DashboardPage extends StatefulWidget {
   /// seeded accounts never reach the intro anyway) drops the button —
   /// no dead affordance pointing at a write the surface cannot do.
   final Future<void> Function()? onCreateAccount;
+
+  /// Opens the same capture route as the nav "Ghi" button, optionally on a
+  /// kind — drives the quick-action tiles under the balance. Null hides
+  /// the tiles.
+  final Future<void> Function([TransactionKind? kind])? onCapture;
   final String? modeLabel;
   final List<DashboardMenuItem> menuItems;
 
@@ -324,13 +330,25 @@ class DashboardPageState extends State<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
         title: const Text('MoneyFlow'),
         actions: [
           if (widget.modeLabel != null) Center(child: Text(widget.modeLabel!)),
           if (widget.menuItems.isNotEmpty)
             PopupMenuButton<int>(
-              icon: const Icon(Icons.more_vert),
+              // The reference's white rounded-square header button.
+              icon: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: context.mf.borderSubtle),
+                ),
+                child: const Icon(Icons.more_vert),
+              ),
               tooltip: 'Mở menu',
               onSelected: (i) => widget.menuItems[i].onTap(),
               itemBuilder: (ctx) => [
@@ -359,110 +377,124 @@ class DashboardPageState extends State<DashboardPage> {
           const SizedBox(width: 8),
         ],
       ),
-      body: FutureBuilder(
-        future: _data,
-        builder: (context, snap) {
-          if (snap.hasError) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('Không tải được dữ liệu'),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Text(
-                      'Kiểm tra kết nối mạng rồi thử lại.',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall,
+      body: DecoratedBox(
+        // Soft peach glow at the top fading into the cream canvas — the
+        // reference's backdrop. Dark mode keeps the flat ink canvas.
+        decoration: BoxDecoration(
+          gradient: Theme.of(context).brightness == Brightness.dark
+              ? null
+              : const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFFF7E9D7), Color(0xFFF6F7F0)],
+                  stops: [0, 0.4],
+                ),
+        ),
+        child: FutureBuilder(
+          future: _data,
+          builder: (context, snap) {
+            if (snap.hasError) {
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Không tải được dữ liệu'),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Text(
+                        'Kiểm tra kết nối mạng rồi thử lại.',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton(
-                    onPressed: _refresh,
-                    child: const Text('Thử lại'),
-                  ),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: _refresh,
+                      child: const Text('Thử lại'),
+                    ),
+                  ],
+                ),
+              );
+            }
+            if (!snap.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final accounts = snap.data!.accounts;
+            final txs = snap.data!.txs;
+            final savedAtMs = snap.data!.savedAtMs;
+            // Only VND balances fold into the đồng total — a foreign-
+            // currency account created on the web would otherwise corrupt
+            // it (the mobile create path is VND-only).
+            final total = _vndTotal(accounts);
+            final budgets = snap.data!.budgets;
+            final commitments = snap.data!.commitments;
+            final suggestions = snap.data!.suggestions
+                .where((s) => !_hiddenSuggestions.contains(s.key))
+                .toList();
+            return RefreshIndicator(
+              onRefresh: _refresh,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                // 22px side margin — measured from the Savor reference
+                // (≈5.6% of the screen width).
+                padding: const EdgeInsets.fromLTRB(22, 16, 22, 16),
+                children: [
+                  if (savedAtMs != null) _StaleBanner(savedAtMs: savedAtMs),
+                  _TotalCard(total: total),
+                  if (widget.onCapture != null) ...[
+                    const SizedBox(height: 12),
+                    _QuickActions(onCapture: widget.onCapture!),
+                  ],
+                  if (budgets != null && commitments != null) ...[
+                    const SizedBox(height: 12),
+                    _SafeSpendCard(
+                      spend: safeDailySpend(
+                        budgets: budgets,
+                        commitments: commitments,
+                        today: DateTime.now(),
+                      ),
+                    ),
+                  ],
+                  for (final s in suggestions) ...[
+                    const SizedBox(height: 12),
+                    _RecurringSuggestionCard(
+                      suggestion: s,
+                      onCreate: widget.onCreateCommitment == null
+                          ? null
+                          : () => _createCommitment(s),
+                      onDismiss: () => _dismissSuggestion(s),
+                    ),
+                  ],
+                  if (accounts.isEmpty && txs.isEmpty)
+                    _EmptyLedgerIntro(
+                      onCreateAccount: widget.onCreateAccount == null
+                          ? null
+                          : _createAccountFromEmpty,
+                    )
+                  else ...[
+                    const SizedBox(height: 20),
+                    Text('Tài khoản', style: _sectionTitle(context)),
+                    const SizedBox(height: 8),
+                    _AccountStrip(accounts: accounts),
+                    const SizedBox(height: 20),
+                    Text('Hoạt động gần đây', style: _sectionTitle(context)),
+                    const SizedBox(height: 8),
+                    if (txs.isEmpty)
+                      const EmptyStateCard(
+                        icon: Icons.receipt_long_outlined,
+                        title: 'Chưa có giao dịch nào',
+                        message:
+                            'Bấm "Ghi" ở thanh dưới để thêm khoản '
+                            'đầu tiên của bạn.',
+                      ),
+                    for (final t in txs) _TransactionTile(tx: t),
+                  ],
                 ],
               ),
             );
-          }
-          if (!snap.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final accounts = snap.data!.accounts;
-          final txs = snap.data!.txs;
-          final savedAtMs = snap.data!.savedAtMs;
-          // Only VND balances fold into the đồng total — a foreign-
-          // currency account created on the web would otherwise corrupt
-          // it (the mobile create path is VND-only).
-          final total = _vndTotal(accounts);
-          final budgets = snap.data!.budgets;
-          final commitments = snap.data!.commitments;
-          final suggestions = snap.data!.suggestions
-              .where((s) => !_hiddenSuggestions.contains(s.key))
-              .toList();
-          return RefreshIndicator(
-            onRefresh: _refresh,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              children: [
-                if (savedAtMs != null) _StaleBanner(savedAtMs: savedAtMs),
-                _TotalCard(total: total),
-                if (budgets != null && commitments != null) ...[
-                  const SizedBox(height: 12),
-                  _SafeSpendCard(
-                    spend: safeDailySpend(
-                      budgets: budgets,
-                      commitments: commitments,
-                      today: DateTime.now(),
-                    ),
-                  ),
-                ],
-                for (final s in suggestions) ...[
-                  const SizedBox(height: 12),
-                  _RecurringSuggestionCard(
-                    suggestion: s,
-                    onCreate: widget.onCreateCommitment == null
-                        ? null
-                        : () => _createCommitment(s),
-                    onDismiss: () => _dismissSuggestion(s),
-                  ),
-                ],
-                if (accounts.isEmpty && txs.isEmpty)
-                  _EmptyLedgerIntro(
-                    onCreateAccount: widget.onCreateAccount == null
-                        ? null
-                        : _createAccountFromEmpty,
-                  )
-                else ...[
-                  const SizedBox(height: 20),
-                  Text(
-                    'Tài khoản',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  for (final a in accounts) _AccountTile(account: a),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Hoạt động gần đây',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  if (txs.isEmpty)
-                    const EmptyStateCard(
-                      icon: Icons.receipt_long_outlined,
-                      title: 'Chưa có giao dịch nào',
-                      message:
-                          'Bấm "Ghi" ở thanh dưới để thêm khoản '
-                          'đầu tiên của bạn.',
-                    ),
-                  for (final t in txs) _TransactionTile(tx: t),
-                ],
-              ],
-            ),
-          );
-        },
+          },
+        ),
       ),
     );
   }
@@ -599,62 +631,109 @@ Widget _countUpMoney(BuildContext context, int amount, TextStyle? style) {
   );
 }
 
+/// Three tiles under the balance — Chi / Thu / Chuyển — each opening the
+/// capture form already on that kind (the reference's quick-action row).
+/// No money moves here: every tile only opens the form for review.
+class _QuickActions extends StatelessWidget {
+  const _QuickActions({required this.onCapture});
+
+  final Future<void> Function([TransactionKind? kind]) onCapture;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget tile(String label, TransactionKind kind) => Expanded(
+      child: Semantics(
+        button: true,
+        label: label,
+        excludeSemantics: true,
+        child: Card(
+          child: InkWell(
+            key: ValueKey('quick:${kind.name}'),
+            borderRadius: BorderRadius.circular(24),
+            onTap: () => onCapture(kind),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Column(
+                children: [
+                  MfKindIcon(kind.name),
+                  const SizedBox(height: 8),
+                  Text(
+                    label,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    return Row(
+      children: [
+        tile('Ghi chi', TransactionKind.expense),
+        const SizedBox(width: 10),
+        tile('Ghi thu', TransactionKind.income),
+        const SizedBox(width: 10),
+        tile('Chuyển', TransactionKind.transfer),
+      ],
+    );
+  }
+}
+
+/// Section heading — 19px bold, measured against the reference's
+/// "Team Members" (cap height ≈ 13px at a 390px-wide frame).
+TextStyle? _sectionTitle(BuildContext context) => Theme.of(
+  context,
+).textTheme.titleLarge?.copyWith(fontSize: 19, fontWeight: FontWeight.w700);
+
 class _TotalCard extends StatelessWidget {
   const _TotalCard({required this.total});
   final int total;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                // The one brand moment on the dashboard — identity tint
-                // on the hero's label, never on money itself.
-                CircleAvatar(
-                  radius: 14,
-                  backgroundColor: context.mf.brandSubtle,
-                  child: Icon(
-                    Icons.account_balance_wallet_outlined,
-                    size: 16,
-                    color: context.mf.brandText,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Tổng số dư',
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
-              ],
+    // No card: the oversized figure sits straight on the canvas — the
+    // single scan target, with a quiet label above it.
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Tổng số dư',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
             ),
-            const SizedBox(height: 8),
-            // The spoken label is the real figure — the animated glyph
-            // string ("45.000 ₫") would read digit-by-digit otherwise.
-            // FittedBox keeps one line at 2x text scale instead of
-            // wrapping the figure mid-number.
-            Semantics(
-              label: 'Tổng số dư ${spokenVnd(total)}',
-              excludeSemantics: true,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: _countUpMoney(
-                  context,
-                  total,
-                  mfMoneyStyle(
-                    Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+          ),
+          // Reference gap between the heading row and the figure is ≈36px
+          // (it holds the period chips there); 16px keeps it airy.
+          const SizedBox(height: 16),
+          // The spoken label is the real figure — the animated glyph
+          // string ("45.000 ₫") would read digit-by-digit otherwise.
+          // FittedBox keeps one line at 2x text scale instead of
+          // wrapping the figure mid-number.
+          Semantics(
+            label: 'Tổng số dư ${spokenVnd(total)}',
+            excludeSemantics: true,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: _countUpMoney(
+                context,
+                total,
+                mfMoneyStyle(
+                  theme.textTheme.displayMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
                   ),
+                  hero: true,
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -800,19 +879,83 @@ class _RecurringSuggestionCard extends StatelessWidget {
   }
 }
 
-class _AccountTile extends StatelessWidget {
-  const _AccountTile({required this.account});
-  final AccountSummary account;
+/// Horizontal strip of wallet cards — every card is built up front (a
+/// few wallets at most), so nothing is lazily offscreen.
+class _AccountStrip extends StatelessWidget {
+  const _AccountStrip({required this.accounts});
+  final List<AccountSummary> accounts;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: CircleAvatar(child: Text(account.name.characters.first)),
-        title: Text(account.name),
-        subtitle: Text(accountKindLabel(account.kind)),
-        trailing: Text(formatMoney(account.balance), style: mfMoneyStyle(null)),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      clipBehavior: Clip.none,
+      child: Row(
+        children: [
+          for (var i = 0; i < accounts.length; i++) ...[
+            if (i > 0) const SizedBox(width: 12),
+            _AccountCard(
+              account: accounts[i],
+              fill: mfPastelFills[i % mfPastelFills.length],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _AccountCard extends StatelessWidget {
+  const _AccountCard({required this.account, required this.fill});
+  final AccountSummary account;
+  final Color fill;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: 220,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              accountKindLabel(account.kind),
+              style: theme.textTheme.labelSmall?.copyWith(color: mfPastelInk),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            account.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium?.copyWith(color: mfPastelInk),
+          ),
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              formatMoney(account.balance),
+              style: mfMoneyStyle(
+                theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: mfPastelInk,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -844,6 +987,7 @@ class _TransactionTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
+        leading: MfKindIcon(tx.kind.name),
         title: Text(tx.note.isEmpty ? tx.category : tx.note),
         subtitle: Text('${tx.category} · $accountLine · ${tx.occurredOn}'),
         trailing: Text(

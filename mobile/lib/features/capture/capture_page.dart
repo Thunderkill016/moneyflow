@@ -90,6 +90,7 @@ class CapturePage extends StatefulWidget {
     this.transactions = const [],
     this.editing,
     this.onCreateAccount,
+    this.initialKind,
   });
 
   final List<AccountSummary> accounts;
@@ -108,6 +109,10 @@ class CapturePage extends StatefulWidget {
   /// Shared-text extraction applied to the form on open. The user still
   /// reviews and submits manually — a share never posts a transaction.
   final SharedTextPrefill? prefill;
+
+  /// Opens the form on this kind (Chi / Thu / Chuyển) — the dashboard's
+  /// quick-action tiles. A prefill's own kind still wins.
+  final TransactionKind? initialKind;
 
   /// Recent transactions — ranked into the "Mục hay dùng" category row.
   /// Empty for share-receive opens (no feed loaded yet).
@@ -224,6 +229,7 @@ class _CapturePageState extends State<CapturePage> {
       _date = DateTime.tryParse(editing.occurredOn) ?? DateTime.now();
       return; // an edited row is the strongest prefill — skip the rest
     }
+    if (widget.initialKind != null) _kind = widget.initialKind!;
     final p = widget.prefill;
     if (p != null) {
       if (p.kind != null) _kind = p.kind!;

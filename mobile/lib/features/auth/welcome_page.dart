@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../theme/mf_theme.dart';
+
 /// First-run flag — device-level like `mf_biometric_enabled`: it survives
 /// sign-out (the user already saw the welcome on THIS device) and is
 /// swept by the full local-data wipe (`mf_` prefix).
@@ -16,130 +18,257 @@ class WelcomePrefs {
       (await SharedPreferences.getInstance()).setBool(seenKey, true);
 }
 
-/// Brand identity tint (brand-500) for the first-run welcome — the one
-/// place the bright identity color leads rather than the deeper action
-/// blue used through the signed-in app.
-const _brandColor = Color(0xFF0EA5E9);
-
-/// First-run welcome — a dark brand surface ahead of the login gate.
-/// "Bắt đầu" continues to sign-in; "Xem demo" enters the read-only demo
-/// through the same seam the login screen uses. Both choices mark the
-/// flag, so the screen is first-run-only.
+/// First-run welcome — cream canvas, a flat shape composition, one big
+/// headline with a single orange emphasis (the "without the noise" tone)
+/// and a black pill CTA. "Bắt đầu" continues to sign-in; "Xem demo"
+/// enters the read-only demo through the same seam the login screen
+/// uses. Both choices mark the flag, so the screen is first-run-only.
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key, required this.onStart, required this.onDemo});
 
   final VoidCallback onStart;
   final VoidCallback onDemo;
 
-  static const _bullets = [
-    'Ghi nhanh thu chi — vài giây cho mỗi khoản',
-    'Xem lại tiền vào, tiền ra theo tháng',
-    'Đặt ngân sách và lên kế hoạch trước',
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: _brandColor,
-        brightness: Brightness.dark,
-      ),
+    final theme = Theme.of(context);
+    final mf = context.mf;
+    final headline = theme.textTheme.headlineMedium?.copyWith(
+      fontWeight: FontWeight.w800,
+      height: 1.15,
+      letterSpacing: -0.5,
     );
-    return Theme(
-      data: theme,
-      child: Scaffold(
-        backgroundColor: theme.colorScheme.surface,
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Spacer(),
-                _Entrance(
-                  order: 0,
-                  child: Center(
-                    child: CircleAvatar(
-                      radius: 36,
-                      backgroundColor: _brandColor.withValues(alpha: 0.16),
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _Entrance(
+                order: 0,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: mf.brand,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: const Icon(
                         Icons.account_balance_wallet_outlined,
-                        size: 36,
-                        color: _brandColor,
+                        size: 20,
+                        color: Colors.white,
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                _Entrance(
-                  order: 1,
-                  child: Text(
-                    'MoneyFlow',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                _Entrance(
-                  order: 2,
-                  child: Text(
-                    'Sổ tiền của bạn',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-                for (var i = 0; i < _bullets.length; i++)
-                  _Entrance(
-                    order: 3 + i,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.check_circle_outline,
-                            size: 20,
-                            color: _brandColor,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              _bullets[i],
-                              style: theme.textTheme.bodyLarge,
-                            ),
-                          ),
-                        ],
+                    const SizedBox(width: 10),
+                    Text(
+                      'MoneyFlow',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              const _Entrance(order: 1, child: _ShapeComposition()),
+              const Spacer(),
+              _Entrance(
+                order: 2,
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      const TextSpan(text: 'Quản lý tiền gọn gàng, '),
+                      TextSpan(
+                        text: 'không ồn ào',
+                        style: TextStyle(
+                          color: mf.brand,
+                          decoration: TextDecoration.underline,
+                          decorationColor: mf.brand,
+                          decorationThickness: 2,
+                        ),
+                      ),
+                    ],
                   ),
-                const Spacer(),
-                _Entrance(
-                  order: 6,
-                  child: FilledButton(
-                    onPressed: onStart,
-                    child: const Text('Bắt đầu'),
+                  textAlign: TextAlign.center,
+                  style: headline,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _Entrance(
+                order: 3,
+                child: Text(
+                  'Ghi nhanh thu chi, xem lại theo tháng và lên '
+                  'kế hoạch trước — một luồng gọn cho cả ví và ngân sách.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: mf.textMuted,
                   ),
                 ),
-                const SizedBox(height: 8),
-                _Entrance(
-                  order: 7,
-                  child: OutlinedButton(
-                    onPressed: onDemo,
-                    child: const Text('Xem demo'),
+              ),
+              const SizedBox(height: 28),
+              _Entrance(
+                order: 4,
+                child: FilledButton(
+                  onPressed: onStart,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(56),
+                    shape: const StadiumBorder(),
                   ),
+                  child: const Text('Bắt đầu'),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 4),
+              _Entrance(
+                order: 5,
+                child: TextButton(
+                  onPressed: onDemo,
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    foregroundColor: mf.textMuted,
+                  ),
+                  child: const Text('Xem demo'),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+}
+
+/// Flat piggy-bank illustration drawn in code (no asset to ship): an
+/// accent-orange pig with a coin dropping into its slot, pastel blobs and
+/// two sparkles — the reference's "Savor" onboarding picture.
+class _ShapeComposition extends StatelessWidget {
+  const _ShapeComposition();
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+    child: SizedBox(
+      height: 240,
+      child: AspectRatio(
+        aspectRatio: 260 / 230,
+        child: CustomPaint(painter: _PiggyPainter(context.mf.brand)),
+      ),
+    ),
+  );
+}
+
+class _PiggyPainter extends CustomPainter {
+  _PiggyPainter(this.body);
+
+  final Color body;
+
+  static const _ink = Color(0xFF1C1C1C);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.scale(size.width / 260, size.height / 230);
+    Paint fill(Color c) => Paint()..color = c;
+    final dark = Color.lerp(body, Colors.black, 0.22)!;
+    final light = Color.lerp(body, Colors.white, 0.35)!;
+
+    // Soft pastel blobs + ground shadow.
+    canvas.drawCircle(const Offset(52, 150), 40, fill(const Color(0xFFB7DD95)));
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(188, 128, 52, 64),
+        const Radius.circular(18),
+      ),
+      fill(const Color(0xFFD5CCF3)),
+    );
+    canvas.drawOval(
+      const Rect.fromLTWH(40, 196, 190, 20),
+      fill(const Color(0x1A000000)),
+    );
+
+    // Legs, tail, body, ear, snout.
+    for (final x in [78.0, 148.0]) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(x, 160, 26, 40),
+          const Radius.circular(10),
+        ),
+        fill(dark),
+      );
+    }
+    final tail = Path()
+      ..moveTo(40, 112)
+      ..cubicTo(14, 104, 18, 80, 38, 84)
+      ..cubicTo(50, 86, 44, 100, 34, 96);
+    canvas.drawPath(
+      tail,
+      Paint()
+        ..color = dark
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 6
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.drawOval(const Rect.fromLTWH(34, 66, 176, 130), fill(body));
+    final ear = Path()
+      ..moveTo(150, 80)
+      ..lineTo(176, 56)
+      ..lineTo(184, 92)
+      ..close();
+    canvas.drawPath(ear, fill(dark));
+    canvas.drawOval(const Rect.fromLTWH(184, 96, 44, 54), fill(light));
+    canvas.drawOval(const Rect.fromLTWH(198, 114, 6, 12), fill(_ink));
+    canvas.drawOval(const Rect.fromLTWH(212, 114, 6, 12), fill(_ink));
+    canvas.drawCircle(const Offset(176, 104), 5.5, fill(_ink));
+
+    // Coin slot + falling coin.
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(96, 70, 54, 9),
+        const Radius.circular(5),
+      ),
+      fill(_ink),
+    );
+    canvas.drawCircle(const Offset(122, 34), 24, fill(const Color(0xFFEFE17C)));
+    canvas.drawCircle(
+      const Offset(122, 34),
+      24,
+      Paint()
+        ..color = _ink
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3,
+    );
+    final tp = TextPainter(
+      text: const TextSpan(
+        text: '₫',
+        style: TextStyle(
+          color: _ink,
+          fontSize: 26,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, Offset(122 - tp.width / 2, 34 - tp.height / 2));
+
+    // Sparkles.
+    void spark(Offset c, double r) {
+      final path = Path()
+        ..moveTo(c.dx, c.dy - r)
+        ..quadraticBezierTo(c.dx, c.dy, c.dx + r, c.dy)
+        ..quadraticBezierTo(c.dx, c.dy, c.dx, c.dy + r)
+        ..quadraticBezierTo(c.dx, c.dy, c.dx - r, c.dy)
+        ..quadraticBezierTo(c.dx, c.dy, c.dx, c.dy - r);
+      canvas.drawPath(path, fill(_ink));
+    }
+
+    spark(const Offset(214, 40), 16);
+    spark(const Offset(48, 54), 10);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_PiggyPainter old) => old.body != body;
 }
 
 /// Staggered fade + rise-in for the welcome blocks — one implicit tween
