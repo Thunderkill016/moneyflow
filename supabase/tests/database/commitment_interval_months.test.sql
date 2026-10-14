@@ -108,32 +108,41 @@ select throws_ok(
   'explicit null interval is rejected'
 );
 
--- 6: the update path changes the cadence on the same row.
+-- 6: the update path changes the cadence on the same row. The upsert and
+-- the read must be separate statements — an outer SELECT of the same
+-- statement reads the tuple snapshot taken before the function's update.
+select public.upsert_recurring_commitment(
+  current_setting('moneyflow_test.ic_monthly')::uuid,
+  'Quarterly now', 500000, 5,
+  current_setting('moneyflow_test.ic_account')::uuid,
+  current_setting('moneyflow_test.ic_category')::uuid,
+  null, 3
+);
 select is(
-  (select interval_months from public.recurring_commitments where id =
-   public.upsert_recurring_commitment(
-     current_setting('moneyflow_test.ic_monthly')::uuid,
-     'Quarterly now', 500000, 5,
-     current_setting('moneyflow_test.ic_account')::uuid,
-     current_setting('moneyflow_test.ic_category')::uuid,
-     null, 3
-   )),
+  (select interval_months from public.recurring_commitments
+   where id = current_setting('moneyflow_test.ic_monthly')::uuid),
   3,
   'update path stores the new cadence'
 );
 
 -- 7: compatibility — a 7-positional-arg call (with expected_updated_at, no
 -- interval) resolves through the default and keeps the monthly cadence.
+select set_config(
+  'moneyflow_test.ic_updated_at',
+  (select updated_at::text from public.recurring_commitments
+   where id = current_setting('moneyflow_test.ic_monthly')::uuid),
+  true
+);
+select public.upsert_recurring_commitment(
+  current_setting('moneyflow_test.ic_monthly')::uuid,
+  'Back to monthly', 500000, 5,
+  current_setting('moneyflow_test.ic_account')::uuid,
+  current_setting('moneyflow_test.ic_category')::uuid,
+  current_setting('moneyflow_test.ic_updated_at')::timestamptz
+);
 select is(
-  (select interval_months from public.recurring_commitments where id =
-   public.upsert_recurring_commitment(
-     current_setting('moneyflow_test.ic_monthly')::uuid,
-     'Back to monthly', 500000, 5,
-     current_setting('moneyflow_test.ic_account')::uuid,
-     current_setting('moneyflow_test.ic_category')::uuid,
-     (select updated_at from public.recurring_commitments
-      where id = current_setting('moneyflow_test.ic_monthly')::uuid)
-   )),
+  (select interval_months from public.recurring_commitments
+   where id = current_setting('moneyflow_test.ic_monthly')::uuid),
   1,
   '7-arg callers keep working and default to monthly'
 );

@@ -1,4 +1,5 @@
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.application")
@@ -26,6 +27,7 @@ val allowDebugRelease =
         .orElse(providers.environmentVariable("MF_ALLOW_DEBUG_RELEASE"))
         .map { it.equals("true", ignoreCase = true) }
         .orElse(false)
+        .get()
 
 // The requested invocation touches release artifacts — `build`/`assemble`
 // alone run every variant, so they count too.
@@ -64,10 +66,6 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
-    }
-
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "app.moneyflow.moneyflow"
@@ -102,6 +100,14 @@ android {
                     signingConfigs.getByName("debug")
                 }
         }
+    }
+}
+
+// compilerOptions DSL — kotlinOptions.jvmTarget is a hard deprecation in
+// Kotlin Gradle Plugin 2.x (fails script compilation on CI).
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
