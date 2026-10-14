@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- One-tap capture entry points — launcher shortcut + home widget. -->
+    <string name="shortcut_capture_label">Ghi nhanh</string>
+    <string name="shortcut_capture_disabled">Ghi nhanh không khả dụng</string>
+    <string name="widget_capture_button">＋ Ghi</string>
+    <string name="widget_capture_label">MoneyFlow — số dư</string>
+    <string name="widget_capture_description">Số dư và chi được hôm nay từ lần mở gần nhất — chạm để mở hoặc ghi nhanh</string>
+    <!-- Last-known-balance block — the provider overwrites these via
+         setTextViewText; the literals below are also the no-data state. -->
+    <string name="widget_balance_label">Tổng số dư</string>
+    <string name="widget_safespend_label">Chi được hôm nay</string>
+    <string name="widget_no_value">—</string>
+    <string name="widget_open_app">Chạm để mở MoneyFlow</string>
+</resources>

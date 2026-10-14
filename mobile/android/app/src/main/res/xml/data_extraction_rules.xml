@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ (API 31+) backup/transfer rules.
+
+     Everything the app stores on-device lives in shared_preferences: the
+     Better Auth session token (neon.session_token) encrypted inside
+     flutter_secure_storage's files, its plaintext pre-migration copy in
+     the legacy prefs file, the offline dashboard snapshot, queued
+     captures and local opt-ins. None of it may ride Auto Backup or
+     device-to-device transfer into a cloud a credential was never meant
+     to reach — a restored phone re-authenticates and re-pulls from the
+     server, and losing the local cache is harmless. The secure-storage
+     files are excluded too because their KeyStore-wrapped keys are
+     undecryptable anywhere else (a restored copy only causes unwrap
+     crashes). Backup itself stays enabled so harmless OS-level state
+     still restores.
+
+     mf_notif_pending.xml holds raw bank-notification text parked
+     while Dart was detached — financial content bound to one
+     account that must never ride backup or transfer. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="FlutterSharedPreferences.xml"/>
+        <exclude domain="sharedpref" path="FlutterSecureStorage.xml"/>
+        <exclude domain="sharedpref" path="FlutterSecureKeyStorage.xml"/>
+        <exclude domain="sharedpref" path="FlutterSecureStorageConfiguration:FlutterSecureStorage.xml"/>
+        <exclude domain="sharedpref" path="mf_notif_pending.xml"/>
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="FlutterSharedPreferences.xml"/>
+        <exclude domain="sharedpref" path="FlutterSecureStorage.xml"/>
+        <exclude domain="sharedpref" path="FlutterSecureKeyStorage.xml"/>
+        <exclude domain="sharedpref" path="FlutterSecureStorageConfiguration:FlutterSecureStorage.xml"/>
+        <exclude domain="sharedpref" path="mf_notif_pending.xml"/>
+    </device-transfer>
+</data-extraction-rules>

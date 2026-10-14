@@ -46,6 +46,7 @@ jobs:
       browser_smoke: ${{ steps.classify.outputs.browser_smoke }}
       ui_audit: ${{ steps.classify.outputs.ui_audit }}
       codeql: ${{ steps.classify.outputs.codeql }}
+      mobile: ${{ steps.classify.outputs.mobile }}
       reason: ${{ steps.classify.outputs.reason }}
     steps:
       - name: Checkout
@@ -80,6 +81,7 @@ jobs:
           BROWSER_SMOKE: ${{ steps.classify.outputs.browser_smoke }}
           UI_AUDIT: ${{ steps.classify.outputs.ui_audit }}
           CODEQL: ${{ steps.classify.outputs.codeql }}
+          MOBILE: ${{ steps.classify.outputs.mobile }}
         run: |
           {
             echo "## CI selection"
@@ -91,6 +93,7 @@ jobs:
             echo "- Browser smoke: $BROWSER_SMOKE"
             echo "- UI audit: $UI_AUDIT"
             echo "- CodeQL: $CODEQL"
+            echo "- Mobile: $MOBILE"
           } >> "$GITHUB_STEP_SUMMARY"
 
   verify_policy:
@@ -236,6 +239,94 @@ jobs:
       # time for the same answer). This reuses the build that already ran.
       - name: Presentation ownership (code → CSS)
         run: npm run check:code-css-ownership
+
+  verify_mobile:
+    name: Verify Flutter mobile
+    if: needs.classify.outputs.mobile == 'true'
+    needs: classify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # mobile/.metadata pins the toolchain by git revision. Resolve it to the
+      # matching published archive instead of a floating channel alias, then
+      # assert the installed SDK reports that exact revision back.
+      - name: Resolve the pinned Flutter SDK
+        id: flutter-sdk
+        shell: bash
+        run: |
+          set -euo pipefail
+          REVISION="$(sed -n 's/^  revision: "\([0-9a-f]*\)"$/\1/p' mobile/.metadata | head -n 1)"
+          if [[ -z "$REVISION" ]]; then
+            echo "::error::mobile/.metadata does not pin a Flutter revision"
+            exit 1
+          fi
+          curl -fsSL \
+            https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json \
+            -o /tmp/flutter-releases.json
+          SDK_URL="$(FLUTTER_REVISION="$REVISION" node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const manifest = JSON.parse(readFileSync("/tmp/flutter-releases.json", "utf8"));
+            const release = manifest.releases.find(
+              (r) => r.hash === process.env.FLUTTER_REVISION && r.channel === "stable",
+            );
+            if (!release) {
+              console.error(`No stable Linux release matches pinned revision ${process.env.FLUTTER_REVISION}`);
+              process.exit(1);
+            }
+            console.log(`${manifest.base_url}/${release.archive}`);
+          ')"
+          echo "sdk_url=$SDK_URL" >> "$GITHUB_OUTPUT"
+          echo "revision=$REVISION" >> "$GITHUB_OUTPUT"
+      - name: Install Flutter SDK
+        shell: bash
+        run: |
+          curl -fsSL "${{ steps.flutter-sdk.outputs.sdk_url }}" -o /tmp/flutter-sdk.tar.xz
+          mkdir -p "$RUNNER_TEMP/flutter-sdk"
+          tar -xJf /tmp/flutter-sdk.tar.xz -C "$RUNNER_TEMP/flutter-sdk"
+          echo "$RUNNER_TEMP/flutter-sdk/flutter/bin" >> "$GITHUB_PATH"
+      - name: Assert the toolchain matches the pinned revision
+        shell: bash
+        run: |
+          flutter --version
+          flutter --version --machine > /tmp/flutter-version.json
+          EXPECTED="${{ steps.flutter-sdk.outputs.revision }}" \
+            node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const actual = JSON.parse(readFileSync("/tmp/flutter-version.json", "utf8")).frameworkRevision;
+            if (actual !== process.env.EXPECTED) {
+              console.error(`Flutter revision ${actual} does not match pinned ${process.env.EXPECTED}`);
+              process.exit(1);
+            }
+            console.log(`Flutter ${actual} matches mobile/.metadata`);
+          '
+      - name: Locked dependency resolution
+        working-directory: mobile
+        run: flutter pub get --enforce-lockfile
+      - name: Static analysis
+        working-directory: mobile
+        run: flutter analyze --no-pub
+      - name: Unit and widget tests
+        working-directory: mobile
+        run: flutter test --no-pub
+      # The debug APK exercises the Kotlin/Java compile and packaging path
+      # without release signing. Endpoints are passed explicitly at the
+      # acceptance sandbox — never production — and no secrets go into the
+      # artifact.
+      - name: Debug APK build against the acceptance sandbox
+        working-directory: mobile
+        run: |
+          flutter build apk --debug \
+            --dart-define=MF_AUTH_BASE_URL=https://ep-lively-sunset-b3xzqd47.neonauth.c-4.ap-southeast-1.aws.neon.tech/neondb/auth \
+            --dart-define=MF_DATA_API_URL=https://ep-lively-sunset-b3xzqd47.apirest.c-4.ap-southeast-1.aws.neon.tech/neondb/rest/v1
+      # Pure-JVM tests for the Kotlin notification-source allowlist, quick
+      # actions and widget snapshot contracts — no Robolectric, no device.
+      # Runs after the APK build so local.properties and the Gradle cache are
+      # already warm.
+      - name: Kotlin JVM unit tests
+        working-directory: mobile/android
+        run: ./gradlew :app:testDebugUnitTest
 
   verify:
     if: always()
@@ -463,11 +554,11 @@ jobs:
 
   e2e:
     if: always()
-    needs: [classify, verify, browser_smoke, ui_audit]
+    needs: [classify, verify, browser_smoke, ui_audit, verify_mobile]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Verify required browser shard results
+      - name: Verify required conditional shard results
         shell: bash
         env:
           VERIFY_RESULT: ${{ needs.verify.result }}
@@ -475,6 +566,8 @@ jobs:
           BROWSER_RESULT: ${{ needs.browser_smoke.result }}
           UI_AUDIT_REQUIRED: ${{ needs.classify.outputs.ui_audit }}
           UI_AUDIT_RESULT: ${{ needs.ui_audit.result }}
+          MOBILE_REQUIRED: ${{ needs.classify.outputs.mobile }}
+          MOBILE_RESULT: ${{ needs.verify_mobile.result }}
         run: |
           set -euo pipefail
 
@@ -500,3 +593,4 @@ jobs:
 
           require_selected_success "browser_smoke" "$BROWSER_REQUIRED" "$BROWSER_RESULT"
           require_selected_success "ui_audit" "$UI_AUDIT_REQUIRED" "$UI_AUDIT_RESULT"
+          require_selected_success "verify_mobile" "$MOBILE_REQUIRED" "$MOBILE_RESULT"

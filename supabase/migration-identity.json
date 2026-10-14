@@ -404,6 +404,36 @@
       "version": "20261009160000",
       "name": "20261009160000_manual_capture_replay_safety.sql",
       "hash": "32b1d15326a53fc1da72017ad9e4f4d2"
+    },
+    {
+      "version": "20261010120000",
+      "name": "20261010120000_category_and_rule_write_rpcs.sql",
+      "hash": "ac997b887fbb6abce8ef34ece2b68993"
+    },
+    {
+      "version": "20261010121000",
+      "name": "20261010121000_reader_definer_hardening.sql",
+      "hash": "87d5109b806eee9f1435c213610f4fe7"
+    },
+    {
+      "version": "20261010122000",
+      "name": "20261010122000_inbox_batch_write_rpcs.sql",
+      "hash": "40d98e7e198d67dcd5bf39fabf7b4cde"
+    },
+    {
+      "version": "20261010123000",
+      "name": "20261010123000_delete_my_account.sql",
+      "hash": "0592d671be32f5104e6c05f3845f94f8"
+    },
+    {
+      "version": "20261015090000",
+      "name": "20261015090000_commitment_interval_months.sql",
+      "hash": "707e5eec9ad0b97a93f30e6ee17d5c43"
+    },
+    {
+      "version": "20261016090000",
+      "name": "20261016090000_commitment_interval_archive.sql",
+      "hash": "6637a58230684cac0dfb49aa081441b3"
     }
   ]
 }

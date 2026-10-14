@@ -27,7 +27,13 @@ function read(rel: string): string {
 
 const accounts = [{ id: "account-1", name: "Tiền mặt", currencyCode: "VND" }];
 const categories = [
-  { id: "category-food", name: "Ăn uống", kind: "expense" as const, icon: null, color: null },
+  {
+    id: "category-food",
+    name: "Ăn uống",
+    kind: "expense" as const,
+    icon: null,
+    color: null,
+  },
 ];
 const goals: GoalOption[] = [
   { id: "goal-active", name: "Quỹ khẩn cấp", isArchived: false },
@@ -54,7 +60,9 @@ function taggedRow(overrides: Partial<Transaction> = {}): Transaction {
 }
 
 test("migration keeps the tag annotation-only and tenant-safe", () => {
-  const sql = read("supabase/migrations/20260924120000_transaction_goal_linkage.sql");
+  const sql = read(
+    "supabase/migrations/20260924120000_transaction_goal_linkage.sql",
+  );
   // Composite ownership FK — a goal id alone can never cross tenants.
   assert.match(sql, /foreign key \(goal_id, user_id\)/);
   assert.match(sql, /references public\.savings_goals \(id, user_id\)/);
@@ -67,7 +75,10 @@ test("migration keeps the tag annotation-only and tenant-safe", () => {
   assert.match(sql, /for share/i);
   assert.match(sql, /goal_not_found_or_archived/);
   // The tag never touches allocation/progress arithmetic.
-  assert.doesNotMatch(sql, /update public\.savings_goal_allocations|insert into public\.savings_goal_allocations/);
+  assert.doesNotMatch(
+    sql,
+    /update public\.savings_goal_allocations|insert into public\.savings_goal_allocations/,
+  );
 });
 
 test("update sentinel: omitted preserves, null clears, uuid assigns", () => {
@@ -81,12 +92,24 @@ test("update sentinel: omitted preserves, null clears, uuid assigns", () => {
     note: "Sửa",
   };
   // Omitted → preserve both id and resolved name.
-  const preserved = buildUpdatedTransaction(taggedRow(), { ...base }, accounts, categories, goals);
+  const preserved = buildUpdatedTransaction(
+    taggedRow(),
+    { ...base },
+    accounts,
+    categories,
+    goals,
+  );
   assert.ok(preserved.ok);
   assert.equal(preserved.transaction.goalId, "goal-active");
   assert.equal(preserved.transaction.goalName, "Quỹ khẩn cấp");
   // Explicit null → clear.
-  const cleared = buildUpdatedTransaction(taggedRow(), { ...base, goalId: null }, accounts, categories, goals);
+  const cleared = buildUpdatedTransaction(
+    taggedRow(),
+    { ...base, goalId: null },
+    accounts,
+    categories,
+    goals,
+  );
   assert.ok(cleared.ok);
   assert.equal(cleared.transaction.goalId, undefined);
   assert.equal(cleared.transaction.goalName, undefined);
@@ -182,7 +205,10 @@ test("server actions validate, send the sentinel and map the calm error", () => 
 
 test("feed parsing accepts the nullable goal projection", () => {
   const finance = read("src/server/finance.ts");
-  assert.match(finance, /goal_id: z\.string\(\)\.uuid\(\)\.nullable\(\)\.optional\(\)/);
+  assert.match(
+    finance,
+    /goal_id: z\.string\(\)\.uuid\(\)\.nullable\(\)\.optional\(\)/,
+  );
   assert.match(finance, /goal_name: z\.string\(\)\.nullable\(\)\.optional\(\)/);
   assert.match(finance, /goalId: row\.goal_id \?\? undefined/);
   assert.match(finance, /goalName: row\.goal_name \?\? undefined/);
@@ -209,16 +235,26 @@ test("edit dialog hides the picker for transfers and preserves on missing data",
   assert.match(dialog, /\{!isTransfer && goals\.length > 0 \? \(/);
   // goalId stays undefined when the goal list failed to load — the server
   // then preserves whatever tag exists instead of receiving a silent clear.
-  assert.match(dialog, /goals\.length > 0 \? \(goalId === "" \? null : goalId\) : undefined/);
+  assert.match(
+    dialog,
+    /goals\.length > 0 \? \(goalId === "" \? null : goalId\) : undefined/,
+  );
   // The currently tagged archived goal stays selectable as "keep"…
-  assert.match(dialog, /tagged && tagged\.isArchived \? \[\.\.\.active, tagged\] : active/);
+  assert.match(
+    dialog,
+    /tagged && tagged\.isArchived \? \[\.\.\.active, tagged\] : active/,
+  );
   // …and is labelled honestly as archived.
   assert.match(dialog, /đã lưu trữ/);
 });
 
 test("transaction rows render the tag as related context, not funding", () => {
-  const workspace = read("src/components/transactions/transactions-workspace.tsx");
-  const css = read("src/components/transactions/transactions-workspace.module.css");
+  const workspace = read(
+    "src/components/transactions/transactions-workspace.tsx",
+  );
+  const css = read(
+    "src/components/transactions/transactions-workspace.module.css",
+  );
   assert.match(workspace, /styles\.rowGoal/);
   assert.match(css, /\.rowGoal/);
   // Quiet provenance-line copy — "Mục tiêu ·" labels context, not contribution.
@@ -250,11 +286,16 @@ test("workspaces thread goals into the hook and both dialogs", () => {
 test("archive surface carries goal_id only through the generation-aware layer", () => {
   const backup = read("src/lib/archive/archive-backup.ts");
   const settings = read("src/components/backup-settings-page.tsx");
+  const producerVerifier = read("scripts/verify-archive-producer.mjs");
   const validator = read("src/lib/archive/goal-linkage-archive-validator.ts");
   const base = read("src/lib/archive/moneyflow-archive.ts");
-  // Both ingress points go through the goal-aware layer.
-  assert.match(backup, /goal-linkage-archive-ingress/);
-  assert.match(settings, /goal-linkage-archive-ingress/);
+  // Every ingress point — app restore, backup describe and the CI producer
+  // verifier — goes through the newest generation-aware layer (the cadence
+  // wrapper delegates to the goal-aware chain unchanged). A stale pointer
+  // here is how the producer round-trip slipped past the new field.
+  assert.match(backup, /interval-commitment-archive-ingress/);
+  assert.match(settings, /interval-commitment-archive-ingress/);
+  assert.match(producerVerifier, /interval-commitment-archive-ingress/);
   // The current generation owns the field; the base transactions spec must
   // not grow it (other tables legitimately carry their own goal_id refs).
   assert.match(validator, /20260924120000/);

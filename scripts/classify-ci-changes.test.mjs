@@ -10,6 +10,7 @@ test("documentation-only changes keep heavyweight checks off", () => {
   assert.equal(result.browserSmoke, false);
   assert.equal(result.uiAudit, false);
   assert.equal(result.codeql, false);
+  assert.equal(result.mobile, false);
 });
 
 test("database-only changes run database checks without browser work", () => {
@@ -23,8 +24,15 @@ test("database-only changes run database checks without browser work", () => {
 });
 
 test("the archive round-trip verifier selects the database job that runs it", () => {
-  for (const file of ["scripts/verify-archive-producer.sh", "scripts/verify-archive-producer.mjs"]) {
-    assert.equal(classifyChanges([file]).database, true, `${file} must select the database job`);
+  for (const file of [
+    "scripts/verify-archive-producer.sh",
+    "scripts/verify-archive-producer.mjs",
+  ]) {
+    assert.equal(
+      classifyChanges([file]).database,
+      true,
+      `${file} must select the database job`,
+    );
   }
 });
 
@@ -38,14 +46,37 @@ test("domain runtime changes run verify and browser smoke but not visual audit",
 });
 
 test("UI changes run browser smoke and responsive audit", () => {
-  const result = classifyChanges(["src/components/layout/app-shell.module.css"]);
+  const result = classifyChanges([
+    "src/components/layout/app-shell.module.css",
+  ]);
   assert.equal(result.browserSmoke, true);
   assert.equal(result.uiAudit, true);
 });
 
 test("CI workflow changes exercise every gate", () => {
   const result = classifyChanges([".github/workflows/ci.yml"]);
-  for (const key of ["fullVerify", "database", "browserSmoke", "uiAudit", "codeql"]) assert.equal(result[key], true);
+  for (const key of [
+    "fullVerify",
+    "database",
+    "browserSmoke",
+    "uiAudit",
+    "codeql",
+    "mobile",
+  ])
+    assert.equal(result[key], true);
+});
+
+test("mobile app changes select the Flutter gate without web shards", () => {
+  const result = classifyChanges(["mobile/lib/app/app.dart"]);
+  assert.equal(result.mobile, true);
+  assert.equal(result.database, false);
+  assert.equal(result.browserSmoke, false);
+  assert.equal(result.uiAudit, false);
+});
+
+test("web-only changes do not pay for the Flutter toolchain", () => {
+  const result = classifyChanges(["src/lib/reports/weekly-summary.ts"]);
+  assert.equal(result.mobile, false);
 });
 
 test("knowledge-policy and agent-harness changes exercise every gate", () => {
@@ -62,16 +93,33 @@ test("knowledge-policy and agent-harness changes exercise every gate", () => {
   ]) {
     const result = classifyChanges([file]);
     assert.equal(result.fullVerify, true, `${file} must select full verify`);
-    assert.equal(result.database, true, `${file} must select database verification`);
-    assert.equal(result.browserSmoke, true, `${file} must select browser smoke`);
+    assert.equal(
+      result.database,
+      true,
+      `${file} must select database verification`,
+    );
+    assert.equal(
+      result.browserSmoke,
+      true,
+      `${file} must select browser smoke`,
+    );
     assert.equal(result.uiAudit, true, `${file} must select UI audit`);
     assert.equal(result.codeql, true, `${file} must select CodeQL`);
+    assert.equal(result.mobile, true, `${file} must select the mobile gate`);
   }
 });
 
 test("manual and main-branch runs fail safe to full verification", () => {
   const result = classifyChanges(["docs/README.md"], { forceFull: true });
-  for (const key of ["fullVerify", "database", "browserSmoke", "uiAudit", "codeql"]) assert.equal(result[key], true);
+  for (const key of [
+    "fullVerify",
+    "database",
+    "browserSmoke",
+    "uiAudit",
+    "codeql",
+    "mobile",
+  ])
+    assert.equal(result[key], true);
 });
 
 test("demo fixtures select the visual audit because the audit renders demo", () => {
@@ -82,8 +130,16 @@ test("demo fixtures select the visual audit because the audit renders demo", () 
 });
 
 test("the visual rule stays narrow for other domain modules", () => {
-  for (const file of ["src/lib/finance.ts", "src/lib/planning/budgets.ts", "src/lib/inbox/parse-text.ts"]) {
-    assert.equal(classifyChanges([file]).uiAudit, false, `${file} must not select the audit`);
+  for (const file of [
+    "src/lib/finance.ts",
+    "src/lib/planning/budgets.ts",
+    "src/lib/inbox/parse-text.ts",
+  ]) {
+    assert.equal(
+      classifyChanges([file]).uiAudit,
+      false,
+      `${file} must not select the audit`,
+    );
   }
 });
 

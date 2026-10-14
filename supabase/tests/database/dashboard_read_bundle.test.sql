@@ -9,7 +9,7 @@ select has_function(
 );
 
 select ok(
-  not (
+  (
     select function_record.prosecdef
     from pg_proc as function_record
     join pg_namespace as namespace
@@ -19,7 +19,7 @@ select ok(
       and pg_get_function_identity_arguments(function_record.oid) =
         'p_today date, p_transaction_start date, p_recent_limit integer'
   ),
-  'dashboard bundle remains security invoker'
+  'dashboard bundle is security definer: hosted Neon authenticated cannot resolve auth.uid(), so its own predicates are the tenant boundary'
 );
 
 select ok(

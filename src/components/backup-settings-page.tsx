@@ -35,7 +35,7 @@ import {
   encryptBackupBytes,
   isEncryptedBackupBytes,
 } from "@/lib/archive/backup-encryption";
-import { ingestArchiveBytes } from "@/lib/archive/goal-linkage-archive-ingress";
+import { ingestArchiveBytes } from "@/lib/archive/interval-commitment-archive-ingress";
 import type { MoneyFlowArchive } from "@/lib/archive/moneyflow-archive";
 import styles from "./settings/settings-surfaces.module.css";
 

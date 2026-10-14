@@ -1,0 +1,125 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- flutter_local_notifications >=16 ships only POST_NOTIFICATIONS +
+         VIBRATE in its own manifest; the app must declare the scheduling
+         receivers (below) and this permission itself or zonedSchedule
+         alarms never fire and nothing reschedules after reboot. See
+         "AndroidManifest.xml setup" in the plugin README:
+         https://pub.dev/packages/flutter_local_notifications#androidmanifestxml-setup
+         The app deliberately schedules inexact alarms, so no
+         SCHEDULE_EXACT_ALARM / USE_EXACT_ALARM is declared — an
+         exact-alarm permission triggers Play review. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <application
+        android:label="MoneyFlow"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <!-- Specifies an Android theme to apply to this Activity as soon as
+                 the Android process has started. This theme is visible to the user
+                 while the Flutter UI initializes. After that, this theme continues
+                 to determine the Window background behind the Flutter UI. -->
+            <meta-data
+              android:name="io.flutter.embedding.android.NormalTheme"
+              android:resource="@style/NormalTheme"
+              />
+            <!-- Long-press launcher shortcuts — res/xml/shortcuts.xml
+                 carries the "Ghi nhanh" quick-capture entry. -->
+            <meta-data
+              android:name="android.app.shortcuts"
+              android:resource="@xml/shortcuts" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <!-- Receive shared text (bank SMS / wallet notifications) into
+                 the capture form — the user still reviews before posting. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="text/plain"/>
+            </intent-filter>
+        </activity>
+        <!-- Home-screen widget: one-tap "＋ Ghi" that opens capture via
+             the same `quick` extra. Non-exported — the system dispatches
+             widget updates through the provider meta-data only. -->
+        <receiver
+            android:name=".QuickCaptureWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_capture_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/moneyflow_widget"/>
+        </receiver>
+        <!-- Opt-in bank-notification listener pilot. exported=true is required
+             for the system to bind it; BIND_NOTIFICATION_LISTENER_SERVICE is
+             the only permission that makes the binder callable, so no other
+             app can reach this service. It activates only after the user
+             explicitly grants Notification Access in system settings — there
+             is no runtime prompt and nothing is read by default. -->
+        <service
+            android:name=".NotificationCaptureService"
+            android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+        <!-- flutter_local_notifications >=16 scheduling plumbing (see the
+             manifest-level comment above): the first receiver fires the
+             pending alarms, the second re-arms them after reboot, app
+             update or OEM quick-boot. -->
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
+        <!-- Don't delete the meta-data below.
+             This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+    </application>
+    <!-- Required to query activities that can process text, see:
+         https://developer.android.com/training/package-visibility and
+         https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
+
+         In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.PROCESS_TEXT"/>
+            <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Android 11+ package visibility: lets url_launcher's
+             launchUrl/canLaunchUrl find a browser for the in-app
+             privacy-policy link. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
+</manifest>

@@ -4,10 +4,7 @@
  * Money amounts are integer VND đồng (minor units). No float.
  */
 
-import type {
-  CandidateConfidence,
-  CandidateKind,
-} from "./candidate-store.ts";
+import type { CandidateConfidence, CandidateKind } from "./candidate-store.ts";
 import { parseVndAmountToken, todayInHoChiMinh } from "./parse-text.ts";
 import type {
   CandidateProvenance,
@@ -16,7 +13,8 @@ import type {
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10MB
 
-export type CsvColumnRole = "date" | "amount" | "desc" | "debit" | "credit" | "ignore";
+export type CsvColumnRole =
+  "date" | "amount" | "desc" | "debit" | "credit" | "ignore";
 
 export type CsvColumnMap = {
   date: number | null;
@@ -177,13 +175,19 @@ function scoreHeader(header: string, pattern: RegExp): number {
   if (!h) return 0;
   if (pattern.test(h)) return 3;
   const compact = h.toLowerCase().replace(/[_\s]+/g, " ");
-  if (pattern.source.includes("amount") && /amount|số tiền|so tien|tiền|tien/.test(compact)) {
+  if (
+    pattern.source.includes("amount") &&
+    /amount|số tiền|so tien|tiền|tien/.test(compact)
+  ) {
     return 2;
   }
-  if (pattern.source.includes("date") && /date|ngày|ngay/.test(compact)) return 2;
+  if (pattern.source.includes("date") && /date|ngày|ngay/.test(compact))
+    return 2;
   if (
     pattern.source.includes("desc") &&
-    /mô tả|mo ta|nội dung|noi dung|diễn giải|dien giai|description|merchant|memo/.test(compact)
+    /mô tả|mo ta|nội dung|noi dung|diễn giải|dien giai|description|merchant|memo/.test(
+      compact,
+    )
   ) {
     return 2;
   }
@@ -263,7 +267,10 @@ export function mapCsvColumns(headers: string[]): {
     (map.date !== null ? 1 : 0) +
     (map.amount !== null || map.debit !== null || map.credit !== null ? 1 : 0) +
     (map.desc !== null ? 1 : 0);
-  const nameHits = (bestDate >= 2 ? 1 : 0) + (bestAmount >= 2 || bestDebit >= 2 || bestCredit >= 2 ? 1 : 0) + (bestDesc >= 2 ? 1 : 0);
+  const nameHits =
+    (bestDate >= 2 ? 1 : 0) +
+    (bestAmount >= 2 || bestDebit >= 2 || bestCredit >= 2 ? 1 : 0) +
+    (bestDesc >= 2 ? 1 : 0);
   const confidence = Math.min(1, (rolesHit / 3) * 0.55 + (nameHits / 3) * 0.45);
 
   return { map, confidence };
@@ -311,7 +318,24 @@ export function parseCsvAmountCell(raw: string): {
   return { amount, signedNegative };
 }
 
-export function parseCsvDateCell(raw: string, today: string): {
+// Strict calendar check — a regex-shaped date can still be impossible
+// (31/02, 30/02, non-leap 29/02). A supplied-but-impossible date is an
+// invalid row, never a normalized one: it reports `found: false` so the
+// row is flagged, not silently re-dated.
+export function isRealDate(year: number, month: number, day: number): boolean {
+  if (month < 1 || month > 12 || day < 1) return false;
+  const dt = new Date(Date.UTC(year, month - 1, day));
+  return (
+    dt.getUTCFullYear() === year &&
+    dt.getUTCMonth() === month - 1 &&
+    dt.getUTCDate() === day
+  );
+}
+
+export function parseCsvDateCell(
+  raw: string,
+  today: string,
+): {
   date: string;
   found: boolean;
 } {
@@ -319,19 +343,22 @@ export function parseCsvDateCell(raw: string, today: string): {
   if (!text) return { date: today, found: false };
 
   const iso = text.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/);
-  if (iso) {
+  if (iso && isRealDate(Number(iso[1]), Number(iso[2]), Number(iso[3]))) {
     return { date: `${iso[1]}-${iso[2]}-${iso[3]}`, found: true };
   }
 
   const dmyFull = text.match(/\b(\d{1,2})[/.−-](\d{1,2})[/.−-](20\d{2})\b/);
-  if (dmyFull) {
+  if (
+    dmyFull &&
+    isRealDate(Number(dmyFull[3]), Number(dmyFull[2]), Number(dmyFull[1]))
+  ) {
     const dd = dmyFull[1]!.padStart(2, "0");
     const mm = dmyFull[2]!.padStart(2, "0");
     return { date: `${dmyFull[3]}-${mm}-${dd}`, found: true };
   }
 
   const ymd = text.match(/\b(20\d{2})[/.](\d{1,2})[/.](\d{1,2})\b/);
-  if (ymd) {
+  if (ymd && isRealDate(Number(ymd[1]), Number(ymd[2]), Number(ymd[3]))) {
     const mm = ymd[2]!.padStart(2, "0");
     const dd = ymd[3]!.padStart(2, "0");
     return { date: `${ymd[1]}-${mm}-${dd}`, found: true };
@@ -340,9 +367,11 @@ export function parseCsvDateCell(raw: string, today: string): {
   const dmy = text.match(/\b(\d{1,2})[/.](\d{1,2})\b/);
   if (dmy) {
     const year = today.slice(0, 4);
-    const dd = dmy[1]!.padStart(2, "0");
-    const mm = dmy[2]!.padStart(2, "0");
-    return { date: `${year}-${mm}-${dd}`, found: true };
+    if (isRealDate(Number(year), Number(dmy[2]), Number(dmy[1]))) {
+      const dd = dmy[1]!.padStart(2, "0");
+      const mm = dmy[2]!.padStart(2, "0");
+      return { date: `${year}-${mm}-${dd}`, found: true };
+    }
   }
 
   return { date: today, found: false };
@@ -394,12 +423,16 @@ function cellAt(row: string[], index: number | null): string {
   return row[index] ?? "";
 }
 
-function merchantFromDesc(desc: string): { merchant: string; uncertain: boolean } {
+function merchantFromDesc(desc: string): {
+  merchant: string;
+  uncertain: boolean;
+} {
   const cleaned = desc.replace(/\s+/g, " ").trim();
   if (!cleaned) {
     return { merchant: "Không rõ", uncertain: true };
   }
-  const merchant = cleaned.length > 64 ? `${cleaned.slice(0, 61).trim()}…` : cleaned;
+  const merchant =
+    cleaned.length > 64 ? `${cleaned.slice(0, 61).trim()}…` : cleaned;
   return { merchant, uncertain: cleaned.length < 2 };
 }
 
@@ -441,10 +474,7 @@ export function parseStatementFromMatrix(
   const dataRows = hasHeader ? matrix.slice(1) : matrix;
 
   if (dataRows.length === 0) {
-    return emptyFail(
-      fileName,
-      "File chỉ có tiêu đề, không có dòng giao dịch.",
-    );
+    return emptyFail(fileName, "File chỉ có tiêu đề, không có dòng giao dịch.");
   }
 
   const auto = mapCsvColumns(hasHeader ? first : headers);
@@ -453,11 +483,7 @@ export function parseStatementFromMatrix(
     : auto.map;
   const confidence = options.columnMap ? 1 : auto.confidence;
 
-  if (
-    map.amount === null &&
-    map.debit === null &&
-    map.credit === null
-  ) {
+  if (map.amount === null && map.debit === null && map.credit === null) {
     return {
       ok: false,
       fileName,
@@ -467,7 +493,8 @@ export function parseStatementFromMatrix(
       rows: [],
       skippedRows: dataRows.length,
       warningCount: 0,
-      error: "Không nhận ra cột số tiền. Kiểm tra file có cột Amount / Số tiền.",
+      error:
+        "Không nhận ra cột số tiền. Kiểm tra file có cột Amount / Số tiền.",
     };
   }
 
@@ -711,7 +738,11 @@ export function validateUploadFile(file: {
   }
 
   const lower = file.name.toLowerCase();
-  if (lower.endsWith(".csv") || file.type === "text/csv" || file.type === "application/csv") {
+  if (
+    lower.endsWith(".csv") ||
+    file.type === "text/csv" ||
+    file.type === "application/csv"
+  ) {
     return { ok: true, kind: "csv" };
   }
   if (

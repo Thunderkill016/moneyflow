@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- AppWidgetProviderInfo — a compact 2x2 last-known-balance tile.
+     updatePeriodMillis is 0 by design: the Dart side pushes a refresh
+     over app.moneyflow/widget whenever the dashboard loads, so the
+     widget never needs the system's minimum-30min re-poll and performs
+     no background work of its own. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="140dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/widget_quick_capture"
+    android:resizeMode="none"
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_capture_description" />

@@ -54,6 +54,27 @@ test("parseCsvDateCell: ISO / DMY / partial", () => {
   assert.equal(parseCsvDateCell("", "2026-07-15").date, "2026-07-15");
 });
 
+test("parseCsvDateCell: impossible calendar days are not found", () => {
+  // The reviewed hole: 31/02 regex-matched but cannot exist — the row
+  // must flag as uncertain, never produce 2026-02-31 or normalize.
+  for (const raw of [
+    "31/02/2026",
+    "2026-02-31",
+    "30/02/2026",
+    "29/02/2026", // 2026 is not a leap year
+    "2026.02.30",
+    "31/02", // borrowed-year form
+    "13/13/2026",
+  ]) {
+    const r = parseCsvDateCell(raw, "2026-07-15");
+    assert.equal(r.found, false, `${raw} must not parse as certain`);
+    assert.equal(r.date, "2026-07-15", `${raw} must fall back to today`);
+  }
+  // …while real leap/calendar days still parse.
+  assert.equal(parseCsvDateCell("29/02/2024", "2026-07-15").date, "2024-02-29");
+  assert.equal(parseCsvDateCell("28/02/2026", "2026-07-15").found, true);
+});
+
 test("mapCsvColumns maps Vietnamese headers", () => {
   const { map, confidence } = mapCsvColumns(["Ngày", "Mô tả", "Số tiền"]);
   assert.equal(map.date, 0);
@@ -86,7 +107,9 @@ test("fixture sample-bank.csv → candidates with integer money", () => {
   assert.equal(result.rows[1]?.kind, "income");
   assert.equal(result.rows[2]?.amount, 89_000);
   assert.equal(result.rows[3]?.kind, "transfer");
-  assert.ok(result.rows.every((r) => Number.isSafeInteger(r.amount) && r.amount > 0));
+  assert.ok(
+    result.rows.every((r) => Number.isSafeInteger(r.amount) && r.amount > 0),
+  );
 });
 
 test("fixture sample-generic.csv quoted amounts", () => {
@@ -144,7 +167,10 @@ test("toCsvCandidateInputs preserves evidence-aware source lineage through previ
   assert.equal(input?.sourceRowIndex, 42);
   assert.equal(input?.sourceExternalId, row.sourceExternalId);
   assert.equal(input?.sourceLifecycleState, "posted");
-  assert.equal(input?.sourcePredecessorExternalId, row.sourcePredecessorExternalId);
+  assert.equal(
+    input?.sourcePredecessorExternalId,
+    row.sourcePredecessorExternalId,
+  );
   assert.equal(input?.parserVersion, "source-adapter@1.0");
   assert.equal(input?.mappingVersion, 3);
 });
@@ -163,9 +189,14 @@ test("toCsvCandidateInputs stamps a chosen batch account on every row", () => {
     rowIndex: 0,
   };
 
-  const withAccount = toCsvCandidateInputs([row, { ...row, kind: "income" }], "batch-1", "csv", {
-    account: { id: "acc-mb", name: "MB Bank" },
-  });
+  const withAccount = toCsvCandidateInputs(
+    [row, { ...row, kind: "income" }],
+    "batch-1",
+    "csv",
+    {
+      account: { id: "acc-mb", name: "MB Bank" },
+    },
+  );
   assert.ok(withAccount.every((i) => i.accountId === "acc-mb"));
   assert.ok(withAccount.every((i) => i.account === "MB Bank"));
 

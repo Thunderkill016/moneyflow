@@ -23,6 +23,7 @@ import {
 } from "./detect.ts";
 import { applyRuleToTarget } from "./apply-rules.ts";
 import type { ParsedCsvRow } from "./parse-csv.ts";
+import { isRealDate } from "./parse-csv.ts";
 import type { InboxRule } from "./rules-store.ts";
 
 export type DirectImportMapping = {
@@ -36,10 +37,7 @@ export type DirectImportMapping = {
 };
 
 export type DirectImportRowStatus =
-  | "ready"
-  | "duplicate"
-  | "skipped_transfer"
-  | "skipped_invalid";
+  "ready" | "duplicate" | "skipped_transfer" | "skipped_invalid";
 
 export type DirectImportRowPlan = {
   rowIndex: number;
@@ -174,7 +172,8 @@ function resolveRuleNormalization(
     rules,
   );
   const category = categories.find(
-    (candidate) => candidate.id === applied.categoryId && candidate.kind === item.kind,
+    (candidate) =>
+      candidate.id === applied.categoryId && candidate.kind === item.kind,
   );
 
   if (!category || !applied.matchedRuleId || !applied.matchedRuleVersion) {
@@ -285,7 +284,17 @@ export function planDirectCsvImport(
       continue;
     }
 
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(item.occurredOn)) {
+    // Shape AND calendar — a date that cannot exist is an invalid row,
+    // not a batch-breaking SQL cast failure downstream.
+    const dateParts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(item.occurredOn);
+    if (
+      dateParts === null ||
+      !isRealDate(
+        Number(dateParts[1]),
+        Number(dateParts[2]),
+        Number(dateParts[3]),
+      )
+    ) {
       rows.push({
         rowIndex: item.rowIndex,
         kind: item.kind,
@@ -305,7 +314,8 @@ export function planDirectCsvImport(
 
     const normalization = resolveRuleNormalization(item, rules, categories);
     const categoryId =
-      normalization.categoryId ?? resolveCategoryId(item.kind, mapping, categories);
+      normalization.categoryId ??
+      resolveCategoryId(item.kind, mapping, categories);
     if (!categoryId) {
       rows.push({
         rowIndex: item.rowIndex,
@@ -474,7 +484,9 @@ export function formatDirectImportSummary(plan: DirectImportPlan): string {
   return parts.join(" · ");
 }
 
-export function directImportRowStatusLabel(status: DirectImportRowStatus): string {
+export function directImportRowStatusLabel(
+  status: DirectImportRowStatus,
+): string {
   switch (status) {
     case "ready":
       return "Sẵn sàng";

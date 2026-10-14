@@ -405,6 +405,31 @@
       "sourceSha256": "32b1d15326a53fc1da72017ad9e4f4d2273a957350506a982b363d80900f82dc",
       "outputSha256": "32b1d15326a53fc1da72017ad9e4f4d2273a957350506a982b363d80900f82dc",
       "rewrites": 0
+    },
+    "20261010120000_category_and_rule_write_rpcs.sql": {
+      "sourceSha256": "ac997b887fbb6abce8ef34ece2b6899302aaf60a233fa474c33e44773227f78d",
+      "outputSha256": "ac997b887fbb6abce8ef34ece2b6899302aaf60a233fa474c33e44773227f78d",
+      "rewrites": 0
+    },
+    "20261010121000_reader_definer_hardening.sql": {
+      "sourceSha256": "87d5109b806eee9f1435c213610f4fe7dcc13e46d453ad9453966bdb315758c5",
+      "outputSha256": "87d5109b806eee9f1435c213610f4fe7dcc13e46d453ad9453966bdb315758c5",
+      "rewrites": 0
+    },
+    "20261010122000_inbox_batch_write_rpcs.sql": {
+      "sourceSha256": "40d98e7e198d67dcd5bf39fabf7b4cdeb5f837070c3a54397c15c9316368c80f",
+      "outputSha256": "40d98e7e198d67dcd5bf39fabf7b4cdeb5f837070c3a54397c15c9316368c80f",
+      "rewrites": 0
+    },
+    "20261010123000_delete_my_account.sql": {
+      "sourceSha256": "0592d671be32f5104e6c05f3845f94f874cdefb224f246f1fa1178d1629089b8",
+      "outputSha256": "b1477532ed01fa521ab8398a8170812649aa54cfd404a478c005f330c4305b12",
+      "rewrites": 3
+    },
+    "20261015090000_commitment_interval_months.sql": {
+      "sourceSha256": "707e5eec9ad0b97a93f30e6ee17d5c43aa6a98e862d958f1172823ead0670a7d",
+      "outputSha256": "707e5eec9ad0b97a93f30e6ee17d5c43aa6a98e862d958f1172823ead0670a7d",
+      "rewrites": 0
     }
   }
 }
