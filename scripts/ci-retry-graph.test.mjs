@@ -72,6 +72,9 @@ test("the Flutter mobile shard is gated on its own classifier output", () => {
   assert.match(mobile, /flutter pub get --enforce-lockfile/);
   assert.match(mobile, /flutter analyze/);
   assert.match(mobile, /flutter test/);
+  // The Kotlin notification-source allowlist has JVM tests; the shard must
+  // run them so Dart coverage is not the only mobile signal.
+  assert.match(mobile, /testDebugUnitTest/);
 });
 
 test("retry artifacts are unique per workflow attempt", () => {

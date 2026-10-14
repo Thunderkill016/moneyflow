@@ -320,6 +320,13 @@ jobs:
           flutter build apk --debug \
             --dart-define=MF_AUTH_BASE_URL=https://ep-lively-sunset-b3xzqd47.neonauth.c-4.ap-southeast-1.aws.neon.tech/neondb/auth \
             --dart-define=MF_DATA_API_URL=https://ep-lively-sunset-b3xzqd47.apirest.c-4.ap-southeast-1.aws.neon.tech/neondb/rest/v1
+      # Pure-JVM tests for the Kotlin notification-source allowlist, quick
+      # actions and widget snapshot contracts — no Robolectric, no device.
+      # Runs after the APK build so local.properties and the Gradle cache are
+      # already warm.
+      - name: Kotlin JVM unit tests
+        working-directory: mobile/android
+        run: ./gradlew :app:testDebugUnitTest
 
   verify:
     if: always()
