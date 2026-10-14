@@ -6,4 +6,6 @@
     <color name="widget_dim_text">#FF475569</color>
     <color name="widget_button">#FF0EA5E9</color>
     <color name="widget_button_text">#FFFFFFFF</color>
+    <!-- Adaptive-icon background — same brand sky as widget_button. -->
+    <color name="ic_launcher_background">#FF0EA5E9</color>
 </resources>

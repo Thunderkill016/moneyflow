@@ -332,9 +332,10 @@ delete-account. Voice capture and the timeline view remain web-only gaps.
    `-PmfAllowDebugRelease` for debug-signed release builds). Owner must still
    create/hold the real upload keystore — unresolved key custody, resolved
    configuration.
-4. **Identity/branding**: label is lowercase `moneyflow`, launcher icon is the
-   Flutter default, `applicationId` `app.moneyflow.moneyflow` not yet confirmed
-   as the permanent store id.
+4. **Identity/branding** — _mostly resolved:_ label is `MoneyFlow` and the
+   launcher icon is now a brand mark (white ₫ on `#0EA5E9` — adaptive icon
+   plus per-density PNGs, contract-tested). Remaining owner item: confirm
+   `applicationId` `app.moneyflow.moneyflow` as the permanent store id.
 5. **Backend target**: `MF_AUTH_BASE_URL`/`MF_DATA_API_URL` default to the
    acceptance sandbox; release builds now require explicit `--dart-define`
    endpoints validated as HTTPS `*.neon.tech` URIs. Everything on-device was
