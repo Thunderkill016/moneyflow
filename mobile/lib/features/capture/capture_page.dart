@@ -14,6 +14,7 @@ import 'capture_submit.dart'
     show CaptureQueued, CommitmentFailed, submitErrorMessage;
 import 'category_picker.dart';
 import '../shared/empty_state.dart';
+import '../voice/voice_capture_page.dart';
 
 /// Result of one capture intent — carries the idempotency key generated when
 /// the form opened so replays of the same intent never double-post.
@@ -552,6 +553,24 @@ class _CapturePageState extends State<CapturePage> {
     });
   }
 
+  /// Opens voice capture on this form's data + submit path. A saved or
+  /// queued voice intent pops this page too with the same CaptureResult,
+  /// so the shell's post-save reload/snack run identically.
+  Future<void> _openVoice(BuildContext context) async {
+    final result = await Navigator.of(context).push<CaptureResult>(
+      MaterialPageRoute(
+        builder: (_) => VoiceCapturePage(
+          accounts: _accounts,
+          categories: widget.categories,
+          onSubmit: widget.onSubmit,
+        ),
+      ),
+    );
+    if (result != null && mounted && context.mounted) {
+      Navigator.of(context).pop(result);
+    }
+  }
+
   /// Runs the host's create seam; a thrown refresh read lands as the
   /// honest inline error rather than an unhandled snackbar-less crash.
   Future<List<AccountSummary>?> _runCreateAccount() async {
@@ -674,6 +693,18 @@ class _CapturePageState extends State<CapturePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.editing == null ? 'Ghi khoản' : 'Sửa khoản'),
+        actions: [
+          // "Nói để ghi" — same accounts/categories/submit as this form; a
+          // voice save pops back out with its CaptureResult so the shell
+          // reloads exactly like a manual save. Hidden while editing: an
+          // update-in-flight row can't be voice-captured over.
+          if (widget.editing == null)
+            IconButton(
+              icon: const Icon(Icons.mic),
+              tooltip: 'Nói để ghi',
+              onPressed: () => _openVoice(context),
+            ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
