@@ -254,7 +254,13 @@ void main() {
     Future<void> getPrefs() => SharedPreferences.getInstance();
 
     NotificationCaptureController controller(_FakeGateway gw) =>
-        NotificationCaptureController(gateway: gw, submit: (_) async {});
+        // These tests cover parse/dedup/counting — keep the submit path
+        // off so stats stay honest regardless of the build default.
+        NotificationCaptureController(
+          gateway: gw,
+          submitEnabled: false,
+          submit: (_) async {},
+        );
 
     RawBankNotification raw(String text, {int? postTimeMs}) =>
         RawBankNotification(

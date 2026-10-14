@@ -488,8 +488,9 @@ void main() {
       await t.tap(find.text('Cài đặt'));
       await t.pumpAndSettle();
 
-      // The archive row stays hidden — the build flag is off here.
-      expect(find.text('Sao lưu (JSON)'), findsNothing);
+      // The archive row renders — export_user_archive is live on both
+      // backends now, so the flag defaults on.
+      expect(find.text('Sao lưu (JSON)'), findsOneWidget);
       // Server-side deletion is wired (delete_my_account RPC) — the row
       // renders and rides the real danger flow.
       expect(find.text('Xóa tài khoản'), findsOneWidget);

@@ -30,11 +30,13 @@ import '../offline_queue.dart' show isQueueableSubmitFailure;
 import 'bank_notification_parser.dart';
 import 'notification_capture_channel.dart';
 
-/// Build-time gate for the draft submit path (see file header). Build with
-/// `--dart-define=MF_NOTIFICATION_DRAFT_SUBMIT=true` once the
-/// create_inbox_candidates migration is applied upstream.
+/// Draft-submit gate (see file header). `create_inbox_candidates` is live
+/// on acceptance and production since 2026-10-14 (device-verified: a
+/// posted bank notification became a pending candidate through the RPC).
+/// The define stays as an emergency off-switch, not an enable.
 const kNotificationDraftSubmitEnabled = bool.fromEnvironment(
   'MF_NOTIFICATION_DRAFT_SUBMIT',
+  defaultValue: true,
 );
 
 /// What the pipeline did with a notification — persisted per account so the

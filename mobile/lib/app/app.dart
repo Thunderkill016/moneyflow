@@ -58,14 +58,15 @@ import 'home_shell.dart';
 const kBrandColor = Color(0xFF0EA5E9);
 const kBrandBackground = Color(0xFFF8FAFC);
 
-/// JSON backup ships behind a build flag while `export_user_archive`'s
-/// reachability is verified per backend. It is callable on the acceptance
-/// sandbox (verified 2026-10-14 — the produced archive carries real
-/// tenant rows); earlier the Data API's `authenticated` role lacked
-/// USAGE on schema `auth` and the SECURITY INVOKER body failed 42501.
-/// Build with `--dart-define=MF_ARCHIVE_BACKUP=true` for a backend where
-/// the call is confirmed live.
-const kArchiveBackupEnabled = bool.fromEnvironment('MF_ARCHIVE_BACKUP');
+/// JSON backup ships through `export_user_archive` — live on both
+/// acceptance and production Neon since the 20261010121000 reader-definer
+/// migration applied (verified 2026-10-14: the produced archive carries
+/// real tenant rows). `MF_ARCHIVE_BACKUP=false` stays as an emergency
+/// off-switch if a future backend regression appears.
+const kArchiveBackupEnabled = bool.fromEnvironment(
+  'MF_ARCHIVE_BACKUP',
+  defaultValue: true,
+);
 
 class MoneyFlowApp extends StatefulWidget {
   const MoneyFlowApp({super.key});
