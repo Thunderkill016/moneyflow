@@ -26,7 +26,13 @@ All build-time defines:
 | `MF_DATA_API_URL` | release | Neon Data API (PostgREST) base URL. |
 | `MF_ARCHIVE_BACKUP` | optional | `true` enables JSON archive export — off by default until the backend RPC is callable (see `lib/app/app.dart`). |
 | `MF_NOTIFICATION_DRAFT_SUBMIT` | optional | `true` enables the notification-capture draft submit path — off until `create_inbox_candidates` is applied upstream (see `lib/data/notification_capture/`). |
-| `MF_GOOGLE_SERVER_CLIENT_ID` | optional | Web OAuth client id that makes the "Đăng nhập bằng Google" button appear (empty → hidden). Needs an Android OAuth client for package `app.moneyflow.moneyflow` (SHA-1 of debug + upload keys) in the same Google Cloud project as Neon Auth's Google web client. |
+| `MF_GOOGLE_SERVER_CLIENT_ID` | optional | Web OAuth client id for the **native** Google sheet — requires an Android OAuth client for `app.moneyflow.moneyflow` + the signing SHA-1 in the same Google Cloud project, wired into Neon Auth as a non-shared Google provider. Empty → loopback only. |
+
+Google sign-in is a hybrid (`lib/data/google_sign_in.dart`): with the
+client-id define set it tries the native Credential Manager sheet first
+and falls back to a browser loopback redirect on any failure; without
+it, the loopback runs against Neon Auth's shared Google provider
+directly. The button shows whenever the auth backend is configured.
 
 ## Getting Started
 

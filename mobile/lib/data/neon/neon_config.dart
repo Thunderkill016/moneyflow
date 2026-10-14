@@ -16,10 +16,11 @@ class NeonConfig {
   final String authBaseUrl;
   final String dataApiUrl;
 
-  /// Web OAuth client id used as google_sign_in's `serverClientId` — the
-  /// same Google Cloud project where Neon Auth's Google provider is
-  /// configured. Optional capability gate: empty means the login page
-  /// hides the Google button entirely (no dead-end affordance).
+  /// Web OAuth client id for the native Google sheet — only usable when
+  /// an Android OAuth client for this package+SHA-1 exists in the SAME
+  /// Google Cloud project (i.e. an owner-created project wired into
+  /// Neon Auth as a non-shared Google provider). Empty → the hybrid
+  /// sign-in goes straight to the loopback redirect.
   final String googleServerClientId;
 
   factory NeonConfig.fromEnvironment() {
