@@ -198,9 +198,9 @@ backend (unchanged)
       `src/lib/reports.ts` contract. Widget tests cover both pages.
 - Known behavior: Neon Data API read-after-write lag — writes commit
   immediately but list reads can serve a stale snapshot for ~seconds–minutes;
-  post-write refresh may show the old row until a later fetch. Documented,
-  not an app defect; a short post-mutation delay or optimistic update is a
-  candidate follow-up.
+  post-write refresh may show the old row until a later fetch. Mitigated by
+  `PostWriteRefresher` (one bounded re-read after a 3s settle window) —
+  see blocker 6 below.
 
 ## Verification criteria
 
@@ -341,9 +341,10 @@ delete-account. Voice capture and the timeline view remain web-only gaps.
    endpoints validated as HTTPS `*.neon.tech` URIs. Everything on-device was
    verified against the sandbox only; **production Data API/auth has not been
    exercised from mobile**.
-6. **Read-after-write lag** (Known behavior above) makes post-mutation lists
-   look stale; acceptable for internal testing, a visible quality issue for
-   public release (optimistic update / delayed refetch is the candidate fix).
+6. **Read-after-write lag** — _mitigated:_ `_reloadTabs` now runs through
+   `PostWriteRefresher`, which re-reads once after a 3s settle window so
+   post-mutation lists converge past the replica lag. A longer lag tail
+   still resolves on the user's next visit or pull-to-refresh.
 7. **Data-safety form, target API level, 12-testers/14-day closed-test rule**
    (new personal Play accounts) — owner/process items, not code.
 8. **CI** — _resolved:_ `verify_mobile` job gates `mobile/**` changes — SDK

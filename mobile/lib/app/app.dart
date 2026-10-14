@@ -30,6 +30,7 @@ import '../domain/transaction_query.dart';
 import 'biometric_lock.dart';
 import 'delete_account.dart';
 import 'delete_data.dart';
+import 'post_write_refresher.dart';
 import 'url_opener.dart';
 import '../features/accounts/account_reconciliation_page.dart';
 import '../features/accounts/account_register_page.dart';
@@ -201,6 +202,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   SharedPreferences? _prefs;
   OfflineCache? _offline;
   OfflineCaptureQueue? _queue;
+  final _postWriteRefresh = PostWriteRefresher();
 
   /// Demo-mode category writes — session-scoped so the category pack
   /// demo actually persists its adds for the visit; re-entering demo or
@@ -267,6 +269,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     _shareSub?.cancel();
     _quickSub?.cancel();
     _queue?.dispose();
+    _postWriteRefresh.dispose();
     unawaited(_notifCapture.dispose());
     super.dispose();
   }
@@ -641,8 +644,12 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
 
   /// After a capture save, every surface that shows its effect reloads.
   /// The digest re-arms too, so a pending Sunday notification quotes the
-  /// totals including the rows just written.
-  void _reloadTabs() {
+  /// totals including the rows just written. The refresher re-reads once
+  /// more after the Data API's replica lag settles — the immediate pass
+  /// can still observe the pre-write snapshot.
+  void _reloadTabs() => _postWriteRefresh(_refreshAll);
+
+  void _refreshAll() {
     _dashKey.currentState?.reload();
     _actKey.currentState?.reload();
     _planKey.currentState?.reload();
