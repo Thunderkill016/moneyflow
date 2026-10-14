@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../theme/mf_theme.dart';
@@ -8,11 +10,10 @@ import '../../data/neon/auth_client.dart';
 /// Email/password auth against managed Better Auth (Neon).
 /// Sign-in and sign-up share the screen — matching the web's /login flow.
 ///
-/// [googleIdTokens] is the capability gate for native Google sign-in:
-/// null hides the button entirely (no dead-end affordance). A token
-/// from the source is exchanged server-side via
-/// [NeonAuthClient.signInWithGoogleIdToken], so a Google sign-in lands
-/// on the same NeonSession as email sign-in.
+/// [googleFlow] is the capability gate for Google sign-in: null hides
+/// the button entirely (no dead-end affordance). The flow runs the
+/// browser loopback round-trip and returns a [NeonSession], so Google
+/// sign-in lands on the same path as email sign-in.
 class LoginPage extends StatefulWidget {
   const LoginPage({
     super.key,
@@ -20,7 +21,7 @@ class LoginPage extends StatefulWidget {
     required this.onSignedIn,
     this.onSignedUp,
     this.onDemo,
-    this.googleIdTokens,
+    this.googleFlow,
   });
 
   final NeonAuthClient auth;
@@ -33,7 +34,7 @@ class LoginPage extends StatefulWidget {
   /// [onSignedIn].
   final ValueChanged<NeonSession>? onSignedUp;
   final VoidCallback? onDemo;
-  final GoogleIdTokenSource? googleIdTokens;
+  final GoogleSignInFlow? googleFlow;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -75,25 +76,54 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  /// Native Google sheet → idToken → /sign-in/social. Cancelling the
-  /// sheet is user intent and stays silent; a real failure (transport,
-  /// provider config, server rejection) gets an honest snackbar —
-  /// distinct from the inline _error so the email form's message is
-  /// never overwritten by a Google failure.
+  /// Browser loopback sign-in — the OAuth round-trip happens in the
+  /// external browser while a waiting dialog explains where to finish
+  /// and offers a real abort. Closing the browser (null return) or
+  /// tapping Hủy stays silent; a real failure (no browser, transport,
+  /// provider rejection) gets the honest snackbar — distinct from the
+  /// inline _error so the email form's message is never overwritten.
   Future<void> _signInWithGoogle() async {
-    final source = widget.googleIdTokens;
-    if (source == null) return;
+    final flow = widget.googleFlow;
+    if (flow == null) return;
     setState(() {
       _busy = true;
       _error = null;
     });
+    var dialogDone = false;
+    unawaited(
+      showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Đang chờ Google…'),
+          content: const Text(
+            'Hoàn tất bước đăng nhập Google — trong khung vừa hiện '
+            'hoặc trình duyệt — rồi quay lại đây. MoneyFlow sẽ tự '
+            'tiếp tục.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Hủy'),
+            ),
+          ],
+        ),
+      ).then((cancelled) {
+        dialogDone = true;
+        if (cancelled == true) flow.cancel();
+      }),
+    );
     try {
-      final idToken = await source.idToken();
-      if (idToken == null) return; // user cancelled the sheet — silent
-      final session = await widget.auth.signInWithGoogleIdToken(idToken);
-      if (!mounted) return;
+      final session = await flow.signIn();
+      if (!dialogDone && mounted) {
+        Navigator.of(context, rootNavigator: true).pop(false);
+      }
+      if (!mounted || session == null) return; // aborted — silent
       widget.onSignedIn(session);
     } catch (_) {
+      if (!dialogDone && mounted) {
+        Navigator.of(context, rootNavigator: true).pop(false);
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -234,7 +264,7 @@ class _LoginPageState extends State<LoginPage> {
                         : 'Đăng nhập',
                   ),
                 ),
-                if (widget.googleIdTokens != null) ...[
+                if (widget.googleFlow != null) ...[
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
                     onPressed: _busy ? null : _signInWithGoogle,

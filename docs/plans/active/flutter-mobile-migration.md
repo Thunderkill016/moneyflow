@@ -506,17 +506,27 @@ account + category prefill make a repeat save a 3-tap flow. 109/109 tests.
 
 ### Post-P6: Google sign-in + screen shield
 
-- **Google sign-in** (`data/google_sign_in.dart` + `/sign-in/social` in
-  `auth_client.dart`): native google_sign_in v7 sheet → id token → Better
-  Auth token exchange (idToken as a nested object; a bare string gets a
-  `redirect:true` browser-flow response this client refuses to follow).
-  Requires `--dart-define=MF_GOOGLE_SERVER_CLIENT_ID=<web OAuth client id>`
-  plus an Android OAuth client (package `app.moneyflow.moneyflow`, SHA-1 of
-  the debug and upload keys) in the **same Google Cloud project** as Neon
-  Auth's Google provider web client. Empty define → the login button is
-  hidden entirely. Account seeding stays server-side
-  (`on_auth_user_created`); unverifiable end-to-end until the owner
-  configures the OAuth clients.
+- **Google sign-in** (`data/google_sign_in.dart` + `beginGoogleRedirect`/
+  `finishGoogleRedirect` in `auth_client.dart`): RFC 8252 loopback
+  redirect — the app binds an ephemeral `HttpServer` on `localhost`,
+  posts `callbackURL=http://localhost:<port>/oauth-callback` to
+  `/sign-in/social` (upstream `allow_localhost` admits it), opens the
+  returned authorize URL in the external browser, and captures the
+  redirect carrying `neon_auth_session_verifier`. The verifier plus the
+  `session_challenge` cookies planted at sign-in/social exchange through
+  `/get-session` for the signed session token — the same cookie model as
+  the web, minus a cookie jar. It is the fallback leg of a hybrid:
+  `HybridGoogleSignIn` runs `NativeGoogleSignIn` (Credential Manager
+  sheet → idToken → `/sign-in/social`) only when
+  `MF_GOOGLE_SERVER_CLIENT_ID` names a web client whose Google Cloud
+  project also registered an Android OAuth client for this
+  package+SHA-1 — which only an owner-created (non-shared) Neon Auth
+  provider can be. Against Neon's **shared** provider that registration
+  can never exist, so the native leg throws/returns redirect:true and
+  the loopback takes over; a native user-cancel propagates silently
+  without opening the browser. Abort (browser closed / Hủy) is silent;
+  transport or provider failures surface the honest snackbar. Account
+  seeding stays server-side (`on_auth_user_created`).
 - **Screen shield** (`app/screen_shield.dart`, `screen_protector`):
   `FLAG_SECURE` applied app-wide at startup — ledger amounts stay out of
   screenshots, recordings and the recents thumbnail. Best-effort: an
