@@ -39,6 +39,7 @@ Future<void> _pumpGate(WidgetTester t, _FakeTransport transport) async {
   await t.pumpWidget(
     MaterialApp(
       home: AuthGate(
+        allowDemo: true,
         shareReceiver: const _NoopShareReceiver(),
         quickActions: _NoopQuickActions(),
         requester: transport.requester,

@@ -87,11 +87,18 @@ class _OnboardingPageState extends State<OnboardingPage> {
     setState(() => _walletBusy = true);
     try {
       final name = await widget.onWalletStep();
-      if (!mounted || name == null) return;
+      if (!mounted) return;
+      if (name == null) return;
       setState(() {
         _walletName = name;
         _step = 3;
       });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không mở được biểu mẫu — thử lại')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _walletBusy = false);
     }

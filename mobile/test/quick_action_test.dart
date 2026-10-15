@@ -84,6 +84,7 @@ Future<void> _pumpGate(
 }) => t.pumpWidget(
   MaterialApp(
     home: AuthGate(
+      allowDemo: true,
       shareReceiver: const _NoopShareReceiver(),
       quickActions: quick,
       biometric: biometric,

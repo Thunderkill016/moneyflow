@@ -71,7 +71,10 @@ const kArchiveBackupEnabled = bool.fromEnvironment(
 );
 
 class MoneyFlowApp extends StatefulWidget {
-  const MoneyFlowApp({super.key});
+  const MoneyFlowApp({super.key, this.allowDemo = false});
+
+  /// Test-only: forwards to [AuthGate.allowDemo].
+  final bool allowDemo;
 
   @override
   State<MoneyFlowApp> createState() => _MoneyFlowAppState();
@@ -109,7 +112,7 @@ class _MoneyFlowAppState extends State<MoneyFlowApp> {
         // bordered cards, 48px targets — the same language as the web.
         theme: MfTheme.light(),
         darkTheme: MfTheme.dark(),
-        home: const AuthGate(),
+        home: AuthGate(allowDemo: widget.allowDemo),
       ),
     );
   }
@@ -131,6 +134,7 @@ class AuthGate extends StatefulWidget {
     this.notificationGateway = const NotificationCaptureChannel(),
     this.googleFlow,
     this.requester = httpNeonRequester,
+    this.allowDemo = false,
   });
 
   final ShareIntentReceiver shareReceiver;
@@ -146,6 +150,10 @@ class AuthGate extends StatefulWidget {
   /// HTTP seam for the Neon auth + data clients — widget tests script a
   /// fake transport instead of opening real sockets.
   final NeonRequester requester;
+
+  /// Test-only: exposes the read-only demo entry points (welcome / login
+  /// buttons). Production never sets it — the demo is not offered to users.
+  final bool allowDemo;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -534,19 +542,18 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
 
   /// The quick-entry path — same capture route as the nav "Ghi" button,
   /// plus the tab reload the shell performs on a real save.
-  Future<void> _openQuickCapture([TransactionKind? kind]) async {
-    final result = await _openCapture(context, kind: kind);
+  Future<void> _openQuickCapture() async {
+    final result = await _openCapture(context);
     if (result != null && result != CaptureResult.queued) _reloadTabs();
   }
 
   /// Demo is read-only, but the form still opens on seed data so the
   /// one-tap entry points land somewhere honest — a save attempt
   /// answers with the same "Demo chỉ xem" notice every write path shows.
-  Future<void> _openDemoCapture([TransactionKind? kind]) async {
+  Future<void> _openDemoCapture() async {
     await Navigator.of(context).push<CaptureResult>(
       MaterialPageRoute(
         builder: (_) => CapturePage(
-          initialKind: kind,
           accounts: DemoStore.seedAccounts(),
           // The demo category store, not raw seeds — categories added
           // via the pack must show in the picker like a real save.
@@ -610,14 +617,10 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   /// Center-nav capture: loads its own accounts/categories/transactions so
   /// the form gets fresh data plus the "Mục hay dùng" ranking regardless of
   /// what the dashboard has loaded.
-  Future<CaptureResult?> _openCapture(
-    BuildContext context, {
-    TransactionKind? kind,
-  }) async {
+  Future<CaptureResult?> _openCapture(BuildContext context) async {
     final result = await Navigator.of(context).push<CaptureResult>(
       MaterialPageRoute(
         builder: (_) => _CaptureLoader(
-          initialKind: kind,
           store: _store,
           submit: _captureSubmit,
           onCreateAccount: _createAccountForCapture,
@@ -1069,11 +1072,13 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
             unawaited(WelcomePrefs.markSeen());
             Navigator.of(context).pop();
           },
-          onDemo: () {
-            unawaited(WelcomePrefs.markSeen());
-            Navigator.of(context).pop();
-            _enterDemo();
-          },
+          onDemo: widget.allowDemo
+              ? () {
+                  unawaited(WelcomePrefs.markSeen());
+                  Navigator.of(context).pop();
+                  _enterDemo();
+                }
+              : null,
         ),
       ),
     );
@@ -1121,10 +1126,12 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           unawaited(WelcomePrefs.markSeen());
           setState(() => _gate = _Gate.login);
         },
-        onDemo: () {
-          unawaited(WelcomePrefs.markSeen());
-          _enterDemo();
-        },
+        onDemo: widget.allowDemo
+            ? () {
+                unawaited(WelcomePrefs.markSeen());
+                _enterDemo();
+              }
+            : null,
       ),
       _Gate.login => LoginPage(
         auth: _auth,
@@ -1136,7 +1143,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         // provider, no per-app Android OAuth client needed. The seam
         // stays injectable so tests never touch a browser/socket.
         googleFlow: _googleFlow,
-        onDemo: _enterDemo,
+        onDemo: widget.allowDemo ? _enterDemo : null,
       ),
       _Gate.onboarding => OnboardingPage(
         hasCashWallet: _onboardingCash != null,
@@ -1159,7 +1166,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           tabBuilders: [
             () => DashboardPage(
               key: _dashKey,
-              onCapture: _openQuickCapture,
+              loadPendingCount: _store.loadPendingInboxCount,
+              onOpenInbox: () => _openInbox(context),
+              onOpenTransaction: (tx) => _openEdit(context, tx),
               loadAccounts: _store.loadAccounts,
               loadTransactions: _store.loadTransactions,
               loadBudgets: _store.loadBudgets,
@@ -1734,7 +1743,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     return HomeShell(
       tabBuilders: [
         () => DashboardPage(
-          onCapture: _openDemoCapture,
+          loadPendingCount: _demoInbox.pendingCount,
           loadAccounts: () async => DemoStore.seedAccounts(),
           loadTransactions: () async => DemoStore.seedTransactions(),
           loadBudgets: (m) async => DemoStore.seedBudgets(m),
@@ -2198,10 +2207,7 @@ class _CaptureLoader extends StatelessWidget {
     required this.store,
     required this.submit,
     this.onCreateAccount,
-    this.initialKind,
   });
-
-  final TransactionKind? initialKind;
 
   final RealStore store;
   final Future<void> Function(CaptureIntent intent) submit;
@@ -2239,7 +2245,6 @@ class _CaptureLoader extends StatelessWidget {
           );
         }
         return CapturePage(
-          initialKind: initialKind,
           accounts: snap.data![0].cast(),
           categories: snap.data![1].cast(),
           transactions: snap.data![2].cast(),

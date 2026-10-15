@@ -550,7 +550,7 @@ class _CandidateCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 FilledButton.tonal(
                   onPressed: onReview,
-                  child: const Text('Duyệt'),
+                  child: const Text('Xem & duyệt'),
                 ),
               ],
             ),
@@ -891,6 +891,11 @@ class _ReviewPageState extends State<_ReviewPage> {
                       )
                     : const Icon(Icons.check),
                 label: const Text('Duyệt vào sổ'),
+              ),
+              Text(
+                'Sau khi duyệt, giao dịch vẫn sửa hoặc xóa được trong sổ.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
               ),
               TextButton(
                 onPressed: _busy ? null : _reject,

@@ -32,6 +32,7 @@ class _NoopQuickActions extends QuickActionSource {
 Future<void> _pumpGate(WidgetTester t) => t.pumpWidget(
   MaterialApp(
     home: AuthGate(
+      allowDemo: true,
       shareReceiver: const _NoopShareReceiver(),
       quickActions: _NoopQuickActions(),
     ),
@@ -44,6 +45,28 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     FlutterSecureStorage.setMockInitialValues({});
+  });
+
+  group('demo is not offered to users', () {
+    testWidgets('welcome and login have no demo entry by default', (t) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: AuthGate(
+            shareReceiver: const _NoopShareReceiver(),
+            quickActions: _NoopQuickActions(),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(find.byType(WelcomePage), findsOneWidget);
+      expect(find.text('Bắt đầu'), findsOneWidget);
+      expect(find.text('Xem demo'), findsNothing);
+
+      await t.tap(find.text('Bắt đầu'));
+      await t.pumpAndSettle();
+      expect(find.text('Đăng nhập'), findsWidgets);
+      expect(find.text('Xem bản demo (không cần đăng nhập)'), findsNothing);
+    });
   });
 
   group('first-run welcome', () {

@@ -281,6 +281,10 @@ class ActivityPageState extends State<ActivityPage> {
     if (result != null) _setQuery(result);
   }
 
+  /// Vietnam date (UTC+7) so "Hôm nay" matches ledger days.
+  String get _today =>
+      _isoDate(DateTime.now().toUtc().add(const Duration(hours: 7)));
+
   bool get _canSelect => widget.onBulkReview != null;
 
   void _exitSelect() => setState(() {
@@ -391,6 +395,16 @@ class ActivityPageState extends State<ActivityPage> {
     if (ok == true) {
       await widget.onDelete(tx.id);
       _refresh();
+      if (!mounted) return;
+      final open = widget.onOpenTrash;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Đã chuyển vào thùng rác'),
+          action: open == null
+              ? null
+              : SnackBarAction(label: 'Mở thùng rác', onPressed: open),
+        ),
+      );
     }
   }
 
@@ -553,6 +567,18 @@ class ActivityPageState extends State<ActivityPage> {
     );
   }
 
+  Widget _tile(Transaction t) => _TxTile(
+    tx: t,
+    selecting: _selecting,
+    selected: _selected.contains(t.id),
+    onTap: _selecting
+        ? () => _toggle(t)
+        : widget.onEdit == null
+        ? null
+        : () => _openEdit(t),
+    onLongPress: _selecting ? () => _toggle(t) : () => _confirmDelete(t),
+  );
+
   Widget _footer() {
     if (_loadingMore) {
       return const Padding(
@@ -645,7 +671,7 @@ class ActivityPageState extends State<ActivityPage> {
                   ..clear()
                   ..addAll(ids);
               }),
-              child: const Text('Chọn tất cả'),
+              child: const Text('Chọn mục đang hiện'),
             ),
           if (!_selecting && widget.onOpenTrash != null)
             IconButton(
@@ -700,7 +726,9 @@ class ActivityPageState extends State<ActivityPage> {
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: FilterChip(
-                          label: Text('Cần xem lại ($reviewCount)'),
+                          label: Text(
+                            'Cần xem lại ($reviewCount${_hasMore ? '+' : ''})',
+                          ),
                           selected: _onlyNeedsReview,
                           onSelected: (v) =>
                               setState(() => _onlyNeedsReview = v),
@@ -719,37 +747,13 @@ class ActivityPageState extends State<ActivityPage> {
                         ),
                       ),
                     ),
-                  for (final (i, t) in visible.indexed)
+                  for (final (i, t) in visible.indexed) ...[
+                    if (i == 0 || visible[i - 1].occurredOn != t.occurredOn)
+                      _DayHeader(label: _dayHeader(t.occurredOn, _today)),
                     i < _fadeInMaxItems
-                        ? _FadeInTile(
-                            order: i,
-                            child: _TxTile(
-                              tx: t,
-                              selecting: _selecting,
-                              selected: _selected.contains(t.id),
-                              onTap: _selecting
-                                  ? () => _toggle(t)
-                                  : widget.onEdit == null
-                                  ? null
-                                  : () => _openEdit(t),
-                              onLongPress: _selecting
-                                  ? () => _toggle(t)
-                                  : () => _confirmDelete(t),
-                            ),
-                          )
-                        : _TxTile(
-                            tx: t,
-                            selecting: _selecting,
-                            selected: _selected.contains(t.id),
-                            onTap: _selecting
-                                ? () => _toggle(t)
-                                : widget.onEdit == null
-                                ? null
-                                : () => _openEdit(t),
-                            onLongPress: _selecting
-                                ? () => _toggle(t)
-                                : () => _confirmDelete(t),
-                          ),
+                        ? _FadeInTile(order: i, child: _tile(t))
+                        : _tile(t),
+                  ],
                   _footer(),
                 ],
               ),
@@ -1083,6 +1087,9 @@ class _FadeInTile extends StatelessWidget {
   }
 }
 
+/// Cap so a large text scale shrinks the amount instead of overflowing.
+const _trailingMaxWidth = 132.0;
+
 class _TxTile extends StatelessWidget {
   const _TxTile({
     required this.tx,
@@ -1117,44 +1124,99 @@ class _TxTile extends StatelessWidget {
         : '${tx.account} → ${tx.destinationAccount}';
     final needsReview = tx.reviewStatus == TransactionReviewStatus.needsReview;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      color: selected ? Theme.of(context).colorScheme.primaryContainer : null,
-      child: ListTile(
-        leading: selecting
-            ? Icon(selected ? Icons.check_circle : Icons.circle_outlined)
-            : MfKindIcon(tx.kind.name),
-        title: Text(tx.note.isEmpty ? tx.category : tx.note),
-        subtitle: Text(
-          '${tx.category} · $accountLine'
-          '${needsReview ? '\nCần xem lại' : ''}',
-        ),
-        isThreeLine: needsReview,
-        trailing: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              formatMoneyWithKind(tx.amount, kind),
-              style: mfMoneyStyle(
-                TextStyle(color: color, fontWeight: FontWeight.w700),
-              ),
+    final kindWord = switch (tx.kind) {
+      TransactionKind.income => 'Thu',
+      TransactionKind.expense => 'Chi',
+      TransactionKind.transfer => 'Chuyển',
+    };
+    final label = [
+      '$kindWord ${formatMoney(tx.amount)}',
+      tx.category,
+      accountLine,
+      _dayLabel(tx.occurredOn),
+      if (needsReview) 'cần xem lại',
+    ].join(', ');
+
+    return Semantics(
+      container: true,
+      button: true,
+      label: label,
+      selected: selecting ? selected : null,
+      onTap: onTap,
+      onLongPress: onLongPress,
+      excludeSemantics: true,
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 8),
+        color: selected ? Theme.of(context).colorScheme.primaryContainer : null,
+        child: ListTile(
+          leading: selecting
+              ? Icon(selected ? Icons.check_circle : Icons.circle_outlined)
+              : MfKindIcon(tx.kind.name),
+          title: Text(tx.note.isEmpty ? tx.category : tx.note),
+          subtitle: Text(
+            '${tx.category} · $accountLine'
+            '${needsReview ? '\nCần xem lại' : ''}',
+          ),
+          isThreeLine: needsReview,
+          trailing: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _trailingMaxWidth),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    formatMoneyWithKind(tx.amount, kind),
+                    maxLines: 1,
+                    style: mfMoneyStyle(
+                      TextStyle(color: color, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _dayLabel(tx.occurredOn),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelSmall?.copyWith(color: context.mf.textSoft),
+                ),
+              ],
             ),
-            const SizedBox(height: 2),
-            Text(
-              _dayLabel(tx.occurredOn),
-              style: Theme.of(
-                context,
-              ).textTheme.labelSmall?.copyWith(color: context.mf.textSoft),
-            ),
-          ],
+          ),
+          onTap: onTap,
+          onLongPress: onLongPress,
         ),
-        onTap: onTap,
-        onLongPress: onLongPress,
       ),
     );
   }
+}
+
+class _DayHeader extends StatelessWidget {
+  const _DayHeader({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 8, bottom: 8),
+    child: Semantics(
+      header: true,
+      child: Text(label, style: Theme.of(context).textTheme.titleSmall),
+    ),
+  );
+}
+
+/// "Hôm nay" / "Hôm qua" / dd/MM/yyyy for a feed day header.
+String _dayHeader(String occurredOn, String today) {
+  if (occurredOn == today) return 'Hôm nay';
+  final t = DateTime.tryParse(today), d = DateTime.tryParse(occurredOn);
+  if (t != null && d != null && t.difference(d).inDays == 1) return 'Hôm qua';
+  return _dayLabel(occurredOn);
 }
 
 /// 'yyyy-MM-dd' → 'dd/MM/yyyy' (the reference's date format). An

@@ -24,10 +24,10 @@ class WelcomePrefs {
 /// enters the read-only demo through the same seam the login screen
 /// uses. Both choices mark the flag, so the screen is first-run-only.
 class WelcomePage extends StatelessWidget {
-  const WelcomePage({super.key, required this.onStart, required this.onDemo});
+  const WelcomePage({super.key, required this.onStart, this.onDemo});
 
   final VoidCallback onStart;
-  final VoidCallback onDemo;
+  final VoidCallback? onDemo;
 
   @override
   Widget build(BuildContext context) {
@@ -40,99 +40,107 @@ class WelcomePage extends StatelessWidget {
     );
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _Entrance(
-                order: 0,
-                child: Row(
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: mf.brand,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.account_balance_wallet_outlined,
-                        size: 20,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      'MoneyFlow',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              const _Entrance(order: 1, child: _ShapeComposition()),
-              const Spacer(),
-              _Entrance(
-                order: 2,
-                child: Text.rich(
-                  TextSpan(
+        // Scrolls (and the Spacers still centre the content on tall
+        // screens) so 200% text scale never overflows the first screen.
+        child: LayoutBuilder(
+          builder: (context, box) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: box.maxHeight),
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const TextSpan(text: 'Quản lý tiền gọn gàng, '),
-                      TextSpan(
-                        text: 'không ồn ào',
-                        style: TextStyle(
-                          color: mf.brand,
-                          decoration: TextDecoration.underline,
-                          decorationColor: mf.brand,
-                          decorationThickness: 2,
+                      _Entrance(
+                        order: 0,
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: mf.brand,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.account_balance_wallet_outlined,
+                                size: 20,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              'MoneyFlow',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                      const Spacer(),
+                      const _Entrance(order: 1, child: _ShapeComposition()),
+                      const Spacer(),
+                      _Entrance(
+                        order: 2,
+                        child: Text.rich(
+                          TextSpan(
+                            children: [
+                              const TextSpan(text: 'Quản lý tiền gọn gàng, '),
+                              TextSpan(
+                                text: 'không ồn ào',
+                                style: TextStyle(color: mf.brand),
+                              ),
+                            ],
+                          ),
+                          textAlign: TextAlign.center,
+                          style: headline,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _Entrance(
+                        order: 3,
+                        child: Text(
+                          'Ghi nhanh thu chi, xem lại theo tháng và lên '
+                          'kế hoạch trước — một luồng gọn cho cả ví và ngân sách.',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: mf.textMuted,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      _Entrance(
+                        order: 4,
+                        child: FilledButton(
+                          onPressed: onStart,
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(56),
+                            shape: const StadiumBorder(),
+                          ),
+                          child: const Text('Bắt đầu'),
+                        ),
+                      ),
+                      if (onDemo != null) ...[
+                        const SizedBox(height: 4),
+                        _Entrance(
+                          order: 5,
+                          child: TextButton(
+                            onPressed: onDemo,
+                            style: TextButton.styleFrom(
+                              minimumSize: const Size.fromHeight(48),
+                              foregroundColor: mf.textMuted,
+                            ),
+                            child: const Text('Xem demo'),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
-                  textAlign: TextAlign.center,
-                  style: headline,
                 ),
               ),
-              const SizedBox(height: 12),
-              _Entrance(
-                order: 3,
-                child: Text(
-                  'Ghi nhanh thu chi, xem lại theo tháng và lên '
-                  'kế hoạch trước — một luồng gọn cho cả ví và ngân sách.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: mf.textMuted,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 28),
-              _Entrance(
-                order: 4,
-                child: FilledButton(
-                  onPressed: onStart,
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(56),
-                    shape: const StadiumBorder(),
-                  ),
-                  child: const Text('Bắt đầu'),
-                ),
-              ),
-              const SizedBox(height: 4),
-              _Entrance(
-                order: 5,
-                child: TextButton(
-                  onPressed: onDemo,
-                  style: TextButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
-                    foregroundColor: mf.textMuted,
-                  ),
-                  child: const Text('Xem demo'),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

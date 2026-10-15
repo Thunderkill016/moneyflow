@@ -10,6 +10,7 @@ import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/quick_parse.dart';
 import '../../domain/split.dart';
+import '../../theme/mf_theme.dart';
 import 'capture_submit.dart'
     show CaptureQueued, CommitmentFailed, submitErrorMessage;
 import 'category_picker.dart';
@@ -90,7 +91,6 @@ class CapturePage extends StatefulWidget {
     this.transactions = const [],
     this.editing,
     this.onCreateAccount,
-    this.initialKind,
   });
 
   final List<AccountSummary> accounts;
@@ -109,10 +109,6 @@ class CapturePage extends StatefulWidget {
   /// Shared-text extraction applied to the form on open. The user still
   /// reviews and submits manually — a share never posts a transaction.
   final SharedTextPrefill? prefill;
-
-  /// Opens the form on this kind (Chi / Thu / Chuyển) — the dashboard's
-  /// quick-action tiles. A prefill's own kind still wins.
-  final TransactionKind? initialKind;
 
   /// Recent transactions — ranked into the "Mục hay dùng" category row.
   /// Empty for share-receive opens (no feed loaded yet).
@@ -229,7 +225,6 @@ class _CapturePageState extends State<CapturePage> {
       _date = DateTime.tryParse(editing.occurredOn) ?? DateTime.now();
       return; // an edited row is the strongest prefill — skip the rest
     }
-    if (widget.initialKind != null) _kind = widget.initialKind!;
     final p = widget.prefill;
     if (p != null) {
       if (p.kind != null) _kind = p.kind!;
@@ -478,7 +473,7 @@ class _CapturePageState extends State<CapturePage> {
           splitLines: splitLines,
           occurredOn: _fmtDate(_date),
           note: _note.text.trim(),
-          payee: _payee.text.trim(),
+          payee: _kind == TransactionKind.transfer ? '' : _payee.text.trim(),
           idempotencyKey: _idempotencyKey,
           repeatMonthly:
               _repeatMonthly &&
@@ -665,12 +660,12 @@ class _CapturePageState extends State<CapturePage> {
         ButtonSegment(
           value: TransactionKind.expense,
           label: Text('Chi'),
-          icon: Icon(Icons.remove),
+          icon: Icon(Icons.north_east),
         ),
         ButtonSegment(
           value: TransactionKind.income,
           label: Text('Thu'),
-          icon: Icon(Icons.add),
+          icon: Icon(Icons.south_west),
         ),
       ];
     }
@@ -678,12 +673,12 @@ class _CapturePageState extends State<CapturePage> {
       ButtonSegment(
         value: TransactionKind.expense,
         label: Text('Chi'),
-        icon: Icon(Icons.remove),
+        icon: Icon(Icons.north_east),
       ),
       ButtonSegment(
         value: TransactionKind.income,
         label: Text('Thu'),
-        icon: Icon(Icons.add),
+        icon: Icon(Icons.south_west),
       ),
       ButtonSegment(
         value: TransactionKind.transfer,
@@ -779,8 +774,31 @@ class _CapturePageState extends State<CapturePage> {
               decoration: const InputDecoration(
                 labelText: 'Số tiền',
                 hintText: 'vd: 50k, 2tr, 150.000',
+                suffixText: '₫',
                 border: OutlineInputBorder(),
               ),
+            ),
+            // Live parsed figure so "45k" is confirmed as 45.000 ₫ before save.
+            ListenableBuilder(
+              listenable: _amount,
+              builder: (context, _) {
+                final parsed = parseMoneyInput(_amount.text);
+                if (parsed == null || parsed <= 0) {
+                  return const SizedBox.shrink();
+                }
+                return Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      formatMoney(parsed),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: context.mf.textMuted,
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 8),
             // Quick-amount chips — one tap beats six digits for common sizes.
@@ -839,6 +857,13 @@ class _CapturePageState extends State<CapturePage> {
                   DropdownMenuItem(value: a.id, child: Text(a.name)),
               ],
               onChanged: (v) => setState(() => _destAccountId = v),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Chuyển nội bộ — không tính vào thu/chi',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: context.mf.textMuted),
             ),
           ] else if (_split) ...[
             const SizedBox(height: 12),
@@ -922,14 +947,16 @@ class _CapturePageState extends State<CapturePage> {
               border: OutlineInputBorder(),
             ),
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _payee,
-            decoration: const InputDecoration(
-              labelText: 'Nơi chi / Nguồn thu (tùy chọn)',
-              border: OutlineInputBorder(),
+          if (!isTransfer) ...[
+            const SizedBox(height: 12),
+            TextField(
+              controller: _payee,
+              decoration: const InputDecoration(
+                labelText: 'Nơi chi / Nguồn thu (tùy chọn)',
+                border: OutlineInputBorder(),
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: _pickDate,
@@ -953,7 +980,7 @@ class _CapturePageState extends State<CapturePage> {
             Text(
               _error!,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.red.shade700),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
             const SizedBox(height: 8),
           ],

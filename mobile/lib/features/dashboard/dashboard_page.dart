@@ -3,6 +3,7 @@ import '../../data/demo_store.dart';
 import '../../data/offline_cache.dart';
 import '../../data/recurring_dismissals.dart';
 import '../../data/widget_snapshot.dart';
+import '../../domain/datetime_label.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/recurring_detection.dart';
@@ -50,7 +51,9 @@ class DashboardPage extends StatefulWidget {
     this.loadSuggestionTransactions,
     this.onCreateCommitment,
     this.onCreateAccount,
-    this.onCapture,
+    this.loadPendingCount,
+    this.onOpenInbox,
+    this.onOpenTransaction,
     this.modeLabel,
     this.menuItems = const [],
     this.readSnapshot,
@@ -107,10 +110,15 @@ class DashboardPage extends StatefulWidget {
   /// no dead affordance pointing at a write the surface cannot do.
   final Future<void> Function()? onCreateAccount;
 
-  /// Opens the same capture route as the nav "Ghi" button, optionally on a
-  /// kind — drives the quick-action tiles under the balance. Null hides
-  /// the tiles.
-  final Future<void> Function([TransactionKind? kind])? onCapture;
+  /// Number of Inbox candidates waiting for review; null hides the card.
+  final Future<int> Function()? loadPendingCount;
+
+  /// Opens the Inbox ("Cần xem") from the review card.
+  final VoidCallback? onOpenInbox;
+
+  /// Opens a posted transaction for correction (same form as the Hoạt
+  /// động tab). Null leaves the rows read-only.
+  final void Function(Transaction tx)? onOpenTransaction;
   final String? modeLabel;
   final List<DashboardMenuItem> menuItems;
 
@@ -160,6 +168,19 @@ class DashboardPageState extends State<DashboardPage> {
   void initState() {
     super.initState();
     _data = _load();
+    _pending = _loadPending();
+  }
+
+  late Future<int> _pending;
+
+  Future<int> _loadPending() async {
+    final load = widget.loadPendingCount;
+    if (load == null) return 0;
+    try {
+      return await load();
+    } catch (_) {
+      return 0;
+    }
   }
 
   /// Fresh load wins; on failure the saved snapshot renders under a stale
@@ -316,6 +337,7 @@ class DashboardPageState extends State<DashboardPage> {
     // builds throw and the pull/capture refresh silently never ran).
     setState(() {
       _data = _load();
+      _pending = _loadPending();
     });
     try {
       await _data;
@@ -335,7 +357,25 @@ class DashboardPageState extends State<DashboardPage> {
         backgroundColor: Colors.transparent,
         title: const Text('MoneyFlow'),
         actions: [
-          if (widget.modeLabel != null) Center(child: Text(widget.modeLabel!)),
+          if (widget.modeLabel != null)
+            Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: context.mf.brandSubtle,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  widget.modeLabel!,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: context.mf.brandText,
+                  ),
+                ),
+              ),
+            ),
           if (widget.menuItems.isNotEmpty)
             PopupMenuButton<int>(
               // The reference's white rounded-square header button.
@@ -441,11 +481,28 @@ class DashboardPageState extends State<DashboardPage> {
                 padding: const EdgeInsets.fromLTRB(22, 16, 22, 16),
                 children: [
                   if (savedAtMs != null) _StaleBanner(savedAtMs: savedAtMs),
-                  _TotalCard(total: total),
-                  if (widget.onCapture != null) ...[
-                    const SizedBox(height: 12),
-                    _QuickActions(onCapture: widget.onCapture!),
-                  ],
+                  _TotalCard(
+                    total: total,
+                    latestOn: _latestDay(txs),
+                    foreignWallets: accounts
+                        .where((a) => a.currencyCode != 'VND')
+                        .length,
+                  ),
+                  if (widget.onOpenInbox != null)
+                    FutureBuilder<int>(
+                      future: _pending,
+                      builder: (context, pending) {
+                        final n = pending.data ?? 0;
+                        if (n <= 0) return const SizedBox.shrink();
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: _NeedsReviewCard(
+                            count: n,
+                            onTap: widget.onOpenInbox!,
+                          ),
+                        );
+                      },
+                    ),
                   if (budgets != null && commitments != null) ...[
                     const SizedBox(height: 12),
                     _SafeSpendCard(
@@ -488,7 +545,8 @@ class DashboardPageState extends State<DashboardPage> {
                             'Bấm "Ghi" ở thanh dưới để thêm khoản '
                             'đầu tiên của bạn.',
                       ),
-                    for (final t in txs) _TransactionTile(tx: t),
+                    for (final t in txs)
+                      _TransactionTile(tx: t, onOpen: widget.onOpenTransaction),
                   ],
                 ],
               ),
@@ -539,12 +597,13 @@ class _StaleBanner extends StatelessWidget {
     final mm = saved.minute.toString().padLeft(2, '0');
     final dd = saved.day.toString().padLeft(2, '0');
     final mo = saved.month.toString().padLeft(2, '0');
+    final mf = context.mf;
     return Card(
-      color: Theme.of(context).colorScheme.errorContainer,
+      color: mf.warningSubtle,
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         dense: true,
-        leading: const Icon(Icons.wifi_off),
+        leading: Icon(Icons.wifi_off, color: mf.warningText),
         title: const Text('Ngoại tuyến — dữ liệu đã lưu'),
         subtitle: Text('Cập nhật lúc $hh:$mm $dd/$mo'),
       ),
@@ -631,72 +690,43 @@ Widget _countUpMoney(BuildContext context, int amount, TextStyle? style) {
   );
 }
 
-/// Three tiles under the balance — Chi / Thu / Chuyển — each opening the
-/// capture form already on that kind (the reference's quick-action row).
-/// No money moves here: every tile only opens the form for review.
-class _QuickActions extends StatelessWidget {
-  const _QuickActions({required this.onCapture});
-
-  final Future<void> Function([TransactionKind? kind]) onCapture;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget tile(String label, TransactionKind kind) => Expanded(
-      child: Semantics(
-        button: true,
-        label: label,
-        excludeSemantics: true,
-        child: Card(
-          child: InkWell(
-            key: ValueKey('quick:${kind.name}'),
-            borderRadius: BorderRadius.circular(24),
-            onTap: () => onCapture(kind),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Column(
-                children: [
-                  MfKindIcon(kind.name),
-                  const SizedBox(height: 8),
-                  Text(
-                    label,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-    return Row(
-      children: [
-        tile('Ghi chi', TransactionKind.expense),
-        const SizedBox(width: 10),
-        tile('Ghi thu', TransactionKind.income),
-        const SizedBox(width: 10),
-        tile('Chuyển', TransactionKind.transfer),
-      ],
-    );
-  }
-}
-
 /// Section heading — 19px bold, measured against the reference's
 /// "Team Members" (cap height ≈ 13px at a 390px-wide frame).
 TextStyle? _sectionTitle(BuildContext context) => Theme.of(
   context,
 ).textTheme.titleLarge?.copyWith(fontSize: 19, fontWeight: FontWeight.w700);
 
+/// Newest posted day among the loaded rows ('yyyy-MM-dd'), or null when
+/// nothing is loaded. The feed is newest-first, but the max is taken
+/// explicitly so ordering never decides a figure shown to the user.
+String? _latestDay(List<Transaction> txs) {
+  String? latest;
+  for (final t in txs) {
+    if (latest == null || t.occurredOn.compareTo(latest) > 0) {
+      latest = t.occurredOn;
+    }
+  }
+  return latest;
+}
+
 class _TotalCard extends StatelessWidget {
-  const _TotalCard({required this.total});
+  const _TotalCard({
+    required this.total,
+    this.latestOn,
+    this.foreignWallets = 0,
+  });
   final int total;
+  final String? latestOn;
+  final int foreignWallets;
 
   @override
   Widget build(BuildContext context) {
     // No card: the oversized figure sits straight on the canvas — the
     // single scan target, with a quiet label above it.
     final theme = Theme.of(context);
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: context.mf.textMuted,
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
@@ -733,7 +763,51 @@ class _TotalCard extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(height: 6),
+          // Coverage, stated plainly: what the figure includes and how far
+          // the loaded data reaches — never a "synced" claim.
+          Text(
+            latestOn == null
+                ? 'Chưa ghi giao dịch nào'
+                : 'Giao dịch gần nhất ${formatYmdAsDmy(latestOn!)}',
+            style: muted,
+          ),
+          if (foreignWallets > 0)
+            Text(
+              'Chỉ tính ví VND · $foreignWallets ví ngoại tệ chưa cộng vào',
+              style: muted,
+            ),
         ],
+      ),
+    );
+  }
+}
+
+/// Inbox candidates are drafts, not posted transactions: this card says
+/// so and sends the user to the review queue.
+class _NeedsReviewCard extends StatelessWidget {
+  const _NeedsReviewCard({required this.count, required this.onTap});
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final mf = context.mf;
+    return Card(
+      color: mf.warningSubtle,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(color: mf.warningBorder),
+      ),
+      child: ListTile(
+        onTap: onTap,
+        leading: Icon(Icons.inbox_outlined, color: mf.warningText),
+        title: Text(
+          '$count khoản cần xem',
+          style: TextStyle(color: mf.warningText, fontWeight: FontWeight.w700),
+        ),
+        subtitle: const Text('Chưa vào sổ — duyệt để tính vào số dư'),
+        trailing: const Icon(Icons.chevron_right),
       ),
     );
   }
@@ -942,19 +1016,25 @@ class _AccountCard extends StatelessWidget {
             style: theme.textTheme.bodyMedium?.copyWith(color: mfPastelInk),
           ),
           const SizedBox(height: 2),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              formatMoney(account.balance),
-              style: mfMoneyStyle(
-                theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: mfPastelInk,
+          if (account.currencyCode != 'VND')
+            Text(
+              'Ví ${account.currencyCode} — xem số dư trên web',
+              style: theme.textTheme.bodySmall?.copyWith(color: mfPastelInk),
+            )
+          else
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                formatMoney(account.balance),
+                style: mfMoneyStyle(
+                  theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: mfPastelInk,
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -962,8 +1042,9 @@ class _AccountCard extends StatelessWidget {
 }
 
 class _TransactionTile extends StatelessWidget {
-  const _TransactionTile({required this.tx});
+  const _TransactionTile({required this.tx, this.onOpen});
   final Transaction tx;
+  final void Function(Transaction tx)? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -984,12 +1065,18 @@ class _TransactionTile extends StatelessWidget {
         ? tx.account
         : '${tx.account} → ${tx.destinationAccount}';
 
+    final needsReview = tx.reviewStatus == TransactionReviewStatus.needsReview;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
+        onTap: onOpen == null ? null : () => onOpen!(tx),
         leading: MfKindIcon(tx.kind.name),
         title: Text(tx.note.isEmpty ? tx.category : tx.note),
-        subtitle: Text('${tx.category} · $accountLine · ${tx.occurredOn}'),
+        subtitle: Text(
+          '${tx.category} · $accountLine · ${formatYmdAsDmy(tx.occurredOn)}'
+          '${needsReview ? '\nCần xem lại' : ''}',
+        ),
+        isThreeLine: needsReview,
         trailing: Text(
           formatMoneyWithKind(tx.amount, kind),
           style: mfMoneyStyle(

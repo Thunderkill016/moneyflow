@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../domain/datetime_label.dart';
 import '../../domain/models.dart';
+import '../../domain/money.dart';
+import '../../theme/mf_theme.dart';
+import '../shared/empty_state.dart';
 
 /// Trash surface — soft-deleted ledger rows with explicit restore,
 /// mirroring the web's /transactions/trash contract.
@@ -110,7 +113,11 @@ class _TrashPageState extends State<TrashPage> {
                 padding: const EdgeInsets.all(16),
                 children: [
                   if (items.isEmpty)
-                    const Card(child: ListTile(title: Text('Thùng rác trống'))),
+                    const EmptyStateCard(
+                      icon: Icons.delete_outline,
+                      title: 'Thùng rác trống',
+                      message: 'Giao dịch đã xóa sẽ nằm ở đây để khôi phục.',
+                    ),
                   for (final item in items)
                     _DeletedTile(item: item, onRestore: () => _restore(item)),
                 ],
@@ -132,6 +139,12 @@ class _DeletedTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tx = item.transaction;
+    final mf = context.mf;
+    final (kind, color) = switch (tx.kind) {
+      TransactionKind.income => (MoneySignKind.income, mf.incomeText),
+      TransactionKind.expense => (MoneySignKind.expense, mf.expenseText),
+      TransactionKind.transfer => (MoneySignKind.transfer, mf.transferText),
+    };
     final deletedLabel = formatDeletedAtLabel(item.deletedAt);
     final accountLine = tx.destinationAccount == null
         ? tx.account
@@ -142,13 +155,27 @@ class _DeletedTile extends StatelessWidget {
       child: ListTile(
         title: Text(tx.note.isEmpty ? tx.category : tx.note),
         subtitle: Text(
-          '${tx.category} · $accountLine · ${tx.occurredOn}'
+          '${tx.category} · $accountLine · ${formatYmdAsDmy(tx.occurredOn)}'
           '${deletedLabel.isEmpty ? '' : '\nĐã xóa lúc $deletedLabel'}',
         ),
         isThreeLine: deletedLabel.isNotEmpty,
-        trailing: TextButton(
-          onPressed: onRestore,
-          child: const Text('Khôi phục'),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              formatMoneyWithKind(tx.amount, kind),
+              maxLines: 1,
+              style: mfMoneyStyle(
+                TextStyle(color: color, fontWeight: FontWeight.w700),
+              ),
+            ),
+            const SizedBox(width: 4),
+            TextButton(
+              style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+              onPressed: onRestore,
+              child: const Text('Khôi phục'),
+            ),
+          ],
         ),
       ),
     );

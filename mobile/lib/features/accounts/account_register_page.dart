@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../domain/datetime_label.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/reconciliation.dart';
 import '../../domain/register.dart';
 import '../../domain/transaction_query.dart';
+import '../../theme/mf_theme.dart';
 
 /// One account's ledger — the mobile counterpart of the web's
 /// /accounts/[id] register (src/components/account-detail-page.tsx).
@@ -274,8 +276,25 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
     final review = t.reviewStatus == TransactionReviewStatus.needsReview
         ? '\nCần xem lại'
         : '';
-    return '$payee$base · ${t.occurredOn}$review';
+    final state = _entryState(t.id);
+    final recon = state == null ? '' : ' · ${entryStateLabel(state)}';
+    return '$payee$base · ${formatYmdAsDmy(t.occurredOn)}$recon$review';
   }
+
+  /// Reconciliation state of a row, from the strip's already-loaded feed —
+  /// null (badge hidden, rows stay editable) until that read lands or when
+  /// the contract is unavailable.
+  EntryReconciliationState? _entryState(String transactionId) {
+    final data = _recon;
+    if (data == null || !data.featureAvailable) return null;
+    for (final r in data.rows) {
+      if (r.transactionId == transactionId) return r.state;
+    }
+    return null;
+  }
+
+  bool _isReconciled(String transactionId) =>
+      _entryState(transactionId) == EntryReconciliationState.reconciled;
 
   Widget _header() {
     final a = _account;
@@ -381,9 +400,9 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
     // Web signed-mode tone: + green, − red; the subtitle's "Nhận
     // từ/Chuyển đến" wording (not color) is what marks a transfer.
     final color = e.impact > 0
-        ? Colors.green.shade700
+        ? context.mf.incomeText
         : e.impact < 0
-        ? Colors.red.shade700
+        ? context.mf.expenseText
         : null;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -410,8 +429,13 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
             ),
           ],
         ),
-        onTap: widget.onEdit == null ? null : () => _openEdit(tx),
-        onLongPress: widget.onDelete == null ? null : () => _confirmDelete(tx),
+        // The server rejects edits/deletes of reconciled rows, so lock them.
+        onTap: widget.onEdit == null || _isReconciled(tx.id)
+            ? null
+            : () => _openEdit(tx),
+        onLongPress: widget.onDelete == null || _isReconciled(tx.id)
+            ? null
+            : () => _confirmDelete(tx),
       ),
     );
   }

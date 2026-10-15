@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/export_files.dart';
 import '../../data/settings_prefs.dart';
-import '../../domain/export_csv.dart' show exportBackupFilename, jsonMimeType;
+import '../../domain/export_csv.dart' show jsonMimeType;
 import '../../domain/weekly_digest.dart'
     show weeklyDigestHour, weeklyDigestMinute;
 
@@ -274,7 +274,9 @@ class _SettingsPageState extends State<SettingsPage> {
               ListTile(
                 leading: const Icon(Icons.archive_outlined),
                 title: const Text('Sao lưu (JSON)'),
-                subtitle: Text(exportBackupFilename(DateTime.now())),
+                subtitle: const Text(
+                  'Toàn bộ tài khoản và giao dịch · tải về hoặc chia sẻ',
+                ),
                 onTap: _exportArchive,
               ),
             if (widget.onDeleteLocalData != null)
@@ -283,6 +285,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: Text(
                   widget.deleteLocalDataLabel,
                   style: TextStyle(color: scheme.error),
+                ),
+                subtitle: const Text(
+                  'Chỉ xóa trên thiết bị này — dữ liệu trên máy chủ giữ nguyên',
                 ),
                 onTap: () => unawaited(widget.onDeleteLocalData!()),
               ),
@@ -296,7 +301,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   'Xóa tài khoản',
                   style: TextStyle(color: scheme.error),
                 ),
-                subtitle: const Text('Xóa vĩnh viễn trên máy chủ'),
+                subtitle: const Text(
+                  'Xóa vĩnh viễn tài khoản và dữ liệu trên máy chủ',
+                ),
                 onTap: () => unawaited(widget.onDeleteAccount!()),
               ),
           ],

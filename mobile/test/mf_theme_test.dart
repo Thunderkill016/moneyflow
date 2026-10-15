@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:moneyflow/data/demo_store.dart';
 import 'package:moneyflow/domain/models.dart';
 import 'package:moneyflow/features/dashboard/dashboard_page.dart';
 import 'package:moneyflow/theme/mf_theme.dart';
@@ -151,39 +150,112 @@ void main() {
     });
   });
 
-  group('Dashboard quick actions', () {
+  group('Dashboard states what it knows (product law)', () {
+    const vnd = AccountSummary(
+      id: 'a1',
+      name: 'Tiền mặt',
+      kind: AccountKind.cash,
+      currencyCode: 'VND',
+      initialBalance: 0,
+      balance: 500000,
+    );
+    const usd = AccountSummary(
+      id: 'a2',
+      name: 'Quỹ USD',
+      kind: AccountKind.bank,
+      currencyCode: 'USD',
+      initialBalance: 0,
+      balance: 3000000,
+    );
+    Transaction tx(String id, String day, {bool review = false}) => Transaction(
+      id: id,
+      kind: TransactionKind.expense,
+      categoryId: 'c',
+      category: 'Ăn uống',
+      note: 'Bún bò',
+      accountId: 'a1',
+      account: 'Tiền mặt',
+      amount: 45000,
+      occurredOn: day,
+      reviewStatus: review
+          ? TransactionReviewStatus.needsReview
+          : TransactionReviewStatus.reviewed,
+    );
+
     Future<void> pump(
       WidgetTester t, {
-      Future<void> Function([TransactionKind? kind])? onCapture,
+      List<AccountSummary> accounts = const [vnd],
+      List<Transaction> txs = const [],
+      Future<int> Function()? pending,
+      VoidCallback? onOpenInbox,
+      void Function(Transaction)? onOpen,
     }) => t.pumpWidget(
       MaterialApp(
         theme: MfTheme.light(),
-        home: Scaffold(
-          body: DashboardPage(
-            loadAccounts: () async => DemoStore.seedAccounts(),
-            loadTransactions: () async => const [],
-            onCapture: onCapture,
-          ),
+        home: DashboardPage(
+          loadAccounts: () async => accounts,
+          loadTransactions: () async => txs,
+          loadPendingCount: pending,
+          onOpenInbox: onOpenInbox,
+          onOpenTransaction: onOpen,
         ),
       ),
     );
 
-    testWidgets('each tile opens capture on its own kind', (t) async {
-      final kinds = <TransactionKind?>[];
-      await pump(t, onCapture: ([k]) async => kinds.add(k));
+    testWidgets('states the newest loaded day, not a sync claim', (t) async {
+      await pump(t, txs: [tx('1', '2026-10-12'), tx('2', '2026-10-14')]);
       await t.pumpAndSettle();
-      for (final k in TransactionKind.values) {
-        await t.tap(find.byKey(ValueKey('quick:${k.name}')));
-      }
-      expect(kinds, TransactionKind.values);
+      expect(find.text('Giao dịch gần nhất 14/10/2026'), findsOneWidget);
     });
 
-    testWidgets('tiles are hidden when the host gives no capture route', (
-      t,
-    ) async {
+    testWidgets('says so when there are no transactions', (t) async {
       await pump(t);
       await t.pumpAndSettle();
-      expect(find.byKey(const ValueKey('quick:expense')), findsNothing);
+      expect(find.text('Chưa ghi giao dịch nào'), findsOneWidget);
+    });
+
+    testWidgets('foreign wallets are not summed and not printed as ₫', (
+      t,
+    ) async {
+      await pump(t, accounts: const [vnd, usd]);
+      await t.pumpAndSettle();
+      expect(find.textContaining('Chỉ tính ví VND'), findsOneWidget);
+      expect(find.textContaining('Ví USD'), findsOneWidget);
+      expect(find.text('3.000.000 ₫'), findsNothing);
+    });
+
+    testWidgets('Inbox drafts get a card that says they are not posted', (
+      t,
+    ) async {
+      var opened = 0;
+      await pump(t, pending: () async => 3, onOpenInbox: () => opened++);
+      await t.pumpAndSettle();
+      expect(find.text('3 khoản cần xem'), findsOneWidget);
+      expect(find.textContaining('Chưa vào sổ'), findsOneWidget);
+      await t.tap(find.text('3 khoản cần xem'));
+      expect(opened, 1);
+    });
+
+    testWidgets('no review card when nothing is pending', (t) async {
+      await pump(t, pending: () async => 0, onOpenInbox: () {});
+      await t.pumpAndSettle();
+      expect(find.textContaining('khoản cần xem'), findsNothing);
+    });
+
+    testWidgets('a needs-review row is marked and rows open for editing', (
+      t,
+    ) async {
+      Transaction? opened;
+      await pump(
+        t,
+        txs: [tx('9', '2026-10-14', review: true)],
+        onOpen: (x) => opened = x,
+      );
+      await t.pumpAndSettle();
+      expect(find.textContaining('Cần xem lại'), findsOneWidget);
+      expect(find.textContaining('14/10/2026'), findsWidgets);
+      await t.tap(find.text('Bún bò'));
+      expect(opened?.id, '9');
     });
   });
 }

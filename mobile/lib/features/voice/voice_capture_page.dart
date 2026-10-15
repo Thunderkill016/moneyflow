@@ -209,7 +209,7 @@ class _VoiceCapturePageState extends State<VoiceCapturePage> {
           shape: const CircleBorder(),
           padding: const EdgeInsets.all(28),
         ),
-        child: const Icon(Icons.mic, size: 40),
+        child: const Icon(Icons.mic, size: 40, semanticLabel: 'Bắt đầu ghi âm'),
       ),
       const SizedBox(height: 16),
       Text(

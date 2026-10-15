@@ -244,7 +244,9 @@ class _VietnamCategoryPackSheetState extends State<VietnamCategoryPackSheet> {
           ? null
           : Text(
               label,
-              style: failed ? TextStyle(color: Colors.red.shade700) : null,
+              style: failed
+                  ? TextStyle(color: Theme.of(context).colorScheme.error)
+                  : null,
             ),
       controlAffinity: ListTileControlAffinity.trailing,
     );

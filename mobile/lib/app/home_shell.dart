@@ -118,7 +118,6 @@ class _FloatingNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final mf = context.mf;
-    final dark = scheme.brightness == Brightness.dark;
     Widget tab(int i) {
       final item = _items[i];
       final active = i == selected;
@@ -173,7 +172,7 @@ class _FloatingNav extends StatelessWidget {
         width: double.infinity,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: dark ? const Color(0xFF101623) : const Color(0xFFF0F0EE),
+            color: context.mf.navSurface,
             borderRadius: BorderRadius.circular(36),
             border: Border.all(color: mf.borderSubtle),
             boxShadow: const [

@@ -162,6 +162,7 @@ Future<void> _pumpGate(
   await t.pumpWidget(
     MaterialApp(
       home: AuthGate(
+        allowDemo: true,
         shareReceiver: const _NoopShareReceiver(),
         quickActions: _NoopQuickActions(),
         googleFlow: googleFlow,

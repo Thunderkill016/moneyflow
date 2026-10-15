@@ -428,7 +428,10 @@ Future<bool> showAccountFormDialog(
               ),
               if (error != null) ...[
                 const SizedBox(height: 12),
-                Text(error!, style: TextStyle(color: Colors.red.shade700)),
+                Text(
+                  error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
               ],
             ],
           ),

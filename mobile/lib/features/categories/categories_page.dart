@@ -193,7 +193,12 @@ class _CategoriesPageState extends State<CategoriesPage> {
                 ),
                 if (error != null) ...[
                   const SizedBox(height: 12),
-                  Text(error!, style: TextStyle(color: Colors.red.shade700)),
+                  Text(
+                    error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -310,7 +315,9 @@ class _CategoriesPageState extends State<CategoriesPage> {
             child: const Text('Hủy'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Xóa hẳn'),
           ),

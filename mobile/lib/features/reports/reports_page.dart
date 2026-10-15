@@ -6,6 +6,7 @@ import '../../theme/mf_theme.dart';
 import '../../domain/budget.dart';
 import '../../domain/export_csv.dart';
 import '../../domain/money.dart';
+import '../../domain/spoken_vnd.dart';
 import '../../domain/models.dart';
 import '../../domain/net_worth.dart';
 import '../../domain/report.dart';
@@ -87,7 +88,8 @@ class ReportsPageState extends State<ReportsPage> {
 
   /// Net-worth series — period-independent, so it lives outside the
   /// report future; `null` while [ReportsPage.loadAccounts] is unwired.
-  late Future<({List<NetWorthPoint> points, bool truncated})>? _netWorth;
+  late Future<({List<NetWorthPoint> points, bool truncated, int accountCount})>?
+  _netWorth;
 
   /// Months in the trailing net-worth window — matches the domain
   /// default so the label and the fold never disagree.
@@ -121,7 +123,8 @@ class ReportsPageState extends State<ReportsPage> {
   /// next month's first day (exclusive) — the fold filters the same
   /// window, so a capped read marks itself truncated rather than
   /// understating early months.
-  Future<({List<NetWorthPoint> points, bool truncated})>? _loadNetWorth() {
+  Future<({List<NetWorthPoint> points, bool truncated, int accountCount})>?
+  _loadNetWorth() {
     final loadBalances = widget.loadAccounts;
     if (loadBalances == null) return null;
     return () async {
@@ -134,9 +137,11 @@ class ReportsPageState extends State<ReportsPage> {
         _rowsForWindow(first, beyond),
       ]);
       final range = results[1] as ({List<Transaction> rows, bool truncated});
+      final accounts = results[0] as List<AccountSummary>;
       return (
+        accountCount: accounts.length,
         points: netWorthTrend(
-          accounts: results[0] as List<AccountSummary>,
+          accounts: accounts,
           transactions: range.rows,
           currentMonthStart: current,
           months: _netWorthMonths,
@@ -234,6 +239,18 @@ class ReportsPageState extends State<ReportsPage> {
       final key = row.id;
       if (key == null) return;
       open(build(key), '${row.name} · ${_period.label}');
+    };
+  }
+
+  /// Total cards drill into the period's own query — Thu/Chi by kind,
+  /// the balance cards unfiltered — so every headline number can be
+  /// traced to the rows behind it. Null [onOpenActivity] keeps them inert.
+  VoidCallback? _totalTap(TransactionKind? kind) {
+    final open = widget.onOpenActivity;
+    if (open == null) return null;
+    return () {
+      final q = _periodQuery();
+      open(kind == null ? q : q.copyWith(kind: kind), _period.label);
     };
   }
 
@@ -472,13 +489,20 @@ class ReportsPageState extends State<ReportsPage> {
                         Row(
                           children: [
                             Expanded(
-                              child: _TotalCard(label: 'Thu', amount: r.income),
+                              child: _TotalCard(
+                                label: 'Thu',
+                                amount: r.income,
+                                semanticsLabel: 'Xem các khoản thu trong kỳ',
+                                onTap: _totalTap(TransactionKind.income),
+                              ),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: _TotalCard(
                                 label: 'Chi',
                                 amount: r.expense,
+                                semanticsLabel: 'Xem các khoản chi trong kỳ',
+                                onTap: _totalTap(TransactionKind.expense),
                               ),
                             ),
                           ],
@@ -490,38 +514,22 @@ class ReportsPageState extends State<ReportsPage> {
                               child: _TotalCard(
                                 label: 'Còn lại',
                                 amount: r.net,
+                                semanticsLabel: 'Xem mọi giao dịch trong kỳ',
+                                onTap: _totalTap(null),
                               ),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: Card(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Tiết kiệm',
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.labelLarge,
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        r.savingsRatePercent == null
-                                            ? '—'
-                                            : '${r.savingsRatePercent}%',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleLarge
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                              child: _TotalCard(
+                                label: 'Tiết kiệm',
+                                // Negative rates stay negative: spending
+                                // beyond income is not rounded up to 0%.
+                                text: r.savingsRatePercent == null
+                                    ? '—'
+                                    : '${r.savingsRatePercent}%',
+                                subtitle: 'của thu trong kỳ',
+                                semanticsLabel: 'Xem mọi giao dịch trong kỳ',
+                                onTap: _totalTap(null),
                               ),
                             ),
                           ],
@@ -665,11 +673,16 @@ class _WeeklyChart extends StatelessWidget {
 
   final List<WeeklyBucket> buckets;
 
+  /// Spoken equivalent of the bars — the chart itself is not readable
+  /// by a screen reader.
+  String _summary() =>
+      'Thu chi theo tuần: ${[for (final b in buckets) '${b.label} thu ${spokenVnd(b.income)}, chi ${spokenVnd(b.expense)}'].join('; ')}';
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const incomeColor = Color(0xFF388E3C); // Colors.green.shade700
-    const expenseColor = Color(0xFFD32F2F); // Colors.red.shade700
+    final incomeColor = context.mf.incomeText;
+    final expenseColor = context.mf.expenseText;
     var maxV = 0;
     for (final b in buckets) {
       if (b.income > maxV) maxV = b.income;
@@ -697,104 +710,107 @@ class _WeeklyChart extends StatelessWidget {
         const SizedBox(height: 20),
         Text('Thu chi theo tuần', style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 16, 8),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    legendDot(incomeColor, 'Thu'),
-                    const SizedBox(width: 12),
-                    legendDot(expenseColor, 'Chi'),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 180,
-                  child: BarChart(
-                    BarChartData(
-                      maxY: maxY,
-                      minY: 0,
-                      // No tooltips — the tap would only repeat what the
-                      // axes already say; drill-in lives on the rows below.
-                      barTouchData: BarTouchData(enabled: false),
-                      borderData: FlBorderData(show: false),
-                      gridData: FlGridData(
-                        drawVerticalLine: false,
-                        horizontalInterval: interval,
-                        getDrawingHorizontalLine: (v) => FlLine(
-                          color: theme.colorScheme.outlineVariant,
-                          strokeWidth: 1,
+        Semantics(
+          label: _summary(),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 16, 8),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      legendDot(incomeColor, 'Thu'),
+                      const SizedBox(width: 12),
+                      legendDot(expenseColor, 'Chi'),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 180,
+                    child: BarChart(
+                      BarChartData(
+                        maxY: maxY,
+                        minY: 0,
+                        // No tooltips — the tap would only repeat what the
+                        // axes already say; drill-in lives on the rows below.
+                        barTouchData: BarTouchData(enabled: false),
+                        borderData: FlBorderData(show: false),
+                        gridData: FlGridData(
+                          drawVerticalLine: false,
+                          horizontalInterval: interval,
+                          getDrawingHorizontalLine: (v) => FlLine(
+                            color: theme.colorScheme.outlineVariant,
+                            strokeWidth: 1,
+                          ),
                         ),
-                      ),
-                      titlesData: FlTitlesData(
-                        topTitles: const AxisTitles(),
-                        rightTitles: const AxisTitles(),
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 44,
-                            interval: interval,
-                            getTitlesWidget: (v, meta) => SideTitleWidget(
-                              meta: meta,
-                              child: Text(
-                                formatMoney(v.round(), compact: true),
-                                style: theme.textTheme.labelSmall,
+                        titlesData: FlTitlesData(
+                          topTitles: const AxisTitles(),
+                          rightTitles: const AxisTitles(),
+                          leftTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 44,
+                              interval: interval,
+                              getTitlesWidget: (v, meta) => SideTitleWidget(
+                                meta: meta,
+                                child: Text(
+                                  formatMoney(v.round(), compact: true),
+                                  style: theme.textTheme.labelSmall,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 24,
-                            getTitlesWidget: (v, meta) {
-                              final i = v.round();
-                              if (i < 0 || i >= buckets.length) {
-                                return const SizedBox.shrink();
-                              }
-                              return SideTitleWidget(
-                                meta: meta,
-                                child: Text(
-                                  buckets[i].label,
-                                  style: theme.textTheme.labelSmall,
-                                ),
-                              );
-                            },
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 24,
+                              getTitlesWidget: (v, meta) {
+                                final i = v.round();
+                                if (i < 0 || i >= buckets.length) {
+                                  return const SizedBox.shrink();
+                                }
+                                return SideTitleWidget(
+                                  meta: meta,
+                                  child: Text(
+                                    buckets[i].label,
+                                    style: theme.textTheme.labelSmall,
+                                  ),
+                                );
+                              },
+                            ),
                           ),
                         ),
+                        barGroups: [
+                          for (var i = 0; i < buckets.length; i++)
+                            BarChartGroupData(
+                              x: i,
+                              barsSpace: 3,
+                              barRods: [
+                                BarChartRodData(
+                                  toY: buckets[i].income.toDouble(),
+                                  color: incomeColor,
+                                  width: 7,
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(3),
+                                  ),
+                                ),
+                                BarChartRodData(
+                                  toY: buckets[i].expense.toDouble(),
+                                  color: expenseColor,
+                                  width: 7,
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(3),
+                                  ),
+                                ),
+                              ],
+                            ),
+                        ],
                       ),
-                      barGroups: [
-                        for (var i = 0; i < buckets.length; i++)
-                          BarChartGroupData(
-                            x: i,
-                            barsSpace: 3,
-                            barRods: [
-                              BarChartRodData(
-                                toY: buckets[i].income.toDouble(),
-                                color: incomeColor,
-                                width: 7,
-                                borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(3),
-                                ),
-                              ),
-                              BarChartRodData(
-                                toY: buckets[i].expense.toDouble(),
-                                color: expenseColor,
-                                width: 7,
-                                borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(3),
-                                ),
-                              ),
-                            ],
-                          ),
-                      ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -851,38 +867,65 @@ class _ShareSection extends StatelessWidget {
   }
 }
 
+/// One headline total. Money cards pass [amount]; the savings-rate card
+/// passes preformatted [text] (a percentage, not money). A non-null
+/// [onTap] makes the whole card a labelled button into the rows behind it.
 class _TotalCard extends StatelessWidget {
-  const _TotalCard({required this.label, required this.amount});
+  const _TotalCard({
+    required this.label,
+    this.amount,
+    this.text,
+    this.subtitle,
+    this.semanticsLabel,
+    this.onTap,
+  });
 
   final String label;
-  final int amount;
+  final int? amount;
+  final String? text;
+  final String? subtitle;
+  final String? semanticsLabel;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 6),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                formatMoney(amount),
-                style: mfMoneyStyle(
-                  Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+    final theme = Theme.of(context);
+    final base = theme.textTheme.titleLarge?.copyWith(
+      fontWeight: FontWeight.w800,
+    );
+    final card = Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: theme.textTheme.labelLarge),
+              const SizedBox(height: 6),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  text ?? formatMoney(amount!),
+                  style: text != null ? base : mfMoneyStyle(base),
                 ),
               ),
-            ),
-          ],
+              if (subtitle != null)
+                Text(
+                  subtitle!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: context.mf.textSoft,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
+    if (onTap == null) return card;
+    return Semantics(button: true, label: semanticsLabel, child: card);
   }
 }
 
@@ -893,7 +936,8 @@ class _TotalCard extends StatelessWidget {
 class _NetWorthSection extends StatelessWidget {
   const _NetWorthSection({required this.future});
 
-  final Future<({List<NetWorthPoint> points, bool truncated})> future;
+  final Future<({List<NetWorthPoint> points, bool truncated, int accountCount})>
+  future;
 
   @override
   Widget build(BuildContext context) {
@@ -943,6 +987,13 @@ class _NetWorthSection extends StatelessWidget {
                       ),
                   ],
                 ),
+                Text(
+                  'Gồm ${snap.data!.accountCount} tài khoản · '
+                  '${ReportsPageState._netWorthMonths} tháng gần nhất',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: context.mf.textSoft,
+                  ),
+                ),
                 if (snap.data!.truncated)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
@@ -967,12 +1018,19 @@ class _NetWorthSection extends StatelessWidget {
                   SizedBox(
                     height: 96,
                     width: double.infinity,
-                    child: CustomPaint(
-                      painter: _NetWorthPainter(
-                        points: points,
-                        lineColor: context.mf.brand,
-                        zeroColor: theme.colorScheme.outlineVariant,
-                        currentColor: theme.colorScheme.tertiary,
+                    child: Semantics(
+                      label:
+                          'Tài sản ròng từ ${formatMoney(points.first.balanceMinor)} '
+                          'đến ${formatMoney(points.last.balanceMinor)} '
+                          'qua ${points.length} tháng',
+                      child: CustomPaint(
+                        painter: _NetWorthPainter(
+                          points: points,
+                          // Ink, not the brand orange: orange is never money.
+                          lineColor: theme.colorScheme.onSurface,
+                          zeroColor: theme.colorScheme.outlineVariant,
+                          currentColor: theme.colorScheme.tertiary,
+                        ),
                       ),
                     ),
                   ),

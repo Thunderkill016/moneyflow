@@ -1158,7 +1158,8 @@ class PlanningPageState extends State<PlanningPage> {
 
   Future<void> _payCommitment(RecurringCommitment c) async {
     final ok = await _confirm(
-      'Trả "${c.name}" — ${formatMoney(c.amountMinor)}?',
+      'Ghi chi ${formatMoney(c.amountMinor)} vào ${c.accountName} '
+      'cho "${c.name}"?',
     );
     if (ok) {
       await _guarded(
@@ -1204,7 +1205,8 @@ class PlanningPageState extends State<PlanningPage> {
 
   Future<void> _receiveIncome(RecurringIncome i) async {
     final ok = await _confirm(
-      'Ghi nhận "${i.name}" — ${formatMoney(i.amountMinor)} vào ${i.accountName}?',
+      'Ghi thu ${formatMoney(i.amountMinor)} vào ${i.accountName} '
+      'cho "${i.name}"?',
     );
     if (ok) {
       await _guarded(
@@ -1658,15 +1660,15 @@ class _BudgetTile extends StatelessWidget {
     final (status, color) = switch (state) {
       BudgetState.over => (
         'Vượt ${formatMoney(available.abs())}',
-        Colors.red.shade700,
+        context.mf.expenseText,
       ),
       BudgetState.nearLimit => (
         'Sắp tới hạn mức · còn ${formatMoney(available)}',
-        Colors.orange.shade800,
+        context.mf.warningText,
       ),
       BudgetState.ok => (
         'Còn lại ${formatMoney(available)}',
-        Colors.green.shade700,
+        context.mf.incomeText,
       ),
     };
     final rolloverLine = budgetRolloverLabel(rollover, formatMoney);
@@ -1757,13 +1759,13 @@ class _CommitmentTile extends StatelessWidget {
       today: today,
     );
     final statusColor = switch (status) {
-      CommitmentStatus.overdue => Colors.red.shade700,
-      CommitmentStatus.dueToday => Colors.orange.shade800,
+      CommitmentStatus.overdue => context.mf.expenseText,
+      CommitmentStatus.dueToday => context.mf.warningText,
       CommitmentStatus.upcoming => scheme.onSurfaceVariant,
       // Not due this month — the calmest unpaid band, like upcoming.
       CommitmentStatus.scheduled => scheme.onSurfaceVariant,
-      CommitmentStatus.paidDifferent => Colors.blue.shade700,
-      CommitmentStatus.paid => Colors.green.shade700,
+      CommitmentStatus.paidDifferent => context.mf.transferText,
+      CommitmentStatus.paid => context.mf.incomeText,
     };
     // A plain "Đã trả" needs no extra line — the trailing undo button
     // already says it. Every other state names itself in text so the
@@ -1907,7 +1909,15 @@ class _GoalTile extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            MfTickBar(ratio: goal.progress.clamp(0.0, 1.0), height: 18),
+            Semantics(
+              label: 'Đã đạt $pct% mục tiêu',
+              child: ExcludeSemantics(
+                child: MfTickBar(
+                  ratio: goal.progress.clamp(0.0, 1.0),
+                  height: 18,
+                ),
+              ),
+            ),
             const SizedBox(height: 4),
             Text(
               '${formatMoney(goal.allocatedMinor)} / ${formatMoney(goal.targetMinor)} · $pct%',

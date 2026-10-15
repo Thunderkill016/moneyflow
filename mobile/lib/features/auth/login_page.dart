@@ -46,9 +46,16 @@ class _LoginPageState extends State<LoginPage> {
   final _password = TextEditingController();
   bool _signUp = false;
   bool _busy = false;
+  bool _showPassword = false;
   String? _error;
 
   Future<void> _submit() async {
+    // An empty form is a missing input, not a rejected credential — say
+    // so instead of sending it to the server and reporting a wrong password.
+    if (_email.text.trim().isEmpty || _password.text.isEmpty) {
+      setState(() => _error = 'Nhập email và mật khẩu');
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -178,139 +185,160 @@ class _LoginPageState extends State<LoginPage> {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 380),
-            child: ListView(
-              shrinkWrap: true,
-              padding: const EdgeInsets.all(24),
-              children: [
-                Center(
-                  child: Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: context.mf.brand,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: const Icon(
-                      Icons.account_balance_wallet_outlined,
-                      color: Colors.white,
+            child: AutofillGroup(
+              child: ListView(
+                shrinkWrap: true,
+                padding: const EdgeInsets.all(24),
+                children: [
+                  Center(
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: context.mf.brand,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: const Icon(
+                        Icons.account_balance_wallet_outlined,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'MoneyFlow',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
+                  const SizedBox(height: 16),
+                  Text(
+                    'MoneyFlow',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Sổ tiền của bạn',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: context.mf.textMuted),
-                ),
-                const SizedBox(height: 28),
-                if (_signUp) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Sổ tiền của bạn',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: context.mf.textMuted,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  if (_signUp) ...[
+                    TextField(
+                      controller: _name,
+                      autofillHints: const [AutofillHints.name],
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                        labelText: 'Tên',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   TextField(
-                    controller: _name,
+                    controller: _email,
+                    keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [AutofillHints.email],
                     textInputAction: TextInputAction.next,
                     decoration: const InputDecoration(
-                      labelText: 'Tên',
+                      labelText: 'Email',
                       border: OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 12),
-                ],
-                TextField(
-                  controller: _email,
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _password,
-                  obscureText: true,
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (_) => _busy ? null : _submit(),
-                  decoration: const InputDecoration(
-                    labelText: 'Mật khẩu',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (_error != null) ...[
-                  Text(
-                    _error!,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: context.mf.expenseText),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                FilledButton(
-                  onPressed: _busy ? null : _submit,
-                  child: Text(
-                    _busy
-                        ? '…'
-                        : _signUp
-                        ? 'Tạo tài khoản'
-                        : 'Đăng nhập',
-                  ),
-                ),
-                if (widget.googleFlow != null) ...[
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: _busy ? null : _signInWithGoogle,
-                    // The Google "G" without an asset dependency.
-                    icon: const Text(
-                      'G',
-                      style: TextStyle(
-                        color: Color(0xFF4285F4), // Google blue
-                        fontWeight: FontWeight.w700,
+                  TextField(
+                    controller: _password,
+                    obscureText: !_showPassword,
+                    autofillHints: [
+                      _signUp
+                          ? AutofillHints.newPassword
+                          : AutofillHints.password,
+                    ],
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _busy ? null : _submit(),
+                    decoration: InputDecoration(
+                      labelText: 'Mật khẩu',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        tooltip: _showPassword
+                            ? 'Ẩn mật khẩu'
+                            : 'Hiện mật khẩu',
+                        icon: Icon(
+                          _showPassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                        ),
+                        onPressed: () =>
+                            setState(() => _showPassword = !_showPassword),
                       ),
                     ),
-                    label: const Text('Đăng nhập bằng Google'),
-                    // Google's brand button stays white with dark text
-                    // in both light and dark themes.
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black87,
+                  ),
+                  const SizedBox(height: 16),
+                  if (_error != null) ...[
+                    Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: context.mf.expenseText),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  FilledButton(
+                    onPressed: _busy ? null : _submit,
+                    child: Text(
+                      _busy
+                          ? '…'
+                          : _signUp
+                          ? 'Tạo tài khoản'
+                          : 'Đăng nhập',
                     ),
                   ),
-                ],
-                if (!_signUp)
+                  if (widget.googleFlow != null) ...[
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: _busy ? null : _signInWithGoogle,
+                      // The Google "G" without an asset dependency.
+                      icon: const Text(
+                        'G',
+                        style: TextStyle(
+                          color: Color(0xFF4285F4), // Google blue
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      label: const Text('Đăng nhập bằng Google'),
+                      // Google's brand button stays white with dark text
+                      // in both light and dark themes.
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black87,
+                      ),
+                    ),
+                  ],
+                  if (!_signUp)
+                    TextButton(
+                      onPressed: _busy ? null : _forgotPassword,
+                      child: const Text('Quên mật khẩu?'),
+                    ),
                   TextButton(
-                    onPressed: _busy ? null : _forgotPassword,
-                    child: const Text('Quên mật khẩu?'),
+                    onPressed: _busy
+                        ? null
+                        : () => setState(() {
+                            _signUp = !_signUp;
+                            _error = null;
+                          }),
+                    child: Text(
+                      _signUp
+                          ? 'Đã có tài khoản? Đăng nhập'
+                          : 'Chưa có tài khoản? Đăng ký',
+                    ),
                   ),
-                TextButton(
-                  onPressed: _busy
-                      ? null
-                      : () => setState(() {
-                          _signUp = !_signUp;
-                          _error = null;
-                        }),
-                  child: Text(
-                    _signUp
-                        ? 'Đã có tài khoản? Đăng nhập'
-                        : 'Chưa có tài khoản? Đăng ký',
-                  ),
-                ),
-                if (widget.onDemo != null) ...[
-                  const SizedBox(height: 8),
-                  OutlinedButton(
-                    onPressed: widget.onDemo,
-                    child: const Text('Xem bản demo (không cần đăng nhập)'),
-                  ),
+                  if (widget.onDemo != null) ...[
+                    const SizedBox(height: 8),
+                    OutlinedButton(
+                      onPressed: widget.onDemo,
+                      child: const Text('Xem bản demo (không cần đăng nhập)'),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),

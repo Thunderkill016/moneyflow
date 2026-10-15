@@ -172,6 +172,10 @@ void main() {
       }),
     );
     await t.pumpAndSettle();
+    // Day headers make row heights uneven, so the lazy list's extent
+    // estimate settles after the first drag — scroll to the end twice.
+    await t.drag(find.byType(Scrollable).first, const Offset(0, -6000));
+    await t.pumpAndSettle();
     await t.drag(find.byType(Scrollable).first, const Offset(0, -6000));
     await t.pumpAndSettle();
     expect(find.text('Không tải thêm được'), findsOneWidget);

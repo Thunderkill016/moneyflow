@@ -101,6 +101,7 @@ Future<void> _pumpSignedIn(
   await t.pumpWidget(
     MaterialApp(
       home: AuthGate(
+        allowDemo: true,
         shareReceiver: const _NoopShareReceiver(),
         quickActions: _NoopQuickActions(),
         biometric: biometric,
@@ -136,7 +137,7 @@ Future<void> _untilShared(WidgetTester t, int Function() calls) async {
 /// Boot the real app widget — the same MaterialApp MoneyFlow ships —
 /// down the demo path to the settings surface.
 Future<void> _openDemoSettings(WidgetTester t) async {
-  await t.pumpWidget(const MoneyFlowApp());
+  await t.pumpWidget(const MoneyFlowApp(allowDemo: true));
   await t.pumpAndSettle();
   await t.tap(find.text('Xem bản demo (không cần đăng nhập)'));
   await t.pumpAndSettle();

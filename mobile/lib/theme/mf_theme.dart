@@ -17,6 +17,7 @@ class MfColors extends ThemeExtension<MfColors> {
     required this.borderSubtle,
     required this.borderStrong,
     required this.surfaceMuted,
+    required this.navSurface,
     required this.surfaceStrong,
     required this.income,
     required this.incomeSubtle,
@@ -51,6 +52,10 @@ class MfColors extends ThemeExtension<MfColors> {
 
   /// Secondary panel vs pressed/selected fill.
   final Color surfaceMuted;
+
+  /// Floating bottom bar — a hair darker than the canvas (light) or the
+  /// card surface (dark); the reference's #F0F0EE / #101623.
+  final Color navSurface;
   final Color surfaceStrong;
 
   /// Financial semantics — mint income, coral expense, violet
@@ -83,6 +88,7 @@ class MfColors extends ThemeExtension<MfColors> {
     borderSubtle: Color(0xFFE6E8DD),
     borderStrong: Color(0xFFD2D5C6),
     surfaceMuted: Color(0xFFF6F7F0),
+    navSurface: Color(0xFFF0F0EE),
     surfaceStrong: Color(0xFFECEEE2),
     income: Color(0xFF059669),
     incomeSubtle: Color(0xFFECFDF5),
@@ -111,6 +117,7 @@ class MfColors extends ThemeExtension<MfColors> {
     borderSubtle: Color(0xFF232B3E),
     borderStrong: Color(0xFF3A4560),
     surfaceMuted: Color(0xFF151C2C),
+    navSurface: Color(0xFF101623),
     surfaceStrong: Color(0xFF1E2740),
     income: Color(0xFF34D399),
     incomeSubtle: Color(0xFF0D2B22),
@@ -476,6 +483,8 @@ class MfTheme {
       // Pill chips: white at rest, solid ink when selected (the
       // reference's period / category pills).
       chipTheme: ChipThemeData(
+        // ≥48dp so quick-amount/filter chips are real touch targets.
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         shape: const StadiumBorder(),
         side: BorderSide(color: mf.borderSubtle),
         backgroundColor: scheme.surface,

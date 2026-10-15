@@ -48,6 +48,7 @@ Future<void> _pumpDemoDashboard(WidgetTester t, UrlOpener opener) async {
   await t.pumpWidget(
     MaterialApp(
       home: AuthGate(
+        allowDemo: true,
         shareReceiver: const _NoopShareReceiver(),
         quickActions: _NoopQuickActions(),
         urlOpener: opener,
