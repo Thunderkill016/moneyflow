@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/app/app.dart';
+import 'package:moneyflow/theme/mf_theme.dart';
 import 'package:moneyflow/data/quick_action.dart';
 import 'package:moneyflow/data/share/share_intent.dart';
 import 'package:moneyflow/features/auth/welcome_page.dart';
@@ -126,5 +127,33 @@ void main() {
       expect(find.byType(WelcomePage), findsNothing);
       expect(find.text('Đăng nhập'), findsWidgets);
     });
+  });
+
+  testWidgets('intro tour: Tiếp advances, dots move, Bỏ qua exits early', (
+    t,
+  ) async {
+    var started = 0;
+    await t.pumpWidget(
+      MaterialApp(
+        theme: MfTheme.light(),
+        home: WelcomePage(onStart: () => started++),
+      ),
+    );
+    expect(find.textContaining('không ồn ào'), findsOneWidget);
+    expect(find.text('Tiếp'), findsOneWidget);
+    expect(find.text('Bỏ qua'), findsOneWidget);
+
+    await t.tap(find.text('Tiếp'));
+    await t.pumpAndSettle();
+    expect(find.textContaining('một sổ'), findsOneWidget);
+
+    await t.tap(find.text('Tiếp'));
+    await t.pumpAndSettle();
+    expect(find.textContaining('duyệt trước'), findsOneWidget);
+    expect(find.text('Bỏ qua'), findsNothing);
+    expect(find.text('Bắt đầu'), findsOneWidget);
+
+    await t.tap(find.text('Bắt đầu'));
+    expect(started, 1);
   });
 }

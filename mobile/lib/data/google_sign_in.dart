@@ -157,15 +157,25 @@ class LoopbackGoogleSignIn implements GoogleSignInFlow {
     return request;
   }
 
-  /// The browser still displays whatever we answer — give the success
-  /// case a return-to-app hint, everything else a bare close.
+  /// The browser still displays whatever we answer — the success page
+  /// bounces straight back to the app. Chrome resolves `intent://`
+  /// navigations into an explicit VIEW intent for our package (the
+  /// `moneyflow://oauth-callback` filter in AndroidManifest), so the
+  /// app returns to the foreground without the user hunting for it.
+  /// The link stays as a manual fallback for browsers that ignore
+  /// intent:// URLs; everything else gets a bare close.
   void _answer(HttpRequest request, int status, bool done) {
     request.response.statusCode = status;
     if (done) {
       request.response.headers.contentType = ContentType.html;
       request.response.write(
         '<!doctype html><meta charset="utf-8"><title>MoneyFlow</title>'
-        '<p>Đăng nhập xong — bạn có thể quay lại ứng dụng MoneyFlow.</p>',
+        '<script>location.replace('
+        '"intent://oauth-callback#Intent;scheme=moneyflow;'
+        'package=app.moneyflow.moneyflow;end");</script>'
+        '<p>Đăng nhập xong — đang quay lại MoneyFlow…</p>'
+        '<p><a href="intent://oauth-callback#Intent;scheme=moneyflow;'
+        'package=app.moneyflow.moneyflow;end">Mở lại MoneyFlow</a></p>',
       );
     }
     unawaited(request.response.close());
