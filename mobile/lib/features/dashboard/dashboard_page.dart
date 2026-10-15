@@ -426,7 +426,7 @@ class DashboardPageState extends State<DashboardPage> {
               : const LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Color(0xFFF7E9D7), Color(0xFFF6F7F0)],
+                  colors: [Color(0xFFEFEAFF), Color(0xFFF8F5FF)],
                   stops: [0, 0.4],
                 ),
         ),

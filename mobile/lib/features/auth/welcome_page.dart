@@ -336,7 +336,7 @@ class _WalletStripMini extends StatelessWidget {
               child: Transform.rotate(
                 angle: -0.06,
                 child: card(
-                  const Color(0xFFEFE17C),
+                  const Color(0xFFC7B7FF),
                   Icons.payments_outlined,
                   'Tiền mặt',
                 ),
@@ -483,7 +483,7 @@ class _PiggyPainter extends CustomPainter {
 
   final Color body;
 
-  static const _ink = Color(0xFF1C1C1C);
+  static const _ink = Color(0xFF211A33);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -549,7 +549,7 @@ class _PiggyPainter extends CustomPainter {
       ),
       fill(_ink),
     );
-    canvas.drawCircle(const Offset(122, 34), 24, fill(const Color(0xFFEFE17C)));
+    canvas.drawCircle(const Offset(122, 34), 24, fill(const Color(0xFFC7B7FF)));
     canvas.drawCircle(
       const Offset(122, 34),
       24,

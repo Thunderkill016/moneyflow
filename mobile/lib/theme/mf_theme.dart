@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
 /// MoneyFlow mobile design tokens — light minimal fintech direction
-/// (owner references, 2026-10-14): warm cream canvas, white rounded tiles,
-/// near-black actions, ONE orange accent, oversized money on the canvas. Dark mode keeps
-/// the same structure on an ink canvas. Semantic finance colors stay
-/// distinguishable from brand: an amount's color is NEVER the only
+/// Soft Pop territory (owner-selected 2026-10-15, see
+/// docs/design/GENZ_DESIGN_EXPLORATION.md): lilac canvas, white rounded
+/// tiles, violet action family, oversized money on the canvas. Dark mode
+/// keeps the same structure on an ink-violet canvas. Semantic finance
+/// colors stay distinguishable from brand: an amount's color is NEVER the only
 /// carrier of sign/direction (tiles still print +/−/↔ via
 /// formatMoneyWithKind).
 class MfColors extends ThemeExtension<MfColors> {
@@ -80,16 +81,16 @@ class MfColors extends ThemeExtension<MfColors> {
 
   /// Light-first: the default look.
   static const light = MfColors(
-    brand: Color(0xFFE24F1F),
-    brandSubtle: Color(0xFFFCE3D9),
-    brandText: Color(0xFFC2410C),
-    textMuted: Color(0xFF57534E),
-    textSoft: Color(0xFF78716C),
-    borderSubtle: Color(0xFFE6E8DD),
-    borderStrong: Color(0xFFD2D5C6),
-    surfaceMuted: Color(0xFFF6F7F0),
-    navSurface: Color(0xFFF0F0EE),
-    surfaceStrong: Color(0xFFECEEE2),
+    brand: Color(0xFF6F4EF5),
+    brandSubtle: Color(0xFFEFEAFF),
+    brandText: Color(0xFF5B3BE0),
+    textMuted: Color(0xFF524A6B),
+    textSoft: Color(0xFF6F6787),
+    borderSubtle: Color(0xFFE9E4F6),
+    borderStrong: Color(0xFF8E79C9),
+    surfaceMuted: Color(0xFFF1ECFF),
+    navSurface: Color(0xFFFFFFFF),
+    surfaceStrong: Color(0xFFE9E3F8),
     income: Color(0xFF059669),
     incomeSubtle: Color(0xFFECFDF5),
     incomeText: Color(0xFF047857),
@@ -109,16 +110,16 @@ class MfColors extends ThemeExtension<MfColors> {
   );
 
   static const dark = MfColors(
-    brand: Color(0xFFFB923C),
-    brandSubtle: Color(0xFF33200F),
-    brandText: Color(0xFFFDBA74),
-    textMuted: Color(0xFF9AA4BF),
-    textSoft: Color(0xFF7C869E),
-    borderSubtle: Color(0xFF232B3E),
-    borderStrong: Color(0xFF3A4560),
-    surfaceMuted: Color(0xFF151C2C),
-    navSurface: Color(0xFF101623),
-    surfaceStrong: Color(0xFF1E2740),
+    brand: Color(0xFFB7A5FF),
+    brandSubtle: Color(0xFF2E2650),
+    brandText: Color(0xFFCBBFFF),
+    textMuted: Color(0xFFCDC6DE),
+    textSoft: Color(0xFFA79FC4),
+    borderSubtle: Color(0xFF2C2644),
+    borderStrong: Color(0xFF7C6CB0),
+    surfaceMuted: Color(0xFF282240),
+    navSurface: Color(0xFF1E1A30),
+    surfaceStrong: Color(0xFF352D52),
     income: Color(0xFF34D399),
     incomeSubtle: Color(0xFF0D2B22),
     incomeText: Color(0xFF6EE7B7),
@@ -184,16 +185,16 @@ class MfKindIcon extends StatelessWidget {
   }
 }
 
-/// Pastel fills shared by wallet cards and icon tiles — sampled from the
-/// Savor reference (yellow / lime / peach / lavender). Dark ink text sits
+/// Pastel sticker fills shared by wallet cards and icon tiles — the
+/// Soft Pop accent set (pink / mint / peri / violet). Dark ink text sits
 /// on every one of them, so contrast holds in both themes.
 const mfPastelFills = [
-  Color(0xFFEFE17C),
-  Color(0xFFB7DD95),
-  Color(0xFFF0C4A8),
-  Color(0xFFD5CCF3),
+  Color(0xFFFF9FB8),
+  Color(0xFF7FE5C4),
+  Color(0xFF8FA8FF),
+  Color(0xFFC7B7FF),
 ];
-const mfPastelInk = Color(0xFF1C1C1C);
+const mfPastelInk = Color(0xFF211A33);
 
 /// Rounded-square icon tile on a pastel fill (the reference's "My
 /// Savings" / wallet-row icon).
@@ -318,53 +319,53 @@ class MfTheme {
 
   static ThemeData light() => _build(
     const ColorScheme.light(
-      primary: Color(0xFF1C1C1C),
+      primary: Color(0xFF6F4EF5),
       onPrimary: Color(0xFFFFFFFF),
-      primaryContainer: Color(0xFFFCE3D9),
-      onPrimaryContainer: Color(0xFF7C2D12),
-      secondary: Color(0xFF57534E),
+      primaryContainer: Color(0xFFEFEAFF),
+      onPrimaryContainer: Color(0xFF3B2797),
+      secondary: Color(0xFF524A6B),
       onSecondary: Color(0xFFFFFFFF),
-      secondaryContainer: Color(0xFFECEEE2),
-      onSecondaryContainer: Color(0xFF1C1917),
+      secondaryContainer: Color(0xFFE9E3F8),
+      onSecondaryContainer: Color(0xFF211A33),
       error: Color(0xFFE11D48),
       onError: Color(0xFFFFFFFF),
       errorContainer: Color(0xFFFFF1F2),
       onErrorContainer: Color(0xFF9F1239),
       surface: Color(0xFFFFFFFF),
-      onSurface: Color(0xFF1C1C1C),
-      onSurfaceVariant: Color(0xFF57534E),
-      outline: Color(0xFFD2D5C6),
-      outlineVariant: Color(0xFFE6E8DD),
-      surfaceContainerHighest: Color(0xFFECEEE2),
+      onSurface: Color(0xFF211A33),
+      onSurfaceVariant: Color(0xFF524A6B),
+      outline: Color(0xFFDCD5EE),
+      outlineVariant: Color(0xFFE9E4F6),
+      surfaceContainerHighest: Color(0xFFE9E3F8),
     ),
     MfColors.light,
-    const Color(0xFFF6F7F0), // warm cream canvas
+    const Color(0xFFF8F5FF), // lilac Soft Pop canvas
   );
 
-  /// Dark counterpart: deep blue-ink canvas, layered ink surfaces.
+  /// Dark counterpart: ink-violet canvas, layered violet surfaces.
   static ThemeData dark() => _build(
     const ColorScheme.dark(
-      primary: Color(0xFFF5F3EC),
-      onPrimary: Color(0xFF1C1C1C),
-      primaryContainer: Color(0xFF33200F),
-      onPrimaryContainer: Color(0xFFFED7AA),
-      secondary: Color(0xFF9AA4BF),
-      onSecondary: Color(0xFF0B0F19),
-      secondaryContainer: Color(0xFF1E2740),
-      onSecondaryContainer: Color(0xFFE6EAF2),
+      primary: Color(0xFFB7A5FF),
+      onPrimary: Color(0xFF221744),
+      primaryContainer: Color(0xFF2E2650),
+      onPrimaryContainer: Color(0xFFCBBFFF),
+      secondary: Color(0xFFCDC6DE),
+      onSecondary: Color(0xFF161224),
+      secondaryContainer: Color(0xFF352D52),
+      onSecondaryContainer: Color(0xFFF4F2FB),
       error: Color(0xFFFB7185),
       onError: Color(0xFF3B0A13),
       errorContainer: Color(0xFF351A20),
       onErrorContainer: Color(0xFFFDA4AF),
-      surface: Color(0xFF121826),
-      onSurface: Color(0xFFEDF1F8),
-      onSurfaceVariant: Color(0xFF9AA4BF),
-      outline: Color(0xFF3A4560),
-      outlineVariant: Color(0xFF232B3E),
-      surfaceContainerHighest: Color(0xFF1E2740),
+      surface: Color(0xFF1E1A30),
+      onSurface: Color(0xFFF4F2FB),
+      onSurfaceVariant: Color(0xFFCDC6DE),
+      outline: Color(0xFF7C6CB0),
+      outlineVariant: Color(0xFF2C2644),
+      surfaceContainerHighest: Color(0xFF352D52),
     ),
     MfColors.dark,
-    const Color(0xFF0B0F19), // deep ink canvas
+    const Color(0xFF161224), // ink-violet canvas
   );
 
   static ThemeData _build(ColorScheme scheme, MfColors mf, Color canvas) {
@@ -383,7 +384,7 @@ class MfTheme {
       // 4px rhythm lives in the pages; the theme carries shape/typography.
       cardTheme: CardThemeData(
         // Soft diffused shadow instead of a hard border — tiles float
-        // gently on the cream canvas (dark keeps a hairline: shadows
+        // gently on the lilac canvas (dark keeps a hairline: shadows
         // vanish on ink).
         elevation: dark ? 0 : 1,
         shadowColor: const Color(0x0F000000),
@@ -411,7 +412,7 @@ class MfTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size(48, 48),
-          // Near-black fill: a semibold label keeps it confident, not heavy.
+          // Vivid violet fill: a semibold label keeps it confident, not heavy.
           textStyle: text.labelLarge?.copyWith(fontWeight: FontWeight.w600),
           shape: const StadiumBorder(),
         ),
@@ -447,8 +448,8 @@ class MfTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        // Active destination is a solid near-black pill (cream in dark).
-        backgroundColor: dark ? const Color(0xFF101623) : scheme.surface,
+        // Active destination is a solid violet pill (light violet in dark).
+        backgroundColor: dark ? mf.navSurface : scheme.surface,
         indicatorColor: scheme.primary,
         indicatorShape: const StadiumBorder(),
         iconTheme: WidgetStateProperty.resolveWith(
@@ -480,8 +481,8 @@ class MfTheme {
           side: BorderSide(color: mf.borderSubtle),
         ),
       ),
-      // Pill chips: white at rest, solid ink when selected (the
-      // reference's period / category pills).
+      // Pill chips: white at rest, solid violet when selected — the
+      // Soft Pop period / category pills.
       chipTheme: ChipThemeData(
         // ≥48dp so quick-amount/filter chips are real touch targets.
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),

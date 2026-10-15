@@ -15,20 +15,20 @@ void main() {
       expect(dark.brightness, Brightness.dark);
     });
 
-    test('dark palette keeps the ink canvas + orange accent', () {
+    test('dark palette keeps the ink-violet canvas + light violet accent', () {
       // Pinned so a stray edit cannot silently drift the direction.
-      expect(MfTheme.dark().scaffoldBackgroundColor, const Color(0xFF0B0F19));
-      expect(MfTheme.dark().colorScheme.surface, const Color(0xFF121826));
-      expect(MfColors.dark.brand, const Color(0xFFFB923C));
+      expect(MfTheme.dark().scaffoldBackgroundColor, const Color(0xFF161224));
+      expect(MfTheme.dark().colorScheme.surface, const Color(0xFF1E1A30));
+      expect(MfColors.dark.brand, const Color(0xFFB7A5FF));
       expect(MfColors.dark.income, const Color(0xFF34D399));
       expect(MfColors.dark.expense, const Color(0xFFFB7185));
       expect(MfColors.dark.transfer, const Color(0xFFA78BFA));
     });
 
-    test('light palette is cream canvas + black actions + orange accent', () {
-      expect(MfTheme.light().scaffoldBackgroundColor, const Color(0xFFF6F7F0));
-      expect(MfTheme.light().colorScheme.primary, const Color(0xFF1C1C1C));
-      expect(MfColors.light.brand, const Color(0xFFE24F1F));
+    test('light palette is lilac canvas + violet actions (Soft Pop)', () {
+      expect(MfTheme.light().scaffoldBackgroundColor, const Color(0xFFF8F5FF));
+      expect(MfTheme.light().colorScheme.primary, const Color(0xFF6F4EF5));
+      expect(MfColors.light.brand, const Color(0xFF6F4EF5));
       expect(MfColors.light.income, const Color(0xFF059669));
       expect(MfColors.light.expense, const Color(0xFFE11D48));
       expect(MfColors.light.transfer, const Color(0xFF7C3AED));

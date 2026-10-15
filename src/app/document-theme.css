@@ -5,69 +5,56 @@
  * canvas, focus visibility, type roles and motion values. Components consume
  * --mf-* roles; route-level styling must not create an independent palette.
  *
- * Brand v2 uses a fresh sky-blue identity with the approved B3.2 symbol.
- * Supporting colors remain adjacent to blue. Green, red, yellow and indigo are
- * reserved for financial or functional meaning rather than decoration.
+ * Brand v3 uses the owner-selected "Soft Pop" territory (decision
+ * 2026-10-15, recorded in docs/design/DESIGN_DIRECTION_STATUS.md): a lilac
+ * canvas, violet action family and sticker-accent illustration. Green, red,
+ * yellow and indigo stay reserved for financial or functional meaning.
  */
 :root {
-  /* Fresh-blue brand ramp */
-  --mf-brand-50: #f0f9ff;
-  --mf-brand-100: #e0f2fe;
-  --mf-brand-200: #bae6fd;
-  --mf-brand-300: #7dd3fc;
-  --mf-brand-400: #38bdf8;
-  --mf-brand-500: #0ea5e9;
-  --mf-brand-600: #0284c7;
-  --mf-brand-700: #0369a1;
-  --mf-brand-800: #075985;
-  --mf-brand-900: #0c4a6e;
-  --mf-brand-950: #082f49;
+  /* Soft Pop violet brand ramp */
+  --mf-brand-50: #f6f2ff;
+  --mf-brand-100: #efeaff;
+  --mf-brand-200: #e0d6ff;
+  --mf-brand-300: #c7b7ff;
+  --mf-brand-400: #ac97ff;
+  --mf-brand-500: #8b6ff7;
+  --mf-brand-600: #6f4ef5;
+  --mf-brand-700: #5b3be0;
+  --mf-brand-800: #4a2fc0;
+  --mf-brand-900: #3b2797;
+  --mf-brand-950: #241a54;
 
-  /* Harmonized supporting palette */
-  --mf-sky-50: #f0f9ff;
-  --mf-sky-300: #7dd3fc;
-  --mf-sky-500: #0ea5e9;
-  --mf-sky-700: #0369a1;
-  --mf-sky-900: #0c4a6e;
-  --mf-cyan-50: #ecfeff;
-  --mf-cyan-300: #67e8f9;
-  --mf-cyan-500: #06b6d4;
-  --mf-cyan-700: #0e7490;
-  --mf-cyan-900: #164e63;
-  --mf-indigo-50: #eef2ff;
-  --mf-indigo-300: #a5b4fc;
-  --mf-indigo-500: #6366f1;
-  --mf-indigo-700: #4338ca;
-  --mf-indigo-900: #312e81;
-  --mf-periwinkle-50: #f5f7ff;
-  --mf-periwinkle-300: #b8c2ff;
-  --mf-periwinkle-500: #8b9cf6;
-  --mf-periwinkle-700: #6673d9;
-  --mf-periwinkle-900: #414a91;
+  /* Soft Pop sticker accents — illustration and decorative shapes only.
+   * Never behind text, never on controls, never financial meaning. */
+  --mf-pop-lilac: #efeaff;
+  --mf-pop-violet: #ac97ff;
+  --mf-pop-pink: #ff9fb8;
+  --mf-pop-mint: #7fe5c4;
+  --mf-pop-peri: #8fa8ff;
 
-  /* White-first neutral foundation */
-  --mf-canvas: #f8fafc;
+  /* Soft Pop lilac neutral foundation */
+  --mf-canvas: #f8f5ff;
   --mf-surface: #ffffff;
-  --mf-surface-muted: #f8fafc;
-  --mf-surface-strong: #f2f4f7;
-  --mf-text: #101828;
-  --mf-text-muted: #475467;
-  --mf-text-soft: #667085;
-  --mf-border: #d0d5dd;
+  --mf-surface-muted: #f1ecff;
+  --mf-surface-strong: #e9e3f8;
+  --mf-text: #211a33;
+  --mf-text-muted: #524a6b;
+  --mf-text-soft: #6f6787;
+  --mf-border: #dcd5ee;
   /* A hairline for chrome that separates without framing — shell edges and
    * in-workspace dividers. Structural borders keep --mf-border. Tuned per theme
    * rather than derived, because a light-mode tint and a dark-mode tint that
    * read as equally quiet are not the same colour. */
-  --mf-border-subtle: #dfe3e8;
-  --mf-border-strong: #98a2b3;
+  --mf-border-subtle: #e9e4f6;
+  --mf-border-strong: #8e79c9;
 
-  /* Brand and interaction roles. Identity stays vivid; action uses a darker
-   * step so white button text remains above the 4.5:1 contrast threshold. */
-  --mf-brand-identity: var(--mf-brand-500);
-  --mf-brand: var(--mf-brand-700);
-  --mf-brand-hover: var(--mf-brand-800);
-  --mf-brand-pressed: var(--mf-brand-900);
-  --mf-brand-subtle: var(--mf-brand-50);
+  /* Brand and interaction roles. Identity and action share the vivid 600
+   * step (5.14:1 on white CTA text); text links drop to 700 for margin. */
+  --mf-brand-identity: var(--mf-brand-600);
+  --mf-brand: var(--mf-brand-600);
+  --mf-brand-hover: var(--mf-brand-700);
+  --mf-brand-pressed: var(--mf-brand-800);
+  --mf-brand-subtle: var(--mf-brand-100);
   --mf-brand-text: var(--mf-brand-700);
   --mf-on-brand: #ffffff;
 
@@ -112,20 +99,21 @@
 
   /*
    * Focus indicator must stay >= 3:1 against the surface (WCAG 2.2 2.4.11).
-   * --mf-brand-500 (#0ea5e9) measured 2.77:1 on white, so the focus token is
-   * pinned darker here instead of tracking the brand ramp. #0284c7 = 4.10:1.
+   * --mf-brand-600 (#6f4ef5) is 4.72:1 on the lilac canvas — enough for a
+   * surface ring, but the token still tracks the darker 700 step (#5b3be0,
+   * measured 6.20:1) to preserve margin over tinted surfaces.
    */
-  --mf-focus: #0284c7;
-  --mf-focus-ring: rgb(2 132 199 / 18%);
-  --mf-overlay: rgb(12 17 29 / 58%);
-  --mf-shadow-sm: 0 1px 2px rgb(16 24 40 / 6%);
-  --mf-shadow-md: 0 18px 48px rgb(16 24 40 / 10%);
-  --mf-shadow-lg: 0 30px 80px rgb(16 24 40 / 14%);
+  --mf-focus: var(--mf-brand-700);
+  --mf-focus-ring: rgb(91 59 224 / 18%);
+  --mf-overlay: rgb(22 18 36 / 58%);
+  --mf-shadow-sm: 0 1px 2px rgb(80 62 168 / 6%);
+  --mf-shadow-md: 0 18px 48px rgb(80 62 168 / 10%);
+  --mf-shadow-lg: 0 30px 80px rgb(80 62 168 / 13%);
 
-  --mf-radius-sm: 8px;
-  --mf-radius-md: 12px;
-  --mf-radius-lg: 18px;
-  --mf-radius-xl: 24px;
+  --mf-radius-sm: 14px;
+  --mf-radius-md: 20px;
+  --mf-radius-lg: 26px;
+  --mf-radius-xl: 32px;
   --mf-content: 1240px;
 
   --mf-font-sans:
@@ -143,36 +131,36 @@
 
 html[data-theme="dark"] {
   /* Keep hue identity; move readable roles to lighter steps. */
-  --mf-brand-50: #082f49;
-  --mf-brand-100: #0c4a6e;
-  --mf-brand-200: #075985;
-  --mf-brand-300: #0369a1;
-  --mf-brand-400: #0284c7;
-  --mf-brand-500: #38bdf8;
-  --mf-brand-600: #38bdf8;
-  --mf-brand-700: #7dd3fc;
-  --mf-brand-800: #bae6fd;
-  --mf-brand-900: #e0f2fe;
-  --mf-brand-950: #f0f9ff;
+  --mf-brand-50: #241a54;
+  --mf-brand-100: #3b2797;
+  --mf-brand-200: #4a2fc0;
+  --mf-brand-300: #5b3be0;
+  --mf-brand-400: #6f4ef5;
+  --mf-brand-500: #8b6ff7;
+  --mf-brand-600: #ac97ff;
+  --mf-brand-700: #b7a5ff;
+  --mf-brand-800: #cbbeff;
+  --mf-brand-900: #e0d6ff;
+  --mf-brand-950: #efeaff;
 
-  --mf-canvas: #0c111d;
-  --mf-surface: #101828;
-  --mf-surface-muted: #1d2939;
-  --mf-surface-strong: #344054;
-  --mf-text: #f8fafc;
-  --mf-text-muted: #d0d5dd;
-  --mf-text-soft: #98a2b3;
-  --mf-border: #344054;
-  --mf-border-subtle: #263449;
-  --mf-border-strong: #475467;
+  --mf-canvas: #161224;
+  --mf-surface: #1e1a30;
+  --mf-surface-muted: #282240;
+  --mf-surface-strong: #352d52;
+  --mf-text: #f4f2fb;
+  --mf-text-muted: #cdc6de;
+  --mf-text-soft: #a79fc4;
+  --mf-border: #3a3355;
+  --mf-border-subtle: #2c2644;
+  --mf-border-strong: #7c6cb0;
 
-  --mf-brand-identity: #38bdf8;
-  --mf-brand: #38bdf8;
-  --mf-brand-hover: #7dd3fc;
-  --mf-brand-pressed: #0ea5e9;
-  --mf-brand-subtle: #082f49;
-  --mf-brand-text: #7dd3fc;
-  --mf-on-brand: #082f49;
+  --mf-brand-identity: #b7a5ff;
+  --mf-brand: #b7a5ff;
+  --mf-brand-hover: #cbbeff;
+  --mf-brand-pressed: #9d84ff;
+  --mf-brand-subtle: #2e2650;
+  --mf-brand-text: #cbbeff;
+  --mf-on-brand: #221744;
 
   --mf-income: #4ade80;
   --mf-income-subtle: #14532d;
@@ -210,8 +198,8 @@ html[data-theme="dark"] {
   --mf-stage-text: var(--mf-text);
   --mf-stage-muted: var(--mf-text-muted);
 
-  --mf-focus: #38bdf8;
-  --mf-focus-ring: rgb(56 189 248 / 24%);
+  --mf-focus: #b7a5ff;
+  --mf-focus-ring: rgb(183 165 255 / 24%);
   --mf-overlay: rgb(0 0 0 / 74%);
   --mf-shadow-sm: 0 1px 2px rgb(0 0 0 / 24%);
   --mf-shadow-md: 0 18px 48px rgb(0 0 0 / 32%);
@@ -241,14 +229,30 @@ body {
 /* Loaded after globals.css, so this is the final ambient product canvas. */
 html[data-theme="light"] body::before {
   background:
-    radial-gradient(circle at 78% -18%, rgb(14 165 233 / 10%), transparent 35rem),
-    radial-gradient(circle at -12% 30%, rgb(6 182 212 / 5%), transparent 28rem);
+    radial-gradient(
+      circle at 78% -18%,
+      rgb(111 78 245 / 9%),
+      transparent 35rem
+    ),
+    radial-gradient(
+      circle at -12% 30%,
+      rgb(255 159 184 / 6%),
+      transparent 28rem
+    );
 }
 
 html[data-theme="dark"] body::before {
   background:
-    radial-gradient(circle at 78% -18%, rgb(56 189 248 / 12%), transparent 35rem),
-    radial-gradient(circle at -12% 30%, rgb(6 182 212 / 7%), transparent 28rem);
+    radial-gradient(
+      circle at 78% -18%,
+      rgb(183 165 255 / 11%),
+      transparent 35rem
+    ),
+    radial-gradient(
+      circle at -12% 30%,
+      rgb(255 159 184 / 5%),
+      transparent 28rem
+    );
 }
 
 :focus-visible {
