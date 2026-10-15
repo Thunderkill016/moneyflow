@@ -50,7 +50,8 @@
   position: sticky;
   z-index: 20;
   top: 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--public-line) 78%, transparent);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--public-line) 78%, transparent);
   background: color-mix(in srgb, var(--public-canvas) 94%, transparent);
   backdrop-filter: blur(16px);
 }
@@ -593,6 +594,25 @@
 
   .finalCtaButton {
     justify-self: start;
+  }
+}
+
+/* App-style welcome owns the ≤760px first screen — the marketing header
+   and hero hand off to it (mobile-welcome.module.css does the inverse). */
+@media (max-width: 760px) {
+  .siteHeader,
+  .hero {
+    display: none;
+  }
+
+  .mobileNudge {
+    padding: 0 20px;
+  }
+}
+
+@media (min-width: 761px) {
+  .mobileNudge {
+    display: none;
   }
 }
 

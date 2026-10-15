@@ -1,0 +1,74 @@
+/* Install nudge — slim card inside the mobile welcome; dismissed state
+   lives in localStorage (see install-nudge.tsx). */
+
+.nudge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--mf-border);
+  border-radius: 14px;
+  background: var(--mf-surface);
+}
+
+.icon {
+  flex: none;
+  color: var(--mf-brand-text);
+}
+
+.copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--mf-text);
+}
+
+.body {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--mf-text-muted);
+}
+
+.installButton {
+  flex: none;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--mf-brand);
+  color: var(--mf-on-brand);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.installButton:disabled {
+  opacity: 0.6;
+}
+
+.dismiss {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--mf-text-soft);
+  cursor: pointer;
+}
+
+.installButton:focus-visible,
+.dismiss:focus-visible {
+  outline: 3px solid var(--mf-focus-ring);
+  outline-offset: 2px;
+}

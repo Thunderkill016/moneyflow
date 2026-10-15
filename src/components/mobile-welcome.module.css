@@ -1,0 +1,258 @@
+/*
+ * Mobile welcome — visible only at ≤760px; the desktop landing keeps its
+ * own header/hero, and landing-page.module.css hides those sections at
+ * this breakpoint so exactly one intro renders at a time.
+ */
+
+.welcome {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .welcome {
+    display: flex;
+    flex-direction: column;
+    min-height: 100svh;
+    padding: max(16px, env(safe-area-inset-top, 0px))
+      max(20px, env(safe-area-inset-right, 0px))
+      max(20px, env(safe-area-inset-bottom, 0px))
+      max(20px, env(safe-area-inset-left, 0px));
+    background: var(--mf-canvas);
+    color: var(--mf-text);
+  }
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--mf-text);
+}
+
+.brandName {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.skip {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  color: var(--mf-text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.skip:focus-visible {
+  outline: 3px solid var(--mf-focus-ring);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
+.headline {
+  margin: clamp(28px, 8svh, 64px) 0 0;
+  font-size: clamp(30px, 9vw, 38px);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.lead {
+  margin: 12px 0 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--mf-text-muted);
+}
+
+/* ------------------------------------------------------------- carousel */
+
+.carousel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-top: clamp(20px, 5svh, 48px);
+  min-height: 240px;
+  /* Offscreen slides must not bleed into the viewport edge. */
+  overflow-x: clip;
+  /* Horizontal swipe lives on the carousel; vertical page scroll stays. */
+  touch-action: pan-y;
+}
+
+.track {
+  display: flex;
+  transition: transform 320ms var(--mf-ease, ease-out);
+  will-change: transform;
+}
+
+.slide {
+  flex: 0 0 100%;
+  min-width: 0;
+  padding: 4px 2px;
+}
+
+.slideIcon {
+  display: inline-grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: var(--mf-brand-subtle);
+  color: var(--mf-brand-text);
+}
+
+.slideTitle {
+  margin: 18px 0 0;
+  font-size: 21px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.slideBody {
+  margin: 8px 0 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--mf-text-muted);
+  max-width: 34ch;
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.dot {
+  width: 44px;
+  height: 44px;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* The visible pip sits inside the 44px hit area. */
+.dot::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--mf-border-strong);
+  transition:
+    width 200ms var(--mf-ease, ease-out),
+    background 200ms var(--mf-ease, ease-out);
+}
+
+.dotActive::before {
+  width: 22px;
+  background: var(--mf-brand);
+}
+
+.dot:focus-visible {
+  outline: 3px solid var(--mf-focus-ring);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
+.swipeHint {
+  margin: 4px 0 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--mf-text-soft);
+}
+
+/* ------------------------------------------------------------------ cta */
+
+.ctaRow {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: clamp(20px, 4svh, 40px);
+}
+
+.primaryCta {
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 999px;
+  background: var(--mf-brand);
+  color: var(--mf-on-brand);
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.primaryCta:hover {
+  background: var(--mf-brand-hover);
+}
+
+.primaryCta:active {
+  background: var(--mf-brand-pressed);
+}
+
+.secondaryCta {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--mf-border);
+  color: var(--mf-text);
+  font-size: 15px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.primaryCta:focus-visible,
+.secondaryCta:focus-visible {
+  outline: 3px solid var(--mf-focus-ring);
+  outline-offset: 3px;
+}
+
+.trustRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+  color: var(--mf-text-muted);
+}
+
+.trustRow li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Very short viewports (320×568-class) would clip the trust row mid-line —
+   it's supporting proof, not essential navigation, so it drops first. */
+@media (max-height: 720px) {
+  .trustRow {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track,
+  .dot::before {
+    transition: none;
+  }
+}
