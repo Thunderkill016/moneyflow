@@ -92,10 +92,10 @@ class _NavItem {
 }
 
 /// Floating pill navigation (Savor reference): a soft grey capsule inset
-/// from the screen edges; the active tab is a solid ink capsule showing
-/// icon + label side by side, inactive tabs are icon-only, and the capture
-/// action is a round accent button. Every destination keeps its label as
-/// a screen-reader name (and the active one as visible text).
+/// from the screen edges. All four destinations are equal-width cells
+/// showing icon + label stacked; the active tab only changes fill colour
+/// so tapping never resizes or shifts the neighbours, and the capture
+/// action is a round accent button.
 class _FloatingNav extends StatelessWidget {
   const _FloatingNav({
     required this.selected,
@@ -121,45 +121,47 @@ class _FloatingNav extends StatelessWidget {
     Widget tab(int i) {
       final item = _items[i];
       final active = i == selected;
-      return Semantics(
-        button: true,
-        selected: active,
-        label: item.label,
-        excludeSemantics: true,
-        child: InkWell(
-          key: ValueKey('nav:${item.label}'),
-          customBorder: const StadiumBorder(),
-          onTap: () => onSelect(i),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutCubic,
-            height: 48,
-            padding: EdgeInsets.symmetric(horizontal: active ? 14 : 10),
-            decoration: ShapeDecoration(
-              color: active ? scheme.primary : Colors.transparent,
-              shape: const StadiumBorder(),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  active ? item.selectedIcon : item.icon,
-                  size: 22,
-                  color: active ? scheme.onPrimary : mf.textSoft,
-                ),
-                if (active) ...[
-                  const SizedBox(width: 8),
-                  Text(
-                    item.label,
-                    maxLines: 1,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: scheme.onPrimary,
+      return Expanded(
+        child: Semantics(
+          button: true,
+          selected: active,
+          label: item.label,
+          excludeSemantics: true,
+          child: InkWell(
+            key: ValueKey('nav:${item.label}'),
+            customBorder: const StadiumBorder(),
+            onTap: () => onSelect(i),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              height: 48,
+              decoration: ShapeDecoration(
+                color: active ? scheme.primary : Colors.transparent,
+                shape: const StadiumBorder(),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    active ? item.selectedIcon : item.icon,
+                    size: 19,
+                    color: active ? scheme.onPrimary : mf.textSoft,
+                  ),
+                  const SizedBox(height: 1),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      item.label,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                        color: active ? scheme.onPrimary : mf.textSoft,
+                      ),
                     ),
                   ),
                 ],
-              ],
+              ),
             ),
           ),
         ),
@@ -184,46 +186,42 @@ class _FloatingNav extends StatelessWidget {
             ],
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            // Natural-width row, centred; FittedBox only scales it down
-            // when the labels + scale factor would overflow the pill.
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  tab(0),
-                  const SizedBox(width: 8),
-                  tab(1),
-                  const SizedBox(width: 8),
-                  Semantics(
-                    button: true,
-                    label: 'Ghi',
-                    excludeSemantics: true,
-                    child: InkWell(
-                      key: const ValueKey('nav:Ghi'),
-                      customBorder: RoundedRectangleBorder(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            // Equal-width cells: the active pill never grows, so tapping
+            // a destination can never shift its neighbours.
+            child: Row(
+              children: [
+                tab(0),
+                const SizedBox(width: 8),
+                tab(1),
+                const SizedBox(width: 8),
+                Semantics(
+                  button: true,
+                  label: 'Ghi',
+                  excludeSemantics: true,
+                  child: InkWell(
+                    key: const ValueKey('nav:Ghi'),
+                    customBorder: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    onTap: onCapture,
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: mf.brand,
+                        // Rounded square like the reference's orange "+".
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      onTap: onCapture,
-                      child: Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: mf.brand,
-                          // Rounded square like the reference's orange "+".
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(Icons.add, color: Colors.white),
-                      ),
+                      child: const Icon(Icons.add, color: Colors.white),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  tab(2),
-                  const SizedBox(width: 8),
-                  tab(3),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                tab(2),
+                const SizedBox(width: 8),
+                tab(3),
+              ],
             ),
           ),
         ),

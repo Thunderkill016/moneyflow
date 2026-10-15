@@ -37,9 +37,12 @@ void main() {
       ]) {
         expect(find.byKey(ValueKey('nav:$label')), findsOneWidget);
       }
-      // Only the active destination shows its label (icon-only otherwise).
+      // Every destination shows its label — the active pill only
+      // changes colour, never size, so taps cannot shift neighbours.
       expect(find.text('Tổng quan'), findsOneWidget);
-      expect(find.text('Hoạt động'), findsNothing);
+      expect(find.text('Hoạt động'), findsOneWidget);
+      expect(find.text('Kế hoạch'), findsOneWidget);
+      expect(find.text('Báo cáo'), findsOneWidget);
       // First tab renders eagerly.
       expect(find.text('dashboard-body'), findsOneWidget);
       // Unvisited tabs stay unbuilt.
