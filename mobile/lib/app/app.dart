@@ -176,9 +176,11 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     ),
   );
   late final _bioService = widget.biometric ?? DeviceBiometricService();
-  // Native sheet only exists when an Android OAuth client was
-  // registered for this package (owner's own Google Cloud project) —
-  // against Neon's shared provider it's skipped and the loopback runs.
+  // Browser loopback is the only Google flow Neon managed auth can
+  // complete — its /sign-in/social ignores an idToken (verified by
+  // probe), so the native leg would always throw. Kept inside the
+  // hybrid shell so the seam stays injectable; the native branch is
+  // dormant until the define is set AND upstream supports the exchange.
   late final GoogleSignInFlow _googleFlow =
       widget.googleFlow ??
       HybridGoogleSignIn(
@@ -190,7 +192,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
               ),
         loopback: LoopbackGoogleSignIn(
           auth: _auth,
-          launcher: widget.urlOpener.open,
+          launcher: widget.urlOpener.openInApp,
         ),
       );
   ShareIntentReceiver get _shareReceiver => widget.shareReceiver;
@@ -365,6 +367,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     // A wiped flag (local-data deletion) is indistinguishable from a
     // fresh install — showing it again stays honest.
     final seenWelcome = _prefs?.getBool(WelcomePrefs.seenKey) ?? false;
+    if (!mounted) return;
     setState(() => _gate = seenWelcome ? _Gate.login : _Gate.welcome);
   }
 
@@ -398,6 +401,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     _bindAccountStores(userId);
     // Same "not a first run" marker as the online restore path.
     unawaited(WelcomePrefs.markSeen());
+    if (!mounted) return;
     setState(() => _gate = _Gate.signedIn);
     _drainPendingShare();
     // The drain attempt will fail fast and just records an honest
@@ -1139,10 +1143,10 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         // Sign-up is the web's register → /onboarding boundary — the
         // activation flow always follows a fresh account.
         onSignedUp: (s) => _onSignedIn(s, isNewAccount: true),
-        // Browser loopback redirect — works with Neon's shared Google
-        // provider, no per-app Android OAuth client needed. The seam
-        // stays injectable so tests never touch a browser/socket.
+        // Browser loopback redirect — the seam stays injectable so
+        // tests never touch a browser/socket.
         googleFlow: _googleFlow,
+        urlOpener: widget.urlOpener,
         onDemo: widget.allowDemo ? _enterDemo : null,
       ),
       _Gate.onboarding => OnboardingPage(

@@ -20,9 +20,10 @@ class ChangePasswordPage extends StatefulWidget {
 }
 
 class _ChangePasswordPageState extends State<ChangePasswordPage> {
-  /// Better Auth's default minimum — match it client-side so the round
-  /// trip only fires for inputs the server would accept anyway.
-  static const _minPasswordLength = 8;
+  /// Product password policy — matches the web's PASSWORD_MIN_LENGTH
+  /// (src/lib/auth-password-policy.ts) and RegisterPage.minPasswordLength,
+  /// so a password the app let you set is one the app lets you change to.
+  static const _minPasswordLength = 12;
 
   final _current = TextEditingController();
   final _next = TextEditingController();

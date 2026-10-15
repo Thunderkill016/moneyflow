@@ -110,7 +110,7 @@ void main() {
     await t.pumpWidget(
       MaterialApp(home: ChangePasswordPage(onSubmit: (a, b) async => calls++)),
     );
-    expect(find.text('Ít nhất 8 ký tự'), findsOneWidget);
+    expect(find.text('Ít nhất 12 ký tự'), findsOneWidget);
     expect(find.byTooltip('Hiện mật khẩu'), findsNWidgets(3));
     await t.tap(find.byTooltip('Hiện mật khẩu').first);
     await t.pump();
@@ -122,7 +122,7 @@ void main() {
     await t.enterText(find.widgetWithText(TextField, 'Mật khẩu mới'), 'short');
     await t.tap(find.byType(FilledButton));
     await t.pump();
-    expect(find.text('Mật khẩu mới cần ít nhất 8 ký tự'), findsOneWidget);
+    expect(find.text('Mật khẩu mới cần ít nhất 12 ký tự'), findsOneWidget);
     expect(calls, 0);
   });
 }

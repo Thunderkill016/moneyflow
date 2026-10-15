@@ -19,6 +19,9 @@ class _FakeUrlOpener implements UrlOpener {
     opened.add(uri);
     return nextResult;
   }
+
+  @override
+  Future<bool> openInApp(Uri uri) => open(uri);
 }
 
 /// Share/quick-action doubles — same role as the quick_action_test
@@ -45,6 +48,11 @@ class _NoopQuickActions extends QuickActionSource {
 /// dashboard. Demo carries the same menu item — the signed-in menu is
 /// assembled by the same seam.
 Future<void> _pumpDemoDashboard(WidgetTester t, UrlOpener opener) async {
+  // The demo button sits below the default test viewport's fold inside
+  // the auth ListView — a tall phone-sized surface keeps it tappable.
+  t.view.physicalSize = const Size(1080, 2400);
+  t.view.devicePixelRatio = 1;
+  addTearDown(t.view.reset);
   await t.pumpWidget(
     MaterialApp(
       home: AuthGate(

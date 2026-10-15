@@ -20,7 +20,9 @@ class NeonConfig {
   /// an Android OAuth client for this package+SHA-1 exists in the SAME
   /// Google Cloud project (i.e. an owner-created project wired into
   /// Neon Auth as a non-shared Google provider). Empty → the hybrid
-  /// sign-in goes straight to the loopback redirect.
+  /// sign-in goes straight to the loopback redirect. NOTE: Neon managed
+  /// auth currently ignores the idToken on /sign-in/social, so the
+  /// native leg cannot complete upstream — leave this empty until then.
   final String googleServerClientId;
 
   factory NeonConfig.fromEnvironment() {
@@ -104,9 +106,9 @@ class NeonConfig {
   // trusted origin — the auth service origin itself is always trusted.
   String get origin => Uri.parse(authBaseUrl).origin;
 
-  // moneyflow-acceptance-sandbox (Neon project nameless-wind-29591132).
+  // moneyflow-prod (Neon project shy-mud-72113549) — the only backend.
   static const _devAuth =
-      'https://ep-lively-sunset-b3xzqd47.neonauth.c-4.ap-southeast-1.aws.neon.tech/neondb/auth';
+      'https://ep-morning-band-b3a6dp3y.neonauth.c-4.ap-southeast-1.aws.neon.tech/neondb/auth';
   static const _devApi =
-      'https://ep-lively-sunset-b3xzqd47.apirest.c-4.ap-southeast-1.aws.neon.tech/neondb/rest/v1';
+      'https://ep-morning-band-b3a6dp3y.apirest.c-4.ap-southeast-1.aws.neon.tech/neondb/rest/v1';
 }

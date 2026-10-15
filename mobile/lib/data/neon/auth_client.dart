@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
 
+import 'package:flutter/foundation.dart';
+
 import 'neon_config.dart';
 import 'neon_transport.dart';
 
@@ -182,16 +184,23 @@ class NeonAuthClient {
     final exchangeUrl = Uri.parse(
       '${_config.authBaseUrl}/get-session',
     ).replace(query: redirectUri.query);
-    final res = await _requester(
-      NeonRequest(
-        method: 'GET',
-        url: exchangeUrl,
-        headers: {
-          'Origin': _config.origin,
-          'Cookie': challengeCookies.join('; '),
-        },
-      ),
-    );
+    debugPrint('finishGoogleRedirect: GET $exchangeUrl');
+    final res =
+        await _requester(
+          NeonRequest(
+            method: 'GET',
+            url: exchangeUrl,
+            headers: {
+              'Origin': _config.origin,
+              'Cookie': challengeCookies.join('; '),
+            },
+          ),
+        ).timeout(
+          const Duration(seconds: 30),
+          onTimeout: () =>
+              throw NeonAuthException(0, 'verifier exchange timed out'),
+        );
+    debugPrint('finishGoogleRedirect: HTTP ${res.status}');
     if (!res.ok) {
       throw NeonAuthException(res.status, _errorMessage(res));
     }

@@ -106,10 +106,14 @@ class LoopbackGoogleSignIn implements GoogleSignInFlow {
       }
       final request = await _awaitCallback(server);
       if (request == null) return null; // cancelled
+      debugPrint('loopback google sign-in: callback ${request.uri}');
       return await _auth.finishGoogleRedirect(
         redirectUri: request.uri,
         challengeCookies: attempt.challengeCookies,
       );
+    } catch (e) {
+      debugPrint('loopback google sign-in failed: $e');
+      rethrow;
     } finally {
       unawaited(server.close(force: true));
     }

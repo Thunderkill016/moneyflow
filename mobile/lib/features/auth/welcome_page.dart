@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../domain/models.dart';
+import '../../theme/brand_mark.dart';
 import '../../theme/mf_theme.dart';
 
 /// First-run flag — device-level like `mf_biometric_enabled`: it survives
@@ -68,19 +69,7 @@ class _WelcomePageState extends State<WelcomePage> {
             children: [
               Row(
                 children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: mf.brand,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.account_balance_wallet_outlined,
-                      size: 20,
-                      color: Colors.white,
-                    ),
-                  ),
+                  const BrandMark(size: 36),
                   const SizedBox(width: 10),
                   Text(
                     'MoneyFlow',

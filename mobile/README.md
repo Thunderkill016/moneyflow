@@ -31,8 +31,11 @@ All build-time defines:
 Google sign-in is a hybrid (`lib/data/google_sign_in.dart`): with the
 client-id define set it tries the native Credential Manager sheet first
 and falls back to a browser loopback redirect on any failure; without
-it, the loopback runs against Neon Auth's shared Google provider
+it, the loopback runs against Neon Auth's configured Google provider
 directly. The button shows whenever the auth backend is configured.
+NOTE: Neon managed auth currently ignores the idToken on
+/sign-in/social — the native leg cannot complete upstream, so keep
+`MF_GOOGLE_SERVER_CLIENT_ID` unset until Neon enables it.
 
 ## Getting Started
 

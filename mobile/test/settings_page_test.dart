@@ -61,6 +61,9 @@ class _FakeUrlOpener implements UrlOpener {
     opened.add(uri);
     return nextResult;
   }
+
+  @override
+  Future<bool> openInApp(Uri uri) => open(uri);
 }
 
 /// Every HttpClient call fails instantly — AuthGate's session restore
@@ -300,6 +303,7 @@ void main() {
     testWidgets('a pick on the demo settings applies to the real app', (
       t,
     ) async {
+      _bigViewport(t);
       await _openDemoSettings(t);
       await t.tap(find.text('Tối'));
       await t.pumpAndSettle();

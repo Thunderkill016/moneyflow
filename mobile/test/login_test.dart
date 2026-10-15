@@ -74,6 +74,11 @@ void main() {
         ),
         findsOneWidget,
       );
+
+      // The sent state offers a way back — landing on the login fields.
+      await t.tap(find.widgetWithText(FilledButton, 'Quay lại đăng nhập'));
+      await t.pumpAndSettle();
+      expect(find.widgetWithText(TextField, 'Mật khẩu'), findsOneWidget);
     });
 
     testWidgets('failure still shows the same neutral message', (t) async {
@@ -99,6 +104,30 @@ void main() {
         ),
         findsOneWidget,
       );
+    });
+
+    testWidgets('an empty email is rejected before the network', (t) async {
+      var calls = 0;
+      final auth = NeonAuthClient(
+        config: _config,
+        requester: (_) async {
+          calls++;
+          return const NeonResponse(status: 200, headers: {}, body: '{}');
+        },
+      );
+      await t.pumpWidget(
+        MaterialApp(
+          home: LoginPage(auth: auth, onSignedIn: (_) {}),
+        ),
+      );
+
+      await t.tap(find.text('Quên mật khẩu?'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Gửi liên kết'));
+      await t.pumpAndSettle();
+
+      expect(calls, 0);
+      expect(find.text('Nhập email đã đăng ký'), findsOneWidget);
     });
   });
 
@@ -169,7 +198,7 @@ void main() {
     });
 
     testWidgets(
-      'the waiting dialog explains the browser leg and Hủy aborts it',
+      'the waiting indicator explains the browser leg and Hủy aborts it',
       (t) async {
         var signedIn = 0;
         final flow = _FakeGoogleFlow(); // pending completer
@@ -188,16 +217,16 @@ void main() {
         );
         await t.pump();
 
-        // The browser has the consent screen — the dialog must tell the
-        // user where to finish and offer a real abort.
-        expect(find.text('Đang chờ Google…'), findsOneWidget);
+        // The browser has the consent screen — the inline indicator must
+        // tell the user where to finish and offer a real abort.
+        expect(find.textContaining('Đang đăng nhập Google'), findsOneWidget);
 
         await t.tap(find.widgetWithText(TextButton, 'Hủy'));
         await t.pumpAndSettle();
 
         expect(flow.cancels, 1);
         expect(signedIn, 0);
-        expect(find.text('Đang chờ Google…'), findsNothing);
+        expect(find.textContaining('Đang đăng nhập Google'), findsNothing);
         expect(
           find.text('Không thể đăng nhập Google — thử lại sau'),
           findsNothing,
