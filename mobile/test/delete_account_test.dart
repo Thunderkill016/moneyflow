@@ -159,6 +159,11 @@ Future<void> _pumpGate(
   _FakeTransport transport, {
   GoogleSignInFlow? googleFlow,
 }) async {
+  // The auth ListView stacks the demo entry below the default test
+  // viewport's fold — a tall phone-sized surface keeps it tappable.
+  t.view.physicalSize = const Size(1080, 2400);
+  t.view.devicePixelRatio = 1;
+  addTearDown(t.view.reset);
   await t.pumpWidget(
     MaterialApp(
       home: AuthGate(
@@ -243,11 +248,11 @@ void main() {
 
       await t.enterText(
         find.widgetWithText(TextField, 'Gõ XÓA để xác nhận'),
-        'xoa',
+        'xoá bỏ',
       );
       await t.enterText(find.widgetWithText(TextField, 'Mật khẩu'), 'pw');
       await t.pump();
-      expect(submit().onPressed, isNull); // wrong case — not exact
+      expect(submit().onPressed, isNull); // wrong words — not confirmed
 
       await t.enterText(
         find.widgetWithText(TextField, 'Gõ XÓA để xác nhận'),

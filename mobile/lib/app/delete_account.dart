@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/google_sign_in.dart';
 import '../data/neon/auth_client.dart';
-import 'delete_data.dart' show deleteConfirmText;
+import 'delete_data.dart' show deleteConfirmText, matchesDeleteConfirm;
 
 /// Server-side account deletion — the mobile twin of the web's
 /// /settings/delete-account page (src/components/delete-account-page.tsx).
@@ -75,7 +75,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
   bool _methodFailed = false;
   _ReauthMethod? _method;
 
-  bool get _confirmOk => _confirm.text.trim() == deleteConfirmText;
+  bool get _confirmOk => matchesDeleteConfirm(_confirm.text);
 
   @override
   void initState() {
