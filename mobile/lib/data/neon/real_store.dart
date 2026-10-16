@@ -3,6 +3,7 @@ import 'dart:math';
 import '../../domain/csv_import.dart';
 import '../../domain/debts.dart';
 import '../../domain/events.dart';
+import '../../domain/history_purge.dart';
 import '../../domain/inbox.dart';
 import '../notification_capture/bank_notification_parser.dart';
 import '../../domain/models.dart';
@@ -965,6 +966,24 @@ class RealStore implements PatternDismissalSync {
     if (result != true) {
       throw StateError('permanent_delete_refused');
     }
+  }
+
+  /// POST /rpc/delete_transactions_before — D21 scoped retention purge:
+  /// hard-deletes the caller's own rows occurred before [before] (a civil
+  /// 'YYYY-MM-DD' cutoff), restricted to [sources]. Deliberately outside
+  /// the trash contract — no restore. Rows a schedule or debt still owns
+  /// survive and come back in the report's `locked` count; a malformed
+  /// response throws rather than reporting a fake sweep.
+  Future<HistoryPurgeReport> deleteHistoryBefore({
+    required String before,
+    required Set<HistoryPurgeSource> sources,
+  }) async {
+    final res = await _api.rpc('delete_transactions_before', {
+      'p_before': before,
+      // Sorted for a stable wire shape — the RPC treats it as a set.
+      'p_sources': [for (final s in sources) historyPurgeSourceKey(s)]..sort(),
+    });
+    return parseHistoryPurgeReport(res);
   }
 
   /// POST /rpc/update_money_transaction — expense/income edits.

@@ -1101,3 +1101,52 @@ Format: `ID | files changed | why | proof (test names)`.
   toggle-back-on restores the whole chain incl. the older row's derived
   value; failed save reverts). Gates: `dart format` clean;
   `flutter analyze` clean; `flutter test` all green.
+
+- **D21 scoped delete-history-before-date — shipped** |
+  `supabase/migrations/20261017230000_delete_history_before.sql`,
+  `db/neon/migrations/20261017230000_delete_history_before.sql`,
+  `supabase/tests/database/delete_history_before.test.sql`,
+  `supabase/tests/database/schema_and_rls.test.sql`,
+  `supabase/tests/database/security_definer_contract.test.sql`,
+  `supabase/migration-identity.json`,
+  `mobile/lib/domain/history_purge.dart`,
+  `mobile/lib/app/delete_history.dart`,
+  `mobile/lib/data/neon/real_store.dart`,
+  `mobile/lib/features/settings/settings_page.dart`,
+  `mobile/lib/app/app.dart`,
+  `mobile/test/delete_history_test.dart`,
+  `mobile/test/settings_page_test.dart` |
+  Loop B gap D21 (§10 — Monarch 1.12 "delete history before date"):
+  new definer `delete_transactions_before(date, text[])` hard-deletes the
+  caller's own rows occurred before the civil cutoff — live AND already-
+  trashed alike, deliberately outside the trash contract — scoped to
+  provenance buckets manual / notification / import (no-provenance and
+  provenance 'manual' = typed entries; csv/xlsx/pdf/paste/email/agent =
+  'import'; unknown provenance sources fail closed, matching no bucket).
+  Recurring- and debt-linked rows are skipped and disclosed as `locked`,
+  not destroyed; inbox candidates keep their history row and lose only
+  `approved_transaction_id`. The migration also fixes a LIVE DEFECT:
+  `permanently_delete_money_transaction`'s candidate unlink has always
+  thrown `approved_candidate_evidence_immutable` for inbox-sourced rows —
+  the approved-evidence guard now admits a fourth shape (link nonnull→
+  null, every other field identical, transaction-local
+  `moneyflow.transaction_purge` marker + purge-function owner required;
+  the guard stays SECURITY INVOKER so `current_user` still reflects the
+  caller) and permanently_delete sets that marker. UI: Settings → Dữ
+  liệu → "Xóa lịch sử trước ngày" (signed-in only — the row hides with
+  the seam in demo) → warning step → vnToday-capped date pick + source
+  checkboxes + typed XÓA + in-flight guard → result snackbar discloses
+  deleted/locked verbatim. |
+  pgTAP `delete_history_before.test.sql` (17: scope buckets, trashed-row
+  sweep, locked disclosure, candidate link release with row survival,
+  provenance cleanup, tenant isolation both directions, invalid/empty
+  scope, null cutoff, anonymous rejection). Mobile
+  `delete_history_test.dart` (+11: source keys/labels, fail-closed
+  report parse, warning-before-confirm, date+scope+XÓA gating, one-shot
+  seam args, in-flight lockdown, seam-error recovery, seam-driven row
+  visibility, demo absence, full-stack RPC body + locked disclosure).
+  Security-definer inventory 70→71; schema plan +1 (has_function). Gates:
+  `node scripts/neon-poc/run-pgtap.mjs` 68/68 files + concurrency OK;
+  `npm run check:migrations` 96 pinned; `npm run check:rls` 9/9;
+  `dart format` clean; `flutter analyze` clean; `flutter test` all green
+  1548; `flutter build apk --debug` + `adb install -r` OK.

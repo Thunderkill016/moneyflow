@@ -206,6 +206,7 @@ void main() {
             onDigestScheduleChanged: () async {},
             loadArchive: () async => {'accounts': []},
             onDeleteLocalData: () async {},
+            onDeleteHistoryBefore: () async {},
             onDeleteAccount: () async {},
             onOpenPrivacyPolicy: () {},
             onReplayWelcome: () {},
@@ -228,6 +229,7 @@ void main() {
         'Giờ gửi tóm tắt',
         'Sao lưu (JSON)',
         'Xóa dữ liệu trên máy',
+        'Xóa lịch sử trước ngày',
         'Xóa tài khoản',
         'Phiên bản',
         'Chính sách bảo mật',
@@ -268,6 +270,7 @@ void main() {
       expect(find.text('Giờ gửi tóm tắt'), findsNothing);
       expect(find.text('Sao lưu (JSON)'), findsNothing);
       expect(find.text('Xóa tài khoản'), findsNothing);
+      expect(find.text('Xóa lịch sử trước ngày'), findsNothing);
       expect(find.text('Xóa dữ liệu trên máy'), findsNothing);
     });
   });

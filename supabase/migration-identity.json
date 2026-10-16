@@ -474,6 +474,11 @@
       "version": "20261016220000",
       "name": "20261016220000_transaction_refunds.sql",
       "hash": "56639ac688620c0fc5aad13004e54676"
+    },
+    {
+      "version": "20261017230000",
+      "name": "20261017230000_delete_history_before.sql",
+      "hash": "606100ad98868bab02c5600ef3b961bc"
     }
   ]
 }

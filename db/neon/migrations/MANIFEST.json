@@ -475,6 +475,11 @@
       "sourceSha256": "56639ac688620c0fc5aad13004e54676a1dbf00b5549e5a265ea28d1dfb9f2f9",
       "outputSha256": "56639ac688620c0fc5aad13004e54676a1dbf00b5549e5a265ea28d1dfb9f2f9",
       "rewrites": 0
+    },
+    "20261017230000_delete_history_before.sql": {
+      "sourceSha256": "606100ad98868bab02c5600ef3b961bca3cb0d163c2f13727c97698118fcac2b",
+      "outputSha256": "606100ad98868bab02c5600ef3b961bca3cb0d163c2f13727c97698118fcac2b",
+      "rewrites": 0
     }
   }
 }

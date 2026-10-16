@@ -1,5 +1,5 @@
 begin;
-select plan(86);
+select plan(87);
 
 select has_table('public', 'profiles', 'profiles exists');
 select has_table('public', 'accounts', 'accounts exists');
@@ -86,6 +86,7 @@ select has_function('public', 'update_money_transaction', array['uuid', 'uuid', 
 select has_function('public', 'update_account_transfer', array['uuid', 'uuid', 'uuid', 'bigint', 'date', 'text', 'timestamptz'], 'update transfer RPC exists (with expected_updated_at)');
 select has_function('public', 'dismiss_pattern_keys', array['text', 'text[]'], 'pattern dismissal RPC exists');
 select has_function('public', 'merge_categories', array['uuid', 'uuid'], 'merge categories RPC exists');
+select has_function('public', 'delete_transactions_before', array['date', 'text[]'], 'scoped history purge RPC exists');
 select col_type_is('public', 'transaction_entries', 'amount_minor', 'bigint', 'money uses bigint');
 select col_type_is('public', 'savings_goals', 'allocated_minor', 'bigint', 'goal allocations use bigint');
 select col_not_null('public', 'financial_transactions', 'idempotency_key', 'idempotency key is required');

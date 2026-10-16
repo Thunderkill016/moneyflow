@@ -30,11 +30,13 @@ import '../domain/report.dart' show vnMonthStart, vnToday, vnWeekStart;
 import '../domain/inbox.dart';
 import '../domain/models.dart';
 import '../domain/recurring_detection.dart';
+import '../domain/reconciliation.dart' show displayDate;
 import '../domain/rule_suggestions.dart';
 import '../domain/transaction_query.dart';
 import 'biometric_lock.dart';
 import 'delete_account.dart';
 import 'delete_data.dart';
+import 'delete_history.dart';
 import 'post_write_refresher.dart';
 import 'url_opener.dart';
 import '../features/accounts/account_reconciliation_page.dart';
@@ -1230,6 +1232,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           onChangePassword: canChangePassword
               ? () => _changePassword(context)
               : null,
+          onDeleteHistoryBefore: demo
+              ? null
+              : () => _purgeHistoryBefore(context),
           onDeleteAccount: demo ? null : () => _deleteAccount(context),
           onOpenPrivacyPolicy: _openPrivacyPolicy,
           onReplayWelcome: _replayWelcome,
@@ -1537,6 +1542,35 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         const SnackBar(content: Text('Đã đổi mật khẩu')),
       );
     }
+  }
+
+  /// D21 scoped retention purge — the dialog owns the cutoff/scope pick
+  /// and the typed-XÓA guard; the store owns the single atomic RPC. The
+  /// report's `locked` count (schedule/debt-linked survivors) is printed
+  /// verbatim — a purge that skipped them must never read as a clean
+  /// sweep. Nothing here touches local caches: purged rows simply stop
+  /// appearing on the next feed read, and the trash contains only what
+  /// the trash contract still owns.
+  Future<void> _purgeHistoryBefore(BuildContext context) async {
+    final report = await showDeleteHistoryFlow(
+      context,
+      purge: _store.deleteHistoryBefore,
+    );
+    if (report == null || !mounted) return;
+    final lockedNote = report.locked > 0
+        ? ' · ${report.locked} giao dịch gắn lịch/công nợ được giữ lại'
+        : '';
+    showTimedSnackBar(
+      ScaffoldMessenger.of(this.context),
+      SnackBar(
+        content: Text(
+          report.deleted > 0
+              ? 'Đã xóa vĩnh viễn ${report.deleted} giao dịch trước '
+                    '${displayDate(report.before)}$lockedNote'
+              : 'Không có giao dịch nào trong phạm vi đã chọn$lockedNote',
+        ),
+      ),
+    );
   }
 
   /// Server-side account deletion — the dialog owns re-auth + the

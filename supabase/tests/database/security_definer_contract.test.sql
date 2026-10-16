@@ -66,9 +66,14 @@ where n.nspname = 'public'
 -- boundary that reassigns every category reference inside a transaction —
 -- the definer owns the multi-table write set, never caller-picked.
 -- +1 reviewed boundary.
+-- 20261017230000 adds delete_transactions_before: one reviewed
+-- caller-scoped retention purge that hard-deletes the caller's own
+-- ledger rows in a picked id set — definer-only because authenticated
+-- holds no DELETE grant on the ledger tables and the child/link release
+-- must run in the same transaction. +1 reviewed boundary.
 select is(
   (select count(*)::integer from flagged_security_definer_functions),
-  70,
+  71,
   'the reviewed authenticated SECURITY DEFINER inventory stays explicit'
 );
 

@@ -37,6 +37,7 @@ class SettingsPage extends StatefulWidget {
     this.tempDir,
     this.onDeleteLocalData,
     this.deleteLocalDataLabel = 'Xóa dữ liệu trên máy',
+    this.onDeleteHistoryBefore,
     this.onChangePassword,
     this.onDeleteAccount,
     this.appVersion = kAppVersionLabel,
@@ -76,6 +77,12 @@ class SettingsPage extends StatefulWidget {
   /// the demo wipe is not an account deletion.
   final Future<void> Function()? onDeleteLocalData;
   final String deleteLocalDataLabel;
+
+  /// D21 scoped retention purge — the host owns the cutoff/scope/typed-
+  /// confirm dialog and the `delete_transactions_before` RPC. Signed-in
+  /// only: demo has no server ledger to purge, so the row hides with the
+  /// seam (same honest-absence rule as account deletion).
+  final Future<void> Function()? onDeleteHistoryBefore;
 
   /// Password change — auth-only AND credential-accounts-only (a
   /// Google-only account has no current password; the host gates the
@@ -247,6 +254,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final showData =
         widget.loadArchive != null ||
         widget.onDeleteLocalData != null ||
+        widget.onDeleteHistoryBefore != null ||
         widget.onDeleteAccount != null;
     return Scaffold(
       appBar: AppBar(title: const Text('Cài đặt')),
@@ -338,6 +346,21 @@ class _SettingsPageState extends State<SettingsPage> {
                   'Chỉ xóa trên thiết bị này — dữ liệu trên máy chủ giữ nguyên',
                 ),
                 onTap: () => unawaited(widget.onDeleteLocalData!()),
+              ),
+            if (widget.onDeleteHistoryBefore != null)
+              ListTile(
+                leading: Icon(
+                  Icons.manage_history_outlined,
+                  color: scheme.error,
+                ),
+                title: Text(
+                  'Xóa lịch sử trước ngày',
+                  style: TextStyle(color: scheme.error),
+                ),
+                subtitle: const Text(
+                  'Xóa vĩnh viễn giao dịch theo nguồn — không qua thùng rác',
+                ),
+                onTap: () => unawaited(widget.onDeleteHistoryBefore!()),
               ),
             if (widget.onDeleteAccount != null)
               ListTile(

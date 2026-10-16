@@ -292,7 +292,25 @@ DONE THIS ROUND:
   icon appears only after the pref lands and only with a writer seam.
   Gates: dart format → flutter analyze clean → flutter test all green
   (+4 new). See FIXLOG.md "D20".
+- **D21 scoped delete-history-before-date shipped on feat/mobile-theme** —
+  definer RPC `delete_transactions_before(date, text[])` hard-deletes own
+  rows before a civil cutoff, scoped to provenance buckets
+  manual/notification/import, live+trashed alike, OUTSIDE the trash
+  contract; schedule/debt-linked rows survive as disclosed `locked`;
+  candidates keep their history row and lose only the approval link.
+  Same migration fixes a live defect: permanently_delete's candidate
+  unlink always threw approved_candidate_evidence_immutable for
+  inbox-sourced rows — the guard now admits a marker-gated field-only
+  release (still SECURITY INVOKER; owner+flag+shape, same pattern as the
+  archive-restore shapes). UI: Settings → Dữ liệu → "Xóa lịch sử trước
+  ngày" (seam-gated, signed-in only) → consequence step → vnToday-capped
+  date + source checkboxes + typed XÓA + in-flight lockdown → snackbar
+  discloses deleted/locked verbatim.
+  Gates: pgTAP 68/68 + concurrency OK; check:migrations 96 pinned;
+  check:rls 9/9; dart format clean; flutter analyze clean; flutter test
+  all green 1548 (+11 new); debug APK built + adb installed. See
+  FIXLOG.md "D21".
 AUDIT OPEN: P0=0 P1=0 P2=0 (all findings shipped — see FIXLOG.md)
 GAPS OPEN: web EditTransactionDialog lacks "save as rule" offer (mobile has it); web reports do not honor excluded_from_reports yet; Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
-NEXT STEP: Loop B gap list — D21+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D20 done.
+NEXT STEP: Loop B gap list — D22+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D21 done.
 RESUME: re-read this file, then continue at NEXT STEP.
