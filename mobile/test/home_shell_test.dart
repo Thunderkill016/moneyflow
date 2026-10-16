@@ -123,6 +123,40 @@ void main() {
       expect(savedCalls, 0);
     });
 
+    testWidgets('selectTab switches programmatically — the dashboard '
+        '"Mở Kế hoạch" nudge path', (t) async {
+      final key = GlobalKey<HomeShellState>();
+      await t.pumpWidget(
+        MaterialApp(
+          home: HomeShell(
+            key: key,
+            tabBuilders: [
+              () => const Text('dashboard-body'),
+              () => const Text('activity-body'),
+              () => const Text('planning-body'),
+              () => const Text('reports-body'),
+            ],
+            onCaptureTap: (_) async => null,
+            onCaptureSaved: () {},
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(find.text('planning-body'), findsNothing);
+
+      key.currentState!.selectTab(homeShellPlanningTab);
+      await t.pumpAndSettle();
+      expect(find.text('planning-body'), findsOneWidget);
+
+      // Out-of-range and same-tab selects are honest no-ops.
+      key.currentState!.selectTab(9);
+      key.currentState!.selectTab(-1);
+      key.currentState!.selectTab(homeShellPlanningTab);
+      await t.pumpAndSettle();
+      expect(find.text('planning-body'), findsOneWidget);
+      expect(find.text('reports-body'), findsNothing);
+    });
+
     testWidgets('the banner slot renders above the tabs', (t) async {
       await t.pumpWidget(
         MaterialApp(

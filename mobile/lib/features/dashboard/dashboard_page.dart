@@ -3,6 +3,7 @@ import '../../data/demo_store.dart';
 import '../../data/offline_cache.dart';
 import '../../data/recurring_dismissals.dart';
 import '../../data/widget_snapshot.dart';
+import '../../domain/budget.dart';
 import '../../domain/datetime_label.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
@@ -47,7 +48,9 @@ class DashboardPage extends StatefulWidget {
     required this.loadAccounts,
     required this.loadTransactions,
     this.loadBudgets,
+    this.loadBudgetRange,
     this.loadCommitments,
+    this.onOpenPlanning,
     this.loadSuggestionTransactions,
     this.onCreateCommitment,
     this.onCreateAccount,
@@ -65,7 +68,10 @@ class DashboardPage extends StatefulWidget {
   factory DashboardPage.demo({VoidCallback? onSignOut}) => DashboardPage(
     loadAccounts: () async => DemoStore.seedAccounts(),
     loadTransactions: () async => DemoStore.seedTransactions(),
-    loadBudgets: (monthStart) async => DemoStore.seedBudgets(monthStart),
+    loadBudgetRange: (from, to) async => [
+      ...DemoStore.seedPriorBudgets(to),
+      ...DemoStore.seedBudgets(to),
+    ],
     loadCommitments: (_) async => DemoStore.seedCommitments(),
     modeLabel: 'demo',
     menuItems: [
@@ -81,12 +87,26 @@ class DashboardPage extends StatefulWidget {
   final Future<List<AccountSummary>> Function() loadAccounts;
   final Future<List<Transaction>> Function() loadTransactions;
 
-  /// Optional planning loaders for the "Chi được hôm nay" tile — both are
-  /// keyed on the YYYY-MM-01 month start. When either is absent the tile
-  /// is hidden entirely rather than guessing at a number.
+  /// Optional planning loaders for the "Còn lại tháng này" card — all
+  /// are keyed on YYYY-MM-01 month starts. When commitments (and any
+  /// budget source) are absent the card is hidden entirely rather than
+  /// guessing at a number.
   final Future<List<BudgetProgress>> Function(String monthStart)? loadBudgets;
+
+  /// The rollover-window read (`loadBudgetsInRange` on the store): every
+  /// budgeted month in [fromMonth]..[toMonth] inclusive. Preferred over
+  /// [loadBudgets] when both are wired — one request feeds the card's
+  /// month rows AND the carry its threshold alerts need to agree with
+  /// the Kế hoạch tiles. Falling back to [loadBudgets] simply leaves the
+  /// carry at zero, like a user with no budget history.
+  final Future<List<BudgetProgress>> Function(String fromMonth, String toMonth)?
+  loadBudgetRange;
   final Future<List<RecurringCommitment>> Function(String monthStart)?
   loadCommitments;
+
+  /// "Mở Kế hoạch" on the no-budget nudge — the host switches to the
+  /// planning tab. Null drops the button; the honest text stays.
+  final VoidCallback? onOpenPlanning;
 
   /// Optional detection source for the recurring-suggestion card — the
   /// [from, to) range contract of RealStore.loadTransactionsInRange.
@@ -144,9 +164,11 @@ class DashboardPage extends StatefulWidget {
   State<DashboardPage> createState() => DashboardPageState();
 }
 
-/// Loaded dashboard payload — planning rows ride along so the safe-spend
-/// tile renders in the same pass; they stay null when the loaders are
-/// absent or their reads fail.
+/// Loaded dashboard payload — planning rows ride along so the remainder
+/// card renders in the same pass; they stay null when the loaders are
+/// absent or their reads fail. [budgets] may span the whole rollover
+/// window (when `loadBudgetRange` is wired) — consumers filter to the
+/// viewed month themselves.
 typedef _DashboardData = ({
   List<AccountSummary> accounts,
   List<Transaction> txs,
@@ -221,16 +243,25 @@ class DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  /// The safe-spend tile is auxiliary — a planning-read failure hides the
-  /// tile rather than failing the whole dashboard. No fake numbers.
+  /// The remainder card is auxiliary — a planning-read failure hides the
+  /// card rather than failing the whole dashboard. No fake numbers.
+  ///
+  /// The budget read prefers the rollover-window loader when wired: the
+  /// same rows feed both the remainder figure (this month's rows) and
+  /// the threshold alerts' carry, so the card can never contradict the
+  /// Kế hoạch tiles a prior-month overspend produced.
   Future<(List<BudgetProgress>?, List<RecurringCommitment>?)>
   _loadPlanningRows() async {
-    if (widget.loadBudgets == null || widget.loadCommitments == null) {
+    final range = widget.loadBudgetRange;
+    if (widget.loadCommitments == null ||
+        (widget.loadBudgets == null && range == null)) {
       return (null, null);
     }
     final monthStart = vnMonthStart();
     try {
-      final budgets = await widget.loadBudgets!(monthStart);
+      final budgets = range != null
+          ? await range(budgetRolloverWindowStart(monthStart), monthStart)
+          : await widget.loadBudgets!(monthStart);
       final commitments = await widget.loadCommitments!(monthStart);
       return (budgets, commitments);
     } catch (_) {
@@ -280,10 +311,10 @@ class DashboardPageState extends State<DashboardPage> {
     await RecurringDismissals.dismiss(s.key, sync: widget.dismissalSync);
   }
 
-  /// The widget mirrors exactly what the tiles show — the VND-only
-  /// total, and the "Chi được hôm nay" figure only when planning data
-  /// actually produced one (no budget means null, and the widget renders
-  /// the same honest "—" the card's missing-tile case implies).
+  /// The widget mirrors exactly what the card shows — the VND-only
+  /// total, and the per-day figure only when planning data actually
+  /// produced one (no budget means null, and the widget renders the
+  /// same honest "—" the card's missing-tile case implies).
   /// Persisting must never fail the render path.
   Future<void> _writeWidgetSnapshot(
     List<AccountSummary> accounts,
@@ -471,6 +502,12 @@ class DashboardPageState extends State<DashboardPage> {
             final suggestions = snap.data!.suggestions
                 .where((s) => !_hiddenSuggestions.contains(s.key))
                 .toList();
+            // One VN civil clock read for the whole remainder card — the
+            // figure's month, its days-left count and the alert window
+            // can never disagree across a midnight boundary.
+            final now = vnNow();
+            final monthStart =
+                '${now.year}-${now.month.toString().padLeft(2, '0')}-01';
             return RefreshIndicator(
               onRefresh: _refresh,
               child: ListView(
@@ -504,12 +541,14 @@ class DashboardPageState extends State<DashboardPage> {
                     ),
                   if (budgets != null && commitments != null) ...[
                     const SizedBox(height: 12),
-                    _SafeSpendCard(
+                    _MonthRemainderCard(
                       spend: safeDailySpend(
                         budgets: budgets,
                         commitments: commitments,
-                        today: vnNow(),
+                        today: now,
                       ),
+                      alerts: budgetAlerts(budgets, monthStart: monthStart),
+                      onOpenPlanning: widget.onOpenPlanning,
                     ),
                   ],
                   for (final s in suggestions) ...[
@@ -812,20 +851,42 @@ class _NeedsReviewCard extends StatelessWidget {
   }
 }
 
-/// "Chi được hôm nay" tile — a safe-per-day spend figure under the
-/// balance hero (Simplifi spending plan / PocketGuard "In My Pocket").
-/// It stays visibly secondary to the hero, is labeled as budget headroom
-/// so nobody mistakes it for an account balance, and carries no action —
-/// with no budgets it shows an honest setup nudge instead of a number.
-class _SafeSpendCard extends StatelessWidget {
-  const _SafeSpendCard({required this.spend});
+/// "Còn lại tháng này" — the honest month-remainder card under the
+/// balance hero (Simplifi "Left This Month" / PocketGuard "In My Pocket"
+/// / Copilot "Free to Spend" — gap D3). It stays visibly secondary to
+/// the hero and always names its inputs so nobody mistakes a derived
+/// estimate for an account balance:
+///
+/// - Normal month: "Còn lại X ₫ — ~Y ₫/ngày" over the days left.
+/// - Commitments overshooting the headroom: a negative figure with the
+///   word "thiếu" — an over-plan state, never a red-only signal.
+/// - [alerts] carries the 80%/100% budget thresholds computed on the
+///   same carry-aware math the Kế hoạch rows render.
+/// - No budgets at all: a setup nudge pointing at Kế hoạch — never an
+///   invented number.
+class _MonthRemainderCard extends StatelessWidget {
+  const _MonthRemainderCard({
+    required this.spend,
+    required this.alerts,
+    this.onOpenPlanning,
+  });
 
   final SafeDailySpend? spend;
+  final List<BudgetAlert> alerts;
+
+  /// The no-budget nudge's "Mở Kế hoạch" action — null drops the button
+  /// and leaves the plain text (embedders without a planning tab).
+  final VoidCallback? onOpenPlanning;
+
+  /// Named alert rows the card can hold before folding into a count —
+  /// two keeps the card a glance, not a second planning page.
+  static const _maxAlertLines = 2;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final text = theme.textTheme;
+    final mf = context.mf;
     final s = spend;
     return Card(
       child: Padding(
@@ -836,57 +897,158 @@ class _SafeSpendCard extends StatelessWidget {
             Row(
               children: [
                 Icon(
-                  Icons.today_outlined,
+                  Icons.calendar_month_outlined,
                   size: 18,
                   color: theme.colorScheme.primary,
                 ),
                 const SizedBox(width: 6),
-                Text('Chi được hôm nay', style: text.labelLarge),
+                Text('Còn lại tháng này', style: text.labelLarge),
               ],
             ),
             const SizedBox(height: 6),
             if (s == null)
-              Text(
-                'Đặt ngân sách tháng để biết hôm nay nên chi tối đa bao nhiêu',
-                style: text.bodyMedium,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Đặt ngân sách tháng để biết tháng này còn được '
+                    'chi bao nhiêu',
+                    style: text.bodyMedium,
+                  ),
+                  if (onOpenPlanning != null)
+                    TextButton.icon(
+                      onPressed: onOpenPlanning,
+                      icon: const Icon(Icons.event_note_outlined, size: 18),
+                      label: const Text('Mở Kế hoạch'),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(0, 32),
+                      ),
+                    ),
+                ],
               )
-            else ...[
+            else if (s.shortfallMinor > 0) ...[
+              // Over-plan state: the negative figure plus the word that
+              // explains it — never colour alone carrying "over".
               Semantics(
-                label: spokenVnd(s.perDayMinor),
+                label: 'Kế hoạch tháng thiếu ${spokenVnd(s.shortfallMinor)}',
+                excludeSemantics: true,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    formatSignedMoney(-s.shortfallMinor),
+                    style: mfMoneyStyle(
+                      text.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: mf.expenseText,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Cam kết sắp trả vượt hạn mức ngân sách còn lại',
+                style: text.bodySmall?.copyWith(color: mf.expenseText),
+              ),
+              const SizedBox(height: 4),
+              _basisLine(text, s),
+            ] else ...[
+              Semantics(
+                label: 'Còn lại ${spokenVnd(s.remainingMinor)} đến hết tháng',
                 excludeSemantics: true,
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
                   child: _countUpMoney(
                     context,
-                    s.perDayMinor,
+                    s.remainingMinor,
                     text.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
-              Text('trong hạn mức ngân sách tháng này', style: text.bodySmall),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Semantics(
                 label:
-                    'Còn ${spokenVnd(s.remainingMinor)} đến hết tháng, '
-                    '${s.daysLeft} ngày',
+                    'Tương đương ${spokenVnd(s.perDayMinor)} mỗi ngày, '
+                    'còn ${s.daysLeft} ngày',
                 excludeSemantics: true,
                 child: Text(
-                  'Còn ${formatMoney(s.remainingMinor)} đến hết tháng '
-                  '(${s.daysLeft} ngày)',
+                  '~${formatMoney(s.perDayMinor)}/ngày · '
+                  'còn ${s.daysLeft} ngày',
                   style: text.bodySmall,
                 ),
               ),
+              const SizedBox(height: 4),
+              _basisLine(text, s),
+            ],
+            if (alerts.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              for (final a in alerts.take(_maxAlertLines))
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: _alertLine(context, a),
+                ),
+              if (alerts.length > _maxAlertLines)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    'và ${alerts.length - _maxAlertLines} danh mục khác — '
+                    'chi tiết trong Kế hoạch',
+                    style: text.bodySmall,
+                  ),
+                ),
             ],
           ],
         ),
       ),
     );
   }
+
+  /// "Theo ngân sách tháng + chi đã ghi" — the basis label every figure
+  /// carries; the reserved-commitment share is named when nonzero so the
+  /// remainder never implies it is raw budget slack.
+  Widget _basisLine(TextTheme text, SafeDailySpend s) {
+    final basis = s.reservedMinor > 0
+        ? 'Theo ngân sách tháng và chi đã ghi · đã trừ '
+              'cam kết sắp trả ${formatMoney(s.reservedMinor)}'
+        : 'Theo ngân sách tháng và chi đã ghi';
+    return Text(basis, style: text.bodySmall);
+  }
+
+  /// One threshold alert — the icon and the words carry the state so the
+  /// line reads the same in greyscale: "vượt X ₫" / "sắp tới hạn mức".
+  Widget _alertLine(BuildContext context, BudgetAlert a) {
+    final mf = context.mf;
+    final over = a.state == BudgetState.over;
+    final color = over ? mf.expenseText : mf.warningText;
+    return Row(
+      children: [
+        Icon(
+          over ? Icons.error_outline : Icons.warning_amber_outlined,
+          size: 16,
+          color: color,
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            over
+                ? '${a.categoryName} vượt ${formatMoney(a.amountMinor)}'
+                : '${a.categoryName} sắp tới hạn mức — còn '
+                      '${formatMoney(a.amountMinor)}',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: color),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 /// "Có vẻ là khoản định kỳ" — a detected monthly pattern the user may
-/// declare as a commitment. Sits under the safe-spend tile with the other
+/// declare as a commitment. Sits under the remainder card with the other
 /// planning nudges; both actions are explicit user choices — [onCreate]
 /// opens the prefilled planning form (never writes by itself) and
 /// [onDismiss] permanently hides this pattern.

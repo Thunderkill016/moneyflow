@@ -34,13 +34,29 @@ class HomeShell extends StatefulWidget {
   final VoidCallback onCaptureSaved;
 
   @override
-  State<HomeShell> createState() => _HomeShellState();
+  State<HomeShell> createState() => HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
+/// Tab index of the Kế hoạch destination — the dashboard's "Mở Kế
+/// hoạch" nudge targets it by name, not by a bare 2.
+const homeShellPlanningTab = 2;
+
+class HomeShellState extends State<HomeShell> {
   int _tab = 0;
   final _built = List<Widget?>.filled(4, null);
   final _visited = <int>{0};
+
+  /// Switch tabs programmatically — the dashboard remainder card's
+  /// "Mở Kế hoạch" nudge uses it so the pointer is a real destination,
+  /// not a dead affordance. Out-of-range indexes are ignored.
+  void selectTab(int index) {
+    if (index < 0 || index >= widget.tabBuilders.length) return;
+    if (index == _tab) return;
+    setState(() {
+      _tab = index;
+      _visited.add(index);
+    });
+  }
 
   Future<void> _capture() async {
     final result = await widget.onCaptureTap(context);

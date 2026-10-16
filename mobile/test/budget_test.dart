@@ -284,6 +284,102 @@ void main() {
     });
   });
 
+  group('budgetAlerts', () {
+    test('no rows for the month means no alerts', () {
+      expect(
+        budgetAlerts([
+          _bp('cat-food', '2026-09-01', 2000000, 5000000),
+        ], monthStart: '2026-10-01'),
+        isEmpty,
+      );
+    });
+
+    test('rows under 80% stay quiet — the card is not a noise feed', () {
+      // 395.000 * 5 = 1.975.000 < 500.000 * 4 = 2.000.000.
+      expect(
+        budgetAlerts([
+          _bp('cat-food', '2026-10-01', 500000, 395000),
+        ], monthStart: '2026-10-01'),
+        isEmpty,
+      );
+    });
+
+    test('exactly 80% alerts nearLimit with the remaining headroom', () {
+      final alerts = budgetAlerts([
+        _bp('cat-food', '2026-10-01', 500000, 400000),
+      ], monthStart: '2026-10-01');
+      expect(alerts, hasLength(1));
+      expect(alerts.single.state, BudgetState.nearLimit);
+      expect(alerts.single.amountMinor, 100000);
+      expect(alerts.single.categoryName, 'cat-food');
+    });
+
+    test('past the limit alerts over with the overshoot amount', () {
+      final alerts = budgetAlerts([
+        _bp('cat-food', '2026-10-01', 500000, 532000),
+      ], monthStart: '2026-10-01');
+      expect(alerts.single.state, BudgetState.over);
+      expect(alerts.single.amountMinor, 32000);
+    });
+
+    test('exactly at the limit reads nearLimit ("còn 0"), not over', () {
+      final alerts = budgetAlerts([
+        _bp('cat-food', '2026-10-01', 500000, 500000),
+      ], monthStart: '2026-10-01');
+      expect(alerts.single.state, BudgetState.nearLimit);
+      expect(alerts.single.amountMinor, 0);
+    });
+
+    test('prior-month carry can push an on-limit row into over — the '
+        'same math the Kế hoạch tile renders', () {
+      // Own month: 400.000 / 500.000 = 80% → near on raw figures. The
+      // −200.000 carried overspend drops the effective limit to 300.000
+      // → over by 100.000. An alert that ignored the carry would say
+      // "sắp tới" where planning already says "vượt".
+      final alerts = budgetAlerts([
+        _bp('cat-food', '2026-10-01', 500000, 400000),
+        _bp('cat-food', '2026-09-01', 500000, 700000),
+      ], monthStart: '2026-10-01');
+      expect(alerts.single.state, BudgetState.over);
+      expect(alerts.single.amountMinor, 100000);
+    });
+
+    test('a positive carry can lift an over row back to near', () {
+      // Over on raw figures (532 > 500) but +100.000 carried underspend
+      // raises the effective limit to 600.000 → 68.000 left → near.
+      final alerts = budgetAlerts([
+        _bp('cat-food', '2026-10-01', 500000, 532000),
+        _bp('cat-food', '2026-09-01', 500000, 400000),
+      ], monthStart: '2026-10-01');
+      expect(alerts.single.state, BudgetState.nearLimit);
+      expect(alerts.single.amountMinor, 68000);
+    });
+
+    test('prior-month rows never alert for themselves', () {
+      final alerts = budgetAlerts([
+        _bp('cat-food', '2026-09-01', 500000, 900000),
+      ], monthStart: '2026-10-01');
+      expect(alerts, isEmpty);
+    });
+
+    test('ordering: over rows first by breach size, then near by '
+        'tightest headroom, ties on name', () {
+      final alerts = budgetAlerts([
+        _bp('cat-bills', '2026-10-01', 500000, 480000), // near, còn 20k
+        _bp('cat-food', '2026-10-01', 500000, 550000), // over 50k
+        _bp('cat-fun', '2026-10-01', 500000, 800000), // over 300k
+        _bp('cat-transport', '2026-10-01', 500000, 450000), // near 50k
+        _bp('cat-calm', '2026-10-01', 500000, 100000), // ok — excluded
+      ], monthStart: '2026-10-01');
+      expect(alerts.map((a) => a.categoryId), [
+        'cat-fun', // over 300k first
+        'cat-food', // over 50k
+        'cat-bills', // near, tightest headroom (20k)
+        'cat-transport', // near, 50k
+      ]);
+    });
+  });
+
   group('budgetsToCarryForward', () {
     test('proposes only prior-month limits with no current decision', () {
       final drafts = budgetsToCarryForward(

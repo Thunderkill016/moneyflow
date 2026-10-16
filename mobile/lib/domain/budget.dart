@@ -167,6 +167,90 @@ String? budgetRolloverLabel(
       : 'Trừ vì vượt hạn mức $months: −$amount';
 }
 
+// -- Threshold alerts (80%/100% in-app badges) --------------------------------
+
+/// One category whose [monthStart] budget crossed a spend threshold —
+/// the in-app alert line the dashboard remainder card surfaces (D3).
+/// Wraps the same carry-aware effective math the Kế hoạch tile renders,
+/// so a badge can never disagree with the row it summarizes.
+class BudgetAlert {
+  const BudgetAlert({
+    required this.categoryId,
+    required this.categoryName,
+    required this.state,
+    required this.amountMinor,
+  });
+
+  final String categoryId;
+  final String categoryName;
+
+  /// Never [BudgetState.ok] — only [BudgetState.nearLimit] (>= 80%
+  /// consumed) and [BudgetState.over] (past the effective limit) alert.
+  final BudgetState state;
+
+  /// đồng magnitude behind the state: amount past the effective limit
+  /// when [state] is over, đồng still available when near.
+  final int amountMinor;
+}
+
+/// Threshold alerts for [monthStart]'s budgets — the row seam for "vượt
+/// hạn mức" / "sắp tới hạn mức" lines. [budgetRows] is one window read
+/// (`budget_progress` over `[budgetRolloverWindowStart(monthStart),
+/// monthStart]`); rows at [monthStart] are evaluated and earlier rows
+/// feed their carry, exactly like the planning surface. Rows for other
+/// months are ignored, so a month-scoped read stays safe to pass — the
+/// carry then simply reads as zero, matching a caller with no history.
+///
+/// Ordering is total: [BudgetState.over] first (largest violation
+/// first), then [BudgetState.nearLimit] (smallest headroom first), ties
+/// on category name then id — Dart's sort is not stable.
+List<BudgetAlert> budgetAlerts(
+  List<BudgetProgress> budgetRows, {
+  required String monthStart,
+}) {
+  final alerts = <BudgetAlert>[];
+  for (final b in budgetRows) {
+    if (b.monthStart != monthStart) continue;
+    final carry = budgetRollover(
+      priorBudgets: budgetRows,
+      categoryId: b.categoryId,
+      monthStart: monthStart,
+    ).carry;
+    final state = budgetEffectiveState(
+      spentMinor: b.spentMinor,
+      limitMinor: b.limitMinor,
+      carry: carry,
+    );
+    if (state == BudgetState.ok) continue;
+    alerts.add(
+      BudgetAlert(
+        categoryId: b.categoryId,
+        categoryName: b.categoryName,
+        state: state,
+        amountMinor: budgetEffectiveAvailable(
+          spentMinor: b.spentMinor,
+          limitMinor: b.limitMinor,
+          carry: carry,
+        ).abs(),
+      ),
+    );
+  }
+  alerts.sort((a, b) {
+    final byState = (a.state == BudgetState.over ? 0 : 1).compareTo(
+      b.state == BudgetState.over ? 0 : 1,
+    );
+    if (byState != 0) return byState;
+    // Over: the deepest breach first. Near: the tightest headroom first.
+    final byAmount = a.state == BudgetState.over
+        ? b.amountMinor.compareTo(a.amountMinor)
+        : a.amountMinor.compareTo(b.amountMinor);
+    if (byAmount != 0) return byAmount;
+    final byName = a.categoryName.compareTo(b.categoryName);
+    return byName != 0 ? byName : a.categoryId.compareTo(b.categoryId);
+  });
+  return alerts;
+}
+
 // -- Carry-forward (dùng hạn mức tháng trước) --------------------------------
 
 /// One pending budget write — the web's `SaveBudgetInput` shape minus the

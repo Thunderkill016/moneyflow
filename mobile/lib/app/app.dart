@@ -283,6 +283,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   final _actKey = GlobalKey<ActivityPageState>();
   final _planKey = GlobalKey<PlanningPageState>();
   final _reportKey = GlobalKey<ReportsPageState>();
+  final _shellKey = GlobalKey<HomeShellState>();
 
   /// A share that arrived before sign-in — drained once the dashboard is
   /// reachable so the prefill isn't lost behind the login screen.
@@ -1250,6 +1251,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         // next unlock again instead of opening over the lock screen.
         onLocked: () => _unlocked = false,
         child: HomeShell(
+          key: _shellKey,
           banner: _queue == null
               ? null
               : QueuedCapturesBanner(queue: _queue!, onRetry: _drainQueue),
@@ -1261,8 +1263,15 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
               onOpenTransaction: (tx) => _openEdit(context, tx),
               loadAccounts: _store.loadAccounts,
               loadTransactions: _store.loadTransactions,
-              loadBudgets: _store.loadBudgets,
+              // The rollover-window read feeds both the remainder figure
+              // and the threshold alerts' carry — one request, same rows
+              // the planning surface computes against.
+              loadBudgetRange: _store.loadBudgetsInRange,
               loadCommitments: _store.loadCommitments,
+              // "Mở Kế hoạch" on the no-budget nudge switches to the real
+              // planning tab — never a dead pointer.
+              onOpenPlanning: () =>
+                  _shellKey.currentState?.selectTab(homeShellPlanningTab),
               loadSuggestionTransactions: _store.loadTransactionsInRange,
               onCreateCommitment: (s) => _createSuggestedCommitment(context, s),
               // "Tạo ví đầu tiên" on the empty ledger — the page reloads
@@ -1931,13 +1940,22 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     String monthStart() => vnMonthStart();
 
     return HomeShell(
+      key: _shellKey,
       tabBuilders: [
         () => DashboardPage(
           loadPendingCount: _demoInbox.pendingCount,
           loadAccounts: () async => DemoStore.seedAccounts(),
           loadTransactions: () async => DemoStore.seedTransactions(),
-          loadBudgets: (m) async => DemoStore.seedBudgets(m),
+          // Seeds cover the viewed month plus the prior month, so the
+          // remainder card's threshold alerts see the same carry the
+          // demo planning tab shows.
+          loadBudgetRange: (from, to) async => [
+            ...DemoStore.seedPriorBudgets(to),
+            ...DemoStore.seedBudgets(to),
+          ],
           loadCommitments: (_) async => DemoStore.seedCommitments(),
+          onOpenPlanning: () =>
+              _shellKey.currentState?.selectTab(homeShellPlanningTab),
           // Detection runs on the same seeds; the seeds carry no monthly
           // pattern today, so the card simply stays absent — if a seed
           // ever qualifies, the create button repeats the read-only rule.

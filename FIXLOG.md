@@ -303,3 +303,43 @@ Format: `ID | files changed | why | proof (test names)`.
   `flutter analyze` clean; `flutter test` 1321 all green;
   `check:migrations` 91 pinned; `check:rls` 9/9; `check:knowledge`;
   `test:ci-policy` 203/203.
+- **FEATURE: D3 honest "còn lại tháng này" + budget threshold alerts** |
+  `mobile/lib/domain/budget.dart`,
+  `mobile/lib/domain/safe_to_spend.dart`,
+  `mobile/lib/features/dashboard/dashboard_page.dart`,
+  `mobile/lib/app/home_shell.dart`,
+  `mobile/lib/app/app.dart`,
+  `mobile/test/budget_test.dart`,
+  `mobile/test/safe_to_spend_test.dart`,
+  `mobile/test/home_shell_test.dart` |
+  Loop B gap D3 (RESEARCH_TOP_FINANCE_APPS.md §10 — Simplifi "Left This
+  Month" / PocketGuard "In My Pocket" / Copilot "Free to Spend"): the
+  existing "Chi được hôm nay" tile becomes the "Còn lại tháng này"
+  remainder card — hero = budget headroom left after reserving unpaid
+  due commitments, "~Y ₫/ngày · còn N ngày" equivalence, and a basis
+  line naming its inputs ("Theo ngân sách tháng và chi đã ghi", plus
+  "đã trừ cam kết sắp trả X ₫" when a reserve exists). Never an
+  account balance, never an invented number: `SafeDailySpend` gains
+  `reservedMinor`/`shortfallMinor` so commitments overshooting the
+  headroom render as an explicit "− X ₫ / Cam kết sắp trả vượt hạn mức"
+  state (words + icon, never colour alone) instead of a silent 0. No
+  budgets → setup nudge with a real "Mở Kế hoạch" action (HomeShell
+  gains a public `selectTab`, wired through `_shellKey`). Threshold
+  alerts: `budgetAlerts` in domain/budget.dart reuses the carry-aware
+  `budgetEffectiveState` math the Kế hoạch tiles render, so the card's
+  "vượt X ₫" / "sắp tới hạn mức — còn X ₫" lines can never disagree with
+  planning; the dashboard prefers a new `loadBudgetRange` seam
+  (`loadBudgetsInRange`, one window read feeding both figure and carry)
+  and falls back to the month-scoped `loadBudgets` with a zero carry.
+  Demo wires the seeded prior-month rows through the same seam. No push
+  scheduling — in-app lines only, per the slice. |
+  `budget_test.dart` (+9: 80%/100% thresholds, at-limit = near not over,
+  carry flips near→over and rescues over→near, prior rows never alert,
+  total ordering);
+  `safe_to_spend_test.dart` (+7: reserved/shortfall disclosure, two
+  Saigon-TZ month boundaries, basis label, "Mở Kế hoạch" tap, absent
+  seam keeps text only, honest "thiếu" figure, per-category alert lines,
+  carry parity with Kế hoạch);
+  `home_shell_test.dart` (+1: selectTab programmatic switch + no-op
+  guards). `dart format` clean; `flutter analyze` clean;
+  `flutter test` 1338 all green.

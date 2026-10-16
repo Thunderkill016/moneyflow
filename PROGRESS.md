@@ -1,6 +1,6 @@
 # PROGRESS — MoneyFlow Android mega-task
 STATUS: IN_PROGRESS
-LAST UPDATE: 2026-10-16 (D2 event/occasion budgets)
+LAST UPDATE: 2026-10-16 (D3 honest month remainder + budget threshold alerts)
 DONE THIS ROUND:
 - Step Zero DONE: branch mobile/android-app pushed, PR #795 open (head ec8591b9).
 - Prior session shipped: permanent-delete trash (mobile+web+RPC+schema-cache fix), SnackBar a11y watchdog fix (1187+ tests green), Monarch deep-dive docs/research/MONARCH_DEEP_DIVE.md, rules preview + apply-to-existing (mobile+web), edit→rule offer (mobile). All committed.
@@ -65,7 +65,23 @@ DONE THIS ROUND:
     pinned; `check:rls` 9/9; `check:knowledge`; `test:ci-policy`
     203/203. Migration NOT applied to production Neon — deployment
     pending owner approval.
+- **D3 honest "còn lại tháng này" + budget threshold alerts shipped on
+  feat/mobile-theme** (mobile-only, no schema work — see FIXLOG.md
+  "FEATURE: D3" for files and proof):
+  - The "Chi được hôm nay" tile is now the "Còn lại tháng này" card:
+    month remainder hero (headroom − unpaid due commitments), "~₫/ngày"
+    equivalence, basis line "Theo ngân sách tháng và chi đã ghi" plus
+    named commitment reserve; over-plan state renders an explicit
+    "− X ₫ thiếu" — never colour alone, never a silent 0.
+  - `budgetAlerts` (domain/budget.dart) surfaces 80%/100% category
+    lines on the card using the same carry-aware effective math the
+    Kế hoạch tiles render; dashboard prefers a new `loadBudgetRange`
+    window seam so badge and tile can never disagree.
+  - No-budget nudge has a real "Mở Kế hoạch" action via the new public
+    `HomeShellState.selectTab`; demo wires seeded prior-month rows.
+  - Verification: `dart format` clean; `flutter analyze` clean;
+    `flutter test` 1338 green (17 new D3 tests).
 AUDIT OPEN: P0=0 P1=0 P2=0 (all findings shipped — see FIXLOG.md)
 GAPS OPEN: web EditTransactionDialog lacks "save as rule" offer (mobile has it); Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
-NEXT STEP: Loop B gap list — D3 (honest "còn lại tháng này" remainder card + budget threshold alerts, RESEARCH_TOP_FINANCE_APPS.md §10); D1+D2 done.
+NEXT STEP: Loop B gap list — D4 (payee statistics + MoM category deltas: top-10 payees chart, per-category MoM delta column, similar-transactions block, payee/reviewed/pending filter chips, RESEARCH_TOP_FINANCE_APPS.md §10); D1+D2+D3 done.
 RESUME: re-read this file, then continue at NEXT STEP.
