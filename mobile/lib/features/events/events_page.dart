@@ -268,7 +268,9 @@ class _EventsPageState extends State<EventsPage> {
               onRefresh: _refresh,
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
+                // Bottom slot clears the extended FAB so the last event
+                // card is never trapped underneath it at scroll end.
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                 children: [
                   if (events.isEmpty)
                     EmptyStateCard(

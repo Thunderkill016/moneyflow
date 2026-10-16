@@ -335,6 +335,53 @@ void main() {
       expect(find.text('Thử lại'), findsOneWidget);
     });
 
+    testWidgets(
+      'the "Khám phá" hub groups menu items under section headers and '
+      'fires callbacks after popping itself',
+      (t) async {
+        var fired = 0;
+        await t.pumpWidget(
+          _wrap(
+            DashboardPage(
+              loadAccounts: () async => DemoStore.seedAccounts(),
+              loadTransactions: () async => DemoStore.seedTransactions(),
+              menuItems: [
+                DashboardMenuItem(
+                  label: 'Vay & cho vay',
+                  icon: Icons.handshake_outlined,
+                  section: 'Tính năng',
+                  onTap: () => fired++,
+                ),
+                DashboardMenuItem(
+                  label: 'Bật tóm tắt tuần',
+                  icon: Icons.notifications_none,
+                  section: 'Tài khoản & cài đặt',
+                  actsInPlace: true,
+                  onTap: () => fired++,
+                ),
+              ],
+            ),
+          ),
+        );
+        await t.pumpAndSettle();
+
+        await t.tap(find.byIcon(Icons.more_vert));
+        await t.pumpAndSettle();
+
+        expect(find.text('Khám phá'), findsOneWidget);
+        expect(find.text('Tính năng'), findsWidgets);
+        expect(find.text('Tài khoản & cài đặt'), findsOneWidget);
+        expect(find.text('Vay & cho vay'), findsOneWidget);
+
+        // A row tap closes the hub first, then runs the action — the
+        // destination must never stack on top of the hub page.
+        await t.tap(find.text('Vay & cho vay'));
+        await t.pumpAndSettle();
+        expect(fired, 1);
+        expect(find.text('Khám phá'), findsNothing);
+      },
+    );
+
     testWidgets('successful load writes a snapshot, no banner', (t) async {
       DashboardSnapshot? written;
       await t.pumpWidget(

@@ -290,7 +290,9 @@ class _DebtsPageState extends State<DebtsPage> {
               onRefresh: _refresh,
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
+                // Bottom slot clears the extended FAB so the last debt
+                // row is never trapped underneath it at scroll end.
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                 children: [
                   if (debts.isEmpty)
                     EmptyStateCard(

@@ -107,9 +107,9 @@ void main() {
 
     final yesterday = DateTime.now().subtract(const Duration(days: 1));
     final expected =
-        'Ngày: ${yesterday.year}-'
-        '${yesterday.month.toString().padLeft(2, '0')}-'
-        '${yesterday.day.toString().padLeft(2, '0')}';
+        'Ngày: ${yesterday.day.toString().padLeft(2, '0')}/'
+        '${yesterday.month.toString().padLeft(2, '0')}/'
+        '${yesterday.year}';
     expect(find.textContaining('hôm qua'), findsWidgets);
     await t.scrollUntilVisible(
       find.text(expected),

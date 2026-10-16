@@ -282,37 +282,69 @@ class _DeletedTile extends StatelessWidget {
         ? tx.account
         : '${tx.account} → ${tx.destinationAccount}';
 
+    // A ListTile trailing can't carry amount + restore + purge — the
+    // row wraps and clips at real density. Instead the amount keeps the
+    // top-right lane (amounts never wrap under a title lane), the meta
+    // lines sit under the title, and the actions get their own row.
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        title: Text(tx.note.isEmpty ? tx.category : tx.note),
-        subtitle: Text(
-          '${tx.category} · $accountLine · ${formatYmdAsDmy(tx.occurredOn)}'
-          '${deletedLabel.isEmpty ? '' : '\nĐã xóa lúc $deletedLabel'}',
-        ),
-        isThreeLine: deletedLabel.isNotEmpty,
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              formatMoneyWithKind(tx.amount, kind),
-              maxLines: 1,
-              style: mfMoneyStyle(
-                TextStyle(color: color, fontWeight: FontWeight.w700),
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tx.note.isEmpty ? tx.category : tx.note,
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${tx.category} · $accountLine · '
+                        '${formatYmdAsDmy(tx.occurredOn)}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      if (deletedLabel.isNotEmpty)
+                        Text(
+                          'Đã xóa lúc $deletedLabel',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(color: mf.textMuted),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  formatMoneyWithKind(tx.amount, kind),
+                  maxLines: 1,
+                  style: mfMoneyStyle(
+                    TextStyle(color: color, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 4),
-            TextButton(
-              style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
-              onPressed: onRestore,
-              child: const Text('Khôi phục'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: onRestore,
+                  child: const Text('Khôi phục'),
+                ),
+                if (onDelete != null)
+                  IconButton(
+                    tooltip: 'Xóa vĩnh viễn',
+                    onPressed: onDelete,
+                    icon: const Icon(Icons.delete_forever_outlined),
+                  ),
+              ],
             ),
-            if (onDelete != null)
-              IconButton(
-                tooltip: 'Xóa vĩnh viễn',
-                onPressed: onDelete,
-                icon: const Icon(Icons.delete_forever_outlined),
-              ),
           ],
         ),
       ),

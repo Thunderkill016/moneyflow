@@ -1204,3 +1204,55 @@ Format: `ID | files changed | why | proof (test names)`.
   reminders, weekly + month-close digests and D19 reconcile nudges.
   Parked, not built; re-opens only if a paid tier ships. No gates —
   docs only.
+
+- **UX2-1 navbar "vòng tròn" blob → neon dot indicator** |
+  `mobile/lib/app/home_shell.dart` | The active destination painted the
+  whole cell as a primary-filled stadium — the owner's "border vòng
+  tròn ở thanh navbar không hợp lý" complaint: a solid neon ellipse
+  where neon should be reserved for actions. The cell is now fixed-size
+  (icon + label + a 4px dot slot that is always laid out so selection
+  never resizes the bar); the active state is a neon-tinted icon/label
+  (`mf.brandText`) plus the small primary dot. The single filled accent
+  stays on the center "Ghi" capture button. |
+  `home_shell_test.dart: the active destination is a neon dot, never a
+  filled pill blob` — pins 4 dot slots, exactly one primary-painted, and
+  asserts no primary-filled stadium container can return.
+- **UX2-2 overflow menu → "Khám phá" hub page** |
+  `mobile/lib/features/dashboard/dashboard_page.dart`,
+  `mobile/lib/app/app.dart` | The dashboard overflow was a flat
+  14-item popup mixing features, toggles and destructive actions — poor
+  hierarchy and hard reachability (owner: "nhiều tính năng thiếu / lỗi
+  UX"). Replaced with a pushed hub page: items carry `section`
+  ('Tính năng' / 'Tài khoản & cài đặt'), render as icon-tile rows
+  grouped under section headers with dividers; `actsInPlace` rows
+  (digest/biometric toggles) drop the chevron because a chevron
+  promises a destination. Row taps pop the hub first so callbacks land
+  on the dashboard, never stacked. Badge rows (`Cần xem`) keep the live
+  count semantics. |
+  `device_features_test.dart: the "Khám phá" hub groups menu items under
+  section headers and fires callbacks after popping itself`.
+- **UX2-3 FABs on neon tokens + list clearance** |
+  `mobile/lib/theme/mf_theme.dart`,
+  `mobile/lib/features/accounts/accounts_page.dart`,
+  `mobile/lib/features/debts/debts_page.dart`,
+  `mobile/lib/features/events/events_page.dart` | FABs were
+  surface-tonal and lists ended flush at screen bottom, so the extended
+  FAB covered the last row. `floatingActionButtonTheme` now applies the
+  neon fill + dark-ink contract (same as the nav "+") app-wide; the
+  three FAB-bearing lists reserve a 96px bottom slot. | Verified on
+  device — neon FAB pixels in `docs/design/ux-audit-v2/06-accounts.png`,
+  `15-categories.png`.
+- **UX2-4 trash tile rewrite** |
+  `mobile/lib/features/activity/trash_page.dart` | The ListTile trailing
+  packed amount + "Khôi phục" + purge icon into one row — it wrapped and
+  clipped at 480dpi. The card now gives the amount its own top-right
+  lane, meta lines under the title, and actions their own bottom row. |
+  `docs/design/ux-audit-v2/10-trash.png`.
+- **UX2-5 ISO date leaks → dd/MM/yyyy** |
+  `mobile/lib/features/capture/capture_page.dart`,
+  `mobile/lib/features/activity/activity_page.dart` | The capture date
+  button rendered `Ngày: 2026-10-16` and the activity date-range chip
+  echoed raw `YYYY-MM-DD → YYYY-MM-DD`. Both now render dd/MM/yyyy via
+  `formatYmdAsDmy`/`_dayLabel`; the wire format stays ISO. |
+  `capture_draft_test.dart` + `capture_quick_test.dart` updated to pin
+  the display format.

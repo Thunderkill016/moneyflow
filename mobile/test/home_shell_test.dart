@@ -157,6 +157,52 @@ void main() {
       expect(find.text('reports-body'), findsNothing);
     });
 
+    testWidgets(
+      'the active destination is a neon dot, never a filled pill blob',
+      (t) async {
+        await t.pumpWidget(_shell());
+        await t.pumpAndSettle();
+
+        // The indicator contract: a small circle under each label, the
+        // active one painted primary. The old stadium blob painted the
+        // whole cell primary — assert the painted area can never come
+        // back by checking no nav child carries a full-cell primary
+        // ShapeDecoration.
+        final dots = find.byWidgetPredicate(
+          (w) =>
+              w is AnimatedContainer &&
+              w.decoration is BoxDecoration &&
+              (w.decoration as BoxDecoration).shape == BoxShape.circle,
+        );
+        // Every cell keeps a dot slot laid out (transparent when
+        // inactive) so selection changes never resize the bar.
+        expect(dots, findsNWidgets(4));
+        final primary = Theme.of(t.element(dots.first)).colorScheme.primary;
+        final painted = t
+            .widgetList<AnimatedContainer>(dots)
+            .where((w) => (w.decoration as BoxDecoration).color == primary);
+        expect(painted.length, 1);
+
+        // Tapping another destination moves the dot, still exactly one.
+        await t.tap(find.byKey(const ValueKey('nav:Báo cáo')));
+        await t.pumpAndSettle();
+        final paintedAfter = t
+            .widgetList<AnimatedContainer>(dots)
+            .where((w) => (w.decoration as BoxDecoration).color == primary);
+        expect(paintedAfter.length, 1);
+
+        // No nav cell paints a primary-filled stadium pill anymore.
+        final blob = find.byWidgetPredicate(
+          (w) =>
+              w is AnimatedContainer &&
+              w.decoration is ShapeDecoration &&
+              ((w.decoration as ShapeDecoration).shape is StadiumBorder) &&
+              (w.decoration as ShapeDecoration).color == primary,
+        );
+        expect(blob, findsNothing);
+      },
+    );
+
     testWidgets('the banner slot renders above the tabs', (t) async {
       await t.pumpWidget(
         MaterialApp(

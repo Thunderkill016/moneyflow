@@ -734,7 +734,7 @@ void main() {
       );
       await t.pumpAndSettle();
 
-      await t.tap(find.byType(PopupMenuButton<int>));
+      await t.tap(find.byIcon(Icons.more_vert));
       await t.pumpAndSettle();
       expect(find.text('Thu gom thông báo ngân hàng'), findsOneWidget);
       expect(find.textContaining('đang bật'), findsNothing);
@@ -759,7 +759,7 @@ void main() {
       );
       await t.pumpAndSettle();
 
-      await t.tap(find.byType(PopupMenuButton<int>));
+      await t.tap(find.byIcon(Icons.more_vert));
       await t.pumpAndSettle();
       expect(
         find.text('Thu gom thông báo · đang bật (2 nguồn)'),

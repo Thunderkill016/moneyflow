@@ -7,6 +7,7 @@ import '../../data/capture_prefs.dart';
 import '../../data/neon/real_store.dart' show newIdempotencyKey;
 import '../../data/quick_fills.dart';
 import '../../data/share/share_text_parser.dart';
+import '../../domain/datetime_label.dart';
 import '../../domain/frequency.dart';
 import '../../domain/inbox.dart';
 import '../../domain/models.dart';
@@ -1670,7 +1671,9 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
           OutlinedButton.icon(
             onPressed: _pickDate,
             icon: const Icon(Icons.calendar_today),
-            label: Text('Ngày: ${_fmtDate(_date)}'),
+            // Display stays Vietnamese DD/MM/YYYY — _fmtDate is the ISO
+            // wire format for occurredOn, not a user-facing label.
+            label: Text('Ngày: ${formatYmdAsDmy(_fmtDate(_date))}'),
           ),
           // Money Manager's inline "Lặp lại" — a monthly commitment for
           // new expense/income captures only. Transfers can't recur (no

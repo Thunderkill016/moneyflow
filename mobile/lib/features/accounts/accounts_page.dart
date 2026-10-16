@@ -176,7 +176,9 @@ class _AccountsPageState extends State<AccountsPage> {
             onRefresh: _refresh,
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
+              // Bottom slot clears the extended FAB (56 + margins) so it
+              // can never cover the last account row at scroll end.
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
               children: [
                 if (snap.data!.isEmpty)
                   EmptyStateCard(

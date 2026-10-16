@@ -110,11 +110,13 @@ class _NavItem {
   final IconData selectedIcon;
 }
 
-/// Floating pill navigation (Savor reference): a soft grey capsule inset
-/// from the screen edges. All four destinations are equal-width cells
-/// showing icon + label stacked; the active tab only changes fill colour
-/// so tapping never resizes or shifts the neighbours, and the capture
-/// action is a round accent button.
+/// Floating pill navigation (Savor/GreenVault reference): a soft dark
+/// capsule inset from the screen edges. All four destinations are
+/// equal-width cells showing icon + label stacked; the active tab is
+/// marked by a neon icon/label and a small dot indicator — never a
+/// solid blob — so neon stays reserved for actions, and equal cell
+/// widths mean a tap can never shift the neighbours. The capture
+/// action is the single filled accent: a rounded neon square.
 class _FloatingNav extends StatelessWidget {
   const _FloatingNav({
     required this.selected,
@@ -125,6 +127,11 @@ class _FloatingNav extends StatelessWidget {
   final int selected;
   final ValueChanged<int> onSelect;
   final VoidCallback onCapture;
+
+  /// Cell height: icon (20) + label (~14) + dot slot (10) + breathing
+  /// room — tall enough for a real touch target, compact enough to
+  /// stay a bar, not a panel.
+  static const _cellHeight = 56.0;
 
   static const _items = [
     _NavItem('Tổng quan', Icons.home_outlined, Icons.home),
@@ -140,6 +147,7 @@ class _FloatingNav extends StatelessWidget {
     Widget tab(int i) {
       final item = _items[i];
       final active = i == selected;
+      final tint = active ? mf.brandText : mf.textSoft;
       return Expanded(
         child: Semantics(
           button: true,
@@ -150,23 +158,17 @@ class _FloatingNav extends StatelessWidget {
             key: ValueKey('nav:${item.label}'),
             customBorder: const StadiumBorder(),
             onTap: () => onSelect(i),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOutCubic,
-              height: 48,
-              decoration: ShapeDecoration(
-                color: active ? scheme.primary : Colors.transparent,
-                shape: const StadiumBorder(),
-              ),
+            child: SizedBox(
+              height: _cellHeight,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
                     active ? item.selectedIcon : item.icon,
-                    size: 19,
-                    color: active ? scheme.onPrimary : mf.textSoft,
+                    size: 20,
+                    color: tint,
                   ),
-                  const SizedBox(height: 1),
+                  const SizedBox(height: 2),
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
@@ -174,9 +176,23 @@ class _FloatingNav extends StatelessWidget {
                       maxLines: 1,
                       style: TextStyle(
                         fontSize: 10.5,
-                        fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                        color: active ? scheme.onPrimary : mf.textSoft,
+                        fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                        color: tint,
                       ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  // The dot slot is always laid out — transparent when
+                  // inactive — so a selection change never resizes the
+                  // bar or shifts a neighbour.
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOutCubic,
+                    width: 4,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: active ? scheme.primary : Colors.transparent,
+                      shape: BoxShape.circle,
                     ),
                   ),
                 ],

@@ -499,6 +499,17 @@ class MfTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(minimumSize: const Size(48, 40)),
       ),
+      // The FAB is the screen's primary action — neon fill + dark ink,
+      // the same treatment as the nav bar's center capture button.
+      // Secondary/utility actions stay tonal or text, never neon.
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: Color(0xFF00FF88),
+        foregroundColor: mfPastelInk,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(18)),
+        ),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: scheme.surface,

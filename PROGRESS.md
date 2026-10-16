@@ -397,3 +397,47 @@ GAPS OPEN: none inside mobile scope. Cross-surface: web EditTransactionDialog la
 NEXT STEP: none — mega-task closed 2026-10-17; prod migrations applied 2026-10-16T14:48Z (see PROD DEPLOYMENT entry). Owner-side items: provision the upload keystore for Play, merge on green CI.
 RESUME: re-read this file; the backlog is empty — new work needs a fresh issue/packet.
 STATUS: DONE — 2026-10-17 — all DoD items evidenced.
+
+---
+
+## 2026-10-16 — UX polish pass (owner walkthrough feedback)
+
+Scope: owner's on-device review — "border vòng tròn ở thanh navbar không
+hợp lý, giao diện vẫn lấy theo form cũ, nhiều tính năng thiếu, lỗi UX
+rất nhiều chỗ". Branch `feat/mobile-theme`.
+
+Shipped (see FIXLOG.md UX2-1..UX2-5):
+
+- Nav active-state was a solid neon ellipse filling the cell → now a
+  neon-tinted icon/label + 4px dot; equal fixed cells can't shift
+  neighbours; neon reserved for the center capture button + FABs.
+- Flat 14-item overflow popup → "Khám phá" hub page grouping features
+  vs account/settings rows with section headers; all ~14 destinations
+  now reachable from a real page; badge + danger semantics kept;
+  toggles drop the chevron (they act in place, not navigate).
+- FABs moved to the neon token app-wide (mf_theme
+  floatingActionButtonTheme); accounts/debts/events lists reserve a
+  96px bottom slot so the FAB can never cover the last row.
+- Trash rows no longer wrap/clip — amount owns the top-right lane,
+  actions their own row.
+- ISO date leaks fixed: capture "Ngày:" button and activity date-range
+  chip now speak dd/MM/yyyy; wire format stays ISO.
+
+Evidence:
+
+- Gates: `dart format` clean; `flutter analyze` clean (0 issues after
+  ScreenShield restore); `flutter test` 1554/1554 green; debug APK
+  built + installed on UKMBCUTWIFYTOVDQ.
+- Screens: 19 pre-fix PNGs in `docs/design/ux-audit/`; 15 post-fix PNGs
+  in `docs/design/ux-audit-v2/` (dashboard, activity, planning,
+  reports, hub ×2, accounts, debts, events, settings, trash, capture,
+  capture-bottom, voice, inbox, timeline, categories).
+- ScreenShield: `main.dart` FLAG_SECURE call commented only during
+  capture, restored before commit; final installed build is the
+  shielded one.
+
+Honest gaps left: device-side surfaces still show network-error states
+when the Data API is unreachable (unchanged — honest retries, not
+fakes); login/welcome/onboarding shots not re-captured (sign-out would
+burn the session; unchanged code); the 4-tab + Ghi model stays — hub
+covers everything else instead of adding tabs.

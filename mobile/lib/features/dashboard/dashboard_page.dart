@@ -18,30 +18,41 @@ import '../../domain/watchlist.dart';
 import '../../theme/mf_theme.dart';
 import '../shared/empty_state.dart';
 
-/// One entry in the dashboard overflow menu — keeps the appbar to a single
-/// quick action (activity) as the surface count grows.
+/// One entry in the dashboard "Khám phá" hub — keeps the appbar to a
+/// single button as the surface count grows.
 class DashboardMenuItem {
   const DashboardMenuItem({
     required this.label,
     required this.icon,
     required this.onTap,
+    this.section,
     this.badge,
     this.danger = false,
+    this.actsInPlace = false,
   });
 
   final String label;
   final IconData icon;
   final VoidCallback onTap;
 
+  /// Hub grouping — items render under their section header in first-
+  /// seen order; null lands in the trailing unlabelled group.
+  final String? section;
+
   /// Destructive entries (account deletion) render in the scheme's error
   /// color — the icon and label must read as dangerous at a glance, not
   /// rely on position next to sign-out.
   final bool danger;
 
-  /// Optional live count — fetched when the menu opens (itemBuilder runs per
-  /// open, so this costs one cheap read per tap, never per dashboard build).
-  /// A failure or 0 shows the bare label — a badge must never lie.
+  /// Optional live count — fetched when the hub opens (one cheap read
+  /// per open, never per dashboard build). A failure or 0 shows the
+  /// bare label — a badge must never lie.
   final Future<int> Function()? badge;
+
+  /// True for actions that flip a setting immediately instead of
+  /// navigating (digest/biometric toggles) — the row shows no chevron,
+  /// because a chevron promises a destination.
+  final bool actsInPlace;
 }
 
 /// Dashboard loads its data through injected loaders so the same screen
@@ -674,42 +685,29 @@ class DashboardPageState extends State<DashboardPage> {
               ),
             ),
           if (widget.menuItems.isNotEmpty)
-            PopupMenuButton<int>(
-              // The reference's white rounded-square header button.
-              icon: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: context.mf.borderSubtle),
-                ),
-                child: const Icon(Icons.more_vert),
-              ),
-              tooltip: 'Mở menu',
-              onSelected: (i) => widget.menuItems[i].onTap(),
-              itemBuilder: (ctx) => [
-                for (var i = 0; i < widget.menuItems.length; i++)
-                  PopupMenuItem(
-                    value: i,
-                    child: Builder(
-                      builder: (itemCtx) {
-                        final item = widget.menuItems[i];
-                        final color = item.danger
-                            ? Theme.of(itemCtx).colorScheme.error
-                            : null;
-                        return ListTile(
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          leading: Icon(item.icon, color: color),
-                          title: item.badge == null
-                              ? Text(item.label, style: TextStyle(color: color))
-                              : _MenuBadge(item: item),
-                        );
-                      },
-                    ),
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: IconButton(
+                // The reference's rounded-square header button — opens
+                // the "Khám phá" hub, a real page instead of a cramped
+                // overflow popup.
+                tooltip: 'Khám phá — tất cả tính năng',
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => _HubPage(items: widget.menuItems),
                   ),
-              ],
+                ),
+                icon: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: context.mf.borderSubtle),
+                  ),
+                  child: const Icon(Icons.more_vert, size: 20),
+                ),
+              ),
             ),
           const SizedBox(width: 8),
         ],
@@ -1996,6 +1994,108 @@ class _TransactionTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// "Khám phá" — the grouped feature hub that replaced the flat overflow
+/// popup. Items arrive pre-tagged with a [DashboardMenuItem.section];
+/// sections render in first-seen order so the caller controls priority
+/// (features first, account/system last). Everything in the list is a
+/// real destination or a real action — the hub exists to make the
+/// app's surface area *reachable*, so no dead rows are allowed here.
+class _HubPage extends StatelessWidget {
+  const _HubPage({required this.items});
+
+  final List<DashboardMenuItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    // Group by section, preserving the order sections first appear in.
+    final groups = <String?, List<DashboardMenuItem>>{};
+    for (final item in items) {
+      groups.putIfAbsent(item.section, () => []).add(item);
+    }
+    return Scaffold(
+      appBar: AppBar(title: const Text('Khám phá')),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        children: [
+          for (final entry in groups.entries) ...[
+            if (entry.key != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 4, top: 16, bottom: 8),
+                child: Text(
+                  entry.key!,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: context.mf.textSoft,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              )
+            else
+              const SizedBox(height: 8),
+            Card(
+              margin: EdgeInsets.zero,
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  for (var i = 0; i < entry.value.length; i++) ...[
+                    _HubRow(item: entry.value[i]),
+                    if (i < entry.value.length - 1)
+                      Divider(
+                        height: 1,
+                        indent: 68,
+                        color: context.mf.borderSubtle,
+                      ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _HubRow extends StatelessWidget {
+  const _HubRow({required this.item});
+
+  final DashboardMenuItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final mf = context.mf;
+    final color = item.danger ? theme.colorScheme.error : null;
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: item.danger
+              ? theme.colorScheme.error.withValues(alpha: 0.12)
+              : mf.surfaceMuted,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(item.icon, size: 20, color: color ?? mf.textSoft),
+      ),
+      title: item.badge == null
+          ? Text(item.label, style: TextStyle(color: color))
+          : _MenuBadge(item: item),
+      trailing: item.actsInPlace
+          ? null
+          : Icon(Icons.chevron_right, size: 20, color: color ?? mf.textMuted),
+      onTap: () {
+        // The callback was authored against a popup that closed itself;
+        // on a pushed page the row must pop first so destinations land
+        // on the dashboard, never stacked on the hub.
+        Navigator.of(context).pop();
+        item.onTap();
+      },
     );
   }
 }

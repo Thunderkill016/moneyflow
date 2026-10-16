@@ -204,7 +204,8 @@ void main() {
       expect(find.text('Đã khôi phục bản nháp chưa lưu'), findsOneWidget);
       // Account/category ids that still exist come back selected.
       expect(find.text('Ngân hàng VCB'), findsOneWidget);
-      expect(find.text('Ngày: 2020-01-15'), findsOneWidget);
+      // The button speaks dd/MM/yyyy; the wire format stays ISO.
+      expect(find.text('Ngày: 15/01/2020'), findsOneWidget);
     });
 
     testWidgets('Xóa clears the stored slot and resets the form', (t) async {

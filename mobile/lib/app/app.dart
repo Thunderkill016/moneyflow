@@ -2040,6 +2040,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       DashboardMenuItem(
         label: 'Cần xem',
         icon: Icons.inbox_outlined,
+        section: 'Tính năng',
         // The badge reads pending ids once per menu open — cheap, and a
         // failed read degrades to the bare label instead of a fake count.
         badge: _store.loadPendingInboxCount,
@@ -2050,6 +2051,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         // edits stay on Hoạt động like the web's /timeline contract.
         label: 'Dòng thời gian',
         icon: Icons.timeline,
+        section: 'Tính năng',
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => TimelinePage(loadPage: _store.loadTransactionPage),
@@ -2065,11 +2067,13 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         icon: _notifCaptureOn
             ? Icons.mark_email_read_outlined
             : Icons.notification_add_outlined,
+        section: 'Tính năng',
         onTap: () => _openNotificationCapture(context),
       ),
       DashboardMenuItem(
         label: 'Tài khoản',
         icon: Icons.account_balance_wallet,
+        section: 'Tính năng',
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => AccountsPage(
@@ -2108,6 +2112,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       DashboardMenuItem(
         label: 'Danh mục',
         icon: Icons.category,
+        section: 'Tính năng',
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => CategoriesPage(
@@ -2143,6 +2148,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         // real ledger transactions; creating a debt posts nothing.
         label: 'Vay & cho vay',
         icon: Icons.handshake_outlined,
+        section: 'Tính năng',
         onTap: () => _openDebts(context),
       ),
       DashboardMenuItem(
@@ -2151,6 +2157,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         // the tracking rows.
         label: 'Sự kiện',
         icon: Icons.celebration_outlined,
+        section: 'Tính năng',
         onTap: () => _openEvents(context),
       ),
       DashboardMenuItem(
@@ -2158,21 +2165,27 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         icon: _digestEnabled
             ? Icons.notifications_active_outlined
             : Icons.notifications_none,
+        section: 'Tài khoản & cài đặt',
+        actsInPlace: true,
         onTap: _toggleDigest,
       ),
       DashboardMenuItem(
         label: _bioEnabled ? 'Tắt khóa sinh trắc' : 'Bật khóa sinh trắc',
         icon: _bioEnabled ? Icons.fingerprint : Icons.lock_open,
+        section: 'Tài khoản & cài đặt',
+        actsInPlace: true,
         onTap: _toggleBiometric,
       ),
       DashboardMenuItem(
         label: 'Chính sách bảo mật',
         icon: Icons.privacy_tip_outlined,
+        section: 'Tài khoản & cài đặt',
         onTap: _openPrivacyPolicy,
       ),
       DashboardMenuItem(
         label: 'Xóa dữ liệu trên máy',
         icon: Icons.delete_sweep_outlined,
+        section: 'Tài khoản & cài đặt',
         onTap: () => _deleteLocalData(context),
       ),
       // Play-policy surface: permanent server-side deletion, styled
@@ -2181,17 +2194,20 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       DashboardMenuItem(
         label: 'Xóa tài khoản',
         icon: Icons.person_remove_outlined,
+        section: 'Tài khoản & cài đặt',
         danger: true,
         onTap: () => _deleteAccount(context),
       ),
       DashboardMenuItem(
         label: 'Cài đặt',
         icon: Icons.settings_outlined,
+        section: 'Tài khoản & cài đặt',
         onTap: () => _openSettings(context),
       ),
       DashboardMenuItem(
         label: 'Đăng xuất',
         icon: Icons.logout,
+        section: 'Tài khoản & cài đặt',
         onTap: _signOut,
       ),
     ];

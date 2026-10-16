@@ -505,9 +505,13 @@ class ActivityPageState extends State<ActivityPage> {
   }
 
   String _dateLabel() {
+    // Ledger dates arrive ISO — the chip speaks dd/MM/yyyy like the
+    // feed's day headers, never the wire format.
     final from = _query.dateFrom, to = _query.dateTo;
-    if (from != null && to != null) return '$from → $to';
-    return from != null ? 'Từ $from' : 'Đến $to';
+    if (from != null && to != null) {
+      return '${_dayLabel(from)} → ${_dayLabel(to)}';
+    }
+    return from != null ? 'Từ ${_dayLabel(from)}' : 'Đến ${_dayLabel(to!)}';
   }
 
   String _amountLabel() {
