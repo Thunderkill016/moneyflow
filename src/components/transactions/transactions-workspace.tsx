@@ -2409,6 +2409,9 @@ export function TransactionsWorkspace({
                             {transaction.isRecurringPayment
                               ? " · Từ lịch định kỳ"
                               : ""}
+                            {transaction.excludedFromReports
+                              ? " · Đã loại khỏi báo cáo"
+                              : ""}
                           </small>
                           {provenance ? (
                             <small

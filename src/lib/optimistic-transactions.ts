@@ -114,6 +114,12 @@ export function buildUpdatedTransaction(
       : goalId === existing.goalId
         ? existing.goalName
         : goals.find((goal) => goal.id === goalId)?.name;
+  /*
+   * `undefined`/`null` means "preserve" on the wire, so the optimistic row
+   * keeps whatever the stored row had; a boolean replaces it visibly.
+   */
+  const excludedFromReports =
+    input.excludedFromReports ?? existing.excludedFromReports;
   return {
     ok: true,
     transaction: {
@@ -125,6 +131,7 @@ export function buildUpdatedTransaction(
       payee: input.payee?.trim() || undefined,
       goalId,
       goalName,
+      excludedFromReports,
       accountId: account.id,
       account: account.name,
       destinationAccountId: undefined,

@@ -66,6 +66,9 @@ export function EditTransactionDialog({
   const [note, setNote] = useState(transaction.note);
   const [payee, setPayee] = useState(transaction.payee ?? "");
   const [goalId, setGoalId] = useState(transaction.goalId ?? "");
+  const [excludedFromReports, setExcludedFromReports] = useState(
+    transaction.excludedFromReports ?? false,
+  );
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -180,6 +183,14 @@ export function EditTransactionDialog({
          */
         goalId:
           goals.length > 0 ? (goalId === "" ? null : goalId) : undefined,
+        /*
+         * Same sentinel as the goal tag: only sent when the flag actually
+         * changed, so an untouched edit can never clobber the stored value.
+         */
+        excludedFromReports:
+          excludedFromReports !== (transaction.excludedFromReports ?? false)
+            ? excludedFromReports
+            : undefined,
       };
     }
 
@@ -460,6 +471,30 @@ export function EditTransactionDialog({
                 </option>
               ))}
             </SelectField>
+          ) : null}
+          {!isTransfer ? (
+            <label
+              className={styles.keepOpenRow}
+              htmlFor={`${formId}-excluded`}
+            >
+              <input
+                id={`${formId}-excluded`}
+                type="checkbox"
+                checked={excludedFromReports}
+                disabled={submitting}
+                onChange={(event) => {
+                  setExcludedFromReports(event.target.checked);
+                  changed();
+                }}
+              />
+              <span className={styles.keepOpenCopy}>
+                <strong>Loại khỏi báo cáo</strong>
+                <span>
+                  Không tính vào báo cáo — số dư tài khoản và ngân sách vẫn giữ
+                  nguyên.
+                </span>
+              </span>
+            </label>
           ) : null}
           <TextField
             label="Ghi chú"

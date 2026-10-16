@@ -57,10 +57,10 @@ test("the audit captures every required safety-state artifact", () => {
 
 test("destructive confirmation uses review-before-delete without submitting deletion", () => {
   assert.match(safetySpec, /page\.goto\("\/settings\/delete-account"/);
-  assert.match(safetySpec, /confirmation\.fill\("XOA"\)/);
+  assert.match(safetySpec, /confirmation\.fill\("DELETE"\)/);
   assert.match(
     safetySpec,
-    /fillHydratedControlledInput\(confirmation, reviewSubmit, "XÓA"\)/,
+    /fillHydratedControlledInput\(confirmation, reviewSubmit, "XOA"\)/,
   );
   assert.match(safetySpec, /expect\(reviewSubmit\)\.toBeDisabled\(\)/);
   assert.match(safetySpec, /expect\(reviewSubmit\)\.toBeEnabled\(\)/);

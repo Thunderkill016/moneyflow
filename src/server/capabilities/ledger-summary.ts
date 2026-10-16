@@ -104,8 +104,17 @@ export async function run(
   };
   const current = transactionRange(workspace.transactions, currentRange);
   const report = buildFinancialReport(current, range);
-  const income = current.filter((transaction) => transaction.kind === "income");
-  const expense = current.filter((transaction) => transaction.kind === "expense");
+  /*
+   * Explanations must cite exactly the rows the totals counted — flagged
+   * `excludedFromReports` rows never reach `buildFinancialReport`, so they
+   * cannot appear in a basis either.
+   */
+  const income = current.filter(
+    (transaction) => transaction.kind === "income" && !transaction.excludedFromReports,
+  );
+  const expense = current.filter(
+    (transaction) => transaction.kind === "expense" && !transaction.excludedFromReports,
+  );
   const computedAt = ctx.now;
   const capabilityVersion = "ledger.summary@1";
   const incomeBasis = buildBasis({

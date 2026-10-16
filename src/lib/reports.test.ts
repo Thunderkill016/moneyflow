@@ -51,6 +51,76 @@ test("excludes transfers from income and expense totals", () => {
   );
 });
 
+test("rows flagged excludedFromReports never reach any report total", () => {
+  const range = reportRange("2026-07-14", "month");
+  const report = buildFinancialReport(
+    [
+      transaction({ amount: 100_000, payee: "Circle K" }),
+      transaction({
+        id: "income",
+        kind: "income",
+        category: "Lương",
+        amount: 500_000,
+      }),
+      transaction({
+        id: "excluded-expense",
+        category: "Nội bộ",
+        payee: "Tự chuyển",
+        amount: 999_000,
+        excludedFromReports: true,
+      }),
+      transaction({
+        id: "excluded-income",
+        kind: "income",
+        category: "Nội bộ",
+        amount: 888_000,
+        excludedFromReports: true,
+      }),
+      transaction({ id: "previous", occurredOn: "2026-06-20", amount: 50_000 }),
+      transaction({
+        id: "previous-excluded",
+        occurredOn: "2026-06-21",
+        amount: 777_000,
+        excludedFromReports: true,
+      }),
+    ],
+    range,
+  );
+  assert.deepEqual(report.totals, {
+    income: 500_000,
+    expense: 100_000,
+    net: 400_000,
+    transactions: 2,
+  });
+  assert.deepEqual(report.previous, {
+    income: 0,
+    expense: 50_000,
+    net: -50_000,
+  });
+  assert.deepEqual(
+    report.categories.map(({ name }) => name),
+    ["Ăn uống"],
+  );
+  assert.deepEqual(
+    report.incomeCategories.map(({ name }) => name),
+    ["Lương"],
+  );
+  assert.deepEqual(
+    report.payees.map(({ name }) => name),
+    ["Circle K"],
+  );
+  const trendExpense = report.trend.reduce(
+    (sum, bucket) => sum + bucket.expense,
+    0,
+  );
+  const trendIncome = report.trend.reduce(
+    (sum, bucket) => sum + bucket.income,
+    0,
+  );
+  assert.equal(trendExpense, 100_000);
+  assert.equal(trendIncome, 500_000);
+});
+
 test("CSV escapes spreadsheet formulas and preserves integer amounts", () => {
   const csv = transactionsToCsv([transaction({ note: "=HYPERLINK(\"bad\")", amount: 123_456 })]);
   assert.match(csv, /"'=HYPERLINK\(""bad""\)"/);

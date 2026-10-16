@@ -467,8 +467,15 @@ function trendBuckets(range: ReportRange) {
 }
 
 export function buildFinancialReport(transactions: Transaction[], range: ReportRange): FinancialReport {
-  const current = transactions.filter((item) => inRange(item, range.currentStart, range.currentEnd));
-  const previousTransactions = transactions.filter((item) => inRange(item, range.previousStart, range.previousEnd));
+  /*
+   * `excludedFromReports` rows stay in the ledger, trash and CSV exports —
+   * they are real money movements — but the user asked for them to be left
+   * out of reporting. Filtering once here keeps totals, categories, payees,
+   * accounts, trend and `totals.transactions` honest in a single place.
+   */
+  const eligible = transactions.filter((item) => !item.excludedFromReports);
+  const current = eligible.filter((item) => inRange(item, range.currentStart, range.currentEnd));
+  const previousTransactions = eligible.filter((item) => inRange(item, range.previousStart, range.previousEnd));
   const income = sumKind(current, "income");
   const expense = sumKind(current, "expense");
   const previousIncome = sumKind(previousTransactions, "income");
@@ -492,7 +499,7 @@ export function buildFinancialReport(transactions: Transaction[], range: ReportR
   const trendMonthKeys = new Set(trendMonths.map((month) => month.key));
   const trendTotals = new Map<string, Map<string, number>>();
   const incomeTrendTotals = new Map<string, Map<string, number>>();
-  for (const item of transactions) {
+  for (const item of eligible) {
     if (item.kind !== "expense" && item.kind !== "income") continue;
     const monthKey = item.occurredOn.slice(0, 7);
     if (!trendMonthKeys.has(monthKey)) continue;

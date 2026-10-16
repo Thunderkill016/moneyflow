@@ -29,6 +29,11 @@ export type Transaction = {
   destinationAccountId?: string;
   destinationAccount?: string;
   isRecurringPayment?: boolean;
+  /**
+   * `excluded_from_reports` — the row stays in the ledger, trash and exports
+   * but is skipped by every report total. Absent means counted (default).
+   */
+  excludedFromReports?: boolean;
   /** Legacy demo rows without this field are interpreted as reviewed. */
   reviewStatus?: TransactionReviewStatus;
   /** Two or more lines when an expense is split across categories. */
@@ -144,6 +149,11 @@ export type UpdateMoneyTransactionInput = Omit<
    * must not silently erase it), `null` clears it, a uuid sets/changes it.
    */
   goalId?: string | null;
+  /**
+   * Report-scope flag sentinel: `undefined`/`null` preserves the stored
+   * `excluded_from_reports` value; a boolean sets it explicitly.
+   */
+  excludedFromReports?: boolean | null;
 };
 
 export type UpdateTransferInput = Omit<

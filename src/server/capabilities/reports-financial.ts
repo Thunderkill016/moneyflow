@@ -105,7 +105,14 @@ function explainedReport(
   ctx: CapabilityContext,
 ) {
   const range = { from: report.range.currentStart, to: report.range.currentEnd };
-  const current = transactionRange(transactions, range);
+  /*
+   * Basis rows must name exactly the transactions the totals counted —
+   * `excludedFromReports` rows never reach `buildFinancialReport`, so citing
+   * them in an explanation would lie about where the number came from.
+   */
+  const current = transactionRange(transactions, range).filter(
+    (transaction) => !transaction.excludedFromReports,
+  );
   const income = current.filter((transaction) => transaction.kind === "income");
   const expense = current.filter((transaction) => transaction.kind === "expense");
   const base = {

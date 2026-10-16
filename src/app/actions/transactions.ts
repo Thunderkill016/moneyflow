@@ -100,6 +100,8 @@ const updateSchema = createSchema.omit({ idempotencyKey: true }).extend({
    * `goalId` stays `string | null | undefined` after this extend.
    */
   goalId: z.string().uuid().nullable().optional(),
+  /** `undefined`/`null` preserves the stored flag; boolean sets it. */
+  excludedFromReports: z.boolean().nullable().optional(),
 });
 const updateTransferSchema = transferFields
   .omit({ idempotencyKey: true })
@@ -110,7 +112,7 @@ const updateTransferSchema = transferFields
   })
   .refine((value) => value.sourceAccountId !== value.destinationAccountId);
 const feedColumns =
-  "id,kind,note,occurred_on,created_at,updated_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines,payee,goal_id,goal_name";
+  "id,kind,note,occurred_on,created_at,updated_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines,payee,goal_id,goal_name,excluded_from_reports";
 
 function refreshFinancePages() {
   revalidatePath("/");
@@ -523,6 +525,7 @@ export async function updateTransactionAction(
       p_expected_updated_at: value.expectedUpdatedAt ?? null,
       p_goal_id: value.goalId ?? null,
       p_goal_id_is_set: value.goalId !== undefined,
+      p_excluded_from_reports: value.excludedFromReports ?? null,
     },
   );
   if (error?.message.includes("stale_write"))
