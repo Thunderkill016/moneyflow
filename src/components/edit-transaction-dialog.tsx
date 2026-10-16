@@ -28,6 +28,16 @@ import styles from "./transactions/transaction-form.module.css";
 
 type UpdateInput = UpdateMoneyTransactionInput | UpdateTransferInput;
 
+/** The one rule an edit can offer: payee text → the category just chosen. */
+export type EditRuleOfferInput = {
+  field: "merchant";
+  contains: string;
+  categoryId: string;
+  category: string;
+  categoryKind: "income" | "expense";
+  enabled: true;
+};
+
 export function EditTransactionDialog({
   transaction,
   accounts,
@@ -35,6 +45,7 @@ export function EditTransactionDialog({
   goals = [],
   onClose,
   onSave,
+  onSaveRule,
   disabled = false,
   payeeSuggestions = [],
 }: {
@@ -45,6 +56,11 @@ export function EditTransactionDialog({
   goals?: GoalOption[];
   onClose: () => void;
   onSave: (input: UpdateInput) => Promise<{ ok: boolean; message?: string }>;
+  /**
+   * Called only after the transaction save succeeds and the reader ticked
+   * "Lưu thành quy tắc" — the rule outcome never reopens a saved edit.
+   */
+  onSaveRule?: (input: EditRuleOfferInput) => Promise<void>;
   disabled?: boolean;
   payeeSuggestions?: string[];
 }) {
@@ -72,6 +88,7 @@ export function EditTransactionDialog({
   const [isRefund, setIsRefund] = useState(
     transaction.kind === "income" && (transaction.isRefund ?? false),
   );
+  const [saveAsRule, setSaveAsRule] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -155,6 +172,17 @@ export function EditTransactionDialog({
       setError("Danh mục cũ không còn hoạt động. Hãy chọn danh mục thay thế để lưu thay đổi.");
       return;
     }
+    /*
+     * The rule derives from the form's own payee + category — validate
+     * before the transaction write so the reader can fix or untick instead
+     * of saving the money and then discovering no rule.
+     */
+    if (saveAsRule && (!payee.trim() || !selectedCategory)) {
+      setError(
+        "Quy tắc cần nơi giao dịch và danh mục — điền hoặc bỏ chọn",
+      );
+      return;
+    }
 
     let input: UpdateInput;
     if (isTransfer) {
@@ -229,6 +257,26 @@ export function EditTransactionDialog({
     }
     if (!result.ok) {
       setError(result.message || "Không thể cập nhật giao dịch.");
+      return;
+    }
+    /*
+     * The transaction is already saved — a refused rule write must not
+     * reopen the edit or pretend the save failed. The owner of
+     * `onSaveRule` reports the outcome; the dialog just hands it the
+     * merchant → category pair the reader just wrote.
+     */
+    if (saveAsRule && onSaveRule && !isTransfer && selectedCategory) {
+      const ruleCategory = categories.find(
+        (item) => item.id === selectedCategory,
+      );
+      await onSaveRule({
+        field: "merchant",
+        contains: payee.trim(),
+        categoryId: selectedCategory,
+        category: ruleCategory?.name ?? "",
+        categoryKind: ruleCategory?.kind ?? "expense",
+        enabled: true,
+      });
     }
   }
 
@@ -551,6 +599,29 @@ export function EditTransactionDialog({
                 <span>
                   Không tính vào báo cáo — số dư tài khoản và ngân sách vẫn giữ
                   nguyên.
+                </span>
+              </span>
+            </label>
+          ) : null}
+          {!isTransfer && onSaveRule ? (
+            <label
+              className={styles.keepOpenRow}
+              htmlFor={`${formId}-save-rule`}
+            >
+              <input
+                id={`${formId}-save-rule`}
+                type="checkbox"
+                checked={saveAsRule}
+                disabled={submitting}
+                onChange={(event) => {
+                  setSaveAsRule(event.target.checked);
+                }}
+              />
+              <span className={styles.keepOpenCopy}>
+                <strong>Lưu thành quy tắc tự điền</strong>
+                <span>
+                  Nhớ cặp nơi giao dịch → danh mục này cho lần tới — quy tắc
+                  chỉ gợi ý, giao dịch mới vẫn do bạn duyệt.
                 </span>
               </span>
             </label>
