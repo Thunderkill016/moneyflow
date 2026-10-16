@@ -7,10 +7,13 @@ import '../../theme/mf_theme.dart';
 import '../shared/empty_state.dart';
 import '../shared/timed_snack_bar.dart';
 
-/// Account list + create/archive — mirrors the web's account management
+/// Account list + create/close — mirrors the web's account management
 /// surface (create_financial_account, set_financial_account_archived).
+/// UI vocabulary is "Đóng/Mở lại" (D16, Monarch's close/reopen): a
+/// closed account keeps its whole history and can be reopened — the
+/// stored field stays `is_archived`, only the labels changed.
 /// A row tap opens the register via [onOpen] — the web's "Xem sổ" link;
-/// create/archive/edit callbacks are nullable so the demo surface stays
+/// create/close/edit callbacks are nullable so the demo surface stays
 /// honestly read-only.
 class AccountsPage extends StatefulWidget {
   const AccountsPage({
@@ -23,8 +26,8 @@ class AccountsPage extends StatefulWidget {
     this.latestActivityFor,
   });
 
-  /// May return every account including archived — archived rows group
-  /// under "Đã lưu trữ" so the archive stays reversible from this page.
+  /// May return every account including archived — closed rows group
+  /// under "Đã đóng" so closing stays reversible from this page.
   final Future<List<AccountSummary>> Function() loadAccounts;
 
   /// Create — null hides the "Thêm tài khoản" action entirely.
@@ -35,8 +38,7 @@ class AccountsPage extends StatefulWidget {
   )?
   onCreate;
 
-  /// Long-press archive / "Khôi phục" on archived rows — null disables
-  /// both.
+  /// Long-press close / "Mở lại" on closed rows — null disables both.
   final Future<void> Function(String accountId, bool archived)? onArchive;
 
   /// Tap-to-edit — shown as a trailing edit button when [onOpen] claims
@@ -197,7 +199,7 @@ class _AccountsPageState extends State<AccountsPage> {
                 if (archived.isNotEmpty) ...[
                   const SizedBox(height: 20),
                   Text(
-                    'Đã lưu trữ',
+                    'Đã đóng',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
@@ -218,17 +220,17 @@ class _AccountsPageState extends State<AccountsPage> {
     );
   }
 
-  /// Archive asks first (it hides the account from pickers); restoring
-  /// is immediate, matching the categories page's no-confirm "Hiện lại".
+  /// Closing asks first (it hides the account from pickers); reopening
+  /// is immediate, matching the categories page's no-confirm restore.
   /// A failed write surfaces instead of silently keeping the row put.
-  Future<void> _applyArchived(AccountSummary a, bool archived) async {
+  Future<void> _applyClosed(AccountSummary a, bool closed) async {
     try {
-      await widget.onArchive!(a.id, archived);
+      await widget.onArchive!(a.id, closed);
     } catch (e) {
       if (mounted) _snack(accountFormErrorMessage(e));
       return;
     }
-    _snack(archived ? 'Đã lưu trữ tài khoản.' : 'Đã hiện lại tài khoản.');
+    _snack(closed ? 'Đã đóng tài khoản.' : 'Đã mở lại tài khoản.');
     _refresh();
   }
 
@@ -275,15 +277,15 @@ class _AccountsPageState extends State<AccountsPage> {
                 ),
               ),
             ),
-            // Archived rows get restore instead of edit — restore first,
+            // Closed rows get reopen instead of edit — reopen first,
             // then edit, like the web/categories rule.
             if (a.isArchived && widget.onArchive != null)
               TextButton(
-                onPressed: () => _applyArchived(a, false),
-                child: const Text('Khôi phục'),
+                onPressed: () => _applyClosed(a, false),
+                child: const Text('Mở lại'),
               )
             // The tap went to the register — actions live in a visible
-            // overflow menu like the web row's Sửa/Lưu trữ pair;
+            // overflow menu like the web row's Sửa/Đóng pair;
             // long-press stays as a shortcut.
             else if (widget.onOpen != null &&
                 (widget.onUpdate != null || widget.onArchive != null))
@@ -295,17 +297,14 @@ class _AccountsPageState extends State<AccountsPage> {
                     case 'edit':
                       _showForm(editing: a);
                     case 'archive':
-                      _confirmArchive(a);
+                      _confirmClose(a);
                   }
                 },
                 itemBuilder: (ctx) => [
                   if (widget.onUpdate != null)
                     const PopupMenuItem(value: 'edit', child: Text('Sửa')),
                   if (widget.onArchive != null)
-                    const PopupMenuItem(
-                      value: 'archive',
-                      child: Text('Lưu trữ'),
-                    ),
+                    const PopupMenuItem(value: 'archive', child: Text('Đóng')),
                 ],
               ),
           ],
@@ -317,18 +316,21 @@ class _AccountsPageState extends State<AccountsPage> {
             : () => _showForm(editing: a),
         onLongPress: widget.onArchive == null || a.isArchived
             ? null
-            : () => _confirmArchive(a),
+            : () => _confirmClose(a),
       ),
     );
   }
 
-  Future<void> _confirmArchive(AccountSummary a) async {
+  /// "Đóng" confirmation — the copy carries the Monarch close contract:
+  /// hidden from lists and pickers, history kept, reopenable anytime.
+  Future<void> _confirmClose(AccountSummary a) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Lưu trữ "${a.name}"?'),
+        title: Text('Đóng "${a.name}"?'),
         content: const Text(
-          'Tài khoản sẽ ẩn khỏi danh sách; giao dịch cũ vẫn giữ.',
+          'Tài khoản sẽ ẩn khỏi danh sách và bộ chọn; giao dịch cũ vẫn '
+          'giữ — mở lại được bất cứ lúc nào.',
         ),
         actions: [
           TextButton(
@@ -337,12 +339,12 @@ class _AccountsPageState extends State<AccountsPage> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Lưu trữ'),
+            child: const Text('Đóng'),
           ),
         ],
       ),
     );
-    if (ok == true) await _applyArchived(a, true);
+    if (ok == true) await _applyClosed(a, true);
   }
 }
 

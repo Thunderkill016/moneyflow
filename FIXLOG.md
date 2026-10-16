@@ -901,3 +901,27 @@ Format: `ID | files changed | why | proof (test names)`.
   cards. Nothing left to build: a second line would duplicate the
   tile. | `report_test.dart: savingsRatePercent mirrors web rounding;
   null when income is zero` (30% exact, null-guard, 1/3 → 33% round).
+- **D16 account "closed" vocabulary — shipped** |
+  `mobile/lib/features/accounts/accounts_page.dart`,
+  `mobile/lib/features/accounts/account_register_page.dart`,
+  `mobile/lib/features/accounts/account_reconciliation_page.dart`,
+  `mobile/lib/data/neon/real_store.dart`,
+  `mobile/lib/app/app.dart`,
+  `mobile/test/accounts_page_test.dart` |
+  Loop B gap D16 (§10 — Monarch close-account vocabulary): the archive
+  surface now reads "Đóng/Mở lại" — close hides from lists and
+  pickers, keeps all history, and reopens anytime, matching Monarch's
+  close/reopen contract. The stored field and RPC stay `is_archived` /
+  `set_financial_account_archived` — zero schema churn, only labels.
+  Section header "Đã lưu trữ" → "Đã đóng"; row action "Khôi phục" →
+  "Mở lại"; overflow/long-press "Lưu trữ" → "Đóng" with a confirm
+  dialog that now states the full contract ("ẩn khỏi danh sách và bộ
+  chọn; giao dịch cũ vẫn giữ — mở lại được bất cứ lúc nào"); snacks
+  → "Đã đóng/mở lại tài khoản."; register chip → "Đã đóng";
+  reconciliation hint → "Mở lại tài khoản trước…". Debts, categories,
+  commitments and trash keep "lưu trữ/Khôi phục" — D16 scoped to
+  accounts only. |
+  `accounts_page_test.dart: closed accounts group under Đã đóng with
+  Mở lại; a close failure surfaces instead of silently keeping put;
+  read-only surface shows no Đóng/Lưu trữ affordance` (renamed +
+  re-asserted; whole suite green, +1500 tests).

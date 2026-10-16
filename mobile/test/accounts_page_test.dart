@@ -140,6 +140,7 @@ void main() {
     expect(opened?.id, 'a1');
     await t.longPress(find.text('Tiền mặt').first);
     await t.pumpAndSettle();
+    expect(find.textContaining('Đóng "'), findsNothing);
     expect(find.textContaining('Lưu trữ'), findsNothing);
   });
 
@@ -270,9 +271,7 @@ void main() {
     expect(createdBalance, 2500000);
   });
 
-  testWidgets('archived accounts group under Đã lưu trữ with Khôi phục', (
-    t,
-  ) async {
+  testWidgets('closed accounts group under Đã đóng with Mở lại', (t) async {
     const archived = AccountSummary(
       id: 'a-old',
       name: 'Ví cũ',
@@ -298,24 +297,24 @@ void main() {
     );
     await t.pumpAndSettle();
 
-    expect(find.text('Đã lưu trữ'), findsOneWidget);
+    expect(find.text('Đã đóng'), findsOneWidget);
     expect(find.text('Ví cũ'), findsOneWidget);
-    expect(find.text('Khôi phục'), findsOneWidget);
-    // Archived rows stay read-only: tap edits nothing, long-press hides.
+    expect(find.text('Mở lại'), findsOneWidget);
+    // Closed rows stay read-only: tap edits nothing, long-press hides.
     await t.tap(find.text('Ví cũ'));
     await t.pumpAndSettle();
     expect(find.text('Sửa tài khoản'), findsNothing);
     await t.longPress(find.text('Ví cũ'));
     await t.pumpAndSettle();
-    expect(find.textContaining('Lưu trữ "'), findsNothing);
+    expect(find.textContaining('Đóng "'), findsNothing);
 
-    await t.tap(find.text('Khôi phục'));
+    await t.tap(find.text('Mở lại'));
     await t.pumpAndSettle();
     expect(restoredId, 'a-old');
     expect(restoredFlag, isFalse);
   });
 
-  testWidgets('an archive failure surfaces instead of silently keeping put', (
+  testWidgets('a close failure surfaces instead of silently keeping put', (
     t,
   ) async {
     var loads = 0;
@@ -335,12 +334,12 @@ void main() {
 
     await t.longPress(find.text('Tiền mặt').first);
     await t.pumpAndSettle();
-    await t.tap(find.text('Lưu trữ'));
+    await t.tap(find.text('Đóng'));
     await t.pumpAndSettle();
 
     expect(find.text('Không lưu được — thử lại'), findsOneWidget);
     // A failed write must NOT refresh — the list would repaint as if
-    // the archive landed.
+    // the close landed.
     expect(loads, 1);
   });
 

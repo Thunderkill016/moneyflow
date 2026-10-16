@@ -21,7 +21,7 @@ class RealStore implements PatternDismissalSync {
   Future<List<AccountSummary>> loadAccounts() => _loadAccounts(false);
 
   /// Every account including archived — the management page lists them
-  /// under "Đã lưu trữ" so archiving stays reversible.
+  /// under "Đã đóng" so closing stays reversible.
   Future<List<AccountSummary>> loadAllAccounts() => _loadAccounts(true);
 
   Future<List<AccountSummary>> _loadAccounts(bool includeArchived) async {

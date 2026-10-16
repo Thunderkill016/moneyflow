@@ -1952,8 +1952,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => AccountsPage(
-              // All accounts incl. archived — the page's "Đã lưu trữ"
-              // section keeps the archive reversible.
+              // All accounts incl. archived — the page's "Đã đóng"
+              // section keeps closing reversible.
               loadAccounts: _store.loadAllAccounts,
               onCreate: (name, kind, bal) => _store
                   .createAccount(name: name, kind: kind, initialBalance: bal)

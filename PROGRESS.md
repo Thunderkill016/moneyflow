@@ -238,7 +238,15 @@ DONE THIS ROUND:
   "—" for zero-income, same period drill-in as Thu/Chi/Còn lại). Covered
   by `report_test.dart` ("savingsRatePercent mirrors web rounding").
   See FIXLOG.md "D17 saving-rate line".
+- **D16 account "closed" vocabulary on feat/mobile-theme** — the
+  accounts surface now reads Đóng/Mở lại end-to-end: "Đã đóng" section,
+  "Mở lại" row action, "Đóng" overflow/long-press with a confirm dialog
+  stating the close contract (hidden from lists+pickers, history kept,
+  reopenable), register chip and reconciliation hint updated. Stored
+  field/RPC unchanged (`is_archived` / set_financial_account_archived);
+  debts/categories/commitments/trash keep archive vocabulary. Gates:
+  dart format → flutter analyze clean → flutter test all green (+1500).
 AUDIT OPEN: P0=0 P1=0 P2=0 (all findings shipped — see FIXLOG.md)
 GAPS OPEN: web EditTransactionDialog lacks "save as rule" offer (mobile has it); web reports do not honor excluded_from_reports yet; Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
-NEXT STEP: Loop B gap list — D15, D16, D18+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D14 + D17 done.
+NEXT STEP: Loop B gap list — D15, D18+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D14 + D16–D17 done.
 RESUME: re-read this file, then continue at NEXT STEP.

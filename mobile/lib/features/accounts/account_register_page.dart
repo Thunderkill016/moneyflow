@@ -336,7 +336,7 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
                           if (a.isArchived) ...[
                             const SizedBox(width: 8),
                             const Chip(
-                              label: Text('Đã lưu trữ'),
+                              label: Text('Đã đóng'),
                               visualDensity: VisualDensity.compact,
                             ),
                           ],

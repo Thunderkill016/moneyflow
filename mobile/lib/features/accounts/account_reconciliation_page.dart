@@ -482,7 +482,7 @@ class _AccountReconciliationPageState extends State<AccountReconciliationPage> {
               )
             else if (a.isArchived)
               const Text(
-                'Khôi phục tài khoản trước khi bắt đầu một kỳ đối soát mới.',
+                'Mở lại tài khoản trước khi bắt đầu một kỳ đối soát mới.',
               )
             else ...[
               OutlinedButton.icon(
