@@ -647,6 +647,91 @@ void main() {
       );
       expect(expired, 0);
     });
+
+    test(
+      'authentication_required inside a definer refreshes the JWT once',
+      () async {
+        final t = FakeTransport();
+        signInOk(t);
+        // Distinct exp values so the replay's bearer is provably the
+        // refreshed JWT, not a coincidentally identical cached token.
+        final stale = fakeJwt(
+          expEpochSec: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 600,
+        );
+        final fresh = fakeJwt(
+          expEpochSec: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 1200,
+        );
+        t.queue.add(
+          FakeTransport.json(200, {}, headers: {'set-auth-jwt': stale}),
+        );
+        // The definer raise is a 400-class RPC error, not a 401: the JWT
+        // passed PostgREST's role check but carried no usable claims.
+        t.queue.add(
+          FakeTransport.json(400, {
+            'code': 'P0001',
+            'message': 'authentication_required',
+          }),
+        );
+        t.queue.add(
+          FakeTransport.json(200, {}, headers: {'set-auth-jwt': fresh}),
+        );
+        t.queue.add(FakeTransport.json(200, 'tx-id'));
+        final auth = await signedIn(t);
+        var expired = 0;
+        final api = NeonDataApi(
+          config: config,
+          auth: auth,
+          requester: t.requester,
+          onSessionExpired: () async => expired++,
+        );
+
+        final result = await api.rpc('soft_delete_money_transaction', {
+          'p_transaction_id': 't1',
+        });
+
+        expect(result, 'tx-id');
+        // sign-in + get-session + rpc-fail + get-session-refresh + rpc-replay:
+        // the stale JWT was dropped and the retried request carried the
+        // fresh one.
+        expect(t.requests.length, 5);
+        expect(t.requests.last.headers['Authorization'], 'Bearer $fresh');
+        expect(expired, 0);
+      },
+    );
+
+    test('a repeat authentication_required surfaces as an error', () async {
+      final t = FakeTransport();
+      signInOk(t);
+      t.queue.add(
+        FakeTransport.json(200, {}, headers: {'set-auth-jwt': fakeJwt()}),
+      );
+      for (var i = 0; i < 2; i++) {
+        t.queue.add(
+          FakeTransport.json(400, {
+            'code': 'P0001',
+            'message': 'authentication_required',
+          }),
+        );
+        if (i == 0) {
+          t.queue.add(
+            FakeTransport.json(200, {}, headers: {'set-auth-jwt': fakeJwt()}),
+          );
+        }
+      }
+      final auth = await signedIn(t);
+      final api = NeonDataApi(
+        config: config,
+        auth: auth,
+        requester: t.requester,
+      );
+
+      await expectLater(
+        api.rpc('soft_delete_money_transaction', {'p_transaction_id': 't1'}),
+        throwsA(isA<NeonAuthException>()),
+      );
+      // One retry bound: 2 RPC attempts total, no loop.
+      expect(t.requests.where((r) => r.url.path.contains('/rpc/')).length, 2);
+    });
   });
 
   group('httpNeonRequester', () {

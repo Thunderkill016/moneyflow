@@ -421,6 +421,11 @@ class NeonAuthClient {
     }
   }
 
+  /// Drops the cached JWT so the next [sessionJwt] call exchanges the
+  /// session cookie for a fresh one. Used after a Data-API response that
+  /// accepted the bearer at role level but saw no session claims.
+  void invalidateJwt() => _jwt = null;
+
   /// Data-API-bound JWT for the current session. Refreshes through
   /// /get-session when absent or within [_jwtRefreshSkewMs] of expiry.
   Future<String?> sessionJwt() async {
