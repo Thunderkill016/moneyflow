@@ -56,6 +56,7 @@ Future<void> _pickTransfer(WidgetTester t) async {
 
 void main() {
   _captureEditRuleTests();
+  _captureExclusionTests();
   testWidgets('CAP-01 transfer shows the internal-movement explainer only', (
     t,
   ) async {
@@ -270,5 +271,94 @@ void _captureEditRuleTests() {
   testWidgets('create mode never shows the save-as-rule offer', (t) async {
     await _open(t, onSubmit: (_) async {});
     expect(find.text('Lưu thành quy tắc tự điền'), findsNothing);
+  });
+}
+
+/// D13 — the edit form's "Loại khỏi báo cáo" switch: visible only in
+/// edit mode, sent on the intent only when the user actually flipped it.
+void _captureExclusionTests() {
+  Future<void> pushEditAndSubmit(
+    WidgetTester t, {
+    Transaction? editing,
+    required List<CaptureIntent> intents,
+    bool flipSwitch = false,
+  }) async {
+    t.view.physicalSize = const Size(800, 2400);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final key = GlobalKey<NavigatorState>();
+    await t.pumpWidget(
+      MaterialApp(
+        navigatorKey: key,
+        home: const Scaffold(body: SizedBox.shrink()),
+      ),
+    );
+    unawaited(
+      key.currentState!.push<CaptureResult>(
+        MaterialPageRoute(
+          builder: (_) => CapturePage(
+            accounts: DemoStore.seedAccounts(),
+            categories: DemoStore.seedCategories(),
+            editing: editing ?? _editTx(),
+            onSubmit: (i) async => intents.add(i),
+          ),
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    await t.scrollUntilVisible(
+      find.text('Loại khỏi báo cáo'),
+      80,
+      scrollable: find.byType(Scrollable).last,
+    );
+    if (flipSwitch) {
+      await t.tap(find.text('Loại khỏi báo cáo'));
+      await t.pumpAndSettle();
+    }
+    await t.tap(find.widgetWithText(FilledButton, 'Lưu'));
+    await t.pumpAndSettle();
+  }
+
+  testWidgets('edit mode shows the switch; a flip reaches the intent', (
+    t,
+  ) async {
+    final intents = <CaptureIntent>[];
+    await pushEditAndSubmit(t, intents: intents, flipSwitch: true);
+    expect(intents.single.excludedFromReports, isTrue);
+  });
+
+  testWidgets('an untouched switch costs no write — intent stays null', (
+    t,
+  ) async {
+    final intents = <CaptureIntent>[];
+    await pushEditAndSubmit(t, intents: intents);
+    expect(intents.single.excludedFromReports, isNull);
+  });
+
+  testWidgets('unflagging a flagged row sends false', (t) async {
+    final intents = <CaptureIntent>[];
+    await pushEditAndSubmit(
+      t,
+      editing: Transaction(
+        id: 'tx-x',
+        kind: TransactionKind.expense,
+        categoryId: 'cat-food',
+        category: 'Ăn uống',
+        note: '',
+        accountId: 'acc-cash',
+        account: 'Tiền mặt',
+        amount: 65000,
+        occurredOn: '2026-10-10',
+        excludedFromReports: true,
+      ),
+      intents: intents,
+      flipSwitch: true,
+    );
+    expect(intents.single.excludedFromReports, isFalse);
+  });
+
+  testWidgets('create mode never offers the report-scope switch', (t) async {
+    await _open(t, onSubmit: (_) async {});
+    expect(find.text('Loại khỏi báo cáo'), findsNothing);
   });
 }

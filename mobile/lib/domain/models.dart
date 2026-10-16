@@ -106,6 +106,7 @@ class Transaction {
     this.updatedAt,
     this.splitCount = 0,
     this.splitLines = const [],
+    this.excludedFromReports = false,
   });
 
   final String id;
@@ -133,6 +134,11 @@ class Transaction {
   /// one row per line exactly like the web.
   final List<TransactionSplitLine> splitLines;
 
+  /// Report scoping only (D13): the row stays in the ledger — account
+  /// balance and budget progress still count it — but report aggregates
+  /// skip it. Written solely through set_transaction_report_exclusion.
+  final bool excludedFromReports;
+
   bool get isSplit => splitCount > 1;
 
   /// Copy with the review flag set — the only field the feed read has to
@@ -156,6 +162,7 @@ class Transaction {
     updatedAt: updatedAt,
     splitCount: splitCount,
     splitLines: splitLines,
+    excludedFromReports: excludedFromReports,
   );
 }
 

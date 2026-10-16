@@ -65,6 +65,27 @@ class RealStore implements PatternDismissalSync {
       'category_id,category_name,destination_account_id,'
       'destination_account_name,payee,updated_at,split_lines';
 
+  /// `excluded_from_reports` lands with migration 20261016200000 — feed
+  /// reads ask for it first and retry without it on the column-missing
+  /// error, where every row is unflagged by definition (the column's
+  /// own default).
+  static const _txColumnsWithExclusion = '$_txColumns,excluded_from_reports';
+
+  /// transaction_feed / deleted_transaction_feed select with the
+  /// exclusion column's pre-migration fallback — see
+  /// [_txColumnsWithExclusion]. [query] receives the select list so each
+  /// caller keeps its own filters.
+  Future<List<Map<String, dynamic>>> _selectTx(
+    String table,
+    Map<String, String> Function(String select) query,
+  ) async {
+    try {
+      return await _api.select(table, query: query(_txColumnsWithExclusion));
+    } catch (_) {
+      return await _api.select(table, query: query(_txColumns));
+    }
+  }
+
   /// The resolved category lines of a split expense — mirrors the web
   /// mapper's gate: expense kind only, 2+ lines, every line well-formed.
   /// A malformed line drops the whole set so the row falls back to its
@@ -119,14 +140,15 @@ class RealStore implements PatternDismissalSync {
           ? (r['split_lines'] as List).length
           : 0,
       splitLines: _splitLinesFromRow(kind, r),
+      excludedFromReports: r['excluded_from_reports'] == true,
     );
   }
 
   Future<List<Transaction>> loadTransactions({int limit = 50}) async {
-    final rows = await _api.select(
+    final rows = await _selectTx(
       'transaction_feed',
-      query: {
-        'select': _txColumns,
+      (select) => {
+        'select': select,
         'order': 'occurred_on.desc,created_at.desc',
         'limit': '$limit',
       },
@@ -144,10 +166,10 @@ class RealStore implements PatternDismissalSync {
     int offset = 0,
     int limit = transactionPageSize,
   }) async {
-    final rows = await _api.select(
+    final rows = await _selectTx(
       'transaction_feed',
-      query: {
-        'select': _txColumns,
+      (select) => {
+        'select': select,
         ...query.toPostgrestParams(),
         'order': 'occurred_on.desc,created_at.desc,id.desc',
         'limit': '${limit + 1}',
@@ -174,10 +196,10 @@ class RealStore implements PatternDismissalSync {
     final rows = <Transaction>[];
     var offset = 0;
     for (var page = 0; page < _rangeMaxPages; page++) {
-      final batch = await _api.select(
+      final batch = await _selectTx(
         'transaction_feed',
-        query: {
-          'select': _txColumns,
+        (select) => {
+          'select': select,
           'and': '(occurred_on.gte.$from,occurred_on.lt.$to)',
           'order': 'occurred_on.desc,created_at.desc,id.desc',
           'limit': '${_rangePageSize + 1}',
@@ -241,10 +263,10 @@ class RealStore implements PatternDismissalSync {
     );
     if (flagged.isEmpty) return (count: 0, rows: const <Transaction>[]);
     final ids = [for (final r in flagged.take(previewLimit)) r['id'] as String];
-    final rows = await _api.select(
+    final rows = await _selectTx(
       'transaction_feed',
-      query: {
-        'select': _txColumns,
+      (select) => {
+        'select': select,
         'id': 'in.(${ids.join(',')})',
         'order': 'occurred_on.desc,created_at.desc,id.desc',
       },
@@ -278,10 +300,10 @@ class RealStore implements PatternDismissalSync {
   Future<List<DeletedTransaction>> loadDeletedTransactions({
     int limit = 50,
   }) async {
-    final rows = await _api.select(
+    final rows = await _selectTx(
       'deleted_transaction_feed',
-      query: {
-        'select': '$_txColumns,deleted_at',
+      (select) => {
+        'select': '$select,deleted_at',
         'order': 'deleted_at.desc',
         'limit': '$limit',
       },
@@ -813,10 +835,10 @@ class RealStore implements PatternDismissalSync {
         'limit': '${_goalFundingLimit + 1}',
       },
     );
-    final linkedRows = await _api.select(
+    final linkedRows = await _selectTx(
       'transaction_feed',
-      query: {
-        'select': _txColumns,
+      (select) => {
+        'select': select,
         'goal_id': 'eq.$goalId',
         'order': 'occurred_on.desc,created_at.desc,id.desc',
         'limit': '${_goalFundingLimit + 1}',
@@ -933,6 +955,10 @@ class RealStore implements PatternDismissalSync {
     String note = '',
     String payee = '',
     String? expectedUpdatedAt,
+
+    /// D13 — null preserves the stored flag (the param's own default);
+    /// a bool is only sent when the user actually flipped the switch.
+    bool? excludedFromReports,
   }) => _api.rpc('update_money_transaction', {
     'p_transaction_id': transactionId,
     'p_account_id': accountId,
@@ -943,6 +969,9 @@ class RealStore implements PatternDismissalSync {
     'p_note': note,
     'p_payee': payee,
     'p_expected_updated_at': expectedUpdatedAt,
+    // Migration 20261016200000 — omitted entirely when null so a
+    // pre-migration server keeps answering the legacy body.
+    'p_excluded_from_reports': ?excludedFromReports,
   });
 
   /// POST /rpc/update_account_transfer — transfer legs stay balanced;

@@ -226,6 +226,9 @@ class PeriodReport {
     required this.incomeCategories,
     required this.payees,
     required this.accounts,
+    this.excludedCount = 0,
+    this.excludedExpense = 0,
+    this.excludedIncome = 0,
   });
 
   final int income;
@@ -248,6 +251,14 @@ class PeriodReport {
   /// transfers are excluded by kind, since moving money between the user's
   /// own accounts is not spending.
   final List<CategoryShare> accounts;
+
+  /// Rows the user flagged "Loại khỏi báo cáo" (D13): count and the
+  /// expense/income đồng they carried, so the page can disclose "N
+  /// khoản · X ₫ đã loại" instead of silently shrinking the totals.
+  /// Zero when nothing was excluded.
+  final int excludedCount;
+  final int excludedExpense;
+  final int excludedIncome;
 }
 
 /// Sorted largest-first share rows; [denominator] is the section's total
@@ -300,6 +311,9 @@ PeriodReport buildPeriodReport(List<Transaction> items) {
   final payeeNames = <String, String>{};
   final payeeIds = <String, String?>{};
   final payeeCounts = <String, int>{};
+  // Flagged-out rows still get tallied for the disclosure line — hiding
+  // that they exist would make the totals look unexplained.
+  var excludedCount = 0, excludedExpense = 0, excludedIncome = 0;
 
   void bump(
     Map<String, int> totals,
@@ -316,6 +330,15 @@ PeriodReport buildPeriodReport(List<Transaction> items) {
   }
 
   for (final item in items) {
+    if (item.excludedFromReports) {
+      excludedCount++;
+      if (item.kind == TransactionKind.income) {
+        excludedIncome += item.amount;
+      } else if (item.kind == TransactionKind.expense) {
+        excludedExpense += item.amount;
+      }
+      continue;
+    }
     if (item.kind == TransactionKind.income) {
       income += item.amount;
       if (item.category.isNotEmpty) {
@@ -364,7 +387,10 @@ PeriodReport buildPeriodReport(List<Transaction> items) {
     income: income,
     expense: expense,
     net: net,
-    transactionCount: items.length,
+    transactionCount: items.length - excludedCount,
+    excludedCount: excludedCount,
+    excludedExpense: excludedExpense,
+    excludedIncome: excludedIncome,
     savingsRatePercent: income == 0 ? null : ((net / income) * 100).round(),
     categories: _shares(
       categoryTotals,

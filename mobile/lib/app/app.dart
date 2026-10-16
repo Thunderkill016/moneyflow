@@ -2879,6 +2879,9 @@ Future<void> _storeSubmit(RealStore store, CaptureIntent intent) {
       note: i.note,
       payee: i.payee,
       expectedUpdatedAt: i.expectedUpdatedAt,
+      // D13: null means the switch wasn't touched — the server-side
+      // default preserves the stored flag; a bool rides the same write.
+      excludedFromReports: i.excludedFromReports,
     ),
     updateTransfer: (i) => store.updateTransfer(
       transactionId: i.transactionId!,

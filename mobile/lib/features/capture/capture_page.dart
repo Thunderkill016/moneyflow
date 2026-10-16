@@ -42,6 +42,7 @@ class CaptureIntent {
     this.transactionId,
     this.expectedUpdatedAt,
     this.splitLines = const [],
+    this.excludedFromReports,
   });
 
   final TransactionKind kind;
@@ -70,6 +71,11 @@ class CaptureIntent {
   /// Non-empty = one expense split over several categories; [amount] is
   /// then the lines' total and [categoryId] is null.
   final List<SplitLine> splitLines;
+
+  /// Edit-mode report scope (D13): non-null only when the user actually
+  /// flipped the "Loại khỏi báo cáo" switch, so a save that never
+  /// touched it costs no extra write. Null on every create intent.
+  final bool? excludedFromReports;
 }
 
 /// What the capture route returns — `saved` is a clean save;
@@ -217,6 +223,10 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
   bool _busy = false;
   bool _repeatMonthly = false;
   bool _saveAsRule = false;
+
+  /// Edit-mode "Loại khỏi báo cáo" switch state — seeded from the row
+  /// and only sent when it differs (see CaptureIntent.excludedFromReports).
+  bool _excludedFromReports = false;
   String? _error;
 
   // "Chia danh mục" — one expense over several categories.
@@ -488,6 +498,7 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
       _amount.text = editing.amount.toString();
       _note.text = editing.note;
       _payee.text = editing.payee ?? '';
+      _excludedFromReports = editing.excludedFromReports;
       _date = DateTime.tryParse(editing.occurredOn) ?? vnNow();
       return; // an edited row is the strongest prefill — skip the rest
     }
@@ -782,6 +793,12 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
           commitmentName: commitmentName,
           transactionId: widget.editing?.id,
           expectedUpdatedAt: widget.editing?.updatedAt,
+          excludedFromReports:
+              widget.editing != null &&
+                  _kind != TransactionKind.transfer &&
+                  _excludedFromReports != widget.editing!.excludedFromReports
+              ? _excludedFromReports
+              : null,
         ),
       );
       // Persist the last-used picks so the next capture starts pre-filled.
@@ -1599,6 +1616,24 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
               onChanged: _busy
                   ? null
                   : (v) => setState(() => _saveAsRule = v ?? false),
+            ),
+          // D13 "Loại khỏi báo cáo" — edit mode only (a new row is saved
+          // as-is; flagging can come on the first edit) and never for
+          // transfers, which report math never counts anyway. The
+          // subtitle states the honest contract: ledger balance and
+          // budgets are untouched.
+          if (!isTransfer && widget.editing != null)
+            SwitchListTile(
+              value: _excludedFromReports,
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Loại khỏi báo cáo'),
+              subtitle: const Text(
+                'Không tính vào báo cáo — số dư tài khoản và ngân sách '
+                'vẫn giữ nguyên.',
+              ),
+              onChanged: _busy
+                  ? null
+                  : (v) => setState(() => _excludedFromReports = v),
             ),
           const SizedBox(height: 8),
           if (_error != null) ...[

@@ -1,6 +1,6 @@
 # PROGRESS — MoneyFlow Android mega-task
 STATUS: IN_PROGRESS
-LAST UPDATE: 2026-10-16 (D6+D7+D8 — rule suggestions, quick-fill chips, commitment calendar)
+LAST UPDATE: 2026-10-16 (neon-green theme migration — Soft Pop → #00FF88, dark-mode-first)
 DONE THIS ROUND:
 - Step Zero DONE: branch mobile/android-app pushed, PR #795 open (head ec8591b9).
 - Prior session shipped: permanent-delete trash (mobile+web+RPC+schema-cache fix), SnackBar a11y watchdog fix (1187+ tests green), Monarch deep-dive docs/research/MONARCH_DEEP_DIVE.md, rules preview + apply-to-existing (mobile+web), edit→rule offer (mobile). All committed.
@@ -183,7 +183,38 @@ DONE THIS ROUND:
   Verification: dart format clean; flutter analyze clean; flutter test
   1486 green (+21); pgTAP 64/64 suites (17 new assertions); migration
   identity 92 pinned; check:rls 9 pass.
+- **D13 exclude-from-reports flag shipped on feat/mobile-theme**
+  (schema + mobile; migration committed, NOT applied to production):
+  `financial_transactions.excluded_from_reports` NOT NULL default false;
+  transaction_feed + deleted_transaction_feed project it;
+  `update_money_transaction` gains `p_excluded_from_reports` (null
+  preserves — single write seam, no standalone flag RPC because
+  `transactions_set_updated_at` rotates the token on every UPDATE);
+  reconciled-guard jsonb diff exempts the flag. Mobile: feed reads
+  retry without the column on pre-migration servers; report math skips
+  flagged rows with excludedCount/expense/income disclosure ("Đã loại
+  N khoản · chi X ₫ · thu Y ₫"); activity rows mark "Đã loại khỏi báo
+  cáo"; edit form gets a seeded SwitchListTile (non-transfer, edit
+  only, bool sent only when flipped). Budgets/balances/dashboard
+  unaffected; web reports divergence recorded in DECISIONS.md. See
+  FIXLOG.md "FEATURE: D13".
+- **Neon-green theme migration shipped on feat/mobile-theme** (theme +
+  chrome only — no feature behavior changes): entire mobile theme moved
+  from Soft Pop violet to the owner-approved #00FF88 direction with
+  dark mode as the primary experience. `MfColors` token names stable —
+  only values migrated (dark canvas #0A0E0C / surface #121715 / neon
+  #00FF88; light keeps #00FF88 fills with accessible #00803E brandText +
+  ColorScheme.primary); transfer recolored violet→cyan so no purple
+  family survives; SettingsPrefs defaults dark. Android launcher,
+  widget and shortcut chrome recolored sky-blue→neon (10 mipmap PNGs).
+  Stored 'violet' category-color key intentionally kept — user data
+  contract, not brand chrome. See FIXLOG.md "FEATURE: neon-green theme
+  migration". Verification: dart format clean; flutter analyze clean;
+  flutter test all green; debug APK built, installed on UKMBCUTWIFYTOVDQ,
+  all main screens walked — screenshots in
+  docs/design/neon-green-migration/ (10 PNGs, zero purple-suspect
+  pixels).
 AUDIT OPEN: P0=0 P1=0 P2=0 (all findings shipped — see FIXLOG.md)
-GAPS OPEN: web EditTransactionDialog lacks "save as rule" offer (mobile has it); Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
-NEXT STEP: Loop B gap list — D13+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D12 done.
+GAPS OPEN: web EditTransactionDialog lacks "save as rule" offer (mobile has it); web reports do not honor excluded_from_reports yet; Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
+NEXT STEP: Loop B gap list — D14+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D13 done.
 RESUME: re-read this file, then continue at NEXT STEP.

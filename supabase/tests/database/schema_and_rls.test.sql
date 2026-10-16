@@ -82,7 +82,7 @@ select has_function('public', 'upsert_savings_goal', array['uuid', 'text', 'bigi
 select has_function('public', 'adjust_savings_goal', array['uuid', 'bigint'], 'adjust savings goal RPC exists');
 select has_function('public', 'set_savings_goal_archived', array['uuid', 'boolean'], 'archive savings goal RPC exists');
 select has_function('public', 'create_account_transfer', array['uuid', 'uuid', 'bigint', 'date', 'text', 'uuid'], 'account transfer RPC exists');
-select has_function('public', 'update_money_transaction', array['uuid', 'uuid', 'uuid', 'transaction_kind', 'bigint', 'date', 'text', 'text', 'timestamptz', 'uuid', 'boolean'], 'update transaction RPC exists (with payee + expected_updated_at + goal sentinel)');
+select has_function('public', 'update_money_transaction', array['uuid', 'uuid', 'uuid', 'transaction_kind', 'bigint', 'date', 'text', 'text', 'timestamptz', 'uuid', 'boolean', 'boolean'], 'update transaction RPC exists (with payee + expected_updated_at + goal sentinel + exclusion flag)');
 select has_function('public', 'update_account_transfer', array['uuid', 'uuid', 'uuid', 'bigint', 'date', 'text', 'timestamptz'], 'update transfer RPC exists (with expected_updated_at)');
 select has_function('public', 'dismiss_pattern_keys', array['text', 'text[]'], 'pattern dismissal RPC exists');
 select col_type_is('public', 'transaction_entries', 'amount_minor', 'bigint', 'money uses bigint');

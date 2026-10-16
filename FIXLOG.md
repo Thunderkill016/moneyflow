@@ -725,3 +725,112 @@ Format: `ID | files changed | why | proof (test names)`.
   invalid period kind, 7-day window sums incl. month-straddle, monthly
   window unchanged, same-anchor dual rows, per-kind conflict replay,
   stale guard, tenant isolation, delete path, bundle monthly scope).
+- **FEATURE: D13 exclude-from-reports flag on ledger rows** |
+  `supabase/migrations/20261016200000_report_exclusions.sql`,
+  `db/neon/migrations/20261016200000_report_exclusions.sql` (generated
+  twin, byte-identical — no auth refs to rewrite),
+  `supabase/tests/database/report_exclusions.test.sql`,
+  `supabase/tests/database/schema_and_rls.test.sql`,
+  `mobile/lib/domain/models.dart`,
+  `mobile/lib/domain/report.dart`,
+  `mobile/lib/data/neon/real_store.dart`,
+  `mobile/lib/features/capture/capture_page.dart`,
+  `mobile/lib/features/reports/reports_page.dart`,
+  `mobile/lib/features/activity/activity_page.dart`,
+  `mobile/lib/app/app.dart` |
+  Loop B gap D13 (§10 — Money Manager 4.1 / Monarch-style "hide from
+  reports"): `financial_transactions.excluded_from_reports` NOT NULL
+  default false, projected appended-last on transaction_feed and
+  deleted_transaction_feed (the trash read parses through the same
+  mapper). The write seam is `update_money_transaction`'s new
+  `p_excluded_from_reports` param (null = preserve) — a standalone
+  flag RPC was considered and dropped because
+  `transactions_set_updated_at` rotates the concurrency token on every
+  UPDATE, so a second call could never share the form's token; one
+  write keeps the check honest. The reconciled-row guard's jsonb diff
+  exempts the flag (metadata like payee/goal_id — reconciliation proves
+  the money moved, not that it should appear in a report). Transfers
+  stay unreachable via the existing kind lock. Mobile: feed reads try
+  `excluded_from_reports` first and retry without it on a
+  column-missing error (pre-migration rows are unflagged by the
+  column's own default); `buildPeriodReport` skips flagged rows from
+  every section while tallying excludedCount/excludedExpense/
+  excludedIncome for the disclosure line "Đã loại N khoản khỏi báo cáo
+  · chi X ₫ · thu Y ₫" (rendered even when the period is fully
+  excluded, so the empty state can't pretend nothing was recorded);
+  the activity row subtitle marks flagged rows "Đã loại khỏi báo cáo"
+  (they stay in the ledger — money really moved); the capture edit
+  form's SwitchListTile seeds from the row, disables while busy, hides
+  for transfers and create mode, and only sends a bool when flipped.
+  Contract: budgets, balances, safe-to-spend and the dashboard are
+  unaffected — the flag is report scoping only. Web reports do not yet
+  honor the flag (documented divergence, DECISIONS.md). |
+  `report_test.dart` (+3: sections skip flagged rows with disclosure
+  counters, fully-excluded period is empty-but-honest, headline count
+  excludes flagged rows); `planning_store_test.dart` (+3: feed select
+  carries the column, missing-column retry maps false, flipped flag
+  rides the update body while untouched is omitted);
+  `capture_audit_test.dart` (+4: switch visible+flips into intent,
+  untouched sends null, unflag sends false, create mode hides it);
+  `report_exclusions.test.sql` (13 assertions: column shape, feed and
+  deleted-feed projection, flag-on via the update seam, null-param
+  preserve, token rotation, stale_write, reconciled-row exemption,
+  transfer kind lock, tenant isolation, anonymous reject).
+- **FEATURE: neon-green theme migration — Soft Pop purple → #00FF88,
+  dark-mode-first** |
+  `mobile/lib/theme/mf_theme.dart`,
+  `mobile/lib/data/settings_prefs.dart`,
+  `mobile/lib/app/home_shell.dart`,
+  `mobile/lib/features/dashboard/dashboard_page.dart`,
+  `mobile/lib/features/auth/welcome_page.dart`,
+  `mobile/lib/features/auth/register_page.dart`,
+  `mobile/lib/features/auth/forgot_password_page.dart`,
+  `mobile/lib/features/categories/category_visuals.dart` (comment only),
+  `mobile/android/app/src/main/res/values/colors.xml`,
+  `mobile/android/app/src/main/res/values-night/colors.xml`,
+  `mobile/android/app/src/main/res/drawable/ic_shortcut_capture.xml`,
+  `mobile/android/app/src/main/res/mipmap-*/ic_launcher{,_foreground}.png`
+  (10 files) |
+  Owner decision 2026-10-16 (GreenVault reference set,
+  `docs/design/greenvault-reference/`): the entire mobile theme moves
+  from Soft Pop violet (#6F4EF5 family) to neon green with dark mode as
+  the primary experience. Semantic token NAMES are unchanged — every
+  `MfColors` field keeps its name so feature code still reads
+  `context.mf.*`; only VALUES migrated. Dark tokens: canvas `#0A0E0C`,
+  surface `#121715`, brand/primary `#00FF88` with on-primary dark ink
+  (white on #00FF88 fails contrast — nav FAB glyph, shortcut plus and
+  widget button text take `mfPastelInk`/`#0A0E0C`). Light tokens:
+  white canvas, `#F2F7F4` surface, `brand` keeps literal `#00FF88` for
+  fills while `brandText`/ColorScheme.primary take the accessible
+  `#00803E` (#00A854 family — pure neon is ~1.3:1 on white, fails AA).
+  `mfBrandDeep` pins the gradient-end `#00CC6A`; `mfPastelFills` stays a
+  sticker palette with a mint first fill; `mfPastelInk` moves to
+  `#0E1A13`. Financial semantics stay distinct, never all-green: income
+  emerald, expense rose, transfer cyan (was violet `#7C3AED`/`#A78BFA`
+  — inside the purple sweep), warning amber. Dark-first:
+  `SettingsPrefs.themeMode` defaults to `ThemeMode.dark` and unknown
+  stored modes resolve dark — the settings radios can always leave the
+  mode. Feature diffs are color-constant substitutions only: auth
+  accent text/icons moved `mf.brand`→`mf.brandText`, the dashboard's
+  hardcoded lilac gradient now reads `brandSubtle`→canvas, welcome
+  artwork's lilac literals moved to the shared pastel tokens.
+  `category_visuals.dart` keeps `Colors.deepPurple` for the stored
+  `'violet'`/'Tím' category key — a user-picked web-contract data
+  color, not brand chrome (documented inline). Android chrome: launcher
+  + widget recolored from sky-blue `#0EA5E9`/white to `#00FF88`/ink,
+  all five density PNGs re-rendered. |
+  `mf_theme_test.dart` (dark/light token values pinned incl. canvas,
+  surface, brand, brandText, transfer; HSV hue sweep asserts no
+  235–320° purple family survives in either token set);
+  `settings_page_test.dart` (dark-first default + unrecognised-mode
+  fallback; mode pick round-trips light→dark→system);
+  `android_launcher_icon_test.dart` (launcher bg is `#FF00FF88`);
+  `device_features_test.dart` (edit-mode 'Lưu' tap: unfocus field
+  before scrolling — the D13 switch grew the form past the test
+  viewport and the focused field kept dragging the lazy ListView back);
+  `dart format` clean; `flutter analyze` clean; `flutter test` all
+  green; `flutter build apk --debug` green; installed on
+  UKMBCUTWIFYTOVDQ and walked dashboard/activity/planning/reports/
+  capture/settings — screenshots in
+  `docs/design/neon-green-migration/` (10 PNGs) pixel-scanned: zero
+  purple-suspect pixels on every main screen.

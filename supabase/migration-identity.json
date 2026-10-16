@@ -459,6 +459,11 @@
       "version": "20261016190000",
       "name": "20261016190000_budget_periods.sql",
       "hash": "ef1802fea64ef7a9b118793716954bc5"
+    },
+    {
+      "version": "20261016200000",
+      "name": "20261016200000_report_exclusions.sql",
+      "hash": "27fc5a3629a1320a577e211487f7c580"
     }
   ]
 }

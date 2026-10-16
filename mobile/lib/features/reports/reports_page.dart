@@ -512,6 +512,19 @@ class ReportsPageState extends State<ReportsPage> {
                             ),
                           ),
                         ),
+                      // D13 disclosure: excluded rows would otherwise
+                      // leave the totals (or the empty card) unexplained.
+                      if (r.excludedCount > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            'Đã loại ${r.excludedCount} khoản khỏi báo cáo'
+                            '${r.excludedExpense > 0 ? ' · chi ${formatMoney(r.excludedExpense)}' : ''}'
+                            '${r.excludedIncome > 0 ? ' · thu ${formatMoney(r.excludedIncome)}' : ''}',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
                       if (r.transactionCount == 0)
                         const Card(
                           child: Padding(

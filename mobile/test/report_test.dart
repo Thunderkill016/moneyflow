@@ -12,6 +12,7 @@ Transaction tx(
   String category = 'X',
   String account = 'A',
   String? payee,
+  bool excluded = false,
 }) => Transaction(
   id: 't',
   kind: kind,
@@ -23,6 +24,7 @@ Transaction tx(
   amount: amount,
   occurredOn: '2026-10-01',
   payee: payee,
+  excludedFromReports: excluded,
 );
 
 void main() {
@@ -38,6 +40,45 @@ void main() {
       expect(r.expense, 77000);
       expect(r.net, 14923000);
       expect(r.transactionCount, 4);
+      expect(r.excludedCount, 0);
+    });
+
+    test('excluded rows skip every section but keep disclosure sums', () {
+      final r = buildPeriodReport([
+        tx(TransactionKind.income, 1000000, category: 'Salary'),
+        tx(TransactionKind.expense, 70000, category: 'Food', payee: 'Counted'),
+        tx(
+          TransactionKind.expense,
+          30000,
+          category: 'Ref',
+          payee: 'Hidden',
+          excluded: true,
+        ),
+        tx(TransactionKind.income, 200000, category: 'Refund', excluded: true),
+      ]);
+      expect(r.income, 1000000);
+      expect(r.expense, 70000);
+      expect(r.net, 930000);
+      // The headline count is the counted rows — the ledger had four.
+      expect(r.transactionCount, 2);
+      expect(r.excludedCount, 2);
+      expect(r.excludedExpense, 30000);
+      expect(r.excludedIncome, 200000);
+      // A flagged row's category/payee/account leave no trace in the
+      // breakdowns — the disclosure line is the only place they surface.
+      expect(r.categories.map((c) => c.name), isNot(contains('Ref')));
+      expect(r.payees.map((p) => p.name), isNot(contains('Hidden')));
+      expect(r.incomeCategories.map((c) => c.name), isNot(contains('Refund')));
+    });
+
+    test('a fully excluded period is empty with honest counters', () {
+      final r = buildPeriodReport([
+        tx(TransactionKind.expense, 5000, excluded: true),
+      ]);
+      expect(r.transactionCount, 0);
+      expect(r.expense, 0);
+      expect(r.excludedCount, 1);
+      expect(r.excludedExpense, 5000);
     });
 
     test(

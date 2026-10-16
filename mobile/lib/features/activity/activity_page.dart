@@ -1310,9 +1310,12 @@ class _TxTile extends StatelessWidget {
                   title: Text(tx.note.isEmpty ? tx.category : tx.note),
                   subtitle: Text(
                     '${tx.category} · $accountLine'
-                    '${needsReview ? '\nCần xem lại' : ''}',
+                    '${needsReview ? '\nCần xem lại' : ''}'
+                    // D13 ledger-side disclosure: the row stays here
+                    // (money really moved) but tells you reports skip it.
+                    '${tx.excludedFromReports ? '\nĐã loại khỏi báo cáo' : ''}',
                   ),
-                  isThreeLine: needsReview,
+                  isThreeLine: needsReview || tx.excludedFromReports,
                   trailing: ConstrainedBox(
                     constraints: const BoxConstraints(
                       maxWidth: _trailingMaxWidth,

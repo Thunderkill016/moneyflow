@@ -897,4 +897,118 @@ void main() {
       expect(goals.first.updatedAt, '2026-10-01T00:00:00Z');
     });
   });
+
+  group('D13 report exclusions', () {
+    Map<String, Object?> feedRow({bool excluded = false}) => {
+      'id': 'tx-1',
+      'kind': 'expense',
+      'note': 'Cà phê',
+      'occurred_on': '2026-10-14',
+      'amount_minor': 25000,
+      'account_id': 'a1',
+      'account_name': 'Ví',
+      'category_id': 'c1',
+      'category_name': 'Ăn uống',
+      'destination_account_id': null,
+      'destination_account_name': null,
+      'payee': null,
+      'updated_at': '2026-10-14T00:00:00Z',
+      'split_lines': null,
+      'excluded_from_reports': excluded,
+    };
+
+    test('loadTransactions maps excluded_from_reports onto the row', () async {
+      final h = Harness();
+      await h.signIn();
+      h.t.queue.add(FakeTransport.json(200, [feedRow(excluded: true)]));
+      // The review-status join — no flagged rows here.
+      h.t.queue.add(FakeTransport.json(200, []));
+
+      final txs = await h.store.loadTransactions();
+
+      final req = h.t.requests.firstWhere(
+        (r) => r.url.path.endsWith('/transaction_feed'),
+      );
+      expect(
+        req.url.queryParameters['select'],
+        contains('excluded_from_reports'),
+      );
+      expect(txs.single.excludedFromReports, isTrue);
+    });
+
+    test('a pre-20261016200000 server retries without the column — '
+        'unflagged by definition is the column default, not a guess', () async {
+      final h = Harness();
+      await h.signIn();
+      h.t.queue.add(
+        FakeTransport.json(400, {
+          'code': '42703',
+          'message':
+              'column transaction_feed.excluded_from_reports does not exist',
+        }),
+      );
+      final row = feedRow()..remove('excluded_from_reports');
+      h.t.queue.add(FakeTransport.json(200, [row]));
+      h.t.queue.add(FakeTransport.json(200, []));
+
+      final txs = await h.store.loadTransactions();
+
+      final selects = h.t.requests
+          .where((r) => r.url.path.endsWith('/transaction_feed'))
+          .toList();
+      expect(selects, hasLength(2));
+      expect(
+        selects.first.url.queryParameters['select'],
+        contains('excluded_from_reports'),
+      );
+      expect(
+        selects.last.url.queryParameters['select'],
+        isNot(contains('excluded_from_reports')),
+      );
+      expect(txs.single.excludedFromReports, isFalse);
+    });
+
+    test(
+      'a flipped flag rides the update body; an untouched one is omitted',
+      () async {
+        final h = Harness();
+        await h.signIn();
+        h.t.queue.add(FakeTransport.json(200, 'tx-1'));
+        h.t.queue.add(FakeTransport.json(200, 'tx-2'));
+
+        await h.store.updateTransaction(
+          transactionId: 'tx-1',
+          accountId: 'a1',
+          categoryId: 'c1',
+          kind: TransactionKind.expense,
+          amount: 25000,
+          occurredOn: '2026-10-14',
+          expectedUpdatedAt: '2026-10-14T00:00:00Z',
+          excludedFromReports: true,
+        );
+        await h.store.updateTransaction(
+          transactionId: 'tx-2',
+          accountId: 'a1',
+          categoryId: 'c1',
+          kind: TransactionKind.expense,
+          amount: 40000,
+          occurredOn: '2026-10-14',
+        );
+
+        final flagged = h.t.requests.firstWhere(
+          (r) => r.body is Map && (r.body as Map)['p_transaction_id'] == 'tx-1',
+        );
+        expect((flagged.body as Map)['p_excluded_from_reports'], true);
+        final plain = h.t.requests.firstWhere(
+          (r) => r.body is Map && (r.body as Map)['p_transaction_id'] == 'tx-2',
+        );
+        // The key stays absent entirely — a pre-migration server still
+        // answers the legacy 11-param body.
+        expect(
+          (plain.body as Map).containsKey('p_excluded_from_reports'),
+          isFalse,
+        );
+      },
+    );
+  });
 }
