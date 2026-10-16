@@ -54,9 +54,14 @@ where n.nspname = 'public'
 -- set_debt_state/soft_delete_debt (caller-scoped tracking writes) plus
 -- apply_debt_repayment, whose direction-derived ledger insert must not be
 -- caller-picked. +4 reviewed boundaries.
+-- 20261016180000 adds three reviewed event-budget boundaries:
+-- create_event_budget (idempotent caller-scoped tracking write),
+-- update_event_budget (stale-write-guarded edit) and
+-- soft_delete_event_budget (tombstone). None touches the ledger — the
+-- spent figure stays a read-side aggregate. +3 reviewed boundaries.
 select is(
   (select count(*)::integer from flagged_security_definer_functions),
-  66,
+  69,
   'the reviewed authenticated SECURITY DEFINER inventory stays explicit'
 );
 

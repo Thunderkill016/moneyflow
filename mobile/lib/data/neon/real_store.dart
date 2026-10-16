@@ -2,6 +2,7 @@ import 'dart:math';
 
 import '../../domain/csv_import.dart';
 import '../../domain/debts.dart';
+import '../../domain/events.dart';
 import '../../domain/inbox.dart';
 import '../notification_capture/bank_notification_parser.dart';
 import '../../domain/models.dart';
@@ -1740,6 +1741,87 @@ class RealStore implements PatternDismissalSync {
   Future<void> deleteDebt(String debtId) async {
     final ok = await _api.rpc('soft_delete_debt', {'p_debt_id': debtId});
     if (ok != true) throw Exception('debt_not_found');
+  }
+
+  // ---- Event budgets (D2, 20261016180000) --------------------------
+  // Reads ride event_budget_progress — the same live per-entry
+  // aggregate eventSpentOfTransaction mirrors client-side — and writes
+  // go through the definer RPCs; direct table writes die 42501 under
+  // guard_oauth_mutation, same convention as the other owned tables.
+
+  static const _eventColumns =
+      'id,name,start_date,end_date,limit_minor,spent_minor,category_ids,'
+      'updated_at';
+
+  static EventBudget _eventFromRow(Map<String, dynamic> r) => EventBudget(
+    id: r['id'] as String,
+    name: r['name'] as String,
+    startDate: (r['start_date'] as String).substring(0, 10),
+    endDate: (r['end_date'] as String).substring(0, 10),
+    limitMinor: _intField(r['limit_minor'], 'event_limit'),
+    spentMinor: _intField(r['spent_minor'], 'event_spent'),
+    categoryIds: [
+      for (final c in (r['category_ids'] as List? ?? const [])) c as String,
+    ],
+    updatedAt: r['updated_at'] as String?,
+  );
+
+  /// Every live event — the page sections active/upcoming/closed itself.
+  /// Tombstoned rows are already out of the view, so there is no
+  /// deleted_at filter client-side.
+  Future<List<EventBudget>> loadEventBudgets() async {
+    final rows = await _api.select(
+      'event_budget_progress',
+      query: {'select': _eventColumns, 'order': 'end_date.desc,id.asc'},
+    );
+    return rows.map(_eventFromRow).toList();
+  }
+
+  /// POST /rpc/create_event_budget — a tracking record only; nothing
+  /// posts to the ledger. Replays by [draft.idempotencyKey]: the same
+  /// key returns the original event; a changed payload under it raises
+  /// idempotency_intent_mismatch.
+  Future<String> createEventBudget(EventDraft draft) async {
+    final id = await _api.rpc('create_event_budget', {
+      'p_name': draft.name,
+      'p_start_date': draft.startDate,
+      'p_end_date': draft.endDate,
+      'p_limit_minor': draft.limitMinor,
+      'p_category_ids': draft.categoryIds,
+      'p_idempotency_key': draft.idempotencyKey,
+    });
+    return id as String;
+  }
+
+  /// POST /rpc/update_event_budget — whole-row edit with the scope set
+  /// replaced atomically. [expectedUpdatedAt] pins the read the edit
+  /// was built on; a changed row upstream raises stale_write instead of
+  /// silently winning.
+  Future<void> updateEventBudget({
+    required String eventId,
+    required EventDraft draft,
+    String? expectedUpdatedAt,
+  }) async {
+    final ok = await _api.rpc('update_event_budget', {
+      'p_event_id': eventId,
+      'p_name': draft.name,
+      'p_start_date': draft.startDate,
+      'p_end_date': draft.endDate,
+      'p_limit_minor': draft.limitMinor,
+      'p_category_ids': draft.categoryIds,
+      'p_expected_updated_at': expectedUpdatedAt,
+    });
+    if (ok != true) throw Exception('event_not_found');
+  }
+
+  /// POST /rpc/soft_delete_event_budget — tombstone only; the ledger
+  /// rows that fed spent stay untouched (an event delete must never
+  /// erase money facts).
+  Future<void> deleteEventBudget(String eventId) async {
+    final ok = await _api.rpc('soft_delete_event_budget', {
+      'p_event_id': eventId,
+    });
+    if (ok != true) throw Exception('event_not_found');
   }
 }
 

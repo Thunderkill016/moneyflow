@@ -450,6 +450,11 @@
       "sourceSha256": "3fe719176f9bfba5bd679b99e74df8f13896acc32754dd24ac3870ea4617bc8f",
       "outputSha256": "1c94c1d502913e272774f89aa52ed8b1074002cf6482ecd4c65fcd18f94a7b28",
       "rewrites": 2
+    },
+    "20261016180000_event_budgets.sql": {
+      "sourceSha256": "b60e6fdd3964a31f5e3cdc435d7d4666bc6aa2aa55145c43b831026a7bbcb5d7",
+      "outputSha256": "f2441b5b6e5043f29e1772a42b6af86294b97632b17a4bf60cfa133153380196",
+      "rewrites": 1
     }
   }
 }

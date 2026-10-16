@@ -1,6 +1,6 @@
 # PROGRESS — MoneyFlow Android mega-task
 STATUS: IN_PROGRESS
-LAST UPDATE: 2026-10-16 (D1 debt tracking)
+LAST UPDATE: 2026-10-16 (D2 event/occasion budgets)
 DONE THIS ROUND:
 - Step Zero DONE: branch mobile/android-app pushed, PR #795 open (head ec8591b9).
 - Prior session shipped: permanent-delete trash (mobile+web+RPC+schema-cache fix), SnackBar a11y watchdog fix (1187+ tests green), Monarch deep-dive docs/research/MONARCH_DEEP_DIVE.md, rules preview + apply-to-existing (mobile+web), edit→rule offer (mobile). All committed.
@@ -41,7 +41,31 @@ DONE THIS ROUND:
     `check:migrations` 90 pinned; `check:rls` 9/9; `check:knowledge`;
     `test:ci-policy` 203/203. Migration NOT applied to production Neon —
     deployment pending owner approval.
+- **D2 event/occasion budgets shipped on feat/mobile-theme** (Class-3
+  slice — see FIXLOG.md "FEATURE: D2 event/occasion budgets" for files
+  and proof; packet docs/plans/active/event-budgets.md):
+  - `event_budgets` + `event_budget_categories` (optional category scope;
+    zero rows = "Tất cả danh mục"), RLS select-only, OAuth mutation
+    guard, FK left-prefix indexes; three reviewed SECURITY DEFINER RPCs
+    (inventory 66→69).
+  - `event_budget_progress` computes `spent_minor` live over real
+    `transaction_entries` expense legs in the inclusive window —
+    per-entry math (a partial split contributes only in-scope legs),
+    transfers/income structurally excluded. No ledger row is ever
+    written by event CRUD — never a second ledger.
+  - Mobile `EventsPage` on the authenticated menu only (no demo seam —
+    honest absence, same as debts): active/upcoming/closed sections,
+    day-pace "hôm nay" tick bar, read-only detail listing the exact feed
+    rows the figure counted (same predicate as the view — the drill
+    cannot disagree with the card). Archived scope categories are
+    preserved through an edit, never silently dropped.
+  - Verification: `dart format` clean; `flutter analyze` clean;
+    `flutter test` 1321 green (35 new D2 tests); embedded-pgTAP 63
+    files / 0 failures (24 new assertions); `check:migrations` 91
+    pinned; `check:rls` 9/9; `check:knowledge`; `test:ci-policy`
+    203/203. Migration NOT applied to production Neon — deployment
+    pending owner approval.
 AUDIT OPEN: P0=0 P1=0 P2=0 (all findings shipped — see FIXLOG.md)
 GAPS OPEN: web EditTransactionDialog lacks "save as rule" offer (mobile has it); Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
-NEXT STEP: Loop B gap list — D2 (event/occasion budgets, RESEARCH_TOP_FINANCE_APPS.md §10); D1 done.
+NEXT STEP: Loop B gap list — D3 (honest "còn lại tháng này" remainder card + budget threshold alerts, RESEARCH_TOP_FINANCE_APPS.md §10); D1+D2 done.
 RESUME: re-read this file, then continue at NEXT STEP.

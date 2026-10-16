@@ -250,3 +250,56 @@ Format: `ID | files changed | why | proof (test names)`.
   `debts_store_test.dart` (RPC payload shapes + boolean-refusal surfacing);
   `debts_page_test.dart` (12 widget cases: empty/add/repay/settled/
   archive/delete/read-only/error).
+- **FEATURE: D2 event/occasion budgets** |
+  `supabase/migrations/20261016180000_event_budgets.sql`,
+  `db/neon/migrations/20261016180000_event_budgets.sql` (generated),
+  `db/neon/migrations/MANIFEST.json`,
+  `supabase/migration-identity.json`,
+  `supabase/tests/database/event_budgets.test.sql`,
+  `supabase/tests/database/security_definer_contract.test.sql`,
+  `docs/plans/active/event-budgets.md`,
+  `mobile/lib/domain/events.dart`,
+  `mobile/lib/data/neon/real_store.dart`,
+  `mobile/lib/features/events/events_page.dart`,
+  `mobile/lib/app/app.dart`,
+  `mobile/test/events_test.dart`,
+  `mobile/test/events_store_test.dart`,
+  `mobile/test/events_page_test.dart` |
+  Loop B gap D2 (RESEARCH_TOP_FINANCE_APPS.md §10 — Money Lover's
+  date-ranged occasion budget for Tết/đám cưới/du lịch): `event_budgets`
+  carries name, inclusive `start_date`/`end_date`, `limit_minor`,
+  idempotent-create pinning (`idempotency_key` + `creation_intent`),
+  `updated_at` and `deleted_at` tombstone; `event_budget_categories` is
+  the optional scope set — zero rows means every expense counts ("Tất
+  cả danh mục"). An event holds no money: creating/editing/deleting one
+  writes no `financial_transactions` row, and `event_budget_progress`'s
+  `spent_minor` is a live aggregate over real `transaction_entries`
+  expense legs inside the inclusive window (per-entry math, so a
+  partial split contributes only its in-scope legs; transfers and
+  income structurally excluded by `kind='expense'`). RLS select-only —
+  all writes ride the three reviewed SECURITY DEFINER RPCs (inventory
+  69); both tables carry `guard_oauth_mutation` and every FK a
+  left-prefix cover index. Create replays by advisory-lock + stored
+  intent; update fails closed on `stale_write` via
+  `p_expected_updated_at`; delete is a tombstone. Mobile: `EventsPage`
+  on the authenticated menu only (no demo seam — honest absence)
+  sections active/upcoming/closed, reuses `budgetState` + `MfTickBar`
+  with a day-pace "hôm nay" marker; the read-only detail lists the feed
+  rows the figure counted via the same `eventSpentOfTransaction`
+  predicate the view uses — the drill can never disagree with the card.
+  Deployment pending owner approval — migration written and verified,
+  never applied to production Neon. |
+  `event_budgets.test.sql` (24 assertions: create validation,
+  scoped/unscoped progress, inclusive bounds, split-leg scope,
+  transfer/income exclusion, idempotent replay + intent pinning,
+  stale-write, tenant isolation, tombstone/view-drop); embedded-pgTAP
+  run: 63 files, 0 failures;
+  `events_test.dart` (20 domain cases: phase, day arithmetic, inclusive
+  window, kind/scope/split predicate, scope label, error map);
+  `events_store_test.dart` (6 cases: view read shape + RPC payload
+  shapes + boolean-refusal surfacing);
+  `events_page_test.dart` (9 widget cases: empty/add/scope/validate/
+  sections/detail-drill/edit/delete/read-only/error).
+  `flutter analyze` clean; `flutter test` 1321 all green;
+  `check:migrations` 91 pinned; `check:rls` 9/9; `check:knowledge`;
+  `test:ci-policy` 203/203.

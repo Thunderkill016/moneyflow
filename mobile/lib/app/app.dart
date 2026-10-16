@@ -23,6 +23,7 @@ import '../data/widget_snapshot.dart';
 import '../data/share/share_intent.dart';
 import '../data/share/share_text_parser.dart';
 import '../domain/budget.dart';
+import '../domain/events.dart' show addDaysToYmd;
 import '../domain/report.dart' show vnMonthStart, vnToday;
 import '../domain/inbox.dart';
 import '../domain/models.dart';
@@ -49,6 +50,7 @@ import '../features/capture/queue_banner.dart';
 import '../features/categories/categories_page.dart';
 import '../features/dashboard/dashboard_page.dart';
 import '../features/debts/debts_page.dart';
+import '../features/events/events_page.dart';
 import '../features/inbox/inbox_page.dart';
 import '../features/inbox/rules_page.dart';
 import '../features/timeline/timeline_page.dart';
@@ -1731,6 +1733,36 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     if (changed == true) _reloadTabs();
   }
 
+  /// "Sự kiện" — D2 event/occasion budgets. Event writes never touch
+  /// the ledger (spent is a live read-side aggregate), so a pop needs
+  /// no tab reload — the page refetches itself. The demo menu omits the
+  /// entry: there is no honest demo persistence/calculation seam for
+  /// event budgets and a hidden affordance beats a fake one.
+  Future<void> _openEvents(BuildContext context) {
+    return Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => EventsPage(
+          loadEvents: _store.loadEventBudgets,
+          // All categories (incl. archived) so an archived scope member
+          // still resolves by name and is preserved through an edit.
+          loadCategories: _store.loadAllCategories,
+          loadTransactions: (event) => _store.loadTransactionsInRange(
+            event.startDate,
+            // The range read's `to` bound is exclusive — day after end.
+            addDaysToYmd(event.endDate, 1),
+          ),
+          onCreate: (draft) => _store.createEventBudget(draft).then((_) {}),
+          onUpdate: (event, draft) => _store.updateEventBudget(
+            eventId: event.id,
+            draft: draft,
+            expectedUpdatedAt: event.updatedAt,
+          ),
+          onDelete: _store.deleteEventBudget,
+        ),
+      ),
+    );
+  }
+
   /// Menu items on the dashboard appbar — account management, the review
   /// queue, device lock, and sign-out stay one level deep; the day-to-day
   /// surfaces are tabs.
@@ -1840,6 +1872,14 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         label: 'Vay & cho vay',
         icon: Icons.handshake_outlined,
         onTap: () => _openDebts(context),
+      ),
+      DashboardMenuItem(
+        // Date-ranged occasion budgets — Tết/đám cưới/du lịch. Reads
+        // spent live from real expense legs; the write RPCs only touch
+        // the tracking rows.
+        label: 'Sự kiện',
+        icon: Icons.celebration_outlined,
+        onTap: () => _openEvents(context),
       ),
       DashboardMenuItem(
         label: _digestEnabled ? 'Tắt tóm tắt tuần' : 'Bật tóm tắt tuần',
