@@ -6,6 +6,7 @@ import '../../data/google_sign_in.dart';
 import '../../data/neon/auth_client.dart';
 import 'auth_scaffold.dart';
 import 'google_mark.dart';
+import '../shared/timed_snack_bar.dart';
 
 /// Dedicated register screen — mirrors the web /register page instead of
 /// toggling fields inside login. One job: create an account.
@@ -127,7 +128,8 @@ class _RegisterPageState extends State<RegisterPage> {
       widget.onSignedIn(session);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        showTimedSnackBar(
+          ScaffoldMessenger.of(context),
           const SnackBar(
             content: Text('Không thể đăng nhập Google — thử lại sau'),
           ),

@@ -9,6 +9,7 @@ import 'auth_scaffold.dart';
 import 'forgot_password_page.dart';
 import 'google_mark.dart';
 import 'register_page.dart';
+import '../shared/timed_snack_bar.dart';
 
 /// Email/password auth against managed Better Auth (Neon).
 /// Sign-in keeps this screen; register and forgot-password are
@@ -113,7 +114,8 @@ class _LoginPageState extends State<LoginPage> {
       widget.onSignedIn(session);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        showTimedSnackBar(
+          ScaffoldMessenger.of(context),
           const SnackBar(
             content: Text('Không thể đăng nhập Google — thử lại sau'),
           ),

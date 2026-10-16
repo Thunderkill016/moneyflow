@@ -4,6 +4,7 @@ import '../../domain/categories.dart';
 import '../../domain/models.dart';
 import 'category_visuals.dart';
 import 'vietnam_pack_sheet.dart';
+import '../shared/timed_snack_bar.dart';
 
 /// Category management — mirrors the web's /categories page
 /// (categories-page.tsx): sections split active expense / active income /
@@ -62,9 +63,10 @@ class _CategoriesPageState extends State<CategoriesPage> {
   }
 
   void _snack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    showTimedSnackBar(
+      ScaffoldMessenger.of(context),
+      SnackBar(content: Text(message)),
+    );
   }
 
   /// Create when [editing] is null; otherwise edit name/icon/color in

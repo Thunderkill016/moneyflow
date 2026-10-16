@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/recurring_detection.dart';
+import '../shared/timed_snack_bar.dart';
 import '../capture/capture_submit.dart' show DemoReadOnly;
 
 /// Honest message for a failed planning write — the web server actions
@@ -92,7 +93,8 @@ Future<bool> showRecurringFormDialog(
       )
       .toList();
   if (kindCats.isEmpty || accounts.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    showTimedSnackBar(
+      ScaffoldMessenger.of(context),
       SnackBar(
         content: Text(
           income

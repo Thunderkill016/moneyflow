@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../shared/timed_snack_bar.dart';
 
 /// Per-account "first-run activation done" flag — 'mf_onboarded_`uid`'.
 /// Account-scoped like the dashboard snapshot key: it survives ordinary
@@ -95,7 +96,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
       });
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        showTimedSnackBar(
+          ScaffoldMessenger.of(context),
           const SnackBar(content: Text('Không mở được biểu mẫu — thử lại')),
         );
       }

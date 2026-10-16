@@ -16,6 +16,7 @@ import '../../domain/money.dart';
 import '../capture/category_picker.dart';
 import '../shared/empty_state.dart';
 import 'csv_import_sheet.dart';
+import '../shared/timed_snack_bar.dart';
 
 /// The pending review queue. Page pops `true` when anything changed so the
 /// shell can reload dashboard balances and the activity feed.
@@ -161,13 +162,15 @@ class InboxPageState extends State<InboxPage> {
         setState(() {
           _data = next;
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Đã từ chối mục')));
+        showTimedSnackBar(
+          ScaffoldMessenger.of(context),
+          const SnackBar(content: Text('Đã từ chối mục')),
+        );
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        showTimedSnackBar(
+          ScaffoldMessenger.of(context),
           const SnackBar(
             content: Text('Không từ chối được — kiểm tra mạng rồi thử lại.'),
           ),
@@ -210,7 +213,8 @@ class InboxPageState extends State<InboxPage> {
     final merchant = approval.payee.trim();
     final categoryId = approval.categoryId;
     if (merchant.isEmpty || categoryId == null || categoryId.isEmpty) return;
-    ScaffoldMessenger.of(context).showSnackBar(
+    showTimedSnackBar(
+      ScaffoldMessenger.of(context),
       SnackBar(
         content: Text('Đã duyệt. Luôn áp dụng cho "$merchant"?'),
         action: SnackBarAction(
@@ -236,15 +240,17 @@ class InboxPageState extends State<InboxPage> {
         enabled: true,
       ));
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        showTimedSnackBar(
+          ScaffoldMessenger.of(context),
           SnackBar(content: Text('Đã lưu quy tắc cho "$merchant"')),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(inboxRuleErrorMessage(e))));
+        showTimedSnackBar(
+          ScaffoldMessenger.of(context),
+          SnackBar(content: Text(inboxRuleErrorMessage(e))),
+        );
       }
     }
   }
@@ -260,7 +266,8 @@ class InboxPageState extends State<InboxPage> {
       data = await _data;
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        showTimedSnackBar(
+          ScaffoldMessenger.of(context),
           const SnackBar(
             content: Text('Không tải được dữ liệu — thử lại khi có mạng'),
           ),
@@ -283,7 +290,8 @@ class InboxPageState extends State<InboxPage> {
       _changed = true;
       _refresh();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        showTimedSnackBar(
+          ScaffoldMessenger.of(context),
           SnackBar(
             content: Text('Đã tạo ${result.candidateCount} mục chờ duyệt'),
           ),
@@ -311,7 +319,8 @@ class InboxPageState extends State<InboxPage> {
       data = await _data;
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        showTimedSnackBar(
+          ScaffoldMessenger.of(context),
           const SnackBar(
             content: Text('Không tải được dữ liệu — thử lại khi có mạng'),
           ),
@@ -331,7 +340,8 @@ class InboxPageState extends State<InboxPage> {
       _changed = true;
       _refresh();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        showTimedSnackBar(
+          ScaffoldMessenger.of(context),
           SnackBar(
             content: Text('Đã tạo ${result.candidateCount} mục chờ duyệt'),
           ),

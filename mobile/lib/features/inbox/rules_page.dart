@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import '../../domain/inbox.dart';
 import '../../domain/models.dart';
 import '../capture/category_picker.dart';
+import '../shared/timed_snack_bar.dart';
 
 typedef _RulesData = ({List<InboxRule> rules, List<Category> categories});
 
@@ -89,9 +90,10 @@ class _InboxRulesPageState extends State<InboxRulesPage> {
   }
 
   void _snack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    showTimedSnackBar(
+      ScaffoldMessenger.of(context),
+      SnackBar(content: Text(message)),
+    );
   }
 
   String _categoryName(_RulesData data, String id) =>

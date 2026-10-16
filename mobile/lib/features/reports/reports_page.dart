@@ -12,6 +12,7 @@ import '../../domain/net_worth.dart';
 import '../../domain/report.dart';
 import '../../domain/transaction_query.dart';
 import '../../domain/weekly_buckets.dart';
+import '../shared/timed_snack_bar.dart';
 
 /// Period report — mirrors the web /reports: month navigation plus a
 /// custom range, totals (Thu/Chi/Còn lại/tiết kiệm) and the income/expense
@@ -211,9 +212,10 @@ class ReportsPageState extends State<ReportsPage> {
   void reload() => _refresh();
 
   void _snack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    showTimedSnackBar(
+      ScaffoldMessenger.of(context),
+      SnackBar(content: Text(message)),
+    );
   }
 
   /// Inclusive last day of [period] — `to` is exclusive, so the filename

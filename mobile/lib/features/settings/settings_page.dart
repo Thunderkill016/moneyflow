@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/export_files.dart';
 import '../../data/settings_prefs.dart';
+import '../shared/timed_snack_bar.dart';
 import '../../domain/export_csv.dart' show jsonMimeType;
 import '../../domain/weekly_digest.dart'
     show weeklyDigestHour, weeklyDigestMinute;
@@ -188,9 +189,10 @@ class _SettingsPageState extends State<SettingsPage> {
       await (widget.shareFile ?? shareFileToSheet)(file.path, jsonMimeType);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Không xuất được file')));
+        showTimedSnackBar(
+          ScaffoldMessenger.of(context),
+          const SnackBar(content: Text('Không xuất được file')),
+        );
       }
     }
   }
