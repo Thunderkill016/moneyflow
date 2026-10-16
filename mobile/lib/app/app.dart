@@ -1697,6 +1697,12 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           ),
           onReconcileReminderChanged: (day) =>
               _setReconcileReminder(account.id, day),
+          // D20 — the per-row running balance is a device-local display
+          // pref; the chain is derived either way, the toggle only
+          // hides the "Số dư" line.
+          loadShowRunningBalance: SettingsPrefs.loadRunningBalanceVisible,
+          onRunningBalanceVisibleChanged:
+              SettingsPrefs.saveRunningBalanceVisible,
         ),
       ),
     );
@@ -2276,6 +2282,12 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
                             DemoStore.seedTransactions(),
                           ),
                           loadAccount: () async => _demoAccount(a.id),
+                          // Display pref, not a write — demo toggles the
+                          // same D20 running-balance column.
+                          loadShowRunningBalance:
+                              SettingsPrefs.loadRunningBalanceVisible,
+                          onRunningBalanceVisibleChanged:
+                              SettingsPrefs.saveRunningBalanceVisible,
                         ),
                       ),
                     ),

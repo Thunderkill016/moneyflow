@@ -283,7 +283,16 @@ DONE THIS ROUND:
   picker suggests stored → latest completed statement day → ngày 1.
   Gates: dart format → flutter analyze clean → flutter test all green
   1533 (+14 new). See FIXLOG.md "D19".
+- **D20 optional running-balance column shipped on feat/mobile-theme** —
+  the derived per-row "Số dư" line (chained back from the stored
+  balance, never stored) gains the missing OPTIONAL part: an AppBar
+  eye-toggle on the register persisted as device-local
+  `mf_register_running_balance` (default ON). Signed-in and demo
+  registers both wire it; header "Số dư hiện tại" anchor stays always;
+  icon appears only after the pref lands and only with a writer seam.
+  Gates: dart format → flutter analyze clean → flutter test all green
+  (+4 new). See FIXLOG.md "D20".
 AUDIT OPEN: P0=0 P1=0 P2=0 (all findings shipped — see FIXLOG.md)
 GAPS OPEN: web EditTransactionDialog lacks "save as rule" offer (mobile has it); web reports do not honor excluded_from_reports yet; Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
-NEXT STEP: Loop B gap list — D20+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D19 done.
+NEXT STEP: Loop B gap list — D21+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D20 done.
 RESUME: re-read this file, then continue at NEXT STEP.

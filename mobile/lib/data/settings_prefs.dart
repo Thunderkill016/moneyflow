@@ -73,4 +73,19 @@ class SettingsPrefs {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_digestMinutesKey, hour * 60 + minute);
   }
+
+  /// Register's per-row running balance (D20) — a display-only toggle;
+  /// the chain itself is always derived from the ledger, never stored.
+  /// Default ON preserves the register's shipped behavior.
+  static const _runningBalanceKey = 'mf_register_running_balance';
+
+  static Future<bool> loadRunningBalanceVisible() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_runningBalanceKey) ?? true;
+  }
+
+  static Future<void> saveRunningBalanceVisible(bool visible) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_runningBalanceKey, visible);
+  }
 }

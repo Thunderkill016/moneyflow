@@ -37,6 +37,8 @@ class AccountRegisterPage extends StatefulWidget {
     this.onAdjustBalance,
     this.loadReconcileReminder,
     this.onReconcileReminderChanged,
+    this.loadShowRunningBalance,
+    this.onRunningBalanceVisibleChanged,
   });
 
   /// The account being viewed; [AccountSummary.balance] anchors the
@@ -82,6 +84,14 @@ class AccountRegisterPage extends StatefulWidget {
   /// returns after persisting so the UI can confirm truthfully.
   final Future<void> Function(int? day)? onReconcileReminderChanged;
 
+  /// Running-balance column toggle (D20) — reads the stored display
+  /// pref. Null keeps the column visible with no toggle affordance.
+  final Future<bool> Function()? loadShowRunningBalance;
+
+  /// Persists the new display choice. The chain is derived either way —
+  /// the pref only gates whether each row renders its "Số dư" line.
+  final Future<void> Function(bool visible)? onRunningBalanceVisibleChanged;
+
   @override
   State<AccountRegisterPage> createState() => _AccountRegisterPageState();
 }
@@ -113,6 +123,11 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
   bool _reminderFailed = false;
   bool _reminderBusy = false;
 
+  /// The D20 running-balance display pref — default-ON so the column
+  /// never flashes away and back while the pref read lands.
+  bool _showRunningBalance = true;
+  bool _balancePrefLoaded = false;
+
   /// Bumped per first-page request so a slow older response can never
   /// overwrite a newer one (same guard as the activity feed).
   int _gen = 0;
@@ -123,6 +138,41 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
     super.initState();
     _scroll.addListener(_onScroll);
     _loadFirst();
+    _loadBalancePref();
+  }
+
+  /// One-shot display-pref read; a failed or absent seam simply keeps
+  /// the column on — the register never loses its running balance to a
+  /// prefs hiccup.
+  Future<void> _loadBalancePref() async {
+    final loader = widget.loadShowRunningBalance;
+    if (loader == null) return;
+    try {
+      final v = await loader();
+      if (!mounted) return;
+      setState(() {
+        _showRunningBalance = v;
+        _balancePrefLoaded = true;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _balancePrefLoaded = true);
+    }
+  }
+
+  /// Display-only flip — the derived chain keeps running underneath;
+  /// this just gates whether each row renders its "Số dư" line.
+  Future<void> _toggleRunningBalance() async {
+    final save = widget.onRunningBalanceVisibleChanged;
+    if (save == null) return;
+    final next = !_showRunningBalance;
+    setState(() => _showRunningBalance = next);
+    try {
+      await save(next);
+    } catch (_) {
+      // A failed pref write can't leave the UI lying — revert to what
+      // the store still holds.
+      if (mounted) setState(() => _showRunningBalance = !next);
+    }
   }
 
   @override
@@ -579,10 +629,13 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
                     formatSignedMoney(e.impact),
                     style: TextStyle(color: color, fontWeight: FontWeight.w600),
                   ),
-                  Text(
-                    'Số dư ${formatMoney(e.balanceAfter)}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                  // D20 — the per-row running balance is a display pref;
+                  // the chain still derives, the line just hides.
+                  if (_showRunningBalance)
+                    Text(
+                      'Số dư ${formatMoney(e.balanceAfter)}',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                 ],
               ),
               contentPadding: const EdgeInsets.only(left: 16, right: 4),
@@ -647,7 +700,25 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
             newestFirst: rows,
           );
     return Scaffold(
-      appBar: AppBar(title: Text('Sổ ${_account.name}')),
+      appBar: AppBar(
+        title: Text('Sổ ${_account.name}'),
+        actions: [
+          // D20 running-balance toggle — only once the pref has actually
+          // landed (and only when a writer seam exists), so the icon
+          // never advertises a state the store can't confirm.
+          if (widget.onRunningBalanceVisibleChanged != null &&
+              _balancePrefLoaded)
+            IconButton(
+              icon: Icon(
+                _showRunningBalance
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+              ),
+              tooltip: _showRunningBalance ? 'Ẩn số dư' : 'Hiện số dư',
+              onPressed: _toggleRunningBalance,
+            ),
+        ],
+      ),
       body: _error != null
           ? Center(
               child: Column(

@@ -1075,3 +1075,29 @@ Format: `ID | files changed | why | proof (test names)`.
   through the seam, EOM-clamp disclosure, statement-day preselect,
   Tắt nhắc clears). Gates: `dart format` clean; `flutter analyze`
   clean; `flutter test` all green.
+- **D20 optional running-balance register column — shipped** |
+  `mobile/lib/data/settings_prefs.dart`,
+  `mobile/lib/features/accounts/account_register_page.dart`,
+  `mobile/lib/app/app.dart`,
+  `mobile/test/account_register_test.dart` |
+  Loop B gap D20 (§10 — YNAB 2.11 running-balance column): the
+  register's derived per-row "Số dư" line already chained back from the
+  stored balance (register.dart — computed, never stored); what the
+  gap asked for was the OPTIONAL part. A new AppBar eye toggle
+  (Icons.visibility_off / visibility_outlined, "Ẩn số dư"/"Hiện số dư")
+  hides every per-row running-balance line while the header's "Số dư
+  hiện tại" anchor stays — the chain keeps deriving underneath, the
+  toggle only gates display. Persisted device-local as
+  `mf_register_running_balance` via SettingsPrefs (default ON — the
+  shipped behavior; the `mf_` prefix keeps it inside wipeLocalData).
+  Both registers wire it: signed-in via _openAccountRegister and demo
+  (a display pref is not a ledger write, so demo toggles too — unlike
+  the D19 reminder seams demo rightly lacks). The icon appears only
+  after the pref actually loads and only with a writer seam — no
+  flashing state the store can't confirm; a failed save reverts the
+  visible state to what is stored. |
+  `account_register_test.dart` (+4: no seams → balances show with no
+  affordance; toggle-off hides per-row lines but keeps the header;
+  toggle-back-on restores the whole chain incl. the older row's derived
+  value; failed save reverts). Gates: `dart format` clean;
+  `flutter analyze` clean; `flutter test` all green.

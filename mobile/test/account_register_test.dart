@@ -694,15 +694,10 @@ void main() {
       );
     });
 
-    testWidgets('a 29–31 day names the end-of-month clamp honestly', (
-      t,
-    ) async {
+    testWidgets('a 29–31 day names the end-of-month clamp honestly', (t) async {
       await t.pumpWidget(reminderPage(storedDay: 30));
       await t.pumpAndSettle();
-      expect(
-        find.text('Nhắc đối soát — ngày 30 hằng tháng'),
-        findsOneWidget,
-      );
+      expect(find.text('Nhắc đối soát — ngày 30 hằng tháng'), findsOneWidget);
       expect(
         find.text('Tháng thiếu ngày sẽ nhắc vào ngày cuối tháng'),
         findsOneWidget,
@@ -711,10 +706,7 @@ void main() {
       // 'ngày 30 sẽ' matches only the dialog copy, not the row subtitle.
       await t.tap(find.text('Nhắc đối soát — ngày 30 hằng tháng'));
       await t.pumpAndSettle();
-      expect(
-        find.textContaining('ngày 30 sẽ nhắc'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('ngày 30 sẽ nhắc'), findsOneWidget);
     });
 
     testWidgets('no stored day suggests the latest completed statement', (
@@ -747,6 +739,116 @@ void main() {
       expect(cleared, isTrue);
       expect(find.text('Nhắc đối soát hằng tháng'), findsOneWidget);
       expect(find.textContaining('Đã tắt nhắc'), findsOneWidget);
+    });
+  });
+
+  group('running-balance toggle (D20)', () {
+    final rows = [
+      _tx('e', TransactionKind.expense, 45000, '2026-10-12'),
+      _tx('i', TransactionKind.income, 15000000, '2026-10-10'),
+    ];
+
+    Widget balancePage({
+      bool? stored,
+      bool seams = true,
+      void Function(bool v)? onSave,
+    }) => MaterialApp(
+      home: AccountRegisterPage(
+        account: _account,
+        loadPage: inMemoryPageLoader(rows),
+        loadShowRunningBalance: seams ? () async => stored ?? true : null,
+        onRunningBalanceVisibleChanged: seams
+            ? (v) async => onSave?.call(v)
+            : null,
+      ),
+    );
+
+    testWidgets('no seams → balances show, no toggle affordance', (t) async {
+      await t.pumpWidget(balancePage(seams: false));
+      await t.pumpAndSettle();
+      // The chain is derived either way — hiding the toggle never
+      // removes the default-on column.
+      expect(
+        find.text('Số dư ${formatMoney(_account.balance)}'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Số dư ${formatMoney(_account.balance + 45000)}'),
+        findsOneWidget,
+      );
+      expect(find.byTooltip('Ẩn số dư'), findsNothing);
+      expect(find.byTooltip('Hiện số dư'), findsNothing);
+    });
+
+    testWidgets('toggle off hides the per-row line, keeps the header', (
+      t,
+    ) async {
+      var saved = true;
+      await t.pumpWidget(balancePage(onSave: (v) => saved = v));
+      await t.pumpAndSettle();
+      expect(find.byTooltip('Ẩn số dư'), findsOneWidget);
+      // Both rows carry a running-balance line by default.
+      expect(
+        find.text('Số dư ${formatMoney(_account.balance)}'),
+        findsOneWidget,
+      );
+
+      await t.tap(find.byTooltip('Ẩn số dư'));
+      await t.pumpAndSettle();
+      expect(saved, isFalse);
+      expect(find.byTooltip('Hiện số dư'), findsOneWidget);
+      // Per-row lines gone; the header's "Số dư hiện tại" anchor stays.
+      expect(find.text('Số dư ${formatMoney(_account.balance)}'), findsNothing);
+      expect(
+        find.text('Số dư ${formatMoney(_account.balance + 45000)}'),
+        findsNothing,
+      );
+      expect(find.text('Số dư hiện tại'), findsOneWidget);
+      expect(find.text(formatMoney(_account.balance)), findsOneWidget);
+    });
+
+    testWidgets('toggle back on restores every row line', (t) async {
+      await t.pumpWidget(balancePage(stored: false));
+      await t.pumpAndSettle();
+      expect(find.byTooltip('Hiện số dư'), findsOneWidget);
+      expect(find.text('Số dư ${formatMoney(_account.balance)}'), findsNothing);
+
+      await t.tap(find.byTooltip('Hiện số dư'));
+      await t.pumpAndSettle();
+      expect(
+        find.text('Số dư ${formatMoney(_account.balance)}'),
+        findsOneWidget,
+      );
+      // The older row's derived value comes back too — chain intact.
+      expect(
+        find.text('Số dư ${formatMoney(_account.balance + 45000)}'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a failed save reverts the display to the stored state', (
+      t,
+    ) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: AccountRegisterPage(
+            account: _account,
+            loadPage: inMemoryPageLoader(rows),
+            loadShowRunningBalance: () async => true,
+            onRunningBalanceVisibleChanged: (_) async =>
+                throw Exception('disk full'),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      await t.tap(find.byTooltip('Ẩn số dư'));
+      await t.pumpAndSettle();
+      // The write failed — the UI must not keep pretending it hid.
+      expect(
+        find.text('Số dư ${formatMoney(_account.balance)}'),
+        findsOneWidget,
+      );
+      expect(find.byTooltip('Ẩn số dư'), findsOneWidget);
     });
   });
 }
