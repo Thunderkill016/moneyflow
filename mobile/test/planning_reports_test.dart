@@ -126,6 +126,30 @@ String _prevMonthLabel() {
   return 'Tháng ${prev.month}/${prev.year}';
 }
 
+/// YYYY-MM-01 of the month after the current one — the exclusive bound
+/// of this month's report window.
+String _nextMonthStart() {
+  final now = DateTime.now();
+  final next = DateTime(now.year, now.month + 1);
+  return '${next.year}-${next.month.toString().padLeft(2, '0')}-01';
+}
+
+/// YYYY-MM-01 two months back — the prior window the MoM delta reads
+/// while the report shows the previous month.
+String _prevPrevMonthStart() {
+  final now = DateTime.now();
+  final pp = DateTime(now.year, now.month - 2);
+  return '${pp.year}-${pp.month.toString().padLeft(2, '0')}-01';
+}
+
+/// A date inside last month — rows here feed only the MoM delta's prior
+/// window, never the current report.
+String _prevMonthDay() {
+  final now = DateTime.now();
+  final prev = DateTime(now.year, now.month - 1, 10);
+  return '${prev.year}-${prev.month.toString().padLeft(2, '0')}-10';
+}
+
 /// A taller viewport — the report's sections outgrow the default 800x600
 /// surface and ListView builds offscreen rows lazily.
 void _tallViewport(WidgetTester tester) {
@@ -215,7 +239,7 @@ void main() {
     testWidgets('prefers the server-side month query over the feed page', (
       tester,
     ) async {
-      String? from, to;
+      final calls = <List<String>>[];
       var feedCalls = 0;
       await tester.pumpWidget(
         MaterialApp(
@@ -225,8 +249,7 @@ void main() {
               return const [];
             },
             loadRange: (f, t) async {
-              from = f;
-              to = t;
+              calls.add([f, t]);
               return (
                 rows: [
                   _tx(
@@ -245,8 +268,10 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(feedCalls, 0);
-      expect(from, _monthStart());
-      expect(to!.endsWith('-01'), isTrue);
+      // The viewed window reads first; its prior-window companion (the
+      // MoM delta baseline) is second — both server-side, never the feed.
+      expect(calls.first, [_monthStart(), _nextMonthStart()]);
+      expect(calls[1], [_prevMonthStart(), _monthStart()]);
       expect(find.textContaining('70.000'), findsWidgets);
     });
   });
@@ -1339,13 +1364,22 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(calls.single.first, _monthStart());
+      // Each view reads its own window plus the prior one — the MoM
+      // delta column needs the prior window's expense categories.
+      expect(calls, [
+        [_monthStart(), _nextMonthStart()],
+        [_prevMonthStart(), _monthStart()],
+      ]);
 
       await tester.tap(find.byIcon(Icons.chevron_left));
       await tester.pumpAndSettle();
 
-      // Previous month: [prev-1st, this-1st) — server-side, not the feed.
-      expect(calls.last, [_prevMonthStart(), _monthStart()]);
+      // Previous month: [prev-1st, this-1st) — server-side, not the
+      // feed — plus its own prior window for the deltas.
+      expect(calls.sublist(2), [
+        [_prevMonthStart(), _monthStart()],
+        [_prevPrevMonthStart(), _prevMonthStart()],
+      ]);
       expect(find.text(_prevMonthLabel()), findsOneWidget);
       // Now one month back, next is enabled again.
       expect(
@@ -1384,14 +1418,17 @@ void main() {
       key.currentState!.reload();
       await tester.pumpAndSettle();
 
-      expect(calls.last, _prevMonthStart());
+      // The viewed window is the call before its prior-window companion.
+      expect(calls[calls.length - 2], _prevMonthStart());
       expect(find.text(_prevMonthLabel()), findsOneWidget);
     });
 
     testWidgets('Tùy chọn applies the picked range and labels the report', (
       tester,
     ) async {
-      String? from, to;
+      // Every period view issues two range reads — its own window and
+      // the prior one the MoM delta compares against.
+      final calls = <List<String>>[];
       // Two months back keeps the window safely in the past — a picked end
       // beyond today would clamp and break the expected bounds.
       final now = DateTime.now();
@@ -1403,8 +1440,7 @@ void main() {
           home: ReportsPage(
             loadTransactions: () async => const [],
             loadRange: (f, t) async {
-              from = f;
-              to = t;
+              calls.add([f, t]);
               return (rows: const <Transaction>[], truncated: false);
             },
             pickRange: (_) async => DateTimeRange(start: start, end: end),
@@ -1416,9 +1452,12 @@ void main() {
       await tester.tap(find.text('Tùy chọn'));
       await tester.pumpAndSettle();
 
-      // Inclusive end 20th -> exclusive bound 21st.
-      expect(from, '${start.year}-${pad(start.month)}-05');
-      expect(to, '${start.year}-${pad(start.month)}-21');
+      // Inclusive end 20th -> exclusive bound 21st. The viewed window's
+      // read precedes its prior-window companion call.
+      expect(calls[calls.length - 2], [
+        '${start.year}-${pad(start.month)}-05',
+        '${start.year}-${pad(start.month)}-21',
+      ]);
       expect(
         find.text('5/${start.month} – 20/${start.month}/${start.year}'),
         findsOneWidget,
@@ -1428,7 +1467,7 @@ void main() {
       await tester.tap(find.text('Tháng này'));
       await tester.pumpAndSettle();
       expect(find.text('Tháng ${now.month}/${now.year}'), findsOneWidget);
-      expect(from, _monthStart());
+      expect(calls[calls.length - 2], [_monthStart(), _nextMonthStart()]);
     });
 
     testWidgets('a failed period keeps its label; retry reloads it', (
@@ -1463,7 +1502,171 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Không có giao dịch trong kỳ này'), findsOneWidget);
-      expect(calls.last, _prevMonthStart());
+      // The viewed window's read precedes its prior-window companion.
+      expect(calls[calls.length - 2], _prevMonthStart());
+    });
+  });
+
+  group('ReportsPage payee ranking + MoM deltas', () {
+    testWidgets('payee rows show the transaction count behind the total', (
+      tester,
+    ) async {
+      _tallViewport(tester);
+      final day = _thisMonthDay();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ReportsPage(
+            loadTransactions: () => Future.value([
+              _tx(
+                't1',
+                TransactionKind.expense,
+                'Ăn uống',
+                30000,
+                day,
+                payee: 'Quán A',
+              ),
+              _tx(
+                't2',
+                TransactionKind.expense,
+                'Ăn uống',
+                20000,
+                day,
+                payee: 'Quán A',
+              ),
+              _tx(
+                't3',
+                TransactionKind.expense,
+                'Di chuyển',
+                50000,
+                day,
+                payee: 'Grab',
+              ),
+            ]),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 'Quán A' two khoản · 'Grab' one — the ranking carries its count.
+      expect(find.text('Quán A'), findsOneWidget);
+      expect(find.text('2 giao dịch'), findsOneWidget);
+      expect(find.text('1 giao dịch'), findsOneWidget);
+    });
+
+    testWidgets('category rows carry the honest delta vs the prior month', (
+      tester,
+    ) async {
+      _tallViewport(tester);
+      final day = _thisMonthDay(), prev = _prevMonthDay();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ReportsPage(
+            loadTransactions: () => Future.value([
+              // Rose: 50.000 now vs 30.000 prior → ▲ 20.000 ₫.
+              _tx('t1', TransactionKind.expense, 'Ăn uống', 50000, day),
+              _tx('p1', TransactionKind.expense, 'Ăn uống', 30000, prev),
+              // Fell: 20.000 vs 45.000 → ▼ 25.000 ₫.
+              _tx('t2', TransactionKind.expense, 'Di chuyển', 20000, day),
+              _tx('p2', TransactionKind.expense, 'Di chuyển', 45000, prev),
+              // Level: a real zero reads 'Không đổi', not a missing line.
+              _tx('t3', TransactionKind.expense, 'Giải trí', 10000, day),
+              _tx('p3', TransactionKind.expense, 'Giải trí', 10000, prev),
+              // New this month — 'mới', never a fake ▲ off a 0 baseline.
+              _tx('t4', TransactionKind.expense, 'Sức khỏe', 15000, day),
+              // Prior-only spend: no current row, so nothing poses as 0.
+              _tx('p4', TransactionKind.expense, 'Tiền nhà', 3000000, prev),
+            ]),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('▲ 20.000 ₫'), findsOneWidget);
+      expect(find.text('▼ 25.000 ₫'), findsOneWidget);
+      expect(find.text('Không đổi'), findsOneWidget);
+      expect(find.text('mới'), findsOneWidget);
+      // The dropped-to-zero category keeps its row as an honest zero —
+      // 0 ₫ is recorded fact, and the ▼ names what it fell by. Hiding
+      // it would make "stopped spending" look like "never existed".
+      expect(find.text('Tiền nhà'), findsOneWidget);
+      expect(find.text('▼ 3.000.000 ₫'), findsOneWidget);
+      expect(find.text('▲/▼ so với kỳ trước'), findsOneWidget);
+    });
+
+    testWidgets('a capped prior read drops the column with a reason', (
+      tester,
+    ) async {
+      _tallViewport(tester);
+      final day = _thisMonthDay();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ReportsPage(
+            loadTransactions: () async => const [],
+            loadRange: (from, to) async {
+              // The prior window ends at this month's first — only it
+              // reports itself capped here.
+              final isPrev = to == _monthStart();
+              return (
+                rows: isPrev
+                    ? const <Transaction>[]
+                    : [
+                        _tx(
+                          't1',
+                          TransactionKind.expense,
+                          'Ăn uống',
+                          50000,
+                          day,
+                        ),
+                      ],
+                truncated: isPrev,
+              );
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Arrows on a partial baseline would lie — the section says why
+      // the column is missing instead.
+      expect(find.text('Ăn uống'), findsOneWidget);
+      expect(
+        find.text('Chưa so được với kỳ trước — dữ liệu kỳ trước chưa tải đủ'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('▲'), findsNothing);
+      expect(find.text('mới'), findsNothing);
+    });
+
+    testWidgets('a failed prior read degrades the column, not the report', (
+      tester,
+    ) async {
+      _tallViewport(tester);
+      final day = _thisMonthDay();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ReportsPage(
+            loadTransactions: () async => const [],
+            loadRange: (from, to) async {
+              if (to == _monthStart()) throw Exception('offline');
+              return (
+                rows: [
+                  _tx('t1', TransactionKind.expense, 'Ăn uống', 50000, day),
+                ],
+                truncated: false,
+              );
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The report loaded fine — only the comparison is absent.
+      expect(find.text('Ăn uống'), findsOneWidget);
+      expect(
+        find.text('Chưa so được với kỳ trước — dữ liệu kỳ trước chưa tải đủ'),
+        findsOneWidget,
+      );
+      expect(find.text('Không tải được báo cáo'), findsNothing);
     });
   });
 

@@ -80,9 +80,17 @@ class ReportsPage extends StatefulWidget {
 class ReportsPageState extends State<ReportsPage> {
   /// [buckets] feeds the Thu/Chi weekly chart — computed on the same
   /// range read as the report so the chart can never disagree with the
-  /// totals beside it.
+  /// totals beside it. [deltas] is the expense-category MoM column —
+  /// null when the prior window's read failed or came back capped, so
+  /// the section can explain the missing column instead of drawing
+  /// arrows on a partial baseline.
   late Future<
-    ({PeriodReport report, bool truncated, List<WeeklyBucket> buckets})
+    ({
+      PeriodReport report,
+      bool truncated,
+      List<WeeklyBucket> buckets,
+      Map<String, CategoryDelta>? deltas,
+    })
   >
   _report;
   late ReportPeriod _period;
@@ -108,14 +116,38 @@ class ReportsPageState extends State<ReportsPage> {
     _netWorth = _loadNetWorth();
   }
 
-  Future<({PeriodReport report, bool truncated, List<WeeklyBucket> buckets})>
+  Future<
+    ({
+      PeriodReport report,
+      bool truncated,
+      List<WeeklyBucket> buckets,
+      Map<String, CategoryDelta>? deltas,
+    })
+  >
   _load() async {
     final period = _period;
-    final range = await _rowsFor(period);
+    // The prior window feeds only the MoM delta column — its read is a
+    // companion, so a failure degrades the column to an honest note
+    // instead of blanking a report that loaded fine (and a capped read
+    // can never pose as a real "0" baseline).
+    final currentRead = _rowsFor(period);
+    final previousRead = _rowsFor(period.prev)
+        .then<({List<Transaction> rows, bool truncated})?>(
+          (v) => v,
+          onError: (_) => null,
+        );
+    final range = await currentRead;
+    final prevRange = await previousRead;
     return (
       report: buildPeriodReport(range.rows),
       truncated: range.truncated,
       buckets: weeklyIncomeExpense(range.rows, period.from, period.to),
+      deltas: prevRange == null || prevRange.truncated
+          ? null
+          : expenseCategoryDeltas(
+              current: range.rows,
+              previous: prevRange.rows,
+            ),
     );
   }
 
@@ -463,6 +495,7 @@ class ReportsPageState extends State<ReportsPage> {
                 final r = snap.data!.report;
                 final truncated = snap.data!.truncated;
                 final buckets = snap.data!.buckets;
+                final deltas = snap.data!.deltas;
                 return RefreshIndicator(
                   onRefresh: _refresh,
                   child: ListView(
@@ -547,6 +580,11 @@ class ReportsPageState extends State<ReportsPage> {
                           title: 'Chi theo danh mục',
                           rows: r.categories,
                           emptyLabel: 'Chưa có khoản chi trong kỳ này',
+                          deltas: deltas,
+                          deltaNote: deltas == null
+                              ? 'Chưa so được với kỳ trước — dữ liệu kỳ '
+                                    'trước chưa tải đủ'
+                              : '▲/▼ so với kỳ trước',
                           onRowTap: _rowTap(
                             (id) => _periodQuery().copyWith(
                               kind: TransactionKind.expense,
@@ -826,19 +864,70 @@ class _WeeklyChart extends StatelessWidget {
 /// One named breakdown — title, honest empty label, and a progress-bar row
 /// per entry in the existing card style. When [onRowTap] is set, rows
 /// whose [CategoryShare.id] resolves drill into the filtered activity
-/// feed; key-less rows and a missing seam stay read-only.
+/// feed; key-less rows and a missing seam stay read-only. [deltas] turns
+/// on the MoM column (the expense-category section); [deltaNote] is the
+/// small anchor/explanation line under the title.
 class _ShareSection extends StatelessWidget {
   const _ShareSection({
     required this.title,
     required this.rows,
     required this.emptyLabel,
     this.onRowTap,
+    this.deltas,
+    this.deltaNote,
   });
 
   final String title;
   final List<CategoryShare> rows;
   final String emptyLabel;
   final void Function(CategoryShare row)? onRowTap;
+
+  /// Per-bucket MoM deltas keyed by [categoryDeltaKey] — the expense
+  /// category section's comparison column. Other sections leave it null.
+  final Map<String, CategoryDelta>? deltas;
+
+  /// Small line under the title: the ▲/▼ anchor ("so với kỳ trước")
+  /// when deltas show, or the honest reason the column is absent.
+  final String? deltaNote;
+
+  /// Rows the comparison section renders: the period's breakdown plus
+  /// any bucket that existed only in the prior window — a category that
+  /// fell to zero keeps its ▼ delta visible as an honest 0 ₫ row
+  /// instead of silently leaving the comparison. Sections without
+  /// [deltas], or an empty breakdown (whose 'Chưa có khoản chi' card
+  /// already says the period is bare), render [rows] untouched.
+  List<CategoryShare> get _visibleRows {
+    final map = deltas;
+    if (map == null || rows.isEmpty) return rows;
+    final present = {for (final r in rows) categoryDeltaKey(r)};
+    return [
+      ...rows,
+      for (final e in map.entries)
+        if (!present.contains(e.key))
+          CategoryShare(
+            name: e.value.name,
+            amount: 0,
+            share: 0,
+            id: e.value.id,
+          ),
+    ];
+  }
+
+  /// The row's MoM cell — right-aligned under the amount column. Null
+  /// when the section carries no deltas or a key somehow has none
+  /// (never rendered as a guess). It lives in the subtitle, not
+  /// [ListTile.trailing]: trailing is height-capped and would clip a
+  /// third line at large text scales.
+  Widget? _deltaCell(CategoryShare row) {
+    final map = deltas;
+    if (map == null) return null;
+    final delta = map[categoryDeltaKey(row)];
+    if (delta == null) return null;
+    return Align(
+      alignment: Alignment.centerRight,
+      child: _CategoryDeltaText(delta: delta),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -849,24 +938,89 @@ class _ShareSection extends StatelessWidget {
         Text(title, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         if (rows.isEmpty) Card(child: ListTile(title: Text(emptyLabel))),
-        for (final c in rows)
-          Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: ListTile(
-              title: Text(c.name),
-              subtitle: LinearProgressIndicator(
-                value: (c.share / 100).clamp(0.0, 1.0),
-              ),
-              trailing: Text(
-                '${formatMoney(c.amount)}\n${c.share}%',
-                textAlign: TextAlign.end,
-              ),
-              onTap: onRowTap == null || c.id == null
-                  ? null
-                  : () => onRowTap!(c),
+        if (rows.isNotEmpty && deltaNote != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              deltaNote!,
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: context.mf.textSoft),
             ),
           ),
+        for (final c in _visibleRows) _rowCard(context, c),
       ],
+    );
+  }
+
+  Widget _rowCard(BuildContext context, CategoryShare c) {
+    final delta = _deltaCell(c);
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        title: Text(c.name),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            LinearProgressIndicator(value: (c.share / 100).clamp(0.0, 1.0)),
+            if (c.count != null)
+              Text(
+                '${c.count} giao dịch',
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
+            ?delta,
+          ],
+        ),
+        isThreeLine: c.count != null || delta != null,
+        trailing: Text(
+          '${formatMoney(c.amount)}\n${c.share}%',
+          textAlign: TextAlign.end,
+        ),
+        onTap: onRowTap == null || c.id == null ? null : () => onRowTap!(c),
+      ),
+    );
+  }
+}
+
+/// One MoM delta cell — ▲/▼ with the amount, "mới" when the category
+/// had no prior-window expense, "Không đổi" for a real zero change.
+/// Direction is carried by the arrow/word first, colour second —
+/// expense-red for a rise, income-green for a fall (spending less is
+/// the good direction), soft ink for the neutral states.
+class _CategoryDeltaText extends StatelessWidget {
+  const _CategoryDeltaText({required this.delta});
+
+  final CategoryDelta delta;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final mf = context.mf;
+    final style = theme.textTheme.labelSmall;
+    if (delta.previous == null) {
+      return Text(
+        'mới',
+        semanticsLabel: 'danh mục mới — kỳ trước chưa có khoản chi nào',
+        style: style?.copyWith(color: mf.textSoft),
+      );
+    }
+    final change = delta.change;
+    if (change == 0) {
+      return Text(
+        'Không đổi',
+        semanticsLabel: 'không đổi so với kỳ trước',
+        style: style?.copyWith(color: mf.textSoft),
+      );
+    }
+    final up = change > 0;
+    final amount = formatMoney(change.abs());
+    return Text(
+      '${up ? '▲' : '▼'} $amount',
+      semanticsLabel: '${up ? 'tăng' : 'giảm'} $amount so với kỳ trước',
+      style: style?.copyWith(
+        color: up ? mf.expenseText : mf.incomeText,
+        fontWeight: FontWeight.w600,
+      ),
     );
   }
 }

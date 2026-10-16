@@ -1,6 +1,6 @@
 # PROGRESS — MoneyFlow Android mega-task
 STATUS: IN_PROGRESS
-LAST UPDATE: 2026-10-16 (D3 honest month remainder + budget threshold alerts)
+LAST UPDATE: 2026-10-16 (D4 payee statistics + MoM category deltas)
 DONE THIS ROUND:
 - Step Zero DONE: branch mobile/android-app pushed, PR #795 open (head ec8591b9).
 - Prior session shipped: permanent-delete trash (mobile+web+RPC+schema-cache fix), SnackBar a11y watchdog fix (1187+ tests green), Monarch deep-dive docs/research/MONARCH_DEEP_DIVE.md, rules preview + apply-to-existing (mobile+web), edit→rule offer (mobile). All committed.
@@ -81,7 +81,27 @@ DONE THIS ROUND:
     `HomeShellState.selectTab`; demo wires seeded prior-month rows.
   - Verification: `dart format` clean; `flutter analyze` clean;
     `flutter test` 1338 green (17 new D3 tests).
+- **D4 payee statistics + MoM category deltas shipped on
+  feat/mobile-theme** (mobile-only, no schema work — see FIXLOG.md
+  "FEATURE: D4" for files and proof):
+  - "Chi theo người nhận" rows now carry "N giao dịch" beside the total
+    (`CategoryShare.count`, expense-only buckets; drill-in unchanged).
+  - "Chi theo danh mục" gains a per-category MoM column:
+    `expenseCategoryDeltas` buckets current+prior expense rows on the
+    same key rule the breakdown uses; `ReportsPage` reads `period.prev`
+    as a companion so a failed/capped prior read degrades the column to
+    an honest note, never arrows on a partial baseline. ▲/▼ + amount,
+    "mới" for no prior data, "Không đổi" for a real zero; prior-only
+    categories render as honest 0 ₫ rows instead of disappearing. The
+    delta rides the subtitle (ListTile.trailing is height-capped and
+    clipped a third line at 2x text scale — B1 audit caught it).
+  - Activity filter sheet gains an exact-payee "Người nhận" field on
+    the shipped `TransactionQuery.payee` plumbing. Pending chip and the
+    detail "similar transactions" block waived — no ledger pending
+    field exists and the app has no detail surface (see DECISIONS.md).
+  - Verification: `dart format` clean; `flutter analyze` clean;
+    `flutter test` 1354 green (16 new D4 tests).
 AUDIT OPEN: P0=0 P1=0 P2=0 (all findings shipped — see FIXLOG.md)
 GAPS OPEN: web EditTransactionDialog lacks "save as rule" offer (mobile has it); Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
-NEXT STEP: Loop B gap list — D4 (payee statistics + MoM category deltas: top-10 payees chart, per-category MoM delta column, similar-transactions block, payee/reviewed/pending filter chips, RESEARCH_TOP_FINANCE_APPS.md §10); D1+D2+D3 done.
+NEXT STEP: Loop B gap list — D5 (review-loop polish: swipe-to-review on inbox + activity lists, bulk "mark reviewed", dashboard attention card with needs-review count/overdue commitments/drift flags — verified data only; RESEARCH_TOP_FINANCE_APPS.md §10); D1+D2+D3+D4 done.
 RESUME: re-read this file, then continue at NEXT STEP.

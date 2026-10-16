@@ -238,6 +238,190 @@ void main() {
     });
   });
 
+  group('payee counts', () {
+    test('payee rows carry the transaction count behind the total', () {
+      final r = buildPeriodReport([
+        tx(TransactionKind.expense, 30000, payee: 'Quán A'),
+        tx(TransactionKind.expense, 20000, payee: 'Quán A'),
+        tx(TransactionKind.expense, 50000, payee: 'Quán B'),
+        tx(TransactionKind.expense, 10000), // lands in 'Không tên'
+        // Income rows never join the payee section at all.
+        tx(TransactionKind.income, 9000000, payee: 'Công ty'),
+      ]);
+      final byName = {for (final p in r.payees) p.name: p};
+      expect(byName['Quán B']!.count, 1);
+      expect(byName['Quán B']!.amount, 50000);
+      expect(byName['Quán A']!.count, 2);
+      expect(byName['Quán A']!.amount, 50000);
+      expect(byName[unnamedPayeeBucket]!.count, 1);
+    });
+
+    test('category, income and account rows carry no count', () {
+      // Count is the payee ranking's field — the other sections leave
+      // it null rather than display an unasked-for number.
+      final r = buildPeriodReport([
+        tx(TransactionKind.expense, 30000, category: 'Ăn uống'),
+        tx(TransactionKind.income, 9000000, category: 'Lương'),
+      ]);
+      expect(r.categories.single.count, isNull);
+      expect(r.incomeCategories.single.count, isNull);
+      expect(r.accounts.single.count, isNull);
+    });
+  });
+
+  group('expenseCategoryDeltas', () {
+    /// Rows keyed like the feed — 'c-$category' keeps each display name
+    /// on a distinct stored id, the same data the backend sends.
+    Transaction cat(String category, int amount, {String? categoryId}) =>
+        Transaction(
+          id: 't',
+          kind: TransactionKind.expense,
+          categoryId: categoryId ?? 'c-$category',
+          category: category,
+          note: '',
+          accountId: 'a',
+          account: 'A',
+          amount: amount,
+          occurredOn: '2026-10-01',
+        );
+
+    test('rise, drop and unchanged buckets report honest signs', () {
+      final deltas = expenseCategoryDeltas(
+        current: [
+          cat('Ăn uống', 50000),
+          cat('Di chuyển', 20000),
+          cat('Khác', 7),
+        ],
+        previous: [
+          cat('Ăn uống', 30000),
+          cat('Di chuyển', 45000),
+          cat('Khác', 7),
+        ],
+      );
+      expect(deltas['c-Ăn uống']!.current, 50000);
+      expect(deltas['c-Ăn uống']!.previous, 30000);
+      expect(deltas['c-Ăn uống']!.change, 20000);
+      expect(deltas['c-Di chuyển']!.change, -25000);
+      expect(deltas['c-Khác']!.change, 0);
+    });
+
+    test('a category absent last window is "mới" — previous null, not 0', () {
+      final deltas = expenseCategoryDeltas(
+        current: [cat('Sức khỏe', 15000)],
+        previous: [cat('Ăn uống', 30000)],
+      );
+      // Null marks "no prior data" — a real 0 baseline would wrongly
+      // read as "không đổi" for a 0-amount current row.
+      expect(deltas['c-Sức khỏe']!.previous, isNull);
+      expect(deltas['c-Sức khỏe']!.change, 15000);
+    });
+
+    test('no prior window data at all — every bucket is new', () {
+      final deltas = expenseCategoryDeltas(
+        current: [cat('Ăn uống', 50000)],
+        previous: const [],
+      );
+      expect(deltas['c-Ăn uống']!.previous, isNull);
+    });
+
+    test('spending dropped to zero keeps its honest negative change', () {
+      // A prior-only bucket stays in the map — carrying its label and
+      // drill-in id so the section can render the honest zero row.
+      final deltas = expenseCategoryDeltas(
+        current: [cat('Ăn uống', 50000)],
+        previous: [cat('Ăn uống', 30000), cat('Tiền nhà', 3000000)],
+      );
+      expect(deltas['c-Tiền nhà']!.current, 0);
+      expect(deltas['c-Tiền nhà']!.previous, 3000000);
+      expect(deltas['c-Tiền nhà']!.change, -3000000);
+      expect(deltas['c-Tiền nhà']!.name, 'Tiền nhà');
+      expect(deltas['c-Tiền nhà']!.id, 'c-Tiền nhà');
+    });
+
+    test('a name-only prior bucket carries its label, no id', () {
+      final deltas = expenseCategoryDeltas(
+        current: [cat('Ăn uống', 50000)],
+        previous: [cat('Chợ', 80000, categoryId: '')],
+      );
+      expect(deltas['name:Chợ']!.name, 'Chợ');
+      expect(deltas['name:Chợ']!.id, isNull);
+      expect(deltas['name:Chợ']!.change, -80000);
+    });
+
+    test('name-only buckets match across windows like the breakdown', () {
+      // Feed rows without a category_id group under 'name:<label>' —
+      // the delta must bucket identically or rows would miss their key.
+      final deltas = expenseCategoryDeltas(
+        current: [cat('Tên lạ', 40000, categoryId: '')],
+        previous: [cat('Tên lạ', 25000, categoryId: '')],
+      );
+      expect(deltas['name:Tên lạ']!.change, 15000);
+    });
+
+    test('same-name categories on different ids stay separate', () {
+      // Two stored ids sharing a label never merge — merging would
+      // make a row's delta disagree with the drill-in behind it.
+      final deltas = expenseCategoryDeltas(
+        current: [cat('Ăn uống', 30000, categoryId: 'cat-1')],
+        previous: [
+          cat('Ăn uống', 20000, categoryId: 'cat-1'),
+          cat('Ăn uống', 90000, categoryId: 'cat-2'),
+        ],
+      );
+      expect(deltas['cat-1']!.change, 10000);
+      // cat-2 fell to zero this window — honest negative, not absent.
+      expect(deltas['cat-2']!.change, -90000);
+    });
+
+    test('income, transfers and uncategorised spend never feed a delta', () {
+      Transaction kind(TransactionKind k, String category, int amount) =>
+          Transaction(
+            id: 't',
+            kind: k,
+            categoryId: 'c-$category',
+            category: category,
+            note: '',
+            accountId: 'a',
+            account: 'A',
+            amount: amount,
+            occurredOn: '2026-10-01',
+          );
+      final deltas = expenseCategoryDeltas(
+        current: [
+          kind(TransactionKind.income, 'Lương', 9000000),
+          kind(TransactionKind.transfer, 'Chuyển', 500000),
+          // An expense row carrying no category label joins no bucket,
+          // exactly like the breakdown it feeds.
+          Transaction(
+            id: 't',
+            kind: TransactionKind.expense,
+            categoryId: '',
+            category: '',
+            note: '',
+            accountId: 'a',
+            account: 'A',
+            amount: 60000,
+            occurredOn: '2026-10-01',
+          ),
+        ],
+        previous: [cat('Ăn uống', 30000)],
+      );
+      expect(deltas.keys, {'c-Ăn uống'});
+    });
+
+    test('categoryDeltaKey maps a row to its bucket like the report', () {
+      const named = CategoryShare(
+        name: 'Ăn uống',
+        amount: 1,
+        share: 1,
+        id: 'cat-1',
+      );
+      const unnamed = CategoryShare(name: 'Tên lạ', amount: 1, share: 1);
+      expect(categoryDeltaKey(named), 'cat-1');
+      expect(categoryDeltaKey(unnamed), 'name:Tên lạ');
+    });
+  });
+
   group('MonthPeriod', () {
     test('bounds cover the whole calendar month', () {
       final p = MonthPeriod(2026, 10);

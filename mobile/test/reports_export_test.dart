@@ -135,14 +135,16 @@ void main() {
       },
       share: share,
     );
-    expect(rangeCalls, 1); // the report's own load
+    // The report's own load — its window plus the prior-window
+    // companion the MoM delta column reads.
+    expect(rangeCalls, 2);
 
     await _openSheet(tester);
     await tester.tap(find.text('Xuất CSV kỳ này'));
     await _untilShared(tester, share);
 
-    // A second fetch — the export never reuses the on-screen rows.
-    expect(rangeCalls, 2);
+    // A fresh fetch — the export never reuses the on-screen rows.
+    expect(rangeCalls, 3);
     expect(share.calls, 1);
     expect(share.mime, 'text/csv;charset=utf-8');
     expect(share.path, endsWith(_expectedCsvName()));

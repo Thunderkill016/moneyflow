@@ -834,12 +834,19 @@ class _FilterSheetState extends State<_FilterSheet> {
   late final _max = TextEditingController(
     text: widget.initial.maxAmount?.toString() ?? '',
   );
+
+  /// Exact-payee input — the same field the reports payee drill-in
+  /// filters on. The unnamed bucket ('' payee) projects as a blank
+  /// field: applying blank clears the filter, which matches what the
+  /// chip row's X does for a drilled-in bucket.
+  late final _payee = TextEditingController(text: widget.initial.payee ?? '');
   String? _amountError;
 
   @override
   void dispose() {
     _min.dispose();
     _max.dispose();
+    _payee.dispose();
     super.dispose();
   }
 
@@ -898,6 +905,8 @@ class _FilterSheetState extends State<_FilterSheet> {
     }
     var q = _q.copyWith(clearAmounts: true);
     if (lo != null || hi != null) q = q.copyWith(minAmount: lo, maxAmount: hi);
+    final payee = _payee.text.trim();
+    q = payee.isEmpty ? q.copyWith(clearPayee: true) : q.copyWith(payee: payee);
     Navigator.pop(context, q);
   }
 
@@ -905,6 +914,7 @@ class _FilterSheetState extends State<_FilterSheet> {
     _q = TransactionQuery(text: _q.text);
     _min.clear();
     _max.clear();
+    _payee.clear();
     _amountError = null;
   });
 
@@ -974,6 +984,13 @@ class _FilterSheetState extends State<_FilterSheet> {
                         ),
                       ),
               ),
+            TextField(
+              controller: _payee,
+              decoration: const InputDecoration(
+                labelText: 'Người nhận',
+                hintText: 'vd. Grab, Quán A',
+              ),
+            ),
             ListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Khoảng ngày'),

@@ -343,3 +343,54 @@ Format: `ID | files changed | why | proof (test names)`.
   `home_shell_test.dart` (+1: selectTab programmatic switch + no-op
   guards). `dart format` clean; `flutter analyze` clean;
   `flutter test` 1338 all green.
+- **FEATURE: D4 payee statistics + MoM category deltas** |
+  `mobile/lib/domain/report.dart`,
+  `mobile/lib/features/reports/reports_page.dart`,
+  `mobile/lib/features/activity/activity_page.dart`,
+  `mobile/test/report_test.dart`,
+  `mobile/test/planning_reports_test.dart`,
+  `mobile/test/activity_search_test.dart`,
+  `mobile/test/reports_export_test.dart` |
+  Loop B gap D4 (RESEARCH_TOP_FINANCE_APPS.md §10 — PocketGuard 7.3 MoM
+  category arrows + top-10 merchants, Copilot 3.4 similar-txns, Monarch
+  1.2 filters). The payee breakdown, `TransactionQuery.payee` drill-in
+  and the "Cần xem lại" chip already shipped; this slice adds the
+  statistics on top. Payee ranking: `CategoryShare` gains `count` —
+  `buildPeriodReport` counts expense transactions per trimmed-payee
+  bucket so "Chi theo người nhận" rows render "N giao dịch" under the
+  bar (expense-only: income/transfers structurally excluded; the
+  "Không tên" bucket keeps its honest label and its '' drill-in).
+  MoM column: `expenseCategoryDeltas` buckets the current AND prior
+  expense rows on the same key rule the breakdown groups by (stored
+  category_id, else 'name:<label>'), so a rendered delta can never
+  disagree with the row's own drill-in. ReportsPage reads
+  `period.prev` as a companion — a failed or capped prior read yields
+  `deltas == null` and the section explains "Chưa so được với kỳ
+  trước — dữ liệu kỳ trước chưa tải đủ" instead of drawing arrows on
+  a partial baseline. Cells: `▲/▼` + amount (rise = expense-red, fall
+  = income-green — spending less is the good direction — with
+  semanticsLabels so direction never rides colour alone), "mới" for a
+  null baseline, "Không đổi" for a real zero; prior-only buckets append
+  as honest 0 ₫ rows so a category that stopped entirely can't pose as
+  never-having-existed. The delta rides the subtitle, not
+  `ListTile.trailing` — trailing is height-capped and clipped the third
+  line at 2x text scale (caught by the B1 audit test). Filters: the
+  activity sheet gains an exact-payee "Người nhận" field on the same
+  query field the drill-in uses; blank clears. Pending-filter and the
+  transaction-detail "similar transactions" block are waived — the
+  ledger has no pending/posted field to filter on and the app has no
+  detail surface to host the block (see DECISIONS.md). |
+  `report_test.dart` (+11: payee counts; delta rise/drop/level, "mới"
+  vs real-zero baseline, no prior window, dropped-to-zero keeps
+  name/id/negative change, name-only buckets match, same-name different
+  ids stay separate, income/transfers/uncategorised never feed,
+  categoryDeltaKey parity);
+  `planning_reports_test.dart` (+4: payee count rows, ▲/▼/mới/Không
+  đổi/dropped-to-zero render, capped prior read drops the column with
+  a reason, failed prior read degrades the column not the report) plus
+  range-call updates for the companion read;
+  `activity_search_test.dart` (+1: exact payee applies and clears —
+  'Grab' never matches 'GrabBike');
+  `reports_export_test.dart` (call counts for the second range read).
+  `dart format` clean; `flutter analyze` clean; `flutter test` 1354
+  all green.
