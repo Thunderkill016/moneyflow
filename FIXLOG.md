@@ -394,3 +394,74 @@ Format: `ID | files changed | why | proof (test names)`.
   `reports_export_test.dart` (call counts for the second range read).
   `dart format` clean; `flutter analyze` clean; `flutter test` 1354
   all green.
+- **FEATURE: D5 review-loop polish — swipe gestures + dashboard
+  attention card** | `mobile/lib/features/activity/activity_page.dart`,
+  `mobile/lib/features/inbox/inbox_page.dart`,
+  `mobile/lib/features/dashboard/dashboard_page.dart`,
+  `mobile/lib/data/neon/real_store.dart`,
+  `mobile/lib/domain/models.dart`,
+  `mobile/lib/app/app.dart`,
+  `mobile/test/dashboard_page_test.dart` (new),
+  `mobile/test/activity_page_test.dart`,
+  `mobile/test/inbox_test.dart`,
+  `mobile/test/mf_theme_test.dart` |
+  Loop B gap D5 (RESEARCH_TOP_FINANCE_APPS.md §10 — Monarch 1.5 swipe,
+  Copilot 3.1 bulk mark-reviewed + dashboard card, Rocket 4.5 attention
+  card). Recon found most of the loop already shipped (needsReview flag,
+  bulk mark-reviewed via select mode, "Cần xem lại" chip, count-only
+  dashboard card, explicit per-candidate inbox approve); this slice
+  fills the real gaps only.
+  Gestures: Activity rows flagged needs_review are now swipable right —
+  "Đã xem" runs through the SAME `onBulkReview` RPC seam select mode
+  uses (one id in the list), guarded per-row by `_reviewBusy` since the
+  RPC has no idempotency key; the tile never actually dismisses — the
+  flag flip (or row removal under the active filter) is the result —
+  with "Hoàn tác" re-flagging through the same seam and failures
+  snapping back with the shared `_bulkError` copy. Inbox rows swipe
+  left into the SAME confirmed reject the "Từ chối" button runs —
+  `_confirmReject`/`_writeReject`/`_markRejected` are shared, so the
+  gesture saves the tap, never the confirmation; rejected ids hide via
+  `_removedIds` until the next server truth arrives, and `_rejectBusy`
+  defends the non-idempotent write. No approve gesture exists and no
+  bulk-approve exists — approval posts to the ledger, so it stays
+  inside the review sheet where account/category and the plan verdict
+  are visible (see DECISIONS.md).
+  Attention card: the count-only `_NeedsReviewCard` became
+  `_AttentionCard` with four verified rows — inbox drafts (count +
+  newest merchant/amount lines via `loadPendingInboxPreviews`,
+  "Chưa vào sổ" subtitle), posted rows still flagged needs_review
+  (count + payee-or-note/amount lines via
+  `loadNeedsReviewTransactions` — the id read on
+  `transaction_review_feed` is deliberately unbounded so the count is
+  the full backlog while the preview caps at `_maxPreviewLines` = 2),
+  overdue commitments and paid-different drift — both classified by
+  the same `commitmentStatus` math the Kế hoạch list renders, on one
+  `vnNow()` read shared with the remainder card. Every row taps to a
+  real destination (inbox page, feed pre-filtered via the new
+  `ActivityPage.initialOnlyNeedsReview`, planning tab); a row without
+  a wired destination shows its count with no chevron instead of a
+  dead affordance, and each optional read fails soft — the dashboard
+  never breaks for an auxiliary card. Demo wires the real seeded
+  inbox + commitment rows; posted needs-review has no demo seam so
+  that row honestly stays absent.
+  `dashboard_page_test.dart` (+10: card hides when nothing verified;
+  inbox count/lines/overflow/tap; needs-review lines + filtered-feed
+  tap; overdue + drift rows from verified states only; archived never
+  surfaces; failed attention reads hide the card not the page; no
+  destination → count without chevron; `loadNeedsReviewTransactions`
+  request shape + unbounded count with capped preview + flagged
+  mapping; empty flag set short-circuits to one request;
+  `loadPendingInboxPreviews` limit param).
+  `activity_page_test.dart` (+6: only flagged rows carry the
+  affordance; swipe marks reviewed via the bulk seam and clears the
+  flag line + chip; undo re-flags through the same seam; failed write
+  snaps back with the error copy; swipe under the active filter
+  removes the row into the honest empty state;
+  `initialOnlyNeedsReview` opens pre-filtered).
+  `inbox_test.dart` (+3: swipe-left runs the same confirmed reject —
+  Dismissible present, dialog, write, row gone + snack; cancelled
+  swipe snaps back with zero writes; failed write keeps the row with
+  the error copy).
+  `mf_theme_test.dart` (string updates for the renamed count line).
+  `dart format` clean; `flutter analyze` clean; `flutter test` 1373
+  all green.

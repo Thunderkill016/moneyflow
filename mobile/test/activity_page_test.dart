@@ -236,6 +236,115 @@ void main() {
     });
   });
 
+  group('swipe-to-review (D5)', () {
+    testWidgets('only flagged rows carry the swipe affordance', (t) async {
+      await t.pumpWidget(_bulkPage(_Bulk()));
+      await t.pumpAndSettle();
+
+      expect(
+        find.ancestor(
+          of: find.text('Grab'),
+          matching: find.byType(Dismissible),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.ancestor(
+          of: find.text('Bún bò'),
+          matching: find.byType(Dismissible),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('swipe right marks reviewed through the bulk seam', (t) async {
+      final spy = _Bulk();
+      await t.pumpWidget(_bulkPage(spy));
+      await t.pumpAndSettle();
+
+      await t.drag(find.text('Grab'), const Offset(500, 0));
+      await t.pumpAndSettle();
+
+      expect(spy.reviews.single.$1, ['tx-review']);
+      expect(spy.reviews.single.$2, isTrue);
+      // The write landed → the flag line and the chip both clear.
+      expect(find.textContaining('Cần xem lại'), findsNothing);
+      expect(find.text('Đã đánh dấu đã xem'), findsOneWidget);
+      expect(find.text('Hoàn tác'), findsOneWidget);
+    });
+
+    testWidgets('undo re-flags the row through the same seam', (t) async {
+      final spy = _Bulk();
+      await t.pumpWidget(_bulkPage(spy));
+      await t.pumpAndSettle();
+
+      await t.drag(find.text('Grab'), const Offset(500, 0));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Hoàn tác'));
+      await t.pumpAndSettle();
+
+      expect(spy.reviews.length, 2);
+      expect(spy.reviews.last.$1, ['tx-review']);
+      expect(spy.reviews.last.$2, isFalse);
+      expect(find.textContaining('Cần xem lại'), findsWidgets);
+    });
+
+    testWidgets('a failed swipe write snaps back and explains', (t) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: ActivityPage(
+            loadPage: inMemoryPageLoader(const [_plain, _review]),
+            onBulkReview: (ids, {required reviewed}) async =>
+                throw Exception('offline'),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      await t.drag(find.text('Grab'), const Offset(500, 0));
+      await t.pumpAndSettle();
+
+      expect(find.text('Không thực hiện được — thử lại'), findsOneWidget);
+      expect(find.textContaining('Cần xem lại'), findsWidgets);
+    });
+
+    testWidgets('under the needs-review filter a swiped row leaves the list', (
+      t,
+    ) async {
+      await t.pumpWidget(_bulkPage(_Bulk()));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Cần xem lại (1)'));
+      await t.pumpAndSettle();
+      expect(find.text('Grab'), findsOneWidget);
+
+      await t.drag(find.text('Grab'), const Offset(500, 0));
+      await t.pumpAndSettle();
+
+      expect(find.text('Grab'), findsNothing);
+      expect(find.text('Không còn khoản nào cần xem lại'), findsOneWidget);
+    });
+
+    testWidgets('initialOnlyNeedsReview opens the feed pre-filtered', (
+      t,
+    ) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: ActivityPage(
+            loadPage: inMemoryPageLoader(const [_plain, _review]),
+            onBulkReview: (ids, {required reviewed}) async {},
+            initialOnlyNeedsReview: true,
+            title: 'Cần xem lại',
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      expect(find.text('Cần xem lại'), findsWidgets); // title + chip/line
+      expect(find.text('Grab'), findsOneWidget);
+      expect(find.text('Bún bò'), findsNothing);
+    });
+  });
+
   testWidgets('tapping a plain row opens the editor', (t) async {
     final edited = <Transaction>[];
     await t.pumpWidget(_page(edited));

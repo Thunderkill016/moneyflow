@@ -32,6 +32,7 @@ class ActivityPage extends StatefulWidget {
     this.initialQuery,
     this.title,
     this.onCapture,
+    this.initialOnlyNeedsReview = false,
   });
 
   /// One page of the feed for a search/filter query.
@@ -73,6 +74,11 @@ class ActivityPage extends StatefulWidget {
   /// text, never a dead button.
   final VoidCallback? onCapture;
 
+  /// Opens with the "Cần xem lại" filter already on — the dashboard
+  /// attention card's needs-review row lands here instead of making the
+  /// user find the chip.
+  final bool initialOnlyNeedsReview;
+
   @override
   State<ActivityPage> createState() => ActivityPageState();
 }
@@ -100,8 +106,12 @@ class ActivityPageState extends State<ActivityPage> {
   int _gen = 0;
   bool _selecting = false;
   bool _searching = false;
-  bool _onlyNeedsReview = false;
+  late bool _onlyNeedsReview = widget.initialOnlyNeedsReview;
   final Set<String> _selected = {};
+
+  /// Rows whose swipe-mark-reviewed write is in flight — the RPC has no
+  /// per-call idempotency key, so the guard IS the double-submit defense.
+  final Set<String> _reviewBusy = {};
   final _search = TextEditingController();
   final _scroll = ScrollController();
   Timer? _debounce;
@@ -379,6 +389,68 @@ class ActivityPageState extends State<ActivityPage> {
     );
   }
 
+  /// Swipe-to-review (Monarch's gesture, D5): a needs-review row swiped
+  /// right marks reviewed through the same bulk-review seam select mode
+  /// uses — one id in the list. The tile itself never dismisses: the
+  /// flag flip (or removal under the "Cần xem lại" filter) is the
+  /// visible result, and a failure snaps it back with the error snack.
+  Future<bool> _swipeReview(Transaction t) async {
+    if (_reviewBusy.contains(t.id)) return false;
+    _reviewBusy.add(t.id);
+    try {
+      await widget.onBulkReview!([t.id], reviewed: true);
+    } catch (e) {
+      if (mounted) _snack(_bulkError(e));
+      return false;
+    } finally {
+      _reviewBusy.remove(t.id);
+    }
+    if (!mounted) return false;
+    _flipReviewFlag(t.id, needsReview: false);
+    showTimedSnackBar(
+      ScaffoldMessenger.of(context),
+      SnackBar(
+        content: const Text('Đã đánh dấu đã xem'),
+        action: SnackBarAction(
+          label: 'Hoàn tác',
+          onPressed: () => _restoreReviewFlag(t.id),
+        ),
+      ),
+    );
+    return false;
+  }
+
+  /// The undo path of a swipe — re-flags through the same seam. Local
+  /// state only mutates after the write lands, so the row's visible
+  /// state is always what the server holds.
+  Future<void> _restoreReviewFlag(String id) async {
+    if (_reviewBusy.contains(id)) return;
+    _reviewBusy.add(id);
+    try {
+      await widget.onBulkReview!([id], reviewed: false);
+    } catch (e) {
+      if (mounted) _snack(_bulkError(e));
+      return;
+    } finally {
+      _reviewBusy.remove(id);
+    }
+    if (mounted) _flipReviewFlag(id, needsReview: true);
+  }
+
+  /// Patches one loaded row's flag in place — no refetch: the write
+  /// already landed, so the local copy just mirrors the new truth
+  /// (paging offsets stay stable, unlike a page-one reload).
+  void _flipReviewFlag(String id, {required bool needsReview}) {
+    final rows = _rows;
+    if (rows == null) return;
+    setState(() {
+      _rows = [
+        for (final t in rows)
+          t.id == id ? t.copyWith(needsReview: needsReview) : t,
+      ];
+    });
+  }
+
   Future<void> _confirmDelete(Transaction tx) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -580,24 +652,42 @@ class ActivityPageState extends State<ActivityPage> {
     );
   }
 
-  Widget _tile(Transaction t) => _TxTile(
-    tx: t,
-    selecting: _selecting,
-    selected: _selected.contains(t.id),
-    onTap: _selecting
-        ? () => _toggle(t)
-        : widget.onEdit == null
-        ? null
-        : () => _openEdit(t),
-    onLongPress: _selecting
-        ? () => _toggle(t)
-        : widget.onDelete == null
-        ? null
-        : () => _confirmDelete(t),
-    onDelete: _selecting || widget.onDelete == null
-        ? null
-        : () => _confirmDelete(t),
-  );
+  Widget _tile(Transaction t) {
+    final tile = _TxTile(
+      tx: t,
+      selecting: _selecting,
+      selected: _selected.contains(t.id),
+      onTap: _selecting
+          ? () => _toggle(t)
+          : widget.onEdit == null
+          ? null
+          : () => _openEdit(t),
+      onLongPress: _selecting
+          ? () => _toggle(t)
+          : widget.onDelete == null
+          ? null
+          : () => _confirmDelete(t),
+      onDelete: _selecting || widget.onDelete == null
+          ? null
+          : () => _confirmDelete(t),
+    );
+    // Swipe-right = "Đã xem" on flagged rows only — no review seam (demo)
+    // or select mode keeps the row plain, and an already-reviewed row
+    // has nothing for the gesture to do.
+    final swipeable =
+        !_selecting &&
+        widget.onBulkReview != null &&
+        !_reviewBusy.contains(t.id) &&
+        t.reviewStatus == TransactionReviewStatus.needsReview;
+    if (!swipeable) return tile;
+    return Dismissible(
+      key: ValueKey('swipe-${t.id}'),
+      direction: DismissDirection.startToEnd,
+      confirmDismiss: (_) => _swipeReview(t),
+      background: const _SwipeReviewBackground(),
+      child: tile,
+    );
+  }
 
   Widget _footer() {
     if (_loadingMore) {
@@ -1282,6 +1372,40 @@ class _TxTile extends StatelessWidget {
                 onPressed: onDelete,
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Reveal under a needs-review row swiped right — the check icon and
+/// "Đã xem" words carry the action so the color never works alone.
+class _SwipeReviewBackground extends StatelessWidget {
+  const _SwipeReviewBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.only(left: 20),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.done, color: scheme.onPrimaryContainer),
+          const SizedBox(width: 6),
+          Text(
+            'Đã xem',
+            style: TextStyle(
+              color: scheme.onPrimaryContainer,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );

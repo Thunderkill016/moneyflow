@@ -84,6 +84,18 @@ class InboxPageState extends State<InboxPage> {
   /// convention TrashPage uses for restores.
   bool _changed = false;
 
+  /// Locally-resolved candidates — a reject (button or swipe) removes the
+  /// row from the visible queue without waiting for the next load; the
+  /// server state already flipped, so this only mirrors the truth. The
+  /// set stays small: one entry per rejected candidate, cleared on a
+  /// real refresh.
+  final Set<String> _removedIds = {};
+
+  /// Candidates with a reject write in flight — the RPC re-checks the
+  /// pending scope but a second call is still a wasted round-trip the
+  /// guard prevents.
+  final Set<String> _rejectBusy = {};
+
   @override
   void initState() {
     super.initState();
@@ -112,6 +124,9 @@ class InboxPageState extends State<InboxPage> {
     final next = _load();
     setState(() {
       _data = next;
+      // The server re-read is the truth now — a locally-hidden row that
+      // somehow still returns shows again instead of staying ghosted.
+      _removedIds.clear();
     });
     try {
       await next;
@@ -120,10 +135,9 @@ class InboxPageState extends State<InboxPage> {
     }
   }
 
-  /// Dismiss = server-side status flip to `rejected`, matching the web's
-  /// updateInboxCandidateAction — never a hard delete. The row only leaves
-  /// the list after the write succeeds; a failure keeps it visible.
-  Future<void> _reject(InboxCandidate c) async {
+  /// The reject confirmation — one dialog shared by the "Từ chối" button
+  /// and the swipe-left gesture so both paths promise the same thing.
+  Future<bool> _confirmReject(InboxCandidate c) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -144,29 +158,20 @@ class InboxPageState extends State<InboxPage> {
         ],
       ),
     );
-    if (confirmed != true || !mounted) return;
+    return confirmed == true;
+  }
+
+  /// Reject = server-side status flip to `rejected`, matching the web's
+  /// updateInboxCandidateAction — never a hard delete. Returns whether
+  /// the write landed: the caller decides how the row leaves (list
+  /// removal vs the Dismissible's own exit animation).
+  Future<bool> _writeReject(InboxCandidate c) async {
+    if (_rejectBusy.contains(c.id)) return false;
+    _rejectBusy.add(c.id);
     try {
       await widget.onReject(c.id);
       _changed = true;
-      if (mounted) {
-        final next = _data.then(
-          (d) => (
-            candidates: [
-              for (final x in d.candidates)
-                if (x.id != c.id) x,
-            ],
-            accounts: d.accounts,
-            categories: d.categories,
-          ),
-        );
-        setState(() {
-          _data = next;
-        });
-        showTimedSnackBar(
-          ScaffoldMessenger.of(context),
-          const SnackBar(content: Text('Đã từ chối mục')),
-        );
-      }
+      return true;
     } catch (_) {
       if (mounted) {
         showTimedSnackBar(
@@ -176,7 +181,28 @@ class InboxPageState extends State<InboxPage> {
           ),
         );
       }
+      return false;
+    } finally {
+      _rejectBusy.remove(c.id);
     }
+  }
+
+  /// Drops the rejected row from the visible queue — the write already
+  /// landed, so this mirrors server truth rather than predicting it.
+  void _markRejected(InboxCandidate c) {
+    if (!mounted) return;
+    setState(() => _removedIds.add(c.id));
+    showTimedSnackBar(
+      ScaffoldMessenger.of(context),
+      const SnackBar(content: Text('Đã từ chối mục')),
+    );
+  }
+
+  /// The button path — dialog, write, then the row leaves via
+  /// [_removedIds] like every other resolution.
+  Future<void> _reject(InboxCandidate c) async {
+    if (!await _confirmReject(c) || !mounted) return;
+    if (await _writeReject(c)) _markRejected(c);
   }
 
   Future<void> _review(_InboxData data, InboxCandidate c) async {
@@ -422,7 +448,11 @@ class InboxPageState extends State<InboxPage> {
               return const Center(child: CircularProgressIndicator());
             }
             final data = snap.data!;
-            if (data.candidates.isEmpty) {
+            final candidates = [
+              for (final c in data.candidates)
+                if (!_removedIds.contains(c.id)) c,
+            ];
+            if (candidates.isEmpty) {
               return RefreshIndicator(
                 onRefresh: _refresh,
                 child: ListView(
@@ -461,12 +491,30 @@ class InboxPageState extends State<InboxPage> {
               child: ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
-                itemCount: data.candidates.length,
-                itemBuilder: (context, i) => _CandidateCard(
-                  candidate: data.candidates[i],
-                  onReject: () => _reject(data.candidates[i]),
-                  onReview: () => _review(data, data.candidates[i]),
-                ),
+                itemCount: candidates.length,
+                itemBuilder: (context, i) {
+                  final c = candidates[i];
+                  // Swipe-left = the same confirmed reject the "Từ chối"
+                  // button runs — the gesture saves the tap, never the
+                  // confirmation. Approve stays inside the review sheet
+                  // where account/category and the duplicate verdict are
+                  // visible: no blind-swipe posting to the ledger.
+                  return Dismissible(
+                    key: ValueKey('cand-${c.id}'),
+                    direction: DismissDirection.endToStart,
+                    confirmDismiss: (_) async {
+                      if (!await _confirmReject(c) || !mounted) return false;
+                      return _writeReject(c);
+                    },
+                    onDismissed: (_) => _markRejected(c),
+                    background: const _SwipeRejectBackground(),
+                    child: _CandidateCard(
+                      candidate: c,
+                      onReject: () => _reject(c),
+                      onReview: () => _review(data, c),
+                    ),
+                  );
+                },
               ),
             );
           },
@@ -484,6 +532,40 @@ class _ReviewResult {
   const _ReviewResult.rejected() : approval = null;
   const _ReviewResult.approved(this.approval);
   final InboxApproval? approval;
+}
+
+/// Reveal under a candidate swiped left — the reject affordance spelled
+/// out in words, mirroring the "Từ chối" button it accelerates.
+class _SwipeRejectBackground extends StatelessWidget {
+  const _SwipeRejectBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: scheme.errorContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.only(right: 20),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Từ chối',
+            style: TextStyle(
+              color: scheme.onErrorContainer,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Icon(Icons.close, color: scheme.onErrorContainer),
+        ],
+      ),
+    );
+  }
 }
 
 /// dd/MM/yyyy — the row reads in the Vietnamese convention even though the

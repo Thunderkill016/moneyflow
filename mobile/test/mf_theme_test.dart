@@ -230,16 +230,17 @@ void main() {
       var opened = 0;
       await pump(t, pending: () async => 3, onOpenInbox: () => opened++);
       await t.pumpAndSettle();
-      expect(find.text('3 khoản cần xem'), findsOneWidget);
+      expect(find.text('3 mục chờ duyệt'), findsOneWidget);
       expect(find.textContaining('Chưa vào sổ'), findsOneWidget);
-      await t.tap(find.text('3 khoản cần xem'));
+      await t.tap(find.text('3 mục chờ duyệt'));
       expect(opened, 1);
     });
 
     testWidgets('no review card when nothing is pending', (t) async {
       await pump(t, pending: () async => 0, onOpenInbox: () {});
       await t.pumpAndSettle();
-      expect(find.textContaining('khoản cần xem'), findsNothing);
+      expect(find.textContaining('chờ duyệt'), findsNothing);
+      expect(find.textContaining('cần xem lại'), findsNothing);
     });
 
     testWidgets('a needs-review row is marked and rows open for editing', (

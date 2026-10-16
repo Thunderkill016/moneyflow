@@ -628,6 +628,80 @@ void main() {
       expect(find.text('Không có mục nào chờ duyệt'), findsOneWidget);
     });
 
+    testWidgets('swipe left runs the same confirmed reject (D5)', (t) async {
+      var rejected = '';
+      await t.pumpWidget(
+        MaterialApp(
+          home: page(
+            load: () async => [row()],
+            onReject: (id) async => rejected = id,
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(
+        find.ancestor(
+          of: find.text('PHO NGON'),
+          matching: find.byType(Dismissible),
+        ),
+        findsOneWidget,
+      );
+
+      await t.drag(find.text('PHO NGON'), const Offset(-500, 0));
+      await t.pumpAndSettle();
+      // The gesture saves the tap, never the confirmation.
+      await t.tap(find.widgetWithText(FilledButton, 'Từ chối').last);
+      await t.pumpAndSettle();
+
+      expect(rejected, 'c1');
+      expect(find.text('Đã từ chối mục'), findsOneWidget);
+      expect(find.text('Không có mục nào chờ duyệt'), findsOneWidget);
+    });
+
+    testWidgets('a cancelled swipe snaps back — no write', (t) async {
+      var calls = 0;
+      await t.pumpWidget(
+        MaterialApp(
+          home: page(
+            load: () async => [row()],
+            onReject: (id) async => calls++,
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      await t.drag(find.text('PHO NGON'), const Offset(-500, 0));
+      await t.pumpAndSettle();
+      await t.tap(find.widgetWithText(TextButton, 'Hủy'));
+      await t.pumpAndSettle();
+
+      expect(calls, 0);
+      expect(find.text('PHO NGON'), findsOneWidget);
+    });
+
+    testWidgets('a failed swipe reject keeps the row and explains', (t) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: page(
+            load: () async => [row()],
+            onReject: (id) async => throw StateError('offline'),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      await t.drag(find.text('PHO NGON'), const Offset(-500, 0));
+      await t.pumpAndSettle();
+      await t.tap(find.widgetWithText(FilledButton, 'Từ chối').last);
+      await t.pumpAndSettle();
+
+      expect(
+        find.text('Không từ chối được — kiểm tra mạng rồi thử lại.'),
+        findsOneWidget,
+      );
+      expect(find.text('PHO NGON'), findsOneWidget);
+    });
+
     testWidgets('review approves through onApprove with edited values', (
       t,
     ) async {

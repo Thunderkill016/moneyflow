@@ -219,6 +219,45 @@ class RealStore implements PatternDismissalSync {
     }
   }
 
+  /// Posted ledger rows still flagged needs_review — the dashboard
+  /// attention card's count + preview lines. Two-hop like
+  /// [_withReviewStatus], but in the other direction: the flag lives on
+  /// transaction_review_feed (the security-invoker view over
+  /// financial_transactions that already excludes soft-deleted rows);
+  /// the display fields come from transaction_feed for the newest
+  /// [previewLimit] ids. [count] is the full flagged backlog — the id
+  /// read is unbounded on purpose so the card never understates the
+  /// queue the way a capped preview would.
+  Future<NeedsReviewTransactions> loadNeedsReviewTransactions({
+    int previewLimit = 3,
+  }) async {
+    final flagged = await _api.select(
+      'transaction_review_feed',
+      query: {
+        'select': 'id',
+        'review_status': 'eq.needs_review',
+        'order': 'occurred_on.desc,id.desc',
+      },
+    );
+    if (flagged.isEmpty) return (count: 0, rows: const <Transaction>[]);
+    final ids = [for (final r in flagged.take(previewLimit)) r['id'] as String];
+    final rows = await _api.select(
+      'transaction_feed',
+      query: {
+        'select': _txColumns,
+        'id': 'in.(${ids.join(',')})',
+        'order': 'occurred_on.desc,created_at.desc,id.desc',
+      },
+    );
+    return (
+      count: flagged.length,
+      rows: [
+        // Flagged by construction — the review read itself is the proof.
+        for (final t in rows.map(_txFromRow)) t.copyWith(needsReview: true),
+      ],
+    );
+  }
+
   /// POST /rpc/set_transaction_review_status_bulk — up to 100 rows.
   Future<void> setReviewStatusBulk(
     List<String> ids, {
@@ -1117,6 +1156,22 @@ class RealStore implements PatternDismissalSync {
       query: {'select': 'id', 'status': 'eq.pending'},
     );
     return rows.length;
+  }
+
+  /// Preview lines for the dashboard attention card — the newest pending
+  /// candidates, capped small. The count stays with
+  /// [loadPendingInboxCount]; this read only names what is waiting.
+  Future<List<InboxCandidate>> loadPendingInboxPreviews({int limit = 2}) async {
+    final rows = await _api.select(
+      'inbox_candidates',
+      query: {
+        'select': _candidateColumns,
+        'status': 'eq.pending',
+        'order': 'occurred_on.desc,created_at.desc,id.desc',
+        'limit': '$limit',
+      },
+    );
+    return rows.map(_candidateFromRow).toList();
   }
 
   /// POST /rpc/plan_inbox_candidate — the server's dry-run verdict

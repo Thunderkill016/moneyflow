@@ -1,6 +1,6 @@
 # PROGRESS — MoneyFlow Android mega-task
 STATUS: IN_PROGRESS
-LAST UPDATE: 2026-10-16 (D4 payee statistics + MoM category deltas)
+LAST UPDATE: 2026-10-16 (D5 review-loop polish — swipes + attention card)
 DONE THIS ROUND:
 - Step Zero DONE: branch mobile/android-app pushed, PR #795 open (head ec8591b9).
 - Prior session shipped: permanent-delete trash (mobile+web+RPC+schema-cache fix), SnackBar a11y watchdog fix (1187+ tests green), Monarch deep-dive docs/research/MONARCH_DEEP_DIVE.md, rules preview + apply-to-existing (mobile+web), edit→rule offer (mobile). All committed.
@@ -101,7 +101,29 @@ DONE THIS ROUND:
     field exists and the app has no detail surface (see DECISIONS.md).
   - Verification: `dart format` clean; `flutter analyze` clean;
     `flutter test` 1354 green (16 new D4 tests).
+- **D5 review-loop polish shipped on feat/mobile-theme** (mobile-only,
+  no schema work — see FIXLOG.md "FEATURE: D5" for files and proof):
+  - Activity needs-review rows swipe right → "Đã xem" through the same
+    `onBulkReview` RPC seam as select mode (per-row `_reviewBusy`
+    guard, snap-back on failure, "Hoàn tác" re-flags); the tile never
+    dismisses — the flag flip is the result. One direction only: the
+    visible delete icon + long-press already own the row's destructive
+    affordance (DECISIONS.md).
+  - Inbox rows swipe left into the SAME confirmed reject the "Từ chối"
+    button runs — shared `_confirmReject`/`_writeReject`/`_markRejected`,
+    `_removedIds` local hide until the next server read. No approve
+    gesture and no bulk approve shipped on purpose — approval posts a
+    ledger row and stays inside the review sheet (DECISIONS.md).
+  - The count-only dashboard card became "Cần chú ý" attention card:
+    inbox drafts (count + newest merchant/amount lines), posted rows
+    still flagged needs_review (full-backlog count + preview lines via
+    new `loadNeedsReviewTransactions`), overdue commitments and
+    paid-different drift — every row taps to a real destination
+    (inbox, feed pre-filtered via `initialOnlyNeedsReview`, Kế hoạch);
+    no destination → count without a chevron; each read fails soft.
+  - Verification: `dart format` clean; `flutter analyze` clean;
+    `flutter test` 1373 green (19 new D5 tests).
 AUDIT OPEN: P0=0 P1=0 P2=0 (all findings shipped — see FIXLOG.md)
 GAPS OPEN: web EditTransactionDialog lacks "save as rule" offer (mobile has it); Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
-NEXT STEP: Loop B gap list — D5 (review-loop polish: swipe-to-review on inbox + activity lists, bulk "mark reviewed", dashboard attention card with needs-review count/overdue commitments/drift flags — verified data only; RESEARCH_TOP_FINANCE_APPS.md §10); D1+D2+D3+D4 done.
+NEXT STEP: Loop B gap list — D6 (rule suggestion from repeated corrections: count payee→category manual corrections, offer a rule draft after threshold N, never auto-apply; RESEARCH_TOP_FINANCE_APPS.md §10); then D7+; D1–D5 done.
 RESUME: re-read this file, then continue at NEXT STEP.

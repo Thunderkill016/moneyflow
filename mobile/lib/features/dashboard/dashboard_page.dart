@@ -4,7 +4,9 @@ import '../../data/offline_cache.dart';
 import '../../data/recurring_dismissals.dart';
 import '../../data/widget_snapshot.dart';
 import '../../domain/budget.dart';
+import '../../domain/commitments.dart';
 import '../../domain/datetime_label.dart';
+import '../../domain/inbox.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/recurring_detection.dart';
@@ -56,6 +58,9 @@ class DashboardPage extends StatefulWidget {
     this.onCreateAccount,
     this.loadPendingCount,
     this.onOpenInbox,
+    this.loadPendingPreviews,
+    this.loadNeedsReview,
+    this.onOpenNeedsReview,
     this.onOpenTransaction,
     this.modeLabel,
     this.menuItems = const [],
@@ -136,6 +141,21 @@ class DashboardPage extends StatefulWidget {
   /// Opens the Inbox ("Cần xem") from the review card.
   final VoidCallback? onOpenInbox;
 
+  /// The newest pending candidates behind the count — the card's
+  /// "merchant · amount" preview lines. Null (or a failed read) leaves
+  /// the count bare rather than inventing names.
+  final Future<List<InboxCandidate>> Function()? loadPendingPreviews;
+
+  /// Posted ledger rows still flagged needs_review — count plus a small
+  /// newest-first preview. Null hides that section (demo has no flagged
+  /// seeds and no flag writes, so the row would always be zero).
+  final Future<NeedsReviewTransactions> Function()? loadNeedsReview;
+
+  /// Opens the activity feed pre-filtered to "Cần xem lại" — the
+  /// needs-review row's destination. Null leaves the row an honest
+  /// count line, never a dead chevron.
+  final VoidCallback? onOpenNeedsReview;
+
   /// Opens a posted transaction for correction (same form as the Hoạt
   /// động tab). Null leaves the rows read-only.
   final void Function(Transaction tx)? onOpenTransaction;
@@ -164,6 +184,16 @@ class DashboardPage extends StatefulWidget {
   State<DashboardPage> createState() => DashboardPageState();
 }
 
+/// Attention-card payload — three small advisory reads resolved
+/// together so the card builds once. Each read fails soft on its own:
+/// an attention surface must never fail the dashboard, and a missed
+/// section just stays hidden rather than inventing a zero.
+typedef _AttentionData = ({
+  int pending,
+  List<InboxCandidate> previews,
+  NeedsReviewTransactions needsReview,
+});
+
 /// Loaded dashboard payload — planning rows ride along so the remainder
 /// card renders in the same pass; they stay null when the loaders are
 /// absent or their reads fail. [budgets] may span the whole rollover
@@ -190,19 +220,30 @@ class DashboardPageState extends State<DashboardPage> {
   void initState() {
     super.initState();
     _data = _load();
-    _pending = _loadPending();
+    _attention = _loadAttention();
   }
 
-  late Future<int> _pending;
+  late Future<_AttentionData> _attention;
 
-  Future<int> _loadPending() async {
-    final load = widget.loadPendingCount;
-    if (load == null) return 0;
+  /// One pass over the attention reads — each optional and each allowed
+  /// to fail alone, the same posture the old pending-count read took.
+  Future<_AttentionData> _loadAttention() async {
+    var pending = 0;
+    var previews = const <InboxCandidate>[];
+    var needsReview = (count: 0, rows: const <Transaction>[]);
     try {
-      return await load();
-    } catch (_) {
-      return 0;
-    }
+      pending = await widget.loadPendingCount?.call() ?? 0;
+    } catch (_) {}
+    try {
+      previews =
+          await widget.loadPendingPreviews?.call() ?? const <InboxCandidate>[];
+    } catch (_) {}
+    try {
+      needsReview =
+          await widget.loadNeedsReview?.call() ??
+          (count: 0, rows: const <Transaction>[]);
+    } catch (_) {}
+    return (pending: pending, previews: previews, needsReview: needsReview);
   }
 
   /// Fresh load wins; on failure the saved snapshot renders under a stale
@@ -367,7 +408,7 @@ class DashboardPageState extends State<DashboardPage> {
     // builds throw and the pull/capture refresh silently never ran).
     setState(() {
       _data = _load();
-      _pending = _loadPending();
+      _attention = _loadAttention();
     });
     try {
       await _data;
@@ -508,6 +549,32 @@ class DashboardPageState extends State<DashboardPage> {
             final now = vnNow();
             final monthStart =
                 '${now.year}-${now.month.toString().padLeft(2, '0')}-01';
+            // Attention-card commitment rows — the same verified states
+            // the Kế hoạch list renders, never an invented count. A
+            // failed planning read (commitments == null) hides the rows;
+            // archived rows never surface as work.
+            final todayStr = ymd(now);
+            final overdue = <RecurringCommitment>[];
+            final drift = <RecurringCommitment>[];
+            for (final c in commitments ?? const <RecurringCommitment>[]) {
+              if (c.isArchived) continue;
+              switch (commitmentStatus(
+                c,
+                monthStart: monthStart,
+                today: todayStr,
+              )) {
+                case CommitmentStatus.overdue:
+                  overdue.add(c);
+                case CommitmentStatus.paidDifferent:
+                  drift.add(c);
+                default:
+                  break;
+              }
+            }
+            // Preview order matches the Kế hoạch feed rule — longest-
+            // waiting overdue first; drift stays deterministic by name.
+            overdue.sort((a, b) => a.dueDay.compareTo(b.dueDay));
+            drift.sort((a, b) => a.name.compareTo(b.name));
             return RefreshIndicator(
               onRefresh: _refresh,
               child: ListView(
@@ -524,21 +591,30 @@ class DashboardPageState extends State<DashboardPage> {
                         .where((a) => a.currencyCode != 'VND')
                         .length,
                   ),
-                  if (widget.onOpenInbox != null)
-                    FutureBuilder<int>(
-                      future: _pending,
-                      builder: (context, pending) {
-                        final n = pending.data ?? 0;
-                        if (n <= 0) return const SizedBox.shrink();
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: _NeedsReviewCard(
-                            count: n,
-                            onTap: widget.onOpenInbox!,
-                          ),
-                        );
-                      },
-                    ),
+                  FutureBuilder<_AttentionData>(
+                    future: _attention,
+                    builder: (context, attention) {
+                      final a = attention.data;
+                      if (a == null) return const SizedBox.shrink();
+                      final card = _AttentionCard(
+                        inboxCount: a.pending,
+                        inboxPreviews: a.previews,
+                        needsReview: a.needsReview,
+                        overdue: overdue,
+                        drift: drift,
+                        monthStart: monthStart,
+                        today: todayStr,
+                        onOpenInbox: widget.onOpenInbox,
+                        onOpenNeedsReview: widget.onOpenNeedsReview,
+                        onOpenPlanning: widget.onOpenPlanning,
+                      );
+                      if (card.isEmpty) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: card,
+                      );
+                    },
+                  ),
                   if (budgets != null && commitments != null) ...[
                     const SizedBox(height: 12),
                     _MonthRemainderCard(
@@ -821,31 +897,223 @@ class _TotalCard extends StatelessWidget {
   }
 }
 
-/// Inbox candidates are drafts, not posted transactions: this card says
-/// so and sends the user to the review queue.
-class _NeedsReviewCard extends StatelessWidget {
-  const _NeedsReviewCard({required this.count, required this.onTap});
-  final int count;
-  final VoidCallback onTap;
+/// "Cần chú ý" — the Rocket-style attention card (D5): every row is a
+/// verified queue, never an invented task.
+///
+/// - Inbox candidates are drafts, not posted transactions: the row says
+///   so and names the newest items waiting.
+/// - Posted rows still flagged needs_review live in the ledger — the
+///   row opens the activity feed pre-filtered to them.
+/// - Overdue commitments and paid-different drift come from the same
+///   `commitmentStatus` math the Kế hoạch list renders.
+///
+/// A section only renders when its count is real and nonzero; the whole
+/// card hides when nothing needs attention. A row without a destination
+/// still shows its count — information, not a dead chevron.
+class _AttentionCard extends StatelessWidget {
+  const _AttentionCard({
+    required this.inboxCount,
+    required this.inboxPreviews,
+    required this.needsReview,
+    required this.overdue,
+    required this.drift,
+    required this.monthStart,
+    required this.today,
+    this.onOpenInbox,
+    this.onOpenNeedsReview,
+    this.onOpenPlanning,
+  });
+
+  final int inboxCount;
+  final List<InboxCandidate> inboxPreviews;
+  final NeedsReviewTransactions needsReview;
+  final List<RecurringCommitment> overdue;
+  final List<RecurringCommitment> drift;
+
+  /// YYYY-MM-01 / YYYY-MM-DD feeding `commitmentStatusLabel` — the same
+  /// month the remainder card reads, so the two cards never disagree.
+  final String monthStart;
+  final String today;
+
+  final VoidCallback? onOpenInbox;
+  final VoidCallback? onOpenNeedsReview;
+  final VoidCallback? onOpenPlanning;
+
+  /// Preview lines a section can hold before folding into a count —
+  /// two keeps the card a glance, not a second queue page.
+  static const _maxPreviewLines = 2;
+
+  /// True when nothing verified needs attention — the caller renders
+  /// nothing rather than an empty shell.
+  bool get isEmpty =>
+      _inboxTotal <= 0 &&
+      needsReview.count <= 0 &&
+      overdue.isEmpty &&
+      drift.isEmpty;
+
+  /// The count the row displays — the authoritative count seam wins,
+  /// but a preview list longer than the count (a resolve between the
+  /// two reads) never understates what the lines show.
+  int get _inboxTotal =>
+      inboxCount > inboxPreviews.length ? inboxCount : inboxPreviews.length;
 
   @override
   Widget build(BuildContext context) {
     final mf = context.mf;
+    final rows = <Widget>[];
+
+    final inboxTotal = _inboxTotal;
+    if (inboxTotal > 0) {
+      final shown = inboxPreviews.take(_maxPreviewLines).toList();
+      rows.add(
+        _AttentionRow(
+          icon: Icons.inbox_outlined,
+          title: '$inboxTotal mục chờ duyệt',
+          subtitle: 'Chưa vào sổ — duyệt để tính vào số dư',
+          previews: [
+            for (final c in shown)
+              '${c.merchant} · ${formatMoney(c.amountMinor)}',
+          ],
+          overflow: inboxTotal > shown.length
+              ? 'và ${inboxTotal - shown.length} mục khác'
+              : null,
+          onTap: onOpenInbox,
+        ),
+      );
+    }
+    if (needsReview.count > 0) {
+      final shown = needsReview.rows.take(_maxPreviewLines).toList();
+      rows.add(
+        _AttentionRow(
+          icon: Icons.flag_outlined,
+          title: '${needsReview.count} khoản trong sổ cần xem lại',
+          previews: [
+            for (final t in shown)
+              '${t.payee ?? (t.note.isEmpty ? t.category : t.note)} · '
+                  '${formatMoney(t.amount)}',
+          ],
+          overflow: needsReview.count > shown.length
+              ? 'và ${needsReview.count - shown.length} khoản khác'
+              : null,
+          onTap: onOpenNeedsReview,
+        ),
+      );
+    }
+    if (overdue.isNotEmpty) {
+      final shown = overdue.take(_maxPreviewLines).toList();
+      rows.add(
+        _AttentionRow(
+          icon: Icons.event_busy_outlined,
+          title: '${overdue.length} cam kết quá hạn',
+          previews: [
+            for (final c in shown)
+              '${c.name} · ${commitmentStatusLabel(CommitmentStatus.overdue, monthStart: monthStart, today: today, dueDay: c.dueDay, format: formatMoney)}',
+          ],
+          overflow: overdue.length > shown.length
+              ? 'và ${overdue.length - shown.length} cam kết khác'
+              : null,
+          onTap: onOpenPlanning,
+        ),
+      );
+    }
+    if (drift.isNotEmpty) {
+      final shown = drift.take(_maxPreviewLines).toList();
+      rows.add(
+        _AttentionRow(
+          icon: Icons.sync_alt,
+          title: '${drift.length} cam kết trả khác số tiền',
+          previews: [
+            for (final c in shown)
+              '${c.name} · ${commitmentStatusLabel(CommitmentStatus.paidDifferent, monthStart: monthStart, today: today, dueDay: c.dueDay, paidAmountMinor: c.paidAmountMinor, format: formatMoney)}',
+          ],
+          overflow: drift.length > shown.length
+              ? 'và ${drift.length - shown.length} cam kết khác'
+              : null,
+          onTap: onOpenPlanning,
+        ),
+      );
+    }
+
     return Card(
       color: mf.warningSubtle,
+      clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(24),
         side: BorderSide(color: mf.warningBorder),
       ),
-      child: ListTile(
-        onTap: onTap,
-        leading: Icon(Icons.inbox_outlined, color: mf.warningText),
-        title: Text(
-          '$count khoản cần xem',
-          style: TextStyle(color: mf.warningText, fontWeight: FontWeight.w700),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0) Divider(height: 1, indent: 48, color: mf.warningBorder),
+            rows[i],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// One attention section — icon + count line + up to two named previews
+/// + overflow count, with a chevron only when a real destination exists.
+class _AttentionRow extends StatelessWidget {
+  const _AttentionRow({
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.previews = const [],
+    this.overflow,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final List<String> previews;
+  final String? overflow;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final mf = context.mf;
+    final text = Theme.of(context).textTheme;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: Icon(icon, size: 20, color: mf.warningText),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: text.bodyMedium?.copyWith(
+                      color: mf.warningText,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (subtitle != null) Text(subtitle!, style: text.bodySmall),
+                  for (final line in previews)
+                    Text(line, style: text.bodySmall),
+                  if (overflow != null) Text(overflow!, style: text.bodySmall),
+                ],
+              ),
+            ),
+            if (onTap != null)
+              Icon(
+                Icons.chevron_right,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+          ],
         ),
-        subtitle: const Text('Chưa vào sổ — duyệt để tính vào số dư'),
-        trailing: const Icon(Icons.chevron_right),
       ),
     );
   }

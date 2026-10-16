@@ -159,6 +159,11 @@ class Transaction {
   );
 }
 
+/// Posted ledger rows still flagged needs_review — the dashboard
+/// attention card reads [count] for the headline number and [rows]
+/// (a bounded, newest-first preview) for the merchant/amount lines.
+typedef NeedsReviewTransactions = ({int count, List<Transaction> rows});
+
 /// Soft-deleted ledger row — mirrors deleted_transaction_feed
 /// (transaction columns + the tombstone timestamp).
 class DeletedTransaction {

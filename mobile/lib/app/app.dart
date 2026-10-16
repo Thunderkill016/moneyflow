@@ -1259,7 +1259,14 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
             () => DashboardPage(
               key: _dashKey,
               loadPendingCount: _store.loadPendingInboxCount,
+              // Preview lines read the same pending queue, capped small —
+              // the count stays authoritative, these only name it.
+              loadPendingPreviews: _store.loadPendingInboxPreviews,
+              // Posted rows still flagged needs_review — the card's
+              // second review queue.
+              loadNeedsReview: _store.loadNeedsReviewTransactions,
               onOpenInbox: () => _openInbox(context),
+              onOpenNeedsReview: () => _openNeedsReviewFeed(context),
               onOpenTransaction: (tx) => _openEdit(context, tx),
               loadAccounts: _store.loadAccounts,
               loadTransactions: _store.loadTransactions,
@@ -1687,6 +1694,40 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         .then((_) {});
   }
 
+  /// The dashboard attention card's needs-review row lands here: the
+  /// same fully-capable feed as a drill-in, pre-filtered to flagged
+  /// rows. The client-side "Cần xem lại" filter is the shipped contract
+  /// — review_status lives off transaction_feed, so a server-side
+  /// query field does not exist to push down.
+  Future<void> _openNeedsReviewFeed(BuildContext context) {
+    return Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (_) => ActivityPage(
+              loadPage: _store.loadTransactionPage,
+              loadAccounts: _store.loadAccounts,
+              loadCategories: _store.loadCategories,
+              onDelete: _deleteTransaction,
+              onOpenTrash: () => _openTrash(context),
+              onEdit: (tx) => _openEdit(context, tx),
+              onBulkReview: (ids, {required reviewed}) async {
+                await _store.setReviewStatusBulk(ids, reviewed: reviewed);
+              },
+              onBulkCategory: (ids, categoryId) async {
+                await _store.setCategoryBulk(ids, categoryId);
+                _planKey.currentState?.reload();
+                _reportKey.currentState?.reload();
+                _dashKey.currentState?.reload();
+              },
+              initialOnlyNeedsReview: true,
+              title: 'Cần xem lại',
+            ),
+          ),
+        )
+        // Flags resolved inside must recount on the card — pop reloads.
+        .then((_) => _dashKey.currentState?.reload());
+  }
+
   /// "Quy tắc tự điền" — reachable from the review queue because rules are
   /// what prefill its candidates. Reads go through the same PostgREST
   /// selects the web workspace uses; every write rides the definer RPCs
@@ -1934,6 +1975,30 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     ];
   }
 
+  /// The demo review queue — one builder shared by the menu "Cần xem"
+  /// entry and the attention card's inbox row, so both destinations run
+  /// the same session-scoped store.
+  Widget _demoInboxPage() => InboxPage(
+    loadCandidates: _demoInbox.loadPending,
+    loadAccounts: () async => DemoStore.seedAccounts(),
+    loadCategories: _demoCategories.loadAll,
+    onPlan: _demoInbox.plan,
+    onApprove: _demoInbox.approve,
+    onReject: _demoInbox.reject,
+    onSaveRule: (draft) => _demoRules.save(draft).then((_) {}),
+    onOpenRules: () => Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => InboxRulesPage(
+          loadRules: _demoRules.loadAll,
+          loadCategories: _demoCategories.loadAll,
+          onSave: _demoRules.save,
+          onDelete: _demoRules.delete,
+          onReorder: _demoRules.reorder,
+        ),
+      ),
+    ),
+  );
+
   /// Demo keeps the same shell and surfaces on seed data; writes are
   /// honest no-ops so read-only exploration still works fully offline.
   HomeShell _demoDashboard() {
@@ -1944,6 +2009,14 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       tabBuilders: [
         () => DashboardPage(
           loadPendingCount: _demoInbox.pendingCount,
+          loadPendingPreviews: _demoInbox.loadPending,
+          // The demo inbox is a real surface (menu "Cần xem") — the
+          // card's tap lands somewhere true. Posted needs-review has no
+          // demo seam: seeds are all reviewed and demo never writes
+          // flags, so the row honestly stays absent.
+          onOpenInbox: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => _demoInboxPage())),
           loadAccounts: () async => DemoStore.seedAccounts(),
           loadTransactions: () async => DemoStore.seedTransactions(),
           // Seeds cover the viewed month plus the prior month, so the
@@ -2052,30 +2125,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
               label: 'Cần xem',
               icon: Icons.inbox_outlined,
               badge: _demoInbox.pendingCount,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => InboxPage(
-                    loadCandidates: _demoInbox.loadPending,
-                    loadAccounts: () async => DemoStore.seedAccounts(),
-                    loadCategories: _demoCategories.loadAll,
-                    onPlan: _demoInbox.plan,
-                    onApprove: _demoInbox.approve,
-                    onReject: _demoInbox.reject,
-                    onSaveRule: (draft) => _demoRules.save(draft).then((_) {}),
-                    onOpenRules: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => InboxRulesPage(
-                          loadRules: _demoRules.loadAll,
-                          loadCategories: _demoCategories.loadAll,
-                          onSave: _demoRules.save,
-                          onDelete: _demoRules.delete,
-                          onReorder: _demoRules.reorder,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              onTap: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => _demoInboxPage())),
             ),
             // Rules are also reachable from inside "Cần xem"; the menu
             // entry stays so the manager is discoverable on its own.
