@@ -479,6 +479,11 @@
       "version": "20261017230000",
       "name": "20261017230000_delete_history_before.sql",
       "hash": "606100ad98868bab02c5600ef3b961bc"
+    },
+    {
+      "version": "20261018000000",
+      "name": "20261018000000_purge_debts_events.sql",
+      "hash": "b7a70a48c583c7b3bb58c80ea8519889"
     }
   ]
 }

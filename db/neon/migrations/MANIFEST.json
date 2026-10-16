@@ -480,6 +480,11 @@
       "sourceSha256": "606100ad98868bab02c5600ef3b961bca3cb0d163c2f13727c97698118fcac2b",
       "outputSha256": "606100ad98868bab02c5600ef3b961bca3cb0d163c2f13727c97698118fcac2b",
       "rewrites": 0
+    },
+    "20261018000000_purge_debts_events.sql": {
+      "sourceSha256": "b7a70a48c583c7b3bb58c80ea8519889569daf5200efd5e01729f867c66ad6ab",
+      "outputSha256": "2b1e2cda695d0c64daf472b0ed1607c2adfa25953348ab878a93f37132a0289e",
+      "rewrites": 1
     }
   }
 }
