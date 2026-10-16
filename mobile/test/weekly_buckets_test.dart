@@ -8,6 +8,7 @@ Transaction _tx(
   int amount,
   String on, {
   int splitCount = 0,
+  bool isRefund = false,
 }) => Transaction(
   id: id,
   kind: kind,
@@ -19,6 +20,7 @@ Transaction _tx(
   amount: amount,
   occurredOn: on,
   splitCount: splitCount,
+  isRefund: isRefund,
 );
 
 void main() {
@@ -105,6 +107,20 @@ void main() {
       );
       expect(b[0].expense, 90000);
       expect(b[0].income, 0);
+    });
+
+    test('D15 a refund nets that week\'s Chi, never its Thu', () {
+      final b = weeklyIncomeExpense(
+        [
+          _tx('e', TransactionKind.expense, 100000, '2026-10-03'),
+          _tx('r', TransactionKind.income, 30000, '2026-10-04', isRefund: true),
+          _tx('i', TransactionKind.income, 50000, '2026-10-05'),
+        ],
+        '2026-10-01',
+        '2026-11-01',
+      );
+      expect(b[0].expense, 70000); // 100k spend − 30k refund
+      expect(b[0].income, 50000); // salary only — refund is not Thu
     });
 
     test('empty weeks still appear between active ones', () {

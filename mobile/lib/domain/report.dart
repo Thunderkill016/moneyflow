@@ -340,16 +340,50 @@ PeriodReport buildPeriodReport(List<Transaction> items) {
       continue;
     }
     if (item.kind == TransactionKind.income) {
-      income += item.amount;
-      if (item.category.isNotEmpty) {
-        bump(
-          incomeCategoryTotals,
-          incomeCategoryNames,
-          incomeCategoryIds,
-          item.categoryId,
-          item.category,
-          item.amount,
-        );
+      if (item.isRefund) {
+        // Hoàn tiền (D15): money back against an EXPENSE category — the
+        // row nets the spend it reimburses and never counts as Thu.
+        // Every expense-side section nets too so they still sum to the
+        // period's spending; payeeCounts counts it because the row is a
+        // real transaction at that payee.
+        expense -= item.amount;
+        if (item.category.isNotEmpty) {
+          bump(
+            categoryTotals,
+            categoryNames,
+            categoryIds,
+            item.categoryId,
+            item.category,
+            -item.amount,
+          );
+        }
+        final payee = (item.payee ?? '').trim();
+        payeeTotals[payee] = (payeeTotals[payee] ?? 0) - item.amount;
+        payeeNames[payee] ??= payee.isEmpty ? unnamedPayeeBucket : payee;
+        payeeIds[payee] ??= payee;
+        payeeCounts[payee] = (payeeCounts[payee] ?? 0) + 1;
+        if (item.account.isNotEmpty) {
+          bump(
+            accountTotals,
+            accountNames,
+            accountIds,
+            item.accountId,
+            item.account,
+            -item.amount,
+          );
+        }
+      } else {
+        income += item.amount;
+        if (item.category.isNotEmpty) {
+          bump(
+            incomeCategoryTotals,
+            incomeCategoryNames,
+            incomeCategoryIds,
+            item.categoryId,
+            item.category,
+            item.amount,
+          );
+        }
       }
     } else if (item.kind == TransactionKind.expense) {
       expense += item.amount;
@@ -437,11 +471,15 @@ Map<String, ({int total, String name, String? id})> _expenseBuckets(
 ) {
   final buckets = <String, ({int total, String name, String? id})>{};
   for (final t in items) {
-    if (t.kind != TransactionKind.expense || t.category.isEmpty) continue;
+    // Refund income nets the expense bucket it reimburses (D15) —
+    // the delta map must see the same netted totals the breakdown shows.
+    final netsCategory = t.kind == TransactionKind.income && t.isRefund;
+    if (t.kind != TransactionKind.expense && !netsCategory) continue;
+    if (t.category.isEmpty) continue;
     final key = _expenseBucketKey(t);
     final b = buckets[key];
     buckets[key] = (
-      total: (b?.total ?? 0) + t.amount,
+      total: (b?.total ?? 0) + (netsCategory ? -t.amount : t.amount),
       // First row wins the label/id — the same '??=' rule the
       // breakdown's bump() applies, so they can never disagree.
       name: b?.name ?? t.category,

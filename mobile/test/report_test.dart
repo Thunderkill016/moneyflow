@@ -13,6 +13,7 @@ Transaction tx(
   String account = 'A',
   String? payee,
   bool excluded = false,
+  bool refund = false,
 }) => Transaction(
   id: 't',
   kind: kind,
@@ -25,6 +26,7 @@ Transaction tx(
   occurredOn: '2026-10-01',
   payee: payee,
   excludedFromReports: excluded,
+  isRefund: refund,
 );
 
 void main() {
@@ -102,6 +104,65 @@ void main() {
         expect(third.savingsRatePercent, 33);
       },
     );
+
+    test(
+      'D15 refund income nets the expense category, never counts as Thu',
+      () {
+        final r = buildPeriodReport([
+          tx(TransactionKind.expense, 100000, category: 'Mua sắm'),
+          tx(
+            TransactionKind.income,
+            30000,
+            category: 'Mua sắm',
+            payee: 'Shop',
+            refund: true,
+          ),
+          tx(TransactionKind.income, 500000, category: 'Lương'),
+        ]);
+        // 100k spend − 30k refund = 70k net spend; Thu is salary only.
+        expect(r.income, 500000);
+        expect(r.expense, 70000);
+        expect(r.net, 430000);
+        // The refund row is real ledger activity — it counts.
+        expect(r.transactionCount, 3);
+        // Category breakdown shows the netted total, not the gross.
+        expect(r.categories.single.name, 'Mua sắm');
+        expect(r.categories.single.amount, 70000);
+        expect(r.categories.single.share, 100);
+        // Refunds never appear on the income side at all.
+        expect(r.incomeCategories.single.name, 'Lương');
+        // Payee + account sections net too so they still sum to expense:
+        // the unpayeed expense sits in the unnamed bucket, the refund
+        // nets its own payee, and the account shows 100k − 30k.
+        expect(r.payees.firstWhere((p) => p.name == 'Shop').amount, -30000);
+        expect(r.payees.fold(0, (s, p) => s + p.amount), r.expense);
+        expect(r.accounts.single.amount, 70000);
+      },
+    );
+
+    test('D15 a refund-only category reports a negative (netted) total', () {
+      final r = buildPeriodReport([
+        tx(TransactionKind.income, 20000, category: 'Trả hàng', refund: true),
+      ]);
+      expect(r.expense, -20000);
+      expect(r.categories.single.amount, -20000);
+      // No income → savings rate stays null rather than inventing a %.
+      expect(r.savingsRatePercent, isNull);
+    });
+
+    test('D15 refunds net inside expenseCategoryDeltas buckets', () {
+      final deltas = expenseCategoryDeltas(
+        current: [
+          tx(TransactionKind.expense, 100000, category: 'Ăn uống'),
+          tx(TransactionKind.income, 25000, category: 'Ăn uống', refund: true),
+        ],
+        previous: [tx(TransactionKind.expense, 90000, category: 'Ăn uống')],
+      );
+      final d = deltas['c-Ăn uống']!;
+      expect(d.current, 75000);
+      expect(d.previous, 90000);
+      expect(d.change, -15000);
+    });
 
     test('category shares sorted desc with rounded percent', () {
       final r = buildPeriodReport([

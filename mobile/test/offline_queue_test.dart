@@ -46,6 +46,8 @@ CaptureIntent _kitchenSinkIntent() => CaptureIntent(
   commitmentName: 'tiền nhà',
   transactionId: 'tx-7',
   expectedUpdatedAt: '2026-11-01T02:00:00Z',
+  excludedFromReports: true,
+  isRefund: true,
   splitLines: const [
     (categoryId: 'c1', amount: 100000),
     (categoryId: 'c2', amount: 25000),
@@ -67,6 +69,8 @@ void _expectSameIntent(CaptureIntent a, CaptureIntent b) {
   expect(b.commitmentName, a.commitmentName);
   expect(b.transactionId, a.transactionId);
   expect(b.expectedUpdatedAt, a.expectedUpdatedAt);
+  expect(b.excludedFromReports, a.excludedFromReports);
+  expect(b.isRefund, a.isRefund);
   expect(b.splitLines, a.splitLines);
 }
 

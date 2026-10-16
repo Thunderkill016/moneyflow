@@ -54,6 +54,12 @@ String submitErrorMessage(Object e) {
   if (msg.contains('transaction_kind_locked')) {
     return 'Không đổi được kiểu của khoản chuyển';
   }
+  if (msg.contains('refund_requires_income_kind')) {
+    return 'Hoàn tiền chỉ ghi ở khoản Thu — chuyển kiểu hoặc bỏ chọn';
+  }
+  if (msg.contains('refund_requires_expense_category')) {
+    return 'Hoàn tiền cần một danh mục chi — chọn danh mục chi';
+  }
   return 'Không lưu được — thử lại';
 }
 

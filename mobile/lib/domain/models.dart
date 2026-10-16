@@ -107,6 +107,7 @@ class Transaction {
     this.splitCount = 0,
     this.splitLines = const [],
     this.excludedFromReports = false,
+    this.isRefund = false,
   });
 
   final String id;
@@ -139,6 +140,13 @@ class Transaction {
   /// skip it. Written solely through set_transaction_report_exclusion.
   final bool excludedFromReports;
 
+  /// Money back against spending (D15): an income-kind row that
+  /// reimburses an EXPENSE category. Kind stays income — cash really
+  /// arrived, so account balance and the ledger row are untouched — but
+  /// report/budget aggregations subtract it from that category's spend
+  /// instead of counting it as Thu.
+  final bool isRefund;
+
   bool get isSplit => splitCount > 1;
 
   /// Copy with the review flag set — the only field the feed read has to
@@ -163,6 +171,7 @@ class Transaction {
     splitCount: splitCount,
     splitLines: splitLines,
     excludedFromReports: excludedFromReports,
+    isRefund: isRefund,
   );
 }
 

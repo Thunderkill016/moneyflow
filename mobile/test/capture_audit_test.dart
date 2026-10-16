@@ -57,6 +57,7 @@ Future<void> _pickTransfer(WidgetTester t) async {
 void main() {
   _captureEditRuleTests();
   _captureExclusionTests();
+  _captureRefundTests();
   testWidgets('CAP-01 transfer shows the internal-movement explainer only', (
     t,
   ) async {
@@ -360,5 +361,190 @@ void _captureExclusionTests() {
   testWidgets('create mode never offers the report-scope switch', (t) async {
     await _open(t, onSubmit: (_) async {});
     expect(find.text('Loại khỏi báo cáo'), findsNothing);
+  });
+}
+
+/// D15 — the "Hoàn tiền" switch on income captures: flipping it swaps
+/// the category pool to expense categories (the netting target) and
+/// the flag rides the intent; a refund edit preserves via null.
+void _captureRefundTests() {
+  Future<void> fillIncomeAndSubmit(
+    WidgetTester t, {
+    required List<CaptureIntent> intents,
+    Transaction? editing,
+
+    /// Category name to pick after the "Hoàn tiền" tap — 'Ăn uống' is
+    /// in the expense pool (refund on), 'Lương' in the income pool
+    /// (unflagging an edited refund row flips the pool back).
+    String pickCategory = 'Ăn uống',
+  }) async {
+    t.view.physicalSize = const Size(800, 2400);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final key = GlobalKey<NavigatorState>();
+    await t.pumpWidget(
+      MaterialApp(
+        navigatorKey: key,
+        home: const Scaffold(body: SizedBox.shrink()),
+      ),
+    );
+    unawaited(
+      key.currentState!.push<CaptureResult>(
+        MaterialPageRoute(
+          builder: (_) => CapturePage(
+            accounts: DemoStore.seedAccounts(),
+            categories: DemoStore.seedCategories(),
+            editing: editing,
+            onSubmit: (i) async => intents.add(i),
+          ),
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    if (editing == null) {
+      await t.tap(find.text('Thu'));
+      await t.pumpAndSettle();
+      await t.enterText(find.widgetWithText(TextField, 'Số tiền'), '30k');
+      await t.tap(
+        find.widgetWithText(DropdownButtonFormField<String>, 'Tài khoản'),
+      );
+      await t.pumpAndSettle();
+      await t.tap(find.text('Tiền mặt').last);
+      await t.pumpAndSettle();
+    }
+    await t.tap(find.text('Hoàn tiền'));
+    await t.pumpAndSettle();
+    await t.tap(
+      find.byWidgetPredicate(
+        (w) => w is InputDecorator && w.decoration.labelText == 'Danh mục',
+      ),
+    );
+    await t.pumpAndSettle();
+    await t.tap(find.text(pickCategory).last);
+    await t.pumpAndSettle();
+    await t.tap(find.widgetWithText(FilledButton, 'Lưu'));
+    await t.pumpAndSettle();
+  }
+
+  testWidgets('income shows the switch; expense and transfer hide it', (
+    t,
+  ) async {
+    await _open(t);
+    expect(find.text('Hoàn tiền'), findsNothing);
+    await t.tap(find.text('Thu'));
+    await t.pumpAndSettle();
+    expect(find.text('Hoàn tiền'), findsOneWidget);
+    await t.tap(find.text('Chuyển'));
+    await t.pumpAndSettle();
+    expect(find.text('Hoàn tiền'), findsNothing);
+  });
+
+  testWidgets('a refund capture sends the flag with an expense category', (
+    t,
+  ) async {
+    final intents = <CaptureIntent>[];
+    await fillIncomeAndSubmit(t, intents: intents);
+    final i = intents.single;
+    expect(i.kind, TransactionKind.income);
+    expect(i.isRefund, isTrue);
+    // 'cat-food' is an expense category — exactly what the flag needs.
+    expect(i.categoryId, 'cat-food');
+  });
+
+  testWidgets('toggling the flag drops a now-invalid income category', (
+    t,
+  ) async {
+    await _open(t);
+    await t.tap(find.text('Thu'));
+    await t.pumpAndSettle();
+    // Pick an income category first (Lương exists in the seed list).
+    await t.tap(
+      find.byWidgetPredicate(
+        (w) => w is InputDecorator && w.decoration.labelText == 'Danh mục',
+      ),
+    );
+    await t.pumpAndSettle();
+    await t.tap(find.text('Lương').last);
+    await t.pumpAndSettle();
+    await t.tap(find.text('Hoàn tiền'));
+    await t.pumpAndSettle();
+    // The decorator no longer names the income category — the pick was
+    // cleared because the pool flipped to expense categories.
+    expect(
+      find.descendant(
+        of: find.byWidgetPredicate(
+          (w) => w is InputDecorator && w.decoration.labelText == 'Danh mục',
+        ),
+        matching: find.text('Lương'),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('editing a refund row preserves the flag untouched (null)', (
+    t,
+  ) async {
+    final intents = <CaptureIntent>[];
+    final editing = Transaction(
+      id: 'tx-r',
+      kind: TransactionKind.income,
+      categoryId: 'cat-food',
+      category: 'Ăn uống',
+      note: '',
+      accountId: 'acc-cash',
+      account: 'Tiền mặt',
+      amount: 30000,
+      occurredOn: '2026-10-10',
+      isRefund: true,
+    );
+    // Submit without touching the switch — the flag must not be sent.
+    t.view.physicalSize = const Size(800, 2400);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final key = GlobalKey<NavigatorState>();
+    await t.pumpWidget(
+      MaterialApp(
+        navigatorKey: key,
+        home: const Scaffold(body: SizedBox.shrink()),
+      ),
+    );
+    unawaited(
+      key.currentState!.push<CaptureResult>(
+        MaterialPageRoute(
+          builder: (_) => CapturePage(
+            accounts: DemoStore.seedAccounts(),
+            categories: DemoStore.seedCategories(),
+            editing: editing,
+            onSubmit: (i) async => intents.add(i),
+          ),
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    await t.tap(find.widgetWithText(FilledButton, 'Lưu'));
+    await t.pumpAndSettle();
+    expect(intents.single.isRefund, isNull);
+  });
+
+  testWidgets('unflagging a refund row on edit sends false', (t) async {
+    final intents = <CaptureIntent>[];
+    await fillIncomeAndSubmit(
+      t,
+      intents: intents,
+      pickCategory: 'Lương',
+      editing: Transaction(
+        id: 'tx-r',
+        kind: TransactionKind.income,
+        categoryId: 'cat-food',
+        category: 'Ăn uống',
+        note: '',
+        accountId: 'acc-cash',
+        account: 'Tiền mặt',
+        amount: 30000,
+        occurredOn: '2026-10-10',
+        isRefund: true,
+      ),
+    );
+    expect(intents.single.isRefund, isFalse);
   });
 }

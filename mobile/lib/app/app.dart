@@ -2854,6 +2854,7 @@ Future<void> _storeSubmit(RealStore store, CaptureIntent intent) {
       occurredOn: i.occurredOn,
       note: i.note,
       payee: i.payee,
+      isRefund: i.isRefund ?? false,
       idempotencyKey: i.idempotencyKey,
     ),
     createTransfer: (i) => store.createTransfer(
@@ -2885,6 +2886,8 @@ Future<void> _storeSubmit(RealStore store, CaptureIntent intent) {
       // D13: null means the switch wasn't touched — the server-side
       // default preserves the stored flag; a bool rides the same write.
       excludedFromReports: i.excludedFromReports,
+      // D15 — same null-preserves seam; a bool flips the refund flag.
+      isRefund: i.isRefund,
     ),
     updateTransfer: (i) => store.updateTransfer(
       transactionId: i.transactionId!,

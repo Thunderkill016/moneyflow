@@ -43,6 +43,7 @@ class CaptureIntent {
     this.expectedUpdatedAt,
     this.splitLines = const [],
     this.excludedFromReports,
+    this.isRefund,
   });
 
   final TransactionKind kind;
@@ -76,6 +77,12 @@ class CaptureIntent {
   /// flipped the "Loại khỏi báo cáo" switch, so a save that never
   /// touched it costs no extra write. Null on every create intent.
   final bool? excludedFromReports;
+
+  /// Money-back flag (D15): a refund is an income-kind row against an
+  /// expense category. Create carries true when the "Hoàn tiền" switch
+  /// is on; edit sends null when untouched (null preserves the stored
+  /// flag, same convention as [excludedFromReports]).
+  final bool? isRefund;
 }
 
 /// What the capture route returns — `saved` is a clean save;
@@ -227,6 +234,12 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
   /// Edit-mode "Loại khỏi báo cáo" switch state — seeded from the row
   /// and only sent when it differs (see CaptureIntent.excludedFromReports).
   bool _excludedFromReports = false;
+
+  /// "Hoàn tiền" switch state (D15) — only meaningful while kind is
+  /// Thu: the flag flips the category pool to expense categories, which
+  /// is where the refund nets. Seeded from the edited row; reset the
+  /// moment the kind leaves income.
+  bool _isRefund = false;
   String? _error;
 
   // "Chia danh mục" — one expense over several categories.
@@ -314,6 +327,7 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
     occurredOn: _sameDay(_date, vnNow()) ? null : _fmtDate(_date),
     repeatMonthly: _repeatMonthly,
     split: _split,
+    isRefund: _kind == TransactionKind.income && _isRefund,
     splitRows: [
       for (final r in _splitRows)
         CaptureDraftSplitLine(
@@ -349,6 +363,7 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
       _quick.clear();
       _quickDraft = null;
       _kind = TransactionKind.expense;
+      _isRefund = false;
       _accountId = null;
       _destAccountId = null;
       _categoryId = null;
@@ -372,6 +387,7 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
       _quick.text.isEmpty &&
       _destAccountId == null &&
       !_split &&
+      !_isRefund &&
       !_repeatMonthly &&
       _sameDay(_date, vnNow());
 
@@ -380,6 +396,10 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
   /// typed must not resurrect as a phantom selection.
   void _applyDraft(CaptureDraft d) {
     _kind = d.kind;
+    // Refund flag restores only on an income draft — it must be set
+    // before the category check below so the stored expense-category id
+    // validates against the pool the refund mode actually offers.
+    _isRefund = d.isRefund && _kind == TransactionKind.income;
     _amount.text = d.amountText;
     _note.text = d.note;
     _payee.text = d.payee;
@@ -389,7 +409,9 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
     if (_accounts.any((a) => a.id == d.destinationAccountId)) {
       _destAccountId = d.destinationAccountId;
     }
-    if (widget.categories.any((c) => c.id == d.categoryId && c.kind == _kind)) {
+    if (widget.categories.any(
+      (c) => c.id == d.categoryId && c.kind == _categoryKind,
+    )) {
       _categoryId = d.categoryId;
     }
     final day = d.occurredOn == null ? null : DateTime.tryParse(d.occurredOn!);
@@ -499,6 +521,7 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
       _note.text = editing.note;
       _payee.text = editing.payee ?? '';
       _excludedFromReports = editing.excludedFromReports;
+      _isRefund = editing.isRefund;
       _date = DateTime.tryParse(editing.occurredOn) ?? vnNow();
       return; // an edited row is the strongest prefill — skip the rest
     }
@@ -542,7 +565,7 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
       // matches the current kind — an income category can't prefill an
       // expense form.
       if (widget.categories.any(
-        (c) => c.id == last.categoryId && c.kind == _kind,
+        (c) => c.id == last.categoryId && c.kind == _categoryKind,
       )) {
         _categoryId = last.categoryId;
       }
@@ -555,7 +578,7 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
 
   /// Most-used categories for the current kind — the inline pick row.
   List<Category> get _frequentCategories {
-    final ids = frequentCategoryIds(widget.transactions, _kind);
+    final ids = frequentCategoryIds(widget.transactions, _categoryKind);
     final byId = {for (final c in widget.categories) c.id: c};
     return [
       for (final id in ids)
@@ -573,8 +596,17 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
     (label: '5tr', value: 5000000),
   ];
 
+  /// The category pool the form offers: a "Hoàn tiền" income capture
+  /// picks among EXPENSE categories — the category is the netting
+  /// target, which is the whole point of the flag (server enforces the
+  /// same rule, so the picker never offers an invalid choice).
+  TransactionKind get _categoryKind =>
+      _kind == TransactionKind.income && _isRefund
+      ? TransactionKind.expense
+      : _kind;
+
   List<Category> get _kindCategories =>
-      widget.categories.where((c) => c.kind == _kind).toList();
+      widget.categories.where((c) => c.kind == _categoryKind).toList();
 
   String _fmtDate(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -606,9 +638,12 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
     }
     _autoKind = draft.kind;
     if (_kind != TransactionKind.expense) _split = false;
+    if (_kind != TransactionKind.income) _isRefund = false;
     // A category of the old kind cannot survive a kind switch.
     if (_categoryId != null &&
-        !widget.categories.any((c) => c.id == _categoryId && c.kind == _kind)) {
+        !widget.categories.any(
+          (c) => c.id == _categoryId && c.kind == _categoryKind,
+        )) {
       _categoryId = null;
     }
     if (_autoAmount == null
@@ -656,7 +691,9 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
     if (hint == null) return null;
     final folded = foldVietnameseText(hint);
     for (final c in widget.categories) {
-      if (c.kind == _kind && foldVietnameseText(c.name) == folded) return c;
+      if (c.kind == _categoryKind && foldVietnameseText(c.name) == folded) {
+        return c;
+      }
     }
     return null;
   }
@@ -798,6 +835,16 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
                   _kind != TransactionKind.transfer &&
                   _excludedFromReports != widget.editing!.excludedFromReports
               ? _excludedFromReports
+              : null,
+          // D15 — a refund only exists as income-kind; on edit, null
+          // means the switch was never touched (server preserves).
+          // Switching a refund row away from Thu sends false explicitly —
+          // preserving the flag under a non-income kind is a server
+          // rejection, not a silent drop of the user's kind change.
+          isRefund:
+              (_kind == TransactionKind.income && _isRefund) !=
+                  (widget.editing?.isRefund ?? false)
+              ? _kind == TransactionKind.income && _isRefund
               : null,
         ),
       );
@@ -1008,6 +1055,9 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
     setState(() {
       _kind = f.kind;
       _split = false; // templates hold one category — split mode off
+      // Templates never carry the refund flag — the filled row is an
+      // ordinary capture, so a leftover toggle must not tag along.
+      _isRefund = false;
       _categoryId = f.categoryId;
       _amount.text = f.amountMinor.toString();
       _payee.text = f.payee;
@@ -1370,6 +1420,9 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
                     _categoryId = null;
                     // Only expenses can be split across categories.
                     if (_kind != TransactionKind.expense) _split = false;
+                    // A refund is income-kind money back — the flag
+                    // cannot survive a switch away from Thu.
+                    if (_kind != TransactionKind.income) _isRefund = false;
                   }),
           ),
           const SizedBox(height: 16),
@@ -1502,6 +1555,36 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
               ),
           ] else ...[
             const SizedBox(height: 12),
+            // D15 "Hoàn tiền" — only for Thu: the switch flips the
+            // category pool to expense categories (the netting target)
+            // and the subtitle states the honest contract — the row
+            // stays in the ledger as money-in, reports net it against
+            // that category's spend instead of counting it as income.
+            if (_kind == TransactionKind.income)
+              SwitchListTile(
+                value: _isRefund,
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Hoàn tiền'),
+                subtitle: const Text(
+                  'Tiền được trả lại — trừ vào danh mục chi đã chọn, '
+                  'không tính vào Thu.',
+                ),
+                onChanged: _busy
+                    ? null
+                    : (v) => setState(() {
+                        _isRefund = v;
+                        // The flag flips the category pool — a pick of
+                        // the other kind cannot survive the change.
+                        if (_categoryId != null &&
+                            !widget.categories.any(
+                              (c) =>
+                                  c.id == _categoryId &&
+                                  c.kind == _categoryKind,
+                            )) {
+                          _categoryId = null;
+                        }
+                      }),
+              ),
             // "Mục hay dùng" — most-used categories inline, no picker trip.
             if (_frequentCategories.isNotEmpty) ...[
               Text(

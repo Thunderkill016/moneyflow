@@ -139,12 +139,25 @@ WeeklyDigest buildWeeklyDigest(
               (categoryTotals[t.category] ?? 0) + t.amount;
         }
       } else if (t.kind == TransactionKind.income) {
-        income += t.amount;
-        count++;
+        // Hoàn tiền (D15) nets the spend it reimburses — never Thu.
+        if (t.isRefund) {
+          expense -= t.amount;
+          count++;
+          if (t.category.isNotEmpty) {
+            categoryTotals[t.category] =
+                (categoryTotals[t.category] ?? 0) - t.amount;
+          }
+        } else {
+          income += t.amount;
+          count++;
+        }
       }
-    } else if (t.kind == TransactionKind.expense &&
-        inRange(t, window.previousStart, window.previousEnd)) {
-      previousExpense += t.amount;
+    } else if (inRange(t, window.previousStart, window.previousEnd)) {
+      if (t.kind == TransactionKind.expense) {
+        previousExpense += t.amount;
+      } else if (t.kind == TransactionKind.income && t.isRefund) {
+        previousExpense -= t.amount;
+      }
     }
   }
 

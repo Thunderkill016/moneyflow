@@ -288,9 +288,11 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
     final review = t.reviewStatus == TransactionReviewStatus.needsReview
         ? '\nCần xem lại'
         : '';
+    // D15 — the row is money-in but nets an expense category; say so.
+    final refund = t.isRefund ? '\nHoàn tiền' : '';
     final state = _entryState(t.id);
     final recon = state == null ? '' : ' · ${entryStateLabel(state)}';
-    return '$payee$base · ${formatYmdAsDmy(t.occurredOn)}$recon$review';
+    return '$payee$base · ${formatYmdAsDmy(t.occurredOn)}$recon$review$refund';
   }
 
   /// Reconciliation state of a row, from the strip's already-loaded feed —

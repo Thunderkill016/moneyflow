@@ -24,6 +24,11 @@ void main() {
     testWidgets('prefill fills amount, note, kind and shows review banner', (
       t,
     ) async {
+      // The D15 "Hoàn tiền" switch renders for the income prefill — a
+      // tall surface keeps every lazily-built field mounted.
+      t.view.physicalSize = const Size(800, 2400);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
       await t.pumpWidget(
         _wrap(
           CapturePage(

@@ -16,6 +16,7 @@ Transaction _tx({
   String category = 'Ăn uống',
   int amount = 0,
   required String occurredOn,
+  bool isRefund = false,
 }) => Transaction(
   id: id,
   kind: kind,
@@ -26,6 +27,7 @@ Transaction _tx({
   account: 'Tiền mặt',
   amount: amount,
   occurredOn: occurredOn,
+  isRefund: isRefund,
 );
 
 void main() {
@@ -340,6 +342,42 @@ void main() {
       expect(s.transactionCount, 2);
       // Only 2026-09-20 is inside the prior window (Sep 11–30).
       expect(s.expenseChangePercent, 50);
+    });
+
+    test('D15 refunds net Chi and the top category, never Thu', () {
+      final s = buildMonthSummary([
+        _tx(id: 'a', amount: 100000, occurredOn: '2026-10-05'),
+        _tx(
+          id: 'r',
+          kind: TransactionKind.income,
+          amount: 30000,
+          occurredOn: '2026-10-06',
+          isRefund: true, // same category — Ăn uống — nets it
+        ),
+        _tx(
+          id: 'i',
+          kind: TransactionKind.income,
+          category: 'Lương',
+          amount: 500000,
+          occurredOn: '2026-10-01',
+        ),
+        // Refund in the trailing compare window nets the baseline too.
+        _tx(
+          id: 'p',
+          kind: TransactionKind.income,
+          amount: 20000,
+          occurredOn: '2026-09-20',
+          isRefund: true,
+        ),
+        _tx(id: 'q', amount: 60000, occurredOn: '2026-09-20'),
+      ], today: today);
+      expect(s.income, 500000);
+      expect(s.expense, 70000); // 100k − 30k
+      expect(s.topCategory, 'Ăn uống');
+      expect(s.topCategoryAmount, 70000);
+      expect(s.transactionCount, 3);
+      // Baseline: 60k expense − 20k refund = 40k → +75% change.
+      expect(s.expenseChangePercent, 75);
     });
 
     test('transfers and empty categories stay out', () {

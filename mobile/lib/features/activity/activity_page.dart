@@ -1281,6 +1281,7 @@ class _TxTile extends StatelessWidget {
       accountLine,
       _dayLabel(tx.occurredOn),
       if (needsReview) 'cần xem lại',
+      if (tx.isRefund) 'hoàn tiền',
     ].join(', ');
 
     return Card(
@@ -1311,11 +1312,16 @@ class _TxTile extends StatelessWidget {
                   subtitle: Text(
                     '${tx.category} · $accountLine'
                     '${needsReview ? '\nCần xem lại' : ''}'
+                    // D15 ledger-side label: the row is money-in but
+                    // nets the expense category it reimburses — the
+                    // ledger shows it, honestly named.
+                    '${tx.isRefund ? '\nHoàn tiền' : ''}'
                     // D13 ledger-side disclosure: the row stays here
                     // (money really moved) but tells you reports skip it.
                     '${tx.excludedFromReports ? '\nĐã loại khỏi báo cáo' : ''}',
                   ),
-                  isThreeLine: needsReview || tx.excludedFromReports,
+                  isThreeLine:
+                      needsReview || tx.excludedFromReports || tx.isRefund,
                   trailing: ConstrainedBox(
                     constraints: const BoxConstraints(
                       maxWidth: _trailingMaxWidth,

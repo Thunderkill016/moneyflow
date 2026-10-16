@@ -97,11 +97,26 @@ MonthSummary buildMonthSummary(
               (categoryTotals[t.category] ?? 0) + t.amount;
         }
       } else if (t.kind == TransactionKind.income) {
-        income += t.amount;
-        count++;
+        // Hoàn tiền (D15) nets the spend it reimburses — never Thu.
+        if (t.isRefund) {
+          expense -= t.amount;
+          count++;
+          if (t.category.isNotEmpty) {
+            categoryTotals[t.category] =
+                (categoryTotals[t.category] ?? 0) - t.amount;
+          }
+        } else {
+          income += t.amount;
+          count++;
+        }
       }
-    } else if (t.kind == TransactionKind.expense && inRange(t, pStart, pEnd)) {
-      previousExpense += t.amount;
+    } else if (inRange(t, pStart, pEnd)) {
+      // Refund income in the baseline window nets it the same way.
+      if (t.kind == TransactionKind.expense) {
+        previousExpense += t.amount;
+      } else if (t.kind == TransactionKind.income && t.isRefund) {
+        previousExpense -= t.amount;
+      }
     }
   }
 

@@ -97,6 +97,7 @@ void main() {
         occurredOn: '2026-10-21',
         repeatMonthly: true,
         split: true,
+        isRefund: true,
         splitRows: [
           CaptureDraftSplitLine(categoryId: 'cat-a', amountText: '10k'),
           CaptureDraftSplitLine(amountText: '20k'),
@@ -118,6 +119,7 @@ void main() {
       expect(back.occurredOn, '2026-10-21');
       expect(back.repeatMonthly, isTrue);
       expect(back.split, isTrue);
+      expect(back.isRefund, isTrue);
       expect(back.splitRows, hasLength(2));
       expect(back.splitRows.first.categoryId, 'cat-a');
       expect(back.splitRows.last.amountText, '20k');

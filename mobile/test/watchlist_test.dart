@@ -17,6 +17,7 @@ Transaction _tx({
   int amount = 0,
   String? payee,
   required String occurredOn,
+  bool isRefund = false,
 }) => Transaction(
   id: id,
   kind: kind,
@@ -28,6 +29,7 @@ Transaction _tx({
   amount: amount,
   occurredOn: occurredOn,
   payee: payee,
+  isRefund: isRefund,
 );
 
 void main() {
@@ -69,6 +71,32 @@ void main() {
         today: today,
       );
       expect(spent, 80000);
+    });
+
+    test('D15 a refund at the pinned category nets its month spend', () {
+      final spent = watchMonthSpend(
+        [
+          _tx(id: 'a', amount: 80000, occurredOn: '2026-10-10'),
+          _tx(
+            id: 'r',
+            kind: TransactionKind.income,
+            amount: 25000,
+            occurredOn: '2026-10-11',
+            isRefund: true,
+          ),
+          // Plain income on the same-named category is not spend and
+          // never nets — only flagged refunds do.
+          _tx(
+            id: 'i',
+            kind: TransactionKind.income,
+            amount: 999999,
+            occurredOn: '2026-10-11',
+          ),
+        ],
+        item,
+        today: today,
+      );
+      expect(spent, 55000);
     });
 
     test('payee pins match the payee field, blank never matches', () {

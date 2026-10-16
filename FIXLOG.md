@@ -925,3 +925,67 @@ Format: `ID | files changed | why | proof (test names)`.
   Mở lại; a close failure surfaces instead of silently keeping put;
   read-only surface shows no Đóng/Lưu trữ affordance` (renamed +
   re-asserted; whole suite green, +1500 tests).
+
+- **D15 refund net-off ("Hoàn tiền") — shipped** |
+  `supabase/migrations/20261016220000_transaction_refunds.sql`,
+  `db/neon/migrations/20261016220000_transaction_refunds.sql` (twin),
+  `supabase/tests/database/refund_net_off.test.sql`,
+  `supabase/tests/database/schema_and_rls.test.sql`,
+  `supabase/tests/database/browser_role_privileges.test.sql`,
+  `mobile/lib/domain/models.dart`,
+  `mobile/lib/domain/report.dart`,
+  `mobile/lib/domain/weekly_buckets.dart`,
+  `mobile/lib/domain/month_summary.dart`,
+  `mobile/lib/domain/weekly_digest.dart`,
+  `mobile/lib/domain/month_close_digest.dart`,
+  `mobile/lib/domain/watchlist.dart`,
+  `mobile/lib/data/neon/real_store.dart`,
+  `mobile/lib/data/capture_draft.dart`,
+  `mobile/lib/data/offline_queue.dart`,
+  `mobile/lib/features/capture/capture_page.dart`,
+  `mobile/lib/features/capture/capture_submit.dart`,
+  `mobile/lib/features/activity/activity_page.dart`,
+  `mobile/lib/features/accounts/account_register_page.dart`,
+  `mobile/lib/app/app.dart`,
+  `mobile/test/report_test.dart`,
+  `mobile/test/weekly_buckets_test.dart`,
+  `mobile/test/month_close_digest_test.dart`,
+  `mobile/test/weekly_digest_test.dart`,
+  `mobile/test/watchlist_test.dart`,
+  `mobile/test/capture_audit_test.dart`,
+  `mobile/test/capture_draft_test.dart`,
+  `mobile/test/offline_queue_test.dart`,
+  `mobile/test/device_features_test.dart` |
+  Loop B gap D15 (§10 — Simplifi 5.7/PocketGuard 7.3): "Hoàn tiền
+  currently distorts category totals" — money back recorded as income
+  inflated Thu and left the spend category untouched. Now a boolean
+  `is_refund` on `financial_transactions` (NOT NULL default false, CHECK
+  pins refund ⇒ income): the row stays income-kind in the ledger (cash
+  really arrived — balance/register/timeline unchanged) but carries the
+  EXPENSE category it reimburses, and every report aggregate nets it
+  there — period totals/category/payee/account sections, category
+  deltas, weekly chart buckets, month summary, weekly/month digests,
+  watchlist spend. Budget + event-budget views net the same way. Write
+  contract: `create_money_transaction` + `p_is_refund` (validated
+  income-kind + expense-category, flag inside the idempotency intent so
+  a flipped-flag replay fails closed), `update_money_transaction` +
+  `p_is_refund` null-preserves and re-validates on the effective flag;
+  flag exempt from the reconciled-field diff like
+  `excluded_from_reports`. Capture UI: a "Hoàn tiền" switch on Thu rows
+  swaps the category pool to expense categories, serializes through
+  drafts and the offline queue (which also gained the D13
+  `excludedFromReports` field it was missing); activity and register
+  rows label the row "Hoàn tiền". |
+  `refund_net_off.test.sql` 18 pgTAP assertions (column/default, CHECK,
+  feed + deleted-feed, create/validate/idempotent-replay, update
+  preserve/flag/unflag, cross-tenant + anonymous refusal, budget
+  netting pinned and recomputed independently); `report_test.dart` D15
+  group (netting, negative bucket, delta); `weekly_buckets_test.dart`,
+  `month_close_digest_test.dart` (incl. baseline netting),
+  `weekly_digest_test.dart`, `watchlist_test.dart` refund cases;
+  `capture_audit_test.dart` D15 group (switch visibility by kind,
+  category-pool flip clears stale pick, flag on intent, edit
+  preserve/unflag); `capture_draft_test.dart` + `offline_queue_test.dart`
+  codec fields. Gates: dart format → flutter analyze clean →
+  flutter test +1512 all green; embedded pgTAP suite all green;
+  `npm run check:migrations` (95 pinned) + `check:rls` pass.

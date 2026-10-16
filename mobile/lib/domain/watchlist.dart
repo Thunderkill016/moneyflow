@@ -49,7 +49,9 @@ int watchMonthSpend(
   final end = ymd(todayDay);
   var spent = 0;
   for (final t in rows) {
-    if (t.kind != TransactionKind.expense) continue;
+    // Refund income nets the watched spend it reimburses (D15).
+    final nets = t.kind == TransactionKind.income && t.isRefund;
+    if (t.kind != TransactionKind.expense && !nets) continue;
     if (t.occurredOn.compareTo(monthStart) < 0 ||
         t.occurredOn.compareTo(end) > 0) {
       continue;
@@ -58,7 +60,7 @@ int watchMonthSpend(
       WatchKind.category => t.category == item.name,
       WatchKind.payee => (t.payee ?? '') == item.name,
     };
-    if (matches) spent += t.amount;
+    if (matches) spent += nets ? -t.amount : t.amount;
   }
   return spent;
 }

@@ -246,7 +246,27 @@ DONE THIS ROUND:
   field/RPC unchanged (`is_archived` / set_financial_account_archived);
   debts/categories/commitments/trash keep archive vocabulary. Gates:
   dart format → flutter analyze clean → flutter test all green (+1500).
+- **D15 refund net-off ("Hoàn tiền") on feat/mobile-theme** — money
+  back now nets against the category it reimburses instead of
+  inflating Thu. Schema: `is_refund` bool NOT NULL default false on
+  financial_transactions + CHECK refund⇒income; feed/deleted-feed
+  re-emit it; create/update RPCs take `p_is_refund` (validated
+  income-kind + expense-category, flag inside the idempotency intent,
+  null=preserve on update, exempt from reconciled-field diff);
+  budget_progress + event_budget_progress net it. Mobile: Thu-only
+  "Hoàn tiền" switch swaps the category pool to expense categories
+  (toggling clears a stale pick), flag rides CaptureIntent → real/RPC
+  + offline queue + drafts (queue also gained the missing D13
+  excludedFromReports field), pre-migration fallback keeps old servers
+  working; activity/register label the row "Hoàn tiền". Domain:
+  period totals + category/payee/account sections + deltas, weekly
+  chart buckets, month summary, weekly/month digests and watchlist all
+  net refunds — ledger balance/register/timeline stay truthfully
+  cash-in. Gates: dart format → flutter analyze clean → flutter test
+  +1512 all green; embedded pgTAP suite green (18 new assertions);
+  check:migrations + check:rls pass. See FIXLOG.md "D15 refund
+  net-off".
 AUDIT OPEN: P0=0 P1=0 P2=0 (all findings shipped — see FIXLOG.md)
 GAPS OPEN: web EditTransactionDialog lacks "save as rule" offer (mobile has it); web reports do not honor excluded_from_reports yet; Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
-NEXT STEP: Loop B gap list — D15, D18+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D14 + D16–D17 done.
+NEXT STEP: Loop B gap list — D18+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D17 done.
 RESUME: re-read this file, then continue at NEXT STEP.

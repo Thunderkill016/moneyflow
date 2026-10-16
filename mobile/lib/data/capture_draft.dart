@@ -43,6 +43,7 @@ class CaptureDraft {
     this.occurredOn,
     this.repeatMonthly = false,
     this.split = false,
+    this.isRefund = false,
     this.splitRows = const [],
     this.idempotencyKey,
     this.savedAtMs = 0,
@@ -60,6 +61,10 @@ class CaptureDraft {
   final String? occurredOn;
   final bool repeatMonthly;
   final bool split;
+
+  /// "Hoàn tiền" switch state (D15) — only meaningful on income drafts;
+  /// restore ignores it on any other kind.
+  final bool isRefund;
   final List<CaptureDraftSplitLine> splitRows;
   final String? idempotencyKey;
 
@@ -79,7 +84,8 @@ class CaptureDraft {
       categoryId == null &&
       occurredOn == null &&
       !repeatMonthly &&
-      !split;
+      !split &&
+      !isRefund;
 
   Map<String, Object?> toJson() => {
     'v': 1,
@@ -93,6 +99,7 @@ class CaptureDraft {
     'occurredOn': occurredOn,
     'repeatMonthly': repeatMonthly,
     'split': split,
+    'isRefund': isRefund,
     'splitRows': [for (final r in splitRows) r.toJson()],
     'idempotencyKey': idempotencyKey,
     'savedAtMs': savedAtMs,
@@ -118,6 +125,7 @@ class CaptureDraft {
       occurredOn: raw['occurredOn'] as String?,
       repeatMonthly: raw['repeatMonthly'] == true,
       split: raw['split'] == true,
+      isRefund: raw['isRefund'] == true,
       splitRows: rows is List
           ? [
               for (final r in rows)

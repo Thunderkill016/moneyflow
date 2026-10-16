@@ -65,11 +65,12 @@ class RealStore implements PatternDismissalSync {
       'category_id,category_name,destination_account_id,'
       'destination_account_name,payee,updated_at,split_lines';
 
-  /// `excluded_from_reports` lands with migration 20261016200000 — feed
-  /// reads ask for it first and retry without it on the column-missing
-  /// error, where every row is unflagged by definition (the column's
-  /// own default).
-  static const _txColumnsWithExclusion = '$_txColumns,excluded_from_reports';
+  /// `excluded_from_reports` lands with migration 20261016200000 and
+  /// `is_refund` with 20261016220000 — feed reads ask for both first and
+  /// retry without them on the column-missing error, where every row is
+  /// unflagged by definition (the columns' own defaults).
+  static const _txColumnsWithExclusion =
+      '$_txColumns,excluded_from_reports,is_refund';
 
   /// transaction_feed / deleted_transaction_feed select with the
   /// exclusion column's pre-migration fallback — see
@@ -141,6 +142,7 @@ class RealStore implements PatternDismissalSync {
           : 0,
       splitLines: _splitLinesFromRow(kind, r),
       excludedFromReports: r['excluded_from_reports'] == true,
+      isRefund: r['is_refund'] == true,
     );
   }
 
@@ -450,6 +452,10 @@ class RealStore implements PatternDismissalSync {
     String note = '',
     String payee = '',
     String? goalId,
+
+    /// D15 — a refund is income-kind money back against an expense
+    /// category; the server validates both halves of that contract.
+    bool isRefund = false,
     required String idempotencyKey,
   }) async {
     final id = await _api.rpc('create_money_transaction', {
@@ -462,6 +468,9 @@ class RealStore implements PatternDismissalSync {
       'p_payee': payee,
       'p_goal_id': goalId,
       'p_idempotency_key': idempotencyKey,
+      // Migration 20261016220000 — omitted when false so a
+      // pre-migration server keeps answering the legacy body.
+      if (isRefund) 'p_is_refund': true,
     });
     return id as String;
   }
@@ -975,6 +984,11 @@ class RealStore implements PatternDismissalSync {
     /// D13 — null preserves the stored flag (the param's own default);
     /// a bool is only sent when the user actually flipped the switch.
     bool? excludedFromReports,
+
+    /// D15 — same null-preserves convention; a bool flips the refund
+    /// flag (the server re-checks the category rule on the effective
+    /// value, so flag-on without an expense category fails honestly).
+    bool? isRefund,
   }) => _api.rpc('update_money_transaction', {
     'p_transaction_id': transactionId,
     'p_account_id': accountId,
@@ -988,6 +1002,8 @@ class RealStore implements PatternDismissalSync {
     // Migration 20261016200000 — omitted entirely when null so a
     // pre-migration server keeps answering the legacy body.
     'p_excluded_from_reports': ?excludedFromReports,
+    // Migration 20261016220000 — same null-omits convention.
+    'p_is_refund': ?isRefund,
   });
 
   /// POST /rpc/update_account_transfer — transfer legs stay balanced;

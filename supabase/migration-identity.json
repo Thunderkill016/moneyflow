@@ -469,6 +469,11 @@
       "version": "20261016210000",
       "name": "20261016210000_merge_categories.sql",
       "hash": "23c46d94f3d40ff8d004a64deae6ffe5"
+    },
+    {
+      "version": "20261016220000",
+      "name": "20261016220000_transaction_refunds.sql",
+      "hash": "56639ac688620c0fc5aad13004e54676"
     }
   ]
 }
