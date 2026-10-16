@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../data/capture_draft.dart';
 import '../../data/capture_prefs.dart';
 import '../../data/neon/real_store.dart' show newIdempotencyKey;
+import '../../data/quick_fills.dart';
 import '../../data/share/share_text_parser.dart';
 import '../../domain/frequency.dart';
 import '../../domain/inbox.dart';
@@ -12,12 +13,14 @@ import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/quick_parse.dart';
 import '../../domain/report.dart' show dateAdd, vnNow;
+import '../../domain/rule_suggestions.dart';
 import '../../domain/split.dart';
 import '../../theme/mf_theme.dart';
 import 'capture_submit.dart'
     show CaptureQueued, CommitmentFailed, submitErrorMessage;
 import 'category_picker.dart';
 import '../shared/empty_state.dart';
+import '../shared/timed_snack_bar.dart';
 import '../voice/voice_capture_page.dart';
 
 /// Result of one capture intent — carries the idempotency key generated when
@@ -77,6 +80,11 @@ class CaptureIntent {
 /// offline and the intent is held for replay.
 enum CaptureResult { saved, savedPartial, savedRuleFailed, queued }
 
+/// The three exits of the D6 rule-draft offer — [accept] writes the rule
+/// through `onSaveRule`, [declined] mutes the pair, [later] (or a null
+/// dismiss) leaves the counter for the next correction.
+enum _SuggestionVerdict { accept, declined, later }
+
 class _SplitRow {
   _SplitRow({this.categoryId});
 
@@ -97,7 +105,10 @@ class CapturePage extends StatefulWidget {
     this.editing,
     this.onCreateAccount,
     this.onSaveRule,
+    this.onPayeeCategoryCorrection,
+    this.onSuggestionDeclined,
     this.draftScope,
+    this.quickFillScope,
   });
 
   final List<AccountSummary> accounts;
@@ -136,12 +147,34 @@ class CapturePage extends StatefulWidget {
   /// checkbox.
   final Future<void> Function(InboxRuleDraft draft)? onSaveRule;
 
+  /// D6 — repeated-correction rule suggestion, edit mode only. Called
+  /// once after a successful save whose (payee, category) pair differs
+  /// from the row's original; the seam records the correction and
+  /// returns a [RuleSuggestion] when the counted pattern earns an offer,
+  /// else null. Wired alongside [onSaveRule] — a host that can't write
+  /// rules is never offered one.
+  final Future<RuleSuggestion?> Function({
+    required String payee,
+    required String categoryId,
+  })?
+  onPayeeCategoryCorrection;
+
+  /// "Không hỏi lại" on the suggestion dialog — the seam remembers and
+  /// stops offering this exact (payee → category) pair on this device.
+  final Future<void> Function(RuleSuggestion suggestion)? onSuggestionDeclined;
+
   /// Account scope for the unsaved-draft slot (`null` = no persistence —
   /// demo/read-only hosts). Process death drops every pushed route, so
   /// in-progress fields are kept in an account-scoped prefs slot and
   /// offered back on the next open instead of relying on framework route
   /// restoration the imperative `Navigator.push` stack can't deliver.
   final String? draftScope;
+
+  /// Account scope for the D7 quick-fill templates (`null` = none —
+  /// demo/read-only hosts hide the chip row and the save-as-template
+  /// action entirely, never a dead affordance). The chips only prefill
+  /// the form; the user still reviews and saves explicitly.
+  final String? quickFillScope;
 
   @override
   State<CapturePage> createState() => _CapturePageState();
@@ -190,6 +223,10 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
   bool _split = false;
   final List<_SplitRow> _splitRows = [];
   final List<_SplitRow> _retiredSplitRows = [];
+
+  // D7 "Mẫu nhanh" — saved templates for the chip row (create mode only;
+  // an edit must never be silently overwritten by a template).
+  List<QuickFill> _quickFills = const [];
 
   // ── Unsaved-draft persistence (see widget.draftScope) ─────────────
   // A debounced write keeps the stored copy within ~400ms of the last
@@ -440,6 +477,9 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
       WidgetsBinding.instance.addObserver(this);
     }
     final editing = widget.editing;
+    if (editing == null && widget.quickFillScope != null) {
+      unawaited(_loadQuickFills());
+    }
     if (editing != null) {
       _kind = editing.kind;
       _accountId = editing.accountId;
@@ -774,6 +814,45 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
           }
           return;
         }
+      } else if (saveRule != null) {
+        // D6 — the saved edit may complete a repeated (payee → category)
+        // correction that earns a rule-draft offer. A lookup failure only
+        // means no offer — the transaction save stays untouched, and a
+        // refused rule write reports savedRuleFailed exactly like the
+        // checkbox path above.
+        final suggestion = await _pendingRuleSuggestion();
+        if (suggestion != null && mounted) {
+          final verdict = await _offerRuleSuggestion(suggestion);
+          if (!mounted) return;
+          switch (verdict) {
+            case _SuggestionVerdict.accept:
+              try {
+                await saveRule((
+                  id: null,
+                  expectedVersion: null,
+                  matchField: RuleMatchField.merchant,
+                  containsText: suggestion.payee,
+                  categoryId: suggestion.categoryId,
+                  merchantName: null,
+                  enabled: true,
+                ));
+              } catch (_) {
+                if (mounted) {
+                  Navigator.of(context).pop(CaptureResult.savedRuleFailed);
+                }
+                return;
+              }
+            case _SuggestionVerdict.declined:
+              final declined = widget.onSuggestionDeclined;
+              if (declined != null) {
+                // Best-effort — a forgotten decline only means the offer
+                // can appear once more, never a wrong write.
+                unawaited(declined(suggestion).catchError((_) {}));
+              }
+            case _SuggestionVerdict.later || null:
+              break;
+          }
+        }
       }
       if (mounted) Navigator.of(context).pop(CaptureResult.saved);
     } on CommitmentFailed {
@@ -792,6 +871,201 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
         _error = submitErrorMessage(e);
       });
     }
+  }
+
+  /// The D6 correction signal, asked only in edit mode after the save
+  /// landed: a changed (payee, category) pair on a payee-bearing
+  /// income/expense row is a re-categorization worth counting; an
+  /// untouched pair or a note-only edit is not evidence. Seam/prefs
+  /// failures return null — the suggestion is a nicety over a save that
+  /// already succeeded, never a new failure mode for it.
+  Future<RuleSuggestion?> _pendingRuleSuggestion() async {
+    final editing = widget.editing;
+    final seam = widget.onPayeeCategoryCorrection;
+    final payee = _payee.text.trim();
+    final categoryId = _categoryId;
+    if (editing == null ||
+        seam == null ||
+        editing.kind == TransactionKind.transfer ||
+        _split ||
+        payee.isEmpty ||
+        categoryId == null) {
+      return null;
+    }
+    final originalPayee = (editing.payee ?? '').trim();
+    if (payee == originalPayee && categoryId == editing.categoryId) {
+      return null;
+    }
+    try {
+      return await seam(payee: payee, categoryId: categoryId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// The rule-draft offer itself — a modal because it names real numbers
+  /// (payee, category, count) the user should read once, with three honest
+  /// exits: create the rule now, keep correcting manually ("Để sau"
+  /// re-offers if the pattern repeats again), or silence this pair.
+  /// An outside-tap dismiss reads as "Để sau".
+  Future<_SuggestionVerdict?> _offerRuleSuggestion(RuleSuggestion s) {
+    final categoryName =
+        widget.categories
+            .where((c) => c.id == s.categoryId)
+            .map((c) => c.name)
+            .firstOrNull ??
+        'danh mục đã chọn';
+    return showDialog<_SuggestionVerdict>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Tạo quy tắc tự điền?'),
+        content: Text(
+          'Bạn đã đổi “${s.payee}” sang “$categoryName” ${s.times} lần. '
+          'Quy tắc sẽ tự điền danh mục này cho các mục chờ duyệt có nơi '
+          'giao dịch khớp — mỗi mục vẫn do bạn duyệt, không tự ghi sổ.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(_SuggestionVerdict.declined),
+            child: const Text('Không hỏi lại'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(_SuggestionVerdict.later),
+            child: const Text('Để sau'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(_SuggestionVerdict.accept),
+            child: const Text('Tạo quy tắc'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── D7 quick fills ────────────────────────────────────────────────
+
+  Future<void> _loadQuickFills() async {
+    final scope = widget.quickFillScope;
+    if (scope == null) return;
+    List<QuickFill> fills;
+    try {
+      fills = await QuickFillStore.load(scope);
+    } catch (_) {
+      return; // a prefs failure just means no chips — the form still works
+    }
+    if (mounted) setState(() => _quickFills = fills);
+  }
+
+  /// Chips whose stored ids still resolve against the live lists — a
+  /// fill pointing at a deleted wallet or an archived/wrong-kind
+  /// category can't prefill honestly, so it hides instead of applying a
+  /// half-broken template.
+  List<QuickFill> get _usableQuickFills => [
+    for (final f in _quickFills)
+      if (_accounts.any((a) => a.id == f.accountId) &&
+          widget.categories.any(
+            (c) => c.id == f.categoryId && c.kind == f.kind && !c.isArchived,
+          ))
+        f,
+  ];
+
+  /// Chip label — the most human token first: payee when the template
+  /// carries one, else the category's CURRENT name (a rename never
+  /// shows as the stale stored label).
+  String _quickFillLabel(QuickFill f) {
+    final head = f.payee.isNotEmpty
+        ? f.payee
+        : (widget.categories
+                  .where((c) => c.id == f.categoryId)
+                  .map((c) => c.name)
+                  .firstOrNull ??
+              f.categoryName);
+    return '$head · ${formatMoney(f.amountMinor)}';
+  }
+
+  /// Applying a template is an explicit fill, not a post — every field
+  /// lands on the form and the user still reviews before saving. The
+  /// date keeps its "hôm nay" default on purpose: a quick fill answers
+  /// "the usual coffee again", not "re-enter that day".
+  void _applyQuickFill(QuickFill f) {
+    setState(() {
+      _kind = f.kind;
+      _split = false; // templates hold one category — split mode off
+      _categoryId = f.categoryId;
+      _amount.text = f.amountMinor.toString();
+      _payee.text = f.payee;
+      _note.text = f.note;
+      _accountId = f.accountId;
+      // Hand-entered intent outranks any auto-prefill the quick-parse
+      // scratch field produced earlier — record the applied values as
+      // user-owned so a later re-parse cannot stomp them.
+      _autoKind = null;
+      _autoAmount = null;
+      _autoNote = null;
+      _autoCategoryId = null;
+      _autoDate = null;
+    });
+  }
+
+  /// AppBar "Lưu làm mẫu nhanh" — snapshots the CURRENT fields as a
+  /// template without submitting the transaction. Validation mirrors the
+  /// submit's minimum (positive amount, category chosen) so a template
+  /// can never encode a form that could not save anyway.
+  Future<void> _saveQuickFill() async {
+    final scope = widget.quickFillScope;
+    if (scope == null) return;
+    final amount = parseMoneyInput(_amount.text);
+    if (_kind == TransactionKind.transfer ||
+        amount == null ||
+        amount <= 0 ||
+        _categoryId == null ||
+        _accountId == null) {
+      _snack('Nhập số tiền và danh mục trước khi lưu mẫu');
+      return;
+    }
+    final category = widget.categories
+        .where((c) => c.id == _categoryId)
+        .firstOrNull;
+    if (category == null) return;
+    try {
+      await QuickFillStore.save(
+        scope,
+        QuickFill(
+          kind: _kind,
+          amountMinor: amount,
+          categoryId: category.id,
+          categoryName: category.name,
+          accountId: _accountId!,
+          payee: _payee.text.trim(),
+          note: _note.text.trim(),
+        ),
+      );
+    } catch (_) {
+      if (mounted) _snack('Chưa lưu được mẫu — thử lại');
+      return;
+    }
+    await _loadQuickFills();
+    if (mounted) _snack('Đã lưu mẫu nhanh');
+  }
+
+  Future<void> _deleteQuickFill(QuickFill f) async {
+    final scope = widget.quickFillScope;
+    if (scope == null) return;
+    try {
+      await QuickFillStore.delete(scope, f);
+    } catch (_) {
+      if (mounted) _snack('Chưa xóa được mẫu — thử lại');
+      return;
+    }
+    await _loadQuickFills();
+    if (mounted) _snack('Đã xóa mẫu nhanh');
+  }
+
+  void _snack(String message) {
+    showTimedSnackBar(
+      ScaffoldMessenger.of(context),
+      SnackBar(content: Text(message)),
+    );
   }
 
   /// Category selection via a searchable bottom sheet — the flat list
@@ -989,6 +1263,17 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
               tooltip: 'Nói để ghi',
               onPressed: () => _openVoice(context),
             ),
+          // D7 "Lưu làm mẫu nhanh" — snapshots the current fields into a
+          // one-tap chip template; never submits the transaction. Hidden
+          // for transfers (a chip can't carry two accounts) and where no
+          // scope was wired (demo/read-only).
+          if (widget.quickFillScope != null &&
+              _kind != TransactionKind.transfer)
+            IconButton(
+              icon: const Icon(Icons.bookmark_add_outlined),
+              tooltip: 'Lưu làm mẫu nhanh',
+              onPressed: _busy ? null : _saveQuickFill,
+            ),
         ],
       ),
       body: ListView(
@@ -1038,6 +1323,24 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
               ),
             ),
             if (_quickDraft != null) _quickSuggestion(_quickDraft!),
+            // D7 chip row — one tap prefills kind/amount/category/payee/
+            // note/account; the user still reviews and saves explicitly.
+            if (_usableQuickFills.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final f in _usableQuickFills)
+                    InputChip(
+                      label: Text(_quickFillLabel(f)),
+                      onPressed: _busy ? null : () => _applyQuickFill(f),
+                      onDeleted: () => _deleteQuickFill(f),
+                      deleteButtonTooltipMessage: 'Xóa mẫu nhanh',
+                    ),
+                ],
+              ),
+            ],
             const SizedBox(height: 12),
           ],
           SegmentedButton<TransactionKind>(

@@ -465,3 +465,100 @@ Format: `ID | files changed | why | proof (test names)`.
   `mf_theme_test.dart` (string updates for the renamed count line).
   `dart format` clean; `flutter analyze` clean; `flutter test` 1373
   all green.
+- **FEATURE: D6 rule suggestion from repeated corrections** |
+  `mobile/lib/domain/rule_suggestions.dart` (new),
+  `mobile/lib/data/rule_suggestion_prefs.dart` (new),
+  `mobile/lib/features/capture/capture_page.dart`,
+  `mobile/lib/app/app.dart`,
+  `mobile/test/rule_suggestion_test.dart` (new) |
+  Loop B gap D6 (RESEARCH_TOP_FINANCE_APPS.md §10 — deterministic ADAPT
+  of YNAB's "two-of-three" payee rule; the edit→rule checkbox already
+  existed but nothing ever SUGGESTED a rule, so users with no rule
+  habit never discover it). A manual re-categorization of a payee row
+  is counted per (folded payee → categoryId) pair in an account-scoped
+  prefs slot (`mf_rule_corrections.<uid>`, cap 200 pairs, weakest-first
+  eviction); at `ruleSuggestionThreshold` = 2 identical corrections the
+  post-save flow offers a rule DRAFT dialog ("Tạo quy tắc tự điền?" —
+  Tạo quy tắc / Để sau / Không hỏi lại). Accept writes through the
+  existing `onSaveRule` → `saveInboxRule` seam as an enabled merchant
+  rule; it never auto-applies to the ledger and only prefills pending
+  inbox candidates a human still approves. Suppressed when the pair is
+  below threshold, when an enabled merchant/any rule already covers the
+  payee (`ruleAlreadyCoversPayee`), when the pair was declined via
+  "Không hỏi lại" (`mf_rule_corrections_off.<uid>`), when the category
+  didn't actually change, or when the explicit checkbox already saved a
+  rule this save (no double-offer). The edit itself saves first and
+  always succeeds — a suggestion lookup failure is silent, a declined
+  write is best-effort, and only the rule write's failure reports
+  `savedRuleFailed` ("Đã lưu khoản — chưa lưu được quy tắc").
+  `rule_suggestion_test.dart` (+18: pair key folds diacritics/case;
+  threshold gate; covering-rule suppression; declined pairs stay quiet;
+  unchanged-category and transfer edits count nothing; accept writes a
+  merchant rule draft via saveRule with merchantName null; Để sau saves
+  nothing and the pair can re-earn the offer; Không hỏi lại persists;
+  rule-save failure → savedRuleFailed with the edit still landed;
+  lookup throw → edit still saves, no dialog; edit without payee or
+  without the seam offers nothing).
+  `dart format` clean; `flutter analyze` clean; `flutter test` — see
+  batch tail below.
+- **FEATURE: D7 quick-fill capture chips** |
+  `mobile/lib/data/quick_fills.dart` (new),
+  `mobile/lib/features/capture/capture_page.dart`,
+  `mobile/lib/app/app.dart`,
+  `mobile/test/quick_fills_test.dart` (new) |
+  Loop B gap D7 (RESEARCH_TOP_FINANCE_APPS.md §10 — Goodbudget 8.5 COPY:
+  custom quick fills). Recon found the amount presets and "Mục hay dùng"
+  category chips already shipped, but no saved TRANSACTION template —
+  the requested unit carries kind/payee/amount/category/account. New
+  `QuickFill` + `QuickFillStore` (`mf_quick_fills.<uid>`, most-recent
+  first, dedupe on full-field equality, cap 12 — beyond that the row
+  stops being one-tap). Capture gains a bookmark action "Lưu làm mẫu
+  nhanh" (AppBar, hidden for transfers — a chip can't carry two
+  accounts — and wherever no scope is wired; validation mirrors the
+  submit's minimum so a template can't encode an unsavable form). Saved
+  fills render as an `InputChip` row under the quick field in CREATE
+  mode only — an edit is never overwritten by a template; chips whose
+  account/category id no longer resolves (deleted wallet, archived or
+  wrong-kind category) hide instead of applying a half-broken template,
+  and a payee-less chip labels with the LIVE category name so a rename
+  never shows stale copy. Tapping a chip fills
+  kind/amount/category/payee/note/account and clears the auto-parse
+  ownership markers so a later quick-parse can't stomp them — the user
+  still reviews and saves explicitly; chip delete rides the InputChip
+  affordance.
+  `quick_fills_test.dart` (+15: store round-trip + scope wall; identical
+  fill refreshes recency; oldest evicts at the cap; corrupt/shape-
+  drifted entries drop; delete by equality; chips render labeled
+  `payee · ₫` or live-category fallback; tap prefills every field with
+  zero submits; stale-id chips hidden; bookmark save persists + chip
+  appears + snackbar; missing amount/category → honest explain line;
+  transfer mode and scope-less demo hide the affordance; edit mode
+  shows no chips but can still save a template; delete affordance
+  removes the stored row).
+- **FEATURE: D8 commitment calendar view** |
+  `mobile/lib/domain/commitments.dart` (+commitmentMonthGrid,
+  commitmentsDueOnDay),
+  `mobile/lib/features/planning/commitment_calendar.dart` (new),
+  `mobile/lib/features/planning/planning_page.dart`,
+  `mobile/test/commitment_calendar_test.dart` (new) |
+  Loop B gap D8 (RESEARCH_TOP_FINANCE_APPS.md §10 — PocketGuard 8.4
+  PORT: the commitments list answered "gì đến hạn" but not "ngày nào").
+  `commitmentMonthGrid` builds the Monday-first T2…CN grid with null
+  padding — malformed months render empty, never a guessed layout.
+  `commitmentsDueOnDay` reuses `commitmentDueMonth` + `commitmentDueDate`
+  so a yearly/quarterly row only marks the month its cycle actually
+  lands in, and dueDay 31 marks the month's real last day under the
+  existing clamp rule — no fabricated dates. `CommitmentCalendar` draws
+  up to three status-colored dots per due day (same `commitmentStatus`
+  math the feed tile uses, so dot color and row status can never
+  disagree), rings today, selects a day on tap (re-tap deselects) and
+  lists that day's commitments with name · amount · status line and the
+  SAME `onPay` "Trả" seam the tile uses — no second write path; paid
+  rows mark their day too ("đến hạn" is a fact about the date, not the
+  payment) but show no Trả. The card mounts only when active
+  commitments exist; a tapped day with nothing due says so in text.
+  `commitment_calendar_test.dart` (+13: grid padding + Monday-first
+  order + month-length + malformed-month refusal; due-day marking under
+  monthly/yearly/clamped-31/paid cases; widget renders headers + hint;
+  tap-a-day detail + Trả round-trip; empty-day honest line; deselect;
+  paid row shows status without Trả; no onPay seam hides the button).

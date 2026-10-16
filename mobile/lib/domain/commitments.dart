@@ -245,3 +245,54 @@ List<RecurringCommitment> sortCommitmentsForFeed(
   });
   return sorted;
 }
+
+// ── D8 calendar helpers ───────────────────────────────────────────────
+// PocketGuard's bill-calendar view: a month grid marking which days have
+// a commitment due, with tap-a-day detail. Same string contract as the
+// rest of this file — the grid never invents dates; a malformed month
+// yields an empty grid, and a due day beyond the month's length only
+// marks the day the "tự chuyển thành ngày cuối tháng" rule resolves to.
+
+/// Monday-first cells for `monthStart` (YYYY-MM-01): `null` pads the
+/// leading/trailing slots that belong to neighboring months — the grid
+/// shows only days this month actually has. Weekday headers are
+/// T2…CN, the convention Vietnamese calendars use.
+List<int?> commitmentMonthGrid(String monthStart) {
+  if (!_monthStartPattern.hasMatch(monthStart)) return const [];
+  final year = int.parse(monthStart.substring(0, 4));
+  final month = int.parse(monthStart.substring(5, 7));
+  // The pattern's `\d{2}` accepts 13-99 — a month outside 1-12 is a
+  // malformed input, and DateTime would silently roll it into a later
+  // year instead of refusing.
+  if (month < 1 || month > 12) return const [];
+  final firstWeekday = DateTime(year, month, 1).weekday; // 1=Mon … 7=Sun
+  final lastDay = DateTime(year, month + 1, 0).day;
+  final cells = <int?>[
+    for (var i = 1; i < firstWeekday; i++) null,
+    for (var d = 1; d <= lastDay; d++) d,
+  ];
+  // Round to a full final row so every rendered week holds 7 cells.
+  while (cells.length % 7 != 0) {
+    cells.add(null);
+  }
+  return cells;
+}
+
+/// The commitments whose resolved due date lands on [day] of
+/// [monthStart]. A row counts only when it is actually due this month —
+/// a non-monthly commitment whose cycle lands in a later month (status
+/// `scheduled`) marks nothing here; its tile already says "Đến hạn
+/// tháng M". Pass the ACTIVE list: archived rows are the caller's call.
+List<RecurringCommitment> commitmentsDueOnDay(
+  List<RecurringCommitment> commitments, {
+  required String monthStart,
+  required int day,
+}) {
+  final iso = '${monthStart.substring(0, 8)}${day.toString().padLeft(2, '0')}';
+  return [
+    for (final c in commitments)
+      if (commitmentDueMonth(c, monthStart: monthStart) == monthStart &&
+          commitmentDueDate(monthStart, c.dueDay) == iso)
+        c,
+  ];
+}

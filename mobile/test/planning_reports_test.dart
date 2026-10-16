@@ -638,6 +638,13 @@ void main() {
       String? restoredId;
       bool? restoredTo;
       final data = _seedPlanningData();
+      // The D8 calendar card made the page ~300px taller — the default
+      // 800x600 surface leaves the archived group clipped at the bottom
+      // edge where scrollUntilVisible stops short of a hittable point.
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
       await tester.pumpWidget(
         MaterialApp(
           home: PlanningPage(
@@ -679,12 +686,17 @@ void main() {
       // The archived row is hidden until the collapsed group expands.
       expect(find.text('Netflix cũ'), findsNothing);
       // The section can sit below the fold — scroll it into the tree
-      // before tapping (ListView children inflate lazily).
+      // before tapping (ListView children inflate lazily). The D8
+      // calendar card pushed the group to the viewport's bottom edge,
+      // where scrollUntilVisible leaves it clipped — ensureVisible
+      // finishes the job so the tap actually lands.
       await tester.scrollUntilVisible(find.text('Đã lưu trữ (1)'), 200);
+      await tester.ensureVisible(find.text('Đã lưu trữ (1)'));
       await tester.tap(find.text('Đã lưu trữ (1)'));
       await tester.pumpAndSettle();
       expect(find.text('Netflix cũ'), findsOneWidget);
 
+      await tester.ensureVisible(find.text('Khôi phục'));
       await tester.tap(find.text('Khôi phục'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Đồng ý'));

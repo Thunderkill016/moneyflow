@@ -17,6 +17,7 @@ import '../data/notifications.dart';
 import '../data/offline_cache.dart';
 import '../data/offline_queue.dart';
 import '../data/quick_action.dart';
+import '../data/rule_suggestion_prefs.dart';
 import '../data/session_store.dart';
 import '../data/settings_prefs.dart';
 import '../data/widget_snapshot.dart';
@@ -28,6 +29,7 @@ import '../domain/report.dart' show vnMonthStart, vnToday;
 import '../domain/inbox.dart';
 import '../domain/models.dart';
 import '../domain/recurring_detection.dart';
+import '../domain/rule_suggestions.dart';
 import '../domain/transaction_query.dart';
 import 'biometric_lock.dart';
 import 'delete_account.dart';
@@ -703,6 +705,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
                 enabled: draft.enabled,
               )
               .then((_) {}),
+          onPayeeCategoryCorrection: _correctionSuggestion,
+          onSuggestionDeclined: _declineRuleSuggestion,
+          quickFillScope: _auth.session?.userId,
         ),
       ),
     );
@@ -721,6 +726,48 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         ),
       );
     }
+  }
+
+  /// D6 seam — records a saved edit's (payee → category) correction for
+  /// this account and returns a rule-draft offer once the pair hits
+  /// [ruleSuggestionThreshold]: declined pairs stay silent, and an enabled
+  /// rule already covering the payee suppresses the offer (a second rule
+  /// would only shadow or be shadowed). Every gate fails soft — the
+  /// suggestion never blocks or breaks the edit save it follows.
+  Future<RuleSuggestion?> _correctionSuggestion({
+    required String payee,
+    required String categoryId,
+  }) async {
+    final uid = _auth.session?.userId;
+    if (uid == null || uid.isEmpty) return null;
+    final count = await RuleSuggestionPrefs.recordCorrection(
+      uid,
+      payee,
+      categoryId,
+    );
+    if (count < ruleSuggestionThreshold) return null;
+    if (await RuleSuggestionPrefs.isDeclined(uid, payee, categoryId)) {
+      return null;
+    }
+    // Coverage rides the server's rule list; when it can't be read the
+    // offer stays silent rather than risk writing a duplicate rule.
+    final List<InboxRule> rules;
+    try {
+      rules = await _store.loadInboxRules();
+    } catch (_) {
+      return null;
+    }
+    if (ruleAlreadyCoversPayee(rules, payee)) return null;
+    return RuleSuggestion(payee: payee, categoryId: categoryId, times: count);
+  }
+
+  /// "Không hỏi lại" — mutes this exact (payee → category) pair on this
+  /// device. A different target category for the same payee keeps its own
+  /// counter and can still earn an offer.
+  Future<void> _declineRuleSuggestion(RuleSuggestion s) async {
+    final uid = _auth.session?.userId;
+    if (uid == null || uid.isEmpty) return;
+    await RuleSuggestionPrefs.decline(uid, s.payee, s.categoryId);
   }
 
   /// The submit failed offline; the intent is held in the queue and the
@@ -2544,6 +2591,9 @@ class _CaptureLoader extends StatelessWidget {
           onSubmit: submit,
           onCreateAccount: onCreateAccount,
           draftScope: draftScope,
+          // D7 — the signed-in user's quick-fill templates ride the same
+          // scope as the draft store (device-local, per-account).
+          quickFillScope: draftScope,
         );
       },
     );
@@ -2558,6 +2608,9 @@ class _EditLoader extends StatelessWidget {
     required this.transaction,
     required this.submit,
     this.saveRule,
+    this.onPayeeCategoryCorrection,
+    this.onSuggestionDeclined,
+    this.quickFillScope,
   });
 
   final RealStore store;
@@ -2566,6 +2619,20 @@ class _EditLoader extends StatelessWidget {
 
   /// Edit→rule seam (Monarch's "save as rule"); null hides the checkbox.
   final Future<void> Function(InboxRuleDraft draft)? saveRule;
+
+  /// D6 repeated-correction seams — null keeps the post-save offer off
+  /// (any host without a signed-in scope or a rule write).
+  final Future<RuleSuggestion?> Function({
+    required String payee,
+    required String categoryId,
+  })?
+  onPayeeCategoryCorrection;
+  final Future<void> Function(RuleSuggestion suggestion)? onSuggestionDeclined;
+
+  /// D7 scope — an edited row can itself become a quick-fill template;
+  /// the template only applies later, on a NEW capture, so the edit
+  /// in flight is never overwritten by a chip.
+  final String? quickFillScope;
 
   @override
   Widget build(BuildContext context) {
@@ -2591,6 +2658,9 @@ class _EditLoader extends StatelessWidget {
           editing: transaction,
           onSubmit: submit,
           onSaveRule: saveRule,
+          onPayeeCategoryCorrection: onPayeeCategoryCorrection,
+          onSuggestionDeclined: onSuggestionDeclined,
+          quickFillScope: quickFillScope,
         );
       },
     );
@@ -2646,6 +2716,7 @@ class _SharedCaptureLoader extends StatelessWidget {
           onSubmit: submit,
           onCreateAccount: onCreateAccount,
           draftScope: draftScope,
+          quickFillScope: draftScope,
         );
       },
     );

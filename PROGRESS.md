@@ -1,6 +1,6 @@
 # PROGRESS — MoneyFlow Android mega-task
 STATUS: IN_PROGRESS
-LAST UPDATE: 2026-10-16 (D5 review-loop polish — swipes + attention card)
+LAST UPDATE: 2026-10-16 (D6+D7+D8 — rule suggestions, quick-fill chips, commitment calendar)
 DONE THIS ROUND:
 - Step Zero DONE: branch mobile/android-app pushed, PR #795 open (head ec8591b9).
 - Prior session shipped: permanent-delete trash (mobile+web+RPC+schema-cache fix), SnackBar a11y watchdog fix (1187+ tests green), Monarch deep-dive docs/research/MONARCH_DEEP_DIVE.md, rules preview + apply-to-existing (mobile+web), edit→rule offer (mobile). All committed.
@@ -123,7 +123,28 @@ DONE THIS ROUND:
     no destination → count without a chevron; each read fails soft.
   - Verification: `dart format` clean; `flutter analyze` clean;
     `flutter test` 1373 green (19 new D5 tests).
+- **D6 rule suggestions + D7 quick-fill chips + D8 commitment calendar
+  shipped on feat/mobile-theme** (mobile-only, no schema work — see
+  FIXLOG.md "FEATURE: D6/D7/D8" for files and proof):
+  - D6: repeated manual payee→category corrections are counted per
+    folded pair (account-scoped prefs, cap 200); at 2 identical fixes a
+    post-edit dialog offers a rule DRAFT ("Tạo quy tắc tự điền?") that
+    saves through the existing saveInboxRule seam — Tạo quy tắc / Để
+    sau / Không hỏi lại; never auto-applies, suppressed when a covering
+    rule exists or the pair was declined.
+  - D7: Goodbudget-style "Mẫu nhanh" — bookmark action saves the current
+    form (kind/payee/amount/category/account) into a per-account chip
+    row under the capture quick field (cap 12, dedupe, stale ids hide);
+    a chip only PREFILLS the form, the user still saves explicitly;
+    hidden for transfers/demo; delete via chip affordance.
+  - D8: PocketGuard-style month grid on Kế hoạch —
+    `commitmentMonthGrid` (Mon-first, null padding, malformed month →
+    empty) + `commitmentsDueOnDay` (honors interval cycles and the
+    clamped last-day rule); status-colored dots, today ring, tap-a-day
+    detail with the same "Trả" seam; paid marks still show.
+  - Verification: `dart format` clean; `flutter analyze` clean;
+    `flutter test` FULL SUITE green (18+15+13 new tests).
 AUDIT OPEN: P0=0 P1=0 P2=0 (all findings shipped — see FIXLOG.md)
 GAPS OPEN: web EditTransactionDialog lacks "save as rule" offer (mobile has it); Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
-NEXT STEP: Loop B gap list — D6 (rule suggestion from repeated corrections: count payee→category manual corrections, offer a rule draft after threshold N, never auto-apply; RESEARCH_TOP_FINANCE_APPS.md §10); then D7+; D1–D5 done.
+NEXT STEP: Loop B gap list — D9+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D8 done.
 RESUME: re-read this file, then continue at NEXT STEP.

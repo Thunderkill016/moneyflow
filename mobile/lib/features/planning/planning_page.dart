@@ -9,6 +9,7 @@ import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/report.dart' show vnNow, vnToday;
 import '../shared/empty_state.dart';
+import 'commitment_calendar.dart';
 import 'recurring_form_dialog.dart';
 import '../shared/timed_snack_bar.dart';
 
@@ -409,6 +410,17 @@ class PlanningPageState extends State<PlanningPage> {
                   addTooltip: 'Thêm cam kết',
                   onAdd: () => _showCommitmentForm(d),
                 ),
+                // D8 — PocketGuard's bill calendar: which days carry a
+                // due commitment, tap a day for its list. Paid marks show
+                // too — the grid answers "đến hạn ngày nào" regardless of
+                // whether it's settled yet.
+                if (activeCommitments.isNotEmpty)
+                  CommitmentCalendar(
+                    monthStart: d.monthStart,
+                    commitments: activeCommitments,
+                    today: today,
+                    onPay: (c) => _payCommitment(c),
+                  ),
                 if (activeCommitments.isEmpty)
                   _empty(
                     'Chưa có cam kết nào',
