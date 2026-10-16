@@ -445,6 +445,11 @@
       "sourceSha256": "6637a58230684cac0dfb49aa081441b3ddf44e074b62b96f28e11f3ae6e54ea7",
       "outputSha256": "6637a58230684cac0dfb49aa081441b3ddf44e074b62b96f28e11f3ae6e54ea7",
       "rewrites": 0
+    },
+    "20261016120000_debts.sql": {
+      "sourceSha256": "3fe719176f9bfba5bd679b99e74df8f13896acc32754dd24ac3870ea4617bc8f",
+      "outputSha256": "1c94c1d502913e272774f89aa52ed8b1074002cf6482ecd4c65fcd18f94a7b28",
+      "rewrites": 2
     }
   }
 }

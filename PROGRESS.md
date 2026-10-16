@@ -1,6 +1,6 @@
 # PROGRESS — MoneyFlow Android mega-task
 STATUS: IN_PROGRESS
-LAST UPDATE: 2026-10-16 (P2 fix round)
+LAST UPDATE: 2026-10-16 (D1 debt tracking)
 DONE THIS ROUND:
 - Step Zero DONE: branch mobile/android-app pushed, PR #795 open (head ec8591b9).
 - Prior session shipped: permanent-delete trash (mobile+web+RPC+schema-cache fix), SnackBar a11y watchdog fix (1187+ tests green), Monarch deep-dive docs/research/MONARCH_DEEP_DIVE.md, rules preview + apply-to-existing (mobile+web), edit→rule offer (mobile). All committed.
@@ -22,7 +22,26 @@ DONE THIS ROUND:
   - P2-6: voice parser clamps at `_maxSafeAmount` before rounding — absurd spoken amounts return null instead of int64 saturation.
   - P2-7: cold-start session probe bounded at 8s (`_sessionProbeBudget`) → trusted offline render; 2.5s slow-network hint on the boot spinner.
   - Verification: `dart format` clean; `flutter analyze` clean; `flutter test` 1258 tests all green; `flutter build apk --release` green.
+- **D1 debt/loan tracking shipped on feat/mobile-theme** (Class-3 slice —
+  see FIXLOG.md "FEATURE: D1 debt tracking" for files and proof):
+  - `debts` + `debt_repayments` tables, RLS select-only, OAuth mutation
+    guard, FK left-prefix indexes; four reviewed SECURITY DEFINER RPCs
+    (inventory 61→66, including a recorded catch-up for
+    `permanently_delete_money_transaction`).
+  - `apply_debt_repayment` is atomic: FOR UPDATE debt row, direction-
+    derived ledger kind (payable→expense, receivable→income — never
+    transfer), category-kind check, advisory-lock + stored-intent
+    idempotent replay, remaining decrement, settles at zero. Creating a
+    debt posts NO ledger row.
+  - Mobile `DebtsPage` on the authenticated menu only (no demo seam —
+    honest absence, not fake data); direction+counterparty grouping never
+    nets "I owe" against "they owe me".
+  - Verification: `dart format` clean; `flutter analyze` clean;
+    `flutter test` 1286 green; embedded-pgTAP 62 files / 0 failures;
+    `check:migrations` 90 pinned; `check:rls` 9/9; `check:knowledge`;
+    `test:ci-policy` 203/203. Migration NOT applied to production Neon —
+    deployment pending owner approval.
 AUDIT OPEN: P0=0 P1=0 P2=0 (all findings shipped — see FIXLOG.md)
 GAPS OPEN: web EditTransactionDialog lacks "save as rule" offer (mobile has it); Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
-NEXT STEP: Loop B gap list D1..D5.
+NEXT STEP: Loop B gap list — D2 (event/occasion budgets, RESEARCH_TOP_FINANCE_APPS.md §10); D1 done.
 RESUME: re-read this file, then continue at NEXT STEP.

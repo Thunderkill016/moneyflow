@@ -515,6 +515,7 @@ void main() {
     });
 
     testWidgets('a refused biometric proof keeps the pref off', (t) async {
+      _bigViewport(t);
       final bio = _FakeBiometricService()..nextAuth = false;
       await _pumpSignedIn(t, biometric: bio);
 

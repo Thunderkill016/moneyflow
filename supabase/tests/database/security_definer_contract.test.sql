@@ -48,9 +48,15 @@ where n.nspname = 'public'
 -- boundary; 20261010122000 adds seven reviewed write RPCs (candidate create/
 -- update, batch create/status/delete, backup stamp, agent propose);
 -- 20261010123000 adds delete_my_account. +18 reviewed boundaries.
+-- 20261015100000 added permanently_delete_money_transaction without an
+-- inventory line; recorded here deliberately. +1 reviewed boundary.
+-- 20261016120000 adds four reviewed debt boundaries: create_debt and
+-- set_debt_state/soft_delete_debt (caller-scoped tracking writes) plus
+-- apply_debt_repayment, whose direction-derived ledger insert must not be
+-- caller-picked. +4 reviewed boundaries.
 select is(
   (select count(*)::integer from flagged_security_definer_functions),
-  61,
+  66,
   'the reviewed authenticated SECURITY DEFINER inventory stays explicit'
 );
 

@@ -208,3 +208,45 @@ Format: `ID | files changed | why | proof (test names)`.
   `session_restore_test.dart: a never-answering /get-session drops the
   spinner into the offline shell within the probe budget — stored
   token kept`.
+- **FEATURE: D1 debt tracking** | `supabase/migrations/20261016120000_debts.sql`,
+  `db/neon/migrations/20261016120000_debts.sql` (generated),
+  `db/neon/migrations/MANIFEST.json`,
+  `supabase/migration-identity.json`,
+  `supabase/tests/database/debts.test.sql`,
+  `supabase/tests/database/security_definer_contract.test.sql`,
+  `mobile/lib/domain/debts.dart`,
+  `mobile/lib/data/neon/real_store.dart`,
+  `mobile/lib/features/debts/debts_page.dart`,
+  `mobile/lib/app/app.dart`,
+  `mobile/test/debts_test.dart`,
+  `mobile/test/debts_store_test.dart`,
+  `mobile/test/debts_page_test.dart`,
+  `mobile/test/settings_page_test.dart` |
+  Loop B gap D1 (RESEARCH_TOP_FINANCE_APPS.md §10 — informal vay/cho vay
+  among family, friends, colleagues): `debts` tracks counterparty,
+  direction (`payable`/`receivable`), principal, remaining, note, due
+  date, state (`open`/`settled`/`archived`), version and tombstone;
+  `debt_repayments` links each applied repayment to the real ledger
+  transaction it produced. Creating a debt posts nothing — the tracking
+  record is not a second ledger. `apply_debt_repayment` atomically
+  validates ownership + open state + `amount <= remaining` under
+  FOR UPDATE, posts a direction-derived kind (payable → expense,
+  receivable → income — never transfer, never caller-picked) with
+  category-kind check, advisory-lock + stored `creation_intent` idempotent
+  replay, decrements remaining and settles at zero. RLS select-only for
+  `authenticated` — all writes ride the four reviewed SECURITY DEFINER
+  RPCs (inventory 66); both tables carry `guard_oauth_mutation`. Mobile:
+  `DebtsPage` (authenticated menu only — no demo seam, no fake) groups
+  open debts per direction+counterparty so "I owe Hai" and "Hai owes me"
+  never net, repay dialog filters categories by derived kind and reuses
+  one minted key per dialog intent; every write refetches — the server
+  owns remaining/state. Deployment pending owner approval — migration
+  written and verified, never applied to production Neon. |
+  `debts.test.sql` (21 assertions: direction-derived expense/income,
+  remaining transitions, overpay/category-kind/settled guards, replay +
+  intent pinning, tenant isolation, soft delete); embedded-pgTAP run:
+  62 files, 0 failures;
+  `debts_test.dart` (domain: parse, remaining math, grouping, error map);
+  `debts_store_test.dart` (RPC payload shapes + boolean-refusal surfacing);
+  `debts_page_test.dart` (12 widget cases: empty/add/repay/settled/
+  archive/delete/read-only/error).

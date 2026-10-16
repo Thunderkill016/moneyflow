@@ -48,6 +48,7 @@ import '../features/capture/capture_submit.dart';
 import '../features/capture/queue_banner.dart';
 import '../features/categories/categories_page.dart';
 import '../features/dashboard/dashboard_page.dart';
+import '../features/debts/debts_page.dart';
 import '../features/inbox/inbox_page.dart';
 import '../features/inbox/rules_page.dart';
 import '../features/timeline/timeline_page.dart';
@@ -1708,6 +1709,28 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     );
   }
 
+  /// "Vay & cho vay" — D1 debt tracking. Every write inside can change
+  /// the ledger (a repayment posts a real transaction), so a `true` pop
+  /// reloads the shell tabs like a capture save does. The demo menu
+  /// deliberately omits the entry — there is no demo seam for debts and
+  /// a hidden affordance beats a fake one.
+  Future<void> _openDebts(BuildContext context) async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => DebtsPage(
+          loadDebts: _store.loadDebts,
+          loadAccounts: _store.loadAccounts,
+          loadCategories: _store.loadCategories,
+          onCreate: (draft) => _store.createDebt(draft).then((_) {}),
+          onRepay: _store.applyDebtRepayment,
+          onSetState: _store.setDebtState,
+          onDelete: _store.deleteDebt,
+        ),
+      ),
+    );
+    if (changed == true) _reloadTabs();
+  }
+
   /// Menu items on the dashboard appbar — account management, the review
   /// queue, device lock, and sign-out stay one level deep; the day-to-day
   /// surfaces are tabs.
@@ -1809,6 +1832,14 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
             ),
           ),
         ),
+      ),
+      DashboardMenuItem(
+        // Informal debt/loan tracking — "đi vay" (I owe) / "cho vay"
+        // (they owe me). Repayments are explicit user actions posting
+        // real ledger transactions; creating a debt posts nothing.
+        label: 'Vay & cho vay',
+        icon: Icons.handshake_outlined,
+        onTap: () => _openDebts(context),
       ),
       DashboardMenuItem(
         label: _digestEnabled ? 'Tắt tóm tắt tuần' : 'Bật tóm tắt tuần',

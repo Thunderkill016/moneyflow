@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../../domain/csv_import.dart';
+import '../../domain/debts.dart';
 import '../../domain/inbox.dart';
 import '../notification_capture/bank_notification_parser.dart';
 import '../../domain/models.dart';
@@ -1647,6 +1648,99 @@ class RealStore implements PatternDismissalSync {
   /// busiest window while still bounded.
   static const _rangePageSize = 500;
   static const _rangeMaxPages = 20;
+
+  // ---- Debts (public.debts + public.debt_repayments; writes go through
+  // the definer RPCs of db/neon/migrations/20261016120000 — direct table
+  // writes die 42501 under guard_oauth_mutation). A debt is a tracking
+  // record: creating it posts nothing, repayments post real ledger rows.
+
+  static const _debtColumns =
+      'id,counterparty,direction,principal_minor,remaining_minor,note,'
+      'due_date,state,version,updated_at';
+
+  static Debt _debtFromRow(Map<String, dynamic> r) => Debt(
+    id: r['id'] as String,
+    counterparty: r['counterparty'] as String,
+    direction: debtDirectionFromString(r['direction'] as String),
+    // bigint may arrive as a JSON string — same normalization the
+    // reconciled balances get.
+    principalMinor: _intField(r['principal_minor'], 'debt_principal'),
+    remainingMinor: _intField(r['remaining_minor'], 'debt_remaining'),
+    note: r['note'] as String? ?? '',
+    dueDate: (r['due_date'] as String?)?.substring(0, 10),
+    state: debtStateFromString(r['state'] as String? ?? 'open'),
+    version: _intField(r['version'], 'debt_version'),
+    updatedAt: r['updated_at'] as String?,
+  );
+
+  /// Every non-deleted debt — the page itself groups open rows per
+  /// counterparty and sections settled/archived. Tombstoned rows stay
+  /// server-side; there is no mobile trash for debts yet.
+  Future<List<Debt>> loadDebts() async {
+    final rows = await _api.select(
+      'debts',
+      query: {
+        'select': _debtColumns,
+        'deleted_at': 'is.null',
+        'order': 'created_at.asc,id.asc',
+      },
+    );
+    return rows.map(_debtFromRow).toList();
+  }
+
+  /// POST /rpc/create_debt — tracking record only, no ledger write.
+  /// The RPC takes no idempotency key: the in-flight submit guard IS the
+  /// double-create defense, same contract as create_financial_account.
+  Future<String> createDebt(DebtDraft draft) async {
+    final id = await _api.rpc('create_debt', {
+      'p_direction': debtDirectionWire(draft.direction),
+      'p_counterparty': draft.counterparty,
+      'p_principal_minor': draft.principalMinor,
+      'p_due_date': draft.dueDate,
+      'p_note': draft.note,
+    });
+    return id as String;
+  }
+
+  /// POST /rpc/apply_debt_repayment — validates ownership/open state/
+  /// amount<=remaining, posts the real ledger transaction (expense for
+  /// payable, income for receivable — the server derives the kind from
+  /// the debt's direction), links it through debt_repayments and
+  /// decrements remaining in one transaction. Replays by
+  /// [repayment.idempotencyKey]: the same key returns the original
+  /// transaction; a changed payload under it raises
+  /// idempotency_intent_mismatch.
+  Future<String> applyDebtRepayment(DebtRepayment repayment) async {
+    final id = await _api.rpc('apply_debt_repayment', {
+      'p_debt_id': repayment.debtId,
+      'p_account_id': repayment.accountId,
+      'p_category_id': repayment.categoryId,
+      'p_amount_minor': repayment.amountMinor,
+      'p_occurred_on': repayment.occurredOn,
+      'p_note': repayment.note,
+      'p_idempotency_key': repayment.idempotencyKey,
+    });
+    return id as String;
+  }
+
+  /// POST /rpc/set_debt_state — settle early (forgiven residual stays
+  /// recorded on remaining_minor), archive/unarchive, or reopen.
+  /// False upstream means the row was missing or already in the
+  /// target state — a stale read, surfaced as a failure.
+  Future<void> setDebtState(String debtId, DebtState state) async {
+    final ok = await _api.rpc('set_debt_state', {
+      'p_debt_id': debtId,
+      'p_state': debtStateWire(state),
+    });
+    if (ok != true) throw Exception('state_change_rejected');
+  }
+
+  /// POST /rpc/soft_delete_debt — tombstone only; the linked ledger
+  /// transactions stay (a debt delete must never erase money facts).
+  Future<void> deleteDebt(String debtId) async {
+    final ok = await _api.rpc('soft_delete_debt', {'p_debt_id': debtId});
+    if (ok != true) throw Exception('debt_not_found');
+  }
 }
 
 /// One UUIDv4 per form instance = one idempotency key per user intent.
