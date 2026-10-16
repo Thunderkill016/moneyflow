@@ -144,7 +144,31 @@ DONE THIS ROUND:
     detail with the same "Trả" seam; paid marks still show.
   - Verification: `dart format` clean; `flutter analyze` clean;
     `flutter test` FULL SUITE green (18+15+13 new tests).
+- **D9 month-close digest + D10 watchlist pin + D11 goal funding
+  detail shipped on feat/mobile-theme** (mobile-only, no schema work —
+  see FIXLOG.md "FEATURE: D9/D10/D11" for files and proof):
+  - D9: last-calendar-day one-shot digest (id 70002, opt-in pref,
+    VN-anchored window, shared digest time, re-armed on every
+    sign-in/refresh, cancelled on toggle-off + account delete) plus
+    the in-app "Tóm tắt tháng này" card — thu/chi/còn lại, top
+    category, equal-length trailing-window delta, explicit range
+    label, "Xem báo cáo tháng →" to the reports tab; absent/failed/
+    truncated/empty reads hide the card.
+  - D10: "Ghim"/"Đang theo dõi" watch card — pin a category or payee
+    from real current-month ledger rows; month totals reuse the
+    summary read; optional integer-VND threshold → ok/near/over; pins
+    device-local (`mf_watch_items`); no save seam → no dead Ghim; no
+    pins + no rows → no card.
+  - D11: `goalMissingPrerequisites` names missing target/date/
+    contribution evidence instead of a blank projection; "Chi tiết"
+    sheet lists signed allocation history (funding authority) +
+    goal-linked transactions (annotation only), 20-row caps with
+    hasMore disclosure; reserve line "Đã dành X — còn có thể dành Y".
+    "Include in monthly plan" toggle waived — no such field/contract
+    exists (DECISIONS.md).
+  - Verification: `dart format` clean; `flutter analyze` clean;
+    `flutter test` FULL SUITE 1462 green (44 new tests).
 AUDIT OPEN: P0=0 P1=0 P2=0 (all findings shipped — see FIXLOG.md)
 GAPS OPEN: web EditTransactionDialog lacks "save as rule" offer (mobile has it); Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
-NEXT STEP: Loop B gap list — D9+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D8 done.
+NEXT STEP: Loop B gap list — D12+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D11 done.
 RESUME: re-read this file, then continue at NEXT STEP.

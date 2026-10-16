@@ -9,6 +9,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../domain/models.dart';
 import '../domain/money.dart';
+import '../domain/month_close_digest.dart';
 import '../domain/weekly_digest.dart';
 
 /// Local reminders — one notification per recurring commitment at 09:00 on
@@ -23,11 +24,17 @@ class NotificationService {
   static const _channelName = 'Cam kết hàng tháng';
   static const _digestChannelId = 'weekly_digest';
   static const _digestChannelName = 'Tóm tắt tuần';
+  static const _monthDigestChannelId = 'monthly_digest';
+  static const _monthDigestChannelName = 'Tổng kết tháng';
 
   /// Fixed id for the digest one-shot — re-arming replaces the pending
   /// notification instead of stacking copies of it. The commitment id
   /// allocator skips it, so the spaces can never collide.
   static const _weeklyDigestId = digestNotificationId;
+
+  /// Same fixed-id contract for the month-close digest (D9) — own id,
+  /// own channel, same replace-not-stack re-arm.
+  static const _monthDigestId = monthCloseNotificationId;
 
   /// Notification id for [commitmentId], allocating a fresh persisted
   /// one on first sight.
@@ -187,11 +194,53 @@ class NotificationService {
     if (!_initialized) await init();
     await _plugin.cancel(id: _weeklyDigestId);
   }
+
+  /// Arm the month-close digest as a ONE-SHOT at [fireAt] (callers pass
+  /// [nextMonthCloseFire] output). Same contract as the weekly digest:
+  /// the copy carries real totals for the month it describes, so it can
+  /// never repeat — callers re-arm on every data load.
+  static Future<void> scheduleMonthCloseDigest({
+    required String title,
+    required String body,
+    required DateTime fireAt,
+  }) async {
+    if (!_initialized) await init();
+    await _plugin.zonedSchedule(
+      id: _monthDigestId,
+      title: title,
+      body: body,
+      scheduledDate: tz.TZDateTime(
+        tz.local,
+        fireAt.year,
+        fireAt.month,
+        fireAt.day,
+        fireAt.hour,
+        fireAt.minute,
+      ),
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _monthDigestChannelId,
+          _monthDigestChannelName,
+          importance: Importance.defaultImportance,
+        ),
+      ),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+    );
+  }
+
+  static Future<void> cancelMonthCloseDigest() async {
+    if (!_initialized) await init();
+    await _plugin.cancel(id: _monthDigestId);
+  }
 }
 
 /// Fixed notification id of the weekly digest — the commitment allocator
 /// skips it.
 const digestNotificationId = 70001;
+
+/// Fixed notification id of the month-close digest — the commitment
+/// allocator skips it too.
+const monthCloseNotificationId = 70002;
 
 /// Commitment-id → notification-id map and its counter, both persisted —
 /// an id is never handed out twice and stays stable across app runs.
@@ -227,7 +276,9 @@ Future<int> commitmentNotificationId(
   final existing = map[commitmentId];
   if (existing != null) return existing;
   var next = (prefs.getInt(commitmentNotifIdCounterKey) ?? 0) + 1;
-  if (next == digestNotificationId) next++;
+  while (next == digestNotificationId || next == monthCloseNotificationId) {
+    next++;
+  }
   map[commitmentId] = next;
   await prefs.setInt(commitmentNotifIdCounterKey, next);
   await prefs.setString(commitmentNotifIdMapKey, jsonEncode(map));
@@ -306,6 +357,7 @@ class NotificationPrefs {
   NotificationPrefs._();
 
   static const _weeklyDigestKey = 'mf_weekly_digest_enabled';
+  static const _monthDigestKey = 'mf_month_digest_enabled';
 
   /// The weekly digest is opt-in (default OFF) — commitment reminders
   /// fire on days the user declared, but a weekly summary is a nudge and
@@ -318,6 +370,18 @@ class NotificationPrefs {
   static Future<void> saveWeeklyDigestEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_weeklyDigestKey, enabled);
+  }
+
+  /// The month-close digest (D9) — same opt-in contract: a nudge, never
+  /// unasked, default OFF.
+  static Future<bool> loadMonthDigestEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_monthDigestKey) ?? false;
+  }
+
+  static Future<void> saveMonthDigestEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_monthDigestKey, enabled);
   }
 }
 
@@ -362,6 +426,52 @@ Future<void> refreshWeeklyDigest({
   final range = await loadRange(window.loadFrom, window.loadTo);
   if (range.truncated) return;
   final copy = weeklyDigestCopy(buildWeeklyDigest(range.rows, fireDate: fire));
+  if (copy == null) {
+    await cancel();
+    return;
+  }
+  await schedule(title: copy.title, body: copy.body, fireAt: fire);
+}
+
+/// The month-close counterpart of [refreshWeeklyDigest] — identical
+/// orchestration contract (disabled → cancel only, truncated read →
+/// leave the previous schedule untouched, quiet month → cancel),
+/// anchored on [nextMonthCloseFire]/[monthCloseWindow]. The digest
+/// fire time is the shared one ([SettingsPrefs.loadDigestTime] feeds
+/// [digestHour]/[digestMinute]) — one clock for both summaries.
+Future<void> refreshMonthCloseDigest({
+  required bool enabled,
+  required Future<({List<Transaction> rows, bool truncated})> Function(
+    String from,
+    String to,
+  )
+  loadRange,
+  required Future<void> Function({
+    required String title,
+    required String body,
+    required DateTime fireAt,
+  })
+  schedule,
+  required Future<void> Function() cancel,
+  DateTime? now,
+  int digestHour = monthCloseHour,
+  int digestMinute = monthCloseMinute,
+}) async {
+  if (!enabled) {
+    await cancel();
+    return;
+  }
+  final fire = nextMonthCloseFire(
+    now ?? DateTime.now(),
+    hour: digestHour,
+    minute: digestMinute,
+  );
+  final window = monthCloseWindow(fire);
+  final range = await loadRange(window.loadFrom, window.loadTo);
+  if (range.truncated) return;
+  final copy = monthCloseCopy(
+    buildMonthCloseDigest(range.rows, fireDate: fire),
+  );
   if (copy == null) {
     await cancel();
     return;

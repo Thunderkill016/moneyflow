@@ -131,6 +131,8 @@ Widget _dash({
   VoidCallback? onOpenInbox,
   VoidCallback? onOpenNeedsReview,
   VoidCallback? onOpenPlanning,
+  List<Transaction>? summaryRows,
+  VoidCallback? onOpenReports,
 }) => MaterialApp(
   home: DashboardPage(
     loadAccounts: () async => DemoStore.seedAccounts(),
@@ -139,6 +141,11 @@ Widget _dash({
     // load — same rule as production wiring.
     loadBudgetRange: commitments == null ? null : (_, _) async => const [],
     loadCommitments: commitments == null ? null : (_) async => commitments,
+    loadSummaryTransactions: summaryRows == null
+        ? null
+        : (_, _) async => (rows: summaryRows, truncated: false),
+    onOpenReports: onOpenReports,
+    loadWatchItems: () async => const [],
     loadPendingCount: attentionFails
         ? () async => throw StateError('offline')
         : () async => pending,
@@ -420,5 +427,79 @@ void main() {
         expect(rows.single.merchant, 'PHO NGON');
       },
     );
+  });
+
+  group('month summary card (D9)', () {
+    String day(int d) {
+      final n = vnNow();
+      return '${n.year}-${n.month.toString().padLeft(2, '0')}-'
+          '${d.toString().padLeft(2, '0')}';
+    }
+
+    testWidgets('shows month-to-date totals, top category, compare', (t) async {
+      var reportsOpened = 0;
+      await t.pumpWidget(
+        _dash(
+          summaryRows: [
+            Transaction(
+              id: 'a',
+              kind: TransactionKind.expense,
+              categoryId: 'k1',
+              category: 'Ăn uống',
+              note: '',
+              accountId: 'a1',
+              account: 'Tiền mặt',
+              amount: 300000,
+              occurredOn: day(1),
+            ),
+            Transaction(
+              id: 'b',
+              kind: TransactionKind.income,
+              categoryId: 'k2',
+              category: 'Lương',
+              note: '',
+              accountId: 'a1',
+              account: 'Tiền mặt',
+              amount: 5000000,
+              occurredOn: day(1),
+            ),
+          ],
+          onOpenReports: () => reportsOpened++,
+        ),
+      );
+      await t.pumpAndSettle();
+
+      expect(find.text('Tóm tắt tháng này'), findsOneWidget);
+      expect(
+        find.textContaining('Thu 5.000.000 ₫ · Chi 300.000 ₫'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Còn lại 4.700.000 ₫'), findsOneWidget);
+      expect(find.textContaining('Nhiều nhất: Ăn uống'), findsOneWidget);
+      await t.tap(find.text('Xem báo cáo tháng →'));
+      await t.pumpAndSettle();
+      expect(reportsOpened, 1);
+    });
+
+    testWidgets('a quiet month renders no card', (t) async {
+      await t.pumpWidget(_dash(summaryRows: const []));
+      await t.pumpAndSettle();
+      expect(find.text('Tóm tắt tháng này'), findsNothing);
+    });
+
+    testWidgets('a truncated read hides the card', (t) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: DashboardPage(
+            loadAccounts: () async => const [],
+            loadTransactions: () async => const [],
+            loadSummaryTransactions: (_, _) async =>
+                (rows: const <Transaction>[], truncated: true),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(find.text('Tóm tắt tháng này'), findsNothing);
+    });
   });
 }

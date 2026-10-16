@@ -41,6 +41,9 @@ class HomeShell extends StatefulWidget {
 /// hoạch" nudge targets it by name, not by a bare 2.
 const homeShellPlanningTab = 2;
 
+/// Tab index the month-summary card's "Xem báo cáo tháng" selects.
+const homeShellReportsTab = 3;
+
 class HomeShellState extends State<HomeShell> {
   int _tab = 0;
   final _built = List<Widget?>.filled(4, null);

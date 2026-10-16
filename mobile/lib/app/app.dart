@@ -20,6 +20,7 @@ import '../data/quick_action.dart';
 import '../data/rule_suggestion_prefs.dart';
 import '../data/session_store.dart';
 import '../data/settings_prefs.dart';
+import '../data/watchlist_prefs.dart';
 import '../data/widget_snapshot.dart';
 import '../data/share/share_intent.dart';
 import '../data/share/share_text_parser.dart';
@@ -240,6 +241,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
 
   /// Weekly-digest opt-in — defaults OFF until the stored pref loads.
   bool _digestEnabled = false;
+  bool _monthDigestEnabled = false;
 
   /// Notification-capture state for the menu label — refreshed on sign-in,
   /// on resume and after the settings page closes. Both halves are real:
@@ -347,6 +349,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     });
     _bioEnabled = await BiometricPrefs.loadBiometricEnabled();
     _digestEnabled = await NotificationPrefs.loadWeeklyDigestEnabled();
+    _monthDigestEnabled = await NotificationPrefs.loadMonthDigestEnabled();
     _prefs = await SharedPreferences.getInstance();
     final stored = await SessionStore.read();
     if (stored != null) {
@@ -448,7 +451,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     unawaited(_drainQueue());
     // The digest re-arm fails the same way — a failed range read leaves
     // whatever was previously armed untouched.
-    unawaited(_refreshWeeklyDigest());
+    unawaited(_refreshDigests());
     unawaited(_refreshNotifCaptureState());
   }
 
@@ -793,7 +796,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     _actKey.currentState?.reload();
     _planKey.currentState?.reload();
     _reportKey.currentState?.reload();
-    unawaited(_refreshWeeklyDigest());
+    unawaited(_refreshDigests());
   }
 
   /// Capture submit with offline-hold semantics: a transport failure
@@ -983,7 +986,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     setState(() => _gate = showOnboarding ? _Gate.onboarding : _Gate.signedIn);
     _drainPendingShare();
     unawaited(_drainQueue());
-    unawaited(_refreshWeeklyDigest());
+    unawaited(_refreshDigests());
     unawaited(_refreshNotifCaptureState());
   }
 
@@ -998,7 +1001,23 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     await NotificationPrefs.saveWeeklyDigestEnabled(enabled);
     if (!mounted) return;
     setState(() => _digestEnabled = enabled);
-    unawaited(_refreshWeeklyDigest().catchError((_) {}));
+    unawaited(_refreshDigests().catchError((_) {}));
+  }
+
+  /// The month-close digest shares the weekly contract (D9): opt-in,
+  /// the shared digest fire time, re-arm from fresh data on enable.
+  Future<void> _setMonthDigestEnabled(bool enabled) async {
+    await NotificationPrefs.saveMonthDigestEnabled(enabled);
+    if (!mounted) return;
+    setState(() => _monthDigestEnabled = enabled);
+    unawaited(_refreshDigests().catchError((_) {}));
+  }
+
+  /// One re-arm pass for both digest surfaces — sign-in, ledger writes
+  /// and opt-in changes all quote the freshest totals this device has.
+  Future<void> _refreshDigests() async {
+    await _refreshWeeklyDigest();
+    await _refreshMonthCloseDigest();
   }
 
   /// Re-arms the Sunday digest one-shot after sign-in and after every
@@ -1019,6 +1038,25 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       );
     } catch (_) {
       /* advisory — same failure posture as the commitment reminders */
+    }
+  }
+
+  /// The month-close twin of [_refreshWeeklyDigest] (D9) — same
+  /// re-arm-on-every-ledger-write contract, same shared fire time,
+  /// same best-effort posture.
+  Future<void> _refreshMonthCloseDigest() async {
+    try {
+      final time = await SettingsPrefs.loadDigestTime();
+      await refreshMonthCloseDigest(
+        enabled: _monthDigestEnabled,
+        digestHour: time.hour,
+        digestMinute: time.minute,
+        loadRange: _store.loadTransactionsInRange,
+        schedule: NotificationService.scheduleMonthCloseDigest,
+        cancel: NotificationService.cancelMonthCloseDigest,
+      );
+    } catch (_) {
+      /* advisory — same failure posture as the weekly digest */
     }
   }
 
@@ -1148,7 +1186,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           onSetBiometricEnabled: demo ? null : _setBiometricEnabled,
           digestEnabled: _digestEnabled,
           onSetDigestEnabled: demo ? null : _setDigestEnabled,
-          onDigestScheduleChanged: demo ? null : _refreshWeeklyDigest,
+          monthDigestEnabled: _monthDigestEnabled,
+          onSetMonthDigestEnabled: demo ? null : _setMonthDigestEnabled,
+          onDigestScheduleChanged: demo ? null : _refreshDigests,
           loadArchive: demo || !kArchiveBackupEnabled
               ? null
               : _store.exportArchive,
@@ -1327,6 +1367,15 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
               onOpenPlanning: () =>
                   _shellKey.currentState?.selectTab(homeShellPlanningTab),
               loadSuggestionTransactions: _store.loadTransactionsInRange,
+              // The month-summary card + watchlist read the same range
+              // contract — one seam, two honest consumers.
+              loadSummaryTransactions: _store.loadTransactionsInRange,
+              onOpenReports: () =>
+                  _shellKey.currentState?.selectTab(homeShellReportsTab),
+              // Watchlist pins are device-local bookmarks (D10) — the
+              // same mf_ prefs contract the digest opt-ins live under.
+              loadWatchItems: WatchlistPrefs.load,
+              saveWatchItems: WatchlistPrefs.save,
               onCreateCommitment: (s) => _createSuggestedCommitment(context, s),
               // "Tạo ví đầu tiên" on the empty ledger — the page reloads
               // itself after the seam returns; the other tabs that read
@@ -1510,12 +1559,14 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       // sign-in starts from honest defaults.
       _bioEnabled = false;
       _digestEnabled = false;
+      _monthDigestEnabled = false;
       _gate = _Gate.login;
       _unlocked = false;
     });
     // Dropped scheduled digests too — a notification for a deleted
     // account would be a lie, and the schedule prefs are already gone.
     unawaited(NotificationService.cancelWeeklyDigest().catchError((_) {}));
+    unawaited(NotificationService.cancelMonthCloseDigest().catchError((_) {}));
     showTimedSnackBar(
       messenger,
       const SnackBar(content: Text('Tài khoản đã được xóa')),
@@ -2081,6 +2132,16 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           // ever qualifies, the create button repeats the read-only rule.
           loadSuggestionTransactions: (_, _) async =>
               (rows: DemoStore.seedTransactions(), truncated: false),
+          // Same seeds feed the demo month card — the range contract
+          // filters inside buildMonthSummary, so no bespoke demo read.
+          loadSummaryTransactions: (_, _) async =>
+              (rows: DemoStore.seedTransactions(), truncated: false),
+          onOpenReports: () =>
+              _shellKey.currentState?.selectTab(homeShellReportsTab),
+          // Pins stay device-local in demo too — identical semantics,
+          // since a bookmark is never account truth.
+          loadWatchItems: WatchlistPrefs.load,
+          saveWatchItems: WatchlistPrefs.save,
           onCreateCommitment: (s) async {
             if (context.mounted) {
               showTimedSnackBar(
@@ -2532,6 +2593,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         .then((_) {}),
     onGoalAdjust: _store.adjustGoal,
     onGoalArchived: _store.setGoalArchived,
+    // D11 — the goal detail sheet reads the real allocation history +
+    // tagged transactions through the store.
+    loadGoalFunding: _store.loadGoalFunding,
   );
 }
 

@@ -597,5 +597,31 @@ void main() {
         expect(await WelcomePrefs.loadSeen(), isTrue);
       },
     );
+
+    testWidgets('month digest switch fires its own opt-in seam', (t) async {
+      bool? setTo;
+      await t.pumpWidget(
+        MaterialApp(
+          home: SettingsPage(
+            digestEnabled: false,
+            onSetDigestEnabled: (_) async {},
+            monthDigestEnabled: false,
+            onSetMonthDigestEnabled: (v) async => setTo = v,
+            onDigestScheduleChanged: () async {},
+            onDeleteLocalData: () async {},
+            onOpenPrivacyPolicy: () {},
+            onReplayWelcome: () {},
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      expect(find.text('Tổng kết tháng'), findsOneWidget);
+      // Both digests share the one fire-time row — its subtitle names
+      // the real fire day once the opt-in flips on.
+      await t.tap(find.text('Tổng kết tháng'));
+      await t.pumpAndSettle();
+      expect(setTo, isTrue);
+    });
   });
 }

@@ -315,3 +315,29 @@ class SavingsGoal {
 
   double get progress => targetMinor <= 0 ? 0 : allocatedMinor / targetMinor;
 }
+
+/// One row of public.savings_goal_allocations — the signed funding
+/// history behind a goal's allocatedMinor (D11). Positive = a deposit
+/// ("nạp"), negative = a release ("rút"); the column's CHECK keeps 0
+/// out, so the sign always carries a direction.
+class GoalAllocation {
+  const GoalAllocation({
+    required this.id,
+    required this.amountMinor,
+    required this.createdAt,
+  });
+
+  final String id;
+  final int amountMinor;
+  final String createdAt; // ISO timestamp
+}
+
+/// The goal detail sheet's funding read (D11): allocation history plus
+/// goal-tagged transactions, each capped — the *HasMore flags tell the
+/// UI to say "mới nhất" rather than imply a complete history.
+typedef GoalFunding = ({
+  List<GoalAllocation> allocations,
+  bool allocationsHasMore,
+  List<Transaction> linked,
+  bool linkedHasMore,
+});

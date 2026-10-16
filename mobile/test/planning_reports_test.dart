@@ -52,7 +52,9 @@ PlanningActions _actions({
   Future<void> Function(SavingsGoal?, String, int, String?)? onGoalSave,
   Future<void> Function(String id, int amount)? onGoalAdjust,
   Future<void> Function(String id, bool archived)? onGoalArchived,
+  Future<GoalFunding> Function(String goalId)? loadGoalFunding,
 }) => PlanningActions(
+  loadGoalFunding: loadGoalFunding,
   onBudgetSave: onBudgetSave ?? (a, b, c, d) async {},
   onBudgetDelete: onBudgetDelete ?? (_) async {},
   onBudgetFill: onBudgetFill,
@@ -2482,6 +2484,126 @@ void main() {
     testWidgets('no balance read → the section hides entirely', (tester) async {
       await pumpNetWorth(tester, rows: const []);
       expect(find.text('Tài sản ròng'), findsNothing);
+    });
+  });
+
+  group('goal linked funding (D11)', () {
+    testWidgets('reserve line names the earmarked + unreserved split', (
+      tester,
+    ) async {
+      await _pumpPlanning(tester, actions: _actions());
+      // The seed goal holds 8.500.000 ₫; the line must name both the
+      // earmarked amount and what the VND wallets still offer.
+      expect(
+        find.textContaining('Đã dành cho mục tiêu 8.500.000 ₫'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('còn có thể dành'), findsOneWidget);
+    });
+
+    testWidgets('no funding seam → no Chi tiết entry (no dead affordance)', (
+      tester,
+    ) async {
+      await _pumpPlanning(tester, actions: _actions());
+      await tester.tap(find.byTooltip('Tùy chọn Quỹ khẩn cấp'));
+      await tester.pumpAndSettle();
+      expect(find.text('Chi tiết'), findsNothing);
+      expect(find.text('Sửa'), findsOneWidget);
+    });
+
+    testWidgets('Chi tiết shows the signed funding history + linked rows', (
+      tester,
+    ) async {
+      await _pumpPlanning(
+        tester,
+        actions: _actions(
+          loadGoalFunding: (goalId) async => (
+            allocations: const [
+              GoalAllocation(
+                id: 'al-1',
+                amountMinor: 5000000,
+                createdAt: '2026-10-05T08:00:00Z',
+              ),
+              GoalAllocation(
+                id: 'al-2',
+                amountMinor: -500000,
+                createdAt: '2026-10-12T08:00:00Z',
+              ),
+            ],
+            allocationsHasMore: false,
+            linked: [
+              Transaction(
+                id: 't-1',
+                kind: TransactionKind.expense,
+                categoryId: 'cat-med',
+                category: 'Y tế',
+                note: '',
+                accountId: 'acc-1',
+                account: 'Tiền mặt',
+                amount: 120000,
+                occurredOn: '2026-10-14',
+                payee: 'PHARMACITY',
+              ),
+            ],
+            linkedHasMore: false,
+          ),
+        ),
+      );
+      await tester.tap(find.byTooltip('Tùy chọn Quỹ khẩn cấp'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Chi tiết'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Lần nạp/rút gần đây'), findsOneWidget);
+      expect(find.textContaining('Nạp 5.000.000 ₫'), findsOneWidget);
+      expect(find.textContaining('Rút 500.000 ₫'), findsOneWidget);
+      expect(find.text('Giao dịch liên kết'), findsOneWidget);
+      expect(find.textContaining('PHARMACITY'), findsOneWidget);
+    });
+
+    testWidgets('a goal without prerequisites names what is missing', (
+      tester,
+    ) async {
+      _tallViewport(tester);
+      final data = PlanningData(
+        budgets: const [],
+        commitments: const [],
+        goals: const [
+          SavingsGoal(
+            id: 'g-x',
+            name: 'Xe mới',
+            targetMinor: 5000000,
+            allocatedMinor: 0,
+          ),
+        ],
+        accounts: const [],
+        categories: const [],
+        monthStart: _monthStart(),
+        budgetMonth: _monthStart(),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PlanningPage(
+            loadData: (_) => Future.value(data),
+            actions: _actions(
+              loadGoalFunding: (_) async => (
+                allocations: const <GoalAllocation>[],
+                allocationsHasMore: false,
+                linked: const <Transaction>[],
+                linkedHasMore: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Tùy chọn Xe mới'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Chi tiết'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Chưa có lần nạp nào'), findsWidgets);
+      expect(find.textContaining('Chưa đặt hạn'), findsOneWidget);
     });
   });
 }

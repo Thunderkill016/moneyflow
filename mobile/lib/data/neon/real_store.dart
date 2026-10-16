@@ -765,6 +765,51 @@ class RealStore implements PatternDismissalSync {
         .toList();
   }
 
+  /// A goal's funding detail (D11): the signed allocation history
+  /// (savings_goal_allocations — the authority for progress) plus the
+  /// newest transactions tagged with goal_id (annotation only — the
+  /// linkage migration is explicit that the tag changes no totals).
+  /// Both lists cap at [_goalFundingLimit]; `allocationsHasMore` /
+  /// `linkedHasMore` flag a longer history so the UI can say "mới nhất"
+  /// instead of implying completeness.
+  static const _goalFundingLimit = 20;
+
+  Future<GoalFunding> loadGoalFunding(String goalId) async {
+    final allocRows = await _api.select(
+      'savings_goal_allocations',
+      query: {
+        'select': 'id,amount_minor,created_at',
+        'goal_id': 'eq.$goalId',
+        'order': 'created_at.desc',
+        'limit': '${_goalFundingLimit + 1}',
+      },
+    );
+    final linkedRows = await _api.select(
+      'transaction_feed',
+      query: {
+        'select': _txColumns,
+        'goal_id': 'eq.$goalId',
+        'order': 'occurred_on.desc,created_at.desc,id.desc',
+        'limit': '${_goalFundingLimit + 1}',
+      },
+    );
+    return (
+      allocations: [
+        for (final r in allocRows.take(_goalFundingLimit))
+          GoalAllocation(
+            id: r['id'] as String,
+            amountMinor: (r['amount_minor'] as num).toInt(),
+            createdAt: r['created_at'] as String,
+          ),
+      ],
+      allocationsHasMore: allocRows.length > _goalFundingLimit,
+      linked: [
+        for (final r in linkedRows.take(_goalFundingLimit)) _txFromRow(r),
+      ],
+      linkedHasMore: linkedRows.length > _goalFundingLimit,
+    );
+  }
+
   /// POST /rpc/create_financial_account.
   Future<String> createAccount({
     required String name,

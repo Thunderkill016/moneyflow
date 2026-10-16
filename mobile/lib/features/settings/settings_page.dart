@@ -29,6 +29,8 @@ class SettingsPage extends StatefulWidget {
     this.onSetBiometricEnabled,
     this.digestEnabled = false,
     this.onSetDigestEnabled,
+    this.monthDigestEnabled = false,
+    this.onSetMonthDigestEnabled,
     this.onDigestScheduleChanged,
     this.loadArchive,
     this.shareFile,
@@ -52,6 +54,11 @@ class SettingsPage extends StatefulWidget {
   /// its own state and re-arms through the real scheduler path.
   final bool digestEnabled;
   final Future<void> Function(bool enabled)? onSetDigestEnabled;
+
+  /// Month-close digest (D9) — opt-in + set seam, same contract as the
+  /// weekly digest. Shares [onDigestScheduleChanged]'s fire time.
+  final bool monthDigestEnabled;
+  final Future<void> Function(bool enabled)? onSetMonthDigestEnabled;
 
   /// Called after the page persists a new digest fire time — the shell
   /// re-arms the pending one-shot so the next digest lands on the new
@@ -99,6 +106,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   late bool _bioEnabled = widget.biometricEnabled;
   late bool _digestEnabled = widget.digestEnabled;
+  late bool _monthDigestEnabled = widget.monthDigestEnabled;
   bool _bioBusy = false;
   bool _digestBusy = false;
 
@@ -121,7 +129,8 @@ class _SettingsPageState extends State<SettingsPage> {
     // Refreshes the notifier (and with it the radios) — belt-and-braces
     // when the page is pushed before the app's startup load landed.
     unawaited(SettingsPrefs.loadThemeMode());
-    if (widget.onSetDigestEnabled != null) {
+    if (widget.onSetDigestEnabled != null ||
+        widget.onSetMonthDigestEnabled != null) {
       unawaited(_loadDigestTime());
     }
   }
@@ -153,6 +162,18 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       await seam(enabled);
       if (mounted) setState(() => _digestEnabled = enabled);
+    } finally {
+      if (mounted) setState(() => _digestBusy = false);
+    }
+  }
+
+  Future<void> _setMonthDigest(bool enabled) async {
+    final seam = widget.onSetMonthDigestEnabled;
+    if (seam == null) return;
+    setState(() => _digestBusy = true);
+    try {
+      await seam(enabled);
+      if (mounted) setState(() => _monthDigestEnabled = enabled);
     } finally {
       if (mounted) setState(() => _digestBusy = false);
     }
@@ -208,6 +229,18 @@ class _SettingsPageState extends State<SettingsPage> {
     context,
   ).formatTimeOfDay(_digestTime, alwaysUse24HourFormat: true);
 
+  /// "Chủ nhật · ngày cuối tháng · 19:00" — the fire days of the digests
+  /// that are actually ON, plus the shared time. With none enabled the
+  /// row names just the time (it configures a clock, not a promise).
+  String _digestDaysLabel(BuildContext context) {
+    final days = [
+      if (_digestEnabled) 'Chủ nhật',
+      if (_monthDigestEnabled) 'ngày cuối tháng',
+    ];
+    final time = _digestTimeLabel(context);
+    return days.isEmpty ? time : '${days.join(' · ')} · $time';
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -254,19 +287,32 @@ class _SettingsPageState extends State<SettingsPage> {
                 onChanged: _bioBusy ? null : _setBiometric,
               ),
           ],
-          if (widget.onSetDigestEnabled != null) ...[
+          if (widget.onSetDigestEnabled != null ||
+              widget.onSetMonthDigestEnabled != null) ...[
             const _SectionHeader('Nhắc nhở'),
-            SwitchListTile(
-              secondary: const Icon(Icons.notifications_none),
-              title: const Text('Tóm tắt tuần'),
-              subtitle: const Text('Tổng kết thu chi của tuần'),
-              value: _digestEnabled,
-              onChanged: _digestBusy ? null : _setDigest,
-            ),
+            if (widget.onSetDigestEnabled != null)
+              SwitchListTile(
+                secondary: const Icon(Icons.notifications_none),
+                title: const Text('Tóm tắt tuần'),
+                subtitle: const Text('Tổng kết thu chi của tuần'),
+                value: _digestEnabled,
+                onChanged: _digestBusy ? null : _setDigest,
+              ),
+            if (widget.onSetMonthDigestEnabled != null)
+              SwitchListTile(
+                secondary: const Icon(Icons.calendar_month_outlined),
+                title: const Text('Tổng kết tháng'),
+                subtitle: const Text('Nhìn lại thu chi của tháng vừa qua'),
+                value: _monthDigestEnabled,
+                onChanged: _digestBusy ? null : _setMonthDigest,
+              ),
             ListTile(
               leading: const Icon(Icons.schedule),
               title: const Text('Giờ gửi tóm tắt'),
-              subtitle: Text('Chủ nhật · ${_digestTimeLabel(context)}'),
+              // One clock for every enabled digest — the subtitle names
+              // the real fire days so it never describes a digest that
+              // isn't armed.
+              subtitle: Text(_digestDaysLabel(context)),
               onTap: _pickDigestTime,
             ),
           ],

@@ -120,14 +120,17 @@ void main() {
       expect(seen, hasLength(200));
     });
 
-    test('never hands out the reserved digest id', () async {
+    test('never hands out the reserved digest ids', () async {
       SharedPreferences.setMockInitialValues({
         commitmentNotifIdCounterKey: digestNotificationId - 1,
       });
       final prefs = await SharedPreferences.getInstance();
       final id = await commitmentNotificationId(prefs, 'c-x');
       expect(id, isNot(digestNotificationId));
-      expect(id, digestNotificationId + 1);
+      // The month-close digest reserves the next id too — the allocator
+      // skips the whole reserved pair.
+      expect(id, isNot(monthCloseNotificationId));
+      expect(id, monthCloseNotificationId + 1);
     });
 
     test('a corrupt stored map re-allocates instead of throwing', () async {

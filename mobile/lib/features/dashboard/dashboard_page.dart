@@ -9,10 +9,12 @@ import '../../domain/datetime_label.dart';
 import '../../domain/inbox.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
+import '../../domain/month_summary.dart';
 import '../../domain/recurring_detection.dart';
 import '../../domain/report.dart' show dateAdd, vnMonthStart, vnNow, ymd;
 import '../../domain/safe_to_spend.dart';
 import '../../domain/spoken_vnd.dart';
+import '../../domain/watchlist.dart';
 import '../../theme/mf_theme.dart';
 import '../shared/empty_state.dart';
 
@@ -54,6 +56,10 @@ class DashboardPage extends StatefulWidget {
     this.loadCommitments,
     this.onOpenPlanning,
     this.loadSuggestionTransactions,
+    this.loadSummaryTransactions,
+    this.onOpenReports,
+    this.loadWatchItems,
+    this.saveWatchItems,
     this.onCreateCommitment,
     this.onCreateAccount,
     this.loadPendingCount,
@@ -122,6 +128,26 @@ class DashboardPage extends StatefulWidget {
     String to,
   )?
   loadSuggestionTransactions;
+
+  /// Range loader for the month-summary card (D9) — same rows+truncated
+  /// contract; a separate seam so each surface owns its window. The rows
+  /// also feed the watchlist tile (D10): one read, both consumers.
+  final Future<({List<Transaction> rows, bool truncated})> Function(
+    String from,
+    String to,
+  )?
+  loadSummaryTransactions;
+
+  /// "Xem báo cáo tháng" on the month-summary card — the shell switches
+  /// to the reports tab. Absent drops the button; the stats stay honest.
+  final VoidCallback? onOpenReports;
+
+  /// Watchlist pin store (D10) — device-local bookmarks, not financial
+  /// truth. The seams stay explicit (the shell wires WatchlistPrefs in
+  /// both modes): an absent pair renders the card pin-less rather than
+  /// letting a widget reach into SharedPreferences on its own.
+  final Future<List<WatchItem>> Function()? loadWatchItems;
+  final Future<void> Function(List<WatchItem> items)? saveWatchItems;
 
   /// "Tạo cam kết" on a suggestion — the app shell opens the shared
   /// planning form prefilled and reports whether a real save happened.
@@ -206,6 +232,8 @@ typedef _DashboardData = ({
   List<BudgetProgress>? budgets,
   List<RecurringCommitment>? commitments,
   List<RecurringSuggestion> suggestions,
+  List<Transaction>? summaryRows,
+  List<WatchItem> watchItems,
 });
 
 class DashboardPageState extends State<DashboardPage> {
@@ -269,6 +297,8 @@ class DashboardPageState extends State<DashboardPage> {
         budgets: planning.$1,
         commitments: planning.$2,
         suggestions: await _loadSuggestions(planning.$2),
+        summaryRows: await _loadSummaryRows(),
+        watchItems: await _loadWatchItems(),
       );
     } catch (e) {
       final cached = widget.readSnapshot?.call();
@@ -280,7 +310,186 @@ class DashboardPageState extends State<DashboardPage> {
         budgets: null,
         commitments: null,
         suggestions: const <RecurringSuggestion>[],
+        summaryRows: null,
+        watchItems: const <WatchItem>[],
       );
+    }
+  }
+
+  /// The watchlist pin store — advisory: an absent seam or a failed
+  /// read shows no pins rather than failing the dashboard.
+  Future<List<WatchItem>> _loadWatchItems() async {
+    final loader = widget.loadWatchItems;
+    if (loader == null) return const [];
+    try {
+      return await loader();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  /// Persist a pin/unpin then reload — the card re-derives its totals
+  /// from the same ledger read as the summary card. Writes are
+  /// device-local bookmarks, so no server roundtrip and no confirm.
+  /// A missing save seam should be unreachable (pin/unpin buttons only
+  /// exist when the pair is wired), but a silent no-op beats a throw.
+  Future<void> _saveWatchItems(List<WatchItem> items) async {
+    await widget.saveWatchItems?.call(items);
+    _refresh();
+  }
+
+  /// Pin sheet — candidates come from THIS month's loaded ledger rows
+  /// (the summary read), never a preset taxonomy. An already-pinned
+  /// name re-saves as a threshold update, not a duplicate.
+  Future<void> _showWatchPin(List<Transaction> rows) async {
+    var kind = WatchKind.category;
+    var selected = '';
+    final threshold = TextEditingController();
+    String? error;
+    final added = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          final candidates = kind == WatchKind.category
+              ? watchCandidateCategories(rows)
+              : watchCandidatePayees(rows);
+          if (selected.isNotEmpty && !candidates.contains(selected)) {
+            selected = '';
+          }
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Theo dõi tháng này',
+                  style: Theme.of(ctx).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 12),
+                SegmentedButton<WatchKind>(
+                  segments: const [
+                    ButtonSegment(
+                      value: WatchKind.category,
+                      label: Text('Danh mục'),
+                      icon: Icon(Icons.category_outlined),
+                    ),
+                    ButtonSegment(
+                      value: WatchKind.payee,
+                      label: Text('Người nhận'),
+                      icon: Icon(Icons.storefront_outlined),
+                    ),
+                  ],
+                  selected: {kind},
+                  onSelectionChanged: (s) => setSheet(() => kind = s.first),
+                ),
+                const SizedBox(height: 12),
+                if (candidates.isEmpty)
+                  Text(
+                    kind == WatchKind.category
+                        ? 'Chưa có khoản chi nào tháng này để ghim danh mục.'
+                        : 'Chưa có khoản chi nào có người nhận tháng này.',
+                    style: Theme.of(ctx).textTheme.bodySmall,
+                  )
+                else
+                  DropdownButtonFormField<String>(
+                    initialValue: selected.isEmpty ? null : selected,
+                    decoration: InputDecoration(
+                      labelText: kind == WatchKind.category
+                          ? 'Danh mục'
+                          : 'Người nhận',
+                      border: const OutlineInputBorder(),
+                    ),
+                    items: [
+                      for (final c in candidates)
+                        DropdownMenuItem(value: c, child: Text(c)),
+                    ],
+                    onChanged: (v) => setSheet(() => selected = v ?? ''),
+                  ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: threshold,
+                  decoration: const InputDecoration(
+                    labelText: 'Ngưỡng cảnh báo (tuỳ chọn)',
+                    hintText: 'vd: 1tr',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                if (error != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    error!,
+                    style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Hủy'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      onPressed: selected.isEmpty
+                          ? null
+                          : () {
+                              final t = threshold.text.trim();
+                              final parsed = t.isEmpty
+                                  ? null
+                                  : parseMoneyInput(t);
+                              if (t.isNotEmpty &&
+                                  (parsed == null || parsed <= 0)) {
+                                setSheet(() => error = 'Ngưỡng không hợp lệ');
+                                return;
+                              }
+                              Navigator.pop(ctx, true);
+                            },
+                      child: const Text('Ghim'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+    if (added != true || selected.isEmpty) return;
+    final t = threshold.text.trim();
+    final item = WatchItem(
+      kind: kind,
+      name: selected,
+      thresholdMinor: t.isEmpty ? null : parseMoneyInput(t),
+    );
+    final items = [
+      for (final i in await _loadWatchItems())
+        if (i.key != item.key) i,
+      item,
+    ];
+    await _saveWatchItems(items);
+  }
+
+  /// The month-summary card's read — advisory like the other optional
+  /// surfaces: absent loader, a failed range, or a truncated tail all
+  /// hide the card rather than show a partial month labeled whole.
+  Future<List<Transaction>?> _loadSummaryRows() async {
+    final loader = widget.loadSummaryTransactions;
+    if (loader == null) return null;
+    try {
+      final range = monthSummaryLoadRange(vnNow());
+      final result = await loader(range.from, range.to);
+      if (result.truncated) return null;
+      return result.rows;
+    } catch (_) {
+      return null;
     }
   }
 
@@ -627,6 +836,49 @@ class DashboardPageState extends State<DashboardPage> {
                       onOpenPlanning: widget.onOpenPlanning,
                     ),
                   ],
+                  if (snap.data!.summaryRows != null) ...[
+                    Builder(
+                      builder: (context) {
+                        final summary = buildMonthSummary(
+                          snap.data!.summaryRows!,
+                          today: now,
+                        );
+                        // A quiet month renders nothing — same rule the
+                        // digest applies to its notification.
+                        if (summary.transactionCount == 0) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: _MonthSummaryCard(
+                            summary: summary,
+                            onOpenReports: widget.onOpenReports,
+                          ),
+                        );
+                      },
+                    ),
+                    // No pins and no candidate rows means there is
+                    // nothing to watch — the card hides rather than
+                    // claiming empty real estate above the wallets.
+                    if (snap.data!.watchItems.isNotEmpty ||
+                        snap.data!.summaryRows!.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _WatchCard(
+                        items: snap.data!.watchItems,
+                        rows: snap.data!.summaryRows!,
+                        today: now,
+                        // Pin only when the save seam exists — a Ghim
+                        // that can't persist would be a dead affordance.
+                        onPin: widget.saveWatchItems == null
+                            ? null
+                            : () => _showWatchPin(snap.data!.summaryRows!),
+                        onUnwatch: (item) => _saveWatchItems([
+                          for (final i in snap.data!.watchItems)
+                            if (i.key != item.key) i,
+                        ]),
+                      ),
+                    ],
+                  ],
                   for (final s in suggestions) ...[
                     const SizedBox(height: 12),
                     _RecurringSuggestionCard(
@@ -677,6 +929,217 @@ class DashboardPageState extends State<DashboardPage> {
 int _vndTotal(List<AccountSummary> accounts) => accounts
     .where((a) => a.currencyCode == 'VND')
     .fold<int>(0, (s, a) => s + a.balance);
+
+/// Month-to-date recap card (D9) — the in-app counterpart of the
+/// month-close digest, mirroring the web weekly-summary card lifted to
+/// the month boundary: thu/chi/còn lại, the top expense category, and
+/// the delta against the equal-length trailing window. It names its
+/// range ("1/10 – 20/10") so a partial month never reads as whole.
+class _MonthSummaryCard extends StatelessWidget {
+  const _MonthSummaryCard({required this.summary, this.onOpenReports});
+
+  final MonthSummary summary;
+  final VoidCallback? onOpenReports;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: context.mf.textMuted,
+    );
+    final compareLine = monthSummaryCompareLine(
+      summary.expenseChangePercent,
+      days: summary.compareDays,
+    );
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.calendar_month_outlined, size: 20),
+                const SizedBox(width: 8),
+                Text('Tóm tắt tháng này', style: theme.textTheme.titleSmall),
+                const Spacer(),
+                Text(
+                  '${formatMonthDayLabel(summary.monthStart)} – '
+                  '${formatMonthDayLabel(summary.monthEnd)}',
+                  style: muted,
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Thu ${formatMoney(summary.income)} · '
+              'Chi ${formatMoney(summary.expense)}',
+              style: theme.textTheme.bodyLarge,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'Còn lại ${formatMoney(summary.net)}',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            if (summary.topCategory != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                'Nhiều nhất: ${summary.topCategory} · '
+                '${formatMoney(summary.topCategoryAmount)}',
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+            if (compareLine != null) ...[
+              const SizedBox(height: 2),
+              Text(compareLine, style: theme.textTheme.bodySmall),
+            ],
+            if (onOpenReports != null) ...[
+              const SizedBox(height: 4),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: onOpenReports,
+                  child: const Text('Xem báo cáo tháng →'),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Watchlist tile (D10) — pinned categories/payees with their
+/// month-to-date expense and optional threshold state. Only renders
+/// while the summary read succeeded, so totals always come from a
+/// complete window; the empty state is honest copy, not a fake figure.
+class _WatchCard extends StatelessWidget {
+  const _WatchCard({
+    required this.items,
+    required this.rows,
+    required this.today,
+    required this.onPin,
+    required this.onUnwatch,
+  });
+
+  final List<WatchItem> items;
+  final List<Transaction> rows;
+  final DateTime today;
+
+  /// Null when no save seam is wired — the card stays read-only rather
+  /// than offering a pin that cannot persist.
+  final VoidCallback? onPin;
+  final void Function(WatchItem item) onUnwatch;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.visibility_outlined, size: 20),
+                const SizedBox(width: 8),
+                Text('Đang theo dõi', style: theme.textTheme.titleSmall),
+                const Spacer(),
+                if (onPin != null)
+                  TextButton.icon(
+                    onPressed: onPin,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Ghim'),
+                  ),
+              ],
+            ),
+            if (items.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(right: 8, bottom: 8),
+                child: Text(
+                  'Ghim một danh mục hay người nhận để xem tổng chi '
+                  'tháng này — không cần đặt ngân sách.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: context.mf.textMuted,
+                  ),
+                ),
+              )
+            else
+              for (final item in items) ...[
+                _WatchRow(
+                  item: item,
+                  spent: watchMonthSpend(rows, item, today: today),
+                  onUnwatch: () => onUnwatch(item),
+                ),
+              ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One pinned line: name · month spend · optional threshold + alert
+/// word. The label carries the meaning — color is decoration only.
+class _WatchRow extends StatelessWidget {
+  const _WatchRow({
+    required this.item,
+    required this.spent,
+    required this.onUnwatch,
+  });
+
+  final WatchItem item;
+  final int spent;
+  final VoidCallback onUnwatch;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final alert = watchAlert(item, spent);
+    final alertColor = switch (alert) {
+      WatchAlert.over => theme.colorScheme.error,
+      WatchAlert.near => context.mf.warningText,
+      WatchAlert.ok => context.mf.textMuted,
+    };
+    return Row(
+      children: [
+        Icon(
+          item.kind == WatchKind.category
+              ? Icons.category_outlined
+              : Icons.storefront_outlined,
+          size: 18,
+          color: context.mf.textMuted,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(item.name, style: theme.textTheme.bodyMedium),
+              Text(
+                'Chi ${formatMoney(spent)} tháng này'
+                '${item.thresholdMinor == null ? '' : ' · ngưỡng ${formatMoney(item.thresholdMinor!)}'}'
+                ' · ${watchAlertLabel(item, spent)}',
+                style: theme.textTheme.bodySmall?.copyWith(color: alertColor),
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.push_pin_outlined, size: 18),
+          tooltip: 'Bỏ theo dõi ${item.name}',
+          onPressed: onUnwatch,
+        ),
+      ],
+    );
+  }
+}
 
 /// Menu label with a lazy count badge — "Cần xem (3)". The future is
 /// awaited while the popup is already open, so the label shows first and

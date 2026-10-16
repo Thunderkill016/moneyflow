@@ -87,6 +87,7 @@ class PlanningActions {
     required this.onGoalSave,
     required this.onGoalAdjust,
     required this.onGoalArchived,
+    this.loadGoalFunding,
     this.onCoverOverspend,
     this.onIncomeSave,
     this.onIncomeReceive,
@@ -127,6 +128,12 @@ class PlanningActions {
   /// affordance entirely. Returns how many drafts actually wrote so the
   /// page can report a partial apply honestly.
   final Future<int> Function(List<BudgetDraft> drafts)? onBudgetFill;
+
+  /// D11 goal detail — reads the signed allocation history (the
+  /// progress authority) plus the newest goal-tagged transactions.
+  /// Null (demo) simply drops the "Chi tiết" entry — the tile keeps
+  /// its progress/projection without promising a history it can't read.
+  final Future<GoalFunding> Function(String goalId)? loadGoalFunding;
 
   /// YNAB Rule 3 — move [amountMinor] of limit from [donor] to
   /// [overspent] inside the same month: two `upsert_monthly_budget`
@@ -460,6 +467,11 @@ class PlanningPageState extends State<PlanningPage> {
                   addTooltip: 'Thêm mục tiêu',
                   onAdd: () => _showGoalForm(),
                 ),
+                // D11 reserve line — the web's "Còn có thể dành": VND
+                // wallet balances minus money earmarked for active
+                // goals. Names its basis so it never reads as free cash.
+                if (activeGoals.isNotEmpty)
+                  _GoalReserveLine(goals: activeGoals, accounts: d.accounts),
                 if (activeGoals.isEmpty)
                   _empty(
                     'Chưa có mục tiêu nào',
@@ -471,6 +483,9 @@ class PlanningPageState extends State<PlanningPage> {
                 for (final g in activeGoals)
                   _GoalTile(
                     goal: g,
+                    onDetail: widget.actions.loadGoalFunding == null
+                        ? null
+                        : () => _showGoalDetail(g),
                     onEdit: () => _showGoalForm(editing: g),
                     onDeposit: () => _adjustGoal(g, withdraw: false),
                     onWithdraw: g.allocatedMinor > 0
@@ -1520,6 +1535,165 @@ class PlanningPageState extends State<PlanningPage> {
     if (ok == true) _refresh();
   }
 
+  /// D11 goal detail — progress + pace prerequisites + the signed
+  /// funding history and goal-tagged transactions the research calls
+  /// "linked funding". Read-only: nothing here writes.
+  Future<void> _showGoalDetail(SavingsGoal g) async {
+    final loader = widget.actions.loadGoalFunding;
+    if (loader == null) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        final today = vnNow();
+        final projection = projectGoalCompletion(
+          targetMinor: g.targetMinor,
+          contributedMinor: g.allocatedMinor,
+          deadline: g.deadline,
+          monthlyRateMinor: estimateGoalMonthlyRate(
+            contributedMinor: g.allocatedMinor,
+            createdAt: g.createdAt,
+            today: today,
+          ),
+          today: today,
+        );
+        final missing = goalMissingPrerequisites(
+          contributedMinor: g.allocatedMinor,
+          deadline: g.deadline,
+          createdAt: g.createdAt,
+          today: today,
+        );
+        final theme = Theme.of(ctx);
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(g.name, style: theme.textTheme.titleMedium),
+                const SizedBox(height: 8),
+                Text(
+                  'Đã dành ${formatMoney(g.allocatedMinor)} / '
+                  '${formatMoney(g.targetMinor)}'
+                  ' (${(g.progress * 100).round()}%)',
+                ),
+                if (g.deadline != null) Text('Hạn: ${_dmy(g.deadline!)}'),
+                Text(
+                  goalProjectionLabel(projection),
+                  style: theme.textTheme.bodySmall,
+                ),
+                for (final m in missing)
+                  Text(
+                    '• $m',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                const SizedBox(height: 12),
+                FutureBuilder(
+                  future: loader(g.id),
+                  builder: (ctx, snap) {
+                    if (snap.hasError) {
+                      return Text(
+                        'Không tải được lịch sử — thử lại sau.',
+                        style: theme.textTheme.bodySmall,
+                      );
+                    }
+                    if (!snap.hasData) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+                    final funding = snap.data!;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Lần nạp/rút gần đây',
+                          style: theme.textTheme.labelLarge,
+                        ),
+                        if (funding.allocations.isEmpty)
+                          Text(
+                            'Chưa có lần nạp nào.',
+                            style: theme.textTheme.bodySmall,
+                          )
+                        else
+                          for (final a in funding.allocations)
+                            Text(
+                              '${_dmyTime(a.createdAt)} · '
+                              '${a.amountMinor > 0 ? 'Nạp' : 'Rút'} '
+                              '${formatMoney(a.amountMinor.abs())}',
+                              style: theme.textTheme.bodySmall,
+                            ),
+                        if (funding.allocationsHasMore)
+                          Text(
+                            'Hiển thị ${funding.allocations.length} '
+                            'mục mới nhất',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Giao dịch liên kết',
+                          style: theme.textTheme.labelLarge,
+                        ),
+                        if (funding.linked.isEmpty)
+                          Text(
+                            'Chưa có giao dịch nào gắn mục tiêu này — '
+                            'liên kết là ghi chú, tiến độ vẫn theo lần '
+                            'nạp/rút ở trên.',
+                            style: theme.textTheme.bodySmall,
+                          )
+                        else
+                          for (final t in funding.linked)
+                            Text(
+                              '${_dmy(t.occurredOn)} · '
+                              '${(t.payee == null || t.payee!.isEmpty) ? t.category : t.payee!} · '
+                              '${t.kind == TransactionKind.income ? '+' : '-'}'
+                              '${formatMoney(t.amount)}',
+                              style: theme.textTheme.bodySmall,
+                            ),
+                        if (funding.linkedHasMore)
+                          Text(
+                            'Hiển thị ${funding.linked.length} '
+                            'giao dịch mới nhất',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// "d/m/yyyy" for sheet lines — compact VN day-first form.
+  static String _dmy(String ymdDay) =>
+      '${int.parse(ymdDay.substring(8))}/${int.parse(ymdDay.substring(5, 7))}'
+      '/${ymdDay.substring(0, 4)}';
+
+  /// "d/m/yyyy" of an ISO timestamp (local civil date) — allocation rows
+  /// carry timestamptz; the sheet shows their day, not their clock.
+  static String _dmyTime(String iso) {
+    final d = DateTime.tryParse(iso)?.toLocal();
+    if (d == null) return iso;
+    return '${d.day}/${d.month}/${d.year}';
+  }
+
   /// The server refuses to archive a goal that still holds allocated
   /// money — the web blocks the confirm the same way client-side.
   Future<void> _archiveGoal(SavingsGoal g) async {
@@ -1986,9 +2160,48 @@ class _IncomeTile extends StatelessWidget {
   }
 }
 
+/// The web's reserve readout (D11): total VND wallet balance minus the
+/// money already earmarked for active goals — "còn có thể dành". A
+/// negative remainder says "đã dành quá số dư" exactly like the web,
+/// and the line names its basis (entered goal allocations over VND
+/// wallets) so it never masquerades as spendable-cash truth.
+class _GoalReserveLine extends StatelessWidget {
+  const _GoalReserveLine({required this.goals, required this.accounts});
+
+  final List<SavingsGoal> goals;
+  final List<AccountSummary> accounts;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final earmarked = goals.fold<int>(0, (s, g) => s + g.allocatedMinor);
+    final vndBalance = accounts
+        .where((a) => a.currencyCode == 'VND')
+        .fold<int>(0, (s, a) => s + a.balance);
+    final unreserved = vndBalance - earmarked;
+    final line = unreserved >= 0
+        ? 'Đã dành cho mục tiêu ${formatMoney(earmarked)} · '
+              'còn có thể dành ${formatMoney(unreserved)}'
+        : 'Đã dành ${formatMoney(earmarked)} — '
+              'quá số dư ví ${formatMoney(-unreserved)}';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        line,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: unreserved >= 0
+              ? theme.colorScheme.onSurfaceVariant
+              : theme.colorScheme.error,
+        ),
+      ),
+    );
+  }
+}
+
 class _GoalTile extends StatelessWidget {
   const _GoalTile({
     required this.goal,
+    required this.onDetail,
     required this.onEdit,
     required this.onDeposit,
     required this.onWithdraw,
@@ -1996,6 +2209,10 @@ class _GoalTile extends StatelessWidget {
   });
 
   final SavingsGoal goal;
+
+  /// "Chi tiết" — the funding-history sheet. Null when the store has
+  /// no funding read (demo): the menu simply omits the entry.
+  final VoidCallback? onDetail;
   final VoidCallback onEdit;
   final VoidCallback onDeposit;
 
@@ -2076,15 +2293,19 @@ class _GoalTile extends StatelessWidget {
               iconSize: 20,
               onSelected: (action) {
                 switch (action) {
+                  case 'detail':
+                    onDetail?.call();
                   case 'edit':
                     onEdit();
                   case 'archive':
                     onArchive();
                 }
               },
-              itemBuilder: (ctx) => const [
-                PopupMenuItem(value: 'edit', child: Text('Sửa')),
-                PopupMenuItem(value: 'archive', child: Text('Lưu trữ')),
+              itemBuilder: (ctx) => [
+                if (onDetail != null)
+                  const PopupMenuItem(value: 'detail', child: Text('Chi tiết')),
+                const PopupMenuItem(value: 'edit', child: Text('Sửa')),
+                const PopupMenuItem(value: 'archive', child: Text('Lưu trữ')),
               ],
             ),
           ],

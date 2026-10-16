@@ -9,3 +9,5 @@
 - 2026-10-16 — Loop B D2 event budgets shipped (2e303f21): event_budgets+scope, view+3 RPCs, EventsPage+detail+form, pgTAP 24 asserts.
 - 2026-10-16 — v4 harness: 5 SKILL.md aligned to canonical set (+vietnam-constraints), plan/findings/decisions/progress files created.
 - IN FLIGHT — D3 remainder card + budget threshold alerts (subagent a04ad152).
+- 2026-10-17 — Loop B D3–D8 landed under earlier commits on feat/mobile-theme (remainder card + threshold alerts, payee stats + MoM deltas, review-loop polish, rule suggestions, quick-fill chips, commitment calendar); see FIXLOG.md FEATURE entries.
+- 2026-10-17 — Loop B D9–D11 shipped on feat/mobile-theme: month-close digest + in-app month summary card, device-local watchlist pin with optional threshold, goal prerequisite honesty + linked-funding detail sheet. "Include in monthly plan" toggle waived — no contract exists. dart format / flutter analyze clean; flutter test 1462 green (44 new).

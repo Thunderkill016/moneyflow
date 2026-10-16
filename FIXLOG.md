@@ -562,3 +562,103 @@ Format: `ID | files changed | why | proof (test names)`.
   monthly/yearly/clamped-31/paid cases; widget renders headers + hint;
   tap-a-day detail + Trả round-trip; empty-day honest line; deselect;
   paid row shows status without Trả; no onPay seam hides the button).
+- **FEATURE: D9 month-close digest + in-app month summary card** |
+  `mobile/lib/domain/month_close_digest.dart` (new),
+  `mobile/lib/domain/month_summary.dart` (new),
+  `mobile/lib/data/notifications.dart`,
+  `mobile/lib/app/app.dart`,
+  `mobile/lib/app/home_shell.dart`,
+  `mobile/lib/features/settings/settings_page.dart`,
+  `mobile/lib/features/dashboard/dashboard_page.dart` |
+  Loop B gap D9 (RESEARCH_TOP_FINANCE_APPS.md §10 — Copilot 3.9 /
+  Monarch recap ADAPT): the weekly digest existed but the culturally
+  real bookkeeping boundary is the month close (lương → hết tháng).
+  `nextMonthCloseFire` resolves the LAST calendar day at the shared
+  configurable digest hour, rolling to next month's last day when this
+  month's fire time already passed (`month_close_digest.dart:51`);
+  `monthCloseWindow` anchors on the VN civil calendar — a 19:00
+  last-local-day fire that is already the 1st in Saigon still closes
+  the correct month. `MonthCloseNotificationService` schedules/cancels
+  a ONE-SHOT zoned notification on id `monthCloseNotificationId =
+  70002` (`notifications.dart:243`); the commitment id allocator now
+  skips BOTH digest ids (`notifications.dart:279`). `refreshMonthCloseDigest`
+  (`notifications.dart:442`) loads the two-month window once, computes
+  the digest copy and returns the payload for the app-layer body; the
+  feature is opt-in (default OFF, `mf_month_digest_enabled` pref),
+  cancelled on toggle-off and on account deletion
+  (`app.dart:1562,1569`). Settings shows the switch under the weekly
+  one with the shared digest time label (`settings_page.dart:60`).
+  The in-app `_MonthSummaryCard` (`dashboard_page.dart:932`) renders
+  month-to-date thu/chi/còn lại, the top expense category, and the
+  delta vs the equal-length trailing window from
+  `buildMonthSummary` (`month_summary.dart:69`), names its range
+  ("1/10 – 20/10") so a partial month never reads as whole, and links
+  "Xem báo cáo tháng →" to the reports tab (`home_shell.dart`
+  `homeShellReportsTab`). A missing/failed/truncated read or an empty
+  month hides the card — no fake numbers. |
+  `month_close_digest_test.dart` (+22: last-day resolution incl.
+  same-month-already-past rollover, February non-leap, VN-anchored
+  window, copy/digest math, opt-in orchestration, cancel-on-disable);
+  `dashboard_page_test.dart` (month card renders totals + range +
+  delta; truncated/absent read hides it; reports link switches tab);
+  `settings_page_test.dart` (switch state + toggle callback);
+  `notifications_test.dart` (allocator skips both digest ids).
+- **FEATURE: D10 watchlist pin — monitor one category/payee without a
+  budget** | `mobile/lib/domain/watchlist.dart` (new),
+  `mobile/lib/data/watchlist_prefs.dart` (new),
+  `mobile/lib/features/dashboard/dashboard_page.dart`,
+  `mobile/lib/app/app.dart` |
+  Loop B gap D10 (§10 — Simplifi 5.4 COPY): tracking one vice (trà
+  sữa) shouldn't require budgeting ceremony. `WatchItem` pins a
+  category OR payee (`watchlist.dart:18`); `watchMonthSpend`
+  (`watchlist.dart:42`) sums ONLY this month's matching expenses from
+  the same ledger read the summary card uses — income and transfers
+  never count. `watchAlert` (`watchlist.dart:71`) maps an optional
+  integer-VND threshold to ok/near(≥80%)/over(≥100%) — a pin without
+  a threshold stays advisory, never a fake budget. Pins persist
+  device-local under `mf_watch_items` (`watchlist_prefs.dart`) — no
+  server contract exists, so nothing is implied. `_WatchCard`
+  (`dashboard_page.dart:1014`) lists "Đang theo dõi" rows with
+  "Chi X ₫ tháng này" + threshold state + "Bỏ theo dõi" per item;
+  "Ghim" opens a sheet whose candidates come from THIS month's real
+  ledger rows (categories + payees), never a preset taxonomy —
+  re-pinning an existing name is a threshold update, not a duplicate.
+  The card renders only when pins or candidate rows exist, the pin
+  affordance exists only when the save seam is wired, and both seams
+  absent → no card (`dashboard_page.dart:863-879`). |
+  `watchlist_test.dart` (+9: month-sum correctness incl.
+  income/transfer exclusion, payee exact-match, 80%/100% thresholds,
+  prefs round-trip + corrupt-pref empty read, card totals + "Sắp tới
+  ngưỡng", pin sheet real-values-only, unwatch through save seam,
+  no-seam hides card); `dashboard_page_test.dart` (pin affordance
+  absent without save seam).
+- **FEATURE: D11 goal-status prerequisites + linked funding** |
+  `mobile/lib/domain/models.dart` (+GoalAllocation:323, +GoalFunding
+  typedef:338), `mobile/lib/domain/goal_projection.dart`,
+  `mobile/lib/data/neon/real_store.dart`,
+  `mobile/lib/features/planning/planning_page.dart`,
+  `mobile/lib/app/app.dart` |
+  Loop B gap D11 (§10 — Monarch 1.9 COPY): progress honesty beats a
+  confident-looking bar. `goalMissingPrerequisites`
+  (`goal_projection.dart:151`) names what's missing (target, target
+  date, contribution evidence) instead of rendering an unexplained
+  empty projection — pace/đúng hẹn only show when the prerequisites
+  exist. `RealStore.loadGoalFunding` (`real_store.dart:777`) reads up
+  to 20 recent `savings_goal_allocations` rows (the funding authority;
+  signed: deposits positive, withdrawals negative) plus up to 20
+  `transaction_feed` rows filtered by `goal_id` (annotation only —
+  they never change the goal total), each with a `hasMore` flag so a
+  truncated tail is disclosed. The goal tile's overflow menu gains
+  "Chi tiết" → a bottom sheet (`planning_page.dart:1541`) listing the
+  signed funding history and "Giao dịch liên kết" rows — no loader
+  seam → no dead menu entry (`planning_page.dart:486`). The tile also
+  carries the reserve line "Đã dành X — còn có thể dành Y"
+  (`planning_page.dart:2183`): the web's `reserve.unreserved`
+  analogue, computed from VND wallets. The research row's "include in
+  monthly plan" toggle was NOT built — no such field or backend
+  contract exists; see DECISIONS.md. All goal writes still run the
+  confirmed `adjust_savings_goal` RPC. |
+  `goal_projection_test.dart` (+4: missing target/date/evidence named
+  individually, complete set → no complaint); `planning_reports_test.dart`
+  (+4: detail sheet lists allocations + linked rows with signed
+  amounts, hasMore disclosure, no loader → no Chi tiết, reserve line).
