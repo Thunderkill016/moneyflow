@@ -7,7 +7,7 @@ import '../../domain/bulk.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/register.dart' show transactionDeleteErrorMessage;
-import '../../domain/report.dart' show unnamedPayeeBucket;
+import '../../domain/report.dart' show unnamedPayeeBucket, vnNow;
 import '../../domain/transaction_query.dart';
 import '../../theme/mf_theme.dart';
 import '../capture/category_picker.dart';
@@ -287,9 +287,9 @@ class ActivityPageState extends State<ActivityPage> {
     if (result != null) _setQuery(result);
   }
 
-  /// Vietnam date (UTC+7) so "Hôm nay" matches ledger days.
-  String get _today =>
-      _isoDate(DateTime.now().toUtc().add(const Duration(hours: 7)));
+  /// Vietnam date (UTC+7) so "Hôm nay" matches ledger days — the shared
+  /// civil-date rule in domain/report.dart.
+  String get _today => _isoDate(vnNow());
 
   bool get _canSelect => widget.onBulkReview != null;
 

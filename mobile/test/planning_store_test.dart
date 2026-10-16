@@ -332,6 +332,87 @@ void main() {
       await h.store.setCommitmentArchived('cm-1', false);
       expect(h.rpcBody, {'p_commitment_id': 'cm-1', 'p_archived': false});
     });
+
+    test('payCommitment carries the caller-supplied idempotency key', () async {
+      final h = Harness();
+      await h.signIn();
+      h.t.queue.add(FakeTransport.json(200, 'tx-1'));
+
+      await h.store.payCommitment(
+        commitmentId: 'cm-1',
+        monthStart: '2026-10-01',
+        paidOn: '2026-10-14',
+        idempotencyKey: '11111111-2222-4333-8444-555555555555',
+      );
+
+      expect(
+        h.lastRpc.url.path,
+        '/neondb/rest/v1/rpc/pay_recurring_commitment',
+      );
+      expect(h.rpcBody, {
+        'p_commitment_id': 'cm-1',
+        'p_month_start': '2026-10-01',
+        'p_paid_on': '2026-10-14',
+        'p_idempotency_key': '11111111-2222-4333-8444-555555555555',
+      });
+    });
+
+    test('receiveIncome carries the caller-supplied idempotency key', () async {
+      final h = Harness();
+      await h.signIn();
+      h.t.queue.add(FakeTransport.json(200, 'tx-9'));
+
+      await h.store.receiveIncome(
+        templateId: 'inc-1',
+        monthStart: '2026-10-01',
+        receivedOn: '2026-10-05',
+        idempotencyKey: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+      );
+
+      expect(
+        h.lastRpc.url.path,
+        '/neondb/rest/v1/rpc/record_recurring_income_template',
+      );
+      expect(h.rpcBody, {
+        'p_template_id': 'inc-1',
+        'p_month_start': '2026-10-01',
+        'p_received_on': '2026-10-05',
+        'p_idempotency_key': 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+      });
+    });
+  });
+
+  group('OperationIdempotencyKeys', () {
+    test('keyFor replays the same key across attempts on one scope', () {
+      // audit P1-4: a retry after a lost response must reuse the SAME
+      // key so the server's (user, key) dedupe fires — a fresh key per
+      // attempt was the double-write bug.
+      final keys = OperationIdempotencyKeys();
+      final scope = 'pay_commitment:cm-1:2026-10-01';
+      final k1 = keys.keyFor(scope);
+      expect(keys.keyFor(scope), k1);
+      expect(keys.keyFor(scope), k1);
+      expect(k1, matches(RegExp(r'^[0-9a-f-]{36}$')));
+    });
+
+    test('separate scopes never share a key', () {
+      final keys = OperationIdempotencyKeys();
+      final a = keys.keyFor('pay_commitment:cm-1:2026-10-01');
+      final b = keys.keyFor('pay_commitment:cm-2:2026-10-01');
+      final c = keys.keyFor('receive_income:inc-1:2026-10-01');
+      expect({a, b, c}.length, 3);
+    });
+
+    test('release lets a deliberate new action mint a fresh key', () {
+      // undo → pay again is a new intent, not a replay — the soft-deleted
+      // row still carries the old key, so reusing it would collide.
+      final keys = OperationIdempotencyKeys();
+      const scope = 'pay_commitment:cm-1:2026-10-01';
+      final first = keys.keyFor(scope);
+      keys.release(scope);
+      final second = keys.keyFor(scope);
+      expect(second, isNot(first));
+    });
   });
 
   group('RealStore planning reads', () {

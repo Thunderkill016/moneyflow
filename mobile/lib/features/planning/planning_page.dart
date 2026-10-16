@@ -7,7 +7,7 @@ import '../../domain/commitments.dart';
 import '../../domain/goal_projection.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
-import '../../domain/report.dart' show ymd;
+import '../../domain/report.dart' show vnNow, vnToday;
 import '../shared/empty_state.dart';
 import 'recurring_form_dialog.dart';
 import '../shared/timed_snack_bar.dart';
@@ -202,7 +202,9 @@ class PlanningPageState extends State<PlanningPage> {
   var _budgetOffset = 0;
 
   String get _budgetMonth {
-    final now = DateTime.now();
+    // VN calendar — p_month_start and p_paid_on must agree on which
+    // month is "current" whatever zone the device reports.
+    final now = vnNow();
     final d = DateTime(now.year, now.month + _budgetOffset);
     return '${d.year}-${d.month.toString().padLeft(2, '0')}-01';
   }
@@ -276,7 +278,7 @@ class PlanningPageState extends State<PlanningPage> {
             return const Center(child: CircularProgressIndicator());
           }
           final d = snap.data!;
-          final today = ymd(DateTime.now());
+          final today = vnToday();
           // Active vs archived split — the web lists archived rows behind
           // a "Đã lưu trữ (N)" toggle; mobile collapses them in place.
           final activeIncome = d.incomeTemplates
@@ -578,6 +580,10 @@ class PlanningPageState extends State<PlanningPage> {
       text: editing == null ? '' : '${editing.limitMinor}',
     );
     String? error;
+    // upsert_monthly_budget takes no idempotency key — the in-flight
+    // guard IS the double-submit defense: a second tap while the RPC is
+    // pending would post a duplicate write the server cannot dedupe.
+    var submitting = false;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -629,36 +635,43 @@ class PlanningPageState extends State<PlanningPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
+              // No cancel mid-flight — the RPC is already on the wire;
+              // popping here would hide a write that still lands.
+              onPressed: submitting ? null : () => Navigator.pop(ctx, false),
               child: const Text('Hủy'),
             ),
             FilledButton(
-              onPressed: () async {
-                final amount = parseMoneyInput(limit.text);
-                final categoryId = editing?.categoryId ?? cat?.id;
-                if (categoryId == null || amount == null || amount <= 0) {
-                  return;
-                }
-                try {
-                  await widget.actions.onBudgetSave(
-                    editing,
-                    categoryId,
-                    amount,
-                    // Edits keep their stored month (== the viewed one);
-                    // creates land on the month the reader is planning.
-                    editing?.monthStart ?? d.budgetMonth,
-                  );
-                } catch (e) {
-                  setDlg(
-                    () => error = planningErrorMessage(
-                      e,
-                      fallback: 'Không lưu được — thử lại',
-                    ),
-                  );
-                  return;
-                }
-                if (ctx.mounted) Navigator.pop(ctx, true);
-              },
+              onPressed: submitting
+                  ? null
+                  : () async {
+                      final amount = parseMoneyInput(limit.text);
+                      final categoryId = editing?.categoryId ?? cat?.id;
+                      if (categoryId == null || amount == null || amount <= 0) {
+                        return;
+                      }
+                      setDlg(() => submitting = true);
+                      try {
+                        await widget.actions.onBudgetSave(
+                          editing,
+                          categoryId,
+                          amount,
+                          // Edits keep their stored month (== the viewed
+                          // one); creates land on the month the reader is
+                          // planning.
+                          editing?.monthStart ?? d.budgetMonth,
+                        );
+                      } catch (e) {
+                        setDlg(() {
+                          submitting = false;
+                          error = planningErrorMessage(
+                            e,
+                            fallback: 'Không lưu được — thử lại',
+                          );
+                        });
+                        return;
+                      }
+                      if (ctx.mounted) Navigator.pop(ctx, true);
+                    },
               child: Text(editing == null ? 'Tạo' : 'Lưu'),
             ),
           ],
@@ -1266,6 +1279,9 @@ class PlanningPageState extends State<PlanningPage> {
     );
     String? deadline = editing?.deadline;
     String? error;
+    // upsert_savings_goal takes no idempotency key — the in-flight guard
+    // IS the double-submit defense against a mid-RPC second tap.
+    var submitting = false;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -1327,35 +1343,47 @@ class PlanningPageState extends State<PlanningPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
+              // No cancel mid-flight — the RPC is already on the wire;
+              // popping here would hide a write that still lands.
+              onPressed: submitting ? null : () => Navigator.pop(ctx, false),
               child: const Text('Hủy'),
             ),
             FilledButton(
-              onPressed: () async {
-                final n = name.text.trim();
-                final t = parseMoneyInput(target.text);
-                if (n.isEmpty || t == null || t <= 0) return;
-                // Same guard the web dialog applies: the target can never
-                // drop below money already allocated to the goal.
-                if (editing != null && t < editing.allocatedMinor) {
-                  setDlg(
-                    () => error = 'Mức đích không được thấp hơn tiền đã dành',
-                  );
-                  return;
-                }
-                try {
-                  await widget.actions.onGoalSave(editing, n, t, deadline);
-                } catch (e) {
-                  setDlg(
-                    () => error = planningErrorMessage(
-                      e,
-                      fallback: 'Không lưu được — thử lại',
-                    ),
-                  );
-                  return;
-                }
-                if (ctx.mounted) Navigator.pop(ctx, true);
-              },
+              onPressed: submitting
+                  ? null
+                  : () async {
+                      final n = name.text.trim();
+                      final t = parseMoneyInput(target.text);
+                      if (n.isEmpty || t == null || t <= 0) return;
+                      // Same guard the web dialog applies: the target can
+                      // never drop below money already allocated.
+                      if (editing != null && t < editing.allocatedMinor) {
+                        setDlg(
+                          () => error =
+                              'Mức đích không được thấp hơn tiền đã dành',
+                        );
+                        return;
+                      }
+                      setDlg(() => submitting = true);
+                      try {
+                        await widget.actions.onGoalSave(
+                          editing,
+                          n,
+                          t,
+                          deadline,
+                        );
+                      } catch (e) {
+                        setDlg(() {
+                          submitting = false;
+                          error = planningErrorMessage(
+                            e,
+                            fallback: 'Không lưu được — thử lại',
+                          );
+                        });
+                        return;
+                      }
+                      if (ctx.mounted) Navigator.pop(ctx, true);
+                    },
               child: Text(editing == null ? 'Tạo' : 'Lưu'),
             ),
           ],
@@ -1366,9 +1394,10 @@ class PlanningPageState extends State<PlanningPage> {
   }
 
   /// Date picker for the goal deadline — the web allows any date at or
-  /// after today, keeping a past stored deadline selectable.
+  /// after today, keeping a past stored deadline selectable. "Today" is
+  /// the VN civil date, the calendar the stored deadline lives on.
   Future<String?> _pickDeadline(BuildContext ctx, String? current) async {
-    final now = DateTime.now();
+    final now = vnNow();
     final today = DateTime(now.year, now.month, now.day);
     final stored = current == null ? null : DateTime.tryParse(current);
     final picked = await showDatePicker(
@@ -1389,6 +1418,10 @@ class PlanningPageState extends State<PlanningPage> {
   Future<void> _adjustGoal(SavingsGoal g, {required bool withdraw}) async {
     final amount = TextEditingController();
     String? error;
+    // adjust_savings_goal takes no idempotency key — the in-flight guard
+    // IS the double-submit defense: a second tap while the RPC is pending
+    // would post the same deposit/withdraw twice.
+    var submitting = false;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -1424,36 +1457,48 @@ class PlanningPageState extends State<PlanningPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
+              // No cancel mid-flight — the RPC is already on the wire;
+              // popping here would hide a write that still lands.
+              onPressed: submitting ? null : () => Navigator.pop(ctx, false),
               child: const Text('Hủy'),
             ),
             FilledButton(
-              onPressed: () async {
-                final a = parseMoneyInput(amount.text);
-                if (a == null || a <= 0) return;
-                if (withdraw && a > g.allocatedMinor) {
-                  setDlg(() => error = 'Không thể rút quá số tiền đã dành');
-                  return;
-                }
-                if (!withdraw && a > g.targetMinor - g.allocatedMinor) {
-                  setDlg(
-                    () => error = 'Số tiền vượt phần còn thiếu của mục tiêu',
-                  );
-                  return;
-                }
-                try {
-                  await widget.actions.onGoalAdjust(g.id, withdraw ? -a : a);
-                } catch (e) {
-                  setDlg(
-                    () => error = planningErrorMessage(
-                      e,
-                      fallback: 'Không điều chỉnh được — thử lại',
-                    ),
-                  );
-                  return;
-                }
-                if (ctx.mounted) Navigator.pop(ctx, true);
-              },
+              onPressed: submitting
+                  ? null
+                  : () async {
+                      final a = parseMoneyInput(amount.text);
+                      if (a == null || a <= 0) return;
+                      if (withdraw && a > g.allocatedMinor) {
+                        setDlg(
+                          () => error = 'Không thể rút quá số tiền đã dành',
+                        );
+                        return;
+                      }
+                      if (!withdraw && a > g.targetMinor - g.allocatedMinor) {
+                        setDlg(
+                          () => error =
+                              'Số tiền vượt phần còn thiếu của mục tiêu',
+                        );
+                        return;
+                      }
+                      setDlg(() => submitting = true);
+                      try {
+                        await widget.actions.onGoalAdjust(
+                          g.id,
+                          withdraw ? -a : a,
+                        );
+                      } catch (e) {
+                        setDlg(() {
+                          submitting = false;
+                          error = planningErrorMessage(
+                            e,
+                            fallback: 'Không điều chỉnh được — thử lại',
+                          );
+                        });
+                        return;
+                      }
+                      if (ctx.mounted) Navigator.pop(ctx, true);
+                    },
               child: Text(withdraw ? 'Rút' : 'Nạp'),
             ),
           ],
@@ -1663,7 +1708,7 @@ class _BudgetTile extends StatelessWidget {
     final ratio = effectiveLimit <= 0
         ? (available < 0 ? 1.0 : 0.0)
         : (budget.spentMinor / effectiveLimit).clamp(0.0, 1.0);
-    final pace = monthPace(budget.monthStart, DateTime.now());
+    final pace = monthPace(budget.monthStart, vnNow());
     final (status, color) = switch (state) {
       BudgetState.over => (
         'Vượt ${formatMoney(available.abs())}',
@@ -1952,7 +1997,7 @@ class _GoalTile extends StatelessWidget {
     // On-track projection at the observed pace: allocated ÷ elapsed since
     // the stored created_at is the only honest rate the schema offers —
     // a goal with no readable span gets "chưa đủ dữ liệu", not a guess.
-    final today = DateTime.now();
+    final today = vnNow();
     final projection = projectGoalCompletion(
       targetMinor: goal.targetMinor,
       contributedMinor: goal.allocatedMinor,

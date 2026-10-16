@@ -729,6 +729,66 @@ void main() {
       );
     });
 
+    testWidgets(
+      'a second tap while a budget save is in flight cannot double-write',
+      (tester) async {
+        // audit P1-5: upsert_monthly_budget has no idempotency key — the
+        // disabled button IS the dedupe. A mid-RPC second tap would post
+        // the same write twice the server cannot tell apart.
+        var calls = 0;
+        final gate = Completer<void>();
+        await _pumpPlanning(
+          tester,
+          actions: _actions(
+            onBudgetSave: (e, c, l, m) async {
+              calls++;
+              await gate.future;
+            },
+          ),
+        );
+
+        await tester.tap(find.text('Ăn uống'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Lưu'));
+        await tester.pump(); // request in flight — both buttons disabled
+        await tester.tap(find.text('Lưu'));
+        await tester.tap(find.text('Hủy')); // cancel is inert mid-flight
+        await tester.pump();
+
+        gate.complete();
+        await tester.pumpAndSettle();
+        expect(calls, 1);
+        expect(find.text('Sửa ngân sách'), findsNothing);
+      },
+    );
+
+    testWidgets('a failed budget save stays retryable in the same dialog', (
+      tester,
+    ) async {
+      var calls = 0;
+      await _pumpPlanning(
+        tester,
+        actions: _actions(
+          onBudgetSave: (e, c, l, m) async {
+            calls++;
+            if (calls == 1) throw Exception('offline');
+          },
+        ),
+      );
+
+      await tester.tap(find.text('Ăn uống'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lưu'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('thử lại'), findsOneWidget);
+      expect(find.text('Sửa ngân sách'), findsOneWidget);
+
+      await tester.tap(find.text('Lưu'));
+      await tester.pumpAndSettle();
+      expect(calls, 2);
+      expect(find.text('Sửa ngân sách'), findsNothing);
+    });
+
     testWidgets('long-press still asks before deleting a budget', (
       tester,
     ) async {
@@ -850,6 +910,42 @@ void main() {
       expect(adjustCalls, 0);
       expect(find.text('Không thể rút quá số tiền đã dành'), findsOneWidget);
     });
+
+    testWidgets(
+      'a second tap while a goal adjust is in flight cannot double-post',
+      (tester) async {
+        // audit P1-5: adjust_savings_goal has no idempotency key — a
+        // mid-RPC second tap would post the deposit twice. The disabled
+        // button is the only dedupe the RPC allows.
+        var calls = 0;
+        final gate = Completer<void>();
+        await _pumpPlanning(
+          tester,
+          actions: _actions(
+            onGoalAdjust: (id, a) async {
+              calls++;
+              await gate.future;
+            },
+          ),
+        );
+
+        await tester.pumpAndSettle();
+        await tester.tap(find.byTooltip('Rút tiền'));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Số tiền'),
+          '1tr',
+        );
+        await tester.tap(find.text('Rút'));
+        await tester.pump(); // in flight
+        await tester.tap(find.text('Rút'));
+        await tester.pump();
+
+        gate.complete();
+        await tester.pumpAndSettle();
+        expect(calls, 1);
+      },
+    );
 
     testWidgets('goal tiles render the projection line honestly', (
       tester,

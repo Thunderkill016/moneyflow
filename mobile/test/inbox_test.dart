@@ -468,6 +468,27 @@ void main() {
       // A bare account tail alone is not money.
       expect(parseInboxPasteText('TK 1234', today: '2026-10-14'), isEmpty);
     });
+
+    test('a 20+-digit run never crashes — it is a reference, not money', () {
+      // audit P1-2: the amount regex accepts unbounded digit runs and
+      // int.parse throws past int64. A bank reference/serial must fall
+      // to null like every other non-match, not crash the paste.
+      expect(
+        parseInboxPasteText('REF 99999999999999999999 GD -50k'),
+        isNotEmpty,
+      );
+      expect(parseInboxPasteText('GD -99999999999999999999 VND'), isEmpty);
+      // The oversized token is ignored; the line still yields the real
+      // amount that follows it.
+      final d = parseInboxPasteText(
+        'GD -50k noi dung 12345678901234567890',
+        today: '2026-10-14',
+      ).single;
+      expect(d.amountMinor, 50000);
+      // int64-max itself parses; anything past the JS ceiling is not
+      // a VND amount.
+      expect(parseInboxPasteText('GD -9223372036854775807'), isEmpty);
+    });
   });
 
   group('labels + resolution helpers', () {

@@ -20,6 +20,7 @@
 
 import 'inbox.dart';
 import 'models.dart';
+import 'report.dart' show vnToday;
 
 /// MAX_UPLOAD_BYTES from the web parser — the same 10 MB cap the web page
 /// enforces before it even reads the file.
@@ -204,12 +205,8 @@ const _snippetMaxLength = 160;
 /// Merchant guesses cap at 64 chars like the web.
 const _merchantMaxLength = 64;
 
-/// Vietnam-today anchor (UTC+7, no DST) — todayInHoChiMinh in the web.
-String _todayVietnam() {
-  final vn = DateTime.now().toUtc().add(const Duration(hours: 7));
-  String two(int v) => v.toString().padLeft(2, '0');
-  return '${vn.year}-${two(vn.month)}-${two(vn.day)}';
-}
+// The "missing year / hôm nay" anchor shares the one VN-today rule in
+// domain/report.dart — todayInHoChiMinh in the web.
 
 /// Split CSV text into rows of cells — a verbatim port of parseCsvMatrix
 /// (RFC4180-ish: quotes, escaped quotes, commas, CRLF; UTF-8 BOM stripped;
@@ -382,8 +379,11 @@ int _scoreHeader(String header, RegExp pattern, String role) {
   );
 }
 
-int? _safeInt(int value) =>
-    (value > 0 && value <= _maxSafeAmount) ? value : null;
+/// Null on a failed parse (int.tryParse returns null past int64 — a
+/// 20+-digit run is a reference/account number, never a VND amount), a
+/// non-positive value or anything above the JS safe-integer ceiling.
+int? _safeInt(int? value) =>
+    (value != null && value > 0 && value <= _maxSafeAmount) ? value : null;
 
 double? _parseDecimalLoose(String value) {
   if (_looseDecimal.hasMatch(value)) {
@@ -413,10 +413,12 @@ int? _parseVndAmountToken(String rawNumber, String? unit) {
     return _safeInt((base * 1000000).round());
   }
   if (_groupedNumber.hasMatch(cleaned)) {
-    return _safeInt(int.parse(cleaned.replaceAll(RegExp(r'[.,]'), '')));
+    return _safeInt(int.tryParse(cleaned.replaceAll(RegExp(r'[.,]'), '')));
   }
   if (_plainDigits.hasMatch(cleaned)) {
-    return _safeInt(int.parse(cleaned));
+    // tryParse — the regex allows unbounded runs and int.parse throws on
+    // a 20+-digit string; a bad cell must cost one row, not the import.
+    return _safeInt(int.tryParse(cleaned));
   }
   return null;
 }
@@ -730,7 +732,7 @@ CsvParseResult parseStatementFromMatrix(
     return _emptyFail(fileName, 'Không tìm thấy dòng dữ liệu trong file.');
   }
 
-  final anchor = today ?? _todayVietnam();
+  final anchor = today ?? vnToday();
   final first = matrix.first;
   final hasHeader = _looksLikeHeaderRow(first);
   final headers = hasHeader

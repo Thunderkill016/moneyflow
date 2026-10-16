@@ -388,6 +388,10 @@ Future<bool> showAccountFormDialog(
   );
   AccountKind kind = editing?.kind ?? AccountKind.cash;
   String? error;
+  // create_financial_account takes no idempotency key — the in-flight
+  // guard IS the double-submit defense: a second tap while the RPC is
+  // pending would create two accounts the server cannot dedupe.
+  var submitting = false;
   final saved = await showDialog<bool>(
     context: context,
     builder: (ctx) => StatefulBuilder(
@@ -458,30 +462,39 @@ Future<bool> showAccountFormDialog(
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            // No cancel mid-flight — the RPC is already on the wire;
+            // popping here would hide a write that still lands.
+            onPressed: submitting ? null : () => Navigator.pop(ctx, false),
             child: const Text('Hủy'),
           ),
           FilledButton(
-            onPressed: () async {
-              final n = name.text.trim();
-              if (n.isEmpty) return;
-              // An empty balance is a legitimate 0 opening; a non-empty
-              // entry the money parser rejects must fail visibly — `?? 0`
-              // here used to silently save a mistyped balance as 0.
-              final balRaw = balance.text.trim();
-              final bal = balRaw.isEmpty ? 0 : parseMoneyInput(balRaw);
-              if (bal == null) {
-                setDlg(() => error = 'Số tiền không hợp lệ');
-                return;
-              }
-              try {
-                await onSave(n, kind, bal);
-              } catch (e) {
-                setDlg(() => error = accountFormErrorMessage(e));
-                return;
-              }
-              if (ctx.mounted) Navigator.pop(ctx, true);
-            },
+            onPressed: submitting
+                ? null
+                : () async {
+                    final n = name.text.trim();
+                    if (n.isEmpty) return;
+                    // An empty balance is a legitimate 0 opening; a
+                    // non-empty entry the money parser rejects must fail
+                    // visibly — `?? 0` here used to silently save a
+                    // mistyped balance as 0.
+                    final balRaw = balance.text.trim();
+                    final bal = balRaw.isEmpty ? 0 : parseMoneyInput(balRaw);
+                    if (bal == null) {
+                      setDlg(() => error = 'Số tiền không hợp lệ');
+                      return;
+                    }
+                    setDlg(() => submitting = true);
+                    try {
+                      await onSave(n, kind, bal);
+                    } catch (e) {
+                      setDlg(() {
+                        submitting = false;
+                        error = accountFormErrorMessage(e);
+                      });
+                      return;
+                    }
+                    if (ctx.mounted) Navigator.pop(ctx, true);
+                  },
             child: Text(submitLabel ?? (editing == null ? 'Tạo' : 'Lưu')),
           ),
         ],

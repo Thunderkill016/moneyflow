@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/data/google_sign_in.dart';
 import 'package:moneyflow/data/neon/auth_client.dart';
@@ -133,6 +134,89 @@ void main() {
       expect(
         finish.headers['Cookie'],
         contains('__Secure-neon-auth.session_challenge=chal.1'),
+      );
+    });
+
+    test('the verifier never reaches debugPrint — the callback URI '
+        'carries auth material that must not reach release logcat', () async {
+      // audit P1-1: the loopback callback URI holds
+      // ?neon_auth_session_verifier=… — debugPrint compiles into release
+      // builds, so logging the full URI would ship the secret to logcat.
+      final logs = <String?>[];
+      final prev = debugPrint;
+      debugPrint = (message, {wrapWidth}) => logs.add(message);
+      try {
+        final t = _Transport()..queue.addAll([_beginOk(), _finishOk()]);
+        final auth = NeonAuthClient(config: _config, requester: t.requester);
+        final flow = LoopbackGoogleSignIn(
+          auth: auth,
+          launcher: (_) async => true,
+        );
+
+        final future = flow.signIn();
+        await _until(() => t.requests.isNotEmpty);
+        final callback =
+            (t.requests.single.body as Map)['callbackURL'] as String;
+        await _browserHit('$callback?neon_auth_session_verifier=ver-secret-99');
+        await future;
+      } finally {
+        debugPrint = prev;
+      }
+      // The "callback arrived" signal still logs — path only, no query.
+      expect(logs, isNotEmpty);
+      for (final line in logs) {
+        expect(line, isNot(contains('ver-secret-99')));
+        expect(line, isNot(contains('neon_auth_session_verifier')));
+      }
+    });
+
+    test('a failing exchange logs no verifier — HttpException carries '
+        'the request URI verbatim and its query IS the secret', () async {
+      // dart:io transport errors stringify as "uri = http://…?…" — the
+      // exchange URL's query holds the verifier, so the error log must
+      // redact the query, not echo the exception.
+      final logs = <String?>[];
+      final prev = debugPrint;
+      debugPrint = (message, {wrapWidth}) => logs.add(message);
+      try {
+        final t = _Transport()..queue.add(_beginOk());
+        final auth = NeonAuthClient(
+          config: _config,
+          requester: (req) async {
+            t.requests.add(req);
+            if (req.url.path.endsWith('/get-session')) {
+              // The failure a release device actually sees — the URI
+              // rides along inside the exception's own toString.
+              throw HttpException('Connection closed', uri: req.url);
+            }
+            assert(t.queue.isNotEmpty, 'unexpected request: ${req.url}');
+            return t.queue.removeAt(0);
+          },
+        );
+        final flow = LoopbackGoogleSignIn(
+          auth: auth,
+          launcher: (_) async => true,
+        );
+
+        final future = flow.signIn();
+        await _until(() => t.requests.isNotEmpty);
+        final callback =
+            (t.requests.single.body as Map)['callbackURL'] as String;
+        await _browserHit('$callback?neon_auth_session_verifier=ver-secret-99');
+        await expectLater(future, throwsA(isA<HttpException>()));
+      } finally {
+        debugPrint = prev;
+      }
+      for (final line in logs) {
+        expect(line, isNot(contains('ver-secret-99')));
+        expect(line, isNot(contains('neon_auth_session_verifier')));
+      }
+      // The redacted line still names the failure for diagnosis.
+      expect(
+        logs.any(
+          (l) => (l ?? '').contains('failed') && l!.contains('<redacted>'),
+        ),
+        isTrue,
       );
     });
 

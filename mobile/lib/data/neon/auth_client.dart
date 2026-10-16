@@ -184,7 +184,9 @@ class NeonAuthClient {
     final exchangeUrl = Uri.parse(
       '${_config.authBaseUrl}/get-session',
     ).replace(query: redirectUri.query);
-    debugPrint('finishGoogleRedirect: GET $exchangeUrl');
+    // The URL is never logged — its query carries the one-time
+    // neon_auth_session_verifier, auth material that must not reach
+    // release logcat. The status-only log below keeps the signal.
     final res =
         await _requester(
           NeonRequest(

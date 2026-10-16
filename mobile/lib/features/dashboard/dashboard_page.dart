@@ -7,7 +7,7 @@ import '../../domain/datetime_label.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/recurring_detection.dart';
-import '../../domain/report.dart' show dateAdd, ymd;
+import '../../domain/report.dart' show dateAdd, vnMonthStart, vnNow, ymd;
 import '../../domain/safe_to_spend.dart';
 import '../../domain/spoken_vnd.dart';
 import '../../theme/mf_theme.dart';
@@ -228,8 +228,7 @@ class DashboardPageState extends State<DashboardPage> {
     if (widget.loadBudgets == null || widget.loadCommitments == null) {
       return (null, null);
     }
-    final n = DateTime.now();
-    final monthStart = '${n.year}-${n.month.toString().padLeft(2, '0')}-01';
+    final monthStart = vnMonthStart();
     try {
       final budgets = await widget.loadBudgets!(monthStart);
       final commitments = await widget.loadCommitments!(monthStart);
@@ -249,7 +248,7 @@ class DashboardPageState extends State<DashboardPage> {
     final loader = widget.loadSuggestionTransactions;
     if (loader == null || commitments == null) return const [];
     try {
-      final today = DateTime.now();
+      final today = vnNow();
       // A truncated tail only narrows what detection can see — the card
       // is advisory, so suggesting less stays honest.
       final range = await loader(
@@ -298,7 +297,7 @@ class DashboardPageState extends State<DashboardPage> {
       safeSpend = safeDailySpend(
         budgets: budgets,
         commitments: commitments,
-        today: DateTime.now(),
+        today: vnNow(),
       )?.perDayMinor;
     }
     await sink(
@@ -509,7 +508,7 @@ class DashboardPageState extends State<DashboardPage> {
                       spend: safeDailySpend(
                         budgets: budgets,
                         commitments: commitments,
-                        today: DateTime.now(),
+                        today: vnNow(),
                       ),
                     ),
                   ],

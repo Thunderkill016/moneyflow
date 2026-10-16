@@ -13,6 +13,7 @@
 import 'dart:convert';
 
 import '../../domain/models.dart';
+import '../../domain/report.dart' show vnToday;
 import '../share/inbox_paste_parser.dart';
 import '../share/share_text_parser.dart' show foldVietnameseText;
 
@@ -231,16 +232,11 @@ int _fnv1a64(List<int> bytes) {
   return hash;
 }
 
-/// Vietnam calendar day (UTC+7, no DST) of the post instant — the honest
-/// occurred_on fallback when the text carries no explicit date.
-String _vnDate(int postTimeMs) {
-  final vn = DateTime.fromMillisecondsSinceEpoch(
-    postTimeMs,
-    isUtc: true,
-  ).add(const Duration(hours: 7));
-  String two(int v) => v.toString().padLeft(2, '0');
-  return '${vn.year}-${two(vn.month)}-${two(vn.day)}';
-}
+/// Vietnam calendar day of the post instant — the honest occurred_on
+/// fallback when the text carries no explicit date. Same shared rule as
+/// every other ledger-facing date (domain/report.dart).
+String _vnDate(int postTimeMs) =>
+    vnToday(DateTime.fromMillisecondsSinceEpoch(postTimeMs, isUtc: true));
 
 /// "sourceLabel maskedTail" when the text names an account; just the label
 /// otherwise (still useful evidence — it tells the reviewer which bank).

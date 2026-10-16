@@ -10,6 +10,7 @@ import '../../domain/inbox.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/quick_parse.dart';
+import '../../domain/report.dart' show dateAdd, vnNow;
 import '../../domain/split.dart';
 import '../../theme/mf_theme.dart';
 import 'capture_submit.dart'
@@ -165,7 +166,10 @@ class _CapturePageState extends State<CapturePage> {
   String? _accountId;
   String? _destAccountId;
   String? _categoryId;
-  DateTime _date = DateTime.now();
+  // The default "hôm nay" is the VN civil date — occurred_on is written
+  // on the same calendar the bank SMS and the web capture use, whatever
+  // zone the device reports (domain/report.dart's vnNow).
+  DateTime _date = vnNow();
   bool _busy = false;
   bool _repeatMonthly = false;
   bool _saveAsRule = false;
@@ -237,7 +241,7 @@ class _CapturePageState extends State<CapturePage> {
       _amount.text = editing.amount.toString();
       _note.text = editing.note;
       _payee.text = editing.payee ?? '';
-      _date = DateTime.tryParse(editing.occurredOn) ?? DateTime.now();
+      _date = DateTime.tryParse(editing.occurredOn) ?? vnNow();
       return; // an edited row is the strongest prefill — skip the rest
     }
     final p = widget.prefill;
@@ -354,10 +358,10 @@ class _CapturePageState extends State<CapturePage> {
         'dayBeforeYesterday' => -2,
         _ => 0,
       };
-      final resolved = DateTime.now().add(Duration(days: offset));
+      final resolved = dateAdd(vnNow(), offset);
       // Overwrite only an untouched (still-today) or parser-set date.
       if (_autoDate == null
-          ? _sameDay(_date, DateTime.now())
+          ? _sameDay(_date, vnNow())
           : _sameDay(_date, _autoDate!)) {
         _date = resolved;
       }

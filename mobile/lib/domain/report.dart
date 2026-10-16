@@ -32,6 +32,32 @@ DateTime dayOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 DateTime dateAdd(DateTime d, int days) =>
     DateTime(d.year, d.month, d.day + days);
 
+/// Vietnam keeps a fixed UTC+7 offset with no daylight-saving rules, so a
+/// constant duration IS the timezone — no tz database needed.
+const vnUtcOffset = Duration(hours: 7);
+
+/// The Asia/Saigon civil clock at [instant] (default: now). Ledger-facing
+/// dates — `occurred_on`, `p_month_start`, `p_paid_on`, report windows —
+/// anchor on this calendar no matter which zone the device reports: a
+/// phone set to New York still writes the Vietnamese day the bank SMS
+/// meant. The returned value's `year`/`month`/`day` fields carry the VN
+/// civil date, so feed it to [ymd], [dayOnly], [MonthPeriod.of] or any
+/// helper that reads calendar fields. It is a shifted instant, NOT a
+/// wall clock — never persist it, only the calendar fields.
+DateTime vnNow([DateTime? instant]) =>
+    (instant ?? DateTime.now()).toUtc().add(vnUtcOffset);
+
+/// VN civil "today" as YYYY-MM-DD — the single "hôm nay" rule shared by
+/// capture defaults, planning RPCs, parsers and report windows.
+String vnToday([DateTime? instant]) => ymd(vnNow(instant));
+
+/// First of the VN civil month containing [instant] (default: now) —
+/// the `p_month_start` window boundary the planning RPCs expect.
+String vnMonthStart([DateTime? instant]) {
+  final d = vnNow(instant);
+  return '${d.year}-${_two(d.month)}-01';
+}
+
 /// Whole days from [from] to [to]; UTC fields keep DST out of the count.
 int daysBetween(DateTime from, DateTime to) => DateTime.utc(
   to.year,

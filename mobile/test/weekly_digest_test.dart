@@ -78,6 +78,22 @@ void main() {
       expect(w.loadFrom, '2026-10-12');
       expect(w.loadTo, '2026-10-26');
     });
+
+    test('the window anchors on the VN week, not the device zone', () {
+      // audit P1-6: a local-Sunday 19:00 fire is already Monday morning
+      // in Saigon — the closed week must still be the Mon–Sun just
+      // ended, never one the device's own weekday would imply.
+      final sundayEveningUtc = weeklyDigestWindow(
+        DateTime.utc(2026, 10, 25, 12), // 19:00 VN — still Sunday
+      );
+      final alreadyMondayVn = weeklyDigestWindow(
+        DateTime.utc(2026, 10, 25, 17), // 00:00 VN Monday — fire instant
+      );
+      for (final w in [sundayEveningUtc, alreadyMondayVn]) {
+        expect(w.start, '2026-10-19');
+        expect(w.end, '2026-10-25');
+      }
+    });
   });
 
   group('buildWeeklyDigest', () {

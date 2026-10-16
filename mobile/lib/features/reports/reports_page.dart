@@ -103,7 +103,7 @@ class ReportsPageState extends State<ReportsPage> {
   @override
   void initState() {
     super.initState();
-    _period = MonthPeriod.of(DateTime.now());
+    _period = MonthPeriod.of(vnNow());
     _report = _load();
     _netWorth = _loadNetWorth();
   }
@@ -129,7 +129,7 @@ class ReportsPageState extends State<ReportsPage> {
     final loadBalances = widget.loadAccounts;
     if (loadBalances == null) return null;
     return () async {
-      final now = DateTime.now();
+      final now = vnNow();
       final current = '${now.year}-${now.month.toString().padLeft(2, '0')}-01';
       final first = shiftBudgetMonth(current, -(_netWorthMonths - 1));
       final beyond = shiftBudgetMonth(current, 1);
@@ -361,7 +361,9 @@ class ReportsPageState extends State<ReportsPage> {
   }
 
   Future<void> _pickCustom() async {
-    final today = dayOnly(DateTime.now());
+    // The "can't report a future day" bound anchors on the VN civil
+    // date — the same calendar occurred_on is written on.
+    final today = dayOnly(vnNow());
     final picked = await (widget.pickRange ?? _defaultPickRange)(context);
     if (picked == null || !mounted) return;
     // Honour a reversed pick like the web does — a slip, not an attack.
@@ -383,7 +385,7 @@ class ReportsPageState extends State<ReportsPage> {
   }
 
   Future<DateTimeRange?> _defaultPickRange(BuildContext context) {
-    final today = dayOnly(DateTime.now());
+    final today = dayOnly(vnNow());
     final current = _period;
     return showDateRangePicker(
       context: context,
@@ -404,7 +406,7 @@ class ReportsPageState extends State<ReportsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final next = _period.next(DateTime.now());
+    final next = _period.next(vnNow());
     final isMonth = _period is MonthPeriod;
     return Scaffold(
       appBar: AppBar(
@@ -428,7 +430,7 @@ class ReportsPageState extends State<ReportsPage> {
             onPick: _pickCustom,
             onThisMonth: isMonth
                 ? null
-                : () => _select(MonthPeriod.of(DateTime.now())),
+                : () => _select(MonthPeriod.of(vnNow())),
           ),
           // The trend does not follow the period picker — net worth is a
           // point-in-time figure, always "now + trailing months".

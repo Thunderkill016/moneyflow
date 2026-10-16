@@ -300,4 +300,35 @@ void main() {
       expect(p.next(DateTime(2026, 10, 10)), isNull);
     });
   });
+
+  group('VN civil clock (audit P1-6)', () {
+    test('vnToday anchors on Asia/Saigon, not the device zone', () {
+      // 2026-10-13 16:30 UTC is still 23:30 in Vietnam — same day.
+      expect(vnToday(DateTime.utc(2026, 10, 13, 16, 30)), '2026-10-13');
+      // 17:30 UTC crosses midnight in Saigon — a device still showing
+      // "the 13th" in New York writes the 14th the bank meant.
+      expect(vnToday(DateTime.utc(2026, 10, 13, 17, 30)), '2026-10-14');
+      // The boundary itself: exactly 17:00 UTC = 00:00 VN next day.
+      expect(vnToday(DateTime.utc(2026, 10, 13, 17, 0)), '2026-10-14');
+      expect(vnToday(DateTime.utc(2026, 10, 13, 16, 59)), '2026-10-13');
+    });
+
+    test('vnMonthStart rolls over on the VN month boundary', () {
+      expect(vnMonthStart(DateTime.utc(2026, 10, 31, 16, 59)), '2026-10-01');
+      // 17:00 UTC Oct 31 = 00:00 VN Nov 1 — the commitment payment lands
+      // in November even though a US device still shows October.
+      expect(vnMonthStart(DateTime.utc(2026, 10, 31, 17, 0)), '2026-11-01');
+      // Year boundary too.
+      expect(vnMonthStart(DateTime.utc(2026, 12, 31, 17, 0)), '2027-01-01');
+    });
+
+    test('vnNow reads the instant in the VN civil calendar', () {
+      final vn = vnNow(DateTime.utc(2026, 10, 13, 17, 30));
+      // The returned DateTime's calendar fields ARE the Saigon wall
+      // clock — feed them to ymd/dayOnly, never persist the instant.
+      expect(ymd(vn), '2026-10-14');
+      expect(vn.hour, 0);
+      expect(vn.minute, 30);
+    });
+  });
 }

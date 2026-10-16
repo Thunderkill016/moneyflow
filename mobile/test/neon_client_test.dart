@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/data/neon/auth_client.dart';
 import 'package:moneyflow/data/neon/data_api.dart';
@@ -364,6 +365,47 @@ void main() {
       );
       // The verifier exchange must never fire on an error redirect.
       expect(t.requests, isEmpty);
+    });
+
+    test('finishGoogleRedirect never logs the verifier — release logcat '
+        'must not carry auth material', () async {
+      // The exchange URL's query carries the one-time
+      // neon_auth_session_verifier. debugPrint compiles into release
+      // builds, so logging it would ship the secret to logcat — the
+      // audit's P1-1 leak. Only status lines may print.
+      final logs = <String?>[];
+      final prev = debugPrint;
+      debugPrint = (message, {wrapWidth}) => logs.add(message);
+      try {
+        final t = FakeTransport()
+          ..queue.add(
+            FakeTransport.json(
+              200,
+              {
+                'session': {'id': 's1'},
+                'user': {'id': 'u-g', 'email': 'g@x.c', 'name': 'G'},
+              },
+              headers: {
+                'set-cookie': '${NeonAuthClient.sessionCookieName}=t.sig%3D',
+              },
+            ),
+          );
+        final auth = NeonAuthClient(config: config, requester: t.requester);
+        await auth.finishGoogleRedirect(
+          redirectUri: Uri.parse(
+            'http://localhost:1234/oauth-callback'
+            '?neon_auth_session_verifier=ver-secret-99&other=keep',
+          ),
+          challengeCookies: const ['c=v'],
+        );
+      } finally {
+        debugPrint = prev;
+      }
+      expect(logs, isNotEmpty); // the status line still prints
+      for (final line in logs) {
+        expect(line, isNot(contains('ver-secret-99')));
+        expect(line, isNot(contains('neon_auth_session_verifier')));
+      }
     });
 
     test('finishGoogleRedirect fails honestly when upstream issues no '

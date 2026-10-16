@@ -1,10 +1,13 @@
+import 'report.dart' show vnNow;
+
 /// "HH:MM · DD/MM/YYYY" in Vietnam time for the "Đã xóa lúc …" line —
 /// mirrors the web's formatDeletedAtLabel (Asia/Ho_Chi_Minh = UTC+7,
-/// no DST, so a fixed offset is exact).
+/// no DST, so a fixed offset is exact). Uses the shared VN clock —
+/// audit P1-6 consolidates every +7 shift on domain/report.dart.
 String formatDeletedAtLabel(String iso) {
   final dt = DateTime.tryParse(iso);
   if (dt == null) return '';
-  final vn = dt.toUtc().add(const Duration(hours: 7));
+  final vn = vnNow(dt);
   String two(int v) => v.toString().padLeft(2, '0');
   return '${two(vn.hour)}:${two(vn.minute)} · '
       '${two(vn.day)}/${two(vn.month)}/${vn.year}';

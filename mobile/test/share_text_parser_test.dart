@@ -32,6 +32,18 @@ void main() {
       expect(parseSharedText('chi 9.007.199.254.740.992'), isNull);
     });
 
+    test('shorthand overflow is rejected BEFORE the multiply wraps', () {
+      // Dart int arithmetic wraps at 2^63 — "18446744073710tr" would
+      // wrap into a small plausible amount if the bound ran after the
+      // multiplication. The whole part must be checked against
+      // maxSafe ~/ scale first (same rule as parseMoneyInput).
+      expect(parseSharedText('GD -18446744073710tr'), isNull);
+      expect(parseSharedText('chi 18446744073709551617k'), isNull);
+      expect(parseSharedText('nhan 9007199255tr'), isNull);
+      // …while the largest legitimate shorthand still parses.
+      expect(parseSharedText('nhan 9007199254tr')?.amount, 9007199254000000);
+    });
+
     test('number glued to a word is not an amount', () {
       expect(parseSharedText('ma giao dich abc12345'), isNull);
     });

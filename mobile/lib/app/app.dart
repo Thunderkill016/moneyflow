@@ -23,7 +23,7 @@ import '../data/widget_snapshot.dart';
 import '../data/share/share_intent.dart';
 import '../data/share/share_text_parser.dart';
 import '../domain/budget.dart';
-import '../domain/report.dart' show ymd;
+import '../domain/report.dart' show vnMonthStart, vnToday;
 import '../domain/inbox.dart';
 import '../domain/models.dart';
 import '../domain/recurring_detection.dart';
@@ -1447,6 +1447,12 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   /// (payee 'Điều chỉnh số dư', note carrying ghi → thực tế, kind forced
   /// by the difference sign), never a silent field overwrite.
   Future<bool> _adjustBalance(BuildContext context, AccountSummary account) {
+    // One key per dialog = one logical intent — a submit retry after a
+    // lost response replays it so create_money_transaction's dedupe
+    // fires (same convention as CapturePage's per-form key). A reopened
+    // dialog mints a new key because a fresh adjustment is a new intent,
+    // not a replay.
+    final idempotencyKey = newIdempotencyKey();
     return showBalanceAdjustmentDialog(
       context,
       account: account,
@@ -1463,10 +1469,10 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
                 categoryId: categoryId,
                 kind: kind,
                 amount: amountMinor,
-                occurredOn: ymd(DateTime.now()),
+                occurredOn: vnToday(),
                 note: note,
                 payee: 'Điều chỉnh số dư',
-                idempotencyKey: newIdempotencyKey(),
+                idempotencyKey: idempotencyKey,
               )
               .then((_) {}),
     );
@@ -1778,10 +1784,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   /// Demo keeps the same shell and surfaces on seed data; writes are
   /// honest no-ops so read-only exploration still works fully offline.
   HomeShell _demoDashboard() {
-    String monthStart() {
-      final n = DateTime.now();
-      return '${n.year}-${n.month.toString().padLeft(2, '0')}-01';
-    }
+    String monthStart() => vnMonthStart();
 
     return HomeShell(
       tabBuilders: [
@@ -2054,16 +2057,19 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     onGoalArchived: (_, _) async {},
   );
 
-  /// First of the current month — the planning RPC window boundary.
-  static String _monthStart() {
-    final n = DateTime.now();
-    return '${n.year}-${n.month.toString().padLeft(2, '0')}-01';
-  }
+  /// First of the current VN month — the planning RPC window boundary.
+  /// Anchored on the Asia/Saigon calendar like occurred_on, so the
+  /// p_month_start a payment lands in matches the day it shows.
+  static String _monthStart() => vnMonthStart();
 
-  static String _today() {
-    final n = DateTime.now();
-    return '${n.year}-${n.month.toString().padLeft(2, '0')}-${n.day.toString().padLeft(2, '0')}';
-  }
+  /// The VN civil "today" — p_paid_on / p_received_on and every other
+  /// ledger-facing date share this one rule (domain/report.dart).
+  static String _today() => vnToday();
+
+  /// One idempotency key per logical recurring write (commitment+month,
+  /// template+month), held across retries — minting a fresh key per
+  /// attempt would defeat the server dedupe on a lost-response replay.
+  final _opIdempotencyKeys = OperationIdempotencyKeys();
 
   /// Signed-in planning loader — also reschedules due-day reminders
   /// against the just-fetched list (archived commitments get cancelled
@@ -2198,14 +2204,24 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
               expectedUpdatedAt: editing?.updatedAt,
             )
             .then((_) {}),
-    onCommitmentPay: (c) => _store
-        .payCommitment(
-          commitmentId: c.id,
-          monthStart: _monthStart(),
-          paidOn: _today(),
-          idempotencyKey: newIdempotencyKey(),
-        )
-        .then((_) => _reloadLedgerTabs()),
+    onCommitmentPay: (c) {
+      // The scope is the logical operation — one payment per commitment
+      // per month. Retries replay the same key; release on success so an
+      // undo → pay-again mints a fresh intent, not a stale-key replay.
+      final monthStart = _monthStart();
+      final scope = 'pay_commitment:${c.id}:$monthStart';
+      return _store
+          .payCommitment(
+            commitmentId: c.id,
+            monthStart: monthStart,
+            paidOn: _today(),
+            idempotencyKey: _opIdempotencyKeys.keyFor(scope),
+          )
+          .then((_) {
+            _opIdempotencyKeys.release(scope);
+            _reloadLedgerTabs();
+          });
+    },
     // Undoing a payment soft-deletes the expense it posted — the ledger
     // surfaces (balances, feed, reports) must reload too.
     onCommitmentUndo: (c) => _store
@@ -2223,14 +2239,23 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           expectedUpdatedAt: editing?.updatedAt,
         )
         .then((_) {}),
-    onIncomeReceive: (i) => _store
-        .receiveIncome(
-          templateId: i.id,
-          monthStart: _monthStart(),
-          receivedOn: _today(),
-          idempotencyKey: newIdempotencyKey(),
-        )
-        .then((_) => _reloadLedgerTabs()),
+    onIncomeReceive: (i) {
+      // Same stable-key rule as onCommitmentPay — one receipt per
+      // template per month is one logical intent.
+      final monthStart = _monthStart();
+      final scope = 'receive_income:${i.id}:$monthStart';
+      return _store
+          .receiveIncome(
+            templateId: i.id,
+            monthStart: monthStart,
+            receivedOn: _today(),
+            idempotencyKey: _opIdempotencyKeys.keyFor(scope),
+          )
+          .then((_) {
+            _opIdempotencyKeys.release(scope);
+            _reloadLedgerTabs();
+          });
+    },
     onIncomeUndo: (i) => _store
         .undoIncomeReceipt(i.id, _monthStart())
         .then((_) => _reloadLedgerTabs()),

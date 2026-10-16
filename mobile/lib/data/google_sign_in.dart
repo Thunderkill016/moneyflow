@@ -34,6 +34,16 @@ abstract class GoogleSignInFlow {
   void cancel();
 }
 
+/// Scrubs URLs out of error text before it reaches debugPrint: a
+/// dart:io HttpException carries the failing request's `uri = …`
+/// verbatim, and for the verifier exchange that URI's query IS the
+/// auth material (`?neon_auth_session_verifier=…`). Query strings are
+/// dropped outright — the host/path keeps the diagnostic signal.
+final _urlQuery = RegExp(r'(https?://[^\s?]+)\?[^\s]*');
+
+String _redactedError(Object e) =>
+    e.toString().replaceAllMapped(_urlQuery, (m) => '${m[1]}?<redacted>');
+
 /// RFC 8252 loopback redirect sign-in against Neon Auth's shared Google
 /// provider.
 ///
@@ -106,13 +116,16 @@ class LoopbackGoogleSignIn implements GoogleSignInFlow {
       }
       final request = await _awaitCallback(server);
       if (request == null) return null; // cancelled
-      debugPrint('loopback google sign-in: callback ${request.uri}');
+      // Log the path only — the callback query carries the
+      // neon_auth_session_verifier, auth material that must not reach
+      // release logcat.
+      debugPrint('loopback google sign-in: callback ${request.uri.path}');
       return await _auth.finishGoogleRedirect(
         redirectUri: request.uri,
         challengeCookies: attempt.challengeCookies,
       );
     } catch (e) {
-      debugPrint('loopback google sign-in failed: $e');
+      debugPrint('loopback google sign-in failed: ${_redactedError(e)}');
       rethrow;
     } finally {
       unawaited(server.close(force: true));
@@ -265,7 +278,10 @@ class HybridGoogleSignIn implements GoogleSignInFlow {
       try {
         return await native.signIn();
       } catch (e) {
-        debugPrint('native Google sign-in failed, falling back to browser: $e');
+        debugPrint(
+          'native Google sign-in failed, falling back to browser: '
+          '${_redactedError(e)}',
+        );
       }
     }
     return _loopback.signIn();

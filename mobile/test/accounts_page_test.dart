@@ -164,6 +164,76 @@ void main() {
     expect(created, 'Quỹ');
   });
 
+  testWidgets(
+    'a second tap while create is in flight cannot create two accounts',
+    (t) async {
+      // audit P1-5: create_financial_account has no idempotency key —
+      // the disabled button is the only dedupe. A mid-RPC second tap
+      // would create two accounts the server cannot tell apart.
+      var calls = 0;
+      final gate = Completer<void>();
+      await t.pumpWidget(
+        MaterialApp(
+          home: AccountsPage(
+            loadAccounts: () async => const [],
+            onCreate: (_, _, _) async {
+              calls++;
+              await gate.future;
+            },
+            onArchive: (_, _) async {},
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      await t.tap(find.widgetWithText(FloatingActionButton, 'Thêm tài khoản'));
+      await t.pumpAndSettle();
+      await t.enterText(find.widgetWithText(TextField, 'Tên tài khoản'), 'Quỹ');
+
+      await t.tap(find.text('Tạo'));
+      await t.pump(); // request in flight — both buttons disabled
+      await t.tap(find.text('Tạo'));
+      await t.tap(find.text('Hủy')); // cancel is inert mid-flight
+      await t.pump();
+
+      gate.complete();
+      await t.pumpAndSettle();
+      expect(calls, 1);
+      // The dialog closed — "Thêm tài khoản" stays on the page itself
+      // (FAB + empty card), so assert on the dialog widget.
+      expect(find.byType(AlertDialog), findsNothing);
+    },
+  );
+
+  testWidgets('a failed create stays retryable in the same dialog', (t) async {
+    var calls = 0;
+    await t.pumpWidget(
+      MaterialApp(
+        home: AccountsPage(
+          loadAccounts: () async => const [],
+          onCreate: (_, _, _) async {
+            calls++;
+            if (calls == 1) throw Exception('offline');
+          },
+          onArchive: (_, _) async {},
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    await t.tap(find.widgetWithText(FloatingActionButton, 'Thêm tài khoản'));
+    await t.pumpAndSettle();
+    await t.enterText(find.widgetWithText(TextField, 'Tên tài khoản'), 'Quỹ');
+
+    await t.tap(find.text('Tạo'));
+    await t.pumpAndSettle();
+    expect(calls, 1);
+    expect(find.text('Tạo'), findsOneWidget); // dialog stayed open
+
+    await t.tap(find.text('Tạo'));
+    await t.pumpAndSettle();
+    expect(calls, 2);
+    expect(find.text('Tạo'), findsNothing);
+  });
+
   testWidgets('a mistyped opening balance rejects instead of saving 0', (
     t,
   ) async {

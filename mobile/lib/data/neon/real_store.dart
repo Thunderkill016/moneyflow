@@ -1661,3 +1661,25 @@ String newIdempotencyKey() {
       '${hex(8)}${hex(9)}-${hex(10)}${hex(11)}'
       '${hex(12)}${hex(13)}${hex(14)}${hex(15)}';
 }
+
+/// One idempotency key per logical write, held across retries — the
+/// recurring-ops counterpart of CapturePage's per-form key. A retry
+/// after a lost response replays the SAME key, so the server dedupe
+/// fires instead of double-writing.
+///
+/// Lifecycle: mint on first attempt with [keyFor], keep until the
+/// operation resolves, then [release]. A later, deliberately-new user
+/// action (e.g. undo → pay again) is a new intent and must mint a fresh
+/// key — reusing the old one would collide with the soft-deleted row
+/// that still carries it.
+class OperationIdempotencyKeys {
+  final _keys = <String, String>{};
+
+  /// The stable key for [scope] — a caller-supplied logical-operation
+  /// identity like `'pay_commitment:<id>:2026-10-01'`.
+  String keyFor(String scope) => _keys[scope] ??= newIdempotencyKey();
+
+  /// Drop the key once the operation completed — success or a final
+  /// refusal; the next user action on this scope is a new intent.
+  void release(String scope) => _keys.remove(scope);
+}

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../domain/money.dart';
+import '../../domain/report.dart' show vnToday;
 import '../../domain/timeline.dart';
 import '../../domain/transaction_query.dart';
 import '../../domain/models.dart';
@@ -66,9 +67,7 @@ class _TimelinePageState extends State<TimelinePage> {
 
   String get _today {
     if (widget.today != null) return widget.today!;
-    final vn = DateTime.now().toUtc().add(const Duration(hours: 7));
-    String two(int v) => v.toString().padLeft(2, '0');
-    return '${vn.year}-${two(vn.month)}-${two(vn.day)}';
+    return vnToday();
   }
 
   Future<void> _load() async {

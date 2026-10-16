@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/domain/models.dart';
@@ -186,6 +188,96 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Điều chỉnh số dư'), findsOneWidget);
+  });
+
+  testWidgets('a second tap while the RPC is in flight cannot double-submit', (
+    t,
+  ) async {
+    // audit P1-5: the write is a real ledger transaction — a mid-RPC
+    // tap must not post it twice. The button disables until the
+    // request resolves.
+    var calls = 0;
+    final gate = Completer<void>();
+    await _open(
+      t,
+      _Host(
+        submit:
+            ({
+              required kind,
+              required amountMinor,
+              required categoryId,
+              required note,
+            }) async {
+              calls++;
+              await gate.future;
+            },
+      ),
+    );
+    await t.enterText(
+      find.widgetWithText(TextField, 'Số dư thực tế'),
+      '10000000',
+    );
+    await t.pump();
+    await t.tap(find.byType(DropdownButtonFormField<String>));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Ăn uống').last);
+    await t.pumpAndSettle();
+
+    await t.tap(find.widgetWithText(FilledButton, 'Ghi điều chỉnh'));
+    await t.pump(); // submit in flight — button disabled
+    await t.tap(find.widgetWithText(FilledButton, 'Ghi điều chỉnh'));
+    await t.tap(find.text('Hủy')); // cancel is inert mid-flight too
+    await t.pump();
+
+    gate.complete();
+    await t.pumpAndSettle();
+    expect(calls, 1);
+    // The dialog was NOT cancelled mid-flight — it closed on success.
+    expect(find.text('Điều chỉnh số dư'), findsNothing);
+  });
+
+  testWidgets('a failed submit stays retryable — busy clears on error', (
+    t,
+  ) async {
+    var calls = 0;
+    await _open(
+      t,
+      _Host(
+        submit:
+            ({
+              required kind,
+              required amountMinor,
+              required categoryId,
+              required note,
+            }) async {
+              calls++;
+              if (calls == 1) throw StateError('rpc down');
+            },
+      ),
+    );
+    await t.enterText(
+      find.widgetWithText(TextField, 'Số dư thực tế'),
+      '10000000',
+    );
+    await t.pump();
+    await t.tap(find.byType(DropdownButtonFormField<String>));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Ăn uống').last);
+    await t.pumpAndSettle();
+
+    await t.tap(find.widgetWithText(FilledButton, 'Ghi điều chỉnh'));
+    await t.pumpAndSettle();
+    expect(
+      find.text('Không ghi được điều chỉnh — thử lại sau'),
+      findsOneWidget,
+    );
+
+    // The same dialog retries — this is the attempt the stable
+    // idempotency key (app.dart) dedupes server-side.
+    await t.tap(find.widgetWithText(FilledButton, 'Ghi điều chỉnh'));
+    await t.pumpAndSettle();
+    expect(calls, 2);
+    expect(find.text('Điều chỉnh số dư'), findsNothing);
   });
 
   testWidgets('a categories-load failure blocks submit honestly', (t) async {

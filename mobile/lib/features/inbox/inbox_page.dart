@@ -225,10 +225,17 @@ class InboxPageState extends State<InboxPage> {
     );
   }
 
+  /// upsert_inbox_rule takes no idempotency key — a mid-RPC second tap
+  /// on the snackbar action would create a duplicate rule the server
+  /// cannot dedupe, so the flag IS the double-submit defense.
+  bool _ruleSaving = false;
+
   /// Saves the merchant→category rule the review just used; the result is
   /// reported honestly — the write is a separate call AFTER the approve,
   /// so its failure can never pretend the approval failed (it didn't).
   Future<void> _saveRule(String merchant, String categoryId) async {
+    if (_ruleSaving) return;
+    _ruleSaving = true;
     try {
       await widget.onSaveRule!((
         id: null,
@@ -252,6 +259,8 @@ class InboxPageState extends State<InboxPage> {
           SnackBar(content: Text(inboxRuleErrorMessage(e))),
         );
       }
+    } finally {
+      _ruleSaving = false;
     }
   }
 
