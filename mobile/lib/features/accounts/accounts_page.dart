@@ -5,6 +5,7 @@ import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../theme/mf_theme.dart';
 import '../shared/empty_state.dart';
+import '../shared/timed_snack_bar.dart';
 
 /// Account list + create/archive — mirrors the web's account management
 /// surface (create_financial_account, set_financial_account_archived).
@@ -232,9 +233,10 @@ class _AccountsPageState extends State<AccountsPage> {
   }
 
   void _snack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    showTimedSnackBar(
+      ScaffoldMessenger.of(context),
+      SnackBar(content: Text(message)),
+    );
   }
 
   static IconData _kindIcon(AccountKind k) => switch (k) {
@@ -280,13 +282,31 @@ class _AccountsPageState extends State<AccountsPage> {
                 onPressed: () => _applyArchived(a, false),
                 child: const Text('Khôi phục'),
               )
-            // The tap went to the register — keep edit one tap away,
-            // like the web row's "Sửa" button.
-            else if (widget.onOpen != null && widget.onUpdate != null)
-              IconButton(
-                icon: const Icon(Icons.edit_outlined),
-                tooltip: 'Sửa ${a.name}',
-                onPressed: () => _showForm(editing: a),
+            // The tap went to the register — actions live in a visible
+            // overflow menu like the web row's Sửa/Lưu trữ pair;
+            // long-press stays as a shortcut.
+            else if (widget.onOpen != null &&
+                (widget.onUpdate != null || widget.onArchive != null))
+              PopupMenuButton<String>(
+                tooltip: 'Tùy chọn ${a.name}',
+                iconSize: 20,
+                onSelected: (action) {
+                  switch (action) {
+                    case 'edit':
+                      _showForm(editing: a);
+                    case 'archive':
+                      _confirmArchive(a);
+                  }
+                },
+                itemBuilder: (ctx) => [
+                  if (widget.onUpdate != null)
+                    const PopupMenuItem(value: 'edit', child: Text('Sửa')),
+                  if (widget.onArchive != null)
+                    const PopupMenuItem(
+                      value: 'archive',
+                      child: Text('Lưu trữ'),
+                    ),
+                ],
               ),
           ],
         ),

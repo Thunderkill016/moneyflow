@@ -10,6 +10,7 @@ import '../../domain/money.dart';
 import '../../domain/report.dart' show ymd;
 import '../shared/empty_state.dart';
 import 'recurring_form_dialog.dart';
+import '../shared/timed_snack_bar.dart';
 
 // planningErrorMessage moved to recurring_form_dialog.dart — the shared
 // recurring-form file owns the RPC-error wording so the dashboard's
@@ -551,7 +552,8 @@ class PlanningPageState extends State<PlanningPage> {
       await action();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        showTimedSnackBar(
+          ScaffoldMessenger.of(context),
           SnackBar(content: Text(planningErrorMessage(e, fallback: fallback))),
         );
       }
@@ -871,7 +873,8 @@ class PlanningPageState extends State<PlanningPage> {
       // refresh re-reads whatever did get written.
     }
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      showTimedSnackBar(
+        ScaffoldMessenger.of(context),
         SnackBar(
           content: Text(
             applied == drafts.length
@@ -922,7 +925,8 @@ class PlanningPageState extends State<PlanningPage> {
           (budget: b, available: effectiveAvailable(b)),
     ].where((r) => r.available > 0).toList();
     if (donors.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      showTimedSnackBar(
+        ScaffoldMessenger.of(context),
         const SnackBar(content: Text('Không có danh mục nào còn dư để bù')),
       );
       return;
@@ -1073,7 +1077,8 @@ class PlanningPageState extends State<PlanningPage> {
     try {
       await cover(chosen.donor, overspent, chosen.amount);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        showTimedSnackBar(
+          ScaffoldMessenger.of(context),
           SnackBar(
             content: Text(
               'Đã bù ${formatMoney(chosen.amount)} cho '
@@ -1085,7 +1090,8 @@ class PlanningPageState extends State<PlanningPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        showTimedSnackBar(
+          ScaffoldMessenger.of(context),
           SnackBar(
             content: Text(
               e.toString().contains('cover_partial')
@@ -1461,7 +1467,8 @@ class PlanningPageState extends State<PlanningPage> {
   /// money — the web blocks the confirm the same way client-side.
   Future<void> _archiveGoal(SavingsGoal g) async {
     if (g.allocatedMinor > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      showTimedSnackBar(
+        ScaffoldMessenger.of(context),
         const SnackBar(
           content: Text('Hãy rút hết tiền đã dành trước khi lưu trữ'),
         ),
@@ -1705,6 +1712,24 @@ class _BudgetTile extends StatelessWidget {
               ),
           ],
         ),
+        // The web row pairs edit with a visible delete — a popup keeps the
+        // same two actions one tap away; long-press stays a shortcut.
+        trailing: PopupMenuButton<String>(
+          tooltip: 'Tùy chọn ${budget.categoryName}',
+          iconSize: 20,
+          onSelected: (action) {
+            switch (action) {
+              case 'edit':
+                onEdit();
+              case 'delete':
+                onDelete();
+            }
+          },
+          itemBuilder: (ctx) => const [
+            PopupMenuItem(value: 'edit', child: Text('Sửa hạn mức')),
+            PopupMenuItem(value: 'delete', child: Text('Xóa hạn mức')),
+          ],
+        ),
         onTap: onEdit,
         onLongPress: onDelete,
       ),
@@ -1810,14 +1835,35 @@ class _CommitmentTile extends StatelessWidget {
         // A "khác số tiền" row undoes the same way.
         // A scheduled (not-yet-due) row can still be paid early — the
         // payment re-anchors the cycle, so the button says so honestly.
-        trailing: commitment.paidThisMonth
-            ? TextButton(onPressed: onUndo, child: const Text('Đã trả'))
-            : TextButton(
-                onPressed: onPay,
-                child: Text(
-                  status == CommitmentStatus.scheduled ? 'Trả sớm' : 'Trả',
-                ),
-              ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            commitment.paidThisMonth
+                ? TextButton(onPressed: onUndo, child: const Text('Đã trả'))
+                : TextButton(
+                    onPressed: onPay,
+                    child: Text(
+                      status == CommitmentStatus.scheduled ? 'Trả sớm' : 'Trả',
+                    ),
+                  ),
+            PopupMenuButton<String>(
+              tooltip: 'Tùy chọn ${commitment.name}',
+              iconSize: 20,
+              onSelected: (action) {
+                switch (action) {
+                  case 'edit':
+                    onEdit();
+                  case 'archive':
+                    onArchive();
+                }
+              },
+              itemBuilder: (ctx) => const [
+                PopupMenuItem(value: 'edit', child: Text('Sửa')),
+                PopupMenuItem(value: 'archive', child: Text('Lưu trữ')),
+              ],
+            ),
+          ],
+        ),
         onTap: onEdit,
         onLongPress: onArchive,
       ),
@@ -1850,9 +1896,32 @@ class _IncomeTile extends StatelessWidget {
           '${income.categoryName} · ${income.accountName} · ngày ${income.dueDay}'
           ' · ${formatMoney(income.amountMinor)}',
         ),
-        trailing: income.receivedThisMonth
-            ? TextButton(onPressed: onUndo, child: const Text('Đã nhận'))
-            : TextButton(onPressed: onReceive, child: const Text('Nhận')),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            income.receivedThisMonth
+                ? TextButton(onPressed: onUndo, child: const Text('Đã nhận'))
+                : TextButton(onPressed: onReceive, child: const Text('Nhận')),
+            if (onArchive != null)
+              PopupMenuButton<String>(
+                tooltip: 'Tùy chọn ${income.name}',
+                iconSize: 20,
+                onSelected: (action) {
+                  switch (action) {
+                    case 'edit':
+                      onEdit?.call();
+                    case 'archive':
+                      onArchive!();
+                  }
+                },
+                itemBuilder: (ctx) => [
+                  if (onEdit != null)
+                    const PopupMenuItem(value: 'edit', child: Text('Sửa')),
+                  const PopupMenuItem(value: 'archive', child: Text('Lưu trữ')),
+                ],
+              ),
+          ],
+        ),
         onTap: onEdit,
         onLongPress: onArchive,
       ),
@@ -1944,6 +2013,22 @@ class _GoalTile extends StatelessWidget {
               icon: const Icon(Icons.remove),
               tooltip: 'Rút tiền',
               onPressed: onWithdraw,
+            ),
+            PopupMenuButton<String>(
+              tooltip: 'Tùy chọn ${goal.name}',
+              iconSize: 20,
+              onSelected: (action) {
+                switch (action) {
+                  case 'edit':
+                    onEdit();
+                  case 'archive':
+                    onArchive();
+                }
+              },
+              itemBuilder: (ctx) => const [
+                PopupMenuItem(value: 'edit', child: Text('Sửa')),
+                PopupMenuItem(value: 'archive', child: Text('Lưu trữ')),
+              ],
             ),
           ],
         ),

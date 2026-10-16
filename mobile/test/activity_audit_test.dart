@@ -46,6 +46,71 @@ void main() {
     expect(opened, 1);
   });
 
+  testWidgets('the row shows a visible delete affordance (web parity)', (
+    tester,
+  ) async {
+    String? deleted;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ActivityPage(
+          loadPage: inMemoryPageLoader([_tx('a')]),
+          onDelete: (id) async => deleted = id,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // No long-press needed — the icon is visible on the row.
+    await tester.tap(find.byTooltip('Xóa giao dịch'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Xóa'));
+    await tester.pumpAndSettle();
+    expect(deleted, 'a');
+  });
+
+  testWidgets('a null delete seam hides the affordance (demo honesty)', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(home: ActivityPage(loadPage: inMemoryPageLoader([_tx('a')]))),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Xóa giao dịch'), findsNothing);
+    // Long-press opens nothing either — no fake delete surface.
+    await tester.longPress(find.text('Ghi a'));
+    await tester.pumpAndSettle();
+    expect(find.text('Xóa giao dịch?'), findsNothing);
+  });
+
+  testWidgets('a refused delete keeps the row and names the reason', (
+    tester,
+  ) async {
+    var loads = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ActivityPage(
+          loadPage: (q, {offset = 0}) async {
+            loads++;
+            return TransactionPage([_tx('a')], hasMore: false);
+          },
+          onDelete: (_) async =>
+              throw Exception('P0001 recurring_payment_locked'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.text('Ghi a'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Xóa'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Định kỳ'), findsOneWidget);
+    expect(find.text('Ghi a'), findsOneWidget);
+    // A refused delete must not reload — the visible row is still truth.
+    expect(loads, 1);
+  });
+
   testWidgets('no trash action when onOpenTrash is null', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

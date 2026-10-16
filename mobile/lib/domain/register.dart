@@ -121,3 +121,20 @@ List<AccountRegisterEntry> buildAccountRegister({
   }
   return entries;
 }
+
+/// Soft-delete refusal messages — mirrors the web's deleteTransaction
+/// action guards. The RPC raises plain-text exception codes, matched by
+/// substring like every other Neon error mapper.
+String transactionDeleteErrorMessage(Object error) {
+  final msg = error.toString();
+  if (msg.contains('recurring_payment_locked')) {
+    return 'Khoản này được tạo từ lịch định kỳ — hoàn tác ở mục Định kỳ.';
+  }
+  if (msg.contains('transaction_reconciled')) {
+    return 'Giao dịch đã đối soát — mở lại kỳ đối soát ở trang tài khoản.';
+  }
+  if (msg.contains('authentication_required')) {
+    return 'Hết phiên đăng nhập — đăng nhập lại rồi thử lại.';
+  }
+  return 'Không xóa được — thử lại.';
+}

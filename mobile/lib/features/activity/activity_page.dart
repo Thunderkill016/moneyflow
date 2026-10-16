@@ -6,11 +6,13 @@ import '../../data/recent_searches.dart';
 import '../../domain/bulk.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
+import '../../domain/register.dart' show transactionDeleteErrorMessage;
 import '../../domain/report.dart' show unnamedPayeeBucket;
 import '../../domain/transaction_query.dart';
 import '../../theme/mf_theme.dart';
 import '../capture/category_picker.dart';
 import '../shared/empty_state.dart';
+import '../shared/timed_snack_bar.dart';
 
 /// Full transaction activity — soft-delete via long-press (the same
 /// soft_delete_money_transaction RPC the web trash flow uses), tap to
@@ -20,7 +22,7 @@ class ActivityPage extends StatefulWidget {
   const ActivityPage({
     super.key,
     required this.loadPage,
-    required this.onDelete,
+    this.onDelete,
     this.onOpenTrash,
     this.onEdit,
     this.onBulkReview,
@@ -34,7 +36,11 @@ class ActivityPage extends StatefulWidget {
 
   /// One page of the feed for a search/filter query.
   final TransactionPageLoader loadPage;
-  final Future<void> Function(String transactionId) onDelete;
+
+  /// Soft-delete entry — null hides the affordance entirely (demo has no
+  /// ledger writes, so a delete that no-ops while claiming success would
+  /// be a lie the row then disproves).
+  final Future<void> Function(String transactionId)? onDelete;
 
   /// Pre-filtered opening state — the reports drill-in pushes the page
   /// already scoped to a row's dimension and period. The filters behave
@@ -302,9 +308,10 @@ class ActivityPageState extends State<ActivityPage> {
     }
   });
 
-  void _snack(String message) => ScaffoldMessenger.of(
-    context,
-  ).showSnackBar(SnackBar(content: Text(message)));
+  void _snack(String message) => showTimedSnackBar(
+    ScaffoldMessenger.of(context),
+    SnackBar(content: Text(message)),
+  );
 
   String _bulkError(Object e) {
     final msg = e.toString();
@@ -393,11 +400,17 @@ class ActivityPageState extends State<ActivityPage> {
       ),
     );
     if (ok == true) {
-      await widget.onDelete(tx.id);
+      try {
+        await widget.onDelete!(tx.id);
+      } catch (e) {
+        if (mounted) _snack(transactionDeleteErrorMessage(e));
+        return;
+      }
       _refresh();
       if (!mounted) return;
       final open = widget.onOpenTrash;
-      ScaffoldMessenger.of(context).showSnackBar(
+      showTimedSnackBar(
+        ScaffoldMessenger.of(context),
         SnackBar(
           content: const Text('Đã chuyển vào thùng rác'),
           action: open == null
@@ -576,7 +589,14 @@ class ActivityPageState extends State<ActivityPage> {
         : widget.onEdit == null
         ? null
         : () => _openEdit(t),
-    onLongPress: _selecting ? () => _toggle(t) : () => _confirmDelete(t),
+    onLongPress: _selecting
+        ? () => _toggle(t)
+        : widget.onDelete == null
+        ? null
+        : () => _confirmDelete(t),
+    onDelete: _selecting || widget.onDelete == null
+        ? null
+        : () => _confirmDelete(t),
   );
 
   Widget _footer() {
@@ -1095,12 +1115,18 @@ class _TxTile extends StatelessWidget {
     required this.tx,
     required this.onLongPress,
     this.onTap,
+    this.onDelete,
     this.selecting = false,
     this.selected = false,
   });
   final Transaction tx;
-  final VoidCallback onLongPress;
+  final VoidCallback? onLongPress;
   final VoidCallback? onTap;
+
+  /// Visible delete affordance — the web row's delete button. Long-press
+  /// stays as the shortcut, but a gesture nobody can see is a feature
+  /// nobody finds.
+  final VoidCallback? onDelete;
   final bool selecting;
   final bool selected;
 
@@ -1137,60 +1163,96 @@ class _TxTile extends StatelessWidget {
       if (needsReview) 'cần xem lại',
     ].join(', ');
 
-    return Semantics(
-      container: true,
-      button: true,
-      label: label,
-      selected: selecting ? selected : null,
-      onTap: onTap,
-      onLongPress: onLongPress,
-      excludeSemantics: true,
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 8),
-        color: selected ? Theme.of(context).colorScheme.primaryContainer : null,
-        child: ListTile(
-          leading: selecting
-              ? Icon(selected ? Icons.check_circle : Icons.circle_outlined)
-              : MfKindIcon(tx.kind.name),
-          title: Text(tx.note.isEmpty ? tx.category : tx.note),
-          subtitle: Text(
-            '${tx.category} · $accountLine'
-            '${needsReview ? '\nCần xem lại' : ''}',
-          ),
-          isThreeLine: needsReview,
-          trailing: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _trailingMaxWidth),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    formatMoneyWithKind(tx.amount, kind),
-                    maxLines: 1,
-                    style: mfMoneyStyle(
-                      TextStyle(color: color, fontWeight: FontWeight.w700),
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        children: [
+          Expanded(
+            child: Semantics(
+              container: true,
+              button: true,
+              label: label,
+              selected: selecting ? selected : null,
+              onTap: onTap,
+              onLongPress: onLongPress,
+              excludeSemantics: true,
+              child: Container(
+                color: selected
+                    ? Theme.of(context).colorScheme.primaryContainer
+                    : null,
+                child: ListTile(
+                  leading: selecting
+                      ? Icon(
+                          selected ? Icons.check_circle : Icons.circle_outlined,
+                        )
+                      : MfKindIcon(tx.kind.name),
+                  title: Text(tx.note.isEmpty ? tx.category : tx.note),
+                  subtitle: Text(
+                    '${tx.category} · $accountLine'
+                    '${needsReview ? '\nCần xem lại' : ''}',
+                  ),
+                  isThreeLine: needsReview,
+                  trailing: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: _trailingMaxWidth,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            formatMoneyWithKind(tx.amount, kind),
+                            maxLines: 1,
+                            style: mfMoneyStyle(
+                              TextStyle(
+                                color: color,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _dayLabel(tx.occurredOn),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(color: context.mf.textSoft),
+                        ),
+                      ],
                     ),
                   ),
+                  // The amount column shrinks under the 48dp padding so the
+                  // delete icon keeps its own strip at the card edge.
+                  contentPadding: const EdgeInsets.only(left: 16, right: 4),
+                  onTap: onTap,
+                  onLongPress: onLongPress,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  _dayLabel(tx.occurredOn),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelSmall?.copyWith(color: context.mf.textSoft),
-                ),
-              ],
+              ),
             ),
           ),
-          onTap: onTap,
-          onLongPress: onLongPress,
-        ),
+          // Sibling of the merged Semantics — TalkBack reaches the button;
+          // it would be invisible inside an excludeSemantics subtree.
+          if (onDelete != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: IconButton(
+                icon: Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                tooltip: 'Xóa giao dịch',
+                visualDensity: VisualDensity.compact,
+                onPressed: onDelete,
+              ),
+            ),
+        ],
       ),
     );
   }

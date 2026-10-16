@@ -59,6 +59,7 @@ import '../features/settings/change_password_page.dart';
 import '../features/settings/settings_page.dart';
 import '../theme/mf_theme.dart';
 import 'home_shell.dart';
+import '../features/shared/timed_snack_bar.dart';
 
 /// JSON backup ships through `export_user_archive` — live on both
 /// acceptance and production Neon since the 20261010121000 reader-definer
@@ -452,7 +453,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     try {
       await _signOut();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        showTimedSnackBar(
+          ScaffoldMessenger.of(context),
           const SnackBar(content: Text('Hết phiên đăng nhập — đăng nhập lại')),
         );
       }
@@ -586,7 +588,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     }
     if (result != null) _reloadTabs();
     if (result == CaptureResult.savedPartial && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      showTimedSnackBar(
+        ScaffoldMessenger.of(context),
         const SnackBar(
           content: Text('Đã lưu khoản — chưa tạo được cam kết lặp lại'),
         ),
@@ -633,7 +636,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     );
     if (!context.mounted) return result;
     if (result == CaptureResult.savedPartial) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      showTimedSnackBar(
+        ScaffoldMessenger.of(context),
         const SnackBar(
           content: Text('Đã lưu khoản — chưa tạo được cam kết lặp lại'),
         ),
@@ -662,7 +666,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   /// The submit failed offline; the intent is held in the queue and the
   /// banner already shows it — this snackbar explains the outcome.
   void _showQueuedSnack(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    showTimedSnackBar(
+      ScaffoldMessenger.of(context),
       const SnackBar(
         content: Text('Chưa có mạng — đã giữ lại, sẽ gửi lại khi có mạng'),
       ),
@@ -719,10 +724,11 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       final partial = report.partialCommitments > 0
           ? ' — chưa tạo được cam kết lặp lại'
           : '';
-      messenger.showSnackBar(SnackBar(content: Text('$done$partial')));
+      showTimedSnackBar(messenger, SnackBar(content: Text('$done$partial')));
     }
     for (final drop in report.dropped) {
-      messenger.showSnackBar(
+      showTimedSnackBar(
+        messenger,
         SnackBar(
           content: Text(
             'Khoản đã giữ không gửi được: ${submitErrorMessage(drop.error)}',
@@ -928,7 +934,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       categories = rows[1] as List<Category>;
     } catch (_) {
       if (ctx.mounted) {
-        ScaffoldMessenger.of(ctx).showSnackBar(
+        showTimedSnackBar(
+          ScaffoldMessenger.of(ctx),
           const SnackBar(
             content: Text('Không tải được dữ liệu — thử lại khi có mạng'),
           ),
@@ -973,7 +980,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           .catchError((_) => false);
       if (!mounted) return false;
       if (!ok) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        showTimedSnackBar(
+          ScaffoldMessenger.of(context),
           const SnackBar(content: Text('Không xác thực được — chưa bật khóa')),
         );
         return false;
@@ -997,7 +1005,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         .open(Uri.parse(kPrivacyPolicyUrl))
         .catchError((_) => false);
     if (!opened && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      showTimedSnackBar(
+        ScaffoldMessenger.of(context),
         const SnackBar(content: Text('Không mở được liên kết — thử lại sau')),
       );
     }
@@ -1259,6 +1268,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         builder: (_) => TrashPage(
           loadDeleted: _store.loadDeletedTransactions,
           onRestore: _store.restoreTransaction,
+          onDelete: _store.permanentlyDeleteTransaction,
         ),
       ),
     );
@@ -1296,9 +1306,10 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       ),
     );
     if (changed == true && mounted) {
-      ScaffoldMessenger.of(
-        this.context,
-      ).showSnackBar(const SnackBar(content: Text('Đã đổi mật khẩu')));
+      showTimedSnackBar(
+        ScaffoldMessenger.of(this.context),
+        const SnackBar(content: Text('Đã đổi mật khẩu')),
+      );
     }
   }
 
@@ -1343,7 +1354,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     // Dropped scheduled digests too — a notification for a deleted
     // account would be a lie, and the schedule prefs are already gone.
     unawaited(NotificationService.cancelWeeklyDigest().catchError((_) {}));
-    messenger.showSnackBar(
+    showTimedSnackBar(
+      messenger,
       const SnackBar(content: Text('Tài khoản đã được xóa')),
     );
   }
@@ -1759,7 +1771,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
               (rows: DemoStore.seedTransactions(), truncated: false),
           onCreateCommitment: (s) async {
             if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
+              showTimedSnackBar(
+                ScaffoldMessenger.of(context),
                 const SnackBar(
                   content: Text('Demo chỉ xem — đăng nhập để ghi khoản'),
                 ),
@@ -1918,7 +1931,10 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           loadAccounts: () async => DemoStore.seedAccounts(),
           // Session demo store — pack additions filter transactions too.
           loadCategories: () async => _demoCategories.active,
-          onDelete: (_) async {},
+          // No delete seam in demo — a no-op that still showed the
+          // "Đã chuyển vào thùng rác" snackbar would be a lie the row
+          // immediately disproves.
+          onDelete: null,
           // Demo capture is read-only but real — the empty feed's CTA
           // lands on the same honest form as the nav button.
           onCapture: _openDemoCapture,
@@ -1963,7 +1979,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
                     loadPage: inMemoryPageLoader(DemoStore.seedTransactions()),
                     loadAccounts: () async => DemoStore.seedAccounts(),
                     loadCategories: () async => _demoCategories.active,
-                    onDelete: (_) async {},
+                    // Read-only drill-in — no fake delete affordance.
+                    onDelete: null,
                     initialQuery: q,
                     title: title,
                   ),
@@ -1973,7 +1990,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         ),
       ],
       onCaptureTap: (ctx) {
-        ScaffoldMessenger.of(ctx).showSnackBar(
+        showTimedSnackBar(
+          ScaffoldMessenger.of(ctx),
           const SnackBar(
             content: Text('Demo chỉ xem — đăng nhập để ghi khoản'),
           ),

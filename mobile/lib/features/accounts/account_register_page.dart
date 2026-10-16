@@ -9,6 +9,7 @@ import '../../domain/reconciliation.dart';
 import '../../domain/register.dart';
 import '../../domain/transaction_query.dart';
 import '../../theme/mf_theme.dart';
+import '../shared/timed_snack_bar.dart';
 
 /// One account's ledger — the mobile counterpart of the web's
 /// /accounts/[id] register (src/components/account-detail-page.tsx).
@@ -234,7 +235,17 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
       ),
     );
     if (ok == true) {
-      await widget.onDelete!(tx.id);
+      try {
+        await widget.onDelete!(tx.id);
+      } catch (e) {
+        if (mounted) {
+          showTimedSnackBar(
+            ScaffoldMessenger.of(context),
+            SnackBar(content: Text(transactionDeleteErrorMessage(e))),
+          );
+        }
+        return;
+      }
       _refresh();
     }
   }
@@ -250,7 +261,8 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
     // update_money_transaction rejects multi-line splits — say so
     // instead of failing on save (same guard as the activity feed).
     if (t.isSplit) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      showTimedSnackBar(
+        ScaffoldMessenger.of(context),
         const SnackBar(
           content: Text('Khoản chia danh mục chưa sửa được — xóa rồi ghi lại'),
         ),
@@ -404,38 +416,64 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
         : e.impact < 0
         ? context.mf.expenseText
         : null;
+    final locked = _isReconciled(tx.id);
+    final canDelete = widget.onDelete != null && !locked;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Icon(
-          tx.kind == TransactionKind.transfer
-              ? Icons.swap_horiz
-              : Icons.receipt_outlined,
-        ),
-        title: Text(tx.note.isEmpty ? tx.category : tx.note),
-        subtitle: Text(_subtitle(e)),
-        isThreeLine: tx.reviewStatus == TransactionReviewStatus.needsReview,
-        trailing: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              formatSignedMoney(e.impact),
-              style: TextStyle(color: color, fontWeight: FontWeight.w600),
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        children: [
+          Expanded(
+            child: ListTile(
+              leading: Icon(
+                tx.kind == TransactionKind.transfer
+                    ? Icons.swap_horiz
+                    : Icons.receipt_outlined,
+              ),
+              title: Text(tx.note.isEmpty ? tx.category : tx.note),
+              subtitle: Text(_subtitle(e)),
+              isThreeLine:
+                  tx.reviewStatus == TransactionReviewStatus.needsReview,
+              trailing: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    formatSignedMoney(e.impact),
+                    style: TextStyle(color: color, fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    'Số dư ${formatMoney(e.balanceAfter)}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+              contentPadding: const EdgeInsets.only(left: 16, right: 4),
+              // The server rejects edits/deletes of reconciled rows, so
+              // lock them.
+              onTap: widget.onEdit == null || locked
+                  ? null
+                  : () => _openEdit(tx),
+              onLongPress: canDelete ? () => _confirmDelete(tx) : null,
             ),
-            Text(
-              'Số dư ${formatMoney(e.balanceAfter)}',
-              style: Theme.of(context).textTheme.bodySmall,
+          ),
+          // Visible affordance — the web register row has a delete button
+          // too; long-press alone was unfindable.
+          if (canDelete)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: IconButton(
+                icon: Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                tooltip: 'Xóa giao dịch',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => _confirmDelete(tx),
+              ),
             ),
-          ],
-        ),
-        // The server rejects edits/deletes of reconciled rows, so lock them.
-        onTap: widget.onEdit == null || _isReconciled(tx.id)
-            ? null
-            : () => _openEdit(tx),
-        onLongPress: widget.onDelete == null || _isReconciled(tx.id)
-            ? null
-            : () => _confirmDelete(tx),
+        ],
       ),
     );
   }

@@ -190,5 +190,18 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.text('Quỹ khẩn cấp'), findsOneWidget);
     });
+
+    testWidgets('commitment and goal expose a visible archive affordance', (
+      tester,
+    ) async {
+      await pump(tester);
+      // The web rows show their actions; hidden long-press is not parity.
+      expect(find.byTooltip('Tùy chọn Quỹ khẩn cấp'), findsOneWidget);
+      final c = DemoStore.seedCommitments().firstWhere((c) => !c.paidThisMonth);
+      await tester.tap(find.byTooltip('Tùy chọn ${c.name}'));
+      await tester.pumpAndSettle();
+      expect(find.text('Sửa'), findsWidgets);
+      expect(find.text('Lưu trữ'), findsOneWidget);
+    });
   });
 }
