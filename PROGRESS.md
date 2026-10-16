@@ -310,7 +310,17 @@ DONE THIS ROUND:
   check:rls 9/9; dart format clean; flutter analyze clean; flutter test
   all green 1548 (+11 new); debug APK built + adb installed. See
   FIXLOG.md "D21".
+- **D22 per-account category activation — waived on feat/mobile-theme** —
+  categories are per-user with no account column; the gap doc ranks it
+  "P3 — only on real asks" and none exists; the honest slice is a new
+  (account, category) relation + RPC + RLS + cross-surface scoping for a
+  hygiene nicety. DECISIONS.md 2026-10-16; re-open only on a filed ask.
+- **D23 photo attachments — waived on feat/mobile-theme** — no blob
+  storage, attachment table, download auth or offline binary queue
+  exists; the gap doc itself defers it on storage+privacy+sync cost, and
+  note/payee search + provenance already cover the lookup need.
+  DECISIONS.md 2026-10-16; revisit only with usage evidence.
 AUDIT OPEN: P0=0 P1=0 P2=0 (all findings shipped — see FIXLOG.md)
 GAPS OPEN: web EditTransactionDialog lacks "save as rule" offer (mobile has it); web reports do not honor excluded_from_reports yet; Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
-NEXT STEP: Loop B gap list — D22+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D21 done.
+NEXT STEP: Loop B gap list — D24 #hashtags + D25 trial-billing waivers remain (both pre-flagged defer/parked in §10); D1–D23 done.
 RESUME: re-read this file, then continue at NEXT STEP.

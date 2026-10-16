@@ -1150,3 +1150,22 @@ Format: `ID | files changed | why | proof (test names)`.
   `npm run check:migrations` 96 pinned; `npm run check:rls` 9/9;
   `dart format` clean; `flutter analyze` clean; `flutter test` all green
   1548; `flutter build apk --debug` + `adb install -r` OK.
+
+- **D22 per-account category activation — waived** |
+  `DECISIONS.md` (2026-10-16 entry) |
+  Coverage check: `public.categories` carries no account column
+  (supabase/migrations/20260714000100_initial_financial_schema.sql:34-44),
+  so nothing per-account exists or is implied. The gap list itself ranks
+  D22 "P3 — only on real asks" and no ask is on record; the honest cost
+  is a new (account, category) relation + RPC + RLS + picker/budget/
+  report scoping for a hygiene nicety. Waiver recorded; re-open only on
+  a filed user ask. No gates — docs only.
+- **D23 photo attachments — waived** |
+  `DECISIONS.md` (2026-10-16 entry) |
+  Coverage check: no attachment/blob storage path exists anywhere in the
+  client or schema (no attachment table, no storage RPC, no offline
+  binary queue) — verified by repo grep; note + payee search
+  (activity_page.dart:789, activity_search_test.dart) already covers the
+  "which transaction" lookup, and provenance preserves import evidence.
+  Waiver recorded per the gap list's own defer note. No gates — docs
+  only.
