@@ -99,25 +99,53 @@ test.describe("Expense path (thu chi)", () => {
     page,
   }) => {
     await page.goto("/landing");
-    await expect(
-      page.getByRole("heading", {
-        name: "Từ lúc ghi đến lúc hiểu tiền của mình.",
-      }),
-    ).toBeVisible();
-    await expect(
-      page.getByText("Không liên kết ngân hàng", { exact: true }),
-    ).toBeVisible();
-    const trustList = page.getByRole("list", {
-      name: "Cam kết chính",
-    });
-    await expect(trustList).toBeVisible();
-    await expect(trustList).toContainText("Không liên kết ngân hàng");
-    await expect(trustList).toContainText("Có thể sửa và phục hồi");
-    await expect(trustList).toContainText("Xuất CSV khi cần");
+    const isMobile = (page.viewportSize()?.width ?? 1_000) <= 760;
 
-    await page
-      .getByRole("link", { name: "Tạo sổ của bạn", exact: true })
-      .click();
+    if (isMobile) {
+      /* ≤760px the marketing hero hands off to the mobile welcome surface —
+         same trust contract, welcome-scoped copy and CTA. */
+      const welcome = page.getByRole("region", {
+        name: "Giới thiệu MoneyFlow",
+      });
+      await expect(
+        welcome.getByRole("heading", {
+          level: 1,
+          name: "Biết tiền ở đâu, vì sao thay đổi.",
+        }),
+      ).toBeVisible();
+      const trustList = welcome.getByRole("list", {
+        name: "Cam kết chính",
+      });
+      await expect(trustList).toBeVisible();
+      await expect(trustList).toContainText(
+        "Không hứa tính năng chưa có",
+      );
+      await expect(trustList).toContainText("Dữ liệu của bạn, xuất được");
+
+      await welcome
+        .getByRole("link", { name: "Tạo sổ", exact: true })
+        .click();
+    } else {
+      await expect(
+        page.getByRole("heading", {
+          name: "Từ lúc ghi đến lúc hiểu tiền của mình.",
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByText("Không liên kết ngân hàng", { exact: true }),
+      ).toBeVisible();
+      const trustList = page.getByRole("list", {
+        name: "Cam kết chính",
+      });
+      await expect(trustList).toBeVisible();
+      await expect(trustList).toContainText("Không liên kết ngân hàng");
+      await expect(trustList).toContainText("Có thể sửa và phục hồi");
+      await expect(trustList).toContainText("Xuất CSV khi cần");
+
+      await page
+        .getByRole("link", { name: "Tạo sổ của bạn", exact: true })
+        .click();
+    }
     await expect(page).toHaveURL(/\/register/);
     await expect(
       page.getByRole("heading", { name: "Tạo tài khoản MoneyFlow" }),
@@ -131,7 +159,6 @@ test.describe("Expense path (thu chi)", () => {
       page.getByLabel(OPENING_BALANCE_LABEL, { exact: true }),
     ).toBeVisible({ timeout: 20_000 });
 
-    const isMobile = (page.viewportSize()?.width ?? 1_000) <= 760;
     await expect(
       page.locator(".welcome-actions .insights-ghi-chi"),
     ).toBeHidden();

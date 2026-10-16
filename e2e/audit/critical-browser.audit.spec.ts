@@ -70,6 +70,35 @@ test.describe("critical browser compatibility audit", () => {
       name: "Tạo một sổ mà mỗi con số đều có chỗ để kiểm tra.",
     });
 
+    /* ≤760px the marketing surface is hidden by design and the mobile
+       welcome owns the first screen — verify IT stays light instead. */
+    const isMobile = (page.viewportSize()?.width ?? 1_000) <= 760;
+
+    if (isMobile) {
+      const welcome = page.getByRole("region", {
+        name: "Giới thiệu MoneyFlow",
+      });
+      await expect(welcome).toBeVisible();
+      await expect(
+        welcome.getByRole("heading", { level: 1 }),
+      ).toBeVisible();
+      await expect(
+        welcome.getByRole("link", { name: "Đăng nhập", exact: true }),
+      ).toBeVisible();
+
+      const welcomeColors = {
+        background: await welcome.evaluate(
+          (element) => getComputedStyle(element).backgroundColor,
+        ),
+        headline: await welcome
+          .getByRole("heading", { level: 1 })
+          .evaluate((element) => getComputedStyle(element).color),
+      };
+      expect(welcomeColors.background).toBe("rgb(248, 245, 255)");
+      expect(welcomeColors.headline).toBe("rgb(33, 26, 51)");
+      return;
+    }
+
     await expect(hero).toBeVisible();
     await expect(story).toBeVisible();
     await expect(firstStoryProof).toBeVisible();
@@ -105,15 +134,17 @@ test.describe("critical browser compatibility audit", () => {
     };
 
     /* Public-entry contract: saved or system dark preference cannot darken
-       landing surfaces. Workspace routes retain the selectable dark theme. */
-    expect(semanticColors.pageBackground).toBe("rgb(248, 250, 252)");
-    expect(semanticColors.brand).toBe("rgb(16, 24, 40)");
-    expect(semanticColors.hero).toBe("rgb(16, 24, 40)");
-    expect(semanticColors.lead).toBe("rgb(71, 84, 103)");
+       landing surfaces. Workspace routes retain the selectable dark theme.
+       Values pin the Soft Pop landing palette (#f8f5ff canvas, #211a33 ink,
+       #524a6b muted) so a dark leak still trips the assertion. */
+    expect(semanticColors.pageBackground).toBe("rgb(248, 245, 255)");
+    expect(semanticColors.brand).toBe("rgb(33, 26, 51)");
+    expect(semanticColors.hero).toBe("rgb(33, 26, 51)");
+    expect(semanticColors.lead).toBe("rgb(82, 74, 107)");
     expect(semanticColors.firstStoryBackground).toBe("rgb(255, 255, 255)");
     expect(semanticColors.accountBackground).toBe("rgb(255, 255, 255)");
     expect(semanticColors.controlBackground).toBe("rgb(255, 255, 255)");
-    expect(semanticColors.ctaBackground).toBe("rgb(16, 24, 40)");
+    expect(semanticColors.ctaBackground).toBe("rgb(33, 26, 51)");
     expect(semanticColors.ctaTitle).toBe("rgb(255, 255, 255)");
   });
 

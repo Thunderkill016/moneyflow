@@ -6,14 +6,17 @@ test.describe("UI migration Phase 9 public and auth surfaces", () => {
   }) => {
     await page.goto("/landing", { waitUntil: "domcontentloaded" });
 
-    const navigation = page.getByRole("navigation", {
-      name: "Điều hướng trang chủ",
-    });
-    const login = navigation.getByRole("link", {
+    /* ≤760px the marketing header hands off to the mobile welcome surface,
+       which owns the same two auth entries inside its own region. */
+    const isMobile = (page.viewportSize()?.width ?? 1_000) <= 760;
+    const authEntryScope = isMobile
+      ? page.getByRole("region", { name: "Giới thiệu MoneyFlow" })
+      : page.getByRole("navigation", { name: "Điều hướng trang chủ" });
+    const login = authEntryScope.getByRole("link", {
       name: "Đăng nhập",
       exact: true,
     });
-    const register = navigation.getByRole("link", {
+    const register = authEntryScope.getByRole("link", {
       name: "Tạo sổ",
       exact: true,
     });

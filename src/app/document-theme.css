@@ -61,7 +61,10 @@
   /* True functional and financial semantic roles */
   --mf-income: #16a34a;
   --mf-income-subtle: #f0fdf4;
-  --mf-income-text: #15803d;
+  /* #166534 keeps 6:1 on --mf-surface-muted (#f1ecff) — the day-total
+     header uses the muted surface and WCAG AA needs 4.5:1 at 12px,
+     which #15803d only reached ~4.33:1 against. */
+  --mf-income-text: #166534;
   --mf-income-border: #86efac;
   --mf-expense: #dc2626;
   --mf-expense-subtle: #fef2f2;

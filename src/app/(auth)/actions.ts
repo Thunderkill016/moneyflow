@@ -523,7 +523,7 @@ export async function finalizeAccountDeletion(
   if (!isDeleteConfirmValid(confirmText)) {
     return {
       ok: false,
-      message: `Gõ chính xác ${DELETE_CONFIRM_TEXT} để xác nhận.`,
+      message: `Gõ ${DELETE_CONFIRM_TEXT} để xác nhận.`,
     };
   }
 
