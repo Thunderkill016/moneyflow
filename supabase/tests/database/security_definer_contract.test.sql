@@ -62,9 +62,13 @@ where n.nspname = 'public'
 -- 20261016190000 replaces upsert_monthly_budget's 4-arg signature with
 -- the 5-arg period-aware one — the drop removes the old regprocedure row,
 -- so the inventory count is unchanged.
+-- 20261016210000 adds merge_categories: one reviewed caller-scoped write
+-- boundary that reassigns every category reference inside a transaction —
+-- the definer owns the multi-table write set, never caller-picked.
+-- +1 reviewed boundary.
 select is(
   (select count(*)::integer from flagged_security_definer_functions),
-  69,
+  70,
   'the reviewed authenticated SECURITY DEFINER inventory stays explicit'
 );
 

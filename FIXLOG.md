@@ -834,3 +834,55 @@ Format: `ID | files changed | why | proof (test names)`.
   capture/settings — screenshots in
   `docs/design/neon-green-migration/` (10 PNGs) pixel-scanned: zero
   purple-suspect pixels on every main screen.
+- **FEATURE: D14 category merge — merge_categories RPC + Gộp
+  action** |
+  `supabase/migrations/20261016210000_merge_categories.sql`,
+  `db/neon/migrations/20261016210000_merge_categories.sql` (generated
+  twin, byte-identical — no auth refs to rewrite),
+  `supabase/tests/database/merge_categories.test.sql`,
+  `supabase/tests/database/schema_and_rls.test.sql`,
+  `supabase/tests/database/security_definer_contract.test.sql`,
+  `mobile/lib/domain/categories.dart`,
+  `mobile/lib/data/neon/real_store.dart`,
+  `mobile/lib/features/categories/categories_page.dart`,
+  `mobile/lib/app/app.dart` |
+  Loop B gap D14 (§10 — Monarch/Mon Cash merge): duplicate categories
+  ("Ăn uống" vs "Ăn uống 2") split history forever until rows can be
+  folded together. One SECURITY DEFINER `merge_categories(uuid, uuid)`
+  owns the whole write set — a client-side multi-table sweep could
+  never be atomic and would strand the reconciled-row/tenant triggers.
+  Guards: auth required, source ≠ target, same kind, target not
+  archived, DEFAULT source refused (the seeded pack is the fallback
+  category); both category rows lock in ascending-id order so opposite
+  concurrent merges cannot deadlock. Reassignment: every
+  transaction_entries leg, monthly_budgets row, recurring_commitments,
+  recurring_income_templates, inbox_rules and inbox_candidates row
+  moves to the target inside one transaction. Conflict policy is
+  target-wins with honest drop counts in the jsonb result: a budget
+  colliding on (period_kind, anchor) keeps the TARGET's limit and
+  drops the source row (the target's number is the last judged fact);
+  a duplicate event_budget_categories pair drops the source leg. The
+  source ends as an ARCHIVED tombstone — never hard-deleted — so its
+  name stays reserved by the (user_id,name,kind) unique key and its
+  row stays an audit trail; resurrecting the name would silently
+  re-split the merged history. Mobile: the category row overflow gains
+  "Gộp vào danh mục khác" on custom rows (defaults can't be sources,
+  the callback hides the action on harnesses without the right); one
+  AlertDialog explains the reassignment scope + target-wins budget
+  rule + no-undo, offers only same-kind live targets, disables Gộp
+  until a target is picked and again while in flight (busy guard on
+  the non-idempotent RPC). `RealStore.mergeCategory` POSTs the RPC;
+  app.dart reloads the tabs on success. Errors map through
+  `categoryMergeErrorMessage` — every raised token lands as honest
+  Vietnamese, dialog stays open for retry. |
+  `merge_categories.test.sql` (15 assertions: moved/dropped ledger
+  report, entry/budget/commitment/template/rule/candidate reassignment,
+  budget target-wins drop, event-pair dedupe, source archived not
+  deleted, weekly non-colliding budget moves, same-id/kind-mismatch/
+  archived-target/default-source/not-found/cross-tenant/anon refusals);
+  `categories_store_test.dart` (+1: POSTs merge_categories
+  with both ids); `categories_page_test.dart` (+3: affordance hidden
+  on defaults and when unwired, dialog explains + filters same-kind
+  live targets + disabled-until-picked + cancel writes nothing +
+  confirm merges and refreshes, error maps to Vietnamese and keeps
+  the dialog open).

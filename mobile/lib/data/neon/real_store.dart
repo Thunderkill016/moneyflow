@@ -423,6 +423,22 @@ class RealStore implements PatternDismissalSync {
     return ok == true;
   }
 
+  /// POST /rpc/merge_categories — fold [sourceId] into [targetId]. Every
+  /// referencing row (ledger entries, budgets, commitments, income
+  /// templates, inbox rules/candidates, event-budget pairs) reassigns
+  /// server-side in one transaction; the source stays as an archived
+  /// tombstone, never hard-deleted. Not idempotent — the caller must
+  /// in-flight-guard the confirm tap so a double-tap can't re-fire.
+  Future<void> mergeCategory({
+    required String sourceId,
+    required String targetId,
+  }) async {
+    await _api.rpc('merge_categories', {
+      'p_source_id': sourceId,
+      'p_target_id': targetId,
+    });
+  }
+
   /// POST /rpc/create_money_transaction — same function the web's
   /// createTransactionAction calls; idempotency key dedupes replays.
   Future<String> createTransaction({

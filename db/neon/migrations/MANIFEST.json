@@ -465,6 +465,11 @@
       "sourceSha256": "27fc5a3629a1320a577e211487f7c5801b6cc2a6e7560d359f26a79a27de5011",
       "outputSha256": "27fc5a3629a1320a577e211487f7c5801b6cc2a6e7560d359f26a79a27de5011",
       "rewrites": 0
+    },
+    "20261016210000_merge_categories.sql": {
+      "sourceSha256": "23c46d94f3d40ff8d004a64deae6ffe5e6f98700fe0244ef5795794c153cf424",
+      "outputSha256": "23c46d94f3d40ff8d004a64deae6ffe5e6f98700fe0244ef5795794c153cf424",
+      "rewrites": 0
     }
   }
 }

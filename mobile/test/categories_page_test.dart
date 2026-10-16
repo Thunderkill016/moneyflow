@@ -39,8 +39,11 @@ class _Harness {
   final saved = <CategoryDraft>[];
   final archivedCalls = <(String, bool)>[];
   final deleted = <String>[];
+  final merged = <(String, String)>[];
   Object? saveError;
+  Object? mergeError;
   bool deleteResult = true;
+  bool noMerge = false;
 
   Widget page() => MaterialApp(
     home: CategoriesPage(
@@ -54,6 +57,12 @@ class _Harness {
         deleted.add(id);
         return deleteResult;
       },
+      onMerge: noMerge
+          ? null
+          : (sourceId, targetId) async {
+              if (mergeError != null) throw mergeError!;
+              merged.add((sourceId, targetId));
+            },
     ),
   );
 }
@@ -256,5 +265,106 @@ void main() {
     await t.pumpAndSettle();
     expect(find.textContaining('Không tải được danh mục'), findsOneWidget);
     expect(find.text('Thử lại'), findsOneWidget);
+  });
+
+  // -- D14 merge --
+
+  testWidgets('merge affordance rides custom rows only', (t) async {
+    final h = _Harness();
+    await t.pumpWidget(h.page());
+    await t.pumpAndSettle();
+
+    await t.tap(_menuOf('Cà phê'));
+    await t.pumpAndSettle();
+    expect(find.text('Gộp vào danh mục khác'), findsOneWidget);
+    // Popup menus have no Hủy — dismiss by tapping the barrier.
+    await t.tapAt(const Offset(10, 10));
+    await t.pumpAndSettle();
+
+    await t.tap(_menuOf('Ăn uống'));
+    await t.pumpAndSettle();
+    // A default can be a merge TARGET but never the source.
+    expect(find.text('Gộp vào danh mục khác'), findsNothing);
+    await t.tapAt(const Offset(10, 10));
+    await t.pumpAndSettle();
+
+    final bare = _Harness()..noMerge = true;
+    await t.pumpWidget(bare.page());
+    await t.pumpAndSettle();
+    await t.tap(_menuOf('Cà phê'));
+    await t.pumpAndSettle();
+    expect(find.text('Gộp vào danh mục khác'), findsNothing);
+  });
+
+  testWidgets('merge dialog explains, filters targets and confirms', (t) async {
+    final h = _Harness();
+    await t.pumpWidget(h.page());
+    await t.pumpAndSettle();
+
+    await t.tap(_menuOf('Cà phê'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Gộp vào danh mục khác'));
+    await t.pumpAndSettle();
+
+    expect(find.text('Gộp "Cà phê"'), findsOneWidget);
+    expect(find.textContaining('hạn mức của danh mục đích'), findsOneWidget);
+    // Nothing chosen → Gộp disabled; cancel writes nothing.
+    expect(
+      t
+          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Gộp'))
+          .onPressed,
+      isNull,
+    );
+    await t.tap(find.text('Hủy'));
+    await t.pumpAndSettle();
+    expect(h.merged, isEmpty);
+
+    await t.tap(_menuOf('Cà phê'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Gộp vào danh mục khác'));
+    await t.pumpAndSettle();
+    await t.tap(find.byType(DropdownButtonFormField<Category>));
+    await t.pumpAndSettle();
+    // Same-kind live rows only. The dropdown overlay and the page list
+    // behind the dialog both render the name, so counts are the assertion:
+    // Ăn uống (a default target) is page row + menu item = 2, while the
+    // income row Lương and the archived "Cũ" stay page-only singles.
+    expect(find.text('Ăn uống'), findsNWidgets(2));
+    expect(find.text('Lương'), findsOneWidget);
+    expect(find.text('Cũ'), findsOneWidget);
+    await t.tap(find.text('Ăn uống').last);
+    await t.pumpAndSettle();
+    await t.tap(find.widgetWithText(FilledButton, 'Gộp'));
+    await t.pumpAndSettle();
+
+    expect(h.merged.single, ('c2', 'c1'));
+    expect(find.textContaining('Đã gộp'), findsOneWidget);
+  });
+
+  testWidgets('merge errors surface as a snack and the write can retry', (
+    t,
+  ) async {
+    final h = _Harness()..mergeError = Exception('category_kind_mismatch');
+    await t.pumpWidget(h.page());
+    await t.pumpAndSettle();
+
+    await t.tap(_menuOf('Cà phê'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Gộp vào danh mục khác'));
+    await t.pumpAndSettle();
+    await t.tap(find.byType(DropdownButtonFormField<Category>));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Ăn uống').last);
+    await t.pumpAndSettle();
+    await t.tap(find.widgetWithText(FilledButton, 'Gộp'));
+    await t.pumpAndSettle();
+
+    // Dialog stays open (explicit retry path), error is honest Vietnamese.
+    expect(find.text('Gộp "Cà phê"'), findsOneWidget);
+    expect(
+      find.textContaining('Chỉ gộp được hai danh mục cùng loại'),
+      findsOneWidget,
+    );
+    expect(h.merged, isEmpty);
   });
 }

@@ -198,6 +198,22 @@ DONE THIS ROUND:
   only, bool sent only when flipped). Budgets/balances/dashboard
   unaffected; web reports divergence recorded in DECISIONS.md. See
   FIXLOG.md "FEATURE: D13".
+- **D14 category merge shipped on feat/mobile-theme** (schema + mobile;
+  migration committed, NOT applied to production): SECURITY DEFINER
+  `merge_categories(source, target)` reassigns every reference —
+  transaction_entries, monthly_budgets, recurring_commitments,
+  recurring_income_templates, inbox_rules, inbox_candidates,
+  event_budget_categories — in one transaction, then archives the
+  source as a tombstone (never deleted; the (user,name,kind) unique
+  key keeps the merged name reserved). Guards: auth required, source ≠
+  target, same kind, live target, default source locked; rows lock
+  ascending-id to prevent opposite-direction deadlocks. Conflicts are
+  target-wins with honest drop counts: a same-(period_kind, anchor)
+  budget keeps the target's limit, a duplicate event pair drops the
+  source leg. Mobile categories overflow gains "Gộp vào danh mục
+  khác" on custom rows — one dialog explains scope + no-undo, lists
+  same-kind live targets only, and in-flight-guards the non-idempotent
+  RPC. See FIXLOG.md "FEATURE: D14" and DECISIONS.md.
 - **Neon-green theme migration shipped on feat/mobile-theme** (theme +
   chrome only — no feature behavior changes): entire mobile theme moved
   from Soft Pop violet to the owner-approved #00FF88 direction with
@@ -216,5 +232,5 @@ DONE THIS ROUND:
   pixels).
 AUDIT OPEN: P0=0 P1=0 P2=0 (all findings shipped — see FIXLOG.md)
 GAPS OPEN: web EditTransactionDialog lacks "save as rule" offer (mobile has it); web reports do not honor excluded_from_reports yet; Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
-NEXT STEP: Loop B gap list — D14+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D13 done.
+NEXT STEP: Loop B gap list — D15+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D14 done.
 RESUME: re-read this file, then continue at NEXT STEP.

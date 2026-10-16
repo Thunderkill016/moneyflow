@@ -464,6 +464,11 @@
       "version": "20261016200000",
       "name": "20261016200000_report_exclusions.sql",
       "hash": "27fc5a3629a1320a577e211487f7c580"
+    },
+    {
+      "version": "20261016210000",
+      "name": "20261016210000_merge_categories.sql",
+      "hash": "23c46d94f3d40ff8d004a64deae6ffe5"
     }
   ]
 }

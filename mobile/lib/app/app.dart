@@ -2009,6 +2009,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
                 if (deleted) _reloadTabs();
                 return deleted;
               }),
+              onMerge: (sourceId, targetId) => _store
+                  .mergeCategory(sourceId: sourceId, targetId: targetId)
+                  .then((_) => _reloadTabs()),
             ),
           ),
         ),
