@@ -430,6 +430,21 @@
       "sourceSha256": "707e5eec9ad0b97a93f30e6ee17d5c43aa6a98e862d958f1172823ead0670a7d",
       "outputSha256": "707e5eec9ad0b97a93f30e6ee17d5c43aa6a98e862d958f1172823ead0670a7d",
       "rewrites": 0
+    },
+    "20261015093000_deleted_feed_updated_at.sql": {
+      "sourceSha256": "b3ba29eefec71c1f92d6cd8c3a581bbc05eb86183a7bbf7333ca374c29675be7",
+      "outputSha256": "b3ba29eefec71c1f92d6cd8c3a581bbc05eb86183a7bbf7333ca374c29675be7",
+      "rewrites": 0
+    },
+    "20261015100000_permanently_delete_transaction.sql": {
+      "sourceSha256": "a2ff1254807276af4004a3437fa48121db149551429efbc2312e4935720ab148",
+      "outputSha256": "a2ff1254807276af4004a3437fa48121db149551429efbc2312e4935720ab148",
+      "rewrites": 0
+    },
+    "20261016090000_commitment_interval_archive.sql": {
+      "sourceSha256": "6637a58230684cac0dfb49aa081441b3ddf44e074b62b96f28e11f3ae6e54ea7",
+      "outputSha256": "6637a58230684cac0dfb49aa081441b3ddf44e074b62b96f28e11f3ae6e54ea7",
+      "rewrites": 0
     }
   }
 }

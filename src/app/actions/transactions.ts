@@ -154,10 +154,18 @@ export async function createTransactionAction(
   if (error || typeof transactionId !== "string") {
     const detail = error?.message ?? "";
     if (detail.includes("idempotency_intent_mismatch")) {
-      return { ok: false, message: "Nội dung giao dịch đã thay đổi so với lần gửi trước. Hãy kiểm tra sổ trước khi tạo giao dịch mới." };
+      return {
+        ok: false,
+        message:
+          "Nội dung giao dịch đã thay đổi so với lần gửi trước. Hãy kiểm tra sổ trước khi tạo giao dịch mới.",
+      };
     }
     if (detail.includes("idempotency_intent_unavailable")) {
-      return { ok: false, message: "Không xác minh được lần ghi cũ. Hãy kiểm tra sổ giao dịch trước khi thử lại." };
+      return {
+        ok: false,
+        message:
+          "Không xác minh được lần ghi cũ. Hãy kiểm tra sổ giao dịch trước khi thử lại.",
+      };
     }
     return {
       ok: false,
@@ -436,6 +444,56 @@ export async function restoreTransactionAction(
     refreshFinancePages();
     return { ok: true };
   }
+}
+
+/**
+ * Hard-delete a transaction that is already in the trash. The RPC refuses
+ * unless `deleted_at` is set and the caller owns the row; recurring-locked
+ * and reconciled rows keep their existing guards.
+ */
+export async function permanentlyDeleteTransactionAction(
+  id: string,
+): Promise<TransactionActionResult> {
+  const parsed = idSchema.safeParse(id);
+  if (!parsed.success)
+    return { ok: false, message: "Mã giao dịch không hợp lệ." };
+
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
+  if (viewer.isDemo)
+    return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
+
+  const supabase = await createClient();
+  if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
+
+  const { data, error } = await supabase.rpc(
+    "permanently_delete_money_transaction",
+    { p_transaction_id: parsed.data },
+  );
+
+  if (error?.message.includes("recurring_payment_locked"))
+    return {
+      ok: false,
+      code: "recurring_payment_locked",
+      message:
+        "Khoản này được tạo từ lịch định kỳ. Hãy hoàn tác ở trang Định kỳ hoặc Lương định kỳ.",
+    };
+  if (error?.message.includes("transaction_reconciled"))
+    return {
+      ok: false,
+      code: "transaction_reconciled",
+      message: TRANSACTION_RECONCILED_MESSAGE,
+    };
+  if (error)
+    return { ok: false, message: "Không thể xóa vĩnh viễn. Hãy thử lại." };
+  if (data !== true)
+    return {
+      ok: false,
+      message: "Giao dịch không còn trong thùng rác.",
+    };
+
+  refreshFinancePages();
+  return { ok: true };
 }
 
 export async function updateTransactionAction(
