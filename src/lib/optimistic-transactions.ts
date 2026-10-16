@@ -30,7 +30,18 @@ export function buildOptimisticTransaction(
   const account = accounts.find((item) => item.id === input.accountId);
   const category = categories.find((item) => item.id === input.categoryId);
 
-  if (!account || !category || category.kind !== input.kind) {
+  /*
+   * A refund is income-kind money back against an EXPENSE category — the
+   * category pool flips, mirroring the RPC's netting-target rule.
+   */
+  const isRefund = input.isRefund === true && input.kind === "income";
+  const requiredCategoryKind = isRefund ? "expense" : input.kind;
+  if (
+    !account ||
+    !category ||
+    category.kind !== requiredCategoryKind ||
+    (input.isRefund === true && !isRefund)
+  ) {
     return { ok: false, message: "Tài khoản hoặc danh mục chưa hợp lệ." };
   }
 
@@ -50,6 +61,7 @@ export function buildOptimisticTransaction(
         : undefined,
       accountId: account.id,
       account: account.name,
+      isRefund,
       amount: input.amount,
       occurredOn: input.occurredOn,
       occurredAt: now.toISOString(),
@@ -103,7 +115,16 @@ export function buildUpdatedTransaction(
 
   const account = accounts.find((item) => item.id === input.accountId);
   const category = categories.find((item) => item.id === input.categoryId);
-  if (!account || !category || category.kind !== input.kind) {
+  /*
+   * Effective flag after the edit: `undefined`/`null` preserves the stored
+   * value, a boolean replaces it — and the flag dies the moment the row is
+   * no longer income-kind, matching the write RPC.
+   */
+  const isRefund =
+    input.kind === "income" &&
+    (input.isRefund ?? existing.isRefund ?? false);
+  const requiredCategoryKind = isRefund ? "expense" : input.kind;
+  if (!account || !category || category.kind !== requiredCategoryKind) {
     return { ok: false, message: "Tài khoản hoặc danh mục chưa hợp lệ." };
   }
   const goalId =
@@ -132,6 +153,7 @@ export function buildUpdatedTransaction(
       goalId,
       goalName,
       excludedFromReports,
+      isRefund,
       accountId: account.id,
       account: account.name,
       destinationAccountId: undefined,

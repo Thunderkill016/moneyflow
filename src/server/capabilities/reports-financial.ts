@@ -113,8 +113,18 @@ function explainedReport(
   const current = transactionRange(transactions, range).filter(
     (transaction) => !transaction.excludedFromReports,
   );
-  const income = current.filter((transaction) => transaction.kind === "income");
-  const expense = current.filter((transaction) => transaction.kind === "expense");
+  /*
+   * Refund income rows net on the expense side — they belong in the
+   * expense basis (their sign flips in the total) and never in income.
+   */
+  const income = current.filter(
+    (transaction) => transaction.kind === "income" && !transaction.isRefund,
+  );
+  const expense = current.filter(
+    (transaction) =>
+      transaction.kind === "expense" ||
+      (transaction.kind === "income" && transaction.isRefund === true),
+  );
   const base = {
     computedAt: ctx.now,
     capabilityVersion: "reports.financial@1",

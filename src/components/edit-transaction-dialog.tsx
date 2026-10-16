@@ -69,12 +69,24 @@ export function EditTransactionDialog({
   const [excludedFromReports, setExcludedFromReports] = useState(
     transaction.excludedFromReports ?? false,
   );
+  const [isRefund, setIsRefund] = useState(
+    transaction.kind === "income" && (transaction.isRefund ?? false),
+  );
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  /*
+   * Hoàn tiền flips the pool: a refund is income-kind money back against
+   * the EXPENSE category it reimburses, so the picker must offer expense
+   * categories (the netting target) — never income ones.
+   */
+  const refundActive = kind === "income" && isRefund;
   const availableCategories = useMemo(
-    () => categories.filter((item) => item.kind === kind),
-    [categories, kind],
+    () =>
+      categories.filter(
+        (item) => item.kind === (refundActive ? "expense" : kind),
+      ),
+    [categories, kind, refundActive],
   );
   // Historical references are never replaced merely because a picker excludes
   // archived records. The user must explicitly choose an available replacement.
@@ -104,6 +116,7 @@ export function EditTransactionDialog({
 
   function changeKind(next: TransactionKind) {
     setKind(next);
+    if (next !== "income") setIsRefund(false);
     setCategoryId(
       categories.find((item) => item.kind === next)?.id ?? "",
     );
@@ -190,6 +203,14 @@ export function EditTransactionDialog({
         excludedFromReports:
           excludedFromReports !== (transaction.excludedFromReports ?? false)
             ? excludedFromReports
+            : undefined,
+        /*
+         * Same sentinel — and the flag can only live on income rows, so a
+         * kind switch away from income clears a stored refund explicitly.
+         */
+        isRefund:
+          refundActive !== (transaction.isRefund ?? false)
+            ? refundActive
             : undefined,
       };
     }
@@ -471,6 +492,44 @@ export function EditTransactionDialog({
                 </option>
               ))}
             </SelectField>
+          ) : null}
+          {kind === "income" && !isTransfer ? (
+            <label
+              className={styles.keepOpenRow}
+              htmlFor={`${formId}-refund`}
+            >
+              <input
+                id={`${formId}-refund`}
+                type="checkbox"
+                checked={isRefund}
+                disabled={submitting}
+                onChange={(event) => {
+                  const next = event.target.checked;
+                  setIsRefund(next);
+                  /*
+                   * The pool flips on toggle — a pick from the other kind
+                   * cannot stay selected.
+                   */
+                  const pool = next ? "expense" : "income";
+                  if (
+                    categoryId &&
+                    !categories.some(
+                      (item) => item.id === categoryId && item.kind === pool,
+                    )
+                  ) {
+                    setCategoryId("");
+                  }
+                  changed();
+                }}
+              />
+              <span className={styles.keepOpenCopy}>
+                <strong>Hoàn tiền</strong>
+                <span>
+                  Tiền được trả lại — trừ vào danh mục chi đã chọn, không tính
+                  vào Thu.
+                </span>
+              </span>
+            </label>
           ) : null}
           {!isTransfer ? (
             <label

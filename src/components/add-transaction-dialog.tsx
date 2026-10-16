@@ -152,10 +152,19 @@ export function AddTransactionDialog({
   const effectiveOpen = open || keepOpenSession;
   const today = todayInVietnam();
 
+  const [isRefund, setIsRefund] = useState(false);
+  /*
+   * Hoàn tiền flips the category pool: a refund is income-kind money back
+   * against the EXPENSE category it reimburses — the picker must offer
+   * expense categories, never income ones.
+   */
+  const refundActive = kind === "income" && isRefund;
   const availableCategories = useMemo(() => {
-    const filtered = categories.filter((item) => item.kind === kind);
+    const filtered = categories.filter(
+      (item) => item.kind === (refundActive ? "expense" : kind),
+    );
     return orderCategoriesByRecent(filtered, recentCategoryIds);
-  }, [categories, kind, recentCategoryIds]);
+  }, [categories, kind, refundActive, recentCategoryIds]);
   const selectedAccountId = accounts.some((item) => item.id === accountId)
     ? accountId
     : (accounts[0]?.id ?? "");
@@ -507,6 +516,7 @@ export function AddTransactionDialog({
 
   function changeKind(nextKind: TransactionKind) {
     setKind(nextKind);
+    if (nextKind !== "income") setIsRefund(false);
     applyDefaultForKind(nextKind, {
       kind,
       accountId: selectedAccountId,
@@ -523,6 +533,7 @@ export function AddTransactionDialog({
 
   function chooseFrequentPattern(pattern: FrequentLedgerPattern, rank: 1 | 2) {
     setKind(pattern.kind);
+    if (pattern.kind !== "income") setIsRefund(false);
     setAccountId(pattern.accountId);
     setCategoryId(pattern.categoryId);
     categoryTouchedRef.current = true;
@@ -604,6 +615,7 @@ export function AddTransactionDialog({
     try {
       result = await onAdd({
         kind,
+        isRefund: refundActive || undefined,
         categoryId: selectedCategoryId,
         note: note.trim(),
         payee: payee.trim(),
@@ -1084,6 +1096,42 @@ export function AddTransactionDialog({
             </div>
           </details>
         </div>
+        {kind === "income" ? (
+          <label className={styles.keepOpenRow} htmlFor="add-tx-refund">
+            <input
+              id="add-tx-refund"
+              type="checkbox"
+              checked={isRefund}
+              disabled={submitting}
+              onChange={(event) => {
+                const next = event.target.checked;
+                setIsRefund(next);
+                /*
+                 * Toggling flips the category pool — a pick from the other
+                 * kind cannot stay selected.
+                 */
+                const pool = next ? "expense" : "income";
+                if (
+                  categoryId &&
+                  !categories.some(
+                    (item) => item.id === categoryId && item.kind === pool,
+                  )
+                ) {
+                  setCategoryId("");
+                  categoryTouchedRef.current = false;
+                }
+                markInputChanged();
+              }}
+            />
+            <span className={styles.keepOpenCopy}>
+              <strong>Hoàn tiền</strong>
+              <span>
+                Tiền được trả lại — trừ vào danh mục chi đã chọn, không tính
+                vào Thu.
+              </span>
+            </span>
+          </label>
+        ) : null}
         <label className={styles.keepOpenRow} htmlFor="add-tx-keep-open">
           <input
             id="add-tx-keep-open"

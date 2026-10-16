@@ -34,6 +34,12 @@ export type Transaction = {
    * but is skipped by every report total. Absent means counted (default).
    */
   excludedFromReports?: boolean;
+  /**
+   * `is_refund` — an income row carrying the expense category it reimburses.
+   * Ledger fact stays money-in (balance untouched); report math nets it
+   * against that category's spend instead of counting it as income.
+   */
+  isRefund?: boolean;
   /** Legacy demo rows without this field are interpreted as reviewed. */
   reviewStatus?: TransactionReviewStatus;
   /** Two or more lines when an expense is split across categories. */
@@ -114,6 +120,11 @@ export type CreateTransactionInput = InboxApprovalCommand & {
   payee?: string;
   /** Optional goal tag at capture time (informational annotation). */
   goalId?: string | null;
+  /**
+   * Refund flag at capture — income kind only, and the category must be
+   * expense-kind (the netting target). Defaults to a normal income row.
+   */
+  isRefund?: boolean;
   occurredOn: string;
   idempotencyKey: string;
 };
@@ -139,7 +150,7 @@ export type CreateSplitExpenseInput = {
 
 export type UpdateMoneyTransactionInput = Omit<
   CreateTransactionInput,
-  "idempotencyKey" | "inboxCandidateId" | "allowHeuristicDuplicate"
+  "idempotencyKey" | "inboxCandidateId" | "allowHeuristicDuplicate" | "isRefund"
 > & {
   id: string;
   /** Optimistic-concurrency precondition: the `updated_at` the caller read. */
@@ -154,6 +165,12 @@ export type UpdateMoneyTransactionInput = Omit<
    * `excluded_from_reports` value; a boolean sets it explicitly.
    */
   excludedFromReports?: boolean | null;
+  /**
+   * Refund sentinel: `undefined`/`null` preserves the stored `is_refund`
+   * value; a boolean sets it. Only meaningful on income rows — the RPC
+   * rejects a refund that does not carry an expense category.
+   */
+  isRefund?: boolean | null;
 };
 
 export type UpdateTransferInput = Omit<

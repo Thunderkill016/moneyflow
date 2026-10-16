@@ -110,10 +110,16 @@ export async function run(
    * cannot appear in a basis either.
    */
   const income = current.filter(
-    (transaction) => transaction.kind === "income" && !transaction.excludedFromReports,
+    (transaction) =>
+      transaction.kind === "income" &&
+      !transaction.excludedFromReports &&
+      !transaction.isRefund,
   );
   const expense = current.filter(
-    (transaction) => transaction.kind === "expense" && !transaction.excludedFromReports,
+    (transaction) =>
+      !transaction.excludedFromReports &&
+      (transaction.kind === "expense" ||
+        (transaction.kind === "income" && transaction.isRefund === true)),
   );
   const computedAt = ctx.now;
   const capabilityVersion = "ledger.summary@1";

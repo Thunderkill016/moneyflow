@@ -2412,6 +2412,7 @@ export function TransactionsWorkspace({
                             {transaction.excludedFromReports
                               ? " · Đã loại khỏi báo cáo"
                               : ""}
+                            {transaction.isRefund ? " · Hoàn tiền" : ""}
                           </small>
                           {provenance ? (
                             <small

@@ -169,7 +169,19 @@ export function useTransactions({
     if (isDemo) {
       const account = accounts.find((item) => item.id === input.accountId);
       const category = categories.find((item) => item.id === input.categoryId);
-      if (!account || !category || category.kind !== input.kind) {
+      /*
+       * Same rule the RPC enforces: a refund is income-kind money back
+       * against an EXPENSE category — the demo store validates the pool
+       * flip before writing.
+       */
+      const isRefund = input.isRefund === true && input.kind === "income";
+      const requiredCategoryKind = isRefund ? "expense" : input.kind;
+      if (
+        !account ||
+        !category ||
+        category.kind !== requiredCategoryKind ||
+        (input.isRefund === true && !isRefund)
+      ) {
         return { ok: false, message: "Tài khoản hoặc danh mục chưa hợp lệ." };
       }
 
@@ -186,6 +198,7 @@ export function useTransactions({
           : undefined,
         accountId: account.id,
         account: account.name,
+        isRefund,
         amount: input.amount,
         occurredOn: input.occurredOn,
         occurredAt: new Date().toISOString(),
