@@ -1,6 +1,13 @@
 # PROGRESS — MoneyFlow Android mega-task
 STATUS: DONE — 2026-10-17 — all DoD items evidenced.
-LAST UPDATE: 2026-10-16T14:48Z (PROD: 7 Loop-B migrations applied to moneyflow-prod shy-mud-72113549 + verified); prior: 2026-10-17 (close-out: D24 shipped, D25 parked, re-audit clean, AAB built, device-verified)
+LAST UPDATE: 2026-10-17T02:05Z — post-merge-request CI hardening on
+feat/mobile-theme (3970d388): npm10 lockfile, capability manifest,
+purge_user_tenant_data covers debts/event_budgets (+ applied to prod
+shy-mud-72113549), WCAG income-contrast fix (#166534), e2e specs aligned
+to mobile-welcome + XOA-variant + Soft Pop contracts — all verified
+locally against a demo production build. Prior: 2026-10-16T14:48Z (PROD:
+7 Loop-B migrations applied + verified); prior: 2026-10-17 (close-out:
+D24 shipped, D25 parked, re-audit clean, AAB built, device-verified)
 DONE THIS ROUND:
 - Step Zero DONE: branch mobile/android-app pushed, PR #795 open (head ec8591b9).
 - Prior session shipped: permanent-delete trash (mobile+web+RPC+schema-cache fix), SnackBar a11y watchdog fix (1187+ tests green), Monarch deep-dive docs/research/MONARCH_DEEP_DIVE.md, rules preview + apply-to-existing (mobile+web), edit→rule offer (mobile). All committed.
