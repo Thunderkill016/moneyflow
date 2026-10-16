@@ -4,11 +4,19 @@ MoneyFlow mobile — Flutter client for the Neon backend.
 
 ## Build configuration (--dart-define)
 
-Debug/profile builds default to the acceptance sandbox so `flutter run`
-and `flutter test` work with no flags. **Release builds fail closed**:
-`NeonConfig.fromEnvironment` throws at construction when the endpoint
-defines are absent, so a shipped binary can never silently target the dev
-sandbox.
+Debug/profile builds default to **moneyflow-prod** — the only Neon
+project that exists today — so `flutter run` and `flutter test` work
+with no flags. Be honest about what that means: an unqualified debug
+run reads and writes the **production** database, and a debug-signed-in
+test account's activity lands in the real ledger. To keep development
+data out of production, pass `--dart-define` overrides pointing at a
+sandbox Neon project (none is provisioned yet — create one first; a
+non-`*.neon.tech` or non-HTTPS value is rejected at construction).
+
+**Release builds fail closed**: `NeonConfig.fromEnvironment` throws at
+construction when the endpoint defines are absent, so a shipped binary
+can never silently depend on whatever the compiled-in dev defaults
+happen to point at.
 
 Release builds must pass:
 

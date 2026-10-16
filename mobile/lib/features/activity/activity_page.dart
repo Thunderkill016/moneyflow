@@ -631,6 +631,38 @@ class ActivityPageState extends State<ActivityPage> {
         : all;
     final reviewCount = needsReviewCount(all);
     final showSearch = _searching && !_selecting;
+    // Fixed-height header band ahead of the lazy feed — the eager
+    // `ListView(children:)` this replaced built every loaded row on each
+    // "Xem thêm" press; the builder only ever mounts a viewport's worth.
+    final headers = <Widget>[
+      if (showSearch && _search.text.trim().isEmpty && _recent.isNotEmpty)
+        _recentSearches(),
+      if (!_query.isEmpty) _filterChips(),
+      if (_canSelect && (reviewCount > 0 || _onlyNeedsReview))
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: FilterChip(
+              label: Text('Cần xem lại ($reviewCount${_hasMore ? '+' : ''})'),
+              selected: _onlyNeedsReview,
+              onSelected: (v) => setState(() => _onlyNeedsReview = v),
+            ),
+          ),
+        ),
+      if (all.isEmpty)
+        _emptyState()
+      else if (visible.isEmpty)
+        Card(
+          child: ListTile(
+            title: Text(
+              _hasMore
+                  ? 'Chưa thấy khoản cần xem lại trong phần đã tải'
+                  : 'Không còn khoản nào cần xem lại',
+            ),
+          ),
+        ),
+    ];
     return Scaffold(
       appBar: AppBar(
         leading: _selecting
@@ -730,52 +762,33 @@ class ActivityPageState extends State<ActivityPage> {
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _refresh,
-              child: ListView(
+              child: ListView.builder(
                 controller: _scroll,
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
-                children: [
-                  if (showSearch &&
-                      _search.text.trim().isEmpty &&
-                      _recent.isNotEmpty)
-                    _recentSearches(),
-                  if (!_query.isEmpty) _filterChips(),
-                  if (_canSelect && (reviewCount > 0 || _onlyNeedsReview))
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: FilterChip(
-                          label: Text(
-                            'Cần xem lại ($reviewCount${_hasMore ? '+' : ''})',
-                          ),
-                          selected: _onlyNeedsReview,
-                          onSelected: (v) =>
-                              setState(() => _onlyNeedsReview = v),
-                        ),
-                      ),
-                    ),
-                  if (all.isEmpty)
-                    _emptyState()
-                  else if (visible.isEmpty)
-                    Card(
-                      child: ListTile(
-                        title: Text(
-                          _hasMore
-                              ? 'Chưa thấy khoản cần xem lại trong phần đã tải'
-                              : 'Không còn khoản nào cần xem lại',
-                        ),
-                      ),
-                    ),
-                  for (final (i, t) in visible.indexed) ...[
-                    if (i == 0 || visible[i - 1].occurredOn != t.occurredOn)
-                      _DayHeader(label: _dayHeader(t.occurredOn, _today)),
-                    i < _fadeInMaxItems
-                        ? _FadeInTile(order: i, child: _tile(t))
-                        : _tile(t),
-                  ],
-                  _footer(),
-                ],
+                itemCount: headers.length + visible.length + 1,
+                itemBuilder: (context, i) {
+                  if (i < headers.length) return headers[i];
+                  final j = i - headers.length;
+                  if (j >= visible.length) return _footer();
+                  final t = visible[j];
+                  final tile = j < _fadeInMaxItems
+                      ? _FadeInTile(order: j, child: _tile(t))
+                      : _tile(t);
+                  // The day header rides inside its first row's cell —
+                  // one lazily-built item per transaction, keyed so a
+                  // reload reuses the row's element instead of
+                  // rebuilding it.
+                  return Column(
+                    key: ValueKey('tx-${t.id}'),
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (j == 0 || visible[j - 1].occurredOn != t.occurredOn)
+                        _DayHeader(label: _dayHeader(t.occurredOn, _today)),
+                      tile,
+                    ],
+                  );
+                },
               ),
             ),
     );

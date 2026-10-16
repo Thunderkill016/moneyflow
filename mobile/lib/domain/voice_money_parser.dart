@@ -53,6 +53,11 @@ const _bigScales = {
   'ngàn': 1000,
 };
 
+/// Same bound the share/csv/paste parsers apply (`_maxSafeAmount` in
+/// data/share/share_text_parser.dart) — above it a parsed figure is a
+/// transcription artifact, not money anyone would speak.
+const _maxSafeAmount = 9007199254740991;
+
 final _amountVocab = <String>{
   ..._digitValues.keys,
   'mốt',
@@ -282,6 +287,12 @@ List<String> _normalizeSlang(List<String> tokens) {
     total += parsed.value;
   }
 
+  // Bound BEFORE rounding: a spoken run past _maxSafeAmount (or an
+  // over-long digit token that only fits in a double) would otherwise
+  // saturate to int64 max and the "Mình nghe được" chip would show that
+  // absurd figure as plausible. Failing to null drops to manual entry —
+  // the same posture the share parser takes on implausible amounts.
+  if (!(total > 0) || total > _maxSafeAmount) return null;
   var amount = total.round();
   if (amount <= 0) return null;
   var shorthand = false;

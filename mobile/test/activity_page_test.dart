@@ -321,6 +321,66 @@ void main() {
     });
   });
 
+  group('lazy feed', () {
+    // 60 rows across 20 days — far more than any test viewport can show.
+    // The eager children-list this replaced mounted every row on build;
+    // the builder must only materialize the viewport's worth.
+    final rows = [
+      for (var i = 0; i < 60; i++)
+        Transaction(
+          id: 'tx-$i',
+          kind: TransactionKind.expense,
+          categoryId: 'cat-food',
+          category: 'Ăn uống',
+          note: 'row-${i.toString().padLeft(2, '0')}',
+          accountId: 'a1',
+          account: 'Tiền mặt',
+          amount: 1000 + i,
+          occurredOn: '2026-10-${((i ~/ 3) + 1).toString().padLeft(2, '0')}',
+        ),
+    ];
+
+    testWidgets('offscreen rows are not built until scrolled to', (t) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: ActivityPage(
+            loadPage: inMemoryPageLoader(rows, pageSize: 60),
+            onDelete: (_) async {},
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      // Feed order is newest-day-first — 'row-59' (day 20) leads.
+      expect(find.text('row-59'), findsOneWidget);
+      // 60 rows in, the tail is nowhere near the viewport — an eager
+      // list would have built (and thus found) every note already.
+      expect(find.text('row-00'), findsNothing);
+      expect(find.text('row-30'), findsNothing);
+
+      await t.fling(find.byType(ListView), const Offset(0, -4000), 10000);
+      await t.pumpAndSettle();
+      expect(find.text('row-00'), findsOneWidget);
+    });
+
+    testWidgets('day headers survive the lazy conversion', (t) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: ActivityPage(
+            loadPage: inMemoryPageLoader(rows, pageSize: 60),
+            onDelete: (_) async {},
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      // Rows sorted desc by day → first header is the newest day, and
+      // more day labels exist as lazily-built separators.
+      expect(find.bySemanticsLabel(RegExp(r'\d{2}/\d{2}/2026')), findsWidgets);
+      expect(find.byType(ListView), findsOneWidget);
+    });
+  });
+
   test('Transaction.isSplit needs more than one line', () {
     expect(_plain.isSplit, isFalse);
     expect(_split.isSplit, isTrue);

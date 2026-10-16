@@ -163,6 +163,19 @@ class AuthGate extends StatefulWidget {
 
 enum _Gate { booting, welcome, login, onboarding, signedIn, demo }
 
+/// Longest the boot gate waits on the session probe before rendering the
+/// offline snapshot. The transport's own bounds (10s connect + 30s
+/// inactivity in neon_transport.dart) could leave a cold-start spinner up
+/// for ~40s on a dead network — long past the point where the cached
+/// render is the honest answer. Eight seconds covers a real round-trip
+/// plus a scale-to-zero wake; past it the shell renders offline and the
+/// lazy JWT refresh re-validates on the next request.
+const _sessionProbeBudget = Duration(seconds: 8);
+
+/// How long the boot spinner sits silent before it admits the network is
+/// slow — an unmarked indefinite spinner reads as a hang, not as work.
+const _bootHintDelay = Duration(milliseconds: 2500);
+
 class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   final _config = NeonConfig.fromEnvironment();
   late final _auth = NeonAuthClient(
@@ -207,6 +220,13 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
 
   _Gate _gate = _Gate.booting;
   bool _bioEnabled = false;
+
+  /// Slow-network affordance on the boot spinner: after
+  /// [_bootHintDelay] the gate admits it is still working instead of
+  /// sitting silent. Cancelled on dispose; a fired-but-stale timer is a
+  /// no-op because it re-checks the gate.
+  Timer? _bootHintTimer;
+  bool _bootHint = false;
 
   /// True once the signed-in shell is past the biometric gate — the lock
   /// is off/unavailable, or the user just unlocked. Deep links check it
@@ -288,6 +308,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _bootHintTimer?.cancel();
     _shareSub?.cancel();
     _quickSub?.cancel();
     _queue?.dispose();
@@ -313,13 +334,23 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   }
 
   Future<void> _restore() async {
+    _bootHintTimer = Timer(_bootHintDelay, () {
+      if (mounted && _gate == _Gate.booting) {
+        setState(() => _bootHint = true);
+      }
+    });
     _bioEnabled = await BiometricPrefs.loadBiometricEnabled();
     _digestEnabled = await NotificationPrefs.loadWeeklyDigestEnabled();
     _prefs = await SharedPreferences.getInstance();
     final stored = await SessionStore.read();
     if (stored != null) {
       try {
-        final session = await _auth.restoreSession(stored.token);
+        // Bounded probe — see _sessionProbeBudget. On timeout the shell
+        // renders the offline snapshot; the in-flight get-session may
+        // still land later and re-validate the session on its own.
+        final session = await _auth
+            .restoreSession(stored.token)
+            .timeout(_sessionProbeBudget);
         if (session != null) {
           _bindAccountStores(session.userId);
           // A restorable session means this device passed the gate long
@@ -580,6 +611,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           prefill: prefill,
           submit: _captureSubmit,
           onCreateAccount: _createAccountForCapture,
+          draftScope: _auth.session?.userId,
         ),
       ),
     );
@@ -632,6 +664,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           store: _store,
           submit: _captureSubmit,
           onCreateAccount: _createAccountForCapture,
+          draftScope: _auth.session?.userId,
         ),
       ),
     );
@@ -1154,8 +1187,26 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return switch (_gate) {
-      _Gate.booting => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      _Gate.booting => Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              if (_bootHint) ...[
+                const SizedBox(height: 16),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(
+                    'Mạng đang chậm — sẽ mở bản ngoại tuyến nếu không '
+                    'kết nối được',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
       _Gate.welcome => WelcomePage(
         onStart: () {
@@ -1341,6 +1392,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   /// upstream, so the shell wipes local stores and lands on the login
   /// gate without /sign-out or a session restore.
   Future<void> _deleteAccount(BuildContext context) async {
+    var sessionDropped = false;
     final deleted = await showDeleteAccountFlow(
       context,
       auth: _auth,
@@ -1348,7 +1400,28 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       // Same seam as the login page: a Google-only account re-auths
       // through the loopback redirect.
       googleFlow: _googleFlow,
+      // A stranger-account re-auth whose rollback failed leaves the
+      // client with no credential it may keep (the dialog discarded the
+      // stranger's session and cached JWT). The only honest state is a
+      // fresh login: sign out locally and pop the dead shell back to
+      // the gate — the pushed settings/dialog routes would otherwise
+      // linger over the login page.
+      onSessionDropped: () async {
+        sessionDropped = true;
+        await _signOut();
+        if (mounted) {
+          Navigator.of(this.context).popUntil((route) => route.isFirst);
+        }
+      },
     );
+    if (sessionDropped && mounted) {
+      showTimedSnackBar(
+        ScaffoldMessenger.of(this.context),
+        const SnackBar(
+          content: Text('Không khôi phục được phiên — đăng nhập lại.'),
+        ),
+      );
+    }
     if (!deleted || !mounted) return;
     // Grab the messenger before the async wipe — a context read after an
     // await gap is unsafe. `this.context` is the State's own element —
@@ -2281,11 +2354,16 @@ class _CaptureLoader extends StatelessWidget {
     required this.store,
     required this.submit,
     this.onCreateAccount,
+    this.draftScope,
   });
 
   final RealStore store;
   final Future<void> Function(CaptureIntent intent) submit;
   final Future<List<AccountSummary>?> Function()? onCreateAccount;
+
+  /// Signed-in account id — the capture draft is scoped per account so
+  /// a half-typed form can never surface inside a different sign-in.
+  final String? draftScope;
 
   @override
   Widget build(BuildContext context) {
@@ -2324,6 +2402,7 @@ class _CaptureLoader extends StatelessWidget {
           transactions: snap.data![2].cast(),
           onSubmit: submit,
           onCreateAccount: onCreateAccount,
+          draftScope: draftScope,
         );
       },
     );
@@ -2385,12 +2464,14 @@ class _SharedCaptureLoader extends StatelessWidget {
     required this.prefill,
     required this.submit,
     this.onCreateAccount,
+    this.draftScope,
   });
 
   final RealStore store;
   final SharedTextPrefill prefill;
   final Future<void> Function(CaptureIntent intent) submit;
   final Future<List<AccountSummary>?> Function()? onCreateAccount;
+  final String? draftScope;
 
   @override
   Widget build(BuildContext context) {
@@ -2423,6 +2504,7 @@ class _SharedCaptureLoader extends StatelessWidget {
           prefill: prefill,
           onSubmit: submit,
           onCreateAccount: onCreateAccount,
+          draftScope: draftScope,
         );
       },
     );

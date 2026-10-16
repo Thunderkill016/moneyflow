@@ -109,6 +109,20 @@ void main() {
     test('returns null for zero', () {
       expect(parseVietnameseMoney('không đồng').amount, isNull);
     });
+
+    test(
+      'an absurd spoken amount fails instead of saturating at int64 max',
+      () {
+        // total.round() on a >int64 double saturates to 9223372036854775807 —
+        // the bound must fire before the round, like the share parser's.
+        expect(parseVietnameseMoney('123456789012345678 đồng').amount, isNull);
+        expect(parseVietnameseMoney('10000000 tỷ').amount, isNull);
+        expect(parseVietnameseMoney('999999999999999999999999').amount, isNull);
+        // Sane figures still parse on either side of the guard.
+        expect(parseVietnameseMoney('hai tỷ').amount, 2000000000);
+        expect(parseVietnameseMoney('100 tỷ').amount, 100000000000);
+      },
+    );
   });
 
   group('detectVoiceKind', () {

@@ -2,10 +2,12 @@ import 'package:flutter/foundation.dart';
 
 // Neon backend endpoints, supplied at build time via --dart-define.
 //
-// The dev defaults point at the owner-created acceptance sandbox
-// (moneyflow-acceptance-sandbox) so `flutter run` works out of the box.
-// Production values come from Vercel env / Neon project settings — never
-// hardcode secrets here; endpoints are identifiers, not credentials.
+// The dev defaults below point at moneyflow-prod — the only Neon project
+// that exists today — so `flutter run` works with no flags. Honest
+// consequence: an unqualified debug run writes developer/test activity
+// into the PRODUCTION database (see mobile/README.md). If a sandbox
+// project is ever provisioned, point these at it instead. Never hardcode
+// secrets here; endpoints are identifiers, not credentials.
 class NeonConfig {
   const NeonConfig({
     required this.authBaseUrl,
@@ -26,9 +28,9 @@ class NeonConfig {
   final String googleServerClientId;
 
   factory NeonConfig.fromEnvironment() {
-    // Read WITHOUT defaults first: the sandbox fallback below would mask
-    // a missing --dart-define entirely, and String.fromEnvironment can't
-    // tell "define passed" from "default filled in".
+    // Read WITHOUT defaults first: the dev-default fallback below would
+    // mask a missing --dart-define entirely, and String.fromEnvironment
+    // can't tell "define passed" from "default filled in".
     const auth = String.fromEnvironment('MF_AUTH_BASE_URL');
     const api = String.fromEnvironment('MF_DATA_API_URL');
     const google = String.fromEnvironment('MF_GOOGLE_SERVER_CLIENT_ID');
@@ -44,9 +46,10 @@ class NeonConfig {
     );
   }
 
-  /// A release binary must name its real endpoints at build time —
-  /// shipping the sandbox defaults would silently point strangers'
-  /// sign-ins at the acceptance project. Throws at construction instead
+  /// A release binary must name its endpoints at build time — the
+  /// compiled-in dev defaults happen to be the production project today,
+  /// but a shipped artifact is never allowed to depend on what a
+  /// convenience constant points at. Throws at construction instead
   /// of failing at the first request. Debug/profile keep the dev
   /// defaults so `flutter run` and tests work with no defines.
   ///
@@ -64,7 +67,8 @@ class NeonConfig {
     if (releaseMode && (authBaseUrl.isEmpty || dataApiUrl.isEmpty)) {
       throw StateError(
         'Release build missing MF_AUTH_BASE_URL / MF_DATA_API_URL '
-        '--dart-define values — refusing to fall back to the dev sandbox. '
+        '--dart-define values — refusing to fall back to the compiled-in '
+        'dev defaults. '
         'See mobile/README.md for the required release defines.',
       );
     }
@@ -77,7 +81,7 @@ class NeonConfig {
   /// request. The mobile client only talks to Neon (`*.neon.tech`);
   /// loopback stays allowed for local development backends.
   static void _requireTrustedEndpoint(String label, String raw) {
-    if (raw.isEmpty) return; // debug-mode callers use the sandbox defaults
+    if (raw.isEmpty) return; // debug-mode callers use the dev defaults
     final uri = Uri.tryParse(raw);
     if (uri == null ||
         !uri.isAbsolute ||

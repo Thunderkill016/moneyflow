@@ -71,6 +71,57 @@ void main() {
     }
   });
 
+  group('boot probe is time-bounded', () {
+    testWidgets('a never-answering /get-session drops the spinner into the '
+        'offline shell within the probe budget — stored token kept', (t) async {
+      FlutterSecureStorage.setMockInitialValues({
+        'neon.session_token': 'tok.sig',
+        'neon.user_id': 'u1',
+      });
+      var getSessionCalls = 0;
+      await t.pumpWidget(
+        MaterialApp(
+          home: AuthGate(
+            shareReceiver: const _NoShare(),
+            quickActions: _NoQuick(),
+            requester: (req) async {
+              // The dead-network worst case: the boot probe never
+              // answers. The gate's own budget — not the transport's
+              // ~40s connect+inactivity stack — bounds the spinner.
+              // Later probes (the lazy JWT fetch under the offline
+              // shell) fail fast so data loaders can error out.
+              if (req.url.path.endsWith('/get-session')) {
+                getSessionCalls++;
+                if (getSessionCalls == 1) {
+                  await Completer<void>().future;
+                }
+                return _res(500, 'dead');
+              }
+              return _res(200, req.method == 'GET' ? '[]' : '{}');
+            },
+          ),
+        ),
+      );
+      await t.pump();
+      // Past the "slow network" hint delay the boot screen admits it
+      // is still working instead of sitting silent.
+      await t.pump(const Duration(seconds: 3));
+      expect(find.textContaining('Mạng đang chậm'), findsOneWidget);
+      expect(find.byType(DashboardPage), findsNothing);
+
+      // Past the 8s probe budget the trusted-offline path renders the
+      // cached shell — the token stays put for lazy re-validation. No
+      // pumpAndSettle: on a dead network the dashboard's loaders keep
+      // scheduling work legitimately — what matters is the gate itself
+      // stopped spinning.
+      await t.pump(const Duration(seconds: 6));
+      await t.pump();
+      expect(find.byType(DashboardPage), findsOneWidget);
+      expect(find.byType(LoginPage), findsNothing);
+      expect((await SessionStore.read())?.token, 'tok.sig');
+    });
+  });
+
   group('a session the server really rejected is cleared', () {
     testWidgets('HTTP 401 signs out and wipes the token', (t) async {
       await _boot(t, () => _res(401, '{}'));

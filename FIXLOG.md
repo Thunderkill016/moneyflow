@@ -107,3 +107,104 @@ Format: `ID | files changed | why | proof (test names)`.
   month boundary; vnNow reads the instant in the VN civil calendar`;
   `weekly_digest_test.dart: the window anchors on the VN week, not the
   device zone`.
+
+- **P2-1** | `mobile/lib/data/capture_draft.dart` (new),
+  `mobile/lib/features/capture/capture_page.dart`,
+  `mobile/lib/app/app.dart` | Process death while the capture form was
+  open lost every typed field: the form is pushed via plain
+  `MaterialPageRoute`, and Flutter's `RestorationMixin` only works for
+  `restorablePush` routes — which cannot close over `_store`/`onSubmit`
+  seams (restorable builders must be static entry points). So the fix
+  is the audit's own alternative: an account-scoped SharedPreferences
+  draft slot (`mf_capture_draft.<userId>`) persisting amount/note/payee/
+  kind/category/account/destination/date/repeat/split lines plus the
+  idempotency key — a retried submit after death dedupes instead of
+  double-posting. Writes are debounced (400ms) on every mutation plus an
+  immediate flush on `AppLifecycleState.paused` and `dispose`; a
+  restored draft shows an honest "Đã khôi phục bản nháp chưa lưu" banner
+  with Xóa; a share-prefill wins over the parked draft; drafts expire
+  after 7 days; ids re-validate against the live account/category lists;
+  submit consumes the slot (a `_draftConsumed` flag stops the dispose
+  flush resurrecting an already-saved form). Edit mode and demo stay
+  out of scope — an edit draft would resurrect a stale
+  `expectedUpdatedAt` concurrency token, and demo writes nothing. |
+  `capture_draft_test.dart: CaptureDraft round-trips every field
+  through JSON; refuses garbage; isEmpty; store scoping/TTL/corrupt
+  blob; a stored draft restores fields and shows the banner; Xóa
+  clears the stored slot and resets the form; editing dismisses the
+  banner; edits persist to the slot; a share prefill wins; no scope
+  (demo) restores nothing; a successful submit consumes the draft`.
+- **P2-2** | `mobile/lib/features/activity/activity_page.dart` | The
+  feed built `ListView(children:)` — every loaded row mounted eagerly
+  on each "Xem thêm" press. Now `ListView.builder` with a fixed header
+  band (recent-searches/chips/review-filter/empty states) plus one
+  lazily-built item per transaction; the day header rides inside its
+  first row's keyed (`ValueKey('tx-<id>')`) cell so reloads reuse
+  elements; footer/load-more/fade-in/selection unchanged. |
+  `activity_page_test.dart: lazy feed — offscreen rows are not built
+  until scrolled to; day headers survive the lazy conversion`.
+- **P2-3** | `mobile/lib/data/neon/neon_config.dart`,
+  `mobile/README.md`, `mobile/test/neon_config_test.dart` | Comments
+  claimed debug/profile defaults pointed at
+  `moneyflow-acceptance-sandbox`; the constants actually point at
+  `moneyflow-prod`, the only provisioned Neon project — a plain
+  `flutter run` writes into production and the docs lied about it.
+  Comments, the compiled-in-defaults error text and README now say so
+  plainly, warn that unqualified dev runs read/write prod, and explain
+  no sandbox exists until one is created and passed via dart-defines.
+  Stale test names updated to "dev defaults/endpoints". | Documentation
+  fix — `neon_config_test.dart` renamed descriptions; same assertions.
+- **P2-4** | `mobile/lib/app/delete_account.dart`,
+  `mobile/lib/app/app.dart` | A stranger-account Google re-auth whose
+  rollback `restoreSession(prior.sessionToken)` threw left `_auth`
+  holding the stranger's session + cached JWT — Data API calls would
+  have run under the wrong tenant until expiry. The dialog now treats a
+  throw or null restore as rollback failure: `discardSession()` drops
+  every credential in memory, then a new `onSessionDropped` seam lets
+  `AuthGate` run the full local sign-out (`SessionStore.clear`, residue
+  sweep, queue/cache rebinding, lock reset) and pop the dead shell back
+  to the login gate with an honest snackbar. No delete RPC ever fires
+  on this path. |
+  `delete_account_test.dart: a stranger re-auth whose rollback fails
+  drops the stranger session and forces a local sign-out — no delete`;
+  `delete_account_test.dart: rollback failure leaves the auth client
+  with no session at all`.
+- **P2-5** | `mobile/android/app/build.gradle.kts`,
+  `mobile/android/app/proguard-rules.pro` (new) | Release artifacts
+  shipped unshrunk/unobfuscated. `isMinifyEnabled` +
+  `isShrinkResources` are now on for release with
+  `proguard-android-optimize` plus app rules: Flutter embedding keeps,
+  the `com.dexterous.**` Gson keeps flutter_local_notifications needs
+  for scheduled-notification restore, and `-dontwarn
+  com.google.android.play.core.**` — R8's own missing_rules.txt output
+  for the engine's dead deferred-component linkage (the Play Core
+  library isn't packaged). Verified: `flutter build apk --release
+  -PmfAllowDebugRelease=true` → `app-release.apk` 64.2MB (first attempt
+  failed on the Play Core classes before the dontwarn was added; the
+  exact failure was R8 missing-class errors on splitinstall/splitcompat).
+  Upload-key signing still requires `key.properties` — the verification
+  ran under the documented debug-release escape hatch, so a Play AAB
+  needs the owner's keystore. | Build evidence: `assembleRelease`
+  green with R8; no new tests (build-system change).
+- **P2-6** | `mobile/lib/domain/voice_money_parser.dart`,
+  `mobile/test/voice_money_parser_test.dart` | `_parseFullAmount`
+  accumulated a `double` and called `.round()` unbounded — absurd spoken
+  amounts saturated to int64 max and displayed as plausible. Now
+  `total > _maxSafeAmount` (9007199254740991, the same bound the share
+  parser uses) is rejected BEFORE rounding. |
+  `voice_money_parser_test.dart: absurd amounts return null
+  (123456789012345678 đồng / 10000000 tỷ / 999999999999999999999999);
+  sane neighbors (hai tỷ, 100 tỷ) still parse`.
+- **P2-7** | `mobile/lib/app/app.dart`,
+  `mobile/test/session_restore_test.dart` | Cold start blocked the gate
+  on `restoreSession` → `/get-session` with only the transport's 10s
+  connect + 30s inactivity bounds — up to ~40s of dead spinner. The
+  probe now has its own `_sessionProbeBudget` (8s — a real round-trip
+  plus scale-to-zero wake): on `TimeoutException` the existing
+  `_restoreOffline` path renders the cached shell and the lazy JWT
+  refresh re-validates on the next request. A `_bootHintTimer` (2.5s)
+  adds the "Mạng đang chậm — sẽ mở bản ngoại tuyến nếu không kết nối
+  được" affordance so the spinner never reads as a hang. |
+  `session_restore_test.dart: a never-answering /get-session drops the
+  spinner into the offline shell within the probe budget — stored
+  token kept`.

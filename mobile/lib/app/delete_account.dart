@@ -23,12 +23,19 @@ import 'delete_data.dart' show deleteConfirmText, matchesDeleteConfirm;
 ///   * demo mode never reaches here (no server account exists) — the
 ///     menu item is absent in demo.
 ///
+/// [onSessionDropped] fires when a stranger-account re-auth could not be
+/// rolled back: the client has already discarded every credential it was
+/// holding, so the only honest continuation is a fresh sign-in — the
+/// caller signs out locally and pops the dead shell. It runs inside the
+/// dialog's submit path, before the dialog reports anything.
+///
 /// Returns true only when the account is actually gone server-side.
 Future<bool> showDeleteAccountFlow(
   BuildContext context, {
   required NeonAuthClient auth,
   required Future<int> Function() deleteAccount,
   GoogleSignInFlow? googleFlow,
+  Future<void> Function()? onSessionDropped,
 }) async {
   final confirmed = await showDialog<bool>(
     context: context,
@@ -37,6 +44,7 @@ Future<bool> showDeleteAccountFlow(
       auth: auth,
       deleteAccount: deleteAccount,
       googleFlow: googleFlow,
+      onSessionDropped: onSessionDropped,
     ),
   );
   return confirmed ?? false;
@@ -51,11 +59,18 @@ class _DeleteAccountDialog extends StatefulWidget {
     required this.auth,
     required this.deleteAccount,
     this.googleFlow,
+    this.onSessionDropped,
   });
 
   final NeonAuthClient auth;
   final Future<int> Function() deleteAccount;
   final GoogleSignInFlow? googleFlow;
+
+  /// Invoked after a stranger-account re-auth whose rollback failed —
+  /// by then the client holds no session at all, so the host must force
+  /// a local sign-out (a half-restored client would keep issuing Data
+  /// API calls under the stranger's cached JWT).
+  final Future<void> Function()? onSessionDropped;
 
   @override
   State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
@@ -158,7 +173,30 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
           if (prior != null && session.userId != prior.userId) {
             // Restore the original session — the stranger's session
             // token is dropped, never persisted anywhere.
-            await widget.auth.restoreSession(prior.sessionToken);
+            NeonSession? restored;
+            try {
+              restored = await widget.auth.restoreSession(prior.sessionToken);
+            } catch (_) {
+              restored = null;
+            }
+            if (restored == null) {
+              // The rollback failed (5xx/timeout) or the prior session
+              // is dead upstream — and the auth client still caches the
+              // STRANGER's Data-API JWT, so the next requests would run
+              // under the wrong tenant until it expires. Discard every
+              // credential the client holds and hand the shell a forced
+              // sign-out: only a fresh login is an honest state.
+              widget.auth.discardSession();
+              await widget.onSessionDropped?.call();
+              if (!mounted) return;
+              setState(() {
+                _busy = false;
+                _error =
+                    'Không khôi phục được phiên đăng nhập cũ — đã đăng '
+                    'xuất, hãy đăng nhập lại.';
+              });
+              return;
+            }
             if (!mounted) return;
             setState(() {
               _busy = false;

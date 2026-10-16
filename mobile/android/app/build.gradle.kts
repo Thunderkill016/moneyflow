@@ -90,6 +90,17 @@ android {
 
     buildTypes {
         release {
+            // R8 whole-program shrink + obfuscation — an unobfuscated
+            // finance client hands class names to anyone with apktool.
+            // Every plugin in use ships consumer keep rules;
+            // flutter_local_notifications additionally needs its
+            // serialized-details keeps, held in proguard-rules.pro.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
             signingConfig =
                 if (hasUploadKey) {
                     signingConfigs.getByName("release")

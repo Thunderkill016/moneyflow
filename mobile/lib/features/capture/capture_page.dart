@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../data/capture_draft.dart';
 import '../../data/capture_prefs.dart';
 import '../../data/neon/real_store.dart' show newIdempotencyKey;
 import '../../data/share/share_text_parser.dart';
@@ -96,6 +97,7 @@ class CapturePage extends StatefulWidget {
     this.editing,
     this.onCreateAccount,
     this.onSaveRule,
+    this.draftScope,
   });
 
   final List<AccountSummary> accounts;
@@ -134,11 +136,18 @@ class CapturePage extends StatefulWidget {
   /// checkbox.
   final Future<void> Function(InboxRuleDraft draft)? onSaveRule;
 
+  /// Account scope for the unsaved-draft slot (`null` = no persistence —
+  /// demo/read-only hosts). Process death drops every pushed route, so
+  /// in-progress fields are kept in an account-scoped prefs slot and
+  /// offered back on the next open instead of relying on framework route
+  /// restoration the imperative `Navigator.push` stack can't deliver.
+  final String? draftScope;
+
   @override
   State<CapturePage> createState() => _CapturePageState();
 }
 
-class _CapturePageState extends State<CapturePage> {
+class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
   final _amount = TextEditingController();
   final _note = TextEditingController();
   final _payee = TextEditingController();
@@ -157,7 +166,9 @@ class _CapturePageState extends State<CapturePage> {
   DateTime? _autoDate;
 
   // One key per form-open — the idempotency key of this capture intent.
-  final String _idempotencyKey = newIdempotencyKey();
+  // A restored draft carries its original key back so a submit retried
+  // after process death dedupes against the write that may have landed.
+  late String _idempotencyKey = newIdempotencyKey();
 
   TransactionKind _kind = TransactionKind.expense;
   // Mirrors widget.accounts but mutable — creating a wallet from the
@@ -180,8 +191,198 @@ class _CapturePageState extends State<CapturePage> {
   final List<_SplitRow> _splitRows = [];
   final List<_SplitRow> _retiredSplitRows = [];
 
+  // ── Unsaved-draft persistence (see widget.draftScope) ─────────────
+  // A debounced write keeps the stored copy within ~400ms of the last
+  // edit; didChangeAppLifecycleState(paused) flushes it synchronously
+  // because Android may kill the process any time after backgrounding.
+  static const _draftSaveDebounce = Duration(milliseconds: 400);
+  Timer? _draftSaveTimer;
+
+  /// True while the "Đã khôi phục bản nháp" banner is up — it dismisses
+  /// itself on the first real edit (the notice has done its job).
+  bool _restoredDraft = false;
+
+  /// Suppresses persistence while a draft/default restore mutates the
+  /// fields programmatically — re-saving what was just read is wasted
+  /// churn and a clear-then-resave race.
+  bool _suppressDraftSave = false;
+
+  /// Set once a submit consumed the draft — the dispose-time flush must
+  /// not resurrect a stored copy of the transaction that just landed.
+  bool _draftConsumed = false;
+
+  bool get _draftEnabled =>
+      widget.draftScope != null && widget.editing == null && !_draftConsumed;
+
+  /// Every state mutation schedules a draft write — overriding the one
+  /// funnel beats chasing a dozen call sites (and forgetting the next).
+  @override
+  void setState(VoidCallback fn) {
+    super.setState(fn);
+    _persistDraftSoon();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _draftSaveTimer?.cancel();
+      _writeDraftNow();
+    }
+  }
+
+  void _persistDraftSoon() {
+    if (!_draftEnabled || _suppressDraftSave) return;
+    if (_restoredDraft && mounted) {
+      // First post-restore edit — drop the banner with the fields kept.
+      super.setState(() => _restoredDraft = false);
+    }
+    _draftSaveTimer?.cancel();
+    _draftSaveTimer = Timer(_draftSaveDebounce, _persistDraftNow);
+  }
+
+  void _persistDraftNow() {
+    if (!mounted) return;
+    _writeDraftNow();
+  }
+
+  void _writeDraftNow() {
+    if (!_draftEnabled || _suppressDraftSave) return;
+    final scope = widget.draftScope!;
+    final draft = _currentDraft();
+    unawaited(
+      draft.isEmpty
+          ? CaptureDraftStore.clear(scope)
+          : CaptureDraftStore.save(scope, draft),
+    );
+  }
+
+  CaptureDraft _currentDraft() => CaptureDraft(
+    kind: _kind,
+    amountText: _amount.text,
+    note: _note.text,
+    payee: _payee.text,
+    accountId: _accountId,
+    destinationAccountId: _destAccountId,
+    categoryId: _categoryId,
+    occurredOn: _sameDay(_date, vnNow()) ? null : _fmtDate(_date),
+    repeatMonthly: _repeatMonthly,
+    split: _split,
+    splitRows: [
+      for (final r in _splitRows)
+        CaptureDraftSplitLine(
+          categoryId: r.categoryId,
+          amountText: r.amount.text,
+        ),
+    ],
+    idempotencyKey: _idempotencyKey,
+    savedAtMs: DateTime.now().millisecondsSinceEpoch,
+  );
+
+  /// The draft is consumed once the intent landed (or is held by the
+  /// offline queue) — keeping it would resurrect an already-saved form.
+  void _clearStoredDraft() {
+    _draftConsumed = true;
+    _draftSaveTimer?.cancel();
+    final scope = widget.draftScope;
+    if (scope != null) unawaited(CaptureDraftStore.clear(scope));
+  }
+
+  /// "Xóa" on the restored-draft banner: the stored slot goes AND the
+  /// fields reset — clearing only the blob would re-save the same draft
+  /// on the next keystroke.
+  void _discardDraft() {
+    _draftSaveTimer?.cancel();
+    final scope = widget.draftScope;
+    if (scope != null) unawaited(CaptureDraftStore.clear(scope));
+    _suppressDraftSave = true;
+    setState(() {
+      _amount.clear();
+      _note.clear();
+      _payee.clear();
+      _quick.clear();
+      _quickDraft = null;
+      _kind = TransactionKind.expense;
+      _accountId = null;
+      _destAccountId = null;
+      _categoryId = null;
+      _date = vnNow();
+      _repeatMonthly = false;
+      _split = false;
+      _retiredSplitRows.addAll(_splitRows);
+      _splitRows.clear();
+      _restoredDraft = false;
+      _idempotencyKey = newIdempotencyKey();
+    });
+    _suppressDraftSave = false;
+  }
+
+  /// True while nothing user-entered has touched the form — a draft
+  /// that lands over already-typed input would destroy newer intent.
+  bool _formIsUntouched() =>
+      _amount.text.isEmpty &&
+      _note.text.isEmpty &&
+      _payee.text.isEmpty &&
+      _quick.text.isEmpty &&
+      _destAccountId == null &&
+      !_split &&
+      !_repeatMonthly &&
+      _sameDay(_date, vnNow());
+
+  /// Applies a loaded draft. Ids are re-validated against the live
+  /// account/category lists — a wallet deleted since the draft was
+  /// typed must not resurrect as a phantom selection.
+  void _applyDraft(CaptureDraft d) {
+    _kind = d.kind;
+    _amount.text = d.amountText;
+    _note.text = d.note;
+    _payee.text = d.payee;
+    if (_accounts.any((a) => a.id == d.accountId)) {
+      _accountId = d.accountId;
+    }
+    if (_accounts.any((a) => a.id == d.destinationAccountId)) {
+      _destAccountId = d.destinationAccountId;
+    }
+    if (widget.categories.any((c) => c.id == d.categoryId && c.kind == _kind)) {
+      _categoryId = d.categoryId;
+    }
+    final day = d.occurredOn == null ? null : DateTime.tryParse(d.occurredOn!);
+    if (day != null) _date = day;
+    _repeatMonthly = d.repeatMonthly && _kind != TransactionKind.transfer;
+    _split = d.split && _kind == TransactionKind.expense;
+    if (_split) {
+      for (final l in d.splitRows) {
+        final row = _newSplitRow(categoryId: l.categoryId)
+          ..amount.text = l.amountText;
+        _splitRows.add(row);
+      }
+      // Split submits need at least two lines — a degenerate stored
+      // draft reseeds the pair rather than failing validation oddly.
+      while (_splitRows.length < 2) {
+        _splitRows.add(_newSplitRow());
+      }
+    }
+    if (d.idempotencyKey != null) _idempotencyKey = d.idempotencyKey!;
+    _restoredDraft = true;
+  }
+
+  _SplitRow _newSplitRow({String? categoryId}) {
+    final row = _SplitRow(categoryId: categoryId);
+    if (_draftEnabled) row.amount.addListener(_persistDraftSoon);
+    return row;
+  }
+
   @override
   void dispose() {
+    _draftSaveTimer?.cancel();
+    if (_draftEnabled) {
+      WidgetsBinding.instance.removeObserver(this);
+      // Flush pending edits — a debounce scheduled in the last 400ms
+      // would otherwise die with the page.
+      _writeDraftNow();
+      _amount.removeListener(_persistDraftSoon);
+      _note.removeListener(_persistDraftSoon);
+      _payee.removeListener(_persistDraftSoon);
+    }
     _amount.dispose();
     _note.dispose();
     _payee.dispose();
@@ -199,10 +400,10 @@ class _CapturePageState extends State<CapturePage> {
       _split = on;
       _error = null;
       if (on && _splitRows.isEmpty) {
-        final first = _SplitRow(categoryId: _categoryId);
+        final first = _newSplitRow(categoryId: _categoryId);
         final typed = parseMoneyInput(_amount.text);
         if (typed != null && typed > 0) first.amount.text = typed.toString();
-        _splitRows.addAll([first, _SplitRow()]);
+        _splitRows.addAll([first, _newSplitRow()]);
       }
     });
   }
@@ -232,6 +433,12 @@ class _CapturePageState extends State<CapturePage> {
   void initState() {
     super.initState();
     _accounts = widget.accounts;
+    if (_draftEnabled) {
+      _amount.addListener(_persistDraftSoon);
+      _note.addListener(_persistDraftSoon);
+      _payee.addListener(_persistDraftSoon);
+      WidgetsBinding.instance.addObserver(this);
+    }
     final editing = widget.editing;
     if (editing != null) {
       _kind = editing.kind;
@@ -250,27 +457,49 @@ class _CapturePageState extends State<CapturePage> {
       if (p.amount != null) _amount.text = p.amount!.toString();
       if (p.note != null) _note.text = p.note!;
     }
-    // Last-used defaults — prefills only win when the id still exists.
+    unawaited(_restoreFormState());
+  }
+
+  /// Last-used defaults first, then the stored draft over the top —
+  /// the draft is the newer intent, so it wins every field it carries.
+  /// A share-prefill skips the draft: the shared text is fresher than
+  /// whatever was typed earlier.
+  Future<void> _restoreFormState() async {
+    CaptureDraft? draft;
+    final scope = widget.draftScope;
+    if (scope != null && widget.prefill == null) {
+      try {
+        draft = await CaptureDraftStore.load(scope);
+      } catch (_) {}
+    }
     // A prefs-backend failure (no plugin, corrupt store) just means no
     // prefill; it must never break the form.
-    CapturePrefs.loadLastCapture()
-        .then((last) {
-          if (!mounted) return;
-          setState(() {
-            if (_accounts.any((a) => a.id == last.accountId)) {
-              _accountId = last.accountId;
-            }
-            // A remembered category only applies when it still exists and
-            // matches the current kind — an income category can't prefill an
-            // expense form.
-            if (widget.categories.any(
-              (c) => c.id == last.categoryId && c.kind == _kind,
-            )) {
-              _categoryId = last.categoryId;
-            }
-          });
-        })
-        .catchError((_) {});
+    ({String? accountId, String? categoryId}) last = (
+      accountId: null,
+      categoryId: null,
+    );
+    try {
+      last = await CapturePrefs.loadLastCapture();
+    } catch (_) {}
+    if (!mounted) return;
+    _suppressDraftSave = true;
+    setState(() {
+      if (_accounts.any((a) => a.id == last.accountId)) {
+        _accountId = last.accountId;
+      }
+      // A remembered category only applies when it still exists and
+      // matches the current kind — an income category can't prefill an
+      // expense form.
+      if (widget.categories.any(
+        (c) => c.id == last.categoryId && c.kind == _kind,
+      )) {
+        _categoryId = last.categoryId;
+      }
+      // Drafts only land on a still-fresh form — typing that beat the
+      // async prefs read is newer intent than the stored snapshot.
+      if (draft != null && _formIsUntouched()) _applyDraft(draft);
+    });
+    _suppressDraftSave = false;
   }
 
   /// Most-used categories for the current kind — the inline pick row.
@@ -522,6 +751,7 @@ class _CapturePageState extends State<CapturePage> {
           categoryId: _categoryId,
         ),
       );
+      _clearStoredDraft();
       final saveRule = widget.onSaveRule;
       if (_saveAsRule && saveRule != null) {
         try {
@@ -549,10 +779,12 @@ class _CapturePageState extends State<CapturePage> {
     } on CommitmentFailed {
       // The transaction saved; only the recurring commitment failed. The
       // caller turns savedPartial into an honest snackbar — still a save.
+      _clearStoredDraft();
       if (mounted) Navigator.of(context).pop(CaptureResult.savedPartial);
     } on CaptureQueued {
       // The submit failed offline and the intent is held in the queue —
       // close the form; the banner + snackbar explain it will replay.
+      _clearStoredDraft();
       if (mounted) Navigator.of(context).pop(CaptureResult.queued);
     } catch (e) {
       setState(() {
@@ -774,6 +1006,23 @@ class _CapturePageState extends State<CapturePage> {
             ),
             const SizedBox(height: 12),
           ],
+          if (_restoredDraft) ...[
+            Card(
+              color: Theme.of(context).colorScheme.secondaryContainer,
+              child: ListTile(
+                dense: true,
+                leading: const Icon(Icons.restore),
+                title: const Text('Đã khôi phục bản nháp chưa lưu'),
+                // "Xóa" clears the stored slot AND the fields — the
+                // draft would otherwise re-save on the next keystroke.
+                trailing: TextButton(
+                  onPressed: _discardDraft,
+                  child: const Text('Xóa'),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           // "Gõ nhanh" sits first so a typed sentence prefills the form
           // below; edit mode keeps the loaded row authoritative instead.
           if (widget.editing == null) ...[
@@ -925,7 +1174,8 @@ class _CapturePageState extends State<CapturePage> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
-                  onPressed: () => setState(() => _splitRows.add(_SplitRow())),
+                  onPressed: () =>
+                      setState(() => _splitRows.add(_newSplitRow())),
                   icon: const Icon(Icons.add),
                   label: const Text('Thêm dòng'),
                 ),
