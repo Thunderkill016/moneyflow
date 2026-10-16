@@ -161,17 +161,18 @@ void main() {
   });
 
   group('SettingsPrefs', () {
-    test('theme mode defaults to light and round-trips', () async {
-      expect(await SettingsPrefs.loadThemeMode(), ThemeMode.light);
-      await SettingsPrefs.saveThemeMode(ThemeMode.dark);
+    test('theme mode defaults to dark and round-trips', () async {
+      // Dark-mode-first is the neon-green direction (2026-10-16).
       expect(await SettingsPrefs.loadThemeMode(), ThemeMode.dark);
+      await SettingsPrefs.saveThemeMode(ThemeMode.light);
+      expect(await SettingsPrefs.loadThemeMode(), ThemeMode.light);
       await SettingsPrefs.saveThemeMode(ThemeMode.system);
       expect(await SettingsPrefs.loadThemeMode(), ThemeMode.system);
     });
 
-    test('an unrecognised stored mode falls back to light', () async {
+    test('an unrecognised stored mode falls back to dark', () async {
       SharedPreferences.setMockInitialValues({'mf_theme_mode': 'neon'});
-      expect(await SettingsPrefs.loadThemeMode(), ThemeMode.light);
+      expect(await SettingsPrefs.loadThemeMode(), ThemeMode.dark);
     });
 
     test('digest time defaults to 19:00 and round-trips', () async {
@@ -272,14 +273,21 @@ void main() {
   });
 
   group('theme radios', () {
-    testWidgets('picking Tối persists and publishes the mode', (t) async {
+    testWidgets('picking a mode persists and publishes it', (t) async {
       await t.pumpWidget(const MaterialApp(home: SettingsPage()));
       await t.pumpAndSettle();
 
-      await t.tap(find.text('Tối'));
+      // Dark is already selected (dark-first default), so start from
+      // Sáng — a radio's onChanged never re-fires on its current value.
+      await t.tap(find.text('Sáng'));
       await t.pumpAndSettle();
 
       final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('mf_theme_mode'), 'light');
+      expect(SettingsPrefs.themeMode.value, ThemeMode.light);
+
+      await t.tap(find.text('Tối'));
+      await t.pumpAndSettle();
       expect(prefs.getString('mf_theme_mode'), 'dark');
       expect(SettingsPrefs.themeMode.value, ThemeMode.dark);
 

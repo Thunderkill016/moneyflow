@@ -384,7 +384,7 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
       await t.ensureVisible(find.text('Lưu'));
-      await t.pumpAndSettle();
+      await t.pump();
       await t.tap(find.text('Lưu'));
       await t.pumpAndSettle();
     }
@@ -506,14 +506,22 @@ void main() {
       expect(find.text('Chia theo nhiều danh mục'), findsNothing);
 
       await t.enterText(find.widgetWithText(TextField, '65000'), '70000');
+      // Drop focus so the focused field stops dragging the list back
+      // into view on every pump — the edit form is taller than the
+      // test viewport, so field and 'Lưu' cannot stay visible at once.
+      FocusManager.instance.primaryFocus?.unfocus();
+      await t.pumpAndSettle();
       await t.scrollUntilVisible(
         find.text('Lưu'),
         200,
         scrollable: find.byType(Scrollable).first,
       );
       // Built != on-screen: bring the button fully into the viewport.
+      // A single pump applies the zero-duration scroll jump; a full
+      // settle scrolls back to the focused field and lazily unmounts
+      // the last ListView child again.
       await t.ensureVisible(find.text('Lưu'));
-      await t.pumpAndSettle();
+      await t.pump();
       await t.tap(find.text('Lưu'));
       await t.pumpAndSettle();
 
@@ -578,8 +586,11 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
       // Built != on-screen: bring the button fully into the viewport.
+      // A single pump applies the zero-duration scroll jump; a full
+      // settle scrolls back to the focused field and lazily unmounts
+      // the last ListView child again.
       await t.ensureVisible(find.text('Lưu'));
-      await t.pumpAndSettle();
+      await t.pump();
       await t.tap(find.text('Lưu'));
       await t.pumpAndSettle();
       expect(

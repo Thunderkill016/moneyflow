@@ -77,7 +77,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   Icon(
                     Icons.mark_email_read_outlined,
                     size: 40,
-                    color: context.mf.brand,
+                    color: context.mf.brandText,
                   ),
                   const SizedBox(height: 12),
                   Text(

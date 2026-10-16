@@ -5,7 +5,7 @@ import 'package:moneyflow/features/dashboard/dashboard_page.dart';
 import 'package:moneyflow/theme/mf_theme.dart';
 
 void main() {
-  group('MfTheme — light minimal fintech direction', () {
+  group('MfTheme — neon green direction (owner decision 2026-10-16)', () {
     test('light and dark themes ship the semantic token extension', () {
       final light = MfTheme.light();
       final dark = MfTheme.dark();
@@ -15,23 +15,66 @@ void main() {
       expect(dark.brightness, Brightness.dark);
     });
 
-    test('dark palette keeps the ink-violet canvas + light violet accent', () {
+    test('dark palette is the primary experience: near-black canvas + '
+        'neon green actions', () {
       // Pinned so a stray edit cannot silently drift the direction.
-      expect(MfTheme.dark().scaffoldBackgroundColor, const Color(0xFF161224));
-      expect(MfTheme.dark().colorScheme.surface, const Color(0xFF1E1A30));
-      expect(MfColors.dark.brand, const Color(0xFFB7A5FF));
+      expect(MfTheme.dark().scaffoldBackgroundColor, const Color(0xFF0A0E0C));
+      expect(MfTheme.dark().colorScheme.surface, const Color(0xFF121715));
+      expect(MfTheme.dark().colorScheme.primary, const Color(0xFF00FF88));
+      expect(MfColors.dark.brand, const Color(0xFF00FF88));
+      expect(MfColors.dark.brandText, const Color(0xFF00FF88));
       expect(MfColors.dark.income, const Color(0xFF34D399));
       expect(MfColors.dark.expense, const Color(0xFFFB7185));
-      expect(MfColors.dark.transfer, const Color(0xFFA78BFA));
+      expect(MfColors.dark.transfer, const Color(0xFF22D3EE));
     });
 
-    test('light palette is lilac canvas + violet actions (Soft Pop)', () {
-      expect(MfTheme.light().scaffoldBackgroundColor, const Color(0xFFF8F5FF));
-      expect(MfTheme.light().colorScheme.primary, const Color(0xFF6F4EF5));
-      expect(MfColors.light.brand, const Color(0xFF6F4EF5));
+    test('light palette keeps the literal brand but adapts thin accents '
+        'for contrast', () {
+      expect(MfTheme.light().scaffoldBackgroundColor, const Color(0xFFFFFFFF));
+      expect(MfTheme.light().colorScheme.surface, const Color(0xFFF2F7F4));
+      // #00FF88 fails AA on white, so the ColorScheme primary and
+      // brandText take the darker #00A854-family variant…
+      expect(MfTheme.light().colorScheme.primary, const Color(0xFF00803E));
+      expect(MfColors.light.brandText, const Color(0xFF00803E));
+      // …while mf.brand keeps the literal neon for ink-on-brand fills.
+      expect(MfColors.light.brand, const Color(0xFF00FF88));
       expect(MfColors.light.income, const Color(0xFF059669));
       expect(MfColors.light.expense, const Color(0xFFE11D48));
-      expect(MfColors.light.transfer, const Color(0xFF7C3AED));
+      expect(MfColors.light.transfer, const Color(0xFF0891B2));
+    });
+
+    test('nothing in either palette keeps a Soft Pop purple value', () {
+      // The full token sweep: violet/lilac hue (~235–320°) with any real
+      // saturation is a regression — the brand family is green now.
+      for (final mf in [MfColors.light, MfColors.dark]) {
+        for (final c in [
+          mf.brand,
+          mf.brandSubtle,
+          mf.brandText,
+          mf.textMuted,
+          mf.textSoft,
+          mf.borderSubtle,
+          mf.borderStrong,
+          mf.surfaceMuted,
+          mf.navSurface,
+          mf.surfaceStrong,
+          mf.transfer,
+          mf.transferSubtle,
+          mf.transferText,
+          mf.transferBorder,
+        ]) {
+          final hsv = HSVColor.fromColor(c);
+          final looksPurple =
+              hsv.hue >= 235 && hsv.hue <= 320 && hsv.saturation >= 0.03;
+          expect(
+            looksPurple,
+            isFalse,
+            reason:
+                'purple-family token survived: ${c.toARGB32().toRadixString(16)} '
+                '(hue ${hsv.hue.toStringAsFixed(0)})',
+          );
+        }
+      }
     });
 
     test('cards: whisper shadow in light, hairline border in both', () {

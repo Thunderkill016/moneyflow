@@ -57,6 +57,8 @@ Color categoryColor(String? key) => switch (key) {
   'pink' => Colors.pink,
   'red' => Colors.red,
   // "violet" is also the fallback for anything outside the palette —
-  // same degrade the web applies to unstorable colors.
+  // same degrade the web applies to unstorable colors. This is a
+  // stored user-picked data color ('Tím'), not Soft Pop brand chrome,
+  // so it intentionally survives the neon-green theme migration.
   _ => Colors.deepPurple,
 };

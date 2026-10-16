@@ -232,7 +232,9 @@ class _FloatingNav extends StatelessWidget {
                         // Rounded square like the reference's orange "+".
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Icon(Icons.add, color: Colors.white),
+                      // Dark ink on the neon brand fill — white fails
+                      // contrast on #00FF88.
+                      child: const Icon(Icons.add, color: mfPastelInk),
                     ),
                   ),
                 ),

@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 
-/// MoneyFlow mobile design tokens — light minimal fintech direction
-/// Soft Pop territory (owner-selected 2026-10-15, see
-/// docs/design/GENZ_DESIGN_EXPLORATION.md): lilac canvas, white rounded
-/// tiles, violet action family, oversized money on the canvas. Dark mode
-/// keeps the same structure on an ink-violet canvas. Semantic finance
-/// colors stay distinguishable from brand: an amount's color is NEVER the only
-/// carrier of sign/direction (tiles still print +/−/↔ via
+/// MoneyFlow mobile design tokens — NEON GREEN direction (owner decision
+/// 2026-10-16, supersedes Soft Pop purple; see
+/// docs/design/greenvault-reference/). Dark mode is the primary
+/// experience: near-black green-undertone canvas, neon #00FF88 actions,
+/// white type. Light mode keeps the same structure on a white canvas
+/// where the brand adapts to an accessible green (pure #00FF88 strokes
+/// and text fail contrast on light surfaces, so fills keep the literal
+/// brand while thin accents use the #00A854-family variant).
+///
+/// Semantic finance colors stay distinguishable from brand: income is
+/// emerald, expense rose, transfer cyan — an amount's color is NEVER the
+/// only carrier of sign/direction (tiles still print +/−/↔ via
 /// formatMoneyWithKind).
 class MfColors extends ThemeExtension<MfColors> {
   const MfColors({
@@ -38,9 +43,13 @@ class MfColors extends ThemeExtension<MfColors> {
     required this.warningBorder,
   });
 
-  /// Orange accent: highlights and small calls to action (never money).
+  /// Neon green brand: CTA/FAB fills, active states, brand accents.
+  /// Anything printed ON it must use a dark ink — white fails contrast.
   final Color brand;
   final Color brandSubtle;
+
+  /// Brand-colored text/icon accent on plain surfaces — on light this is
+  /// the darker #00A854-family variant since #00FF88 itself is too light.
   final Color brandText;
 
   /// Secondary text / captions — never for primary content.
@@ -54,12 +63,12 @@ class MfColors extends ThemeExtension<MfColors> {
   /// Secondary panel vs pressed/selected fill.
   final Color surfaceMuted;
 
-  /// Floating bottom bar — a hair darker than the canvas (light) or the
-  /// card surface (dark); the reference's #F0F0EE / #101623.
+  /// Floating bottom bar — the card surface tone (dark) or white (light)
+  /// so the pill floats on the canvas without a heavier fill.
   final Color navSurface;
   final Color surfaceStrong;
 
-  /// Financial semantics — mint income, coral expense, violet
+  /// Financial semantics — emerald income, rose expense, cyan
   /// transfer, amber warning; each carries a subtle tile tint and a
   /// readable text tone.
   final Color income;
@@ -79,18 +88,20 @@ class MfColors extends ThemeExtension<MfColors> {
   final Color warningText;
   final Color warningBorder;
 
-  /// Light-first: the default look.
+  /// Light set — the secondary mode. Brand stays literal #00FF88 for
+  /// fills; brandText and the ColorScheme primary drop to the accessible
+  /// #00A854 family so text, icons and hairlines stay legible on white.
   static const light = MfColors(
-    brand: Color(0xFF6F4EF5),
-    brandSubtle: Color(0xFFEFEAFF),
-    brandText: Color(0xFF5B3BE0),
-    textMuted: Color(0xFF524A6B),
-    textSoft: Color(0xFF6F6787),
-    borderSubtle: Color(0xFFE9E4F6),
-    borderStrong: Color(0xFF8E79C9),
-    surfaceMuted: Color(0xFFF1ECFF),
+    brand: Color(0xFF00FF88),
+    brandSubtle: Color(0xFFD9FCE8),
+    brandText: Color(0xFF00803E),
+    textMuted: Color(0xFF42564B),
+    textSoft: Color(0xFF64766C),
+    borderSubtle: Color(0xFFD9EAE0),
+    borderStrong: Color(0xFF5E8C74),
+    surfaceMuted: Color(0xFFE8F4EC),
     navSurface: Color(0xFFFFFFFF),
-    surfaceStrong: Color(0xFFE9E3F8),
+    surfaceStrong: Color(0xFFD7EBDE),
     income: Color(0xFF059669),
     incomeSubtle: Color(0xFFECFDF5),
     incomeText: Color(0xFF047857),
@@ -99,27 +110,29 @@ class MfColors extends ThemeExtension<MfColors> {
     expenseSubtle: Color(0xFFFFF1F2),
     expenseText: Color(0xFFBE123C),
     expenseBorder: Color(0xFFFDA4AF),
-    transfer: Color(0xFF7C3AED),
-    transferSubtle: Color(0xFFF5F3FF),
-    transferText: Color(0xFF6D28D9),
-    transferBorder: Color(0xFFC4B5FD),
+    transfer: Color(0xFF0891B2),
+    transferSubtle: Color(0xFFECFEFF),
+    transferText: Color(0xFF0E7490),
+    transferBorder: Color(0xFF67E8F9),
     warning: Color(0xFFD97706),
     warningSubtle: Color(0xFFFFFBEB),
     warningText: Color(0xFFB45309),
     warningBorder: Color(0xFFFCD34D),
   );
 
+  /// Dark set — the primary experience. Near-black canvas with a green
+  /// undertone, neon green actions, white type.
   static const dark = MfColors(
-    brand: Color(0xFFB7A5FF),
-    brandSubtle: Color(0xFF2E2650),
-    brandText: Color(0xFFCBBFFF),
-    textMuted: Color(0xFFCDC6DE),
-    textSoft: Color(0xFFA79FC4),
-    borderSubtle: Color(0xFF2C2644),
-    borderStrong: Color(0xFF7C6CB0),
-    surfaceMuted: Color(0xFF282240),
-    navSurface: Color(0xFF1E1A30),
-    surfaceStrong: Color(0xFF352D52),
+    brand: Color(0xFF00FF88),
+    brandSubtle: Color(0xFF0E2B1E),
+    brandText: Color(0xFF00FF88),
+    textMuted: Color(0xFFA9C1B5),
+    textSoft: Color(0xFF7E9489),
+    borderSubtle: Color(0xFF1F2E26),
+    borderStrong: Color(0xFF4A7560),
+    surfaceMuted: Color(0xFF16211B),
+    navSurface: Color(0xFF121715),
+    surfaceStrong: Color(0xFF1E2D24),
     income: Color(0xFF34D399),
     incomeSubtle: Color(0xFF0D2B22),
     incomeText: Color(0xFF6EE7B7),
@@ -128,10 +141,10 @@ class MfColors extends ThemeExtension<MfColors> {
     expenseSubtle: Color(0xFF351A20),
     expenseText: Color(0xFFFDA4AF),
     expenseBorder: Color(0xFF5E2531),
-    transfer: Color(0xFFA78BFA),
-    transferSubtle: Color(0xFF231D3D),
-    transferText: Color(0xFFC4B5FD),
-    transferBorder: Color(0xFF413078),
+    transfer: Color(0xFF22D3EE),
+    transferSubtle: Color(0xFF0B2A30),
+    transferText: Color(0xFF67E8F9),
+    transferBorder: Color(0xFF155E6B),
     warning: Color(0xFFFBBF24),
     warningSubtle: Color(0xFF33290F),
     warningText: Color(0xFFFCD34D),
@@ -185,16 +198,23 @@ class MfKindIcon extends StatelessWidget {
   }
 }
 
-/// Pastel sticker fills shared by wallet cards and icon tiles — the
-/// Soft Pop accent set (pink / mint / peri / violet). Dark ink text sits
-/// on every one of them, so contrast holds in both themes.
+/// The deeper brand step — gradient end next to [MfColors.brand]
+/// (owner token #00CC6A); also the default progress-fill tone.
+const mfBrandDeep = Color(0xFF00CC6A);
+
+/// Sticker fills shared by wallet cards and icon tiles — bright fills
+/// that pop on the dark canvas without muddying the neon brand. Dark
+/// ink sits on every one of them, so contrast holds in both themes.
 const mfPastelFills = [
-  Color(0xFFFF9FB8),
-  Color(0xFF7FE5C4),
-  Color(0xFF8FA8FF),
-  Color(0xFFC7B7FF),
+  Color(0xFF8AFFC4), // neon mint — the brand-family pastel
+  Color(0xFFFF9FB8), // pink
+  Color(0xFF8FD8FF), // sky
+  Color(0xFFFFD9A8), // sand
 ];
-const mfPastelInk = Color(0xFF211A33);
+
+/// Ink printed on pastel/brand fills — near-black with a green
+/// undertone; also the right icon tone on `mf.brand` neon surfaces.
+const mfPastelInk = Color(0xFF0E1A13);
 
 /// Rounded-square icon tile on a pastel fill (the reference's "My
 /// Savings" / wallet-row icon).
@@ -246,7 +266,7 @@ class MfTickBar extends StatelessWidget {
       size: Size(double.infinity, height),
       painter: _TickPainter(
         ratio: ratio.clamp(0.0, 1.0),
-        fill: color ?? const Color(0xFF86B85A),
+        fill: color ?? mfBrandDeep,
         rest: mf.borderStrong,
         markerColor: Theme.of(context).colorScheme.onSurface,
         marker: marker,
@@ -319,53 +339,104 @@ class MfTheme {
 
   static ThemeData light() => _build(
     const ColorScheme.light(
-      primary: Color(0xFF6F4EF5),
+      // Light-mode primary is the accessible member of the neon family:
+      // #00FF88 itself fails contrast for icons/text/hairlines on white,
+      // so controls take #00A854-family green while mf.brand keeps the
+      // literal neon for fills that carry dark ink (FAB, illustrations).
+      primary: Color(0xFF00803E),
       onPrimary: Color(0xFFFFFFFF),
-      primaryContainer: Color(0xFFEFEAFF),
-      onPrimaryContainer: Color(0xFF3B2797),
-      secondary: Color(0xFF524A6B),
+      primaryContainer: Color(0xFFD9FCE8),
+      onPrimaryContainer: Color(0xFF005C2E),
+      primaryFixed: Color(0xFFD9FCE8),
+      primaryFixedDim: Color(0xFFA5F0C0),
+      onPrimaryFixed: Color(0xFF005227),
+      onPrimaryFixedVariant: Color(0xFF007A3B),
+      secondary: Color(0xFF42564B),
       onSecondary: Color(0xFFFFFFFF),
-      secondaryContainer: Color(0xFFE9E3F8),
-      onSecondaryContainer: Color(0xFF211A33),
+      secondaryContainer: Color(0xFFD7EBDE),
+      onSecondaryContainer: Color(0xFF0E1A13),
+      secondaryFixed: Color(0xFFD7EBDE),
+      secondaryFixedDim: Color(0xFFBCDCC9),
+      onSecondaryFixed: Color(0xFF1F3428),
+      onSecondaryFixedVariant: Color(0xFF3C5446),
+      tertiary: Color(0xFF00803E),
+      onTertiary: Color(0xFFFFFFFF),
+      tertiaryContainer: Color(0xFFD9FCE8),
+      onTertiaryContainer: Color(0xFF005C2E),
+      tertiaryFixed: Color(0xFFD9FCE8),
+      tertiaryFixedDim: Color(0xFFA5F0C0),
+      onTertiaryFixed: Color(0xFF005227),
+      onTertiaryFixedVariant: Color(0xFF007A3B),
       error: Color(0xFFE11D48),
       onError: Color(0xFFFFFFFF),
       errorContainer: Color(0xFFFFF1F2),
       onErrorContainer: Color(0xFF9F1239),
-      surface: Color(0xFFFFFFFF),
-      onSurface: Color(0xFF211A33),
-      onSurfaceVariant: Color(0xFF524A6B),
-      outline: Color(0xFFDCD5EE),
-      outlineVariant: Color(0xFFE9E4F6),
-      surfaceContainerHighest: Color(0xFFE9E3F8),
+      surface: Color(0xFFF2F7F4),
+      onSurface: Color(0xFF0E1A13),
+      onSurfaceVariant: Color(0xFF42564B),
+      surfaceContainerLowest: Color(0xFFFFFFFF),
+      surfaceContainerLow: Color(0xFFF5FAF7),
+      surfaceContainer: Color(0xFFEFF7F1),
+      surfaceContainerHigh: Color(0xFFE5F2EA),
+      surfaceContainerHighest: Color(0xFFD7EBDE),
+      outline: Color(0xFF5E8C74),
+      outlineVariant: Color(0xFFD9EAE0),
+      inverseSurface: Color(0xFF1A211D),
+      onInverseSurface: Color(0xFFF2F7F4),
+      inversePrimary: Color(0xFF00FF88),
     ),
     MfColors.light,
-    const Color(0xFFF8F5FF), // lilac Soft Pop canvas
+    const Color(0xFFFFFFFF), // white canvas — light token set
   );
 
-  /// Dark counterpart: ink-violet canvas, layered violet surfaces.
+  /// Dark counterpart — the primary experience: near-black canvas with a
+  /// green undertone, neon green actions on layered dark surfaces.
   static ThemeData dark() => _build(
     const ColorScheme.dark(
-      primary: Color(0xFFB7A5FF),
-      onPrimary: Color(0xFF221744),
-      primaryContainer: Color(0xFF2E2650),
-      onPrimaryContainer: Color(0xFFCBBFFF),
-      secondary: Color(0xFFCDC6DE),
-      onSecondary: Color(0xFF161224),
-      secondaryContainer: Color(0xFF352D52),
-      onSecondaryContainer: Color(0xFFF4F2FB),
+      primary: Color(0xFF00FF88),
+      onPrimary: Color(0xFF062417),
+      primaryContainer: Color(0xFF0E3A24),
+      onPrimaryContainer: Color(0xFF8AFFC4),
+      primaryFixed: Color(0xFFD9FCE8),
+      primaryFixedDim: Color(0xFFA5F0C0),
+      onPrimaryFixed: Color(0xFF005227),
+      onPrimaryFixedVariant: Color(0xFF007A3B),
+      secondary: Color(0xFFA9C1B5),
+      onSecondary: Color(0xFF0A0E0C),
+      secondaryContainer: Color(0xFF1E2D24),
+      onSecondaryContainer: Color(0xFFFFFFFF),
+      secondaryFixed: Color(0xFFD7EBDE),
+      secondaryFixedDim: Color(0xFFBCDCC9),
+      onSecondaryFixed: Color(0xFF1F3428),
+      onSecondaryFixedVariant: Color(0xFF3C5446),
+      tertiary: Color(0xFF00FF88),
+      onTertiary: Color(0xFF062417),
+      tertiaryContainer: Color(0xFF0E3A24),
+      onTertiaryContainer: Color(0xFF8AFFC4),
+      tertiaryFixed: Color(0xFFD9FCE8),
+      tertiaryFixedDim: Color(0xFFA5F0C0),
+      onTertiaryFixed: Color(0xFF005227),
+      onTertiaryFixedVariant: Color(0xFF007A3B),
       error: Color(0xFFFB7185),
       onError: Color(0xFF3B0A13),
       errorContainer: Color(0xFF351A20),
       onErrorContainer: Color(0xFFFDA4AF),
-      surface: Color(0xFF1E1A30),
-      onSurface: Color(0xFFF4F2FB),
-      onSurfaceVariant: Color(0xFFCDC6DE),
-      outline: Color(0xFF7C6CB0),
-      outlineVariant: Color(0xFF2C2644),
-      surfaceContainerHighest: Color(0xFF352D52),
+      surface: Color(0xFF121715),
+      onSurface: Color(0xFFFFFFFF),
+      onSurfaceVariant: Color(0xFFA9C1B5),
+      surfaceContainerLowest: Color(0xFF070A08),
+      surfaceContainerLow: Color(0xFF0E1310),
+      surfaceContainer: Color(0xFF121715),
+      surfaceContainerHigh: Color(0xFF182019),
+      surfaceContainerHighest: Color(0xFF1E2D24),
+      outline: Color(0xFF4A7560),
+      outlineVariant: Color(0xFF1F2E26),
+      inverseSurface: Color(0xFFE8F4EC),
+      onInverseSurface: Color(0xFF0E1A13),
+      inversePrimary: Color(0xFF00803E),
     ),
     MfColors.dark,
-    const Color(0xFF161224), // ink-violet canvas
+    const Color(0xFF0A0E0C), // near-black green-undertone canvas
   );
 
   static ThemeData _build(ColorScheme scheme, MfColors mf, Color canvas) {
@@ -384,8 +455,8 @@ class MfTheme {
       // 4px rhythm lives in the pages; the theme carries shape/typography.
       cardTheme: CardThemeData(
         // Soft diffused shadow instead of a hard border — tiles float
-        // gently on the lilac canvas (dark keeps a hairline: shadows
-        // vanish on ink).
+        // gently on the light canvas (dark keeps a hairline: shadows
+        // vanish on near-black).
         elevation: dark ? 0 : 1,
         shadowColor: const Color(0x0F000000),
         surfaceTintColor: Colors.transparent,
@@ -412,7 +483,8 @@ class MfTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size(48, 48),
-          // Vivid violet fill: a semibold label keeps it confident, not heavy.
+          // Solid brand fill: a semibold label keeps it confident,
+          // not heavy.
           textStyle: text.labelLarge?.copyWith(fontWeight: FontWeight.w600),
           shape: const StadiumBorder(),
         ),
@@ -448,7 +520,8 @@ class MfTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        // Active destination is a solid violet pill (light violet in dark).
+        // Active destination is a solid brand pill — neon with dark ink
+        // on dark, accessible green with white ink on light.
         backgroundColor: dark ? mf.navSurface : scheme.surface,
         indicatorColor: scheme.primary,
         indicatorShape: const StadiumBorder(),
@@ -481,8 +554,7 @@ class MfTheme {
           side: BorderSide(color: mf.borderSubtle),
         ),
       ),
-      // Pill chips: white at rest, solid violet when selected — the
-      // Soft Pop period / category pills.
+      // Pill chips: surface at rest, solid brand green when selected.
       chipTheme: ChipThemeData(
         // ≥48dp so quick-amount/filter chips are real touch targets.
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),

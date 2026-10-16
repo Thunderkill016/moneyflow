@@ -286,7 +286,7 @@ class _RegisterPageState extends State<RegisterPage> {
               child: Text(
                 'chính sách quyền riêng tư',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: context.mf.brand,
+                  color: context.mf.brandText,
                   fontWeight: FontWeight.w600,
                 ),
               ),

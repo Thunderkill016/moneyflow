@@ -698,16 +698,19 @@ class DashboardPageState extends State<DashboardPage> {
         ],
       ),
       body: DecoratedBox(
-        // Soft peach glow at the top fading into the cream canvas — the
+        // Soft brand glow at the top fading into the canvas — the
         // reference's backdrop. Dark mode keeps the flat ink canvas.
         decoration: BoxDecoration(
           gradient: Theme.of(context).brightness == Brightness.dark
               ? null
-              : const LinearGradient(
+              : LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Color(0xFFEFEAFF), Color(0xFFF8F5FF)],
-                  stops: [0, 0.4],
+                  colors: [
+                    context.mf.brandSubtle,
+                    Theme.of(context).scaffoldBackgroundColor,
+                  ],
+                  stops: const [0, 0.4],
                 ),
         ),
         child: FutureBuilder(

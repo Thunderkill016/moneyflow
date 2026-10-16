@@ -206,7 +206,7 @@ class _IntroSlide extends StatelessWidget {
                 TextSpan(text: plain),
                 TextSpan(
                   text: accent,
-                  style: TextStyle(color: mf.brand),
+                  style: TextStyle(color: mf.brandText),
                 ),
               ],
             ),
@@ -336,7 +336,7 @@ class _WalletStripMini extends StatelessWidget {
               child: Transform.rotate(
                 angle: -0.06,
                 child: card(
-                  const Color(0xFFC7B7FF),
+                  mfPastelFills[1],
                   Icons.payments_outlined,
                   'Tiền mặt',
                 ),
@@ -345,7 +345,7 @@ class _WalletStripMini extends StatelessWidget {
             Transform.translate(
               offset: const Offset(0, -14),
               child: card(
-                const Color(0xFFB7DD95),
+                mfPastelFills[0],
                 Icons.account_balance_outlined,
                 'Ngân hàng',
               ),
@@ -355,7 +355,7 @@ class _WalletStripMini extends StatelessWidget {
               child: Transform.rotate(
                 angle: 0.06,
                 child: card(
-                  const Color(0xFFF0C4A8),
+                  mfPastelFills[3],
                   Icons.account_balance_wallet_outlined,
                   'Ví điện tử',
                 ),
@@ -483,7 +483,7 @@ class _PiggyPainter extends CustomPainter {
 
   final Color body;
 
-  static const _ink = Color(0xFF211A33);
+  static const _ink = mfPastelInk;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -500,7 +500,7 @@ class _PiggyPainter extends CustomPainter {
         const Rect.fromLTWH(188, 128, 52, 64),
         const Radius.circular(18),
       ),
-      fill(const Color(0xFFD5CCF3)),
+      fill(const Color(0xFFD4F5E2)),
     );
     canvas.drawOval(
       const Rect.fromLTWH(40, 196, 190, 20),
@@ -549,7 +549,7 @@ class _PiggyPainter extends CustomPainter {
       ),
       fill(_ink),
     );
-    canvas.drawCircle(const Offset(122, 34), 24, fill(const Color(0xFFC7B7FF)));
+    canvas.drawCircle(const Offset(122, 34), 24, fill(const Color(0xFFFFD166)));
     canvas.drawCircle(
       const Offset(122, 34),
       24,

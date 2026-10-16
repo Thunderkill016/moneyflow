@@ -25,19 +25,20 @@ class SettingsPrefs {
   /// Live theme mode the MaterialApp listens to — `loadThemeMode` fills
   /// it at startup and `saveThemeMode` keeps it in sync. A notifier (not
   /// a callback threaded through the tree) because the settings page sits
-  /// several routes deep.
-  static final themeMode = ValueNotifier<ThemeMode>(ThemeMode.light);
+  /// several routes deep. Dark is the primary experience (neon-green
+  /// direction, owner decision 2026-10-16) so it is also the default.
+  static final themeMode = ValueNotifier<ThemeMode>(ThemeMode.dark);
 
   /// Reads the stored mode and publishes it on [themeMode]. Anything
-  /// unrecognised falls back to system — the app can never trap itself
-  /// in a theme the user can't leave.
+  /// unrecognised falls back to dark — the primary experience — never a
+  /// trap: the settings radios can always switch modes again.
   static Future<ThemeMode> loadThemeMode() async {
     final prefs = await SharedPreferences.getInstance();
     final mode = switch (prefs.getString(_themeModeKey)) {
       'light' => ThemeMode.light,
       'dark' => ThemeMode.dark,
       'system' => ThemeMode.system,
-      _ => ThemeMode.light,
+      _ => ThemeMode.dark,
     };
     themeMode.value = mode;
     return mode;
