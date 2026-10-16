@@ -73,7 +73,7 @@ void main() {
   testWidgets('short new password is rejected before the network', (t) async {
     var calls = 0;
     await _open(t, _Host(submit: (_, _) async => calls++));
-    await _fill(t, current: 'old-pass-1', next: 'short', confirm: 'short');
+    await _fill(t, current: 'old-password-1', next: 'short', confirm: 'short');
     await t.tap(find.widgetWithText(FilledButton, 'Đổi mật khẩu'));
     await t.pump();
     expect(find.textContaining('ít nhất'), findsOneWidget);
@@ -85,9 +85,9 @@ void main() {
     await _open(t, _Host(submit: (_, _) async => calls++));
     await _fill(
       t,
-      current: 'old-pass-1',
-      next: 'new-pass-1',
-      confirm: 'new-pass-2',
+      current: 'old-password-1',
+      next: 'new-password-1',
+      confirm: 'new-password-2',
     );
     await t.tap(find.widgetWithText(FilledButton, 'Đổi mật khẩu'));
     await t.pump();
@@ -100,9 +100,9 @@ void main() {
     await _open(t, _Host(submit: (_, _) async => calls++));
     await _fill(
       t,
-      current: 'same-pass-1',
-      next: 'same-pass-1',
-      confirm: 'same-pass-1',
+      current: 'same-password-1',
+      next: 'same-password-1',
+      confirm: 'same-password-1',
     );
     await t.tap(find.widgetWithText(FilledButton, 'Đổi mật khẩu'));
     await t.pump();
@@ -119,13 +119,13 @@ void main() {
     await _open(t, host);
     await _fill(
       t,
-      current: 'old-pass-1',
-      next: 'new-pass-1',
-      confirm: 'new-pass-1',
+      current: 'old-password-1',
+      next: 'new-password-1',
+      confirm: 'new-password-1',
     );
     await t.tap(find.widgetWithText(FilledButton, 'Đổi mật khẩu'));
     await t.pumpAndSettle();
-    expect(seen, [('old-pass-1', 'new-pass-1')]);
+    expect(seen, [('old-password-1', 'new-password-1')]);
     // Back at the host — the page popped true.
     expect(find.byType(ChangePasswordPage), findsNothing);
     expect(find.text('open'), findsOneWidget);
@@ -141,9 +141,9 @@ void main() {
     );
     await _fill(
       t,
-      current: 'wrong-pass-1',
-      next: 'new-pass-1',
-      confirm: 'new-pass-1',
+      current: 'wrong-password-1',
+      next: 'new-password-1',
+      confirm: 'new-password-1',
     );
     await t.tap(find.widgetWithText(FilledButton, 'Đổi mật khẩu'));
     await t.pumpAndSettle();
@@ -156,9 +156,9 @@ void main() {
     await _open(t, _Host(submit: (_, _) async => throw StateError('x')));
     await _fill(
       t,
-      current: 'old-pass-1',
-      next: 'new-pass-1',
-      confirm: 'new-pass-1',
+      current: 'old-password-1',
+      next: 'new-password-1',
+      confirm: 'new-password-1',
     );
     await t.tap(find.widgetWithText(FilledButton, 'Đổi mật khẩu'));
     await t.pumpAndSettle();

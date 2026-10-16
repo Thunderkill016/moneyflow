@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/notification_capture/notification_capture_channel.dart';
 import '../../data/notification_capture/notification_capture_controller.dart';
+import '../shared/timed_snack_bar.dart';
 
 class NotificationCapturePage extends StatefulWidget {
   const NotificationCapturePage({
@@ -90,7 +91,8 @@ class _NotificationCapturePageState extends State<NotificationCapturePage>
       if (!opened) {
         _pendingEnable = false;
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          showTimedSnackBar(
+            ScaffoldMessenger.of(context),
             const SnackBar(
               content: Text('Không mở được Cài đặt — thử lại sau'),
             ),

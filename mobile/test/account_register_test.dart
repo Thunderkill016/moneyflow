@@ -311,6 +311,27 @@ void main() {
     });
   });
 
+  group('transactionDeleteErrorMessage', () {
+    test('maps the RPC refusal codes to their recovery path', () {
+      expect(
+        transactionDeleteErrorMessage(Exception('recurring_payment_locked')),
+        contains('Định kỳ'),
+      );
+      expect(
+        transactionDeleteErrorMessage(Exception('transaction_reconciled')),
+        contains('đối soát'),
+      );
+      expect(
+        transactionDeleteErrorMessage(Exception('authentication_required')),
+        contains('đăng nhập lại'),
+      );
+      expect(
+        transactionDeleteErrorMessage(Exception('anything else')),
+        'Không xóa được — thử lại.',
+      );
+    });
+  });
+
   group('AccountRegisterPage', () {
     Widget page(
       List<Transaction> txs, {
@@ -438,6 +459,62 @@ void main() {
       await t.longPress(find.text('e'));
       await t.pumpAndSettle();
       expect(find.text('Xóa giao dịch?'), findsOneWidget);
+      await t.tap(find.text('Xóa'));
+      await t.pumpAndSettle();
+      expect(deleted, 'e');
+    });
+
+    testWidgets('a refused delete keeps the row and names the reason', (
+      t,
+    ) async {
+      var loads = 0;
+      await t.pumpWidget(
+        MaterialApp(
+          home: AccountRegisterPage(
+            account: _account,
+            loadPage: (q, {offset = 0}) async {
+              loads++;
+              return TransactionPage([
+                _tx('e', TransactionKind.expense, 45000, '2026-10-12'),
+              ], hasMore: false);
+            },
+            onDelete: (_) async =>
+                throw Exception('P0001 recurring_payment_locked'),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      await t.longPress(find.text('e'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Xóa'));
+      await t.pumpAndSettle();
+
+      expect(find.textContaining('Định kỳ'), findsOneWidget);
+      expect(find.text('e'), findsOneWidget);
+      // A refused delete must not reload — the visible row is still truth.
+      expect(loads, 1);
+    });
+
+    testWidgets('the row shows a visible delete affordance (web parity)', (
+      t,
+    ) async {
+      String? deleted;
+      await t.pumpWidget(
+        MaterialApp(
+          home: AccountRegisterPage(
+            account: _account,
+            loadPage: inMemoryPageLoader([
+              _tx('e', TransactionKind.expense, 45000, '2026-10-12'),
+            ]),
+            onDelete: (id) async => deleted = id,
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      await t.tap(find.byTooltip('Xóa giao dịch'));
+      await t.pumpAndSettle();
       await t.tap(find.text('Xóa'));
       await t.pumpAndSettle();
       expect(deleted, 'e');

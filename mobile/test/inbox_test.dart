@@ -554,7 +554,7 @@ void main() {
       expect(find.textContaining('Chi'), findsWidgets);
       expect(find.textContaining('14/10/2026'), findsOneWidget);
       expect(find.textContaining('Tạm ổn'), findsOneWidget);
-      expect(find.text('Duyệt'), findsOneWidget);
+      expect(find.text('Xem & duyệt'), findsOneWidget);
       expect(find.text('Từ chối'), findsOneWidget);
     });
 
@@ -625,7 +625,7 @@ void main() {
         ),
       );
       await t.pumpAndSettle();
-      await t.tap(find.text('Duyệt'));
+      await t.tap(find.text('Xem & duyệt'));
       await t.pumpAndSettle();
       expect(find.text('Duyệt mục'), findsOneWidget);
       expect(find.text('Sẵn sàng ghi vào sổ.'), findsOneWidget);
@@ -664,7 +664,7 @@ void main() {
         ),
       );
       await t.pumpAndSettle();
-      await t.tap(find.text('Duyệt'));
+      await t.tap(find.text('Xem & duyệt'));
       await t.pumpAndSettle();
       await t.tap(find.text('Duyệt vào sổ'));
       await t.pumpAndSettle();
@@ -732,7 +732,7 @@ void main() {
     /// Drives the list → review → "Duyệt vào sổ" path; returns after the
     /// review page has popped and the offer snackbar is on screen.
     Future<void> approveRow(WidgetTester t) async {
-      await t.tap(find.text('Duyệt'));
+      await t.tap(find.text('Xem & duyệt'));
       await t.pumpAndSettle();
       await t.tap(find.text('Duyệt vào sổ'));
       await t.pumpAndSettle();

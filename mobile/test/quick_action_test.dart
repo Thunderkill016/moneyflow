@@ -81,15 +81,23 @@ Future<void> _pumpGate(
   WidgetTester t, {
   required _FakeQuickActions quick,
   BiometricService? biometric,
-}) => t.pumpWidget(
-  MaterialApp(
-    home: AuthGate(
-      shareReceiver: const _NoopShareReceiver(),
-      quickActions: quick,
-      biometric: biometric,
+}) {
+  // The auth ListView stacks the demo entry below the default test
+  // viewport's fold — a tall phone-sized surface keeps it tappable.
+  t.view.physicalSize = const Size(1080, 2400);
+  t.view.devicePixelRatio = 1;
+  addTearDown(t.view.reset);
+  return t.pumpWidget(
+    MaterialApp(
+      home: AuthGate(
+        allowDemo: true,
+        shareReceiver: const _NoopShareReceiver(),
+        quickActions: quick,
+        biometric: biometric,
+      ),
     ),
-  ),
-);
+  );
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

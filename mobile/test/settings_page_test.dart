@@ -61,6 +61,9 @@ class _FakeUrlOpener implements UrlOpener {
     opened.add(uri);
     return nextResult;
   }
+
+  @override
+  Future<bool> openInApp(Uri uri) => open(uri);
 }
 
 /// Every HttpClient call fails instantly — AuthGate's session restore
@@ -101,6 +104,7 @@ Future<void> _pumpSignedIn(
   await t.pumpWidget(
     MaterialApp(
       home: AuthGate(
+        allowDemo: true,
         shareReceiver: const _NoopShareReceiver(),
         quickActions: _NoopQuickActions(),
         biometric: biometric,
@@ -136,7 +140,7 @@ Future<void> _untilShared(WidgetTester t, int Function() calls) async {
 /// Boot the real app widget — the same MaterialApp MoneyFlow ships —
 /// down the demo path to the settings surface.
 Future<void> _openDemoSettings(WidgetTester t) async {
-  await t.pumpWidget(const MoneyFlowApp());
+  await t.pumpWidget(const MoneyFlowApp(allowDemo: true));
   await t.pumpAndSettle();
   await t.tap(find.text('Xem bản demo (không cần đăng nhập)'));
   await t.pumpAndSettle();
@@ -157,17 +161,17 @@ void main() {
   });
 
   group('SettingsPrefs', () {
-    test('theme mode defaults to system and round-trips', () async {
-      expect(await SettingsPrefs.loadThemeMode(), ThemeMode.system);
+    test('theme mode defaults to light and round-trips', () async {
+      expect(await SettingsPrefs.loadThemeMode(), ThemeMode.light);
       await SettingsPrefs.saveThemeMode(ThemeMode.dark);
       expect(await SettingsPrefs.loadThemeMode(), ThemeMode.dark);
-      await SettingsPrefs.saveThemeMode(ThemeMode.light);
-      expect(await SettingsPrefs.loadThemeMode(), ThemeMode.light);
+      await SettingsPrefs.saveThemeMode(ThemeMode.system);
+      expect(await SettingsPrefs.loadThemeMode(), ThemeMode.system);
     });
 
-    test('an unrecognised stored mode falls back to system', () async {
+    test('an unrecognised stored mode falls back to light', () async {
       SharedPreferences.setMockInitialValues({'mf_theme_mode': 'neon'});
-      expect(await SettingsPrefs.loadThemeMode(), ThemeMode.system);
+      expect(await SettingsPrefs.loadThemeMode(), ThemeMode.light);
     });
 
     test('digest time defaults to 19:00 and round-trips', () async {
@@ -299,6 +303,7 @@ void main() {
     testWidgets('a pick on the demo settings applies to the real app', (
       t,
     ) async {
+      _bigViewport(t);
       await _openDemoSettings(t);
       await t.tap(find.text('Tối'));
       await t.pumpAndSettle();

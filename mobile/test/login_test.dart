@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,20 +13,30 @@ const _config = NeonConfig(
   dataApiUrl: 'https://api.test/neondb/rest/v1',
 );
 
-/// Scripted idToken source — no plugin channel in widget tests.
-/// [token] null models the user cancelling the native sheet.
-class _FakeGoogleTokens implements GoogleIdTokenSource {
-  _FakeGoogleTokens({this.token, this.error});
+/// Scripted redirect-flow seam — no browser or loopback socket in widget
+/// tests. [completer] models the browser round-trip pending; [cancel]
+/// records the user aborting from the waiting dialog.
+class _FakeGoogleFlow implements GoogleSignInFlow {
+  _FakeGoogleFlow({this.session, this.error});
 
-  final String? token;
+  final NeonSession? session;
   final Object? error;
   var calls = 0;
+  var cancels = 0;
+  Completer<NeonSession?>? completer;
 
   @override
-  Future<String?> idToken() async {
+  Future<NeonSession?> signIn() {
     calls++;
-    if (error != null) throw error!;
-    return token;
+    if (error != null) return Future.error(error!);
+    if (session != null) return Future.value(session);
+    return (completer ??= Completer<NeonSession?>()).future;
+  }
+
+  @override
+  void cancel() {
+    cancels++;
+    completer?.complete(null);
   }
 }
 
@@ -64,6 +74,11 @@ void main() {
         ),
         findsOneWidget,
       );
+
+      // The sent state offers a way back — landing on the login fields.
+      await t.tap(find.widgetWithText(FilledButton, 'Quay lại đăng nhập'));
+      await t.pumpAndSettle();
+      expect(find.widgetWithText(TextField, 'Mật khẩu'), findsOneWidget);
     });
 
     testWidgets('failure still shows the same neutral message', (t) async {
@@ -90,55 +105,53 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets('an empty email is rejected before the network', (t) async {
+      var calls = 0;
+      final auth = NeonAuthClient(
+        config: _config,
+        requester: (_) async {
+          calls++;
+          return const NeonResponse(status: 200, headers: {}, body: '{}');
+        },
+      );
+      await t.pumpWidget(
+        MaterialApp(
+          home: LoginPage(auth: auth, onSignedIn: (_) {}),
+        ),
+      );
+
+      await t.tap(find.text('Quên mật khẩu?'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Gửi liên kết'));
+      await t.pumpAndSettle();
+
+      expect(calls, 0);
+      expect(find.text('Nhập email đã đăng ký'), findsOneWidget);
+    });
   });
 
-  group('googleSignInIsUserCancel', () {
-    test('a plain cancel is user intent', () {
-      const e = GoogleSignInException(code: GoogleSignInExceptionCode.canceled);
-      expect(googleSignInIsUserCancel(e), isTrue);
-    });
+  group('LoginPage Google sign-in (loopback redirect)', () {
+    NeonAuthClient fakeAuth() => NeonAuthClient(
+      config: _config,
+      requester: (_) async =>
+          const NeonResponse(status: 500, headers: {}, body: '{}'),
+    );
 
-    test('"[16] Account reauth failed" is a config error, not a cancel', () {
-      // Real description observed on-device: a canceled-code exception
-      // that means "app not registered in the server client's Google
-      // Cloud project" — it must surface as an error, never silence.
-      const e = GoogleSignInException(
-        code: GoogleSignInExceptionCode.canceled,
-        description: '[16] Account reauth failed.',
-      );
-      expect(googleSignInIsUserCancel(e), isFalse);
-    });
+    const session = NeonSession(
+      sessionToken: 'signed.tok',
+      userId: 'u-g',
+      email: 'g@x.c',
+      name: 'G',
+    );
 
-    test('non-canceled codes are never treated as cancels', () {
-      const e = GoogleSignInException(
-        code: GoogleSignInExceptionCode.clientConfigurationError,
-        description: 'no android client',
-      );
-      expect(googleSignInIsUserCancel(e), isFalse);
-    });
-  });
-
-  group('LoginPage Google sign-in', () {
-    NeonAuthClient fakeAuth(List<NeonRequest> seen, {NeonResponse? onSocial}) =>
-        NeonAuthClient(
-          config: _config,
-          requester: (req) async {
-            seen.add(req);
-            return onSocial ??
-                const NeonResponse(status: 500, headers: {}, body: '{}');
-          },
-        );
-
-    testWidgets('the button is hidden without a configured token source', (
-      t,
-    ) async {
-      final seen = <NeonRequest>[];
+    testWidgets('the button is hidden without a configured flow', (t) async {
       await t.pumpWidget(
         MaterialApp(
           home: LoginPage(
-            auth: fakeAuth(seen),
+            auth: fakeAuth(),
             onSignedIn: (_) {},
-            // No googleIdTokens — the honest capability gate.
+            // No googleFlow — the honest capability gate.
           ),
         ),
       );
@@ -147,16 +160,13 @@ void main() {
       expect(find.text('Đăng nhập'), findsOneWidget);
     });
 
-    testWidgets('the button shows when a token source is configured', (
-      t,
-    ) async {
-      final seen = <NeonRequest>[];
+    testWidgets('the button shows when a flow is configured', (t) async {
       await t.pumpWidget(
         MaterialApp(
           home: LoginPage(
-            auth: fakeAuth(seen),
+            auth: fakeAuth(),
             onSignedIn: (_) {},
-            googleIdTokens: _FakeGoogleTokens(token: 'id-token'),
+            googleFlow: _FakeGoogleFlow(session: session),
           ),
         ),
       );
@@ -164,60 +174,17 @@ void main() {
       expect(find.text('Đăng nhập bằng Google'), findsOneWidget);
     });
 
-    testWidgets('success exchanges the idToken and signs in', (t) async {
-      final seen = <NeonRequest>[];
-      NeonSession? session;
-      final auth = NeonAuthClient(
-        config: _config,
-        requester: (req) async {
-          seen.add(req);
-          return NeonResponse(
-            status: 200,
-            headers: {
-              'set-cookie': '${NeonAuthClient.sessionCookieName}=signed.tok',
-            },
-            body: jsonEncode({
-              'redirect': false,
-              'token': 'tok',
-              'user': {'id': 'u-g', 'email': 'g@x.c', 'name': 'G'},
-            }),
-          );
-        },
-      );
-      await t.pumpWidget(
-        MaterialApp(
-          home: LoginPage(
-            auth: auth,
-            onSignedIn: (s) => session = s,
-            googleIdTokens: _FakeGoogleTokens(token: 'google-id-token'),
-          ),
-        ),
-      );
-
-      await t.tap(find.widgetWithText(OutlinedButton, 'Đăng nhập bằng Google'));
-      await t.pumpAndSettle();
-
-      expect(seen.single.url.path, '/neondb/auth/sign-in/social');
-      final body = seen.single.body as Map<String, dynamic>;
-      expect(body['provider'], 'google');
-      expect(body['idToken'], {'token': 'google-id-token'});
-      expect(session, isNotNull);
-      expect(session!.sessionToken, 'signed.tok');
-      expect(session!.userId, 'u-g');
-    });
-
-    testWidgets('cancelling the sheet stays silent — no error, no call', (
+    testWidgets('success rides the same onSignedIn path as email sign-in', (
       t,
     ) async {
-      final seen = <NeonRequest>[];
-      var signedIn = 0;
-      final source = _FakeGoogleTokens(token: null);
+      NeonSession? got;
+      final flow = _FakeGoogleFlow(session: session);
       await t.pumpWidget(
         MaterialApp(
           home: LoginPage(
-            auth: fakeAuth(seen),
-            onSignedIn: (_) => signedIn++,
-            googleIdTokens: source,
+            auth: fakeAuth(),
+            onSignedIn: (s) => got = s,
+            googleFlow: flow,
           ),
         ),
       );
@@ -225,8 +192,68 @@ void main() {
       await t.tap(find.widgetWithText(OutlinedButton, 'Đăng nhập bằng Google'));
       await t.pumpAndSettle();
 
-      expect(source.calls, 1);
-      expect(seen, isEmpty); // never touched the auth backend
+      expect(flow.calls, 1);
+      expect(got?.userId, 'u-g');
+      expect(got?.sessionToken, 'signed.tok');
+    });
+
+    testWidgets(
+      'the waiting indicator explains the browser leg and Hủy aborts it',
+      (t) async {
+        var signedIn = 0;
+        final flow = _FakeGoogleFlow(); // pending completer
+        await t.pumpWidget(
+          MaterialApp(
+            home: LoginPage(
+              auth: fakeAuth(),
+              onSignedIn: (_) => signedIn++,
+              googleFlow: flow,
+            ),
+          ),
+        );
+
+        await t.tap(
+          find.widgetWithText(OutlinedButton, 'Đăng nhập bằng Google'),
+        );
+        await t.pump();
+
+        // The browser has the consent screen — the inline indicator must
+        // tell the user where to finish and offer a real abort.
+        expect(find.textContaining('Đang đăng nhập Google'), findsOneWidget);
+
+        await t.tap(find.widgetWithText(TextButton, 'Hủy'));
+        await t.pumpAndSettle();
+
+        expect(flow.cancels, 1);
+        expect(signedIn, 0);
+        expect(find.textContaining('Đang đăng nhập Google'), findsNothing);
+        expect(
+          find.text('Không thể đăng nhập Google — thử lại sau'),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets('an aborted flow is silent — no error, no sign-in', (t) async {
+      var signedIn = 0;
+      final flow = _FakeGoogleFlow()..completer = Completer<NeonSession?>();
+      await t.pumpWidget(
+        MaterialApp(
+          home: LoginPage(
+            auth: fakeAuth(),
+            onSignedIn: (_) => signedIn++,
+            googleFlow: flow,
+          ),
+        ),
+      );
+
+      await t.tap(find.widgetWithText(OutlinedButton, 'Đăng nhập bằng Google'));
+      await t.pump();
+      // The user closed the browser tab without finishing — the flow
+      // resolves null rather than an error.
+      flow.completer!.complete(null);
+      await t.pumpAndSettle();
+
       expect(signedIn, 0);
       expect(
         find.text('Không thể đăng nhập Google — thử lại sau'),
@@ -234,47 +261,14 @@ void main() {
       );
     });
 
-    testWidgets('a source failure shows the honest snackbar', (t) async {
-      final seen = <NeonRequest>[];
+    testWidgets('a flow failure shows the honest snackbar', (t) async {
       var signedIn = 0;
       await t.pumpWidget(
         MaterialApp(
           home: LoginPage(
-            auth: fakeAuth(seen),
+            auth: fakeAuth(),
             onSignedIn: (_) => signedIn++,
-            googleIdTokens: _FakeGoogleTokens(error: Exception('no play')),
-          ),
-        ),
-      );
-
-      await t.tap(find.widgetWithText(OutlinedButton, 'Đăng nhập bằng Google'));
-      await t.pumpAndSettle();
-
-      expect(signedIn, 0);
-      expect(
-        find.text('Không thể đăng nhập Google — thử lại sau'),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('a server rejection also shows the honest snackbar', (t) async {
-      var signedIn = 0;
-      final auth = NeonAuthClient(
-        config: _config,
-        requester: (_) async => NeonResponse(
-          status: 200,
-          headers: {},
-          // The bare-string mistake server-side shape: Better Auth asks
-          // for a browser redirect — must surface as a failure.
-          body: jsonEncode({'redirect': true, 'url': 'https://x'}),
-        ),
-      );
-      await t.pumpWidget(
-        MaterialApp(
-          home: LoginPage(
-            auth: auth,
-            onSignedIn: (_) => signedIn++,
-            googleIdTokens: _FakeGoogleTokens(token: 'id-token'),
+            googleFlow: _FakeGoogleFlow(error: Exception('no browser')),
           ),
         ),
       );

@@ -24,6 +24,7 @@ import '../data/share/share_intent.dart';
 import '../data/share/share_text_parser.dart';
 import '../domain/budget.dart';
 import '../domain/report.dart' show ymd;
+import '../domain/inbox.dart';
 import '../domain/models.dart';
 import '../domain/recurring_detection.dart';
 import '../domain/transaction_query.dart';
@@ -57,11 +58,9 @@ import '../features/planning/recurring_form_dialog.dart';
 import '../features/reports/reports_page.dart';
 import '../features/settings/change_password_page.dart';
 import '../features/settings/settings_page.dart';
+import '../theme/mf_theme.dart';
 import 'home_shell.dart';
-
-/// MoneyFlow brand tokens (from src/app/manifest.ts).
-const kBrandColor = Color(0xFF0EA5E9);
-const kBrandBackground = Color(0xFFF8FAFC);
+import '../features/shared/timed_snack_bar.dart';
 
 /// JSON backup ships through `export_user_archive` — live on both
 /// acceptance and production Neon since the 20261010121000 reader-definer
@@ -74,7 +73,10 @@ const kArchiveBackupEnabled = bool.fromEnvironment(
 );
 
 class MoneyFlowApp extends StatefulWidget {
-  const MoneyFlowApp({super.key});
+  const MoneyFlowApp({super.key, this.allowDemo = false});
+
+  /// Test-only: forwards to [AuthGate.allowDemo].
+  final bool allowDemo;
 
   @override
   State<MoneyFlowApp> createState() => _MoneyFlowAppState();
@@ -107,22 +109,12 @@ class _MoneyFlowAppState extends State<MoneyFlowApp> {
         ],
         supportedLocales: const [Locale('vi'), Locale('en')],
         locale: const Locale('vi'),
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: kBrandColor,
-            brightness: Brightness.light,
-          ),
-          scaffoldBackgroundColor: kBrandBackground,
-        ),
-        darkTheme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: kBrandColor,
-            brightness: Brightness.dark,
-          ),
-        ),
-        home: const AuthGate(),
+        // Owner-approved Fresh Blue system (document-theme.css →
+        // theme/mf_theme.dart): semantic income/expense/transfer tokens,
+        // bordered cards, 48px targets — the same language as the web.
+        theme: MfTheme.light(),
+        darkTheme: MfTheme.dark(),
+        home: AuthGate(allowDemo: widget.allowDemo),
       ),
     );
   }
@@ -132,8 +124,8 @@ class _MoneyFlowAppState extends State<MoneyFlowApp> {
 /// Demo mode remains reachable from the login screen for offline exploration.
 ///
 /// [shareReceiver], [quickActions], [biometric], [urlOpener],
-/// [notificationGateway] and [requester] are seams for widget tests —
-/// production callers never pass them.
+/// [notificationGateway], [googleFlow] and [requester] are seams for
+/// widget tests — production callers never pass them.
 class AuthGate extends StatefulWidget {
   const AuthGate({
     super.key,
@@ -142,7 +134,9 @@ class AuthGate extends StatefulWidget {
     this.biometric,
     this.urlOpener = const DeviceUrlOpener(),
     this.notificationGateway = const NotificationCaptureChannel(),
+    this.googleFlow,
     this.requester = httpNeonRequester,
+    this.allowDemo = false,
   });
 
   final ShareIntentReceiver shareReceiver;
@@ -151,9 +145,17 @@ class AuthGate extends StatefulWidget {
   final UrlOpener urlOpener;
   final NotificationCaptureGateway notificationGateway;
 
+  /// Google sign-in seam — production builds the loopback redirect on
+  /// first use; widget tests inject a fake that never opens a browser.
+  final GoogleSignInFlow? googleFlow;
+
   /// HTTP seam for the Neon auth + data clients — widget tests script a
   /// fake transport instead of opening real sockets.
   final NeonRequester requester;
+
+  /// Test-only: exposes the read-only demo entry points (welcome / login
+  /// buttons). Production never sets it — the demo is not offered to users.
+  final bool allowDemo;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -176,6 +178,25 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     ),
   );
   late final _bioService = widget.biometric ?? DeviceBiometricService();
+  // Browser loopback is the only Google flow Neon managed auth can
+  // complete — its /sign-in/social ignores an idToken (verified by
+  // probe), so the native leg would always throw. Kept inside the
+  // hybrid shell so the seam stays injectable; the native branch is
+  // dormant until the define is set AND upstream supports the exchange.
+  late final GoogleSignInFlow _googleFlow =
+      widget.googleFlow ??
+      HybridGoogleSignIn(
+        native: _config.googleServerClientId.isEmpty
+            ? null
+            : NativeGoogleSignIn(
+                auth: _auth,
+                serverClientId: _config.googleServerClientId,
+              ),
+        loopback: LoopbackGoogleSignIn(
+          auth: _auth,
+          launcher: widget.urlOpener.openInApp,
+        ),
+      );
   ShareIntentReceiver get _shareReceiver => widget.shareReceiver;
   QuickActionSource get _quickActions => widget.quickActions;
   NotificationCaptureGateway get _notifGateway => widget.notificationGateway;
@@ -329,6 +350,11 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         return _restoreOffline(stored.userId);
       } on TimeoutException {
         return _restoreOffline(stored.userId);
+      } on NeonAuthException {
+        // restoreSession only throws this for a transient auth-service
+        // fault (5xx / 429 / 408 / unreadable body) — the stored session
+        // is untouched and re-validates on the next request.
+        return _restoreOffline(stored.userId);
       }
       await SessionStore.clear();
       // A dead stored session is a silent sign-out — the same unscoped
@@ -343,6 +369,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     // A wiped flag (local-data deletion) is indistinguishable from a
     // fresh install — showing it again stays honest.
     final seenWelcome = _prefs?.getBool(WelcomePrefs.seenKey) ?? false;
+    if (!mounted) return;
     setState(() => _gate = seenWelcome ? _Gate.login : _Gate.welcome);
   }
 
@@ -376,6 +403,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     _bindAccountStores(userId);
     // Same "not a first run" marker as the online restore path.
     unawaited(WelcomePrefs.markSeen());
+    if (!mounted) return;
     setState(() => _gate = _Gate.signedIn);
     _drainPendingShare();
     // The drain attempt will fail fast and just records an honest
@@ -426,7 +454,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     try {
       await _signOut();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        showTimedSnackBar(
+          ScaffoldMessenger.of(context),
           const SnackBar(content: Text('Hết phiên đăng nhập — đăng nhập lại')),
         );
       }
@@ -560,7 +589,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     }
     if (result != null) _reloadTabs();
     if (result == CaptureResult.savedPartial && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      showTimedSnackBar(
+        ScaffoldMessenger.of(context),
         const SnackBar(
           content: Text('Đã lưu khoản — chưa tạo được cam kết lặp lại'),
         ),
@@ -607,7 +637,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     );
     if (!context.mounted) return result;
     if (result == CaptureResult.savedPartial) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      showTimedSnackBar(
+        ScaffoldMessenger.of(context),
         const SnackBar(
           content: Text('Đã lưu khoản — chưa tạo được cam kết lặp lại'),
         ),
@@ -622,8 +653,20 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   Future<void> _openEdit(BuildContext context, Transaction tx) async {
     final result = await Navigator.of(context).push<CaptureResult>(
       MaterialPageRoute(
-        builder: (_) =>
-            _EditLoader(store: _store, transaction: tx, submit: _captureSubmit),
+        builder: (_) => _EditLoader(
+          store: _store,
+          transaction: tx,
+          submit: _captureSubmit,
+          saveRule: (draft) => _store
+              .saveInboxRule(
+                matchField: draft.matchField,
+                containsText: draft.containsText,
+                categoryId: draft.categoryId,
+                merchantName: draft.merchantName,
+                enabled: draft.enabled,
+              )
+              .then((_) {}),
+        ),
       ),
     );
     if (result == CaptureResult.queued) {
@@ -631,12 +674,23 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       return;
     }
     if (result != null) _reloadTabs();
+    // The edit landed; only the opt-in rule write refused — say so
+    // instead of letting the silent catch read as full success.
+    if (result == CaptureResult.savedRuleFailed && context.mounted) {
+      showTimedSnackBar(
+        ScaffoldMessenger.of(context),
+        const SnackBar(
+          content: Text('Đã lưu khoản — chưa tạo được quy tắc tự điền'),
+        ),
+      );
+    }
   }
 
   /// The submit failed offline; the intent is held in the queue and the
   /// banner already shows it — this snackbar explains the outcome.
   void _showQueuedSnack(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    showTimedSnackBar(
+      ScaffoldMessenger.of(context),
       const SnackBar(
         content: Text('Chưa có mạng — đã giữ lại, sẽ gửi lại khi có mạng'),
       ),
@@ -693,10 +747,11 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       final partial = report.partialCommitments > 0
           ? ' — chưa tạo được cam kết lặp lại'
           : '';
-      messenger.showSnackBar(SnackBar(content: Text('$done$partial')));
+      showTimedSnackBar(messenger, SnackBar(content: Text('$done$partial')));
     }
     for (final drop in report.dropped) {
-      messenger.showSnackBar(
+      showTimedSnackBar(
+        messenger,
         SnackBar(
           content: Text(
             'Khoản đã giữ không gửi được: ${submitErrorMessage(drop.error)}',
@@ -902,7 +957,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       categories = rows[1] as List<Category>;
     } catch (_) {
       if (ctx.mounted) {
-        ScaffoldMessenger.of(ctx).showSnackBar(
+        showTimedSnackBar(
+          ScaffoldMessenger.of(ctx),
           const SnackBar(
             content: Text('Không tải được dữ liệu — thử lại khi có mạng'),
           ),
@@ -947,7 +1003,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           .catchError((_) => false);
       if (!mounted) return false;
       if (!ok) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        showTimedSnackBar(
+          ScaffoldMessenger.of(context),
           const SnackBar(content: Text('Không xác thực được — chưa bật khóa')),
         );
         return false;
@@ -971,7 +1028,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         .open(Uri.parse(kPrivacyPolicyUrl))
         .catchError((_) => false);
     if (!opened && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      showTimedSnackBar(
+        ScaffoldMessenger.of(context),
         const SnackBar(content: Text('Không mở được liên kết — thử lại sau')),
       );
     }
@@ -1050,11 +1108,13 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
             unawaited(WelcomePrefs.markSeen());
             Navigator.of(context).pop();
           },
-          onDemo: () {
-            unawaited(WelcomePrefs.markSeen());
-            Navigator.of(context).pop();
-            _enterDemo();
-          },
+          onDemo: widget.allowDemo
+              ? () {
+                  unawaited(WelcomePrefs.markSeen());
+                  Navigator.of(context).pop();
+                  _enterDemo();
+                }
+              : null,
         ),
       ),
     );
@@ -1102,10 +1162,12 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           unawaited(WelcomePrefs.markSeen());
           setState(() => _gate = _Gate.login);
         },
-        onDemo: () {
-          unawaited(WelcomePrefs.markSeen());
-          _enterDemo();
-        },
+        onDemo: widget.allowDemo
+            ? () {
+                unawaited(WelcomePrefs.markSeen());
+                _enterDemo();
+              }
+            : null,
       ),
       _Gate.login => LoginPage(
         auth: _auth,
@@ -1113,14 +1175,11 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         // Sign-up is the web's register → /onboarding boundary — the
         // activation flow always follows a fresh account.
         onSignedUp: (s) => _onSignedIn(s, isNewAccount: true),
-        // Google sign-in is a capability gate: no configured server
-        // client id → no button at all, never a dead-end affordance.
-        googleIdTokens: _config.googleServerClientId.isEmpty
-            ? null
-            : PluginGoogleIdTokenSource(
-                serverClientId: _config.googleServerClientId,
-              ),
-        onDemo: _enterDemo,
+        // Browser loopback redirect — the seam stays injectable so
+        // tests never touch a browser/socket.
+        googleFlow: _googleFlow,
+        urlOpener: widget.urlOpener,
+        onDemo: widget.allowDemo ? _enterDemo : null,
       ),
       _Gate.onboarding => OnboardingPage(
         hasCashWallet: _onboardingCash != null,
@@ -1143,6 +1202,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           tabBuilders: [
             () => DashboardPage(
               key: _dashKey,
+              loadPendingCount: _store.loadPendingInboxCount,
+              onOpenInbox: () => _openInbox(context),
+              onOpenTransaction: (tx) => _openEdit(context, tx),
               loadAccounts: _store.loadAccounts,
               loadTransactions: _store.loadTransactions,
               loadBudgets: _store.loadBudgets,
@@ -1229,6 +1291,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         builder: (_) => TrashPage(
           loadDeleted: _store.loadDeletedTransactions,
           onRestore: _store.restoreTransaction,
+          onDelete: _store.permanentlyDeleteTransaction,
         ),
       ),
     );
@@ -1266,9 +1329,10 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       ),
     );
     if (changed == true && mounted) {
-      ScaffoldMessenger.of(
-        this.context,
-      ).showSnackBar(const SnackBar(content: Text('Đã đổi mật khẩu')));
+      showTimedSnackBar(
+        ScaffoldMessenger.of(this.context),
+        const SnackBar(content: Text('Đã đổi mật khẩu')),
+      );
     }
   }
 
@@ -1281,13 +1345,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       context,
       auth: _auth,
       deleteAccount: _store.deleteMyAccount,
-      // Same capability gate as the login page: a Google-only account
-      // can re-auth only when this build carries the server client id.
-      googleIdTokens: _config.googleServerClientId.isEmpty
-          ? null
-          : PluginGoogleIdTokenSource(
-              serverClientId: _config.googleServerClientId,
-            ),
+      // Same seam as the login page: a Google-only account re-auths
+      // through the loopback redirect.
+      googleFlow: _googleFlow,
     );
     if (!deleted || !mounted) return;
     // Grab the messenger before the async wipe — a context read after an
@@ -1317,7 +1377,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     // Dropped scheduled digests too — a notification for a deleted
     // account would be a lie, and the schedule prefs are already gone.
     unawaited(NotificationService.cancelWeeklyDigest().catchError((_) {}));
-    messenger.showSnackBar(
+    showTimedSnackBar(
+      messenger,
       const SnackBar(content: Text('Tài khoản đã được xóa')),
     );
   }
@@ -1559,6 +1620,10 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           ),
           onDelete: _store.deleteInboxRule,
           onReorder: _store.reorderInboxRules,
+          // Pending candidates power the sheet's live match count and the
+          // apply-to-existing sweep (apply_inbox_rule_to_candidate RPC).
+          loadPending: _store.loadPendingInboxCandidates,
+          applyRule: _store.applyInboxRuleToCandidate,
         ),
       ),
     );
@@ -1721,6 +1786,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     return HomeShell(
       tabBuilders: [
         () => DashboardPage(
+          loadPendingCount: _demoInbox.pendingCount,
           loadAccounts: () async => DemoStore.seedAccounts(),
           loadTransactions: () async => DemoStore.seedTransactions(),
           loadBudgets: (m) async => DemoStore.seedBudgets(m),
@@ -1732,7 +1798,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
               (rows: DemoStore.seedTransactions(), truncated: false),
           onCreateCommitment: (s) async {
             if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
+              showTimedSnackBar(
+                ScaffoldMessenger.of(context),
                 const SnackBar(
                   content: Text('Demo chỉ xem — đăng nhập để ghi khoản'),
                 ),
@@ -1891,7 +1958,10 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           loadAccounts: () async => DemoStore.seedAccounts(),
           // Session demo store — pack additions filter transactions too.
           loadCategories: () async => _demoCategories.active,
-          onDelete: (_) async {},
+          // No delete seam in demo — a no-op that still showed the
+          // "Đã chuyển vào thùng rác" snackbar would be a lie the row
+          // immediately disproves.
+          onDelete: null,
           // Demo capture is read-only but real — the empty feed's CTA
           // lands on the same honest form as the nav button.
           onCapture: _openDemoCapture,
@@ -1936,7 +2006,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
                     loadPage: inMemoryPageLoader(DemoStore.seedTransactions()),
                     loadAccounts: () async => DemoStore.seedAccounts(),
                     loadCategories: () async => _demoCategories.active,
-                    onDelete: (_) async {},
+                    // Read-only drill-in — no fake delete affordance.
+                    onDelete: null,
                     initialQuery: q,
                     title: title,
                   ),
@@ -1946,7 +2017,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         ),
       ],
       onCaptureTap: (ctx) {
-        ScaffoldMessenger.of(ctx).showSnackBar(
+        showTimedSnackBar(
+          ScaffoldMessenger.of(ctx),
           const SnackBar(
             content: Text('Demo chỉ xem — đăng nhập để ghi khoản'),
           ),
@@ -2240,11 +2312,15 @@ class _EditLoader extends StatelessWidget {
     required this.store,
     required this.transaction,
     required this.submit,
+    this.saveRule,
   });
 
   final RealStore store;
   final Transaction transaction;
   final Future<void> Function(CaptureIntent intent) submit;
+
+  /// Edit→rule seam (Monarch's "save as rule"); null hides the checkbox.
+  final Future<void> Function(InboxRuleDraft draft)? saveRule;
 
   @override
   Widget build(BuildContext context) {
@@ -2269,6 +2345,7 @@ class _EditLoader extends StatelessWidget {
           categories: snap.data![1].cast(),
           editing: transaction,
           onSubmit: submit,
+          onSaveRule: saveRule,
         );
       },
     );

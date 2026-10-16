@@ -17,16 +17,21 @@ import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
 import type { ToastTone } from "@/components/ui/toast";
 import type { ViewerSummary } from "@/components/user-chip";
-import { getPendingCountForClient } from "@/hooks/client-inbox";
+import {
+  getPendingCountForClient,
+  loadInboxForClient,
+} from "@/hooks/client-inbox";
 import {
   deleteRuleForClient,
   loadRulesForClient,
+  persistCandidateRuleEvidenceForClient,
   reorderRulesForClient,
   saveRuleForClient,
   type ClientRulesResult,
 } from "@/hooks/client-rules";
 import type { CategorySummary } from "@/lib/categories";
-import { previewRuleApplication } from "@/lib/inbox/apply-rules";
+import { previewRuleApplication, ruleMatches } from "@/lib/inbox/apply-rules";
+import type { InboxCandidate } from "@/lib/inbox/candidate-store";
 import {
   RULE_FIELD_LABELS,
   RULE_STAGE_LABELS,
@@ -94,9 +99,17 @@ export function RulesPage({
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [notice, setNotice] = useState("");
-  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(
+    undefined,
+  );
   const [previewText, setPreviewText] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<InboxRule | null>(null);
+  // Pending candidates power the dialog's live "khớp N mục đang chờ"
+  // count and the opt-in apply-to-existing sweep after a save.
+  const [pendingCandidates, setPendingCandidates] = useState<InboxCandidate[]>(
+    [],
+  );
+  const [applyToExisting, setApplyToExisting] = useState(false);
 
   const availableCategories = useMemo(
     () => categories.filter((category) => !category.isArchived),
@@ -110,6 +123,38 @@ export function RulesPage({
     [availableCategories],
   );
   const orderedRules = useMemo(() => sortRulesByPriority(rules), [rules]);
+  // The form draft as a rule-shaped object, matched client-side with the
+  // same guards the apply_inbox_rule_to_candidate RPC enforces (kind
+  // match, enabled stage, case-insensitive contains) so the count never
+  // promises a change the server would refuse.
+  const draftRule = useMemo<InboxRule | null>(() => {
+    const category = categoryById.get(form.categoryId);
+    if (!category || !form.contains.trim()) return null;
+    return {
+      id: form.id ?? "",
+      priority: 0,
+      stage: "candidate",
+      enabled: true,
+      field: form.field,
+      contains: form.contains,
+      categoryId: category.id,
+      category: category.name,
+      categoryKind: category.kind,
+      merchant: form.merchant.trim() || undefined,
+      version: form.expectedVersion ?? 0,
+      createdAt: "",
+      updatedAt: "",
+    };
+  }, [form, categoryById]);
+  const matchingPending = useMemo(
+    () =>
+      draftRule
+        ? pendingCandidates.filter((candidate) =>
+            ruleMatches(draftRule, candidate),
+          )
+        : [],
+    [draftRule, pendingCandidates],
+  );
   const preview = useMemo(() => {
     if (!previewText.trim()) return null;
     return previewRuleApplication(
@@ -129,7 +174,8 @@ export function RulesPage({
       void Promise.all([
         loadRulesForClient(viewer.isDemo),
         getPendingCountForClient(viewer.isDemo),
-      ]).then(([ruleResult, count]) => {
+        loadInboxForClient(viewer.isDemo),
+      ]).then(([ruleResult, count, inbox]) => {
         if (cancelled) return;
         if (ruleResult.ok) {
           setRules(ruleResult.rules);
@@ -138,6 +184,13 @@ export function RulesPage({
           setError(ruleResult.message);
         }
         setInboxCount(count);
+        if (inbox.ok) {
+          setPendingCandidates(
+            inbox.candidates.filter(
+              (candidate) => candidate.status === "pending",
+            ),
+          );
+        }
         setReady(true);
       });
     });
@@ -163,12 +216,14 @@ export function RulesPage({
 
   function openAdd() {
     setForm(emptyForm(availableCategories));
+    setApplyToExisting(false);
     setFormError("");
     setFormOpen(true);
   }
 
   function openEdit(rule: InboxRule) {
     setForm(formFromRule(rule));
+    setApplyToExisting(false);
     setFormError("");
     setFormOpen(true);
   }
@@ -217,10 +272,50 @@ export function RulesPage({
     setRules(result.rules);
     setFormOpen(false);
     setForm(emptyForm(availableCategories));
-    showNotice(
-      form.id ? "Đã cập nhật quy tắc." : "Đã thêm quy tắc.",
-      "success",
-    );
+
+    let message = form.id ? "Đã cập nhật quy tắc." : "Đã thêm quy tắc.";
+    // Monarch's apply-to-existing checkbox: opt-in only, pending rows
+    // only, and every row still re-validates server-side — raced rows
+    // land in the honest X/Y count instead of a silent no-op.
+    if (applyToExisting && form.enabled && matchingPending.length > 0) {
+      const beforeIds = new Set(rules.map((rule) => rule.id));
+      const saved = form.id
+        ? result.rules.find((rule) => rule.id === form.id)
+        : result.rules.find((rule) => !beforeIds.has(rule.id));
+      if (saved) {
+        let applied = 0;
+        const appliedIds = new Set<string>();
+        for (const candidate of matchingPending) {
+          try {
+            const apply = await persistCandidateRuleEvidenceForClient(
+              viewer.isDemo,
+              {
+                candidateId: candidate.id,
+                ruleId: saved.id,
+                ruleVersion: saved.version,
+              },
+            );
+            if (apply.ok) {
+              applied += 1;
+              appliedIds.add(candidate.id);
+            }
+          } catch {
+            // Row raced away between load and apply — count it honestly.
+          }
+        }
+        message +=
+          applied === matchingPending.length
+            ? ` Áp dụng cho ${applied} mục đang chờ.`
+            : ` Áp dụng được ${applied}/${matchingPending.length} mục ` +
+              "đang chờ (phần còn lại đã bị thay đổi).";
+        if (appliedIds.size > 0) {
+          setPendingCandidates((current) =>
+            current.filter((candidate) => !appliedIds.has(candidate.id)),
+          );
+        }
+      }
+    }
+    showNotice(message, "success");
   }
 
   async function toggleEnabled(rule: InboxRule) {
@@ -250,10 +345,7 @@ export function RulesPage({
       return;
     }
     setRules(result.rules);
-    showNotice(
-      rule.enabled ? "Đã tắt quy tắc." : "Đã bật quy tắc.",
-      "success",
-    );
+    showNotice(rule.enabled ? "Đã tắt quy tắc." : "Đã bật quy tắc.", "success");
   }
 
   async function deleteRule(rule: InboxRule) {
@@ -326,13 +418,17 @@ export function RulesPage({
           title="Quy tắc"
           description={
             <p>
-              Quy tắc chạy theo thứ tự ưu tiên và chỉ chuẩn hóa ứng viên để bạn xem
-              trước. Quy tắc không tự tạo giao dịch trong sổ.
+              Quy tắc chạy theo thứ tự ưu tiên và chỉ chuẩn hóa ứng viên để bạn
+              xem trước. Quy tắc không tự tạo giao dịch trong sổ.
             </p>
           }
           actions={
             <>
-              <LinkButton href="/inbox" intent="secondary" targetSize="important">
+              <LinkButton
+                href="/inbox"
+                intent="secondary"
+                targetSize="important"
+              >
                 <Icon name="inbox" />
                 Inbox
               </LinkButton>
@@ -351,8 +447,9 @@ export function RulesPage({
         {!featureAvailable ? (
           <Alert tone="warning" live="polite">
             <AlertDescription>
-              Quy tắc chưa được bật trên máy chủ. Inbox vẫn hoạt động bình thường;
-              workspace này chỉ khả dụng khi hợp đồng lưu quy tắc được triển khai.
+              Quy tắc chưa được bật trên máy chủ. Inbox vẫn hoạt động bình
+              thường; workspace này chỉ khả dụng khi hợp đồng lưu quy tắc được
+              triển khai.
             </AlertDescription>
           </Alert>
         ) : null}
@@ -363,7 +460,8 @@ export function RulesPage({
             description={
               <p>
                 Xem quy tắc ưu tiên cao nhất sẽ khớp thế nào. Kết quả vẫn ở giai
-                đoạn “{RULE_STAGE_LABELS.candidate}” và phải được duyệt trong Inbox.
+                đoạn “{RULE_STAGE_LABELS.candidate}” và phải được duyệt trong
+                Inbox.
               </p>
             }
             contained
@@ -382,8 +480,8 @@ export function RulesPage({
                 <Alert tone="info" live="polite">
                   <AlertDescription>
                     Khớp quy tắc ưu tiên v{preview.match.version}:{" "}
-                    <strong>{formatRuleSummary(preview.match)}</strong>. Chưa có giao
-                    dịch nào được tạo.
+                    <strong>{formatRuleSummary(preview.match)}</strong>. Chưa có
+                    giao dịch nào được tạo.
                   </AlertDescription>
                 </Alert>
               ) : (
@@ -396,7 +494,11 @@ export function RulesPage({
         ) : null}
 
         {!ready ? (
-          <section className={styles.loading} aria-busy="true" aria-label="Đang tải quy tắc">
+          <section
+            className={styles.loading}
+            aria-busy="true"
+            aria-label="Đang tải quy tắc"
+          >
             <span />
             <span />
           </section>
@@ -448,7 +550,11 @@ export function RulesPage({
               )
             }
             secondaryAction={
-              <LinkButton href="/inbox" intent="secondary" targetSize="important">
+              <LinkButton
+                href="/inbox"
+                intent="secondary"
+                targetSize="important"
+              >
                 Về Inbox
               </LinkButton>
             }
@@ -460,8 +566,8 @@ export function RulesPage({
             title="Ưu tiên cao đến thấp"
             description={
               <p>
-                Quy tắc đầu tiên khớp sẽ quyết định gợi ý. Phiên bản quy tắc được
-                lưu cùng ứng viên để giữ dấu vết giải thích.
+                Quy tắc đầu tiên khớp sẽ quyết định gợi ý. Phiên bản quy tắc
+                được lưu cùng ứng viên để giữ dấu vết giải thích.
               </p>
             }
             action={
@@ -476,9 +582,16 @@ export function RulesPage({
               {orderedRules.map((rule, index) => (
                 <li
                   key={rule.id}
-                  className={rule.enabled ? styles.item : `${styles.item} ${styles.disabled}`}
+                  className={
+                    rule.enabled
+                      ? styles.item
+                      : `${styles.item} ${styles.disabled}`
+                  }
                 >
-                  <span className={styles.priority} aria-label={`Ưu tiên ${index + 1}`}>
+                  <span
+                    className={styles.priority}
+                    aria-label={`Ưu tiên ${index + 1}`}
+                  >
                     {index + 1}
                   </span>
                   <div className={styles.body}>
@@ -582,13 +695,21 @@ export function RulesPage({
           </div>
         }
       >
-        <form id="rule-form" className={styles.form} onSubmit={submitRule} noValidate>
+        <form
+          id="rule-form"
+          className={styles.form}
+          onSubmit={submitRule}
+          noValidate
+        >
           <TextField
             ref={containsRef}
             label="Nếu chứa"
             value={form.contains}
             onChange={(event) => {
-              setForm((current) => ({ ...current, contains: event.target.value }));
+              setForm((current) => ({
+                ...current,
+                contains: event.target.value,
+              }));
               setFormError("");
             }}
             placeholder="HIGHLANDS, LUONG, GRAB…"
@@ -620,7 +741,10 @@ export function RulesPage({
             label="Thì danh mục"
             value={form.categoryId}
             onChange={(event) =>
-              setForm((current) => ({ ...current, categoryId: event.target.value }))
+              setForm((current) => ({
+                ...current,
+                categoryId: event.target.value,
+              }))
             }
             required
             disabled={saving || availableCategories.length === 0}
@@ -628,7 +752,8 @@ export function RulesPage({
           >
             {availableCategories.map((category) => (
               <option key={category.id} value={category.id}>
-                {category.name} · {category.kind === "income" ? "Tiền vào" : "Tiền ra"}
+                {category.name} ·{" "}
+                {category.kind === "income" ? "Tiền vào" : "Tiền ra"}
               </option>
             ))}
           </SelectField>
@@ -636,7 +761,10 @@ export function RulesPage({
             label="Đổi tên nơi giao dịch (tùy chọn)"
             value={form.merchant}
             onChange={(event) =>
-              setForm((current) => ({ ...current, merchant: event.target.value }))
+              setForm((current) => ({
+                ...current,
+                merchant: event.target.value,
+              }))
             }
             placeholder="Highlands Coffee"
             maxLength={200}
@@ -649,15 +777,44 @@ export function RulesPage({
               type="checkbox"
               checked={form.enabled}
               onChange={(event) =>
-                setForm((current) => ({ ...current, enabled: event.target.checked }))
+                setForm((current) => ({
+                  ...current,
+                  enabled: event.target.checked,
+                }))
               }
               disabled={saving}
             />
             <span>
               <strong>Bật quy tắc sau khi lưu</strong>
-              <small>Quy tắc tắt vẫn giữ phiên bản nhưng không tham gia khớp.</small>
+              <small>
+                Quy tắc tắt vẫn giữ phiên bản nhưng không tham gia khớp.
+              </small>
             </span>
           </label>
+          <p className={styles.hint}>
+            {matchingPending.length === 0
+              ? "Chưa khớp mục nào đang chờ."
+              : `Khớp ${matchingPending.length} mục đang chờ trong Inbox.`}
+          </p>
+          {form.enabled && matchingPending.length > 0 ? (
+            <label className={styles.checkRow}>
+              <input
+                type="checkbox"
+                checked={applyToExisting}
+                onChange={(event) => setApplyToExisting(event.target.checked)}
+                disabled={saving}
+              />
+              <span>
+                <strong>
+                  Áp dụng cho {matchingPending.length} mục đang chờ
+                </strong>
+                <small>
+                  Mỗi mục vẫn được kiểm tra lại trước khi điền danh mục — không
+                  giao dịch nào bị tạo tự động.
+                </small>
+              </span>
+            </label>
+          ) : null}
           {formError ? (
             <Alert tone="error" live="assertive">
               <AlertDescription>{formError}</AlertDescription>

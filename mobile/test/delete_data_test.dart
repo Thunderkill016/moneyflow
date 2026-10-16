@@ -120,7 +120,7 @@ void main() {
       await t.pumpAndSettle();
     }
 
-    testWidgets('Xóa stays disabled until the exact confirm text', (t) async {
+    testWidgets('Xóa stays disabled until a valid confirm spelling', (t) async {
       await pumpOpener(t);
       expect(find.text('Gõ XÓA để xác nhận'), findsOneWidget);
 
@@ -128,13 +128,18 @@ void main() {
           t.widget<FilledButton>(find.widgetWithText(FilledButton, 'Xóa'));
       expect(delete().onPressed, isNull);
 
-      await t.enterText(find.byType(TextField), 'xoa');
+      await t.enterText(find.byType(TextField), 'xoá bỏ');
       await t.pump();
       expect(delete().onPressed, isNull);
 
-      await t.enterText(find.byType(TextField), 'XÓA');
-      await t.pump();
-      expect(delete().onPressed, isNotNull);
+      // Accent-insensitive: decomposed Unicode, accent-on-A and plain
+      // ASCII spellings all confirm — the guard wants deliberate typing,
+      // not a specific byte sequence.
+      for (final spelling in ['XÓA', 'XO\u0301A', 'XOÁ', 'xóa', 'xoa']) {
+        await t.enterText(find.byType(TextField), spelling);
+        await t.pump();
+        expect(delete().onPressed, isNotNull, reason: spelling);
+      }
     });
   });
 }

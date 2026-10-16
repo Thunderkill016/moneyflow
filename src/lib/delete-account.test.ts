@@ -31,13 +31,16 @@ function mockStorage(initial: Record<string, string> = {}) {
   return { storage, map };
 }
 
-test("isDeleteConfirmValid accepts exact XÓA only", () => {
+test("isDeleteConfirmValid accepts every XÓA spelling", () => {
   assert.equal(DELETE_CONFIRM_TEXT, "XÓA");
   assert.equal(isDeleteConfirmValid("XÓA"), true);
   assert.equal(isDeleteConfirmValid("  XÓA  "), true);
-  assert.equal(isDeleteConfirmValid("xóa"), false);
-  assert.equal(isDeleteConfirmValid("XOA"), false);
-  assert.equal(isDeleteConfirmValid("XÓA "), true);
+  // Decomposed form — what Telex/VNI keyboards actually emit.
+  assert.equal(isDeleteConfirmValid("XÓA"), true);
+  // The common misspelling (accent on the A).
+  assert.equal(isDeleteConfirmValid("XOÁ"), true);
+  assert.equal(isDeleteConfirmValid("xóa"), true);
+  assert.equal(isDeleteConfirmValid("XOA"), true);
   assert.equal(isDeleteConfirmValid(""), false);
   assert.equal(isDeleteConfirmValid("DELETE"), false);
 });

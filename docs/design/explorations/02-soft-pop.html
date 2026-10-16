@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gen-Z Territory 2 — Soft Pop (exploration mock)</title>
+<style>
+  :root{
+    --canvas:#F8F5FF; --surface:#fff; --muted:#F1ECFF;
+    --text:#211A33; --text-muted:#524A6B; --text-soft:#6F6787;
+    --border:#E6E0F5; --border-strong:#C3B9E0;
+    --brand:#6F4EF5; --brand-hover:#6A48EE; --brand-subtle:#EFEAFF;
+    --pink:#FF9FB8; --mint:#7FE5C4; --peri:#8FA8FF;
+    --income:#0C7A55; --expense:#C83E46; --transfer:#7054CC;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{background:#EDE8FA;font-family:'Be Vietnam Pro',Inter,system-ui,sans-serif;color:var(--text);padding:24px;display:grid;gap:24px;grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+  h1{font-weight:800;font-size:36px;line-height:1.12;letter-spacing:-.02em}
+  .stage{background:var(--canvas);border:1px solid var(--border);border-radius:26px;padding:20px;overflow:hidden}
+  .tag{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--text-soft);margin-bottom:12px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;height:50px;padding:0 26px;border-radius:999px;background:var(--brand);color:#fff;font-weight:800;font-size:15px;text-decoration:none}
+  .btn.ghost{background:var(--surface);color:var(--text);border:1.5px solid var(--border-strong)}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:26px;padding:20px}
+  .stickers{display:flex;gap:10px;margin:16px 0}
+  .st{width:64px;height:64px;border-radius:20px;border:2.5px solid var(--text);display:grid;place-items:center;font-size:26px;background:var(--pink)}
+  .st:nth-child(2){background:var(--mint);transform:rotate(-6deg)}
+  .st:nth-child(3){background:var(--peri);transform:rotate(4deg)}
+  /* hero */
+  .hero h1{max-width:15ch;margin:8px 0}
+  .hero p{color:var(--text-muted);font-size:15px;line-height:1.65;max-width:30ch;margin-bottom:20px}
+  /* login */
+  .login .card{max-width:350px;margin:0 auto;padding:28px 24px}
+  .login label{display:block;font-size:12px;font-weight:700;color:var(--text-muted);margin:14px 0 6px}
+  .login input{width:100%;height:48px;border:1.5px solid var(--border-strong);border-radius:999px;padding:0 18px;font-size:15px;background:var(--surface)}
+  .login .btn{width:100%;margin-top:16px}
+  .login .alt{display:flex;justify-content:center;gap:14px;margin-top:14px;font-size:13px;color:var(--brand);font-weight:600}
+  /* dashboard */
+  .phone{width:300px;margin:0 auto;background:var(--surface);border-radius:34px;border:1px solid var(--border);padding:16px 14px 10px}
+  .pill-hi{display:flex;align-items:center;gap:10px}
+  .avt{width:38px;height:38px;border-radius:50%;background:var(--pink);border:2.5px solid var(--text)}
+  .sum{font-size:26px;font-weight:800;letter-spacing:-.02em;margin-top:8px}
+  .seg{display:flex;gap:8px;margin:14px 0}
+  .chip{flex:1;text-align:center;font-size:12px;font-weight:700;color:var(--text-muted);background:var(--muted);border-radius:999px;padding:9px 0}
+  .chip.on{background:var(--brand-subtle);color:var(--brand)}
+  .tx{display:flex;justify-content:space-between;align-items:center;padding:11px 2px;font-size:13px;border-top:1px solid var(--border)}
+  .tx b{font-weight:600}
+  .amt{font-variant-numeric:tabular-nums;font-weight:800}
+  .neg{color:var(--expense)} .pos{color:var(--income)} .mov{color:var(--transfer)}
+  .dock{margin-top:14px;background:var(--surface);border:1.5px solid var(--border);border-radius:999px;padding:6px;display:flex;gap:4px}
+  .dock div{flex:1;text-align:center;font-size:9px;padding:7px 2px;border-radius:999px;color:var(--text-soft)}
+  .dock div.on{background:var(--brand);color:#fff}
+  .dock div.gri{background:var(--text);color:#fff;font-weight:800}
+</style>
+</head>
+<body>
+  <section class="stage hero"><p class="tag">Landing hero</p>
+    <div class="stickers"><div class="st">💸</div><div class="st">🧾</div><div class="st">🪙</div></div>
+    <h1>Sổ tiền thân thiện, nhìn là hiểu.</h1>
+    <p>Ghi tay vài giây một khoản — sai thì sửa được, xóa nhầm thì khôi phục được.</p>
+    <a class="btn" href="#">Tạo sổ</a>
+  </section>
+  <section class="stage login"><p class="tag">Login</p>
+    <div class="card">
+      <h1 style="font-size:24px">Chào lại 👋</h1>
+      <label>Email</label><input placeholder="ban@email.com">
+      <label>Mật khẩu</label><input type="password" placeholder="••••••••">
+      <a class="btn" href="#">Đăng nhập</a>
+      <a class="btn ghost" style="width:100%;margin-top:10px" href="#">Tiếp tục với Google</a>
+      <div class="alt"><span>Quên mật khẩu?</span><span>Tạo tài khoản</span></div>
+    </div>
+  </section>
+  <section class="stage"><p class="tag">Dashboard mobile</p>
+    <div class="phone">
+      <div class="pill-hi"><div class="avt"></div><b>Tháng 10</b></div>
+      <div class="sum">7.870.000&nbsp;₫</div>
+      <div class="seg"><div class="chip on">Chi</div><div class="chip">Thu</div><div class="chip">Chuyển</div></div>
+      <div class="tx"><b>Mua BTC</b><span class="amt neg">−200.000&nbsp;₫</span></div>
+      <div class="tx"><b>Lương tháng 10</b><span class="amt pos">+8.500.000&nbsp;₫</span></div>
+      <div class="tx"><b>Chuyển sang Ví</b><span class="amt mov">430.000&nbsp;₫</span></div>
+      <div class="tx"><b>Cà phê</b><span class="amt neg">−45.000&nbsp;₫</span></div>
+      <div class="dock"><div class="on">Tổng quan</div><div>Hoạt động</div><div class="gri">Ghi</div><div>Kế hoạch</div><div>Báo cáo</div></div>
+    </div>
+  </section>
+</body>
+</html>

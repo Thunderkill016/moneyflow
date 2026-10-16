@@ -780,10 +780,30 @@ class RealStore implements PatternDismissalSync {
   );
 
   /// POST /rpc/restore_money_transaction — clears deleted_at.
-  Future<void> restoreTransaction(String transactionId) => _api.rpc(
-    'restore_money_transaction',
-    {'p_transaction_id': transactionId},
-  );
+  /// The RPC returns false instead of throwing when nothing was
+  /// restored — surface it so the UI never claims a false success.
+  Future<void> restoreTransaction(String transactionId) async {
+    final result = await _api.rpc('restore_money_transaction', {
+      'p_transaction_id': transactionId,
+    });
+    if (result != true) {
+      throw StateError('restore_refused');
+    }
+  }
+
+  /// POST /rpc/permanently_delete_money_transaction — hard-deletes a row
+  /// already in the trash (server refuses unless deleted_at is set).
+  /// The RPC returns false instead of throwing when the row is not
+  /// purgeable — surface that as an error so the UI never claims a
+  /// false success.
+  Future<void> permanentlyDeleteTransaction(String transactionId) async {
+    final result = await _api.rpc('permanently_delete_money_transaction', {
+      'p_transaction_id': transactionId,
+    });
+    if (result != true) {
+      throw StateError('permanent_delete_refused');
+    }
+  }
 
   /// POST /rpc/update_money_transaction — expense/income edits.
   /// [expectedUpdatedAt] is the optimistic-concurrency token read from
@@ -1245,6 +1265,21 @@ class RealStore implements PatternDismissalSync {
   /// priority.
   Future<void> reorderInboxRules(List<String> orderedIds) =>
       _api.rpc('replace_inbox_rule_priorities', {'p_rule_ids': orderedIds});
+
+  /// POST /rpc/apply_inbox_rule_to_candidate — apply one rule to one pending
+  /// candidate. The server re-validates the version, the match and the
+  /// pending status itself, so a stale sweep refuses honestly instead of
+  /// writing a wrong category. Used by the rules sheet's "apply to existing
+  /// pending" option (Monarch's apply-to-existing checkbox).
+  Future<void> applyInboxRuleToCandidate({
+    required String candidateId,
+    required String ruleId,
+    required int ruleVersion,
+  }) => _api.rpc('apply_inbox_rule_to_candidate', {
+    'p_candidate_id': candidateId,
+    'p_rule_id': ruleId,
+    'p_expected_version': ruleVersion,
+  });
 
   /// POST /rpc/prepare_direct_csv_candidates_with_rules — the SECURITY
   /// DEFINER ingestion the web's commitDirectCsvImportAction calls. Same

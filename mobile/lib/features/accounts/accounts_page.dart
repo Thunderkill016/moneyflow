@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../domain/datetime_label.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
+import '../../theme/mf_theme.dart';
 import '../shared/empty_state.dart';
+import '../shared/timed_snack_bar.dart';
 
 /// Account list + create/archive — mirrors the web's account management
 /// surface (create_financial_account, set_financial_account_archived).
@@ -186,8 +188,12 @@ class _AccountsPageState extends State<AccountsPage> {
                         ? null
                         : () => _showForm(),
                   ),
-                for (final a in snap.data!)
-                  if (!a.isArchived) _accountTile(a),
+                for (final (i, a)
+                    in snap.data!.where((a) => !a.isArchived).indexed)
+                  _accountTile(
+                    a,
+                    fill: mfPastelFills[i % mfPastelFills.length],
+                  ),
                 if (archived.isNotEmpty) ...[
                   const SizedBox(height: 20),
                   Text(
@@ -227,22 +233,48 @@ class _AccountsPageState extends State<AccountsPage> {
   }
 
   void _snack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    showTimedSnackBar(
+      ScaffoldMessenger.of(context),
+      SnackBar(content: Text(message)),
+    );
   }
 
-  Widget _accountTile(AccountSummary a) {
+  static IconData _kindIcon(AccountKind k) => switch (k) {
+    AccountKind.cash => Icons.payments_outlined,
+    AccountKind.bank => Icons.account_balance_outlined,
+    AccountKind.eWallet => Icons.smartphone_outlined,
+    AccountKind.creditCard => Icons.credit_card_outlined,
+    AccountKind.savings => Icons.savings_outlined,
+  };
+
+  Widget _accountTile(AccountSummary a, {Color? fill}) {
+    // Active wallets sit on a pastel fill (the reference's wallet card);
+    // archived rows stay on the neutral card so they read as inactive.
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
+      color: fill,
       child: ListTile(
-        leading: CircleAvatar(child: Text(a.name.characters.first)),
+        leading: MfSquareIcon(
+          icon: _kindIcon(a.kind),
+          fill: fill == null
+              ? mfPastelFills.first
+              : Colors.white.withValues(alpha: 0.6),
+        ),
         title: Text(a.name),
         subtitle: Text(_subtitleFor(a)),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(formatMoney(a.balance)),
+            Text(
+              formatMoney(a.balance),
+              style: mfMoneyStyle(
+                TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: fill == null ? null : mfPastelInk,
+                ),
+              ),
+            ),
             // Archived rows get restore instead of edit — restore first,
             // then edit, like the web/categories rule.
             if (a.isArchived && widget.onArchive != null)
@@ -250,13 +282,31 @@ class _AccountsPageState extends State<AccountsPage> {
                 onPressed: () => _applyArchived(a, false),
                 child: const Text('Khôi phục'),
               )
-            // The tap went to the register — keep edit one tap away,
-            // like the web row's "Sửa" button.
-            else if (widget.onOpen != null && widget.onUpdate != null)
-              IconButton(
-                icon: const Icon(Icons.edit_outlined),
-                tooltip: 'Sửa ${a.name}',
-                onPressed: () => _showForm(editing: a),
+            // The tap went to the register — actions live in a visible
+            // overflow menu like the web row's Sửa/Lưu trữ pair;
+            // long-press stays as a shortcut.
+            else if (widget.onOpen != null &&
+                (widget.onUpdate != null || widget.onArchive != null))
+              PopupMenuButton<String>(
+                tooltip: 'Tùy chọn ${a.name}',
+                iconSize: 20,
+                onSelected: (action) {
+                  switch (action) {
+                    case 'edit':
+                      _showForm(editing: a);
+                    case 'archive':
+                      _confirmArchive(a);
+                  }
+                },
+                itemBuilder: (ctx) => [
+                  if (widget.onUpdate != null)
+                    const PopupMenuItem(value: 'edit', child: Text('Sửa')),
+                  if (widget.onArchive != null)
+                    const PopupMenuItem(
+                      value: 'archive',
+                      child: Text('Lưu trữ'),
+                    ),
+                ],
               ),
           ],
         ),
@@ -398,7 +448,10 @@ Future<bool> showAccountFormDialog(
               ),
               if (error != null) ...[
                 const SizedBox(height: 12),
-                Text(error!, style: TextStyle(color: Colors.red.shade700)),
+                Text(
+                  error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
               ],
             ],
           ),

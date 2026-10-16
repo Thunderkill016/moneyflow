@@ -111,8 +111,10 @@ void main() {
     expect(opened?.id, 'a1');
     expect(find.text('Sửa tài khoản'), findsNothing);
 
-    // Edit stays one tap away via the trailing action (web: "Sửa" button).
-    await t.tap(find.byTooltip('Sửa Tiền mặt'));
+    // Edit stays one tap away via the trailing overflow menu (web: "Sửa").
+    await t.tap(find.byTooltip('Tùy chọn Tiền mặt'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Sửa'));
     await t.pumpAndSettle();
     expect(find.text('Sửa tài khoản'), findsOneWidget);
   });

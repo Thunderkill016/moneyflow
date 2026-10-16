@@ -12,6 +12,8 @@ import {
   WalletCards,
 } from "lucide-react";
 import { BrandLockup } from "@/components/brand/brand-lockup";
+import { InstallNudge } from "@/components/install-nudge";
+import { MobileWelcome } from "@/components/mobile-welcome";
 import { RevealSection } from "@/components/reveal";
 import styles from "./landing-page.module.css";
 import themeStyles from "./public-brand-theme.module.css";
@@ -88,6 +90,14 @@ export function LandingPage() {
         Bỏ qua điều hướng
       </a>
 
+      {/* ≤760px: the app-style welcome replaces the marketing header/hero
+          (both are display:none at that breakpoint). The story sections
+          below stay reachable by scrolling for anyone who wants them. */}
+      <MobileWelcome />
+      <div className={styles.mobileNudge}>
+        <InstallNudge />
+      </div>
+
       <header className={styles.siteHeader}>
         <nav className={styles.nav} aria-label="Điều hướng trang chủ">
           <BrandLockup
@@ -119,9 +129,7 @@ export function LandingPage() {
             <p className={styles.kicker}>
               Một dòng tiền · một câu chuyện kiểm tra được
             </p>
-            <h1 id="landing-title">
-              Từ lúc ghi đến lúc hiểu tiền của mình.
-            </h1>
+            <h1 id="landing-title">Từ lúc ghi đến lúc hiểu tiền của mình.</h1>
             <p className={styles.heroLead}>
               MoneyFlow dẫn bạn qua ba câu hỏi rõ ràng: vừa ghi gì, tài khoản
               nào thay đổi và con số đó đến từ đâu — không cần liên kết ngân
@@ -158,7 +166,9 @@ export function LandingPage() {
           aria-labelledby="story-title"
         >
           <div className={styles.sectionHeading}>
-            <p>Cách MoneyFlow biến một giao dịch thành con số có thể giải thích</p>
+            <p>
+              Cách MoneyFlow biến một giao dịch thành con số có thể giải thích
+            </p>
             <h2 id="story-title">Một dòng tiền, ba câu hỏi kiểm tra được.</h2>
             <span>
               Không bắt đầu bằng biểu đồ. MoneyFlow bắt đầu bằng giao dịch đúng,

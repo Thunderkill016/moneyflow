@@ -114,6 +114,7 @@ class NeonDataApi {
     Uri url, {
     Object? body,
     String? prefer,
+    bool retry = false,
   }) async {
     final String? jwt;
     try {
@@ -139,6 +140,15 @@ class NeonDataApi {
       // PostgREST rejecting a just-issued JWT means the session behind
       // it was revoked server-side.
       if (res.status == 401) _signalSessionExpired();
+      // A P0001 'authentication_required' is raised INSIDE the definer:
+      // the JWT passed PostgREST's role check but carried no usable
+      // session claims (stale/wrong-token class) — drop the cached JWT,
+      // force one refresh through /get-session, and replay the request
+      // once. A repeat failure is a real dead session.
+      if (!retry && res.body.contains('authentication_required')) {
+        _auth.invalidateJwt();
+        return _send(method, url, body: body, prefer: prefer, retry: true);
+      }
       throw NeonAuthException(
         res.status,
         '${url.host}${url.path} -> ${res.body}',

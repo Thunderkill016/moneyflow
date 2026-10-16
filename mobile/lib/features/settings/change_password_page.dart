@@ -20,14 +20,16 @@ class ChangePasswordPage extends StatefulWidget {
 }
 
 class _ChangePasswordPageState extends State<ChangePasswordPage> {
-  /// Better Auth's default minimum — match it client-side so the round
-  /// trip only fires for inputs the server would accept anyway.
-  static const _minPasswordLength = 8;
+  /// Product password policy — matches the web's PASSWORD_MIN_LENGTH
+  /// (src/lib/auth-password-policy.ts) and RegisterPage.minPasswordLength,
+  /// so a password the app let you set is one the app lets you change to.
+  static const _minPasswordLength = 12;
 
   final _current = TextEditingController();
   final _next = TextEditingController();
   final _confirm = TextEditingController();
   bool _busy = false;
+  bool _showPasswords = false;
   String? _error;
 
   @override
@@ -89,6 +91,18 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     return 'Không đổi được mật khẩu (${e.status})';
   }
 
+  InputDecoration _decoration(String label, {String? helper}) =>
+      InputDecoration(
+        labelText: label,
+        helperText: helper,
+        border: const OutlineInputBorder(),
+        suffixIcon: IconButton(
+          tooltip: _showPasswords ? 'Ẩn mật khẩu' : 'Hiện mật khẩu',
+          icon: Icon(_showPasswords ? Icons.visibility_off : Icons.visibility),
+          onPressed: () => setState(() => _showPasswords = !_showPasswords),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -102,41 +116,35 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
             children: [
               TextField(
                 controller: _current,
-                obscureText: true,
+                obscureText: !_showPasswords,
                 textInputAction: TextInputAction.next,
                 autofocus: true,
-                decoration: const InputDecoration(
-                  labelText: 'Mật khẩu hiện tại',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: _decoration('Mật khẩu hiện tại'),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _next,
-                obscureText: true,
+                obscureText: !_showPasswords,
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Mật khẩu mới',
-                  border: OutlineInputBorder(),
+                decoration: _decoration(
+                  'Mật khẩu mới',
+                  helper: 'Ít nhất $_minPasswordLength ký tự',
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _confirm,
-                obscureText: true,
+                obscureText: !_showPasswords,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _busy ? null : _submit(),
-                decoration: const InputDecoration(
-                  labelText: 'Nhập lại mật khẩu mới',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: _decoration('Nhập lại mật khẩu mới'),
               ),
               const SizedBox(height: 16),
               if (_error != null) ...[
                 Text(
                   _error!,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.red.shade700),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
                 const SizedBox(height: 8),
               ],

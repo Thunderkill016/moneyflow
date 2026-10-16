@@ -20,6 +20,7 @@ import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/reconciliation.dart';
 import '../../domain/register.dart';
+import '../../theme/mf_theme.dart';
 
 /// Server-backed mutations the workspace performs. app.dart binds the
 /// RealStore methods; tests inject spies. Every callback returns after
@@ -574,8 +575,8 @@ class _AccountReconciliationPageState extends State<AccountReconciliationPage> {
               'Chênh lệch',
               difference == null ? '—' : formatSignedMoney(difference),
               valueColor: difference == null || difference == 0
-                  ? Colors.green.shade700
-                  : Colors.red.shade700,
+                  ? context.mf.incomeText
+                  : context.mf.expenseText,
             ),
             Text(differenceNote, style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 8),
@@ -658,9 +659,9 @@ class _AccountReconciliationPageState extends State<AccountReconciliationPage> {
         : EntryReconciliationState.cleared;
     final busy = _busy != null;
     final color = e.impact > 0
-        ? Colors.green.shade700
+        ? context.mf.incomeText
         : e.impact < 0
-        ? Colors.red.shade700
+        ? context.mf.expenseText
         : null;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),

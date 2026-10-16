@@ -105,13 +105,13 @@ Future<bool> showBalanceAdjustmentDialog(
                 else if (actual.text.trim().isNotEmpty)
                   Text(
                     'Nhập số tiền hợp lệ.',
-                    style: TextStyle(color: Colors.red.shade700),
+                    style: TextStyle(color: Theme.of(ctx).colorScheme.error),
                   ),
                 const SizedBox(height: 12),
                 if (categoriesError != null)
                   Text(
                     'Chưa tải được danh mục — thử lại sau.',
-                    style: TextStyle(color: Colors.red.shade700),
+                    style: TextStyle(color: Theme.of(ctx).colorScheme.error),
                   )
                 else
                   DropdownButtonFormField<String>(
@@ -132,13 +132,17 @@ Future<bool> showBalanceAdjustmentDialog(
                 TextField(
                   controller: userNote,
                   decoration: const InputDecoration(
-                    labelText: 'Ghi chú (tùy chọn)',
+                    labelText: 'Lý do điều chỉnh (tùy chọn)',
+                    helperText: 'vd: lệch vì bỏ sót khoản tiền mặt',
                     border: OutlineInputBorder(),
                   ),
                 ),
                 if (error != null) ...[
                   const SizedBox(height: 12),
-                  Text(error!, style: TextStyle(color: Colors.red.shade700)),
+                  Text(
+                    error!,
+                    style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+                  ),
                 ],
               ],
             ),

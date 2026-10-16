@@ -4,6 +4,7 @@ import '../../domain/categories.dart';
 import '../../domain/models.dart';
 import 'category_visuals.dart';
 import 'vietnam_pack_sheet.dart';
+import '../shared/timed_snack_bar.dart';
 
 /// Category management — mirrors the web's /categories page
 /// (categories-page.tsx): sections split active expense / active income /
@@ -62,9 +63,10 @@ class _CategoriesPageState extends State<CategoriesPage> {
   }
 
   void _snack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    showTimedSnackBar(
+      ScaffoldMessenger.of(context),
+      SnackBar(content: Text(message)),
+    );
   }
 
   /// Create when [editing] is null; otherwise edit name/icon/color in
@@ -193,7 +195,12 @@ class _CategoriesPageState extends State<CategoriesPage> {
                 ),
                 if (error != null) ...[
                   const SizedBox(height: 12),
-                  Text(error!, style: TextStyle(color: Colors.red.shade700)),
+                  Text(
+                    error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -310,7 +317,9 @@ class _CategoriesPageState extends State<CategoriesPage> {
             child: const Text('Hủy'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Xóa hẳn'),
           ),

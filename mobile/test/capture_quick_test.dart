@@ -45,7 +45,7 @@ void main() {
 
     // Suggestion line shows the understood parse before any save.
     expect(find.textContaining('Chi'), findsWidgets);
-    expect(find.textContaining('45.000 ₫'), findsOneWidget);
+    expect(find.text('→ Chi · 45.000 ₫ · Ăn uống'), findsOneWidget);
     expect(find.textContaining('Ăn uống'), findsWidgets);
 
     // The real fields carry the prefill — still editable.
@@ -65,7 +65,7 @@ void main() {
     await _type(t, 'luong 15tr');
 
     expect(find.textContaining('Thu'), findsWidgets);
-    expect(find.textContaining('15.000.000 ₫'), findsOneWidget);
+    expect(find.text('→ Thu · 15.000.000 ₫ · Lương'), findsOneWidget);
     final seg = t.widget<SegmentedButton<TransactionKind>>(
       find.byType(SegmentedButton<TransactionKind>),
     );
@@ -98,7 +98,7 @@ void main() {
     // Manual edit wins — the new parse only updates untouched fields.
     expect(find.widgetWithText(TextField, '99999'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'an toi'), findsOneWidget);
-    expect(find.textContaining('50.000 ₫'), findsOneWidget);
+    expect(find.text('→ Chi · 50.000 ₫ · Ăn uống'), findsOneWidget);
   });
 
   testWidgets('"hom qua" moves the date to yesterday', (t) async {

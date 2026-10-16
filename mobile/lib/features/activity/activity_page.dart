@@ -6,10 +6,13 @@ import '../../data/recent_searches.dart';
 import '../../domain/bulk.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
+import '../../domain/register.dart' show transactionDeleteErrorMessage;
 import '../../domain/report.dart' show unnamedPayeeBucket;
 import '../../domain/transaction_query.dart';
+import '../../theme/mf_theme.dart';
 import '../capture/category_picker.dart';
 import '../shared/empty_state.dart';
+import '../shared/timed_snack_bar.dart';
 
 /// Full transaction activity — soft-delete via long-press (the same
 /// soft_delete_money_transaction RPC the web trash flow uses), tap to
@@ -19,7 +22,7 @@ class ActivityPage extends StatefulWidget {
   const ActivityPage({
     super.key,
     required this.loadPage,
-    required this.onDelete,
+    this.onDelete,
     this.onOpenTrash,
     this.onEdit,
     this.onBulkReview,
@@ -33,7 +36,11 @@ class ActivityPage extends StatefulWidget {
 
   /// One page of the feed for a search/filter query.
   final TransactionPageLoader loadPage;
-  final Future<void> Function(String transactionId) onDelete;
+
+  /// Soft-delete entry — null hides the affordance entirely (demo has no
+  /// ledger writes, so a delete that no-ops while claiming success would
+  /// be a lie the row then disproves).
+  final Future<void> Function(String transactionId)? onDelete;
 
   /// Pre-filtered opening state — the reports drill-in pushes the page
   /// already scoped to a row's dimension and period. The filters behave
@@ -280,6 +287,10 @@ class ActivityPageState extends State<ActivityPage> {
     if (result != null) _setQuery(result);
   }
 
+  /// Vietnam date (UTC+7) so "Hôm nay" matches ledger days.
+  String get _today =>
+      _isoDate(DateTime.now().toUtc().add(const Duration(hours: 7)));
+
   bool get _canSelect => widget.onBulkReview != null;
 
   void _exitSelect() => setState(() {
@@ -297,9 +308,10 @@ class ActivityPageState extends State<ActivityPage> {
     }
   });
 
-  void _snack(String message) => ScaffoldMessenger.of(
-    context,
-  ).showSnackBar(SnackBar(content: Text(message)));
+  void _snack(String message) => showTimedSnackBar(
+    ScaffoldMessenger.of(context),
+    SnackBar(content: Text(message)),
+  );
 
   String _bulkError(Object e) {
     final msg = e.toString();
@@ -388,8 +400,24 @@ class ActivityPageState extends State<ActivityPage> {
       ),
     );
     if (ok == true) {
-      await widget.onDelete(tx.id);
+      try {
+        await widget.onDelete!(tx.id);
+      } catch (e) {
+        if (mounted) _snack(transactionDeleteErrorMessage(e));
+        return;
+      }
       _refresh();
+      if (!mounted) return;
+      final open = widget.onOpenTrash;
+      showTimedSnackBar(
+        ScaffoldMessenger.of(context),
+        SnackBar(
+          content: const Text('Đã chuyển vào thùng rác'),
+          action: open == null
+              ? null
+              : SnackBarAction(label: 'Mở thùng rác', onPressed: open),
+        ),
+      );
     }
   }
 
@@ -552,6 +580,25 @@ class ActivityPageState extends State<ActivityPage> {
     );
   }
 
+  Widget _tile(Transaction t) => _TxTile(
+    tx: t,
+    selecting: _selecting,
+    selected: _selected.contains(t.id),
+    onTap: _selecting
+        ? () => _toggle(t)
+        : widget.onEdit == null
+        ? null
+        : () => _openEdit(t),
+    onLongPress: _selecting
+        ? () => _toggle(t)
+        : widget.onDelete == null
+        ? null
+        : () => _confirmDelete(t),
+    onDelete: _selecting || widget.onDelete == null
+        ? null
+        : () => _confirmDelete(t),
+  );
+
   Widget _footer() {
     if (_loadingMore) {
       return const Padding(
@@ -644,7 +691,7 @@ class ActivityPageState extends State<ActivityPage> {
                   ..clear()
                   ..addAll(ids);
               }),
-              child: const Text('Chọn tất cả'),
+              child: const Text('Chọn mục đang hiện'),
             ),
           if (!_selecting && widget.onOpenTrash != null)
             IconButton(
@@ -699,7 +746,9 @@ class ActivityPageState extends State<ActivityPage> {
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: FilterChip(
-                          label: Text('Cần xem lại ($reviewCount)'),
+                          label: Text(
+                            'Cần xem lại ($reviewCount${_hasMore ? '+' : ''})',
+                          ),
                           selected: _onlyNeedsReview,
                           onSelected: (v) =>
                               setState(() => _onlyNeedsReview = v),
@@ -718,37 +767,13 @@ class ActivityPageState extends State<ActivityPage> {
                         ),
                       ),
                     ),
-                  for (final (i, t) in visible.indexed)
+                  for (final (i, t) in visible.indexed) ...[
+                    if (i == 0 || visible[i - 1].occurredOn != t.occurredOn)
+                      _DayHeader(label: _dayHeader(t.occurredOn, _today)),
                     i < _fadeInMaxItems
-                        ? _FadeInTile(
-                            order: i,
-                            child: _TxTile(
-                              tx: t,
-                              selecting: _selecting,
-                              selected: _selected.contains(t.id),
-                              onTap: _selecting
-                                  ? () => _toggle(t)
-                                  : widget.onEdit == null
-                                  ? null
-                                  : () => _openEdit(t),
-                              onLongPress: _selecting
-                                  ? () => _toggle(t)
-                                  : () => _confirmDelete(t),
-                            ),
-                          )
-                        : _TxTile(
-                            tx: t,
-                            selecting: _selecting,
-                            selected: _selected.contains(t.id),
-                            onTap: _selecting
-                                ? () => _toggle(t)
-                                : widget.onEdit == null
-                                ? null
-                                : () => _openEdit(t),
-                            onLongPress: _selecting
-                                ? () => _toggle(t)
-                                : () => _confirmDelete(t),
-                          ),
+                        ? _FadeInTile(order: i, child: _tile(t))
+                        : _tile(t),
+                  ],
                   _footer(),
                 ],
               ),
@@ -1082,17 +1107,26 @@ class _FadeInTile extends StatelessWidget {
   }
 }
 
+/// Cap so a large text scale shrinks the amount instead of overflowing.
+const _trailingMaxWidth = 132.0;
+
 class _TxTile extends StatelessWidget {
   const _TxTile({
     required this.tx,
     required this.onLongPress,
     this.onTap,
+    this.onDelete,
     this.selecting = false,
     this.selected = false,
   });
   final Transaction tx;
-  final VoidCallback onLongPress;
+  final VoidCallback? onLongPress;
   final VoidCallback? onTap;
+
+  /// Visible delete affordance — the web row's delete button. Long-press
+  /// stays as the shortcut, but a gesture nobody can see is a feature
+  /// nobody finds.
+  final VoidCallback? onDelete;
   final bool selecting;
   final bool selected;
 
@@ -1103,36 +1137,153 @@ class _TxTile extends StatelessWidget {
       TransactionKind.expense => MoneySignKind.expense,
       TransactionKind.transfer => MoneySignKind.transfer,
     };
+    // Same semantic money tokens as the dashboard tile — one source of
+    // truth for income/expense/transfer color across money lists.
+    final mf = context.mf;
     final color = switch (tx.kind) {
-      TransactionKind.income => Colors.green.shade700,
-      TransactionKind.expense => Colors.red.shade700,
-      TransactionKind.transfer => Colors.blueGrey.shade700,
+      TransactionKind.income => mf.incomeText,
+      TransactionKind.expense => mf.expenseText,
+      TransactionKind.transfer => mf.transferText,
     };
     final accountLine = tx.destinationAccount == null
         ? tx.account
         : '${tx.account} → ${tx.destinationAccount}';
     final needsReview = tx.reviewStatus == TransactionReviewStatus.needsReview;
 
+    final kindWord = switch (tx.kind) {
+      TransactionKind.income => 'Thu',
+      TransactionKind.expense => 'Chi',
+      TransactionKind.transfer => 'Chuyển',
+    };
+    final label = [
+      '$kindWord ${formatMoney(tx.amount)}',
+      tx.category,
+      accountLine,
+      _dayLabel(tx.occurredOn),
+      if (needsReview) 'cần xem lại',
+    ].join(', ');
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      color: selected ? Theme.of(context).colorScheme.primaryContainer : null,
-      child: ListTile(
-        leading: selecting
-            ? Icon(selected ? Icons.check_circle : Icons.circle_outlined)
-            : null,
-        title: Text(tx.note.isEmpty ? tx.category : tx.note),
-        subtitle: Text(
-          '${tx.category} · $accountLine · ${tx.occurredOn}'
-          '${needsReview ? '\nCần xem lại' : ''}',
-        ),
-        isThreeLine: needsReview,
-        trailing: Text(
-          formatMoneyWithKind(tx.amount, kind),
-          style: TextStyle(color: color, fontWeight: FontWeight.w600),
-        ),
-        onTap: onTap,
-        onLongPress: onLongPress,
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        children: [
+          Expanded(
+            child: Semantics(
+              container: true,
+              button: true,
+              label: label,
+              selected: selecting ? selected : null,
+              onTap: onTap,
+              onLongPress: onLongPress,
+              excludeSemantics: true,
+              child: Container(
+                color: selected
+                    ? Theme.of(context).colorScheme.primaryContainer
+                    : null,
+                child: ListTile(
+                  leading: selecting
+                      ? Icon(
+                          selected ? Icons.check_circle : Icons.circle_outlined,
+                        )
+                      : MfKindIcon(tx.kind.name),
+                  title: Text(tx.note.isEmpty ? tx.category : tx.note),
+                  subtitle: Text(
+                    '${tx.category} · $accountLine'
+                    '${needsReview ? '\nCần xem lại' : ''}',
+                  ),
+                  isThreeLine: needsReview,
+                  trailing: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: _trailingMaxWidth,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            formatMoneyWithKind(tx.amount, kind),
+                            maxLines: 1,
+                            style: mfMoneyStyle(
+                              TextStyle(
+                                color: color,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _dayLabel(tx.occurredOn),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(color: context.mf.textSoft),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // The amount column shrinks under the 48dp padding so the
+                  // delete icon keeps its own strip at the card edge.
+                  contentPadding: const EdgeInsets.only(left: 16, right: 4),
+                  onTap: onTap,
+                  onLongPress: onLongPress,
+                ),
+              ),
+            ),
+          ),
+          // Sibling of the merged Semantics — TalkBack reaches the button;
+          // it would be invisible inside an excludeSemantics subtree.
+          if (onDelete != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: IconButton(
+                icon: Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                tooltip: 'Xóa giao dịch',
+                visualDensity: VisualDensity.compact,
+                onPressed: onDelete,
+              ),
+            ),
+        ],
       ),
     );
   }
+}
+
+class _DayHeader extends StatelessWidget {
+  const _DayHeader({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 8, bottom: 8),
+    child: Semantics(
+      header: true,
+      child: Text(label, style: Theme.of(context).textTheme.titleSmall),
+    ),
+  );
+}
+
+/// "Hôm nay" / "Hôm qua" / dd/MM/yyyy for a feed day header.
+String _dayHeader(String occurredOn, String today) {
+  if (occurredOn == today) return 'Hôm nay';
+  final t = DateTime.tryParse(today), d = DateTime.tryParse(occurredOn);
+  if (t != null && d != null && t.difference(d).inDays == 1) return 'Hôm qua';
+  return _dayLabel(occurredOn);
+}
+
+/// 'yyyy-MM-dd' → 'dd/MM/yyyy' (the reference's date format). An
+/// unexpected shape is shown as stored rather than guessed at.
+String _dayLabel(String isoDay) {
+  final p = isoDay.split('-');
+  return p.length == 3 ? '${p[2]}/${p[1]}/${p[0]}' : isoDay;
 }

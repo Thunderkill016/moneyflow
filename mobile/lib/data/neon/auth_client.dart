@@ -1,4 +1,7 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
+
+import 'package:flutter/foundation.dart';
 
 import 'neon_config.dart';
 import 'neon_transport.dart';
@@ -17,6 +20,21 @@ class NeonAuthException implements Exception {
   final String message;
   @override
   String toString() => 'NeonAuthException($status): $message';
+}
+
+/// Result of POST /sign-in/social for the loopback-redirect Google flow:
+/// the authorize URL the browser must open plus the session_challenge
+/// cookies the /get-session exchange replays as a Cookie header. The
+/// cookies never leave memory — they only prove the exchange request
+/// belongs to this sign-in attempt.
+class NeonOAuthAttempt {
+  const NeonOAuthAttempt({
+    required this.authorizeUrl,
+    required this.challengeCookies,
+  });
+
+  final Uri authorizeUrl;
+  final List<String> challengeCookies;
 }
 
 class NeonSession {
@@ -90,11 +108,12 @@ class NeonAuthClient {
         'password': password,
       });
 
-  /// Google sign-in through Better Auth's /sign-in/social. The native
-  /// google_sign_in flow produces the id token; the server verifies it
-  /// against the web client id and issues the same session cookie as
-  /// /sign-in/email. Account seeding stays server-side
-  /// (`on_auth_user_created`) — the client never seeds.
+  /// Native-sheet Google sign-in: a plugin-issued idToken exchanged at
+  /// /sign-in/social — valid only when the provider's Google Cloud
+  /// project registered an Android OAuth client for this package+SHA-1
+  /// (owner's own project; Neon's shared provider can never have one).
+  /// When that registration is absent upstream answers redirect:true —
+  /// [_signIn] throws so the caller falls back to [beginGoogleRedirect].
   Future<NeonSession> signInWithGoogleIdToken(String idToken) =>
       _signIn('/sign-in/social', {
         'provider': 'google',
@@ -103,6 +122,119 @@ class NeonAuthClient {
         // flow this client must not follow (handled in _signIn).
         'idToken': {'token': idToken},
       });
+
+  /// First leg of the loopback-redirect Google sign-in — the fallback
+  /// for [signInWithGoogleIdToken] and the only path against Neon's
+  /// shared Google provider. The shared provider's Google Cloud project
+  /// cannot register this app as an Android client, so instead the app
+  /// opens the returned authorize URL in a browser and waits for Neon
+  /// to redirect back to a `http://localhost:<port>/…` callbackURL
+  /// (upstream allows `localhost` via `allow_localhost`).
+  ///
+  /// The response plants `session_challenge` cookies; they are captured
+  /// here and replayed verbatim by [finishGoogleRedirect] — upstream
+  /// only issues the session token when the challenge cookie from this
+  /// exact sign-in attempt accompanies the verifier.
+  Future<NeonOAuthAttempt> beginGoogleRedirect(String callbackUrl) async {
+    final res = await _call(
+      '/sign-in/social',
+      body: {'provider': 'google', 'callbackURL': callbackUrl},
+    );
+    if (!res.ok) {
+      throw NeonAuthException(res.status, _errorMessage(res));
+    }
+    final json = res.json as Map<String, dynamic>;
+    final url = json['url'] as String?;
+    if (url == null || url.isEmpty) {
+      throw NeonAuthException(
+        res.status,
+        'social sign-in returned no authorize URL',
+      );
+    }
+    final cookies = _challengeCookies(res);
+    if (cookies.isEmpty) {
+      throw NeonAuthException(
+        res.status,
+        'social sign-in set no session challenge cookie',
+      );
+    }
+    return NeonOAuthAttempt(
+      authorizeUrl: Uri.parse(url),
+      challengeCookies: cookies,
+    );
+  }
+
+  /// Second leg: Neon redirected the browser back to the loopback
+  /// listener — the redirect URI's whole query (the
+  /// `neon_auth_session_verifier` plus anything upstream adds) is
+  /// replayed to /get-session with the challenge cookies as proof of
+  /// attempt. Mirrors the Neon SDK's exchangeOAuthToken, minus the
+  /// browser cookie jar this app does not have.
+  Future<NeonSession> finishGoogleRedirect({
+    required Uri redirectUri,
+    required List<String> challengeCookies,
+  }) async {
+    final providerError = redirectUri.queryParameters['error'];
+    if (providerError != null) {
+      throw NeonAuthException(
+        0,
+        'Google redirect returned an error: $providerError',
+      );
+    }
+    final exchangeUrl = Uri.parse(
+      '${_config.authBaseUrl}/get-session',
+    ).replace(query: redirectUri.query);
+    debugPrint('finishGoogleRedirect: GET $exchangeUrl');
+    final res =
+        await _requester(
+          NeonRequest(
+            method: 'GET',
+            url: exchangeUrl,
+            headers: {
+              'Origin': _config.origin,
+              'Cookie': challengeCookies.join('; '),
+            },
+          ),
+        ).timeout(
+          const Duration(seconds: 30),
+          onTimeout: () =>
+              throw NeonAuthException(0, 'verifier exchange timed out'),
+        );
+    debugPrint('finishGoogleRedirect: HTTP ${res.status}');
+    if (!res.ok) {
+      throw NeonAuthException(res.status, _errorMessage(res));
+    }
+    final token = _sessionTokenFromCookie(res);
+    if (token == null) {
+      throw NeonAuthException(
+        res.status,
+        'verifier exchange issued no session token',
+      );
+    }
+    _jwt = null; // stale JWT belongs to any previous session
+    _cacheJwt(res); // the exchange is itself a get-session response
+    final json = res.json;
+    if (json is Map<String, dynamic>) {
+      final user = json['user'] as Map<String, dynamic>?;
+      if (user != null) {
+        _session = NeonSession(
+          sessionToken: token,
+          userId: user['id'] as String,
+          email: user['email'] as String? ?? '',
+          name: user['name'] as String? ?? '',
+        );
+        return _session!;
+      }
+    }
+    final restored = await restoreSession(token);
+    if (restored == null) {
+      throw NeonAuthException(
+        res.status,
+        'sign-in accepted but the session could not be verified',
+      );
+    }
+    return restored;
+  }
 
   Future<NeonSession> _signIn(String path, Map<String, Object?> body) async {
     final res = await _call(path, body: body);
@@ -160,10 +292,39 @@ class NeonAuthClient {
     );
     final res = await _call('/get-session');
     if (!res.ok) {
+      // Status only — never the token. Lets logcat show WHY a stored
+      // session stopped restoring.
+      developer.log(
+        'restoreSession -> HTTP ${res.status}',
+        name: 'moneyflow.auth',
+      );
+    }
+    // Only a definitive refusal ends the session. A 5xx / 429 / 408 is the
+    // auth service (or its scale-to-zero database) hiccuping — throwing
+    // keeps the stored token and the in-memory session so the caller can
+    // restore offline and re-validate lazily, instead of destroying a
+    // perfectly good credential.
+    if (res.status >= 500 || res.status == 408 || res.status == 429) {
+      throw NeonAuthException(res.status, 'auth service unavailable');
+    }
+    if (!res.ok) {
       _session = null;
       return null;
     }
-    final json = res.json as Map<String, dynamic>;
+    // Better Auth answers 200 with a literal `null` for an expired or
+    // unknown cookie, and a gateway can answer 200 with an HTML page —
+    // neither is a session, and neither may crash the boot.
+    final Object? decoded;
+    try {
+      decoded = res.json;
+    } on FormatException {
+      throw NeonAuthException(res.status, 'unreadable auth response');
+    }
+    if (decoded is! Map<String, dynamic>) {
+      _session = null;
+      return null;
+    }
+    final json = decoded;
     final user = json['user'] as Map<String, dynamic>?;
     final session = json['session'] as Map<String, dynamic>?;
     if (user == null || session == null) {
@@ -260,6 +421,11 @@ class NeonAuthClient {
     }
   }
 
+  /// Drops the cached JWT so the next [sessionJwt] call exchanges the
+  /// session cookie for a fresh one. Used after a Data-API response that
+  /// accepted the bearer at role level but saw no session claims.
+  void invalidateJwt() => _jwt = null;
+
   /// Data-API-bound JWT for the current session. Refreshes through
   /// /get-session when absent or within [_jwtRefreshSkewMs] of expiry.
   Future<String?> sessionJwt() async {
@@ -310,6 +476,20 @@ class NeonAuthClient {
       '${RegExp.escape(sessionCookieName)}=([^;]+)',
     ).firstMatch(cookie);
     return match?.group(1);
+  }
+
+  // Upstream plants BOTH spellings of the challenge cookie (the second
+  // is a known misspelling kept for compat); replay whichever arrived.
+  static final _challengeCookiePattern = RegExp(
+    r'(__Secure-neon-auth\.session_chall[ea]nge=[^;,]+)',
+  );
+
+  static List<String> _challengeCookies(NeonResponse res) {
+    final cookie = res.header('set-cookie');
+    if (cookie == null) return const [];
+    return [
+      for (final m in _challengeCookiePattern.allMatches(cookie)) m.group(1)!,
+    ];
   }
 
   static String _errorMessage(NeonResponse res) {

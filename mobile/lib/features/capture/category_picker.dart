@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../data/share/share_text_parser.dart' show foldVietnameseText;
 import '../../domain/models.dart';
 
 /// Searchable category bottom sheet — the Money Lover/Wallet picker
@@ -45,10 +46,10 @@ class _CategorySheetState extends State<_CategorySheet> {
   }
 
   List<Category> get _filtered {
-    final q = _query.text.trim().toLowerCase();
+    final q = foldVietnameseText(_query.text.trim());
     if (q.isEmpty) return widget.categories;
     return widget.categories
-        .where((c) => c.name.toLowerCase().contains(q))
+        .where((c) => foldVietnameseText(c.name).contains(q))
         .toList();
   }
 
