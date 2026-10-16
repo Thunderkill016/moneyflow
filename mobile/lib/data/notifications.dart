@@ -26,6 +26,8 @@ class NotificationService {
   static const _digestChannelName = 'Tóm tắt tuần';
   static const _monthDigestChannelId = 'monthly_digest';
   static const _monthDigestChannelName = 'Tổng kết tháng';
+  static const _reconcileChannelId = 'reconcile_reminders';
+  static const _reconcileChannelName = 'Nhắc đối soát';
 
   /// Fixed id for the digest one-shot — re-arming replaces the pending
   /// notification instead of stacking copies of it. The commitment id
@@ -142,11 +144,26 @@ class NotificationService {
     }
     // Sweep mapped ids that were not armed this run — deleted commitments,
     // archived ones, and expired slot keys all lose their alarms.
+    // Reconcile-reminder keys share this allocator map but are owned (and
+    // swept) by [scheduleReconcileReminders] — never touch them here.
     final prefs = await SharedPreferences.getInstance();
+    await _sweepNotifIds(
+      prefs,
+      (key) => key.startsWith(reconcileNotifKeyPrefix) || armed.contains(key),
+    );
+  }
+
+  /// Cancels every mapped id failing [keep] and persists the pruned map —
+  /// the shared sweep behind the commitment and reconcile schedulers, so
+  /// each namespace retires only its own stale keys.
+  static Future<void> _sweepNotifIds(
+    SharedPreferences prefs,
+    bool Function(String key) keep,
+  ) async {
     final map = readCommitmentNotifIds(prefs);
     var stale = false;
     for (final entry in map.entries.toList()) {
-      if (armed.contains(entry.key)) continue;
+      if (keep(entry.key)) continue;
       await _plugin.cancel(id: entry.value);
       map.remove(entry.key);
       stale = true;
@@ -231,6 +248,63 @@ class NotificationService {
   static Future<void> cancelMonthCloseDigest() async {
     if (!_initialized) await init();
     await _plugin.cancel(id: _monthDigestId);
+  }
+
+  /// Re-arms every per-account reconcile reminder (D19) from the stored
+  /// day map against the LIVE account list — a deleted or closed
+  /// (archived) account's nudge dies here, never fires for a wallet the
+  /// ledger no longer shows. Arms from [planReconcileReminders] then
+  /// sweeps the `recon:` namespace of anything the plan did not re-arm.
+  static Future<void> scheduleReconcileReminders(
+    Map<String, int> reminders,
+    List<AccountSummary> accounts,
+  ) async {
+    if (!_initialized) await init();
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        _reconcileChannelId,
+        _reconcileChannelName,
+        importance: Importance.defaultImportance,
+      ),
+    );
+    final now = tz.TZDateTime.now(tz.local);
+    final armed = <String>{};
+    for (final plan in planReconcileReminders(
+      reminders: reminders,
+      accounts: accounts,
+      now: now,
+    )) {
+      armed.add(plan.key);
+      await _plugin.zonedSchedule(
+        id: await _idFor(plan.key),
+        title: plan.title,
+        body: plan.body,
+        scheduledDate: plan.fireAt,
+        notificationDetails: details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        matchDateTimeComponents: plan.repeatsMonthly
+            ? DateTimeComponents.dayOfMonthAndTime
+            : null,
+      );
+    }
+    final prefs = await SharedPreferences.getInstance();
+    // Only the recon namespace is ours to sweep — commitment keys are
+    // owned by the other scheduler.
+    await _sweepNotifIds(
+      prefs,
+      (key) => !key.startsWith(reconcileNotifKeyPrefix) || armed.contains(key),
+    );
+  }
+
+  /// Drops every armed reconcile reminder — the account-deletion path
+  /// calls this so a wiped account's nudges can't fire after the wipe.
+  static Future<void> cancelAllReconcileReminders() async {
+    if (!_initialized) await init();
+    final prefs = await SharedPreferences.getInstance();
+    await _sweepNotifIds(
+      prefs,
+      (key) => !key.startsWith(reconcileNotifKeyPrefix),
+    );
   }
 }
 
@@ -351,6 +425,95 @@ List<tz.TZDateTime> nextCommitmentDues(
 String eomSlotKey(String commitmentId, tz.TZDateTime due) =>
     '$commitmentId#${due.year}${due.month.toString().padLeft(2, '0')}';
 
+/// Allocator-map namespace for reconcile reminders (D19) — the keys sit
+/// in the same `mf_commitment_notif_ids` map so the shared id counter
+/// still applies, but the `recon:` prefix keeps each scheduler's sweep
+/// inside its own ownership boundary.
+const reconcileNotifKeyPrefix = 'recon:';
+
+/// Id-map key for a day ≤28 repeating reconcile reminder.
+String reconcileReminderKey(String accountId) =>
+    '$reconcileNotifKeyPrefix$accountId';
+
+/// Id-map key for one clamped end-of-month slot of a day 29–31
+/// reconcile reminder — same shape as [eomSlotKey].
+String reconcileReminderSlotKey(String accountId, tz.TZDateTime due) =>
+    eomSlotKey(reconcileReminderKey(accountId), due);
+
+/// One alarm the reconcile scheduler must hold armed — a day ≤28
+/// monthly repeat ([repeatsMonthly]) or a clamped one-shot for a
+/// day 29–31 "end of month" reminder.
+class ReconcileReminderPlan {
+  const ReconcileReminderPlan({
+    required this.key,
+    required this.title,
+    required this.body,
+    required this.fireAt,
+    required this.repeatsMonthly,
+  });
+
+  /// Allocator-map key — `recon:<accountId>` or its `#yyyyMM` slot.
+  final String key;
+  final String title;
+  final String body;
+  final tz.TZDateTime fireAt;
+  final bool repeatsMonthly;
+}
+
+/// The armed set for the reconcile scheduler — pure so the arm/sweep
+/// decision is unit-testable without the plugin. A reminder exists only
+/// while ALL of these hold: the account is in the live list and not
+/// archived, the stored day is a real day-of-month (1–31). Anything else
+/// (deleted account, closed account, corrupt day) arms nothing — the
+/// caller's sweep then retires whatever a previous run armed.
+///
+/// Day ≤[maxRecurringDueDay] rides one `dayOfMonthAndTime` repeat; days
+/// 29–31 ride the clamped one-shot horizon exactly like commitment dues
+/// — a repeating anchor would silently skip months that lack the day.
+List<ReconcileReminderPlan> planReconcileReminders({
+  required Map<String, int> reminders,
+  required List<AccountSummary> accounts,
+  required tz.TZDateTime now,
+}) {
+  const body =
+      'Hôm nay là ngày sao kê bạn đã chọn — mở MoneyFlow để đối chiếu số dư.';
+  final plans = <ReconcileReminderPlan>[];
+  for (final a in accounts) {
+    if (a.isArchived) continue;
+    final day = reminders[a.id];
+    if (day == null || day < 1 || day > 31) continue;
+    final title = 'Đối soát ${a.name}';
+    if (day <= maxRecurringDueDay) {
+      plans.add(
+        ReconcileReminderPlan(
+          key: reconcileReminderKey(a.id),
+          title: title,
+          body: body,
+          fireAt: nextCommitmentDue(day, now),
+          repeatsMonthly: true,
+        ),
+      );
+    } else {
+      for (final due in nextCommitmentDues(
+        day,
+        now,
+        eomReminderHorizonMonths,
+      )) {
+        plans.add(
+          ReconcileReminderPlan(
+            key: reconcileReminderSlotKey(a.id, due),
+            title: title,
+            body: body,
+            fireAt: due,
+            repeatsMonthly: false,
+          ),
+        );
+      }
+    }
+  }
+  return plans;
+}
+
 /// Notification opt-ins — SharedPreferences only; the `mf_` prefix keeps
 /// them inside the wipeLocalData contract.
 class NotificationPrefs {
@@ -382,6 +545,56 @@ class NotificationPrefs {
   static Future<void> saveMonthDigestEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_monthDigestKey, enabled);
+  }
+}
+
+/// Per-account reconcile-reminder opt-ins (D19) — `{accountId: day}`.
+/// Device-local under the `mf_` prefix (wipeLocalData sweeps it); the
+/// armed alarms re-resolve against the live accounts list on every
+/// schedule pass, so a deleted or closed account's nudge dies with it.
+/// Statement days are a private rhythm — they survive ordinary sign-out
+/// like the commitment reminders do, and never name money amounts.
+class ReconcileReminderPrefs {
+  ReconcileReminderPrefs._();
+
+  static const key = 'mf_reconcile_reminder_days';
+
+  /// Reads the stored map; a corrupt blob or out-of-range day reads as
+  /// absent — a bad pref costs one reminder, never crashes a load.
+  static Map<String, int> load(SharedPreferences prefs) {
+    try {
+      final decoded = jsonDecode(prefs.getString(key) ?? '{}');
+      if (decoded is! Map) return {};
+      return {
+        for (final e in decoded.entries)
+          if (e.key is String &&
+              e.value is num &&
+              e.value >= 1 &&
+              e.value <= 31)
+            e.key as String: (e.value as num).toInt(),
+      };
+    } on Object {
+      return {};
+    }
+  }
+
+  /// One account's stored day-of-month, null when unset.
+  static int? dayFor(SharedPreferences prefs, String accountId) =>
+      load(prefs)[accountId];
+
+  /// Sets (or clears, [day] null) one account's reminder day.
+  static Future<void> saveDay(
+    SharedPreferences prefs,
+    String accountId,
+    int? day,
+  ) async {
+    final map = load(prefs);
+    if (day == null) {
+      map.remove(accountId);
+    } else {
+      map[accountId] = day;
+    }
+    await prefs.setString(key, jsonEncode(map));
   }
 }
 

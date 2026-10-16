@@ -273,7 +273,17 @@ DONE THIS ROUND:
   tallies. Count is drafts only — matches the destination (DECISIONS.md).
   Gates: dart format → flutter analyze clean → flutter test all green;
   Gradle :app:testDebugUnitTest green. See FIXLOG.md "D18".
+- **D19 reconcile cadence nudge shipped on feat/mobile-theme** —
+  optional per-account monthly "statement day" reminder on the
+  register's Đối soát card: device-local `mf_reconcile_reminder_days`
+  pref + `recon:`-namespaced alarms (day ≤28 one repeating monthly
+  nudge at 09:00; 29–31 clamped end-of-month one-shots, honest copy on
+  row + dialog). Armed set re-resolves against the live accounts list
+  on every dashboard load and dies with a deleted/closed account;
+  picker suggests stored → latest completed statement day → ngày 1.
+  Gates: dart format → flutter analyze clean → flutter test all green
+  1533 (+14 new). See FIXLOG.md "D19".
 AUDIT OPEN: P0=0 P1=0 P2=0 (all findings shipped — see FIXLOG.md)
 GAPS OPEN: web EditTransactionDialog lacks "save as rule" offer (mobile has it); web reports do not honor excluded_from_reports yet; Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
-NEXT STEP: Loop B gap list — D19+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D18 done.
+NEXT STEP: Loop B gap list — D20+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D19 done.
 RESUME: re-read this file, then continue at NEXT STEP.

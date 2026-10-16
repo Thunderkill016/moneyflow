@@ -1035,3 +1035,43 @@ Format: `ID | files changed | why | proof (test names)`.
   rejected). Gates: `dart format` clean; `flutter analyze` clean;
   `flutter test` all green; `./gradlew :app:testDebugUnitTest`
   BUILD SUCCESSFUL.
+- **D19 reconcile cadence nudge — shipped** |
+  `mobile/lib/data/notifications.dart`,
+  `mobile/lib/features/accounts/account_register_page.dart`,
+  `mobile/lib/app/app.dart`,
+  `mobile/test/notifications_test.dart`,
+  `mobile/test/account_register_test.dart` |
+  Loop B gap D19 (§10 — Simplifi reconcile cadence): an optional
+  monthly "statement day" reminder per account, living on the
+  register's "Đối soát" card as a dense second row — set it and the
+  device nudges at 09:00 on that day to open MoneyFlow and compare the
+  balance. Pure device-local opt-in: `ReconcileReminderPrefs` stores
+  `{accountId: day}` under `mf_reconcile_reminder_days` (corrupt or
+  out-of-range reads fold to absent — a bad pref costs one reminder,
+  never crashes); `planReconcileReminders` is a pure arm-list — day
+  ≤28 rides ONE `dayOfMonthAndTime` repeat keyed `recon:<accountId>`,
+  days 29–31 ride `eomReminderHorizonMonths` clamped one-shots keyed
+  `recon:<accountId>#yyyyMM`, exactly the commitment-dues rule the
+  plugin's exact-day scan requires (a repeating 31st would silently
+  skip February). Armed set re-resolves against the LIVE accounts
+  list: a deleted or closed account's nudge dies on the next pass —
+  `cancelAllReconcileReminders` also runs on account deletion beside
+  the digest cancels. The `recon:` namespace shares the
+  `mf_commitment_notif_ids` allocator map but each scheduler's sweep
+  keeps only its own keys (`_sweepNotifIds` shared helper). Re-arm
+  cadence: every dashboard `loadAccounts` (the freshest roster),
+  plus fire-and-forget after each pref write. The UI copy states the
+  clamp honestly on the row and in the dialog ("Tháng thiếu ngày sẽ
+  nhắc vào ngày cuối tháng"); the picker preselects the stored day →
+  latest completed statement day → ngày 1, never an invented
+  midpoint. Failed pref reads render "Chưa tải được cài đặt nhắc"
+  instead of faking unset; save/clear ride a `_reminderBusy` guard;
+  demo wires neither seam so the row never dead-renders. |
+  `notifications_test.dart` (+5: prefs round-trip/clear/corrupt;
+  planner repeating key, 29–31 clamped one-shot horizon, dropped
+  missing/archived/invalid accounts);
+  `account_register_test.dart` (+9: row hidden without seams or
+  without the recon strip, unset/stored/failed-read states, save
+  through the seam, EOM-clamp disclosure, statement-day preselect,
+  Tắt nhắc clears). Gates: `dart format` clean; `flutter analyze`
+  clean; `flutter test` all green.

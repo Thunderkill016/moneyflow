@@ -1384,7 +1384,15 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
               onOpenInbox: () => _openInbox(context),
               onOpenNeedsReview: () => _openNeedsReviewFeed(context),
               onOpenTransaction: (tx) => _openEdit(context, tx),
-              loadAccounts: _store.loadAccounts,
+              // The freshest roster also re-arms the D19 reconcile
+              // nudges — a deleted or closed account's alarm dies on
+              // the next schedule pass rather than firing for a wallet
+              // the ledger no longer shows.
+              loadAccounts: () async {
+                final accounts = await _store.loadAccounts();
+                unawaited(_rescheduleReconcileReminders(accounts));
+                return accounts;
+              },
               loadTransactions: _store.loadTransactions,
               // The rollover-window read feeds both the remainder figure
               // and the threshold alerts' carry — one request, same rows
@@ -1596,10 +1604,45 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     // account would be a lie, and the schedule prefs are already gone.
     unawaited(NotificationService.cancelWeeklyDigest().catchError((_) {}));
     unawaited(NotificationService.cancelMonthCloseDigest().catchError((_) {}));
+    // The deleted account's reconcile nudges die too — the pref map is
+    // already wiped, but the armed alarms must go with it.
+    unawaited(
+      NotificationService.cancelAllReconcileReminders().catchError((_) {}),
+    );
     showTimedSnackBar(
       messenger,
       const SnackBar(content: Text('Tài khoản đã được xóa')),
     );
+  }
+
+  /// Persist + re-arm one account's statement-day nudge (D19). The pref
+  /// write is what the register's row reports back; the re-arm is
+  /// fire-and-forget because a missed schedule pass is corrected by the
+  /// next dashboard load anyway.
+  Future<void> _setReconcileReminder(String accountId, int? day) async {
+    final prefs = _prefs ?? await SharedPreferences.getInstance();
+    await ReconcileReminderPrefs.saveDay(prefs, accountId, day);
+    unawaited(_rescheduleReconcileReminders());
+  }
+
+  /// Re-arms every reconcile reminder from the stored day map against
+  /// the live account list. Best-effort: a failed accounts read leaves
+  /// the previous schedule untouched — the next dashboard load retries.
+  /// An empty day map skips the account read entirely; the sweep alone
+  /// retires any strays (e.g. a pref wiped while alarms stayed armed).
+  Future<void> _rescheduleReconcileReminders([
+    List<AccountSummary>? accounts,
+  ]) async {
+    try {
+      final prefs = _prefs ?? await SharedPreferences.getInstance();
+      final reminders = ReconcileReminderPrefs.load(prefs);
+      final list =
+          accounts ??
+          (reminders.isEmpty
+              ? const <AccountSummary>[]
+              : await _store.loadAccounts());
+      await NotificationService.scheduleReconcileReminders(reminders, list);
+    } catch (_) {}
   }
 
   /// Demo data is seed-only, but the device still holds prefs — same
@@ -1645,6 +1688,15 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           loadReconciliation: () => _store.loadReconciliationState(account.id),
           onOpenReconciliation: () => _openReconciliation(context, account),
           onAdjustBalance: () => _adjustBalance(context, account),
+          // The D19 statement-day nudge — device-local opt-in that lives
+          // on this account's reconcile card; absent in demo (the demo
+          // register is a separate construction that wires neither seam).
+          loadReconcileReminder: () async => ReconcileReminderPrefs.dayFor(
+            _prefs ?? await SharedPreferences.getInstance(),
+            account.id,
+          ),
+          onReconcileReminderChanged: (day) =>
+              _setReconcileReminder(account.id, day),
         ),
       ),
     );

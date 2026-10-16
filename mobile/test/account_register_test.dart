@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/data/demo_store.dart';
 import 'package:moneyflow/domain/models.dart';
 import 'package:moneyflow/domain/money.dart';
+import 'package:moneyflow/domain/reconciliation.dart';
 import 'package:moneyflow/domain/register.dart';
 import 'package:moneyflow/domain/transaction_query.dart';
 import 'package:moneyflow/features/accounts/account_register_page.dart';
@@ -588,6 +589,164 @@ void main() {
         find.text('Số dư ${formatMoney(_account.balance + 28000)}'),
         findsOneWidget,
       );
+    });
+  });
+
+  group('reconcile reminder row (D19)', () {
+    const completedSession = ReconciliationSession(
+      id: 's1',
+      accountId: 'a1',
+      statementDate: '2026-09-25',
+      statementBalance: 11098000,
+      status: ReconciliationStatus.completed,
+    );
+
+    Widget reminderPage({
+      int? storedDay,
+      bool reconSeam = true,
+      bool reminderSeams = true,
+      void Function(int? day)? onSave,
+    }) => MaterialApp(
+      home: AccountRegisterPage(
+        account: _account,
+        loadPage: inMemoryPageLoader(const []),
+        loadReconciliation: reconSeam
+            ? () async => const ReconciliationStateData(
+                featureAvailable: true,
+                rows: [],
+                sessions: [completedSession],
+              )
+            : null,
+        loadReconcileReminder: reminderSeams ? () async => storedDay : null,
+        onReconcileReminderChanged: reminderSeams
+            ? (day) async => onSave?.call(day)
+            : null,
+      ),
+    );
+
+    testWidgets('hidden without the seams — never a dead affordance', (
+      t,
+    ) async {
+      await t.pumpWidget(reminderPage(reminderSeams: false));
+      await t.pumpAndSettle();
+      expect(find.textContaining('Nhắc đối soát'), findsNothing);
+    });
+
+    testWidgets('hidden when the whole recon strip is absent', (t) async {
+      await t.pumpWidget(reminderPage(reconSeam: false));
+      await t.pumpAndSettle();
+      expect(find.textContaining('Nhắc đối soát'), findsNothing);
+    });
+
+    testWidgets('unset day reads honest "hằng tháng" affordance', (t) async {
+      await t.pumpWidget(reminderPage());
+      await t.pumpAndSettle();
+      expect(find.text('Nhắc đối soát hằng tháng'), findsOneWidget);
+    });
+
+    testWidgets('stored day is named on the row', (t) async {
+      await t.pumpWidget(reminderPage(storedDay: 15));
+      await t.pumpAndSettle();
+      expect(find.text('Nhắc đối soát — ngày 15 hằng tháng'), findsOneWidget);
+    });
+
+    testWidgets('a failed read says so instead of faking an unset state', (
+      t,
+    ) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: AccountRegisterPage(
+            account: _account,
+            loadPage: inMemoryPageLoader(const []),
+            loadReconciliation: () async => const ReconciliationStateData(
+              featureAvailable: true,
+              rows: [],
+              sessions: [],
+            ),
+            loadReconcileReminder: () async => throw Exception('io'),
+            onReconcileReminderChanged: (_) async {},
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(find.text('Chưa tải được cài đặt nhắc'), findsOneWidget);
+    });
+
+    testWidgets('Lưu persists the picked day through the seam', (t) async {
+      int? saved = -1;
+      await t.pumpWidget(reminderPage(storedDay: 5, onSave: (d) => saved = d));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Nhắc đối soát — ngày 5 hằng tháng'));
+      await t.pumpAndSettle();
+      // The field itself carries the tap target — the 'Ngày 5' text
+      // exists in both the closed field and the opened overlay, and the
+      // overlay is lazily built so only the visible early items exist.
+      await t.tap(find.byType(DropdownButtonFormField<int>));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Ngày 3').last);
+      await t.pumpAndSettle();
+      await t.tap(find.text('Lưu'));
+      await t.pumpAndSettle();
+      expect(saved, 3);
+      expect(
+        find.textContaining('Đã đặt nhắc đối soát ngày 3'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a 29–31 day names the end-of-month clamp honestly', (
+      t,
+    ) async {
+      await t.pumpWidget(reminderPage(storedDay: 30));
+      await t.pumpAndSettle();
+      expect(
+        find.text('Nhắc đối soát — ngày 30 hằng tháng'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Tháng thiếu ngày sẽ nhắc vào ngày cuối tháng'),
+        findsOneWidget,
+      );
+      // The dialog explains the same rule before the pick is saved —
+      // 'ngày 30 sẽ' matches only the dialog copy, not the row subtitle.
+      await t.tap(find.text('Nhắc đối soát — ngày 30 hằng tháng'));
+      await t.pumpAndSettle();
+      expect(
+        find.textContaining('ngày 30 sẽ nhắc'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('no stored day suggests the latest completed statement', (
+      t,
+    ) async {
+      int? saved;
+      await t.pumpWidget(reminderPage(onSave: (d) => saved = d));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Nhắc đối soát hằng tháng'));
+      await t.pumpAndSettle();
+      // Statement day 25 is preselected — saving untouched keeps that
+      // rhythm rather than inventing a default.
+      await t.tap(find.text('Lưu'));
+      await t.pumpAndSettle();
+      expect(saved, 25);
+    });
+
+    testWidgets('Tắt nhắc clears through the seam, then the row resets', (
+      t,
+    ) async {
+      var cleared = false;
+      await t.pumpWidget(
+        reminderPage(storedDay: 15, onSave: (d) => cleared = d == null),
+      );
+      await t.pumpAndSettle();
+      await t.tap(find.text('Nhắc đối soát — ngày 15 hằng tháng'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Tắt nhắc'));
+      await t.pumpAndSettle();
+      expect(cleared, isTrue);
+      expect(find.text('Nhắc đối soát hằng tháng'), findsOneWidget);
+      expect(find.textContaining('Đã tắt nhắc'), findsOneWidget);
     });
   });
 }

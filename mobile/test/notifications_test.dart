@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/data/notifications.dart';
+import 'package:moneyflow/domain/models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
@@ -138,6 +139,93 @@ void main() {
       await prefs.setString(commitmentNotifIdMapKey, '{broken,,,');
       final id = await commitmentNotificationId(prefs, 'c-x');
       expect(id, greaterThan(0));
+    });
+  });
+
+  group('ReconcileReminderPrefs (D19)', () {
+    setUp(() => SharedPreferences.setMockInitialValues({}));
+
+    test('round-trips per-account days; clear removes only that key', () async {
+      final prefs = await SharedPreferences.getInstance();
+      expect(ReconcileReminderPrefs.dayFor(prefs, 'a1'), isNull);
+      await ReconcileReminderPrefs.saveDay(prefs, 'a1', 15);
+      await ReconcileReminderPrefs.saveDay(prefs, 'a2', 31);
+      expect(ReconcileReminderPrefs.dayFor(prefs, 'a1'), 15);
+      expect(ReconcileReminderPrefs.dayFor(prefs, 'a2'), 31);
+      await ReconcileReminderPrefs.saveDay(prefs, 'a1', null);
+      expect(ReconcileReminderPrefs.dayFor(prefs, 'a1'), isNull);
+      expect(ReconcileReminderPrefs.dayFor(prefs, 'a2'), 31);
+    });
+
+    test('corrupt or out-of-range blobs read as absent, never throw', () async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(ReconcileReminderPrefs.key, '{broken,,,');
+      expect(ReconcileReminderPrefs.load(prefs), isEmpty);
+      await prefs.setString(
+        ReconcileReminderPrefs.key,
+        '{"a1": 0, "a2": 32, "a3": "x", "a4": 20}',
+      );
+      final map = ReconcileReminderPrefs.load(prefs);
+      // Only the real day-of-month survives — a corrupted entry can
+      // cost its own reminder but never arms a nonsense schedule.
+      expect(map, {'a4': 20});
+    });
+  });
+
+  group('planReconcileReminders (D19)', () {
+    tz.TZDateTime at(int y, int m, int d) =>
+        tz.TZDateTime(tz.local, y, m, d, 8);
+
+    AccountSummary acc(
+      String id, {
+      String name = 'VCB',
+      bool archived = false,
+    }) => AccountSummary(
+      id: id,
+      name: name,
+      kind: AccountKind.bank,
+      currencyCode: 'VND',
+      initialBalance: 0,
+      balance: 0,
+      isArchived: archived,
+    );
+
+    test('a day ≤28 arms ONE repeating monthly plan keyed by account', () {
+      final plans = planReconcileReminders(
+        reminders: {'a1': 15},
+        accounts: [acc('a1', name: 'Techcombank')],
+        now: at(2026, 4, 10),
+      );
+      expect(plans, hasLength(1));
+      final p = plans.single;
+      expect(p.key, 'recon:a1');
+      expect(p.repeatsMonthly, isTrue);
+      expect(p.fireAt, tz.TZDateTime(tz.local, 2026, 4, 15, 9));
+      // The alarm names the account so the nudge lands actionable.
+      expect(p.title, 'Đối soát Techcombank');
+    });
+
+    test('days 29–31 arm clamped one-shots, never a skipping repeat', () {
+      final plans = planReconcileReminders(
+        reminders: {'a1': 31},
+        accounts: [acc('a1')],
+        now: at(2026, 4, 10),
+      );
+      expect(plans, hasLength(eomReminderHorizonMonths));
+      expect(plans.every((p) => !p.repeatsMonthly), isTrue);
+      // April lacks a 31st — the first fire is the real month end.
+      expect(plans.first.fireAt, tz.TZDateTime(tz.local, 2026, 4, 30, 9));
+      expect(plans.first.key, 'recon:a1#202604');
+    });
+
+    test('unstored, missing, archived, and invalid accounts arm nothing', () {
+      final plans = planReconcileReminders(
+        // a1 has a day but no account; a2 archived; a3 corrupt day.
+        reminders: {'a1': 15, 'a2': 10, 'a3': 40},
+        accounts: [acc('a2', archived: true), acc('a3')],
+        now: at(2026, 4, 10),
+      );
+      expect(plans, isEmpty);
     });
   });
 }

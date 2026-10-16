@@ -35,6 +35,8 @@ class AccountRegisterPage extends StatefulWidget {
     this.loadReconciliation,
     this.onOpenReconciliation,
     this.onAdjustBalance,
+    this.loadReconcileReminder,
+    this.onReconcileReminderChanged,
   });
 
   /// The account being viewed; [AccountSummary.balance] anchors the
@@ -69,6 +71,17 @@ class AccountRegisterPage extends StatefulWidget {
   /// balance overwrite). Null hides it — demo has no writes.
   final Future<bool> Function()? onAdjustBalance;
 
+  /// Monthly reconcile nudge (D19) — reads this account's stored
+  /// "statement day" (1–31, null = unset). The nudge is a device-local
+  /// opt-in notification, never a ledger write; both seams must be
+  /// wired for the affordance to show (demo keeps it hidden).
+  final Future<int?> Function()? loadReconcileReminder;
+
+  /// Persists a day-of-month (or clears it with null) and re-arms the
+  /// device reminder. The write is device-local prefs + alarm — it
+  /// returns after persisting so the UI can confirm truthfully.
+  final Future<void> Function(int? day)? onReconcileReminderChanged;
+
   @override
   State<AccountRegisterPage> createState() => _AccountRegisterPageState();
 }
@@ -92,6 +105,13 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
   /// failure never degrades the register itself.
   ReconciliationStateData? _recon;
   bool _reconFailed = false;
+
+  /// The stored statement-day nudge (1–31); null = not set. A failed
+  /// read is `_reminderFailed`, and the save path holds `_reminderBusy`
+  /// so a double tap can't queue two writes.
+  int? _reminderDay;
+  bool _reminderFailed = false;
+  bool _reminderBusy = false;
 
   /// Bumped per first-page request so a slow older response can never
   /// overwrite a newer one (same guard as the activity feed).
@@ -120,8 +140,10 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
       _loadingMore = false;
       _recon = null;
       _reconFailed = false;
+      _reminderFailed = false;
     });
     unawaited(_loadRecon(gen));
+    unawaited(_loadReminder(gen));
     try {
       final page = await widget.loadPage(_query, offset: 0);
       if (!mounted || gen != _gen) return;
@@ -153,6 +175,74 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
     } catch (_) {
       if (!mounted || gen != _gen) return;
       setState(() => _reconFailed = true);
+    }
+  }
+
+  /// The reminder pref reads beside the strip, never inside it — a bad
+  /// read marks the row "Chưa tải được" instead of faking an unset day.
+  Future<void> _loadReminder(int gen) async {
+    final loader = widget.loadReconcileReminder;
+    if (loader == null) return;
+    try {
+      final day = await loader();
+      if (!mounted || gen != _gen) return;
+      setState(() {
+        _reminderDay = day;
+        _reminderFailed = false;
+      });
+    } catch (_) {
+      if (!mounted || gen != _gen) return;
+      setState(() => _reminderFailed = true);
+    }
+  }
+
+  /// The day picker — preselects the stored day, else the latest
+  /// completed statement's day (the rhythm the user already keeps),
+  /// else the 1st. "Tắt nhắc" clears; the persist runs after the dialog
+  /// so a failed write keeps the previous day visible.
+  Future<void> _editReminder() async {
+    final save = widget.onReconcileReminderChanged;
+    if (save == null || _reminderBusy) return;
+    var suggested = 1;
+    final latest = latestCompletedSession(_recon?.sessions ?? const []);
+    if (latest != null) {
+      suggested =
+          int.tryParse(latest.statementDate.split('-').last) ?? suggested;
+    }
+    final result = await showDialog<({bool clear, int day})>(
+      context: context,
+      builder: (ctx) => _ReconcileReminderDialog(
+        initialDay: _reminderDay ?? suggested,
+        hasReminder: _reminderDay != null,
+      ),
+    );
+    if (result == null || !mounted) return;
+    setState(() => _reminderBusy = true);
+    try {
+      await save(result.clear ? null : result.day);
+      if (!mounted) return;
+      setState(() {
+        _reminderDay = result.clear ? null : result.day;
+        _reminderFailed = false;
+      });
+      showTimedSnackBar(
+        ScaffoldMessenger.of(context),
+        SnackBar(
+          content: Text(
+            result.clear
+                ? 'Đã tắt nhắc đối soát'
+                : 'Đã đặt nhắc đối soát ngày ${result.day} hằng tháng',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      showTimedSnackBar(
+        ScaffoldMessenger.of(context),
+        const SnackBar(content: Text('Không lưu được cài đặt nhắc — thử lại.')),
+      );
+    } finally {
+      if (mounted) setState(() => _reminderBusy = false);
     }
   }
 
@@ -393,18 +483,63 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
     } else {
       label = _recon == null ? null : reconciliationStatusLabel(_recon!);
     }
+    // The D19 nudge row sits inside the same card — it reads the same
+    // reconcile rhythm the strip reports. It needs BOTH seams: without
+    // a reader the row can't state the truth, without a writer tapping
+    // would lie. Demo wires neither, so the row never dead-renders.
+    final reminderWired =
+        widget.loadReconcileReminder != null &&
+        widget.onReconcileReminderChanged != null;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: const Icon(Icons.fact_check_outlined),
-        title: Text(label ?? 'Đang tải trạng thái đối soát...'),
-        trailing: widget.onOpenReconciliation == null
-            ? null
-            : TextButton(
-                onPressed: _openReconciliation,
-                child: const Text('Đối soát'),
+      child: Column(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.fact_check_outlined),
+            title: Text(label ?? 'Đang tải trạng thái đối soát...'),
+            trailing: widget.onOpenReconciliation == null
+                ? null
+                : TextButton(
+                    onPressed: _openReconciliation,
+                    child: const Text('Đối soát'),
+                  ),
+            onTap: widget.onOpenReconciliation == null
+                ? null
+                : _openReconciliation,
+          ),
+          if (reminderWired) ...[
+            const Divider(height: 1),
+            ListTile(
+              dense: true,
+              leading: Icon(
+                _reminderDay == null
+                    ? Icons.notifications_none
+                    : Icons.notifications_active_outlined,
               ),
-        onTap: widget.onOpenReconciliation == null ? null : _openReconciliation,
+              title: Text(
+                _reminderDay == null
+                    ? 'Nhắc đối soát hằng tháng'
+                    : 'Nhắc đối soát — ngày $_reminderDay hằng tháng',
+              ),
+              // The statement-day copy must say what the alarm actually
+              // does: a 29–31 pick clamps to the month's real last day
+              // (same rule as commitment dues).
+              subtitle: _reminderFailed
+                  ? const Text('Chưa tải được cài đặt nhắc')
+                  : _reminderDay != null && _reminderDay! > 28
+                  ? const Text('Tháng thiếu ngày sẽ nhắc vào ngày cuối tháng')
+                  : null,
+              trailing: _reminderBusy
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.chevron_right),
+              onTap: _reminderBusy ? null : _editReminder,
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -553,6 +688,80 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
                 ],
               ),
             ),
+    );
+  }
+}
+
+/// The statement-day picker for the D19 reconcile nudge — a plain
+/// day-of-month choice with an honest end-of-month note for 29–31.
+/// Returns `({clear: true, ...})` from "Tắt nhắc", a picked day from
+/// "Lưu", or null on cancel.
+class _ReconcileReminderDialog extends StatefulWidget {
+  const _ReconcileReminderDialog({
+    required this.initialDay,
+    required this.hasReminder,
+  });
+
+  final int initialDay;
+
+  /// Whether a reminder is currently armed — "Tắt nhắc" only makes
+  /// sense as a disable for an existing one.
+  final bool hasReminder;
+
+  @override
+  State<_ReconcileReminderDialog> createState() =>
+      _ReconcileReminderDialogState();
+}
+
+class _ReconcileReminderDialogState extends State<_ReconcileReminderDialog> {
+  late int _day = widget.initialDay;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Nhắc đối soát hằng tháng'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'MoneyFlow nhắc vào sáng ngày sao kê để bạn đối chiếu số dư.',
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<int>(
+            initialValue: _day,
+            decoration: const InputDecoration(labelText: 'Ngày sao kê'),
+            items: [
+              for (var d = 1; d <= 31; d++)
+                DropdownMenuItem(value: d, child: Text('Ngày $d')),
+            ],
+            onChanged: (v) => setState(() => _day = v ?? _day),
+          ),
+          if (_day > 28) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Tháng không có ngày $_day sẽ nhắc vào ngày cuối tháng.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        if (widget.hasReminder)
+          TextButton(
+            onPressed: () =>
+                Navigator.of(context).pop((clear: true, day: _day)),
+            child: const Text('Tắt nhắc'),
+          ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Hủy'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop((clear: false, day: _day)),
+          child: const Text('Lưu'),
+        ),
+      ],
     );
   }
 }
