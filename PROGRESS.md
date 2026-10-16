@@ -1,6 +1,6 @@
 # PROGRESS — MoneyFlow Android mega-task
 STATUS: DONE — 2026-10-17 — all DoD items evidenced.
-LAST UPDATE: 2026-10-17 (close-out: D24 shipped, D25 parked, re-audit clean, AAB built, device-verified)
+LAST UPDATE: 2026-10-16T14:48Z (PROD: 7 Loop-B migrations applied to moneyflow-prod shy-mud-72113549 + verified); prior: 2026-10-17 (close-out: D24 shipped, D25 parked, re-audit clean, AAB built, device-verified)
 DONE THIS ROUND:
 - Step Zero DONE: branch mobile/android-app pushed, PR #795 open (head ec8591b9).
 - Prior session shipped: permanent-delete trash (mobile+web+RPC+schema-cache fix), SnackBar a11y watchdog fix (1187+ tests green), Monarch deep-dive docs/research/MONARCH_DEEP_DIVE.md, rules preview + apply-to-existing (mobile+web), edit→rule offer (mobile). All committed.
@@ -39,8 +39,8 @@ DONE THIS ROUND:
   - Verification: `dart format` clean; `flutter analyze` clean;
     `flutter test` 1286 green; embedded-pgTAP 62 files / 0 failures;
     `check:migrations` 90 pinned; `check:rls` 9/9; `check:knowledge`;
-    `test:ci-policy` 203/203. Migration NOT applied to production Neon —
-    deployment pending owner approval.
+    `test:ci-policy` 203/203. Migration applied to production Neon
+    (moneyflow-prod) 2026-10-16 — see PROD DEPLOYMENT entry below.
 - **D2 event/occasion budgets shipped on feat/mobile-theme** (Class-3
   slice — see FIXLOG.md "FEATURE: D2 event/occasion budgets" for files
   and proof; packet docs/plans/active/event-budgets.md):
@@ -63,8 +63,8 @@ DONE THIS ROUND:
     `flutter test` 1321 green (35 new D2 tests); embedded-pgTAP 63
     files / 0 failures (24 new assertions); `check:migrations` 91
     pinned; `check:rls` 9/9; `check:knowledge`; `test:ci-policy`
-    203/203. Migration NOT applied to production Neon — deployment
-    pending owner approval.
+    203/203. Migration applied to production Neon (moneyflow-prod)
+    2026-10-16 — see PROD DEPLOYMENT entry below.
 - **D3 honest "còn lại tháng này" + budget threshold alerts shipped on
   feat/mobile-theme** (mobile-only, no schema work — see FIXLOG.md
   "FEATURE: D3" for files and proof):
@@ -169,7 +169,7 @@ DONE THIS ROUND:
   - Verification: `dart format` clean; `flutter analyze` clean;
     `flutter test` FULL SUITE 1462 green (44 new tests).
 - **D12 non-monthly budget periods shipped on feat/mobile-theme**
-  (schema + mobile; migration committed, NOT applied to production):
+  (schema + mobile; migration applied to production Neon 2026-10-16):
   `monthly_budgets.period_kind` ∈ {monthly, weekly} with `month_start`
   as the per-kind anchor (weekly = Monday); unique key widened to
   (user, category, period_kind, anchor); 5-arg `upsert_monthly_budget`
@@ -184,7 +184,7 @@ DONE THIS ROUND:
   1486 green (+21); pgTAP 64/64 suites (17 new assertions); migration
   identity 92 pinned; check:rls 9 pass.
 - **D13 exclude-from-reports flag shipped on feat/mobile-theme**
-  (schema + mobile; migration committed, NOT applied to production):
+  (schema + mobile; migration applied to production Neon 2026-10-16):
   `financial_transactions.excluded_from_reports` NOT NULL default false;
   transaction_feed + deleted_transaction_feed project it;
   `update_money_transaction` gains `p_excluded_from_reports` (null
@@ -199,7 +199,7 @@ DONE THIS ROUND:
   unaffected; web reports divergence recorded in DECISIONS.md. See
   FIXLOG.md "FEATURE: D13".
 - **D14 category merge shipped on feat/mobile-theme** (schema + mobile;
-  migration committed, NOT applied to production): SECURITY DEFINER
+  migration applied to production Neon 2026-10-16): SECURITY DEFINER
   `merge_categories(source, target)` reassigns every reference —
   transaction_entries, monthly_budgets, recurring_commitments,
   recurring_income_templates, inbox_rules, inbox_candidates,
@@ -352,6 +352,28 @@ DONE THIS ROUND:
   unshielded debug build reverted before commit). Live check: `#x`
   query accepted in Hoạt động search, honest empty state. Cold start
   ≈10–17s splash→dashboard in a debug build, demo session.
+- **PROD DEPLOYMENT — 7 migrations applied to moneyflow-prod
+  (shy-mud-72113549) on 2026-10-16T14:48Z, verified objects exist** —
+  owner-approved ("làm trên neon đi"). Applied in pinned order, each
+  file verbatim as one implicit transaction (simple query protocol via
+  node `pg`; Neon MCP `run_sql`/`run_sql_transaction` use prepared
+  statements and cannot send multi-statement strings — access obtained
+  through MCP `get_connection_string`):
+  20261016120000_debts, 20261016180000_event_budgets,
+  20261016190000_budget_periods, 20261016200000_report_exclusions,
+  20261016210000_merge_categories, 20261016220000_transaction_refunds,
+  20261017230000_delete_history_before. Verified on prod: tables
+  debts/debt_repayments/event_budgets/event_budget_categories; columns
+  financial_transactions.excluded_from_reports + is_refund,
+  monthly_budgets.period_kind; views transaction_feed /
+  deleted_transaction_feed / budget_progress / event_budget_progress;
+  functions create_debt, apply_debt_repayment, set_debt_state,
+  soft_delete_debt, create_event_budget, update_event_budget,
+  soft_delete_event_budget, merge_categories, delete_transactions_before,
+  version_debt, permanently_delete_money_transaction. Data API
+  (PostgREST, status active) schema-cache reload sent via
+  `pg_notify('pgrst','reload schema')` and `NOTIFY pgrst,'reload schema'`
+  — both executed cleanly; no managed-proxy PATCH needed.
 
 ## Definition of Done — evidence check
 
@@ -367,12 +389,11 @@ DONE THIS ROUND:
 Known gaps (recorded, out of mobile scope — not DoD blockers):
 web EditTransactionDialog rule-offer; web reports ignore
 `excluded_from_reports`; web filters lack `#` note-scoping (D24 is
-mobile-first); Monarch P2/P3 items unscoped; all seven Loop-B migrations
-committed but NOT applied to production Neon (owner approval gate); PR
-merge + CI state is owner/repo-side evidence.
+mobile-first); Monarch P2/P3 items unscoped; PR merge + CI state is
+owner/repo-side evidence.
 
 AUDIT OPEN: P0=0 P1=0 P2=0 (all findings shipped + re-audit clean — see FIXLOG.md / AUDIT.md)
 GAPS OPEN: none inside mobile scope. Cross-surface: web EditTransactionDialog lacks "save as rule" offer (mobile has it); web reports do not honor excluded_from_reports; web filters lack the D24 `#` note-scope; Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
-NEXT STEP: none — mega-task closed 2026-10-17. Owner-side items: apply the seven committed migrations to production Neon, provision the upload keystore for Play, merge on green CI.
+NEXT STEP: none — mega-task closed 2026-10-17; prod migrations applied 2026-10-16T14:48Z (see PROD DEPLOYMENT entry). Owner-side items: provision the upload keystore for Play, merge on green CI.
 RESUME: re-read this file; the backlog is empty — new work needs a fresh issue/packet.
 STATUS: DONE — 2026-10-17 — all DoD items evidenced.
