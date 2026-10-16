@@ -6,6 +6,7 @@ import 'package:moneyflow/data/neon/data_api.dart';
 import 'package:moneyflow/data/neon/neon_config.dart';
 import 'package:moneyflow/data/neon/neon_transport.dart';
 import 'package:moneyflow/data/neon/real_store.dart';
+import 'package:moneyflow/domain/models.dart';
 
 const config = NeonConfig(
   authBaseUrl: 'https://auth.test/neondb/auth',
@@ -97,6 +98,30 @@ void main() {
           'p_month_start': '2026-10-01',
           'p_limit_minor': 2500000,
           'p_expected_updated_at': '2026-10-05T09:00:00Z',
+        });
+      },
+    );
+
+    test(
+      'a weekly upsert adds p_period_kind; monthly keeps the legacy body',
+      () async {
+        final h = Harness();
+        await h.signIn();
+        h.t.queue.add(FakeTransport.json(200, 'bw-1'));
+
+        await h.store.upsertBudget(
+          categoryId: 'cat-food',
+          monthStart: '2026-10-12', // a Monday — the weekly anchor
+          limitMinor: 600000,
+          period: BudgetPeriod.weekly,
+        );
+
+        expect(h.rpcBody, {
+          'p_category_id': 'cat-food',
+          'p_month_start': '2026-10-12',
+          'p_limit_minor': 600000,
+          'p_expected_updated_at': null,
+          'p_period_kind': 'weekly',
         });
       },
     );
@@ -480,6 +505,75 @@ void main() {
       expect(rows.length, 2);
       expect(rows.last.monthStart, '2026-09-01');
       expect(rows.last.spentMinor, 1700000);
+    });
+
+    test('loadBudgets reads period_kind and maps it to the row', () async {
+      final h = Harness();
+      await h.signIn();
+      h.t.queue.add(
+        FakeTransport.json(200, [
+          {
+            'id': 'bw-1',
+            'category_id': 'cat-food',
+            'category_name': 'Ăn uống',
+            'month_start': '2026-10-12',
+            'limit_minor': 600000,
+            'spent_minor': 210000,
+            'updated_at': null,
+            'period_kind': 'weekly',
+          },
+        ]),
+      );
+
+      final budgets = await h.store.loadBudgets('2026-10-12');
+
+      final req = h.lastRpc;
+      expect(req.url.queryParameters['select'], contains('period_kind'));
+      expect(budgets.single.period, BudgetPeriod.weekly);
+      expect(budgets.single.monthStart, '2026-10-12');
+    });
+
+    test('a pre-period_kind server retries without the column and reads '
+        'monthly — the column default is the truth, not a guess', () async {
+      final h = Harness();
+      await h.signIn();
+      h.t.queue.add(
+        FakeTransport.json(400, {
+          'code': '42703',
+          'message': 'column budget_progress.period_kind does not exist',
+        }),
+      );
+      h.t.queue.add(
+        FakeTransport.json(200, [
+          {
+            'id': 'b-1',
+            'category_id': 'cat-food',
+            'category_name': 'Ăn uống',
+            'month_start': '2026-10-01',
+            'limit_minor': 2000000,
+            'spent_minor': 45000,
+            'updated_at': null,
+          },
+        ]),
+      );
+
+      final budgets = await h.store.loadBudgets('2026-10-01');
+
+      // Two selects hit the wire — the period select failed, the
+      // legacy select retried.
+      final selects = h.t.requests
+          .where((r) => r.url.path.endsWith('/budget_progress'))
+          .toList();
+      expect(selects, hasLength(2));
+      expect(
+        selects.first.url.queryParameters['select'],
+        contains('period_kind'),
+      );
+      expect(
+        selects.last.url.queryParameters['select'],
+        isNot(contains('period_kind')),
+      );
+      expect(budgets.single.period, BudgetPeriod.monthly);
     });
 
     test(

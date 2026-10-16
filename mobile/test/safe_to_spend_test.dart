@@ -11,13 +11,15 @@ BudgetProgress _budget({
   int limit = 2000000,
   int spent = 0,
   String monthStart = '2026-10-01',
+  BudgetPeriod period = BudgetPeriod.monthly,
 }) => BudgetProgress(
-  id: 'b-$spent-$limit',
+  id: 'b-$spent-$limit-${period.key}',
   categoryId: 'cat-food',
   categoryName: 'Ăn uống',
   monthStart: monthStart,
   limitMinor: limit,
   spentMinor: spent,
+  period: period,
 );
 
 RecurringCommitment _commitment({
@@ -101,6 +103,42 @@ void main() {
         ),
         isNull,
       );
+    });
+
+    test('weekly budgets never feed the monthly remainder — the card '
+        'asks "còn lại THÁNG này"', () {
+      // The cadence filter runs before the anchor match, so even a
+      // weekly row carrying the month-start date (a Monday CAN be the
+      // 1st — e.g. 2026-06-01) never folds its smaller weekly limit
+      // into the month's headroom.
+      expect(
+        safeDailySpend(
+          budgets: [
+            _budget(
+              monthStart: '2026-10-01',
+              period: BudgetPeriod.weekly,
+              limit: 500000,
+            ),
+          ],
+          commitments: const [],
+          today: today,
+        ),
+        isNull,
+      );
+      final s = safeDailySpend(
+        budgets: [
+          _budget(spent: 500000),
+          _budget(
+            monthStart: '2026-10-01',
+            period: BudgetPeriod.weekly,
+            limit: 500000,
+          ),
+        ],
+        commitments: const [],
+        today: today,
+      )!;
+      // Only the monthly row counts: 2.000.000 − 500.000.
+      expect(s.remainingMinor, 1500000);
     });
 
     test('divides headroom over the remaining days, floor to đồng', () {

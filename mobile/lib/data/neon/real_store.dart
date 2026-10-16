@@ -474,39 +474,67 @@ class RealStore implements PatternDismissalSync {
     return id as String;
   }
 
-  /// Monthly budgets with spent progress — public.budget_progress.
+  /// Base select for public.budget_progress. `period_kind` only exists
+  /// once migration 20261016190000 is applied — the period reads ask for
+  /// it first and retry without it on the column-missing error, where
+  /// every row is monthly by definition (the column's own default).
+  static const _budgetBaseSelect =
+      'id,category_id,category_name,month_start,limit_minor,spent_minor,'
+      'updated_at';
+
+  /// Budget rows with spent progress — public.budget_progress. The read
+  /// returns every period kind anchored at [monthStart]; callers scope
+  /// to a kind through the row's `period` (the domain functions filter
+  /// again anyway, so a mixed list can never leak weekly carry into a
+  /// monthly figure).
   Future<List<BudgetProgress>> loadBudgets(String monthStart) async {
-    final rows = await _api.select(
-      'budget_progress',
-      query: {
-        'select':
-            'id,category_id,category_name,month_start,limit_minor,spent_minor,'
-            'updated_at',
-        'month_start': 'eq.$monthStart',
-        'order': 'category_name.asc',
-      },
-    );
+    Map<String, String> query(String select) => {
+      'select': select,
+      'month_start': 'eq.$monthStart',
+      'order': 'category_name.asc',
+    };
+    List<Map<String, dynamic>> rows;
+    try {
+      rows = await _api.select(
+        'budget_progress',
+        query: query('$_budgetBaseSelect,period_kind'),
+      );
+    } catch (_) {
+      rows = await _api.select(
+        'budget_progress',
+        query: query(_budgetBaseSelect),
+      );
+    }
     return rows.map(_budgetFromRow).toList();
   }
 
-  /// Every budgeted month in [fromMonth]..[toMonth] inclusive — the same
-  /// `budget_progress` range read the web workspace takes for the rollover
-  /// window (`month_start.gte(windowStart).lte(monthStart)`), so a prior
-  /// month's spent figure is always the view's own per-category math.
+  /// Every budgeted period anchored in [fromPeriod]..[toPeriod]
+  /// inclusive — the same `budget_progress` range read the web
+  /// workspace takes for the rollover window
+  /// (`month_start.gte(windowStart).lte(anchor)`), so a prior period's
+  /// spent figure is always the view's own per-category math. All
+  /// period kinds come back; the caller partitions by `period`.
   Future<List<BudgetProgress>> loadBudgetsInRange(
     String fromMonth,
     String toMonth,
   ) async {
-    final rows = await _api.select(
-      'budget_progress',
-      query: {
-        'select':
-            'id,category_id,category_name,month_start,limit_minor,spent_minor,'
-            'updated_at',
-        'and': '(month_start.gte.$fromMonth,month_start.lte.$toMonth)',
-        'order': 'month_start.desc,category_name.asc',
-      },
-    );
+    Map<String, String> query(String select) => {
+      'select': select,
+      'and': '(month_start.gte.$fromMonth,month_start.lte.$toMonth)',
+      'order': 'month_start.desc,category_name.asc',
+    };
+    List<Map<String, dynamic>> rows;
+    try {
+      rows = await _api.select(
+        'budget_progress',
+        query: query('$_budgetBaseSelect,period_kind'),
+      );
+    } catch (_) {
+      rows = await _api.select(
+        'budget_progress',
+        query: query(_budgetBaseSelect),
+      );
+    }
     return rows.map(_budgetFromRow).toList();
   }
 
@@ -519,6 +547,7 @@ class RealStore implements PatternDismissalSync {
         limitMinor: (r['limit_minor'] as num).toInt(),
         spentMinor: (r['spent_minor'] as num).toInt(),
         updatedAt: r['updated_at'] as String?,
+        period: BudgetPeriod.fromKey(r['period_kind'] as String?),
       );
 
   /// Recurring commitments + this month's paid state —
@@ -937,19 +966,27 @@ class RealStore implements PatternDismissalSync {
   });
 
   /// POST /rpc/upsert_monthly_budget — create or update a category budget.
-  /// The conflict target is (user, category, month): an edit re-sends the
-  /// same pair with [expectedUpdatedAt] guarding against a stale read.
+  /// The conflict target is (user, category, period kind, anchor): an
+  /// edit re-sends the same triple with [expectedUpdatedAt] guarding
+  /// against a stale read.
+  /// [period] rides `p_period_kind` (migration 20261016190000); it is
+  /// only sent for non-monthly budgets — the server default is monthly
+  /// anyway, so a monthly save keeps working against the pre-migration
+  /// signature while a weekly one honestly errors until the RPC exists
+  /// (the p_interval_months convention).
   Future<String> upsertBudget({
     required String categoryId,
     required String monthStart,
     required int limitMinor,
     String? expectedUpdatedAt,
+    BudgetPeriod period = BudgetPeriod.monthly,
   }) async {
     final id = await _api.rpc('upsert_monthly_budget', {
       'p_category_id': categoryId,
       'p_month_start': monthStart,
       'p_limit_minor': limitMinor,
       'p_expected_updated_at': expectedUpdatedAt,
+      if (period != BudgetPeriod.monthly) 'p_period_kind': period.key,
     });
     return id as String;
   }

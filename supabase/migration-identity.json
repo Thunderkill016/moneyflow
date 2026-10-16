@@ -454,6 +454,11 @@
       "version": "20261016180000",
       "name": "20261016180000_event_budgets.sql",
       "hash": "b60e6fdd3964a31f5e3cdc435d7d4666"
+    },
+    {
+      "version": "20261016190000",
+      "name": "20261016190000_budget_periods.sql",
+      "hash": "ef1802fea64ef7a9b118793716954bc5"
     }
   ]
 }

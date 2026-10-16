@@ -7,7 +7,7 @@ import '../../domain/commitments.dart';
 import '../../domain/goal_projection.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
-import '../../domain/report.dart' show vnNow, vnToday;
+import '../../domain/report.dart' show vnNow, vnToday, vnWeekStart;
 import '../shared/empty_state.dart';
 import 'commitment_calendar.dart';
 import 'recurring_form_dialog.dart';
@@ -33,11 +33,13 @@ class PlanningData {
     this.incomeTemplates = const [],
     this.priorBudgets = const [],
     this.budgetSuggestionRows = const [],
+    this.weeklyBudgets = const [],
+    this.priorWeeklyBudgets = const [],
   });
 
   /// Budget rows for [budgetMonth] — the month the budgets section is
   /// viewing (this month or next; the page's switcher never offers
-  /// further).
+  /// further). Monthly-period rows only.
   final List<BudgetProgress> budgets;
   final List<RecurringIncome> incomeTemplates;
   final List<RecurringCommitment> commitments;
@@ -68,6 +70,27 @@ class PlanningData {
   /// means both the quick-fill average and the chip honestly have
   /// nothing to propose.
   final List<Transaction> budgetSuggestionRows;
+
+  /// Weekly budget rows anchored on the viewed week's Monday — the
+  /// "Theo tuần" tab's list. Empty on a read that predates the
+  /// period column or has no weekly rows; both render the same honest
+  /// empty state.
+  final List<BudgetProgress> weeklyBudgets;
+
+  /// Weekly rows inside the 12-week rollover window before the viewed
+  /// week — feeds the weekly carry line and the "Dùng hạn mức tuần
+  /// trước" quick-fill, the exact monthly pattern one cadence down.
+  final List<BudgetProgress> priorWeeklyBudgets;
+
+  /// The budget rows for [period]'s viewed anchor — the tile list and
+  /// the cover sheet read through here so a period can never borrow the
+  /// other's pool.
+  List<BudgetProgress> budgetsFor(BudgetPeriod period) =>
+      period == BudgetPeriod.weekly ? weeklyBudgets : budgets;
+
+  /// Prior-period rows inside [period]'s rollover window.
+  List<BudgetProgress> priorsFor(BudgetPeriod period) =>
+      period == BudgetPeriod.weekly ? priorWeeklyBudgets : priorBudgets;
 }
 
 /// Write surface — each maps 1:1 to a Data API RPC (or a demo no-op).
@@ -111,14 +134,16 @@ class PlanningActions {
   onIncomeArchived;
 
   /// Category is create-only (the web locks it on edit) — an edit re-sends
-  /// the same category with the new limit. [monthStart] is the viewed
-  /// budget month so a create lands on "Tháng sau" when the reader is
-  /// planning ahead.
+  /// the same category with the new limit. [periodStart] is the viewed
+  /// period anchor (month start or week Monday) and [period] its cadence
+  /// so a create on the Tuần tab lands on the viewed week; edits keep
+  /// the row's own anchor and cadence.
   final Future<void> Function(
     BudgetProgress? editing,
     String categoryId,
     int limitMinor,
-    String monthStart,
+    String periodStart,
+    BudgetPeriod period,
   )
   onBudgetSave;
   final Future<void> Function(String budgetId) onBudgetDelete;
@@ -188,11 +213,14 @@ class PlanningPage extends StatefulWidget {
     required this.actions,
   });
 
-  /// [budgetMonth] (YYYY-MM-01) is the month the budgets section should
-  /// show — the loader returns `budgets`, `priorBudgets` and
-  /// `budgetSuggestionRows` resolved against it while `monthStart`
-  /// (commitments, income, the funding basis) stays the current month.
-  final Future<PlanningData> Function(String budgetMonth) loadData;
+  /// [budgetMonth] (YYYY-MM-01) and [weekStart] (the viewed week's
+  /// Monday, YYYY-MM-DD) are the two anchors the budgets section can
+  /// view — the loader returns `budgets`/`priorBudgets` resolved against
+  /// the month and `weeklyBudgets`/`priorWeeklyBudgets` against the
+  /// week, while `monthStart` (commitments, income, the funding basis)
+  /// stays the current month.
+  final Future<PlanningData> Function(String budgetMonth, String weekStart)
+  loadData;
   final PlanningActions actions;
 
   @override
@@ -205,9 +233,18 @@ class PlanningPageState extends State<PlanningPage> {
   /// Viewed budget month as an offset from the current month — the
   /// YNAB month-ahead range. The web workspace blocks every future
   /// month (`resolveBudgetMonth` → adjustment "future"), so there is no
-  /// web range to mirror; +1 is the conservative mobile bound.
+  /// web range to mirror; +1 is the conservative mobile bound. The
+  /// weekly tab gets the same bound — plan this week or next, not
+  /// arbitrary history.
   static const _maxBudgetMonthOffset = 1;
+  static const _maxBudgetWeekOffset = 1;
   var _budgetOffset = 0;
+  var _weekOffset = 0;
+
+  /// Which cadence the budgets section is showing — Theo tháng (the
+  /// shipped default) or Theo tuần (D12). Each tab has its own
+  /// navigator bound and its own row pool; they never mix.
+  var _budgetTab = BudgetPeriod.monthly;
 
   String get _budgetMonth {
     // VN calendar — p_month_start and p_paid_on must agree on which
@@ -217,15 +254,20 @@ class PlanningPageState extends State<PlanningPage> {
     return '${d.year}-${d.month.toString().padLeft(2, '0')}-01';
   }
 
+  /// Monday anchor of the viewed week — vnNow() is the VN civil clock,
+  /// so "tuần này" is the same week the ledger day belongs to.
+  String get _weekStart =>
+      shiftBudgetPeriod(vnWeekStart(), BudgetPeriod.weekly, _weekOffset);
+
   @override
   void initState() {
     super.initState();
-    _data = widget.loadData(_budgetMonth);
+    _data = widget.loadData(_budgetMonth, _weekStart);
   }
 
   Future<void> _refresh() async {
     setState(() {
-      _data = widget.loadData(_budgetMonth);
+      _data = widget.loadData(_budgetMonth, _weekStart);
     });
     try {
       await _data;
@@ -237,14 +279,23 @@ class PlanningPageState extends State<PlanningPage> {
   /// Public reload for the nav shell after a capture save.
   void reload() => _refresh();
 
-  /// ‹/› month switcher for the budgets section — reloads against the
-  /// picked month; the offset stays inside [0, _maxBudgetMonthOffset].
-  void _shiftBudgetMonth(int delta) {
+  /// ‹/› switcher for the budgets section — reloads against the picked
+  /// period; the offset stays inside the active tab's bound.
+  void _shiftBudgetPeriod(int delta) {
+    if (_budgetTab == BudgetPeriod.weekly) {
+      final next = _weekOffset + delta;
+      if (next < 0 || next > _maxBudgetWeekOffset) return;
+      setState(() {
+        _weekOffset = next;
+        _data = widget.loadData(_budgetMonth, _weekStart);
+      });
+      return;
+    }
     final next = _budgetOffset + delta;
     if (next < 0 || next > _maxBudgetMonthOffset) return;
     setState(() {
       _budgetOffset = next;
-      _data = widget.loadData(_budgetMonth);
+      _data = widget.loadData(_budgetMonth, _weekStart);
     });
   }
 
@@ -314,11 +365,18 @@ class PlanningPageState extends State<PlanningPage> {
               padding: const EdgeInsets.all(16),
               children: [
                 _BudgetSectionHeader(
-                  label: 'Ngân sách · ${_monthLabel(d.budgetMonth)}',
-                  canPrev: _budgetOffset > 0,
-                  canNext: _budgetOffset < _maxBudgetMonthOffset,
-                  onPrev: () => _shiftBudgetMonth(-1),
-                  onNext: () => _shiftBudgetMonth(1),
+                  label: _budgetTab == BudgetPeriod.weekly
+                      ? 'Ngân sách · ${budgetPeriodLabel(_weekStart, BudgetPeriod.weekly)}'
+                      : 'Ngân sách · ${_monthLabel(d.budgetMonth)}',
+                  periodNoun: budgetPeriodNoun(_budgetTab),
+                  canPrev: _budgetTab == BudgetPeriod.weekly
+                      ? _weekOffset > 0
+                      : _budgetOffset > 0,
+                  canNext: _budgetTab == BudgetPeriod.weekly
+                      ? _weekOffset < _maxBudgetWeekOffset
+                      : _budgetOffset < _maxBudgetMonthOffset,
+                  onPrev: () => _shiftBudgetPeriod(-1),
+                  onNext: () => _shiftBudgetPeriod(1),
                   onAdd:
                       d.categories.any((c) => c.kind == TransactionKind.expense)
                       ? () => _showBudgetForm(d)
@@ -327,12 +385,39 @@ class PlanningPageState extends State<PlanningPage> {
                       ? null
                       : () => _showQuickFill(d),
                 ),
-                if (_budgetOffset > 0) _fundedChip(d),
-                if (d.budgets.isEmpty)
+                // D12 — the cadence switch: the same budget concept one
+                // level down. Each tab keeps its own rows, navigator and
+                // carry chain; nothing is ever pooled across periods.
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: SegmentedButton<BudgetPeriod>(
+                    segments: const [
+                      ButtonSegment(
+                        value: BudgetPeriod.monthly,
+                        label: Text('Theo tháng'),
+                      ),
+                      ButtonSegment(
+                        value: BudgetPeriod.weekly,
+                        label: Text('Theo tuần'),
+                      ),
+                    ],
+                    selected: {_budgetTab},
+                    onSelectionChanged: (s) =>
+                        setState(() => _budgetTab = s.first),
+                  ),
+                ),
+                if (_budgetTab == BudgetPeriod.monthly && _budgetOffset > 0)
+                  _fundedChip(d),
+                if (d.budgetsFor(_budgetTab).isEmpty)
                   _empty(
-                    'Chưa có ngân sách nào',
+                    _budgetTab == BudgetPeriod.weekly
+                        ? 'Chưa có ngân sách tuần nào'
+                        : 'Chưa có ngân sách nào',
                     icon: Icons.pie_chart_outline,
-                    message: 'Đặt hạn mức cho từng danh mục chi để theo dõi.',
+                    message: _budgetTab == BudgetPeriod.weekly
+                        ? 'Đặt hạn mức tuần cho từng danh mục chi để theo '
+                              'dõi — tuần tính từ thứ Hai.'
+                        : 'Đặt hạn mức cho từng danh mục chi để theo dõi.',
                     // Same guard as the section header's add button — no
                     // expense category means the form has nothing to pick.
                     actionLabel:
@@ -348,10 +433,10 @@ class PlanningPageState extends State<PlanningPage> {
                         ? () => _showBudgetForm(d)
                         : null,
                   ),
-                for (final b in d.budgets)
+                for (final b in d.budgetsFor(_budgetTab))
                   _BudgetTile(
                     budget: b,
-                    priorBudgets: d.priorBudgets,
+                    priorBudgets: d.priorsFor(_budgetTab),
                     onEdit: () => _showBudgetForm(d, editing: b),
                     onDelete: () => _deleteBudget(b),
                     onCover: widget.actions.onCoverOverspend == null
@@ -594,11 +679,21 @@ class PlanningPageState extends State<PlanningPage> {
 
   /// Create ([editing] null) or edit a budget limit. The category picker
   /// locks on edit — the web dialog does the same because the upsert's
-  /// conflict target is (category, month), not the row id.
+  /// conflict target is (category, period, anchor), not the row id.
+  /// A create lands on the active tab's cadence: the viewed month on
+  /// "Theo tháng", the viewed week on "Theo tuần" — the dialog names the
+  /// resolved window so the write's scope is never implicit.
   Future<void> _showBudgetForm(
     PlanningData d, {
     BudgetProgress? editing,
   }) async {
+    final period = editing?.period ?? _budgetTab;
+    // The create anchor is the period the reader is viewing — the same
+    // week/month the list just asked the loader for, so the row lands
+    // where the user is looking.
+    final periodStart =
+        editing?.monthStart ??
+        (period == BudgetPeriod.weekly ? _weekStart : d.budgetMonth);
     final expenseCats = d.categories
         .where((c) => c.kind == TransactionKind.expense)
         .toList();
@@ -620,6 +715,21 @@ class PlanningPageState extends State<PlanningPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // The cadence is fixed at the surface it was opened
+                // from (or the row's own, on edit) — declared here so
+                // the hạn mức's window is explicit, never implied.
+                InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: 'Chu kỳ',
+                    border: OutlineInputBorder(),
+                  ),
+                  child: Text(
+                    period == BudgetPeriod.weekly
+                        ? 'Theo tuần · ${budgetPeriodLabel(periodStart, BudgetPeriod.weekly)}'
+                        : 'Theo tháng · ${budgetPeriodLabel(periodStart, BudgetPeriod.monthly)}',
+                  ),
+                ),
+                const SizedBox(height: 12),
                 if (editing == null)
                   DropdownButtonFormField<Category>(
                     initialValue: cat,
@@ -682,10 +792,12 @@ class PlanningPageState extends State<PlanningPage> {
                           editing,
                           categoryId,
                           amount,
-                          // Edits keep their stored month (== the viewed
-                          // one); creates land on the month the reader is
-                          // planning.
-                          editing?.monthStart ?? d.budgetMonth,
+                          // Edits keep their stored anchor + cadence;
+                          // creates land on the period the reader is
+                          // viewing (the month on "Theo tháng", the
+                          // viewed Monday's week on "Theo tuần").
+                          periodStart,
+                          period,
                         );
                       } catch (e) {
                         setDlg(() {
@@ -722,15 +834,21 @@ class PlanningPageState extends State<PlanningPage> {
 
   /// The two bulk-fill sources, recomputed from the live load — like the
   /// web's `carryable`/`suggestionRows` useMemos, so a row written
-  /// mid-session immediately drops out of both lists.
+  /// mid-session immediately drops out of both lists. Per active tab:
+  /// the Tuần tab carries last week's weekly limits, never the month's.
   List<BudgetDraft> _carryableDrafts(PlanningData d) {
-    final prevMonth = shiftBudgetMonth(d.budgetMonth, -1);
+    final anchor = _budgetTab == BudgetPeriod.weekly
+        ? _weekStart
+        : d.budgetMonth;
+    final prevAnchor = shiftBudgetPeriod(anchor, _budgetTab, -1);
     return budgetsToCarryForward(
-      previousBudgets: d.priorBudgets
-          .where((b) => b.monthStart == prevMonth)
+      previousBudgets: d
+          .priorsFor(_budgetTab)
+          .where((b) => b.monthStart == prevAnchor)
           .toList(),
-      currentBudgets: d.budgets,
-      monthStart: d.budgetMonth,
+      currentBudgets: d.budgetsFor(_budgetTab),
+      monthStart: anchor,
+      period: _budgetTab,
     );
   }
 
@@ -758,11 +876,23 @@ class PlanningPageState extends State<PlanningPage> {
 
   /// "Điền nhanh" sheet — the YNAB auto-assign analog. Both actions are
   /// honest about their inputs: a count when something is fillable, a
-  /// muted explanation when there is nothing to propose.
+  /// muted explanation when there is nothing to propose. On the Tuần
+  /// tab only the carry action shows — the trailing-average suggestion
+  /// is a monthly figure by construction and proposing a seventh of it
+  /// as a weekly limit would dress a month average in week clothes.
   Future<void> _showQuickFill(PlanningData d) async {
     final carryable = _carryableDrafts(d);
-    final suggestions = _suggestionDrafts(d);
-    final prevMonthLabel = _monthLabel(shiftBudgetMonth(d.budgetMonth, -1));
+    final suggestions = _budgetTab == BudgetPeriod.monthly
+        ? _suggestionDrafts(d)
+        : const <({Category category, BudgetSuggestion suggestion})>[];
+    // The carry source is the period just before the viewed one — label
+    // it exactly ("tuần 5/10 – 11/10/2026"), not a bare "trước".
+    final prevLabel = _budgetTab == BudgetPeriod.weekly
+        ? budgetPeriodLabel(
+            shiftBudgetPeriod(_weekStart, BudgetPeriod.weekly, -1),
+            BudgetPeriod.weekly,
+          )
+        : _monthLabel(shiftBudgetMonth(d.budgetMonth, -1));
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -772,33 +902,38 @@ class PlanningPageState extends State<PlanningPage> {
           children: [
             ListTile(
               leading: const Icon(Icons.history),
-              title: const Text('Dùng hạn mức tháng trước'),
+              title: Text(
+                _budgetTab == BudgetPeriod.weekly
+                    ? 'Dùng hạn mức tuần trước'
+                    : 'Dùng hạn mức tháng trước',
+              ),
               subtitle: Text(
                 carryable.isEmpty
-                    ? 'Không có hạn mức $prevMonthLabel chưa áp dụng'
+                    ? 'Không có hạn mức $prevLabel chưa áp dụng'
                     : 'Áp dụng ${carryable.length} hạn mức của '
-                          '$prevMonthLabel',
+                          '$prevLabel',
               ),
               enabled: carryable.isNotEmpty,
               onTap: () {
                 Navigator.pop(ctx);
-                _applyDrafts(carryable, source: prevMonthLabel);
+                _applyDrafts(carryable, source: prevLabel);
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.auto_graph),
-              title: const Text('Điền theo trung bình 3 tháng chi'),
-              subtitle: Text(
-                suggestions.isEmpty
-                    ? 'Chưa có danh mục nào đủ chi tiêu 3 tháng để gợi ý'
-                    : '${suggestions.length} gợi ý — xem lại trước khi điền',
+            if (_budgetTab == BudgetPeriod.monthly)
+              ListTile(
+                leading: const Icon(Icons.auto_graph),
+                title: const Text('Điền theo trung bình 3 tháng chi'),
+                subtitle: Text(
+                  suggestions.isEmpty
+                      ? 'Chưa có danh mục nào đủ chi tiêu 3 tháng để gợi ý'
+                      : '${suggestions.length} gợi ý — xem lại trước khi điền',
+                ),
+                enabled: suggestions.isNotEmpty,
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _reviewSuggestions(d, suggestions);
+                },
               ),
-              enabled: suggestions.isNotEmpty,
-              onTap: () {
-                Navigator.pop(ctx);
-                _reviewSuggestions(d, suggestions);
-              },
-            ),
           ],
         ),
       ),
@@ -878,6 +1013,10 @@ class PlanningPageState extends State<PlanningPage> {
                                     categoryId: r.category.id,
                                     monthStart: d.budgetMonth,
                                     limitMinor: r.suggestion.amount,
+                                    // Suggestions are monthly figures
+                                    // by construction — the Tuần tab
+                                    // never reaches this sheet.
+                                    period: BudgetPeriod.monthly,
                                   ),
                             ]),
                       child: Text('Áp dụng (${checked.length})'),
@@ -944,13 +1083,17 @@ class PlanningPageState extends State<PlanningPage> {
   Future<void> _showCoverSheet(PlanningData d, BudgetProgress overspent) async {
     final cover = widget.actions.onCoverOverspend;
     if (cover == null) return;
+    // Donors come from the same cadence + anchor as the overspent row —
+    // a weekly deficit cannot borrow a monthly limit (different window,
+    // different money question).
     int effectiveAvailable(BudgetProgress b) => budgetEffectiveAvailable(
       spentMinor: b.spentMinor,
       limitMinor: b.limitMinor,
       carry: budgetRollover(
-        priorBudgets: d.priorBudgets,
+        priorBudgets: d.priorsFor(overspent.period),
         categoryId: b.categoryId,
-        monthStart: d.budgetMonth,
+        monthStart: overspent.monthStart,
+        period: overspent.period,
       ).carry,
     );
 
@@ -960,7 +1103,7 @@ class PlanningPageState extends State<PlanningPage> {
     // limit — the RPC floor is limit_minor > 0, so a donor can give at
     // most limit − 1.
     final donors = [
-      for (final b in d.budgets)
+      for (final b in d.budgetsFor(overspent.period))
         if (b.categoryId != overspent.categoryId && b.limitMinor > 1)
           (budget: b, available: effectiveAvailable(b)),
     ].where((r) => r.available > 0).toList();
@@ -1756,6 +1899,7 @@ class _BudgetSectionHeader extends StatelessWidget {
     required this.canNext,
     required this.onPrev,
     required this.onNext,
+    this.periodNoun = 'tháng',
     this.onAdd,
     this.onQuickFill,
   });
@@ -1765,6 +1909,10 @@ class _BudgetSectionHeader extends StatelessWidget {
   final bool canNext;
   final VoidCallback onPrev;
   final VoidCallback onNext;
+
+  /// 'tháng' or 'tuần' — the chevron tooltips name the period they
+  /// navigate so a weekly view never lies about stepping months.
+  final String periodNoun;
   final VoidCallback? onAdd;
   final VoidCallback? onQuickFill;
 
@@ -1777,12 +1925,14 @@ class _BudgetSectionHeader extends StatelessWidget {
         ),
         IconButton(
           icon: const Icon(Icons.chevron_left),
-          tooltip: 'Tháng trước',
+          tooltip:
+              '${periodNoun[0].toUpperCase()}${periodNoun.substring(1)} trước',
           onPressed: canPrev ? onPrev : null,
         ),
         IconButton(
           icon: const Icon(Icons.chevron_right),
-          tooltip: 'Tháng sau',
+          tooltip:
+              '${periodNoun[0].toUpperCase()}${periodNoun.substring(1)} sau',
           onPressed: canNext ? onNext : null,
         ),
         if (onQuickFill != null)
@@ -1858,8 +2008,8 @@ class _BudgetTile extends StatelessWidget {
 
   final BudgetProgress budget;
 
-  /// Prior-month rows inside the rollover window — empty keeps the card
-  /// on the this-month-only figures it always showed.
+  /// Prior rows of the SAME cadence inside the rollover window — empty
+  /// keeps the card on the this-period-only figures it always showed.
   final List<BudgetProgress> priorBudgets;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -1870,12 +2020,14 @@ class _BudgetTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The carry folds prior under/overspend into this month's effective
-    // limit — the web's budgetEffective* chain, integer đồng throughout.
+    // The carry folds prior under/overspend into this period's
+    // effective limit — the web's budgetEffective* chain, integer đồng
+    // throughout. Weekly rows carry from prior weeks only.
     final rollover = budgetRollover(
       priorBudgets: priorBudgets,
       categoryId: budget.categoryId,
       monthStart: budget.monthStart,
+      period: budget.period,
     );
     final effectiveLimit = budgetEffectiveLimit(
       budget.limitMinor,
@@ -1894,7 +2046,7 @@ class _BudgetTile extends StatelessWidget {
     final ratio = effectiveLimit <= 0
         ? (available < 0 ? 1.0 : 0.0)
         : (budget.spentMinor / effectiveLimit).clamp(0.0, 1.0);
-    final pace = monthPace(budget.monthStart, vnNow());
+    final pace = budgetPeriodPace(budget.monthStart, budget.period, vnNow());
     final (status, color) = switch (state) {
       BudgetState.over => (
         'Vượt ${formatMoney(available.abs())}',
@@ -1909,7 +2061,11 @@ class _BudgetTile extends StatelessWidget {
         context.mf.incomeText,
       ),
     };
-    final rolloverLine = budgetRolloverLabel(rollover, formatMoney);
+    final rolloverLine = budgetRolloverLabel(
+      rollover,
+      formatMoney,
+      period: budget.period,
+    );
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(

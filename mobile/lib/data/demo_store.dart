@@ -296,6 +296,53 @@ class DemoStore {
     ];
   }
 
+  /// Weekly rows for the Tuần tab — [weekStart] is the viewed week's
+  /// Monday. Ăn uống is mid-week underspent; Di chuyển overspent so the
+  /// "Bù từ danh mục khác" affordance has something to say.
+  static List<BudgetProgress> seedWeeklyBudgets(
+    String weekStart, {
+    bool planned = false,
+  }) => [
+    BudgetProgress(
+      id: 'bw-1',
+      categoryId: 'cat-food',
+      categoryName: 'Ăn uống',
+      monthStart: weekStart,
+      period: BudgetPeriod.weekly,
+      limitMinor: 600000,
+      spentMinor: planned ? 0 : 210000,
+    ),
+    BudgetProgress(
+      id: 'bw-2',
+      categoryId: 'cat-transport',
+      categoryName: 'Di chuyển',
+      monthStart: weekStart,
+      period: BudgetPeriod.weekly,
+      limitMinor: 150000,
+      spentMinor: planned ? 0 : 172000,
+    ),
+  ];
+
+  /// Prior-week rows — the weekly carry sources. The Monday anchor is
+  /// [weekStart] − 7 days.
+  static List<BudgetProgress> seedPriorWeeklyBudgets(String weekStart) {
+    final prev = DateTime.parse(weekStart).subtract(const Duration(days: 7));
+    final prevStart =
+        '${prev.year}-${prev.month.toString().padLeft(2, '0')}-'
+        '${prev.day.toString().padLeft(2, '0')}';
+    return [
+      BudgetProgress(
+        id: 'bpw-1',
+        categoryId: 'cat-food',
+        categoryName: 'Ăn uống',
+        monthStart: prevStart,
+        period: BudgetPeriod.weekly,
+        limitMinor: 600000,
+        spentMinor: 540000,
+      ),
+    ];
+  }
+
   /// Trailing expense rows for the 3-month suggestion window — demo
   /// mirror of the workspace's `transaction_feed` read. Hóa đơn spends
   /// in each of the three completed months, so the unbudgeted category

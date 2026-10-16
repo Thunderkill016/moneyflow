@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/data/demo_store.dart';
 import 'package:moneyflow/domain/budget.dart';
 import 'package:moneyflow/domain/models.dart';
+import 'package:moneyflow/domain/report.dart' show vnWeekStart;
 import 'package:moneyflow/domain/transaction_query.dart';
 import 'package:moneyflow/features/planning/planning_page.dart';
 import 'package:moneyflow/features/reports/reports_page.dart';
@@ -45,7 +46,8 @@ PlanningActions _actions({
     int,
   )?
   onCommitmentSave,
-  Future<void> Function(BudgetProgress?, String, int, String)? onBudgetSave,
+  Future<void> Function(BudgetProgress?, String, int, String, BudgetPeriod)?
+  onBudgetSave,
   Future<void> Function(String id)? onBudgetDelete,
   Future<int> Function(List<BudgetDraft> drafts)? onBudgetFill,
   Future<void> Function(BudgetProgress, BudgetProgress, int)? onCoverOverspend,
@@ -55,7 +57,7 @@ PlanningActions _actions({
   Future<GoalFunding> Function(String goalId)? loadGoalFunding,
 }) => PlanningActions(
   loadGoalFunding: loadGoalFunding,
-  onBudgetSave: onBudgetSave ?? (a, b, c, d) async {},
+  onBudgetSave: onBudgetSave ?? (a, b, c, d, e) async {},
   onBudgetDelete: onBudgetDelete ?? (_) async {},
   onBudgetFill: onBudgetFill,
   onCoverOverspend: onCoverOverspend,
@@ -82,7 +84,7 @@ Future<void> _pumpPlanning(
   await tester.pumpWidget(
     MaterialApp(
       home: PlanningPage(
-        loadData: (_) => Future.value(_seedPlanningData()),
+        loadData: (_, _) => Future.value(_seedPlanningData()),
         actions: actions,
       ),
     ),
@@ -180,7 +182,7 @@ Future<void> _pumpIncome(
   await tester.pumpWidget(
     MaterialApp(
       home: PlanningPage(
-        loadData: (_) => Future.value(
+        loadData: (_, _) => Future.value(
           PlanningData(
             budgets: const [],
             commitments: const [],
@@ -206,7 +208,7 @@ PlanningActions _incomeActions({
   onSave,
   Future<void> Function(String, bool)? onArchived,
 }) => PlanningActions(
-  onBudgetSave: (a, b, c, d) async {},
+  onBudgetSave: (a, b, c, d, e) async {},
   onBudgetDelete: (_) async {},
   onCommitmentSave: (a, b, c, d, e, f, g) async {},
   onCommitmentPay: (_) async {},
@@ -492,7 +494,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: PlanningPage(
-            loadData: (_) => Future.value(data),
+            loadData: (_, _) => Future.value(data),
             actions: _actions(),
           ),
         ),
@@ -650,7 +652,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: PlanningPage(
-            loadData: (_) => Future.value(
+            loadData: (_, _) => Future.value(
               PlanningData(
                 budgets: data.budgets,
                 commitments: [
@@ -714,7 +716,7 @@ void main() {
       await _pumpPlanning(
         tester,
         actions: _actions(
-          onBudgetSave: (editing, categoryId, limit, month) async =>
+          onBudgetSave: (editing, categoryId, limit, month, period) async =>
               saved = [editing, categoryId, limit, month],
         ),
       );
@@ -752,7 +754,7 @@ void main() {
       await _pumpPlanning(
         tester,
         actions: _actions(
-          onBudgetSave: (editing, categoryId, limit, month) async =>
+          onBudgetSave: (editing, categoryId, limit, month, period) async =>
               throw Exception('stale_write'),
         ),
       );
@@ -779,7 +781,7 @@ void main() {
         await _pumpPlanning(
           tester,
           actions: _actions(
-            onBudgetSave: (e, c, l, m) async {
+            onBudgetSave: (e, c, l, m, p) async {
               calls++;
               await gate.future;
             },
@@ -808,7 +810,7 @@ void main() {
       await _pumpPlanning(
         tester,
         actions: _actions(
-          onBudgetSave: (e, c, l, m) async {
+          onBudgetSave: (e, c, l, m, p) async {
             calls++;
             if (calls == 1) throw Exception('offline');
           },
@@ -1022,7 +1024,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: PlanningPage(
-            loadData: (_) => Future.value(data),
+            loadData: (_, _) => Future.value(data),
             actions: _actions(),
           ),
         ),
@@ -1692,7 +1694,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: PlanningPage(
-            loadData: (_) async {
+            loadData: (_, _) async {
               loads++;
               throw Exception('socket exploded');
             },
@@ -1726,7 +1728,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: PlanningPage(
-            loadData: (_) => Future.value(
+            loadData: (_, _) => Future.value(
               PlanningData(
                 budgets: DemoStore.seedBudgets(_monthStart()),
                 priorBudgets: DemoStore.seedPriorBudgets(_monthStart()),
@@ -1803,7 +1805,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: PlanningPage(
-            loadData: (_) => Future.value(data ?? fillData()),
+            loadData: (_, _) => Future.value(data ?? fillData()),
             actions: actions,
           ),
         ),
@@ -1985,7 +1987,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: PlanningPage(
-            loadData: (_) => Future.value(
+            loadData: (_, _) => Future.value(
               PlanningData(
                 budgets: const [],
                 commitments: commitments,
@@ -2080,7 +2082,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: PlanningPage(
-            loadData: (budgetMonth) {
+            loadData: (budgetMonth, weekStart) {
               calls?.add(budgetMonth);
               return Future.value(
                 PlanningData(
@@ -2186,7 +2188,7 @@ void main() {
       await pumpMonthAhead(
         tester,
         actions: _actions(
-          onBudgetSave: (editing, categoryId, limit, month) async =>
+          onBudgetSave: (editing, categoryId, limit, month, period) async =>
               saved = [editing, categoryId, limit, month],
         ),
       );
@@ -2221,7 +2223,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: PlanningPage(
-            loadData: (_) => Future.value(
+            loadData: (_, _) => Future.value(
               PlanningData(
                 budgets: DemoStore.seedBudgets(_monthStart()),
                 priorBudgets: DemoStore.seedPriorBudgets(_monthStart()),
@@ -2329,7 +2331,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: PlanningPage(
-            loadData: (_) => Future.value(
+            loadData: (_, _) => Future.value(
               PlanningData(
                 budgets: const [],
                 commitments: commitments ?? DemoStore.seedCommitments(),
@@ -2584,7 +2586,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: PlanningPage(
-            loadData: (_) => Future.value(data),
+            loadData: (_, _) => Future.value(data),
             actions: _actions(
               loadGoalFunding: (_) async => (
                 allocations: const <GoalAllocation>[],
@@ -2604,6 +2606,170 @@ void main() {
 
       expect(find.textContaining('Chưa có lần nạp nào'), findsWidgets);
       expect(find.textContaining('Chưa đặt hạn'), findsOneWidget);
+    });
+  });
+
+  // -- D12: weekly budget periods ------------------------------------------
+  // The page anchors weekly rows on the viewed week's Monday; the tests
+  // read the same vnWeekStart clock the widget uses so a Sunday-night CI
+  // run cannot straddle the week boundary mid-assertion.
+  group('PlanningPage weekly budgets (D12)', () {
+    PlanningData weeklyData() => PlanningData(
+      budgets: DemoStore.seedBudgets(_monthStart()),
+      weeklyBudgets: DemoStore.seedWeeklyBudgets(vnWeekStart()),
+      priorWeeklyBudgets: DemoStore.seedPriorWeeklyBudgets(vnWeekStart()),
+      commitments: const [],
+      goals: const [],
+      accounts: DemoStore.seedAccounts(),
+      categories: DemoStore.seedCategories(),
+      monthStart: _monthStart(),
+      budgetMonth: _monthStart(),
+    );
+
+    Future<void> pumpWeekly(
+      WidgetTester tester, {
+      PlanningActions? actions,
+      List<String>? weekCalls,
+    }) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PlanningPage(
+            loadData: (budgetMonth, weekStart) {
+              weekCalls?.add(weekStart);
+              return Future.value(weeklyData());
+            },
+            actions: actions ?? _actions(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the cadence switch swaps the budget list to the weekly '
+        'pool — monthly rows never appear under the week label', (
+      tester,
+    ) async {
+      await pumpWeekly(tester);
+      // Monthly tab first: the seed's two monthly rows, no weekly row.
+      expect(
+        find.text(
+          'Ngân sách · tháng ${_monthStart().substring(5, 7)}/'
+          '${_monthStart().substring(0, 4)}',
+        ),
+        findsOneWidget,
+      );
+      // The weekly Ăn uống limit (600.000 ₫) belongs to the other pool.
+      expect(find.textContaining('/ 600.000 ₫'), findsNothing);
+
+      await tester.tap(find.text('Theo tuần'));
+      await tester.pumpAndSettle();
+
+      // The header names the week; the weekly seeds render.
+      expect(find.textContaining('Ngân sách · tuần'), findsOneWidget);
+      expect(find.textContaining('/ 600.000 ₫'), findsOneWidget);
+      // The monthly "2.000.000 ₫" hạn mức belongs to the other pool.
+      expect(find.textContaining('2.000.000 ₫'), findsNothing);
+    });
+
+    testWidgets('the weekly empty state names the cadence honestly', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PlanningPage(
+            loadData: (_, _) => Future.value(
+              PlanningData(
+                budgets: const [],
+                weeklyBudgets: const [],
+                commitments: const [],
+                goals: const [],
+                accounts: const [],
+                categories: DemoStore.seedCategories(),
+                monthStart: _monthStart(),
+                budgetMonth: _monthStart(),
+              ),
+            ),
+            actions: _actions(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Theo tuần'));
+      await tester.pumpAndSettle();
+      expect(find.text('Chưa có ngân sách tuần nào'), findsOneWidget);
+      expect(find.textContaining('tuần tính từ thứ Hai'), findsOneWidget);
+    });
+
+    testWidgets('the week navigator asks the loader for next week\u2019s '
+        'Monday', (tester) async {
+      final weekCalls = <String>[];
+      await pumpWeekly(tester, weekCalls: weekCalls);
+      await tester.tap(find.text('Theo tuần'));
+      await tester.pumpAndSettle();
+      weekCalls.clear();
+
+      await tester.tap(find.byTooltip('Tuần sau'));
+      await tester.pumpAndSettle();
+      expect(
+        weekCalls.single,
+        shiftBudgetPeriod(vnWeekStart(), BudgetPeriod.weekly, 1),
+      );
+
+      await tester.tap(find.byTooltip('Tuần trước'));
+      await tester.pumpAndSettle();
+      expect(weekCalls.last, vnWeekStart());
+      // Back at this week, ‹ cannot go further (offset floor is 0).
+      await tester.tap(find.byTooltip('Tuần trước'));
+      await tester.pumpAndSettle();
+      expect(weekCalls, hasLength(2));
+    });
+
+    testWidgets('a budget created on the weekly tab writes period=weekly '
+        'with the viewed Monday anchor', (tester) async {
+      (String, String, BudgetPeriod)? saved;
+      await pumpWeekly(
+        tester,
+        actions: _actions(
+          onBudgetSave:
+              (editing, categoryId, limit, periodStart, period) async {
+                saved = (periodStart, categoryId, period);
+              },
+        ),
+      );
+      await tester.tap(find.text('Theo tuần'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Thêm ngân sách'));
+      await tester.pumpAndSettle();
+
+      // The form declares its cadence + window before a write is
+      // possible — the hạn mức is never implied.
+      expect(find.textContaining('Theo tuần · tuần'), findsOneWidget);
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Hạn mức'),
+        '700000',
+      );
+      await tester.tap(find.text('Tạo'));
+      await tester.pumpAndSettle();
+
+      expect(saved, isNotNull);
+      expect(saved!.$1, vnWeekStart());
+      expect(saved!.$3, BudgetPeriod.weekly);
+    });
+
+    testWidgets('weekly rollover copy speaks in weeks', (tester) async {
+      await pumpWeekly(tester);
+      await tester.tap(find.text('Theo tuần'));
+      await tester.pumpAndSettle();
+      // Seed: prior week Ăn uống 540k/600k → +60k carry.
+      expect(find.textContaining('Chuyển từ tuần trước'), findsOneWidget);
     });
   });
 }

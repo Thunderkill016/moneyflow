@@ -68,7 +68,7 @@ select has_function('public', 'restore_money_transaction', array['uuid'], 'resto
 select has_function('public', 'create_financial_account', array['text', 'account_kind', 'bigint', 'text', 'text', 'text'], 'create account RPC exists (with currency + identity)');
 select has_function('public', 'update_financial_account', array['uuid', 'text', 'account_kind', 'bigint', 'text', 'text', 'timestamptz'], 'update account RPC exists (with identity + expected_updated_at)');
 select has_function('public', 'set_financial_account_archived', array['uuid', 'boolean'], 'archive account RPC exists');
-select has_function('public', 'upsert_monthly_budget', array['uuid', 'date', 'bigint', 'timestamptz'], 'upsert budget RPC exists (with expected_updated_at)');
+select has_function('public', 'upsert_monthly_budget', array['uuid', 'date', 'bigint', 'timestamptz', 'text'], 'upsert budget RPC exists (with expected_updated_at + period_kind)');
 select has_function('public', 'delete_monthly_budget', array['uuid'], 'delete budget RPC exists');
 select has_function('public', 'upsert_recurring_commitment', array['uuid', 'text', 'bigint', 'integer', 'uuid', 'uuid', 'timestamptz', 'integer'], 'upsert recurring commitment RPC exists (with expected_updated_at + interval_months)');
 select has_function('public', 'set_recurring_commitment_archived', array['uuid', 'boolean'], 'archive recurring commitment RPC exists');

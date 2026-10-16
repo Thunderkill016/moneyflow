@@ -58,6 +58,14 @@ String vnMonthStart([DateTime? instant]) {
   return '${d.year}-${_two(d.month)}-01';
 }
 
+/// Monday of the VN civil week containing [instant] (default: now) —
+/// the weekly-budget anchor (D12). Vietnam's civil week starts on
+/// Monday, the same convention the commitment month grid renders.
+String vnWeekStart([DateTime? instant]) {
+  final d = vnNow(instant);
+  return ymd(dateAdd(dayOnly(d), 1 - d.weekday));
+}
+
 /// Whole days from [from] to [to]; UTC fields keep DST out of the count.
 int daysBetween(DateTime from, DateTime to) => DateTime.utc(
   to.year,

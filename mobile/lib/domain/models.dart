@@ -176,7 +176,32 @@ class DeletedTransaction {
   final String deletedAt; // ISO timestamp
 }
 
-/// Monthly budget row — mirrors public.budget_progress.
+/// Budget cadence — mirrors monthly_budgets.period_kind. Weekly budgets
+/// anchor on Monday (the VN civil week start); monthly ones on the 1st.
+/// Quarterly/yearly are deliberately not admitted yet — the check
+/// constraint, the RPC and the client contract all admit exactly these
+/// two so no unrenderable row can exist.
+enum BudgetPeriod {
+  monthly,
+  weekly;
+
+  /// The stored period_kind value for this cadence.
+  String get key => switch (this) {
+    BudgetPeriod.monthly => 'monthly',
+    BudgetPeriod.weekly => 'weekly',
+  };
+
+  /// Parse a stored period_kind. A missing/unknown value reads as
+  /// monthly — the column's own default; a server predating migration
+  /// 20261016190000 has only monthly rows by definition, so this never
+  /// invents a cadence.
+  static BudgetPeriod fromKey(String? v) =>
+      v == 'weekly' ? BudgetPeriod.weekly : BudgetPeriod.monthly;
+}
+
+/// Budget row — mirrors public.budget_progress. [monthStart] is the
+/// period ANCHOR (YYYY-MM-01 for monthly, the Monday for weekly); the
+/// column name predates [period] and stays for contract stability.
 class BudgetProgress {
   const BudgetProgress({
     required this.id,
@@ -186,14 +211,16 @@ class BudgetProgress {
     required this.limitMinor,
     required this.spentMinor,
     this.updatedAt,
+    this.period = BudgetPeriod.monthly,
   });
 
   final String id;
   final String categoryId;
   final String categoryName;
-  final String monthStart; // YYYY-MM-01
+  final String monthStart; // period anchor: YYYY-MM-01 or the Monday
   final int limitMinor;
   final int spentMinor;
+  final BudgetPeriod period;
 
   /// Row version read from the feed — handed back as `expected_updated_at`
   /// on a limit edit so a stale write fails instead of silently winning.

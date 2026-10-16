@@ -407,7 +407,7 @@ void main() {
       await t.pumpWidget(
         _wrap(
           PlanningPage(
-            loadData: (_) async => PlanningData(
+            loadData: (_, _) async => PlanningData(
               budgets: const [],
               commitments: const [],
               goals: const [],
@@ -417,7 +417,7 @@ void main() {
               budgetMonth: _monthStart(),
             ),
             actions: PlanningActions(
-              onBudgetSave: (_, _, _, _) async {},
+              onBudgetSave: (_, _, _, _, _) async {},
               onBudgetDelete: (_) async {},
               onCommitmentSave: (_, _, _, _, _, _, _) async {},
               onCommitmentPay: (_) async {},

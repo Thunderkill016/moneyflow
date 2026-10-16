@@ -168,7 +168,22 @@ DONE THIS ROUND:
     exists (DECISIONS.md).
   - Verification: `dart format` clean; `flutter analyze` clean;
     `flutter test` FULL SUITE 1462 green (44 new tests).
+- **D12 non-monthly budget periods shipped on feat/mobile-theme**
+  (schema + mobile; migration committed, NOT applied to production):
+  `monthly_budgets.period_kind` ∈ {monthly, weekly} with `month_start`
+  as the per-kind anchor (weekly = Monday); unique key widened to
+  (user, category, period_kind, anchor); 5-arg `upsert_monthly_budget`
+  (old 4-arg dropped, named-arg monthly callers unaffected);
+  `budget_progress` sums per-kind windows and emits `period_kind`;
+  `get_dashboard_bundle` budgets slice pinned to monthly. Kế hoạch
+  gains a Theo tháng/Theo tuần switch — per-tab rows, navigator, carry
+  chain and quick-fill (weekly tab carries last week's limits only);
+  remainder card stays monthly-only. Pre-migration reads fall back to
+  the column-less select as monthly. See FIXLOG.md "FEATURE: D12".
+  Verification: dart format clean; flutter analyze clean; flutter test
+  1486 green (+21); pgTAP 64/64 suites (17 new assertions); migration
+  identity 92 pinned; check:rls 9 pass.
 AUDIT OPEN: P0=0 P1=0 P2=0 (all findings shipped — see FIXLOG.md)
 GAPS OPEN: web EditTransactionDialog lacks "save as rule" offer (mobile has it); Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
-NEXT STEP: Loop B gap list — D12+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D11 done.
+NEXT STEP: Loop B gap list — D13+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D12 done.
 RESUME: re-read this file, then continue at NEXT STEP.

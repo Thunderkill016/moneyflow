@@ -26,7 +26,7 @@ Transaction _tx(String id, TransactionKind kind, int amount) => Transaction(
 );
 
 PlanningActions _actions() => PlanningActions(
-  onBudgetSave: (a, b, c, d) async {},
+  onBudgetSave: (a, b, c, d, e) async {},
   onBudgetDelete: (_) async {},
   onCommitmentSave: (a, b, c, d, e, f, g) async {},
   onCommitmentPay: (_) async {},
@@ -161,7 +161,7 @@ void main() {
             child: child!,
           ),
           home: PlanningPage(
-            loadData: (_) => Future.value(_data()),
+            loadData: (_, _) => Future.value(_data()),
             actions: _actions(),
           ),
         ),

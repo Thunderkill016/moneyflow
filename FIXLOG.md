@@ -662,3 +662,66 @@ Format: `ID | files changed | why | proof (test names)`.
   individually, complete set → no complaint); `planning_reports_test.dart`
   (+4: detail sheet lists allocations + linked rows with signed
   amounts, hasMore disclosure, no loader → no Chi tiết, reserve line).
+- **FEATURE: D12 non-monthly budget periods — weekly budgets on one
+  cadence-aware seam** |
+  `supabase/migrations/20261016190000_budget_periods.sql`,
+  `db/neon/migrations/20261016190000_budget_periods.sql` (generated twin,
+  byte-identical — no auth refs to rewrite),
+  `supabase/tests/database/budget_periods.test.sql`,
+  `supabase/tests/database/schema_and_rls.test.sql`,
+  `supabase/tests/database/security_definer_contract.test.sql`,
+  `mobile/lib/domain/models.dart`,
+  `mobile/lib/domain/budget.dart`,
+  `mobile/lib/domain/report.dart`,
+  `mobile/lib/domain/safe_to_spend.dart`,
+  `mobile/lib/data/neon/real_store.dart`,
+  `mobile/lib/data/demo_store.dart`,
+  `mobile/lib/features/planning/planning_page.dart`,
+  `mobile/lib/app/app.dart` |
+  Loop B gap D12 (§10 — Money Lover 6.5 ADAPT): weekly allowance
+  budgeting ("tiền tiêu tuần") is a normal VN cadence; D2's event
+  budgets already cover Tết-length custom windows, so the gap is
+  recurring non-monthly periods only. `monthly_budgets.period_kind`
+  admits exactly {'monthly','weekly'} — quarterly/yearly stay unwritten
+  contract; `month_start` stays the column name as the period ANCHOR
+  (1st-of-month / week-Monday, per-kind check
+  `monthly_budgets_period_start_check`), and the conflict target widens
+  to (user, category, period_kind, anchor) so a weekly and a monthly
+  limit on one category — even sharing a first-of-month Monday — are
+  two rows, not a collision. `upsert_monthly_budget` gains
+  `p_period_kind` (the 4-arg signature dropped, named-arg callers
+  resolve via the default; stale-write guard now scoped per kind);
+  `budget_progress` sums the right window per kind ([Mon, Mon+7) vs the
+  calendar month) and emits `period_kind` appended last. The dashboard
+  bundle's budgets slice is now explicitly `period_kind='monthly'` —
+  an anchor match alone would hand a first-of-month-Monday weekly row
+  to "this month" (asserted via `pg_get_functiondef`). Mobile: the
+  planning budgets section gains a Theo tháng/Theo tuần
+  `SegmentedButton` — each tab owns its offset navigator (bounded to
+  current+1 like months), row pool, rollover chain and carry-fill; the
+  "Điền nhanh" sheet on Tuần shows only the prior-week carry because a
+  3-month average is a monthly figure by construction. The form
+  declares its cadence + resolved window ("Theo tuần · tuần 12/10 –
+  18/10/2026") before any write; creates land on the viewed anchor,
+  edits keep the row's own anchor+kind. `safeDailySpend` and the
+  dashboard remainder stay monthly-only by explicit period filter; the
+  store retries budget reads without `period_kind` against a
+  pre-migration server (every row is monthly by the column's own
+  default — never an invented cadence) and only sends `p_period_kind`
+  for non-monthly saves, so monthly keeps working pre-migration.
+  Integer đồng throughout; no new table/RPC kind — one seam, two
+  cadences. |
+  `budget_test.dart` (+11: Monday anchoring, 7-day shifts incl. year
+  edge, non-Monday rejection, exclusive end, weekly pace, vi-VN labels
+  incl. year-straddle, per-kind carry isolation, weekly alert scope,
+  weekly carry-forward drafts); `safe_to_spend_test.dart` (+1: weekly
+  rows never feed the monthly remainder even on a shared anchor date);
+  `planning_store_test.dart` (+3: weekly body posts p_period_kind,
+  period_kind selected+parsed, missing-column retry reads monthly);
+  `planning_reports_test.dart` (+5 widget: tab swap pools, weekly empty
+  state names cadence, ‹/› navigates Mondays with the same bound,
+  create writes weekly+Monday anchor, "Chuyển từ tuần trước" copy);
+  `budget_periods.test.sql` (17 assertions: Monday/1st anchor checks,
+  invalid period kind, 7-day window sums incl. month-straddle, monthly
+  window unchanged, same-anchor dual rows, per-kind conflict replay,
+  stale guard, tenant isolation, delete path, bundle monthly scope).

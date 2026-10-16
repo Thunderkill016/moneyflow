@@ -455,6 +455,11 @@
       "sourceSha256": "b60e6fdd3964a31f5e3cdc435d7d4666bc6aa2aa55145c43b831026a7bbcb5d7",
       "outputSha256": "f2441b5b6e5043f29e1772a42b6af86294b97632b17a4bf60cfa133153380196",
       "rewrites": 1
+    },
+    "20261016190000_budget_periods.sql": {
+      "sourceSha256": "ef1802fea64ef7a9b118793716954bc5d5366818d6589c9ee4a1b9edf3807669",
+      "outputSha256": "ef1802fea64ef7a9b118793716954bc5d5366818d6589c9ee4a1b9edf3807669",
+      "rewrites": 0
     }
   }
 }

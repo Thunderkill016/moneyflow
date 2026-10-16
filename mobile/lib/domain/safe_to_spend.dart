@@ -72,6 +72,11 @@ SafeDailySpend? safeDailySpend({
   var headroom = 0;
   var hasBudget = false;
   for (final b in budgets) {
+    // Monthly budgets only — the card's contract is "còn lại THÁNG
+    // này". A weekly row that happened to anchor on the 1st (a Monday
+    // can be the 1st) must not fold its smaller limit into the month's
+    // headroom.
+    if (b.period != BudgetPeriod.monthly) continue;
     if (b.monthStart != monthStart) continue;
     hasBudget = true;
     final left = b.limitMinor - b.spentMinor;

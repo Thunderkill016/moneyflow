@@ -26,7 +26,7 @@ import '../data/share/share_intent.dart';
 import '../data/share/share_text_parser.dart';
 import '../domain/budget.dart';
 import '../domain/events.dart' show addDaysToYmd;
-import '../domain/report.dart' show vnMonthStart, vnToday;
+import '../domain/report.dart' show vnMonthStart, vnToday, vnWeekStart;
 import '../domain/inbox.dart';
 import '../domain/models.dart';
 import '../domain/recurring_detection.dart';
@@ -2292,15 +2292,19 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           onCapture: _openDemoCapture,
         ),
         () => PlanningPage(
-          loadData: (budgetMonth) async => PlanningData(
-            // A future viewed month is a PLAN — spend reads zero rather
-            // than re-showing this month's figures under next month's
-            // label.
+          loadData: (budgetMonth, weekStart) async => PlanningData(
+            // A future viewed period is a PLAN — spend reads zero rather
+            // than re-showing this period's figures under a future label.
             budgets: DemoStore.seedBudgets(
               budgetMonth,
               planned: budgetMonth.compareTo(monthStart()) > 0,
             ),
             priorBudgets: DemoStore.seedPriorBudgets(budgetMonth),
+            weeklyBudgets: DemoStore.seedWeeklyBudgets(
+              weekStart,
+              planned: weekStart.compareTo(vnWeekStart()) > 0,
+            ),
+            priorWeeklyBudgets: DemoStore.seedPriorWeeklyBudgets(weekStart),
             // One list feeds both consumers: budgetSuggestions takes the
             // expense rows, averageMonthlyIncome the income rows —
             // kind-filtered inside each, like the real range read.
@@ -2364,7 +2368,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   }
 
   static final _noopPlanningActions = PlanningActions(
-    onBudgetSave: (_, _, _, _) async {},
+    onBudgetSave: (_, _, _, _, _) async {},
     onBudgetDelete: (_) async {},
     // The cover sheet stays reachable in demo (donor list, preview,
     // confirm), but the write pair reports read-only instead of lying
@@ -2399,13 +2403,29 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   /// section is viewing (this month or next); commitments, income
   /// receipts and the funding basis stay anchored on the real current
   /// month.
-  Future<PlanningData> _loadPlanning(String budgetMonth) async {
+  Future<PlanningData> _loadPlanning(
+    String budgetMonth,
+    String weekStart,
+  ) async {
     final monthStart = _monthStart();
     // Same window the web workspace reads, anchored on the VIEWED month:
     // rollover history inside [windowStart, budgetMonth] from
     // budget_progress. For the month-ahead view the current month is
     // itself a "prior" row — its spend feeds next month's carry figures.
-    final windowStart = budgetRolloverWindowStart(budgetMonth);
+    // The one range read also covers the weekly tab: from the earlier of
+    // the 12-month and 12-week rollover windows to the later anchor, so
+    // weekly rows ride the same fetch and get partitioned client-side.
+    final monthWindow = budgetRolloverWindowStart(budgetMonth);
+    final weekWindow = budgetRolloverWindowStart(
+      weekStart,
+      period: BudgetPeriod.weekly,
+    );
+    final windowStart = monthWindow.compareTo(weekWindow) < 0
+        ? monthWindow
+        : weekWindow;
+    final rangeEnd = budgetMonth.compareTo(weekStart) > 0
+        ? budgetMonth
+        : weekStart;
     // The suggestion/income basis always resolves against the CURRENT
     // month — "trung bình 3 tháng" means three completed months
     // whichever budget month is on screen.
@@ -2414,7 +2434,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       -budgetSuggestionMonths,
     );
     final results = await Future.wait([
-      _store.loadBudgetsInRange(windowStart, budgetMonth),
+      _store.loadBudgetsInRange(windowStart, rangeEnd),
       _store.loadCommitments(monthStart),
       _store.loadGoals(),
       _store.loadAccounts(),
@@ -2429,9 +2449,30 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     );
     final budgetRows = results[0] as List<BudgetProgress>;
     return PlanningData(
-      budgets: budgetRows.where((b) => b.monthStart == budgetMonth).toList(),
+      budgets: budgetRows
+          .where(
+            (b) =>
+                b.period == BudgetPeriod.monthly && b.monthStart == budgetMonth,
+          )
+          .toList(),
       priorBudgets: budgetRows
-          .where((b) => b.monthStart.compareTo(budgetMonth) < 0)
+          .where(
+            (b) =>
+                b.period == BudgetPeriod.monthly &&
+                b.monthStart.compareTo(budgetMonth) < 0,
+          )
+          .toList(),
+      weeklyBudgets: budgetRows
+          .where(
+            (b) => b.period == BudgetPeriod.weekly && b.monthStart == weekStart,
+          )
+          .toList(),
+      priorWeeklyBudgets: budgetRows
+          .where(
+            (b) =>
+                b.period == BudgetPeriod.weekly &&
+                b.monthStart.compareTo(weekStart) < 0,
+          )
           .toList(),
       commitments: results[1] as List<RecurringCommitment>,
       goals: results[2] as List<SavingsGoal>,
@@ -2461,17 +2502,21 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     // updated_at as the stale-write guard — like the web's saveBudgetAction.
     // A create lands on the viewed budget month (the page passes
     // budgetMonth) — planning ahead writes next month, never this one.
-    onBudgetSave: (editing, categoryId, limit, monthStart) => _store
+    onBudgetSave: (editing, categoryId, limit, periodStart, period) => _store
         .upsertBudget(
           categoryId: categoryId,
-          monthStart: editing?.monthStart ?? monthStart,
+          // Edits keep their stored anchor; creates land on the
+          // viewed period anchor (month start or the week's Monday).
+          monthStart: editing?.monthStart ?? periodStart,
           limitMinor: limit,
           expectedUpdatedAt: editing?.updatedAt,
+          period: editing?.period ?? period,
         )
         .then((_) {}),
     onBudgetDelete: _store.deleteBudget,
-    // Bulk fill reuses the same RPC a manual save does — per-row upserts,
-    // counted honestly so a partial apply reports what landed.
+    // Bulk fill reuses the same RPC a manual save does — per-row upserts
+    // carrying the draft's own cadence, counted honestly so a partial
+    // apply reports what landed.
     onBudgetFill: (drafts) async {
       var applied = 0;
       for (final d in drafts) {
@@ -2480,6 +2525,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
             categoryId: d.categoryId,
             monthStart: d.monthStart,
             limitMinor: d.limitMinor,
+            period: d.period,
           );
           applied++;
         } catch (_) {
@@ -2490,7 +2536,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       return applied;
     },
     // YNAB Rule 3 — two upserts through the same RPC a manual save uses,
-    // donor −X then overspent +X. A failure AFTER the donor write lands
+    // donor −X then overspent +X, inside the rows' own cadence (a weekly
+    // cover writes weekly rows). A failure AFTER the donor write lands
     // throws cover_partial: the donor limit really did move, and the
     // page says so instead of reporting "không bù được".
     onCoverOverspend: (donor, overspent, amount) async {
@@ -2499,6 +2546,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         monthStart: donor.monthStart,
         limitMinor: donor.limitMinor - amount,
         expectedUpdatedAt: donor.updatedAt,
+        period: donor.period,
       );
       try {
         await _store.upsertBudget(
@@ -2506,6 +2554,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           monthStart: overspent.monthStart,
           limitMinor: overspent.limitMinor + amount,
           expectedUpdatedAt: overspent.updatedAt,
+          period: overspent.period,
         );
       } catch (e) {
         // The tag the page recognises: half the pair landed — re-read

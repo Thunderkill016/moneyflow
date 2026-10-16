@@ -59,6 +59,9 @@ where n.nspname = 'public'
 -- update_event_budget (stale-write-guarded edit) and
 -- soft_delete_event_budget (tombstone). None touches the ledger — the
 -- spent figure stays a read-side aggregate. +3 reviewed boundaries.
+-- 20261016190000 replaces upsert_monthly_budget's 4-arg signature with
+-- the 5-arg period-aware one — the drop removes the old regprocedure row,
+-- so the inventory count is unchanged.
 select is(
   (select count(*)::integer from flagged_security_definer_functions),
   69,
