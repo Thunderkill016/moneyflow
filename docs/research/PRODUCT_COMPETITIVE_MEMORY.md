@@ -299,23 +299,38 @@ Adopt a focused account-reconciliation vertical slice. Do not adopt the full YNA
 
 Monarch is an aggregated-finance product with account connections, transaction categorization, category or flex budgeting, goals, net-worth tracking and household collaboration. Its budget depends on correctly categorized income and connected account data; transaction rules can rename, categorize, tag, hide, set review status or link to goals.
 
+**Deep-dive snapshot 2026-10-15/16** — full per-screen evidence in `docs/research/MONARCH_DEEP_DIVE.md`:
+
+- Rules are an ordered sequential pipeline (all matching rules apply, drag-reorder, web-only) with a preview tab and an **opt-in** "apply to existing" checkbox — retroactive automation is never silent.
+- "Needs review" is a persistent per-transaction state — set manually, by rule, or by two global preferences; resolvable by web checkmark, mobile swipe, or bulk edit; surfaced by a dedicated dashboard card.
+- Recurring detection scans history but sends candidates through user review before confirmation; streams persist until explicitly dismissed; no per-occurrence skip exists (documented gap).
+- Budgets: Flex (three-bucket, one loose number) is the **default** over per-category; first budget auto-fills from a 6-month trailing average; rollover is opt-in per expense category.
+- Goals 3.0: save-up vs pay-down split; on-track/ahead/at-risk status requires target+date+contribution; funding via linked transactions or explicit allocation events; pay-down progress tracks reported balances only.
+- Reports: Cash Flow/Spending/Income tabs with Sankey (web), trend bars, treemap; every chart element drills through to its transactions; a saving-rate summary works without any budget.
+- Data portability is unconditional: full CSV export remains available even after subscription ends.
+- Paywall is hard: 7-day trial gates all product access (third-party recordings; generates user complaints).
+
 #### Learn
 
 - Budgeting should be adaptable rather than forcing one level of detail.
-- Review status and rules can reduce correction friction.
+- Review status and rules can reduce correction friction — and Monarch shows review state works best as a durable row attribute, not a transient queue.
+- Automation trust comes from visible mechanics: preview before save, opt-in retroactive apply, detected-not-confirmed recurring.
 - Goals should connect to observable contributions rather than motivational copy alone.
-- Information hierarchy can separate tracking, planning and long-term views.
+- Information hierarchy can separate tracking, planning and long-term views; chart→transaction drill-through is the credibility pattern.
+- Account lifecycle vocabulary (active → hidden → closed-with-history → deleted, plus undelete caveat) is richer than binary delete and matches our soft-delete philosophy.
 
 #### Do not copy
 
-- Aggregator-first onboarding.
-- Household/collaborator scope.
+- Aggregator-first onboarding and hard paywall-before-value.
+- Household/collaborator scope (Shared Views recorded as non-goal reference).
 - Net-worth and investment density in the core daily dashboard.
 - Machine-learning categorization claims without explainable review and correction.
+- Sankey/net-worth visualizations that presuppose an aggregated account graph.
+- Hidden transactions that vanish from reports while balances stay — it breaks row↔balance reconciliation (our trap if "hide" is ever added).
 
 #### MoneyFlow decision
 
-Keep category budgets simple. Study review status and flexible information hierarchy, but do not pivot to household aggregation or net-worth management.
+Keep category budgets simple. Study review status, rules-with-preview and flexible information hierarchy, but do not pivot to household aggregation or net-worth management. Route-level adoption proposals are scored in `MONARCH_DEEP_DIVE.md` §16.
 
 ### 7.5 Copilot Money
 
