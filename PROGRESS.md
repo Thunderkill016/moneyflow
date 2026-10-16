@@ -394,13 +394,21 @@ DONE THIS ROUND:
 | Neon-green migrated + screenshotted | PASS | `mf_theme_test` pins tokens; 12 PNGs in docs/design/neon-green-migration/ incl. fresh-HEAD dashboard |
 
 Known gaps (recorded, out of mobile scope — not DoD blockers):
-web EditTransactionDialog rule-offer; web reports ignore
-`excluded_from_reports`; web filters lack `#` note-scoping (D24 is
-mobile-first); Monarch P2/P3 items unscoped; PR merge + CI state is
-owner/repo-side evidence.
+web EditTransactionDialog rule-offer; web filters lack `#` note-scoping
+(D24 is mobile-first); Monarch P2/P3 items unscoped; PR merge + CI state
+is owner/repo-side evidence.
+
+CLOSED 2026-10-18 (feat/mobile-theme):
+- Web reports now honor `excluded_from_reports` end-to-end (feed selects,
+  buildFinancialReport single filter, capability bases, edit-dialog
+  "Loại khỏi báo cáo" checkbox, row label) — commit b5d77e16, verified
+  2184/2184.
+- Web honors `is_refund` end-to-end (report netting on the expense side,
+  "Hoàn tiền" toggle + expense-category pool flip on capture and edit,
+  row label "· Hoàn tiền") — commit 72cd66da, verified 2185/2185.
 
 AUDIT OPEN: P0=0 P1=0 P2=0 (all findings shipped + re-audit clean — see FIXLOG.md / AUDIT.md)
-GAPS OPEN: none inside mobile scope. Cross-surface: web EditTransactionDialog lacks "save as rule" offer (mobile has it); web reports do not honor excluded_from_reports; web filters lack the D24 `#` note-scope; Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
+GAPS OPEN: none inside mobile scope. Cross-surface: web EditTransactionDialog lacks "save as rule" offer (mobile has it); web filters lack the D24 `#` note-scope; Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
 NEXT STEP: none — mega-task closed 2026-10-17; prod migrations applied 2026-10-16T14:48Z (see PROD DEPLOYMENT entry). Owner-side items: provision the upload keystore for Play, merge on green CI.
 RESUME: re-read this file; the backlog is empty — new work needs a fresh issue/packet.
 STATUS: DONE — 2026-10-17 — all DoD items evidenced.

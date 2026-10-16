@@ -1702,7 +1702,7 @@ export function TransactionsWorkspace({
                   data-app-search="true"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Tìm theo ghi chú, danh mục..."
+                  placeholder="Tìm theo ghi chú, danh mục, #tag..."
                   aria-label={
                     isTimeline
                       ? "Tìm trong dòng thời gian"
