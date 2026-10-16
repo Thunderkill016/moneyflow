@@ -886,3 +886,18 @@ Format: `ID | files changed | why | proof (test names)`.
   live targets + disabled-until-picked + cancel writes nothing +
   confirm merges and refreshes, error maps to Vietnamese and keeps
   the dialog open).
+- **D17 saving-rate line — ALREADY PRESENT, no code change** |
+  (verification only — no files touched) |
+  Loop B gap D17 (§10 — Monarch 1.10 saving rate): "one summary line
+  on reports/dashboard using existing aggregates". The contract is
+  fully shipped: `mobile/lib/domain/report.dart:238` declares
+  `PeriodReport.savingsRatePercent`, computed at `report.dart:394` as
+  `net / income` rounded percent from the period's existing aggregates
+  (null when income is zero — no invented 0%); the Báo cáo totals grid
+  renders it as the "Tiết kiệm" tile at
+  `mobile/lib/features/reports/reports_page.dart:572-584` with the
+  "của thu trong kỳ" basis subtitle, an honest "—" for the zero-income
+  case, and the same period drill-in tap as the Thu/Chi/Còn lại
+  cards. Nothing left to build: a second line would duplicate the
+  tile. | `report_test.dart: savingsRatePercent mirrors web rounding;
+  null when income is zero` (30% exact, null-guard, 1/3 → 33% round).

@@ -230,7 +230,15 @@ DONE THIS ROUND:
   all main screens walked — screenshots in
   docs/design/neon-green-migration/ (10 PNGs, zero purple-suspect
   pixels).
+- **D17 saving-rate line verified ALREADY-PRESENT on feat/mobile-theme**
+  (verification only — no code change): `PeriodReport.savingsRatePercent`
+  computes net/income rounded percent at `mobile/lib/domain/report.dart:394`
+  (null when income is zero) and the Báo cáo totals grid renders it as the
+  "Tiết kiệm" tile (`reports_page.dart:572-584`, "của thu trong kỳ" basis,
+  "—" for zero-income, same period drill-in as Thu/Chi/Còn lại). Covered
+  by `report_test.dart` ("savingsRatePercent mirrors web rounding").
+  See FIXLOG.md "D17 saving-rate line".
 AUDIT OPEN: P0=0 P1=0 P2=0 (all findings shipped — see FIXLOG.md)
 GAPS OPEN: web EditTransactionDialog lacks "save as rule" offer (mobile has it); web reports do not honor excluded_from_reports yet; Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
-NEXT STEP: Loop B gap list — D15+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D14 done.
+NEXT STEP: Loop B gap list — D15, D16, D18+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D14 + D17 done.
 RESUME: re-read this file, then continue at NEXT STEP.
