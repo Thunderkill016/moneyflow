@@ -6,6 +6,7 @@ import '../../data/capture_prefs.dart';
 import '../../data/neon/real_store.dart' show newIdempotencyKey;
 import '../../data/share/share_text_parser.dart';
 import '../../domain/frequency.dart';
+import '../../domain/inbox.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/quick_parse.dart';
@@ -68,9 +69,11 @@ class CaptureIntent {
 
 /// What the capture route returns — `saved` is a clean save;
 /// `savedPartial` means the transaction landed but its recurring
-/// commitment did not (the shell shows an honest snackbar); `queued`
-/// means the submit failed offline and the intent is held for replay.
-enum CaptureResult { saved, savedPartial, queued }
+/// commitment did not (the shell shows an honest snackbar);
+/// `savedRuleFailed` means the transaction landed but the opt-in
+/// "lưu thành quy tắc" write did not; `queued` means the submit failed
+/// offline and the intent is held for replay.
+enum CaptureResult { saved, savedPartial, savedRuleFailed, queued }
 
 class _SplitRow {
   _SplitRow({this.categoryId});
@@ -91,6 +94,7 @@ class CapturePage extends StatefulWidget {
     this.transactions = const [],
     this.editing,
     this.onCreateAccount,
+    this.onSaveRule,
   });
 
   final List<AccountSummary> accounts;
@@ -118,6 +122,16 @@ class CapturePage extends StatefulWidget {
   /// id + updated_at instead of a new idempotency write. Kind stays
   /// locked to what the update RPC allows (transfers stay transfers).
   final Transaction? editing;
+
+  /// Monarch's "save edit as rule" offer — shown only in edit mode for
+  /// income/expense rows. When ticked, after the transaction lands the
+  /// page creates one inbox rule (merchant ~ payee → this category) so
+  /// future pending candidates pre-fill the same way. The rule write is
+  /// separate from the transaction write: a failed rule pops
+  /// [CaptureResult.savedRuleFailed] so the shell can say "saved the
+  /// money, not the rule" honestly. Null seam (demo/queue) hides the
+  /// checkbox.
+  final Future<void> Function(InboxRuleDraft draft)? onSaveRule;
 
   @override
   State<CapturePage> createState() => _CapturePageState();
@@ -154,6 +168,7 @@ class _CapturePageState extends State<CapturePage> {
   DateTime _date = DateTime.now();
   bool _busy = false;
   bool _repeatMonthly = false;
+  bool _saveAsRule = false;
   String? _error;
 
   // "Chia danh mục" — one expense over several categories.
@@ -448,6 +463,16 @@ class _CapturePageState extends State<CapturePage> {
       setState(() => _error = 'Tài khoản đến phải khác tài khoản nguồn');
       return;
     }
+    // The rule derives from the form's own payee + category — validate
+    // them before the transaction write so the user can fix or untick
+    // instead of saving the money and then discovering no rule.
+    if (_saveAsRule && (_payee.text.trim().isEmpty || _categoryId == null)) {
+      setState(
+        () => _error =
+            'Quy tắc cần nơi giao dịch và danh mục — điền hoặc bỏ chọn',
+      );
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -493,6 +518,29 @@ class _CapturePageState extends State<CapturePage> {
           categoryId: _categoryId,
         ),
       );
+      final saveRule = widget.onSaveRule;
+      if (_saveAsRule && saveRule != null) {
+        try {
+          // One rule per save: merchant ~ the payee just written → the
+          // category just chosen. The server still validates the draft
+          // (length bounds, category usable) — a refusal here must not
+          // take the transaction's success down with it.
+          await saveRule((
+            id: null,
+            expectedVersion: null,
+            matchField: RuleMatchField.merchant,
+            containsText: _payee.text.trim(),
+            categoryId: _categoryId!,
+            merchantName: null,
+            enabled: true,
+          ));
+        } catch (_) {
+          if (mounted) {
+            Navigator.of(context).pop(CaptureResult.savedRuleFailed);
+          }
+          return;
+        }
+      }
       if (mounted) Navigator.of(context).pop(CaptureResult.saved);
     } on CommitmentFailed {
       // The transaction saved; only the recurring commitment failed. The
@@ -974,6 +1022,26 @@ class _CapturePageState extends State<CapturePage> {
               title: const Text('Lặp lại hàng tháng'),
               subtitle: Text('Tạo cam kết vào ngày ${_date.day} hằng tháng'),
               onChanged: (v) => setState(() => _repeatMonthly = v ?? false),
+            ),
+          // Monarch's edit→rule offer: one explicit tick turns this
+          // correction into an inbox rule for future pending candidates.
+          // Edit mode only — a fresh capture hasn't proven a pattern yet.
+          if (!isTransfer &&
+              !_split &&
+              widget.editing != null &&
+              widget.onSaveRule != null)
+            CheckboxListTile(
+              value: _saveAsRule,
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              title: const Text('Lưu thành quy tắc tự điền'),
+              subtitle: const Text(
+                'Các mục chờ có nơi giao dịch chứa tên này sẽ tự điền '
+                'danh mục đã chọn — vẫn cần duyệt, không tự ghi sổ.',
+              ),
+              onChanged: _busy
+                  ? null
+                  : (v) => setState(() => _saveAsRule = v ?? false),
             ),
           const SizedBox(height: 8),
           if (_error != null) ...[

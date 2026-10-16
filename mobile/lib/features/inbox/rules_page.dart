@@ -14,7 +14,11 @@ import '../../domain/models.dart';
 import '../capture/category_picker.dart';
 import '../shared/timed_snack_bar.dart';
 
-typedef _RulesData = ({List<InboxRule> rules, List<Category> categories});
+typedef _RulesData = ({
+  List<InboxRule> rules,
+  List<Category> categories,
+  List<InboxCandidate> pending,
+});
 
 /// The rule manager: priority-ordered list, drag-to-reorder, per-row
 /// enable switch, create/edit sheet and a guarded delete — the same levers
@@ -27,6 +31,8 @@ class InboxRulesPage extends StatefulWidget {
     required this.onSave,
     required this.onDelete,
     required this.onReorder,
+    this.loadPending,
+    this.applyRule,
   });
 
   /// Priority-ordered rules — RealStore.loadInboxRules /
@@ -37,6 +43,20 @@ class InboxRulesPage extends StatefulWidget {
   /// a hidden category and the row must keep rendering its name honestly;
   /// the create/edit picker filters to active ones itself.
   final Future<List<Category>> Function() loadCategories;
+
+  /// Pending inbox candidates — powers the sheet's live "khớp N mục đang
+  /// chờ" preview and the post-save apply-to-existing sweep. Null (demo)
+  /// hides both affordances rather than faking them.
+  final Future<List<InboxCandidate>> Function()? loadPending;
+
+  /// apply_inbox_rule_to_candidate for one pending row — the server
+  /// re-checks version, match and pending status on every call.
+  final Future<void> Function({
+    required String candidateId,
+    required String ruleId,
+    required int ruleVersion,
+  })?
+  applyRule;
 
   /// Create (draft.id == null) or update with draft.expectedVersion as the
   /// stale-write guard. Throws the RPC error token — the page maps it with
@@ -63,16 +83,17 @@ class _InboxRulesPageState extends State<InboxRulesPage> {
   }
 
   /// Rules plus the categories the rows and the picker resolve against —
-  /// one load pass so a network failure shows one honest error.
+  /// one load pass so a network failure shows one honest error. Pending
+  /// candidates ride along when the seam exists (real store); demo passes
+  /// none and the sheet simply hides its match preview.
   Future<_RulesData> _load() async {
-    final rows = await Future.wait([
-      widget.loadRules(),
-      widget.loadCategories(),
-    ]);
-    return (
-      rules: rows[0] as List<InboxRule>,
-      categories: rows[1] as List<Category>,
-    );
+    final pendingLoader = widget.loadPending;
+    final rules = await widget.loadRules();
+    final categories = await widget.loadCategories();
+    final pending = pendingLoader == null
+        ? const <InboxCandidate>[]
+        : await pendingLoader();
+    return (rules: rules, categories: categories, pending: pending);
   }
 
   /// Every mutation refetches — the server is the source of truth for
@@ -201,10 +222,11 @@ class _InboxRulesPageState extends State<InboxRulesPage> {
   }
 
   /// Create (editing == null) or edit — the sheet returns 'saved' on a
-  /// landed write and 'stale' when the server rejected a stale version, so
-  /// the page can refresh and say why honestly.
+  /// landed write (plus the saved rule and the apply-to-existing choice)
+  /// and 'stale' when the server rejected a stale version, so the page
+  /// can refresh and say why honestly.
   Future<void> _openForm(_RulesData data, {InboxRule? editing}) async {
-    final result = await showModalBottomSheet<String>(
+    final result = await showModalBottomSheet<_SheetResult>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
@@ -214,16 +236,64 @@ class _InboxRulesPageState extends State<InboxRulesPage> {
           for (final c in data.categories)
             if (!c.isArchived) c,
         ],
+        pending: widget.loadPending != null ? data.pending : null,
         onSave: widget.onSave,
       ),
     );
     if (!mounted || result == null) return;
-    if (result == 'stale') {
+    if (result.status == 'stale' || result.rule == null) {
       _snack('Quy tắc đã được thay đổi ở nơi khác. Hãy tải lại rồi thử lại.');
-    } else {
-      _snack(editing == null ? 'Đã thêm quy tắc.' : 'Đã cập nhật quy tắc.');
+      await _refresh();
+      return;
     }
+    final rule = result.rule!;
+    var message = editing == null ? 'Đã thêm quy tắc.' : 'Đã cập nhật quy tắc.';
+    if (result.applyToExisting &&
+        widget.applyRule != null &&
+        widget.loadPending != null) {
+      message += ' ${await _applyToExisting(rule, data)}';
+    }
+    _snack(message);
     await _refresh();
+  }
+
+  /// Monarch's apply-to-existing checkbox: after a landed save, sweep the
+  /// pending candidates the rule still matches (re-checked against the
+  /// SAME fields the sheet preview counted, so the number promised is the
+  /// number attempted) and let the server re-validate every row. Partial
+  /// failures are surfaced honestly — a raced pending list is normal.
+  Future<String> _applyToExisting(InboxRule rule, _RulesData data) async {
+    final apply = widget.applyRule!;
+    final matches = [
+      for (final c in data.pending)
+        if (ruleAppliesToCandidate(
+          matchField: rule.matchField,
+          containsText: rule.containsText,
+          categoryId: rule.categoryId,
+          candidate: c,
+          categories: data.categories,
+        ))
+          c,
+    ];
+    if (matches.isEmpty) return 'Không còn mục nào đang chờ khớp.';
+    var done = 0;
+    for (final c in matches) {
+      try {
+        await apply(
+          candidateId: c.id,
+          ruleId: rule.id,
+          ruleVersion: rule.version,
+        );
+        done++;
+      } catch (_) {
+        // Row raced away (approved/rejected/deleted) between load and
+        // apply — the count below reports it honestly.
+      }
+    }
+    return done == matches.length
+        ? 'Áp dụng cho $done mục đang chờ.'
+        : 'Áp dụng được $done/${matches.length} mục đang chờ '
+              '(phần còn lại đã bị thay đổi).';
   }
 
   @override
@@ -397,14 +467,22 @@ class _InboxRulesPageState extends State<InboxRulesPage> {
   }
 }
 
+/// What the sheet hands back to the page: 'stale' on a rejected version,
+/// otherwise 'saved' with the landed rule and whether the user asked to
+/// apply it to existing pending candidates.
+typedef _SheetResult = ({String status, InboxRule? rule, bool applyToExisting});
+
 /// Create/edit sheet — the same levers the web dialog exposes (contains
 /// string, match field, target category, optional merchant rename, enabled
-/// flag). A stale-write rejection pops 'stale' so the host refreshes before
-/// the user retries against the new version.
+/// flag) plus a live "khớp N mục đang chờ" preview and Monarch's
+/// apply-to-existing checkbox when pending data is available. A stale-write
+/// rejection pops 'stale' so the host refreshes before the user retries
+/// against the new version.
 class _RuleSheet extends StatefulWidget {
   const _RuleSheet({
     required this.editing,
     required this.categories,
+    required this.pending,
     required this.onSave,
   });
 
@@ -414,6 +492,11 @@ class _RuleSheet extends StatefulWidget {
   /// hidden category, matching the server trigger's rule_category_not_
   /// available guard for writes that need one.
   final List<Category> categories;
+
+  /// Pending candidates for the live match count and the apply checkbox —
+  /// null means the store has no candidate seam (demo), so the sheet hides
+  /// both rather than showing a meaningless "0 mục".
+  final List<InboxCandidate>? pending;
   final Future<InboxRule> Function(InboxRuleDraft draft) onSave;
 
   @override
@@ -430,8 +513,28 @@ class _RuleSheetState extends State<_RuleSheet> {
   late RuleMatchField _field = widget.editing?.matchField ?? RuleMatchField.any;
   late String? _categoryId = widget.editing?.categoryId;
   late bool _enabled = widget.editing?.enabled ?? true;
+  bool _applyToExisting = false;
   bool _busy = false;
   String? _error;
+
+  /// How many pending candidates this draft would touch — recomputed on
+  /// every keystroke/choice so the preview is always the draft on screen,
+  /// not a stale count. Mirrors the server guards via ruleAppliesToCandidate.
+  int get _matchCount {
+    final pending = widget.pending;
+    if (pending == null || _categoryId == null) return 0;
+    return pending
+        .where(
+          (c) => ruleAppliesToCandidate(
+            matchField: _field,
+            containsText: _contains.text,
+            categoryId: _categoryId!,
+            candidate: c,
+            categories: widget.categories,
+          ),
+        )
+        .length;
+  }
 
   @override
   void dispose() {
@@ -476,14 +579,22 @@ class _RuleSheetState extends State<_RuleSheet> {
       _error = null;
     });
     try {
-      await widget.onSave(draft);
-      if (mounted) Navigator.of(context).pop('saved');
+      final rule = await widget.onSave(draft);
+      if (mounted) {
+        Navigator.of(
+          context,
+        ).pop((status: 'saved', rule: rule, applyToExisting: _applyToExisting));
+      }
     } catch (e) {
       // A stale version means the local form is obsolete — close so the
       // refreshed list (and its fresh versions) is what the user retries
       // from, instead of re-failing against the same old version.
       if (e.toString().contains('stale_write')) {
-        if (mounted) Navigator.of(context).pop('stale');
+        if (mounted) {
+          Navigator.of(
+            context,
+          ).pop((status: 'stale', rule: null, applyToExisting: false));
+        }
         return;
       }
       if (mounted) {
@@ -522,6 +633,8 @@ class _RuleSheetState extends State<_RuleSheet> {
               controller: _contains,
               maxLength: ruleContainsMax,
               enabled: !_busy,
+              // Refresh the pending-match count as the user types.
+              onChanged: (_) => setState(() {}),
               decoration: const InputDecoration(
                 labelText: 'Nếu chứa',
                 hintText: 'HIGHLANDS, LUONG, GRAB…',
@@ -584,6 +697,30 @@ class _RuleSheetState extends State<_RuleSheet> {
               value: _enabled,
               onChanged: _busy ? null : (v) => setState(() => _enabled = v),
             ),
+            if (widget.pending != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                _matchCount == 0
+                    ? 'Chưa khớp mục nào đang chờ.'
+                    : 'Khớp $_matchCount mục đang chờ trong Hộp thư.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              // Only offer the sweep when the rule is enabled — a disabled
+              // rule by definition must not match anything retroactively.
+              if (_enabled && _matchCount > 0)
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('Áp dụng cho $_matchCount mục đang chờ'),
+                  subtitle: const Text(
+                    'Mỗi mục vẫn được server kiểm tra lại trước khi điền '
+                    'danh mục — không giao dịch nào bị tạo tự động.',
+                  ),
+                  value: _applyToExisting,
+                  onChanged: _busy
+                      ? null
+                      : (v) => setState(() => _applyToExisting = v ?? false),
+                ),
+            ],
             if (_error != null) ...[
               const SizedBox(height: 8),
               Text(

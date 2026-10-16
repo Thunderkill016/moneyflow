@@ -179,9 +179,7 @@ void main() {
       expect(find.byType(SnackBar), findsOneWidget);
     });
 
-    testWidgets('empty-trash button confirms then purges every row', (
-      t,
-    ) async {
+    testWidgets('empty-trash button confirms then purges every row', (t) async {
       var items = [_item(id: 'a'), _item(id: 'b', note: 'Tạp hóa')];
       final purged = <String>[];
       await t.pumpWidget(

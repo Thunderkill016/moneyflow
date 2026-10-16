@@ -24,6 +24,7 @@ import '../data/share/share_intent.dart';
 import '../data/share/share_text_parser.dart';
 import '../domain/budget.dart';
 import '../domain/report.dart' show ymd;
+import '../domain/inbox.dart';
 import '../domain/models.dart';
 import '../domain/recurring_detection.dart';
 import '../domain/transaction_query.dart';
@@ -652,8 +653,20 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   Future<void> _openEdit(BuildContext context, Transaction tx) async {
     final result = await Navigator.of(context).push<CaptureResult>(
       MaterialPageRoute(
-        builder: (_) =>
-            _EditLoader(store: _store, transaction: tx, submit: _captureSubmit),
+        builder: (_) => _EditLoader(
+          store: _store,
+          transaction: tx,
+          submit: _captureSubmit,
+          saveRule: (draft) => _store
+              .saveInboxRule(
+                matchField: draft.matchField,
+                containsText: draft.containsText,
+                categoryId: draft.categoryId,
+                merchantName: draft.merchantName,
+                enabled: draft.enabled,
+              )
+              .then((_) {}),
+        ),
       ),
     );
     if (result == CaptureResult.queued) {
@@ -661,6 +674,16 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       return;
     }
     if (result != null) _reloadTabs();
+    // The edit landed; only the opt-in rule write refused — say so
+    // instead of letting the silent catch read as full success.
+    if (result == CaptureResult.savedRuleFailed && context.mounted) {
+      showTimedSnackBar(
+        ScaffoldMessenger.of(context),
+        const SnackBar(
+          content: Text('Đã lưu khoản — chưa tạo được quy tắc tự điền'),
+        ),
+      );
+    }
   }
 
   /// The submit failed offline; the intent is held in the queue and the
@@ -1597,6 +1620,10 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           ),
           onDelete: _store.deleteInboxRule,
           onReorder: _store.reorderInboxRules,
+          // Pending candidates power the sheet's live match count and the
+          // apply-to-existing sweep (apply_inbox_rule_to_candidate RPC).
+          loadPending: _store.loadPendingInboxCandidates,
+          applyRule: _store.applyInboxRuleToCandidate,
         ),
       ),
     );
@@ -2285,11 +2312,15 @@ class _EditLoader extends StatelessWidget {
     required this.store,
     required this.transaction,
     required this.submit,
+    this.saveRule,
   });
 
   final RealStore store;
   final Transaction transaction;
   final Future<void> Function(CaptureIntent intent) submit;
+
+  /// Edit→rule seam (Monarch's "save as rule"); null hides the checkbox.
+  final Future<void> Function(InboxRuleDraft draft)? saveRule;
 
   @override
   Widget build(BuildContext context) {
@@ -2314,6 +2345,7 @@ class _EditLoader extends StatelessWidget {
           categories: snap.data![1].cast(),
           editing: transaction,
           onSubmit: submit,
+          onSaveRule: saveRule,
         );
       },
     );

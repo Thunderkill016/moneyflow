@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/data/demo_store.dart';
 import 'package:moneyflow/data/voice/voice_engine.dart';
+import 'package:moneyflow/domain/inbox.dart';
 import 'package:moneyflow/domain/models.dart';
 import 'package:moneyflow/features/capture/capture_page.dart';
 import 'package:moneyflow/features/capture/category_picker.dart';
@@ -52,6 +55,7 @@ Future<void> _pickTransfer(WidgetTester t) async {
 }
 
 void main() {
+  _captureEditRuleTests();
   testWidgets('CAP-01 transfer shows the internal-movement explainer only', (
     t,
   ) async {
@@ -174,5 +178,97 @@ void main() {
     await t.pumpAndSettle();
     expect(find.bySemanticsLabel('Bắt đầu ghi âm'), findsOneWidget);
     h.dispose();
+  });
+}
+
+// Edit → "save as rule" (Monarch pattern): the offer lives inside the
+// edit form and routes through the injected seam, so a failed rule write
+// can never take the already-saved transaction down with it.
+Transaction _editTx() => Transaction(
+  id: 'tx1',
+  kind: TransactionKind.expense,
+  categoryId: 'cat-food',
+  category: 'Ăn uống',
+  note: '',
+  accountId: 'acc-cash',
+  account: 'Tiền mặt',
+  amount: 65000,
+  occurredOn: '2026-10-10',
+  payee: 'HIGHLANDS COFFEE',
+  reviewStatus: TransactionReviewStatus.reviewed,
+  updatedAt: '2026-10-10T01:00:00Z',
+);
+
+Future<CaptureResult?> _pushEdit(
+  WidgetTester t, {
+  Future<void> Function(CaptureIntent)? onSubmit,
+  Future<void> Function(InboxRuleDraft)? onSaveRule,
+  Transaction? editing,
+}) async {
+  t.view.physicalSize = const Size(800, 2400);
+  t.view.devicePixelRatio = 1;
+  addTearDown(t.view.reset);
+  CaptureResult? result;
+  final key = GlobalKey<NavigatorState>();
+  await t.pumpWidget(
+    MaterialApp(
+      navigatorKey: key,
+      home: const Scaffold(body: SizedBox.shrink()),
+    ),
+  );
+  unawaited(
+    key.currentState!
+        .push<CaptureResult>(
+          MaterialPageRoute(
+            builder: (_) => CapturePage(
+              accounts: DemoStore.seedAccounts(),
+              categories: DemoStore.seedCategories(),
+              editing: editing ?? _editTx(),
+              onSubmit: onSubmit ?? (_) async {},
+              onSaveRule: onSaveRule,
+            ),
+          ),
+        )
+        .then((r) => result = r),
+  );
+  await t.pumpAndSettle();
+  // The checkbox sits near the bottom of the edit form.
+  await t.scrollUntilVisible(
+    find.text('Lưu thành quy tắc tự điền'),
+    80,
+    scrollable: find.byType(Scrollable).last,
+  );
+  await t.tap(find.text('Lưu thành quy tắc tự điền'));
+  await t.pumpAndSettle();
+  await t.tap(find.widgetWithText(FilledButton, 'Lưu'));
+  await t.pumpAndSettle();
+  return result;
+}
+
+void _captureEditRuleTests() {
+  testWidgets('edit form offers save-as-rule and sends the draft', (t) async {
+    final rules = <InboxRuleDraft>[];
+    final result = await _pushEdit(t, onSaveRule: (d) async => rules.add(d));
+    expect(result, CaptureResult.saved);
+    final draft = rules.single;
+    expect(draft.matchField, RuleMatchField.merchant);
+    expect(draft.containsText, 'HIGHLANDS COFFEE');
+    expect(draft.categoryId, 'cat-food');
+    expect(draft.enabled, isTrue);
+  });
+
+  testWidgets('a failed rule write reports savedRuleFailed honestly', (
+    t,
+  ) async {
+    final result = await _pushEdit(
+      t,
+      onSaveRule: (_) async => throw StateError('rule_category_not_available'),
+    );
+    expect(result, CaptureResult.savedRuleFailed);
+  });
+
+  testWidgets('create mode never shows the save-as-rule offer', (t) async {
+    await _open(t, onSubmit: (_) async {});
+    expect(find.text('Lưu thành quy tắc tự điền'), findsNothing);
   });
 }

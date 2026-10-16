@@ -1266,6 +1266,21 @@ class RealStore implements PatternDismissalSync {
   Future<void> reorderInboxRules(List<String> orderedIds) =>
       _api.rpc('replace_inbox_rule_priorities', {'p_rule_ids': orderedIds});
 
+  /// POST /rpc/apply_inbox_rule_to_candidate — apply one rule to one pending
+  /// candidate. The server re-validates the version, the match and the
+  /// pending status itself, so a stale sweep refuses honestly instead of
+  /// writing a wrong category. Used by the rules sheet's "apply to existing
+  /// pending" option (Monarch's apply-to-existing checkbox).
+  Future<void> applyInboxRuleToCandidate({
+    required String candidateId,
+    required String ruleId,
+    required int ruleVersion,
+  }) => _api.rpc('apply_inbox_rule_to_candidate', {
+    'p_candidate_id': candidateId,
+    'p_rule_id': ruleId,
+    'p_expected_version': ruleVersion,
+  });
+
   /// POST /rpc/prepare_direct_csv_candidates_with_rules — the SECURITY
   /// DEFINER ingestion the web's commitDirectCsvImportAction calls. Same
   /// params, same all-or-nothing transaction: one bad row fails the whole
