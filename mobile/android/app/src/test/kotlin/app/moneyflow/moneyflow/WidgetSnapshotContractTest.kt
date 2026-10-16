@@ -37,6 +37,36 @@ class WidgetSnapshotContractTest {
     }
 
     @Test
+    fun `the pending-review count decodes when present`() {
+        val snap = WidgetSnapshotContract.parse(
+            """{"total":5,"safeSpend":null,"savedAtMs":1,"pendingReview":3}""",
+        )
+        assertEquals(3L, snap?.pendingReview)
+    }
+
+    @Test
+    fun `absent or null pending-review decodes as unknown`() {
+        assertNull(
+            WidgetSnapshotContract.parse(
+                """{"total":5,"safeSpend":null,"savedAtMs":1}""",
+            )?.pendingReview,
+        )
+        assertNull(
+            WidgetSnapshotContract.parse(
+                """{"total":5,"safeSpend":null,"savedAtMs":1,"pendingReview":null}""",
+            )?.pendingReview,
+        )
+    }
+
+    @Test
+    fun `a negative pending count reads as zero — never a minus queue`() {
+        val snap = WidgetSnapshotContract.parse(
+            """{"total":5,"safeSpend":null,"savedAtMs":1,"pendingReview":-4}""",
+        )
+        assertEquals(0L, snap?.pendingReview)
+    }
+
+    @Test
     fun `a null safeSpend decodes as absent`() {
         val snap = WidgetSnapshotContract.parse(
             """{"total":5,"safeSpend":null,"savedAtMs":1}""",
@@ -69,6 +99,38 @@ class WidgetSnapshotContractTest {
     }
 
     @Test
+    fun `a fresh snapshot with a review count renders the row`() {
+        val r = render(
+            WidgetSnapshotContract.Snapshot(
+                500L,
+                null,
+                now,
+                pendingReview = 4,
+            ),
+        )
+        assertEquals("4 mục", r.review)
+    }
+
+    @Test
+    fun `a verified zero review count still renders — it is the all-clear`() {
+        val r = render(
+            WidgetSnapshotContract.Snapshot(
+                500L,
+                null,
+                now,
+                pendingReview = 0,
+            ),
+        )
+        assertEquals("0 mục", r.review)
+    }
+
+    @Test
+    fun `an unknown review count hides the row`() {
+        val r = render(WidgetSnapshotContract.Snapshot(500L, null, now))
+        assertNull(r.review)
+    }
+
+    @Test
     fun `no budget headroom keeps the honest dash`() {
         val r = render(WidgetSnapshotContract.Snapshot(500L, null, now))
         assertEquals("500 ₫", r.total)
@@ -87,6 +149,8 @@ class WidgetSnapshotContractTest {
         assertEquals(WidgetSnapshotContract.NO_VALUE, r.total)
         assertEquals(WidgetSnapshotContract.NO_VALUE, r.safeSpend)
         assertEquals("Dữ liệu cũ từ DD/MM — chạm để mở", r.caption)
+        // A stale snapshot can't vouch for the queue either — row hides.
+        assertNull(r.review)
     }
 
     @Test
@@ -111,6 +175,7 @@ class WidgetSnapshotContractTest {
         assertEquals(WidgetSnapshotContract.NO_VALUE, r.total)
         assertEquals(WidgetSnapshotContract.NO_VALUE, r.safeSpend)
         assertEquals("Chạm để mở MoneyFlow", r.caption)
+        assertNull(r.review)
     }
 
     @Test

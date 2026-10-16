@@ -276,10 +276,10 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   StreamSubscription<String>? _shareSub;
   StreamSubscription<String>? _quickSub;
 
-  /// A "Ghi nhanh" action held until a surface can host it — the app is
-  /// still booting, the user is on the login screen, or the biometric
-  /// gate is locked. Drained from [_drainQuickAction].
-  bool _quickCapturePending = false;
+  /// A quick action (capture / open-inbox) held until a surface can host
+  /// it — the app is still booting, the user is on the login screen, or
+  /// the biometric gate is locked. Drained from [_drainQuickAction].
+  String? _pendingQuickAction;
 
   /// Tab keys — a saved capture reloads the surfaces that show its effect
   /// (dashboard balances, activity list, planning budgets, month report).
@@ -547,34 +547,63 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     _quickSub = _quickActions.stream().listen(_onQuickAction);
   }
 
-  /// Routes a quick action. Anything that is not a capture request is
-  /// ignored — the extra is open-ended so Kotlin can grow actions later.
+  /// Routes a quick action. Anything outside the known set is ignored —
+  /// the extra is open-ended so Kotlin can grow actions later.
   void _onQuickAction(String action) {
-    if (action != kQuickActionCapture || !mounted) return;
+    if (!mounted) return;
+    if (action != kQuickActionCapture && action != kQuickActionReview) {
+      return;
+    }
     if (_gate == _Gate.signedIn && _unlocked) {
-      _openQuickCapture();
+      _runQuickAction(action);
     } else if (_gate == _Gate.demo) {
-      _openDemoCapture();
+      _runDemoQuickAction(action);
     } else {
       // booting / login / still locked — hold for [_drainQuickAction].
-      _quickCapturePending = true;
+      _pendingQuickAction = action;
     }
   }
 
-  /// Opens a held "Ghi nhanh" request as soon as a usable surface
-  /// exists: the unlocked signed-in shell, or the read-only demo.
-  /// Called from [_onGateUnlocked] and the demo transition — safe to
-  /// call extra times because the flag is consumed inside the frame.
+  /// The action behind a held-or-live quick intent: 'capture' opens the
+  /// capture form, 'review' (D18 — the widget's "Chờ duyệt" row) opens
+  /// the inbox it tallies.
+  void _runQuickAction(String action) {
+    if (action == kQuickActionReview) {
+      unawaited(_openInbox(context));
+    } else {
+      unawaited(_openQuickCapture());
+    }
+  }
+
+  /// Demo keeps the same entry points on seed data: capture opens the
+  /// read-only form, review opens the seeded demo inbox — writes inside
+  /// still answer with the honest "Demo chỉ xem" notice.
+  void _runDemoQuickAction(String action) {
+    if (action == kQuickActionReview) {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => _demoInboxPage()));
+    } else {
+      unawaited(_openDemoCapture());
+    }
+  }
+
+  /// Opens a held quick action as soon as a usable surface exists: the
+  /// unlocked signed-in shell, or the read-only demo. Called from
+  /// [_onGateUnlocked] and the demo transition — safe to call extra
+  /// times because the held action is consumed inside the frame.
   void _drainQuickAction() {
-    if (!_quickCapturePending) return;
+    if (_pendingQuickAction == null) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_quickCapturePending) return;
+      if (!mounted) return;
+      final action = _pendingQuickAction;
+      if (action == null) return;
       if (_gate == _Gate.signedIn && _unlocked) {
-        _quickCapturePending = false;
-        _openQuickCapture();
+        _pendingQuickAction = null;
+        _runQuickAction(action);
       } else if (_gate == _Gate.demo) {
-        _quickCapturePending = false;
-        _openDemoCapture();
+        _pendingQuickAction = null;
+        _runDemoQuickAction(action);
       }
     });
   }
@@ -965,7 +994,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     setState(() => _gate = _Gate.signedIn);
     _drainPendingShare();
     if (quickExpense) {
-      _quickCapturePending = true;
+      _pendingQuickAction = kQuickActionCapture;
       _drainQuickAction();
     }
   }

@@ -15,18 +15,23 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// The figures the home-screen widget mirrors — integer đồng like the
 /// ledger. [safeSpendVnd] is null when the month has no budget or the
 /// planning read failed (the widget shows "—", matching the dashboard's
-/// hidden-tile honesty). [savedAtMs] is the load's wall-clock time, the
-/// same moment the offline snapshot carries.
+/// hidden-tile honesty). [pendingReview] is the inbox draft count the
+/// widget's "Chờ duyệt" row shows — null when the count seam is absent
+/// or its read failed (the row hides rather than quoting a fabricated
+/// zero). [savedAtMs] is the load's wall-clock time, the same moment the
+/// offline snapshot carries.
 class WidgetSnapshot {
   const WidgetSnapshot({
     required this.totalVnd,
     required this.savedAtMs,
     this.safeSpendVnd,
+    this.pendingReview,
   });
 
   final int totalVnd;
   final int? safeSpendVnd;
   final int savedAtMs;
+  final int? pendingReview;
 
   /// Field names are the Kotlin contract — WidgetSnapshotContract.parse
   /// reads exactly these keys.
@@ -34,6 +39,7 @@ class WidgetSnapshot {
     'total': totalVnd,
     'safeSpend': safeSpendVnd,
     'savedAtMs': savedAtMs,
+    'pendingReview': pendingReview,
   };
 }
 

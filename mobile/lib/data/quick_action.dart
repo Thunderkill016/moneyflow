@@ -5,6 +5,11 @@ import 'package:flutter/services.dart';
 /// "open the capture form".
 const kQuickActionCapture = 'capture';
 
+/// The widget's "Chờ duyệt" row sends this to mean "open the inbox"
+/// (D18) — the review queue the count on that row tallies. The Kotlin
+/// allowlist (QuickActionContract) must carry the same literal.
+const kQuickActionReview = 'review';
+
 /// Intent-extra seam for one-tap entry points (launcher shortcut,
 /// home-screen widget). Mirrors [ShareIntentReceiver]'s contract:
 /// cold-start actions arrive through [consumeInitialAction], warm ones

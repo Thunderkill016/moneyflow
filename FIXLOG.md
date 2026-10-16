@@ -989,3 +989,49 @@ Format: `ID | files changed | why | proof (test names)`.
   codec fields. Gates: dart format → flutter analyze clean →
   flutter test +1512 all green; embedded pgTAP suite all green;
   `npm run check:migrations` (95 pinned) + `check:rls` pass.
+- **D18 needs-review home widget — shipped** |
+  `mobile/lib/data/widget_snapshot.dart`,
+  `mobile/lib/data/quick_action.dart`,
+  `mobile/lib/features/dashboard/dashboard_page.dart`,
+  `mobile/lib/app/app.dart`,
+  `mobile/android/app/src/main/kotlin/app/moneyflow/moneyflow/QuickActionContract.kt`,
+  `mobile/android/app/src/main/kotlin/app/moneyflow/moneyflow/WidgetSnapshotContract.kt`,
+  `mobile/android/app/src/main/kotlin/app/moneyflow/moneyflow/QuickCaptureWidgetProvider.kt`,
+  `mobile/android/app/src/main/res/layout/widget_quick_capture.xml`,
+  `mobile/android/app/src/main/res/values/strings.xml`,
+  `mobile/test/widget_snapshot_test.dart`,
+  `mobile/test/quick_action_test.dart`,
+  `mobile/android/app/src/test/kotlin/app/moneyflow/moneyflow/WidgetSnapshotContractTest.kt`,
+  `mobile/android/app/src/test/kotlin/app/moneyflow/moneyflow/QuickActionContractTest.kt` |
+  Loop B gap D18 (§10 — Monarch 1.14 review-count widget): the
+  home-screen widget gains a "Chờ duyệt" row showing the pending inbox
+  count, and tapping it deep-links to the inbox — zero-open triage.
+  `WidgetSnapshot` carries `pendingReview` (int?); the dashboard writes
+  it via a dedicated tri-state read of `loadPendingCount` — absent seam
+  or failed read → null (row hides), real read → the count, including a
+  verified 0. This is deliberately NOT the `_loadAttention` value: that
+  one folds absent/failed into 0 because a hidden card section needs no
+  distinction, while a persisted launcher figure must never quote a
+  fabricated zero. Scope: the count tallies exactly the queue its deep
+  link opens — pending drafts only; posted needs_review rows keep their
+  activity-feed destination via the attention card (DECISIONS.md).
+  Kotlin: `Snapshot.pendingReview` (negative → clamped 0, absent/null →
+  unknown), `Rendered.review` ("N mục", null hides the row — GONE on
+  absent/stale snapshot too), new review row in the layout, and a
+  `quick=review` PendingIntent crossing MainActivity's allowlist —
+  `QuickActionContract.ACTION_REVIEW` added to both sides. Dart
+  `_onQuickAction` now dispatches capture|review; the held-action slot
+  generalized from a bool to `String? _pendingQuickAction` so a held
+  review drains post-unlock. Demo maps review to the seeded inbox —
+  honest destination, read-only writes as usual. |
+  `widget_snapshot_test.dart` (+4: JSON contract key, dashboard writes
+  the count, absent seam → null, failed read → null);
+  `quick_action_test.dart` (+3: cold-start review opens demo inbox,
+  warm review opens inbox, held review waits for biometric unlock);
+  `WidgetSnapshotContractTest.kt` (+4 asserts: decode/absent-null/
+  negative-clamp; render row, verified-zero renders, unknown hides,
+  stale hides);
+  `QuickActionContractTest.kt` (review accepted, REVIEW/'review '
+  rejected). Gates: `dart format` clean; `flutter analyze` clean;
+  `flutter test` all green; `./gradlew :app:testDebugUnitTest`
+  BUILD SUCCESSFUL.

@@ -67,6 +67,34 @@
                 android:textSize="12sp" />
         </LinearLayout>
 
+        <!-- D18 needs-review row — its tap deep-links to the inbox, the
+             queue the count tallies. GONE until a fresh snapshot carries
+             a verified count; a verified zero still shows ("0 mục"). -->
+        <LinearLayout
+            android:id="@+id/widget_review_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="2dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/widget_review_label"
+                android:textColor="@color/widget_dim_text"
+                android:textSize="11sp" />
+
+            <TextView
+                android:id="@+id/widget_review_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/widget_title_text"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
         <TextView
             android:id="@+id/widget_caption"
             android:layout_width="match_parent"

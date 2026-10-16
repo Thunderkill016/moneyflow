@@ -60,6 +60,8 @@ void main() {
           'total': 1234567,
           'safeSpend': 89000,
           'savedAtMs': 999999999000,
+          // The D18 row count — null is "unknown", never a fake zero.
+          'pendingReview': null,
         });
       },
     );
@@ -75,9 +77,21 @@ void main() {
           'total': 5,
           'safeSpend': null,
           'savedAtMs': 1,
+          'pendingReview': null,
         });
       },
     );
+
+    test('the pending-review count serializes for the widget row', () async {
+      final prefs = await SharedPreferences.getInstance();
+      await WidgetSnapshotStore(
+        prefs,
+      ).save(const WidgetSnapshot(totalVnd: 5, savedAtMs: 1, pendingReview: 3));
+      expect(
+        jsonDecode(prefs.getString('mf_widget_snapshot')!)['pendingReview'],
+        3,
+      );
+    });
   });
 
   group('DashboardPage writeWidgetSnapshot', () {
@@ -166,6 +180,64 @@ void main() {
       await t.pumpAndSettle();
       expect(writes, 0);
       expect(find.text('Không tải được dữ liệu'), findsOneWidget);
+    });
+
+    testWidgets('the widget snapshot carries the inbox pending count', (
+      t,
+    ) async {
+      WidgetSnapshot? written;
+      await t.pumpWidget(
+        _wrap(
+          DashboardPage(
+            loadAccounts: () async => [_vnd],
+            loadTransactions: () async => const [],
+            loadPendingCount: () async => 4,
+            writeWidgetSnapshot: (snap) async => written = snap,
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(written, isNotNull);
+      // The row tallies exactly the queue its deep link opens (D18).
+      expect(written!.pendingReview, 4);
+    });
+
+    testWidgets(
+      'a missing count seam writes null — the row hides, never a fake 0',
+      (t) async {
+        WidgetSnapshot? written;
+        await t.pumpWidget(
+          _wrap(
+            DashboardPage(
+              loadAccounts: () async => [_vnd],
+              loadTransactions: () async => const [],
+              writeWidgetSnapshot: (snap) async => written = snap,
+            ),
+          ),
+        );
+        await t.pumpAndSettle();
+        expect(written, isNotNull);
+        expect(written!.pendingReview, isNull);
+      },
+    );
+
+    testWidgets('a failed count read writes null — unknown stays unknown', (
+      t,
+    ) async {
+      WidgetSnapshot? written;
+      await t.pumpWidget(
+        _wrap(
+          DashboardPage(
+            loadAccounts: () async => [_vnd],
+            loadTransactions: () async => const [],
+            loadPendingCount: () async => throw Exception('offline'),
+            writeWidgetSnapshot: (snap) async => written = snap,
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(written, isNotNull);
+      expect(written!.pendingReview, isNull);
     });
   });
 }

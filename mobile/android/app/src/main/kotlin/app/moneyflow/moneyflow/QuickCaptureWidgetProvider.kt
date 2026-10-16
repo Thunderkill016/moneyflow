@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.view.View
 import android.widget.RemoteViews
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -35,9 +36,11 @@ class QuickCaptureWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
-        // PendingIntent request codes — capture vs plain app open.
+        // PendingIntent request codes — capture vs plain app open vs
+        // the review row's inbox deep link.
         private const val REQUEST_CAPTURE = 1
         private const val REQUEST_OPEN = 2
+        private const val REQUEST_REVIEW = 3
 
         /** Re-render every placed widget — the Dart side calls this over
          *  `app.moneyflow/widget` right after writing a fresh snapshot. */
@@ -73,6 +76,21 @@ class QuickCaptureWidgetProvider : AppWidgetProvider() {
                 open,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
+            // The "Chờ duyệt" row deep-links to the inbox — the queue its
+            // count tallies (D18). The action crosses MainActivity's
+            // allowlist, so a forged extra can never route anywhere else.
+            val review = Intent(context, MainActivity::class.java)
+                .putExtra(
+                    MainActivity.EXTRA_QUICK_ACTION,
+                    QuickActionContract.ACTION_REVIEW,
+                )
+                .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            val reviewPending = PendingIntent.getActivity(
+                context,
+                REQUEST_REVIEW,
+                review,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
 
             val raw = context
                 .getSharedPreferences(
@@ -95,9 +113,20 @@ class QuickCaptureWidgetProvider : AppWidgetProvider() {
             return RemoteViews(context.packageName, R.layout.widget_quick_capture).apply {
                 setOnClickPendingIntent(R.id.widget_capture_button, capturePending)
                 setOnClickPendingIntent(R.id.widget_data, openPending)
+                setOnClickPendingIntent(R.id.widget_review_row, reviewPending)
                 setTextViewText(R.id.widget_balance_value, rendered.total)
                 setTextViewText(R.id.widget_safespend_value, rendered.safeSpend)
                 setTextViewText(R.id.widget_caption, rendered.caption)
+                // Unknown or stale count → the row hides outright; the
+                // widget never shows a number it can't stand behind.
+                setViewVisibility(
+                    R.id.widget_review_row,
+                    if (rendered.review == null) View.GONE else View.VISIBLE,
+                )
+                setTextViewText(
+                    R.id.widget_review_value,
+                    rendered.review ?: "",
+                )
             }
         }
     }

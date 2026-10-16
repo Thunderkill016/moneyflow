@@ -581,11 +581,28 @@ class DashboardPageState extends State<DashboardPage> {
         today: vnNow(),
       )?.perDayMinor;
     }
+    // The widget's "Chờ duyệt" row tallies exactly the queue its tap
+    // opens — pending inbox drafts (D18). Three honest states: an absent
+    // seam or a failed read is null (the row hides, never a fabricated
+    // 0), a real read is the count — including a verified zero. This is
+    // deliberately a separate read from _loadAttention: that one folds
+    // absent/failed into 0 because a hidden card section needs no
+    // distinction, while a persisted widget figure must not lie.
+    int? pendingReview;
+    final pendingLoader = widget.loadPendingCount;
+    if (pendingLoader != null) {
+      try {
+        pendingReview = await pendingLoader();
+      } catch (_) {
+        /* unknown — the widget row stays hidden rather than quoting 0 */
+      }
+    }
     await sink(
       WidgetSnapshot(
         totalVnd: _vndTotal(accounts),
         safeSpendVnd: safeSpend,
         savedAtMs: DateTime.now().millisecondsSinceEpoch,
+        pendingReview: pendingReview,
       ),
     ).catchError((_) {});
   }

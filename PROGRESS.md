@@ -266,7 +266,14 @@ DONE THIS ROUND:
   +1512 all green; embedded pgTAP suite green (18 new assertions);
   check:migrations + check:rls pass. See FIXLOG.md "D15 refund
   net-off".
+- **D18 needs-review home widget shipped on feat/mobile-theme** —
+  "Chờ duyệt" row on the Android widget (pending inbox count, verified
+  zero renders "0 mục", unknown/stale hides the row) + `quick=review`
+  deep link through the exported-activity allowlist into the inbox it
+  tallies. Count is drafts only — matches the destination (DECISIONS.md).
+  Gates: dart format → flutter analyze clean → flutter test all green;
+  Gradle :app:testDebugUnitTest green. See FIXLOG.md "D18".
 AUDIT OPEN: P0=0 P1=0 P2=0 (all findings shipped — see FIXLOG.md)
 GAPS OPEN: web EditTransactionDialog lacks "save as rule" offer (mobile has it); web reports do not honor excluded_from_reports yet; Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
-NEXT STEP: Loop B gap list — D18+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D17 done.
+NEXT STEP: Loop B gap list — D19+ (RESEARCH_TOP_FINANCE_APPS.md §10); D1–D18 done.
 RESUME: re-read this file, then continue at NEXT STEP.
