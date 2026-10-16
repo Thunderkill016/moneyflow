@@ -295,3 +295,71 @@ Top three:
    wrong money in the shared-text path. (P1-3 is arguably the sharpest
    single-line fix; P1-4 needs the RPC contract verified before
    severity is final.)
+
+---
+
+## Re-audit — Loop B feature surface (2026-10-17)
+
+Second adversarial pass over the files touched since this audit
+(`e637143a..HEAD` — 63 files, ~10k insertions: Loop A fixes, the
+neon-green theme migration, and every D1–D24 Loop B feature). Scope and
+method per the close-out brief: money correctness, leaked secrets,
+unguarded writes, dead affordances — the Loop B feature files and their
+new seams, not a whole-app re-read.
+
+**Result: no new P0/P1/P2.** What was checked, and why it clears:
+
+- **Money correctness**: every new money path is integer `*_minor`
+  end-to-end (debts, event budgets, watchlist thresholds, history purge
+  report parse — fail-closed `StateError` on shape drift in
+  `domain/history_purge.dart:55`). Refund netting (D15) is applied
+  consistently in month summary, month-close digest, watchlist and
+  budget/event progress — never flipping `income` semantics. `double`
+  appears only in display pace/percent stats (`eventPace`,
+  `budgetPeriodPace`), never persisted. New `int.parse`/`DateTime.now()`
+  sites all operate on self-formatted `yyyy-MM-dd` substrings, draft-age
+  TTL, or date-picker bounds — no ledger date derives from the device
+  clock (post-P1-6 rule holds: `vnToday()`/`vnNow()` in every new write
+  path — debts_page, events_page, delete_history all comply).
+- **Leaked secrets**: the only new `debugPrint` sites are the P1-1 fix
+  itself (path-only callback log + `_redactedError` in
+  `google_sign_in.dart`). No token/JWT/verifier reaches a log seam;
+  widget snapshot JSON carries figures only
+  (`data/widget_snapshot.dart:38-43`), stored under `mf_`-prefixed
+  SharedPreferences inside the wipe/backup-exclusion contracts. Every
+  new prefs key is `mf_`-scoped (`mf_watch_items`,
+  `mf_rule_corrections.*`, `mf_register_running_balance`,
+  `mf_month_digest_enabled`, `mf_reconcile_reminder_days`,
+  `mf_capture_draft.<uid>`, `mf_quick_fills.<uid>`); the `recon:` alarm
+  keys live inside the `mf_commitment_notif_ids` allocator map.
+- **Unguarded writes**: posting RPCs carry per-dialog/per-operation
+  `p_idempotency_key` (`apply_debt_repayment`, `create_event_budget`,
+  plus the P1-4 `OperationIdempotencyKeys` on recurring ops). The
+  intentionally key-less creates (`create_debt`,
+  `create_financial_account`, `upsert_*`, `adjust_*`, `merge_categories`,
+  `delete_transactions_before`) each sit behind a `submitting`/`_busy`
+  dialog guard with cancel lockdown — the documented DECISIONS.md
+  contract. Edits pin `p_expected_updated_at` where the RPC supports it
+  (event budgets). `delete_transactions_before` is atomic server-side,
+  discloses `locked` survivors, and the UI gates on typed-XÓA +
+  vnToday-capped cutoff + source scopes (`app/delete_history.dart`).
+- **Dead affordances**: every new surface is seam-gated — purge row
+  hides in demo, watch-pin renders only with both read+write seams,
+  register eye-toggle appears only after the pref loads with a writer,
+  debts/events enter the menu only when the signed-in store supplies
+  them, reconcile nudge re-resolves against the live account roster so a
+  deleted wallet's alarm dies. Deep-link `quick=review` is allowlisted
+  at `QuickActionContract.kt:29` — forged extras can't route.
+- **Schema additions** (D1/D2/D12/D13/D14/D15/D21 migrations):
+  SECURITY DEFINER RPCs keep `set search_path = ''` + `auth.uid()`
+  tenancy, tables stay RLS select-only under `guard_oauth_mutation`,
+  and each landed with pgTAP + `check:migrations`/`check:rls` green at
+  its commit head. Migrations are committed but NOT applied to
+  production Neon — owner approval gate per repo rules.
+
+Minor observations below finding threshold (recorded, not filed):
+`formatMonthDayLabel`-style helpers `int.parse` self-formatted date
+substrings — same convention as existing `ymd` helpers; and the D24
+hashtag qualifier is documented-substring, not token-boundary — a
+deliberate recall-over-precision choice noted in
+`transaction_query.dart`.

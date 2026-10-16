@@ -1649,6 +1649,10 @@ class _CapturePageState extends State<CapturePage> with WidgetsBindingObserver {
             controller: _note,
             decoration: const InputDecoration(
               labelText: 'Ghi chú',
+              // D24: a leading # in the Hoạt động/timeline search box
+              // scopes the lookup to notes, so tags typed here are
+              // retrievable by convention — no separate tag system.
+              helperText: 'Mẹo: #tag trong ghi chú lọc nhanh khi tìm',
               border: OutlineInputBorder(),
             ),
           ),

@@ -211,6 +211,46 @@ void main() {
     });
   });
 
+  group('hashtag search (D24)', () {
+    test('a leading # emits note.ilike only — tags live in the note', () {
+      final p = const TransactionQuery(text: '#cf').toPostgrestParams();
+      expect(p['and'], '(note.ilike."*#cf*")');
+      expect(const TransactionQuery(text: '#cf').isTagSearch, isTrue);
+      expect(const TransactionQuery(text: ' #cf ').isTagSearch, isTrue);
+    });
+
+    test('# mid-term is not a tag search — stays an all-field lookup', () {
+      const q = TransactionQuery(text: 'a#b');
+      expect(q.isTagSearch, isFalse);
+      final p = q.toPostgrestParams();
+      expect(p['and'], contains('payee.ilike'));
+      expect(p['and'], contains('note.ilike'));
+    });
+
+    test('matches notes only — same text on payee/category is not a tag', () {
+      const q = TransactionQuery(text: '#cf');
+      expect(q.matches(_tx('n', note: 'cafe sáng #cf')), isTrue);
+      expect(q.matches(_tx('p', payee: 'Quán #cf')), isFalse);
+      expect(q.matches(_tx('c', category: 'Nhóm #cf')), isFalse);
+      // Documented recall-over-precision: substring inside the note.
+      expect(q.matches(_tx('s', note: '#cfeee')), isTrue);
+      expect(q.matches(_tx('x', note: 'không tag')), isFalse);
+    });
+
+    test('a bare # finds every tagged note; filters still combine', () {
+      const bare = TransactionQuery(text: '#');
+      expect(bare.isTagSearch, isTrue);
+      expect(bare.matches(_tx('t1', note: 'x #a')), isTrue);
+      expect(bare.matches(_tx('t2', note: 'plain')), isFalse);
+      final p = const TransactionQuery(
+        text: '#cf',
+        kind: TransactionKind.expense,
+      ).toPostgrestParams();
+      expect(p['kind'], 'eq.expense');
+      expect(p['and'], '(note.ilike."*#cf*")');
+    });
+  });
+
   group('copyWith / counts', () {
     test('clear flags and filterCount', () {
       const q = TransactionQuery(

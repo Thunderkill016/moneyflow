@@ -1,6 +1,6 @@
 # PROGRESS — MoneyFlow Android mega-task
-STATUS: IN_PROGRESS
-LAST UPDATE: 2026-10-16 (neon-green theme migration — Soft Pop → #00FF88, dark-mode-first)
+STATUS: DONE — 2026-10-17 — all DoD items evidenced.
+LAST UPDATE: 2026-10-17 (close-out: D24 shipped, D25 parked, re-audit clean, AAB built, device-verified)
 DONE THIS ROUND:
 - Step Zero DONE: branch mobile/android-app pushed, PR #795 open (head ec8591b9).
 - Prior session shipped: permanent-delete trash (mobile+web+RPC+schema-cache fix), SnackBar a11y watchdog fix (1187+ tests green), Monarch deep-dive docs/research/MONARCH_DEEP_DIVE.md, rules preview + apply-to-existing (mobile+web), edit→rule offer (mobile). All committed.
@@ -320,7 +320,59 @@ DONE THIS ROUND:
   exists; the gap doc itself defers it on storage+privacy+sync cost, and
   note/payee search + provenance already cover the lookup need.
   DECISIONS.md 2026-10-16; revisit only with usage evidence.
-AUDIT OPEN: P0=0 P1=0 P2=0 (all findings shipped — see FIXLOG.md)
-GAPS OPEN: web EditTransactionDialog lacks "save as rule" offer (mobile has it); web reports do not honor excluded_from_reports yet; Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
-NEXT STEP: Loop B gap list — D24 #hashtags + D25 trial-billing waivers remain (both pre-flagged defer/parked in §10); D1–D23 done.
-RESUME: re-read this file, then continue at NEXT STEP.
+- **D24 #hashtags in notes — shipped on feat/mobile-theme** (retrieval
+  micro-slice, not a taxonomy — see FIXLOG.md "D24"): a leading `#` in
+  the shared TransactionQuery search term scopes the match to `note` on
+  both evaluators (`note.ilike` server-side, note-only `contains`
+  client-side) — "gõ #tag trong ghi chú, tìm #tag ở Hoạt động/Dòng thời
+  gian" is now a real convention with a discoverable note-field hint.
+  Tag reports/tag index stay refused (second categorization system, §10).
+  Web filters lack the `#` scope — recorded divergence. Gates: dart
+  format clean; flutter analyze clean; targeted tests green (+4).
+- **D25 trial-billing timeline — resolved-parked** — no paid tier,
+  billing surface or paywall exists anywhere in the repo (verified);
+  the reminder-before-charge intent is already served by commitment
+  due-day reminders + digests + D19 reconcile nudges. Re-opens only if
+  a paid tier ever ships. DECISIONS.md 2026-10-17.
+- **Close-out re-audit — zero new findings** — second adversarial pass
+  over `e637143a..HEAD` (63 files, all Loop B surfaces): money stays
+  integer, refund nets consistently, posting RPCs are keyed, key-less
+  creates sit behind busy guards, every new pref key is `mf_`-scoped,
+  deep links are allowlisted, seam-gated UI leaves no dead affordances.
+  Full detail in AUDIT.md "Re-audit — Loop B feature surface".
+- **Release AAB built** —
+  `mobile/build/app/outputs/bundle/release/app-release.aab` (49.5MB,
+  R8-shrunk) via `MF_ALLOW_DEBUG_RELEASE=true` with the prod
+  dart-defines. CAVEAT: debug-signed (ANDROIDD.RSA) — no upload keystore
+  exists locally; a Play-uploadable AAB needs `android/key.properties`.
+- **Device sanity on UKMBCUTWIFYTOVDQ** — debug APK installed, dashboard
+  renders neon-green dark theme at HEAD (pixel-verified: dark canvas +
+  #00FF88 accents; evidence PNGs docs/design/neon-green-migration/11-12
+  — ScreenShield blocks adb screencap, so capture used a local
+  unshielded debug build reverted before commit). Live check: `#x`
+  query accepted in Hoạt động search, honest empty state. Cold start
+  ≈10–17s splash→dashboard in a debug build, demo session.
+
+## Definition of Done — evidence check
+
+| DoD item | Status | Evidence |
+|---|---|---|
+| 6 money checks tested | PASS | integer đồng (`money_test`, `_maxSafeAmount` bounds); transfers never income/expense (`report_test`, `quick_parse_test`); idempotency on every posting write (`capture_submit_test`, `offline_queue_test`, `planning_store_test`); soft-delete + recovery (`trash_test`, D21 pgTAP); tenant isolation/RLS (`check:rls` 9/9, pgTAP tenant tests); VN civil dates (`vnToday` everywhere, `notifications_test`, D12/D19 day-clamp tests) |
+| Zero open P0/P1/P2 | PASS | AUDIT.md: 13/13 fixed (FIXLOG.md per-ID); re-audit 2026-10-17 files zero new findings |
+| Gap backlog shipped-or-waived | PASS | D1–D21 shipped; D22/D23 waived; D24 shipped micro-slice; D25 resolved-parked — FIXLOG.md + DECISIONS.md |
+| AAB builds | PASS (caveat) | `app-release.aab` 49.5MB — debug-signed; Play needs the real upload keystore |
+| Research + state files complete | PASS | RESEARCH_TOP_FINANCE_APPS.md, FIXLOG.md, DECISIONS.md, AUDIT.md, plan/findings/progress updated through close-out |
+| Neon-green migrated + screenshotted | PASS | `mf_theme_test` pins tokens; 12 PNGs in docs/design/neon-green-migration/ incl. fresh-HEAD dashboard |
+
+Known gaps (recorded, out of mobile scope — not DoD blockers):
+web EditTransactionDialog rule-offer; web reports ignore
+`excluded_from_reports`; web filters lack `#` note-scoping (D24 is
+mobile-first); Monarch P2/P3 items unscoped; all seven Loop-B migrations
+committed but NOT applied to production Neon (owner approval gate); PR
+merge + CI state is owner/repo-side evidence.
+
+AUDIT OPEN: P0=0 P1=0 P2=0 (all findings shipped + re-audit clean — see FIXLOG.md / AUDIT.md)
+GAPS OPEN: none inside mobile scope. Cross-surface: web EditTransactionDialog lacks "save as rule" offer (mobile has it); web reports do not honor excluded_from_reports; web filters lack the D24 `#` note-scope; Monarch P2/P3 items in MONARCH_DEEP_DIVE.md §16 unscoped.
+NEXT STEP: none — mega-task closed 2026-10-17. Owner-side items: apply the seven committed migrations to production Neon, provision the upload keystore for Play, merge on green CI.
+RESUME: re-read this file; the backlog is empty — new work needs a fresh issue/packet.
+STATUS: DONE — 2026-10-17 — all DoD items evidenced.

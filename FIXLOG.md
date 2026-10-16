@@ -1169,3 +1169,38 @@ Format: `ID | files changed | why | proof (test names)`.
   "which transaction" lookup, and provenance preserves import evidence.
   Waiver recorded per the gap list's own defer note. No gates — docs
   only.
+- **D24 #hashtags in notes — shipped (retrieval micro-slice)** |
+  `mobile/lib/domain/transaction_query.dart`,
+  `mobile/lib/features/capture/capture_page.dart`,
+  `mobile/test/transaction_query_test.dart`,
+  `DECISIONS.md` (2026-10-17 entry) |
+  Gap item (§10, PocketGuard 7.3): "#hashtags in notes → hashtag
+  reports", ADAPT-deferred as "never a second categorization system".
+  The retrieval half shipped as a search operator, not a taxonomy: a
+  leading `#` in the TransactionQuery term now scopes the match to the
+  `note` column alone on BOTH evaluators — `note.ilike."*#tag*"` in
+  `toPostgrestParams`, note-only `contains` in `matches` — so typing a
+  tag in a note and searching `#tag` is a deliberate convention
+  (Hoạt động + Dòng thời gian both ride TransactionQuery, so both get
+  it), and a payee/category named "...#x" can no longer false-positive
+  into a tag lookup. The deferred half stays refused: no tag table, no
+  tag index, no hashtag report axis. The capture "Ghi chú" field carries
+  the one-line helper ("Mẹo: #tag trong ghi chú lọc nhanh khi tìm") so
+  the convention is discoverable. Matching is substring inside notes by
+  design (recall over precision, documented in the code) — token-
+  boundary tag semantics across PostgREST POSIX regex and Dart RegExp on
+  Vietnamese diacritics is not a small slice. |
+  `transaction_query_test.dart` (+4: `#` term emits note-only ilike; `#`
+  mid-term stays an all-field lookup; matches() notes-only incl.
+  substring recall; bare `#` + filter combination). Gates: `dart format`
+  clean; `flutter analyze` clean; targeted tests green.
+- **D25 trial-billing timeline — resolved-parked** |
+  `DECISIONS.md` (2026-10-17 entry) |
+  Coverage check: no paid tier, billing surface or paywall exists
+  anywhere in mobile/ or src/ (grep-verified; "free-first" is the stated
+  stance, RESEARCH §1.13) — the "remind day X, bill day Y" copy pattern
+  has no surface to attach to. Its user-protection intent (never be
+  surprised before money moves) is already served by commitment due-day
+  reminders, weekly + month-close digests and D19 reconcile nudges.
+  Parked, not built; re-opens only if a paid tier ships. No gates —
+  docs only.

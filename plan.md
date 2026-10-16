@@ -7,14 +7,17 @@
 3. **Phase 1 research** ✅ — RESEARCH_TOP_FINANCE_APPS.md (commit 196b8187): 8 apps, 13 COPY + 39 ADAPT → prioritized gap list D1–D25.
 4. **Phase 2 audit** ✅ — AUDIT.md (e637143a): P0=0, P1=6, P2=7.
 5. **Loop A fixes** ✅ — P1 batch 9181b367, P2 batch 6aeca6f3. AUDIT open count: 0.
-6. **Loop B builds** (in progress, top-impact first):
-   - D1 debt/loan tracking ✅ 432ecf7a (migrations written, prod apply pending owner)
-   - D2 event budgets ✅ 2e303f21 (same pending-prod note)
-   - D3 remainder card + threshold alerts — IN PROGRESS (subagent a04ad152)
-   - D4 payee statistics + MoM deltas — pending
-   - D5 review-loop polish — verify existing coverage first, then pending
-   - D6–D25 remainder — pending, per research file order
-7. **Re-audit + close** — after Loop B, re-run audit on touched surfaces; final DoD checklist; merge PRs on green CI.
+6. **Loop B builds** ✅ — D1–D21 shipped, D22/D23 waived (DECISIONS.md),
+   D24 shipped as a search-operator micro-slice (note-scoped `#` term in
+   TransactionQuery + capture note hint), D25 resolved-parked (no billing
+   surface exists to attach to). Per-item evidence in FIXLOG.md.
+7. **Re-audit + close** ✅ — second adversarial pass over
+   `e637143a..HEAD` (all Loop B feature files) filed zero new P0/P1/P2;
+   recorded in AUDIT.md §"Re-audit — Loop B feature surface". Release
+   AAB built (debug-signing escape hatch — no upload keystore locally);
+   debug APK verified on UKMBCUTWIFYTOVDQ (dashboard renders neon-green
+   dark theme at HEAD; cold start observed). Merge remains an owner
+   decision on green CI.
 
 ## Deviation log
 

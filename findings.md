@@ -17,3 +17,15 @@
 
 - flutter test: 1321 pass at D2 head; pgTAP 63 files pass; analyze clean.
 - RESEARCH_TOP_FINANCE_APPS.md: 13 COPY + 39 ADAPT consolidated; AUDIT.md: 13 findings all FIXED.
+- Close-out (2026-10-17): `TransactionQuery` already searched `note` by
+  substring on both evaluators — `#` is literal in LIKE — so the D24 gap
+  resolved to making the tag convention intentional (`isTagSearch` →
+  note-scoped term) rather than building tag storage. D25 verified as
+  having no attach surface: zero billing/subscription/paywall code in
+  mobile/ or src/.
+- Re-audit of e637143a..HEAD (63 files): no new P0/P1/P2 — see AUDIT.md
+  "Re-audit — Loop B feature surface" for the per-category clearance.
+- FLAG_SECURE (ScreenShield) blocks `adb screencap` entirely (0-byte
+  output) — verified live; device verification used a local unshielded
+  debug build, reverted before commit. Close-out evidence PNGs:
+  docs/design/neon-green-migration/11-12.
