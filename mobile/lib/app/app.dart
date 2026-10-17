@@ -1389,6 +1389,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
               onOpenInbox: () => _openInbox(context),
               onOpenNeedsReview: () => _openNeedsReviewFeed(context),
               onOpenTransaction: (tx) => _openEdit(context, tx),
+              // Wallet cards land on the same register the Tài khoản
+              // page's row tap opens — one destination, two entries.
+              onOpenAccount: (a) => _openAccountRegister(context, a),
               // The freshest roster also re-arms the D19 reconcile
               // nudges — a deleted or closed account's alarm dies on
               // the next schedule pass rather than firing for a wallet
@@ -1710,6 +1713,10 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           loadPage: _store.loadTransactionPage,
           onDelete: _deleteTransaction,
           onEdit: (tx) => _openEdit(context, tx),
+          // Same seam the Tài khoản row's overflow uses — close/reopen
+          // works identically from the register's appbar menu.
+          onArchiveAccount: (archived) =>
+              _store.setAccountArchived(account.id, archived),
           // loadAccounts filters out archived rows — a null result keeps
           // the last snapshot, so an archived register stays readable.
           loadAccount: () async {
@@ -2257,6 +2264,20 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           ).push(MaterialPageRoute(builder: (_) => _demoInboxPage())),
           loadAccounts: () async => DemoStore.seedAccounts(),
           loadTransactions: () async => DemoStore.seedTransactions(),
+          // Wallet cards open the read-only demo register — the same
+          // seam the demo Tài khoản page pushes, seed-backed.
+          onOpenAccount: (a) => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => AccountRegisterPage(
+                account: a,
+                loadPage: inMemoryPageLoader(DemoStore.seedTransactions()),
+                loadAccount: () async => _demoAccount(a.id),
+                loadShowRunningBalance: SettingsPrefs.loadRunningBalanceVisible,
+                onRunningBalanceVisibleChanged:
+                    SettingsPrefs.saveRunningBalanceVisible,
+              ),
+            ),
+          ),
           // Seeds cover the viewed month plus the prior month, so the
           // remainder card's threshold alerts see the same carry the
           // demo planning tab shows.

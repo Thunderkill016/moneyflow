@@ -10,6 +10,7 @@ import '../../domain/register.dart';
 import '../../domain/transaction_query.dart';
 import '../../theme/mf_theme.dart';
 import '../shared/timed_snack_bar.dart';
+import 'accounts_page.dart' show accountFormErrorMessage;
 
 /// One account's ledger — the mobile counterpart of the web's
 /// /accounts/[id] register (src/components/account-detail-page.tsx).
@@ -39,6 +40,7 @@ class AccountRegisterPage extends StatefulWidget {
     this.onReconcileReminderChanged,
     this.loadShowRunningBalance,
     this.onRunningBalanceVisibleChanged,
+    this.onArchiveAccount,
   });
 
   /// The account being viewed; [AccountSummary.balance] anchors the
@@ -92,6 +94,12 @@ class AccountRegisterPage extends StatefulWidget {
   /// the pref only gates whether each row renders its "Số dư" line.
   final Future<void> Function(bool visible)? onRunningBalanceVisibleChanged;
 
+  /// Close/reopen the account itself — the Monarch close contract the
+  /// Tài khoản page carries (`is_archived` flips, history untouched,
+  /// reopenable anytime). Null hides the menu: demo registers stay
+  /// read-only rather than advertising a write that can't run.
+  final Future<void> Function(bool archived)? onArchiveAccount;
+
   @override
   State<AccountRegisterPage> createState() => _AccountRegisterPageState();
 }
@@ -102,6 +110,12 @@ const _loadMoreThreshold = 300.0;
 
 class _AccountRegisterPageState extends State<AccountRegisterPage> {
   late AccountSummary _account = widget.account;
+
+  /// Closed state the appbar menu owns — `loadAccount` drops archived
+  /// accounts from the unarchived list, so `_account.isArchived` can go
+  /// stale right after a close. This flag is the honest source for the
+  /// header chip and the menu label; a successful refresh re-syncs it.
+  late bool _closed = widget.account.isArchived;
   late final TransactionQuery _query = TransactionQuery(
     accountId: widget.account.id,
   );
@@ -346,12 +360,71 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
         final fresh = await loader();
         // An account that vanished from the list (e.g. just archived)
         // keeps its last snapshot — the register stays readable.
-        if (fresh != null && mounted) setState(() => _account = fresh);
+        if (fresh != null && mounted) {
+          setState(() {
+            _account = fresh;
+            _closed = fresh.isArchived;
+          });
+        }
       } catch (_) {
         // Keep the last known balance; the row refresh below still runs.
       }
     }
     await _loadFirst();
+  }
+
+  /// "Đóng" asks first — same confirmation copy as the Tài khoản row,
+  /// because the consequence (hidden from pickers, history kept,
+  /// reopenable) is identical no matter which surface fired it.
+  Future<void> _confirmClose() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Đóng "${_account.name}"?'),
+        content: const Text(
+          'Tài khoản sẽ ẩn khỏi danh sách và bộ chọn; giao dịch cũ vẫn '
+          'giữ — mở lại được bất cứ lúc nào.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Đóng'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await _applyClosed(true);
+  }
+
+  /// Closing asks first; reopening is immediate — the Tài khoản row's
+  /// exact contract. A failed write surfaces instead of flipping the
+  /// flag optimistically.
+  Future<void> _applyClosed(bool closed) async {
+    final seam = widget.onArchiveAccount;
+    if (seam == null) return;
+    try {
+      await seam(closed);
+    } catch (e) {
+      if (mounted) {
+        showTimedSnackBar(
+          ScaffoldMessenger.of(context),
+          SnackBar(content: Text(accountFormErrorMessage(e))),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _closed = closed);
+    showTimedSnackBar(
+      ScaffoldMessenger.of(context),
+      SnackBar(
+        content: Text(closed ? 'Đã đóng tài khoản.' : 'Đã mở lại tài khoản.'),
+      ),
+    );
   }
 
   Future<void> _confirmDelete(Transaction tx) async {
@@ -475,7 +548,7 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                           ),
-                          if (a.isArchived) ...[
+                          if (_closed) ...[
                             const SizedBox(width: 8),
                             const Chip(
                               label: Text('Đã đóng'),
@@ -716,6 +789,32 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
               ),
               tooltip: _showRunningBalance ? 'Ẩn số dư' : 'Hiện số dư',
               onPressed: _toggleRunningBalance,
+            ),
+          // Close/reopen lives here too — the same Monarch contract the
+          // Tài khoản row's overflow carries, so a wallet discovered via
+          // the dashboard strip gets the same lifecycle action.
+          if (widget.onArchiveAccount != null)
+            PopupMenuButton<String>(
+              tooltip: 'Tùy chọn ${_account.name}',
+              onSelected: (action) {
+                switch (action) {
+                  case 'archive':
+                    _confirmClose();
+                  case 'reopen':
+                    _applyClosed(false);
+                }
+              },
+              itemBuilder: (ctx) => [
+                _closed
+                    ? const PopupMenuItem(
+                        value: 'reopen',
+                        child: Text('Mở lại tài khoản'),
+                      )
+                    : const PopupMenuItem(
+                        value: 'archive',
+                        child: Text('Đóng tài khoản'),
+                      ),
+              ],
             ),
         ],
       ),

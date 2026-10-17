@@ -133,8 +133,10 @@ Widget _dash({
   VoidCallback? onOpenPlanning,
   List<Transaction>? summaryRows,
   VoidCallback? onOpenReports,
+  void Function(AccountSummary account)? onOpenAccount,
 }) => MaterialApp(
   home: DashboardPage(
+    onOpenAccount: onOpenAccount,
     loadAccounts: () async => DemoStore.seedAccounts(),
     loadTransactions: () async => const [],
     // The remainder-card seam pair must both exist for commitments to
@@ -314,14 +316,8 @@ void main() {
       await t.pumpAndSettle();
 
       final expectedCount = 1 + (daysAhead >= 1 ? 1 : 0);
-      expect(
-        find.text('$expectedCount cam kết sắp đến hạn'),
-        findsOneWidget,
-      );
-      expect(
-        find.textContaining('Điện lực · Đến hạn hôm nay'),
-        findsOneWidget,
-      );
+      expect(find.text('$expectedCount cam kết sắp đến hạn'), findsOneWidget);
+      expect(find.textContaining('Điện lực · Đến hạn hôm nay'), findsOneWidget);
       // The out-of-window row never turns into dashboard noise.
       expect(find.textContaining('Bảo hiểm'), findsNothing);
     });
@@ -540,6 +536,26 @@ void main() {
       );
       await t.pumpAndSettle();
       expect(find.text('Tóm tắt tháng này'), findsNothing);
+    });
+  });
+
+  group('account strip', () {
+    testWidgets('a wallet card taps through to its register', (t) async {
+      AccountSummary? opened;
+      await t.pumpWidget(_dash(onOpenAccount: (a) => opened = a));
+      await t.pumpAndSettle();
+      // The strip sits above the activity list — .first is the card,
+      // not an activity row that also names the wallet.
+      final card = find.widgetWithText(InkWell, 'Tiền mặt').first;
+      await t.ensureVisible(card);
+      await t.tap(card);
+      expect(opened?.id, 'acc-cash');
+    });
+
+    testWidgets('no open seam keeps cards inert — no dead chevron', (t) async {
+      await t.pumpWidget(_dash());
+      await t.pumpAndSettle();
+      expect(find.byIcon(Icons.chevron_right), findsNothing);
     });
   });
 }

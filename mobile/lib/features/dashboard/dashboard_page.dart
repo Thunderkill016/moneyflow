@@ -80,6 +80,7 @@ class DashboardPage extends StatefulWidget {
     this.loadNeedsReview,
     this.onOpenNeedsReview,
     this.onOpenTransaction,
+    this.onOpenAccount,
     this.modeLabel,
     this.menuItems = const [],
     this.readSnapshot,
@@ -197,6 +198,10 @@ class DashboardPage extends StatefulWidget {
   /// Opens a posted transaction for correction (same form as the Hoạt
   /// động tab). Null leaves the rows read-only.
   final void Function(Transaction tx)? onOpenTransaction;
+
+  /// Opens an account's register — the same destination the Tài khoản
+  /// page's row tap lands on. Null keeps wallet cards read-only.
+  final void Function(AccountSummary account)? onOpenAccount;
   final String? modeLabel;
   final List<DashboardMenuItem> menuItems;
 
@@ -950,7 +955,10 @@ class DashboardPageState extends State<DashboardPage> {
                     const SizedBox(height: 20),
                     Text('Tài khoản', style: _sectionTitle(context)),
                     const SizedBox(height: 8),
-                    _AccountStrip(accounts: accounts),
+                    _AccountStrip(
+                      accounts: accounts,
+                      onOpenAccount: widget.onOpenAccount,
+                    ),
                     const SizedBox(height: 20),
                     Text('Hoạt động gần đây', style: _sectionTitle(context)),
                     const SizedBox(height: 8),
@@ -2171,8 +2179,9 @@ class _RecurringSuggestionCard extends StatelessWidget {
 /// Horizontal strip of wallet cards — every card is built up front (a
 /// few wallets at most), so nothing is lazily offscreen.
 class _AccountStrip extends StatelessWidget {
-  const _AccountStrip({required this.accounts});
+  const _AccountStrip({required this.accounts, this.onOpenAccount});
   final List<AccountSummary> accounts;
+  final void Function(AccountSummary account)? onOpenAccount;
 
   @override
   Widget build(BuildContext context) {
@@ -2186,6 +2195,7 @@ class _AccountStrip extends StatelessWidget {
             _AccountCard(
               account: accounts[i],
               fill: mfPastelFills[i % mfPastelFills.length],
+              onOpen: onOpenAccount,
             ),
           ],
         ],
@@ -2195,62 +2205,93 @@ class _AccountStrip extends StatelessWidget {
 }
 
 class _AccountCard extends StatelessWidget {
-  const _AccountCard({required this.account, required this.fill});
+  const _AccountCard({required this.account, required this.fill, this.onOpen});
   final AccountSummary account;
   final Color fill;
+  final void Function(AccountSummary account)? onOpen;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
+    // The pastel fill lives on the Material itself so the InkWell splash
+    // actually shows; a decorated child would paint over the ripple.
+    return SizedBox(
       width: 220,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
+      child: Material(
         color: fill,
         borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              accountKindLabel(account.kind),
-              style: theme.textTheme.labelSmall?.copyWith(color: mfPastelInk),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            account.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodyMedium?.copyWith(color: mfPastelInk),
-          ),
-          const SizedBox(height: 2),
-          if (account.currencyCode != 'VND')
-            Text(
-              'Ví ${account.currencyCode} — xem số dư trên web',
-              style: theme.textTheme.bodySmall?.copyWith(color: mfPastelInk),
-            )
-          else
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                formatMoney(account.balance),
-                style: mfMoneyStyle(
-                  theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
+        child: InkWell(
+          onTap: onOpen == null ? null : () => onOpen!(account),
+          borderRadius: BorderRadius.circular(24),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        accountKindLabel(account.kind),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: mfPastelInk,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    // Honest affordance: the chevron only shows when the
+                    // card really opens the register — never a dead hint.
+                    if (onOpen != null)
+                      Icon(
+                        Icons.chevron_right,
+                        size: 18,
+                        color: mfPastelInk.withValues(alpha: 0.55),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  account.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(
                     color: mfPastelInk,
                   ),
                 ),
-              ),
+                const SizedBox(height: 2),
+                if (account.currencyCode != 'VND')
+                  Text(
+                    'Ví ${account.currencyCode} — xem số dư trên web',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: mfPastelInk,
+                    ),
+                  )
+                else
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      formatMoney(account.balance),
+                      style: mfMoneyStyle(
+                        theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: mfPastelInk,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
-        ],
+          ),
+        ),
       ),
     );
   }
