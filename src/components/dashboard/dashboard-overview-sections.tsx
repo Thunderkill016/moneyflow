@@ -16,6 +16,7 @@ import type { AccountBalanceRow } from "@/lib/dashboard-accounts";
 import { groupRecentTransactionsByDay } from "@/lib/dashboard-recent-groups";
 import { isTransactionStatusLabel } from "@/lib/transaction-status";
 import type { MonthStatementDetail } from "@/lib/dashboard-month";
+import type { MonthPace } from "@/lib/month-pace.ts";
 import {
   categoryMetaFor,
   categoryMetaIndex,
@@ -53,6 +54,7 @@ export function DashboardHeaderSections({
   totals,
   accountBalances,
   monthDetail,
+  monthPace,
   remainderLine,
   today,
   isEmptyLedger,
@@ -65,6 +67,9 @@ export function DashboardHeaderSections({
   totals: DashboardTotals;
   accountBalances: AccountBalanceRow[];
   monthDetail?: MonthStatementDetail;
+  /** Cumulative-vs-ideal pace for the statement — null when no monthly
+   *  budget exists, and the statement renders no pace block then. */
+  monthPace?: MonthPace | null;
   /**
    * Fully formed "Còn X ₫ sau N khoản định kỳ…" sentence, or null when the
    * derivation refused incomplete inputs — the statement renders no line then.
@@ -109,6 +114,7 @@ export function DashboardHeaderSections({
         totals={totals}
         accountBalances={accountBalances}
         monthDetail={monthDetail}
+        monthPace={monthPace}
         remainderLine={remainderLine}
         today={today}
         isEmptyLedger={isEmptyLedger}

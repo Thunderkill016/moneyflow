@@ -2,6 +2,7 @@ import Link from "next/link";
 import { MoneyValue } from "@/components/money-value";
 import type { AccountBalanceRow } from "@/lib/dashboard-accounts";
 import type { MonthStatementDetail } from "@/lib/dashboard-month";
+import type { MonthPace } from "@/lib/month-pace.ts";
 import { dashboardDrilldownHref } from "@/lib/dashboard-drilldown";
 import { dashboardPeriodLabel } from "@/lib/dashboard-period";
 import { formatMoney } from "@/lib/money";
@@ -41,10 +42,54 @@ const STATEMENT_ACCOUNT_LIMIT = 4;
  */
 const SHAPE_MIN_PERCENT = 8;
 
+/*
+ * Pace chart geometry — the svg is a fixed 300×64 viewBox stretched by
+ * CSS, so helpers emit normalized polyline points: x spreads across the
+ * whole month, y scales against the larger of the budget limit and the
+ * actual spend so an over-pace month still fits.
+ */
+const PACE_W = 300;
+const PACE_H = 64;
+
+function paceScaleY(pace: MonthPace) {
+  const max = Math.max(pace.budgetLimitMinor, pace.actualToDateMinor, 1);
+  return (value: number) => PACE_H - (value / max) * (PACE_H - 4);
+}
+
+function paceX(pace: MonthPace, dayIndex: number) {
+  return pace.daysInMonth <= 1
+    ? 0
+    : (dayIndex / (pace.daysInMonth - 1)) * PACE_W;
+}
+
+function paceIdealPoints(pace: MonthPace) {
+  const y = paceScaleY(pace);
+  // The ideal line runs to month end — the plan the month is pacing against.
+  return `0,${y(0)} ${paceX(pace, pace.daysInMonth - 1)},${y(pace.budgetLimitMinor)}`;
+}
+
+function paceActualPoints(pace: MonthPace) {
+  const y = paceScaleY(pace);
+  return pace.cumulativeMinor
+    .map((v, i) => `${paceX(pace, i)},${y(v)}`)
+    .join(" ");
+}
+
+const PACE_STATUS_TEXT = {
+  under: "Chậm hơn nhịp",
+  on: "Đúng nhịp",
+  over: "Nhanh hơn nhịp",
+} as const;
+
+function paceStatusText(pace: MonthPace) {
+  return PACE_STATUS_TEXT[pace.status];
+}
+
 export function DashboardStatement({
   totals,
   accountBalances = [],
   monthDetail,
+  monthPace,
   remainderLine,
   today,
   isEmptyLedger,
@@ -53,6 +98,11 @@ export function DashboardStatement({
   totals: StatementTotals;
   accountBalances?: AccountBalanceRow[];
   monthDetail?: MonthStatementDetail;
+  /**
+   * Cumulative-vs-ideal pace read for the month — absent when no monthly
+   * budget covers it, never a faked baseline.
+   */
+  monthPace?: MonthPace | null;
   /**
    * The obligations-aware remainder sentence ("Còn X ₫ sau N khoản định kỳ…"),
    * already validated upstream. `null`/absent renders no line — a figure built
@@ -242,6 +292,48 @@ export function DashboardStatement({
                     title={`${day.date}: ${formatMoney(day.expense)}`}
                   />
                 ))}
+              </div>
+            ) : null}
+            {/*
+             * Copilot-style pace line — cumulative MTD spend against the
+             * linear ideal line the month's budgets imply, labelled in
+             * words (never colour alone). Null pace → no block: a month
+             * without budgets has no "ideal" to draw.
+             */}
+            {monthPace ? (
+              <div className={styles.pace}>
+                {/* Decorative only — the label line under it carries the
+                    same status + figure in words. */}
+                <svg
+                  viewBox="0 0 300 64"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                  className={styles.paceChart}
+                >
+                  <polyline
+                    className={styles.paceIdeal}
+                    points={paceIdealPoints(monthPace)}
+                  />
+                  <polyline
+                    className={styles.paceActual}
+                    points={paceActualPoints(monthPace)}
+                  />
+                </svg>
+                <p className={styles.paceLabel}>
+                  <span
+                    className={`${styles.paceDot} ${
+                      styles[`pace_${monthPace.status}`]
+                    }`}
+                    aria-hidden="true"
+                  />
+                  {paceStatusText(monthPace)} · đã chi{" "}
+                  {Math.round(
+                    (monthPace.actualToDateMinor /
+                      monthPace.budgetLimitMinor) *
+                      100,
+                  )}
+                  % ngân sách
+                </p>
               </div>
             ) : null}
             {monthDetail && monthDetail.prior.transactions > 0 ? (
