@@ -1098,7 +1098,14 @@ class _CategoryTreemap extends StatelessWidget {
   ) {
     final mf = context.mf;
     final rollup = row == null;
-    final tap = (!rollup && onRowTap != null && row.id != null)
+    // Target-size honesty (same floor as the web cells): a sliver under
+    // ~44px stays visual-only — the row below carries the same drill.
+    final tap =
+        (!rollup &&
+            onRowTap != null &&
+            row.id != null &&
+            cell.w >= 48 &&
+            cell.h >= 44)
         ? () => onRowTap!(row)
         : null;
     final share = row?.share ?? tailShare;
