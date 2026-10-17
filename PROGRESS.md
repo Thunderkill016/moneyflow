@@ -447,6 +447,26 @@ docs/design/dashboard-pace-v3/ (pace line + Nhanh hơn nhịp status, 3 share
 bars Hóa đơn 52% / Ăn uống 45% / Di chuyển, empty upcoming correctly absent
 in demo data).
 
+Follow-on slices on the same branch (PR #796):
+
+- Dashboard → account register: wallet cards are Material+InkWell and open
+  `AccountRegisterPage` (chevron only when the seam exists, none in demo);
+  the register appbar carries Đóng/Mở lại tài khoản behind
+  `onArchiveAccount` — soft close keeps history, reopen restores.
+- Payee/category MoM deltas on BOTH surfaces — mobile `expensePayeeDeltas`
+  + `_ShareSection` delta column (category + payee); web `previous` on
+  category/payee buckets + `bucketDelta` ▲/▼/"mới" under each row. Same
+  bucketing/refund-netting/exclusion rules as the primary report; the
+  mobile `_expenseBuckets` excluded-row skip was fixed so comparison and
+  breakdown can never diverge.
+- Category treemap (Monarch #19 — last unscoped item): mobile
+  `mobile/lib/domain/treemap.dart` squarified layout + `_CategoryTreemap`
+  top-7 + "Khác" roll-up above the expense rows; web `src/lib/treemap.ts`
+  port + `CategoryTreemap` %-positioned links over the same section.
+  Named cells drill to the same filtered feed; the roll-up stays inert.
+- CI repair: 2x-text-scale account-card chip overflow (Flexible+ellipsis);
+  `reports.financial` golden updated for the `previous` contract field.
+
 ---
 
 ## 2026-10-16 — UX polish pass (owner walkthrough feedback)
