@@ -549,6 +549,23 @@
   color: var(--mf-text-muted);
 }
 
+/* MoM delta cell under a breakdown row — same tones as money-value
+ * kind colors so a rise reads expense-red and a fall income-green
+ * (spending less is the good direction); neutral states stay muted. */
+.delta_up {
+  color: var(--mf-expense-text);
+  font-weight: 600;
+}
+
+.delta_down {
+  color: var(--mf-income-text);
+  font-weight: 600;
+}
+
+.delta_muted {
+  color: var(--mf-text-muted);
+}
+
 .subEmpty {
   display: grid;
   justify-items: center;

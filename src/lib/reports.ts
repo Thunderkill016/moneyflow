@@ -62,6 +62,13 @@ export type FinancialReport = {
     amount: number;
     share: number;
     trend: CategoryTrendMonth[];
+    /**
+     * The bucket's expense in the window immediately before, or null
+     * when it recorded none — "mới" on the row, never a fake 0
+     * baseline. A bucket that existed only in the prior window keeps
+     * its honest zero-current row (`amount` 0, `previous` set).
+     */
+    previous: number | null;
   }[];
   /**
    * Income grouped by category, largest first — the same split-distribution
@@ -94,7 +101,7 @@ export type FinancialReport = {
    * expense — a partially tagged month honestly sums under 100% instead of
    * being silently re-normalized.
    */
-  payees: { name: string; amount: number; share: number }[];
+  payees: { name: string; amount: number; share: number; previous: number | null }[];
   trend: { key: string; label: string; income: number; expense: number }[];
 };
 
@@ -561,7 +568,37 @@ export function buildFinancialReport(transactions: Transaction[], range: ReportR
         })),
       }))
       .sort((a, b) => b.amount - a.amount);
-  const categories = withTrend([...categoryTotals.entries()], expense, trendTotals);
+  /*
+   * The same equal-length prior window the totals compare against,
+   * bucketed with the exact category rules (split-distributed, refunds
+   * netting) — the per-bucket MoM column the mobile report carries.
+   */
+  const previousCategoryTotals = new Map<string, number>();
+  for (const item of previousTransactions) {
+    const netsRefund = isNettedRefund(item);
+    if (item.kind !== "expense" && !netsRefund) continue;
+    for (const line of categoryLines(item)) {
+      previousCategoryTotals.set(
+        line.name,
+        safeAdd(previousCategoryTotals.get(line.name) ?? 0, netsRefund ? -line.amount : line.amount),
+      );
+    }
+  }
+  const categories = withTrend(
+    [
+      ...categoryTotals.entries(),
+      // Prior-only buckets keep an honest zero-current row — spending
+      // that stopped is a recorded fact, not an absent comparison.
+      ...[...previousCategoryTotals.keys()]
+        .filter((name) => !categoryTotals.has(name))
+        .map((name) => [name, 0] as [string, number]),
+    ],
+    expense,
+    trendTotals,
+  ).map((row) => ({
+    ...row,
+    previous: previousCategoryTotals.get(row.name) ?? null,
+  }));
   const incomeCategories = withTrend(
     [...incomeCategoryTotals.entries()],
     income,
@@ -605,8 +642,34 @@ export function buildFinancialReport(transactions: Transaction[], range: ReportR
       safeAdd(payeeTotals.get(name) ?? 0, netsRefund ? -item.amount : item.amount),
     );
   }
-  const payees = [...payeeTotals.entries()]
-    .map(([name, amount]) => ({ name, amount, share: expense ? Math.round((amount / expense) * 100) : 0 }))
+  // The payee MoM column uses the identical whole-row/trim rules over
+  // the prior window — same key, same netting, so a row's delta can
+  // never disagree with the breakdown it annotates.
+  const previousPayeeTotals = new Map<string, number>();
+  for (const item of previousTransactions) {
+    const netsRefund = isNettedRefund(item);
+    if (item.kind !== "expense" && !netsRefund) continue;
+    const name = item.payee?.trim();
+    if (!name) continue;
+    previousPayeeTotals.set(
+      name,
+      safeAdd(previousPayeeTotals.get(name) ?? 0, netsRefund ? -item.amount : item.amount),
+    );
+  }
+  const payees = [
+    ...payeeTotals.entries(),
+    // A payee that only existed in the prior window keeps an honest
+    // zero row — "stopped going there" is a recorded fact.
+    ...[...previousPayeeTotals.keys()]
+      .filter((name) => !payeeTotals.has(name))
+      .map((name) => [name, 0] as [string, number]),
+  ]
+    .map(([name, amount]) => ({
+      name,
+      amount,
+      share: expense ? Math.round((amount / expense) * 100) : 0,
+      previous: previousPayeeTotals.get(name) ?? null,
+    }))
     .sort((a, b) => b.amount - a.amount);
   const trend = trendBuckets(range).map((bucket) => {
     // A monthly bucket key is `YYYY-MM`; a daily one is a full date. Matching on

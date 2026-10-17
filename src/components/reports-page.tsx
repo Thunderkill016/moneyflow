@@ -78,6 +78,26 @@ function expenseChangeLabel(value: number | null) {
   return "Không đổi";
 }
 
+/**
+ * One bucket's MoM delta — the same ▲/▼ contract the mobile report
+ * carries: "mới" when there was no prior-window spend (never a fake
+ * 0 baseline), "Không đổi" for a real zero change, else the signed
+ * amount. `up` means spending rose — expense-red; a fall is
+ * income-green because spending less is the good direction.
+ */
+function bucketDelta(
+  previous: number | null,
+  current: number,
+): { text: string; tone: "up" | "down" | "muted" } {
+  if (previous === null) return { text: "mới", tone: "muted" };
+  const change = current - previous;
+  if (change === 0) return { text: "Không đổi", tone: "muted" };
+  return {
+    text: `${change > 0 ? "▲" : "▼"} ${formatMoney(Math.abs(change))}`,
+    tone: change > 0 ? "up" : "down",
+  };
+}
+
 /*
  * Fixed viewBox; the SVG scales uniformly to the section width via CSS, so
  * strokes and point dots keep their shape at every viewport.
@@ -855,6 +875,7 @@ export function ReportsPage({
                       1,
                       ...item.trend.map((month) => month.amount),
                     );
+                    const delta = bucketDelta(item.previous, item.amount);
                     return (
                       <article className={styles.category} key={item.name}>
                         <span
@@ -918,6 +939,9 @@ export function ReportsPage({
                             emphasis="strong"
                           />
                           <small>{item.share}%</small>
+                          <small className={styles[`delta_${delta.tone}`]}>
+                            {delta.text}
+                          </small>
                         </div>
                       </article>
                     );
@@ -1109,6 +1133,7 @@ export function ReportsPage({
                       report.range,
                       item.name,
                     );
+                    const delta = bucketDelta(item.previous, item.amount);
                     return (
                       <article className={styles.category} key={item.name}>
                         <span
@@ -1141,6 +1166,9 @@ export function ReportsPage({
                             emphasis="strong"
                           />
                           <small>{item.share}%</small>
+                          <small className={styles[`delta_${delta.tone}`]}>
+                            {delta.text}
+                          </small>
                         </div>
                       </article>
                     );
