@@ -421,6 +421,58 @@
   }
 }
 
+.treemap {
+  position: relative;
+  height: 9.375rem;
+  margin-bottom: 0.75rem;
+  border-radius: 0.875rem;
+  overflow: hidden;
+}
+
+.treemapCell {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0.125rem;
+  padding: 0.375rem;
+  border-radius: 0.5rem;
+  /* 2px of transparent space reads as the cell gutter. */
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mf-expense-text);
+  text-decoration: none;
+}
+
+a.treemapCell:hover {
+  filter: brightness(0.96);
+}
+
+.treemapRollup {
+  background: var(--mf-surface);
+  border-color: var(--mf-border);
+  color: var(--mf-text-muted);
+}
+
+.treemapName {
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.treemapShare {
+  font-size: 0.6875rem;
+  line-height: 1.1;
+  opacity: 0.85;
+}
+
 .categories {
   display: grid;
   gap: 0.25rem;

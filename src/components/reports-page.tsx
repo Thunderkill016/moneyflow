@@ -13,6 +13,7 @@ import {
   reportPayeeDrilldownHref,
 } from "@/lib/report-drilldown";
 import { Icon, type IconName } from "@/components/icons";
+import { squarifiedTreemap } from "@/lib/treemap.ts";
 import { AppShell } from "@/components/layout/app-shell";
 import { MoneyValue } from "@/components/money-value";
 import {
@@ -34,7 +35,7 @@ import {
 } from "@/lib/export-data";
 import type { BalanceSeriesPoint } from "@/lib/balance-series";
 import { formatMoney, formatSignedMoney } from "@/lib/money";
-import type { ReportPeriod } from "@/lib/reports";
+import type { ReportPeriod, ReportRange } from "@/lib/reports";
 import { trackProductEvent } from "@/lib/safe-analytics";
 import {
   adjacentReportRanges,
@@ -76,6 +77,101 @@ function expenseChangeLabel(value: number | null) {
   if (value > 0) return `Tăng ${Math.abs(value)}%`;
   if (value < 0) return `Giảm ${Math.abs(value)}%`;
   return "Không đổi";
+}
+
+/**
+ * Category share treemap (Monarch/Spendee pattern) over the expense
+ * breakdown — the same squarified layout the mobile reports page uses.
+ * Top buckets paint as proportional blocks; the tail rolls into one
+ * 'Khác' cell. Named cells link to the same drill-down query as their
+ * row; the roll-up stays inert because a composite bucket has no
+ * single filter to reproduce.
+ */
+function CategoryTreemap({
+  categories,
+  range,
+}: {
+  categories: { name: string; amount: number; share: number }[];
+  range: ReportRange;
+}) {
+  const MAX_NAMED = 7;
+  const named = categories.slice(0, MAX_NAMED);
+  const tail = categories.slice(MAX_NAMED);
+  const tailAmount = tail.reduce((s, r) => s + r.amount, 0);
+  const tailShare = tail.reduce((s, r) => s + r.share, 0);
+  const weights = [
+    ...named.map((r) => r.amount),
+    ...(tailAmount > 0 ? [tailAmount] : []),
+  ];
+  // Cells are positioned in percent so the map is responsive without a
+  // measured width; the height is fixed in CSS.
+  const cells = squarifiedTreemap(weights, 100, 150);
+  return (
+    <div className={styles.treemap} role="list" aria-label="Bản đồ chi theo danh mục">
+      {cells.map((cell) => {
+        const row = cell.index < named.length ? named[cell.index] : null;
+        const share = row?.share ?? tailShare;
+        const showName = cell.w >= 14 && cell.h >= 34;
+        const showShare = cell.h >= 52;
+        const style = {
+          left: `${cell.x}%`,
+          top: cell.y,
+          width: `${cell.w}%`,
+          height: cell.h,
+          background: row
+            ? `color-mix(in srgb, var(--mf-expense) ${Math.min(60, 15 + share)}%, var(--mf-surface))`
+            : undefined,
+        };
+        const label = showName ? (
+          <>
+            <span className={styles.treemapName}>{row?.name ?? "Khác"}</span>
+            {showShare ? (
+              <span className={styles.treemapShare}>{share}%</span>
+            ) : null}
+          </>
+        ) : null;
+        if (row == null) {
+          return (
+            <div
+              key="khac"
+              className={`${styles.treemapCell} ${styles.treemapRollup}`}
+              style={style}
+              role="listitem"
+              aria-label={`Khác ${share}%`}
+            >
+              {label}
+            </div>
+          );
+        }
+        const href = reportCategoryDrilldownHref(range, row.name);
+        if (href == null) {
+          return (
+            <div
+              key={row.name}
+              className={styles.treemapCell}
+              style={style}
+              role="listitem"
+              aria-label={`${row.name} ${share}%`}
+            >
+              {label}
+            </div>
+          );
+        }
+        return (
+          <Link
+            key={row.name}
+            href={href}
+            className={styles.treemapCell}
+            style={style}
+            role="listitem"
+            aria-label={`${row.name} ${share}%`}
+          >
+            {label}
+          </Link>
+        );
+      })}
+    </div>
+  );
 }
 
 /**
@@ -860,8 +956,13 @@ export function ReportsPage({
               slot="report-categories"
             >
               {report.categories.length ? (
-                <div className={styles.categories}>
-                  {report.categories.map((item) => {
+                <>
+                  <CategoryTreemap
+                    categories={report.categories}
+                    range={report.range}
+                  />
+                  <div className={styles.categories}>
+                    {report.categories.map((item) => {
                     const meta = categoryMetaFor(
                       metaIndex,
                       "expense",
@@ -945,8 +1046,9 @@ export function ReportsPage({
                         </div>
                       </article>
                     );
-                  })}
-                </div>
+                    })}
+                  </div>
+                </>
               ) : (
                 <div className={styles.subEmpty}>
                   <Icon name="chart" />
