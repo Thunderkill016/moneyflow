@@ -258,6 +258,7 @@
         }
       },
       "share": 73,
+      "previous": null,
       "trend": [
         {
           "key": "2026-02",
@@ -329,6 +330,7 @@
         }
       },
       "share": 16,
+      "previous": null,
       "trend": [
         {
           "key": "2026-02",
@@ -400,6 +402,7 @@
         }
       },
       "share": 11,
+      "previous": null,
       "trend": [
         {
           "key": "2026-02",

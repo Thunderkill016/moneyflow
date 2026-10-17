@@ -2230,19 +2230,25 @@ class _AccountCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        accountKindLabel(account.kind),
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: mfPastelInk,
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        // Long kind labels clip instead of pushing the
+                        // chevron off the card at large text scales.
+                        child: Text(
+                          accountKindLabel(account.kind),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: mfPastelInk,
+                          ),
                         ),
                       ),
                     ),
