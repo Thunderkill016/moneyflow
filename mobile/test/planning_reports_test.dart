@@ -1569,6 +1569,53 @@ void main() {
       expect(find.text('1 giao dịch'), findsOneWidget);
     });
 
+    testWidgets('payee rows carry the same honest MoM delta as categories', (
+      tester,
+    ) async {
+      _tallViewport(tester);
+      final day = _thisMonthDay(), prev = _prevMonthDay();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ReportsPage(
+            loadTransactions: () => Future.value([
+              // Rose: 80k now vs 50k prior → ▲ 30.000 ₫ on 'Circle K'.
+              _tx(
+                't1',
+                TransactionKind.expense,
+                'Ăn uống',
+                80000,
+                day,
+                payee: 'Circle K',
+              ),
+              _tx(
+                'p1',
+                TransactionKind.expense,
+                'Ăn uống',
+                50000,
+                prev,
+                payee: 'Circle K',
+              ),
+              // New this month → 'mới', never a fake arrow.
+              _tx(
+                't2',
+                TransactionKind.expense,
+                'Ăn uống',
+                45000,
+                day,
+                payee: 'Highlands',
+              ),
+            ]),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Circle K'), findsOneWidget);
+      expect(find.text('▲ 30.000 ₫'), findsOneWidget);
+      expect(find.text('Highlands'), findsOneWidget);
+      expect(find.text('mới'), findsOneWidget);
+    });
+
     testWidgets('category rows carry the honest delta vs the prior month', (
       tester,
     ) async {
@@ -1606,7 +1653,9 @@ void main() {
       // it would make "stopped spending" look like "never existed".
       expect(find.text('Tiền nhà'), findsOneWidget);
       expect(find.text('▼ 3.000.000 ₫'), findsOneWidget);
-      expect(find.text('▲/▼ so với kỳ trước'), findsOneWidget);
+      // Category + payee sections both carry the comparison anchor —
+      // the payee column runs the same ▲/▼ contract.
+      expect(find.text('▲/▼ so với kỳ trước'), findsNWidgets(2));
     });
 
     testWidgets('a capped prior read drops the column with a reason', (
@@ -1642,12 +1691,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Arrows on a partial baseline would lie — the section says why
-      // the column is missing instead.
+      // Arrows on a partial baseline would lie — both delta sections
+      // say why the column is missing instead.
       expect(find.text('Ăn uống'), findsOneWidget);
       expect(
         find.text('Chưa so được với kỳ trước — dữ liệu kỳ trước chưa tải đủ'),
-        findsOneWidget,
+        findsNWidgets(2),
       );
       expect(find.textContaining('▲'), findsNothing);
       expect(find.text('mới'), findsNothing);
@@ -1680,7 +1729,7 @@ void main() {
       expect(find.text('Ăn uống'), findsOneWidget);
       expect(
         find.text('Chưa so được với kỳ trước — dữ liệu kỳ trước chưa tải đủ'),
-        findsOneWidget,
+        findsNWidgets(2),
       );
       expect(find.text('Không tải được báo cáo'), findsNothing);
     });

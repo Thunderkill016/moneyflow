@@ -80,16 +80,18 @@ class ReportsPage extends StatefulWidget {
 class ReportsPageState extends State<ReportsPage> {
   /// [buckets] feeds the Thu/Chi weekly chart — computed on the same
   /// range read as the report so the chart can never disagree with the
-  /// totals beside it. [deltas] is the expense-category MoM column —
-  /// null when the prior window's read failed or came back capped, so
-  /// the section can explain the missing column instead of drawing
-  /// arrows on a partial baseline.
+  /// totals beside it. [deltas]/[payeeDeltas] are the MoM columns for
+  /// the expense-category and payee sections — null when the prior
+  /// window's read failed or came back capped, so each section can
+  /// explain the missing column instead of drawing arrows on a
+  /// partial baseline.
   late Future<
     ({
       PeriodReport report,
       bool truncated,
       List<WeeklyBucket> buckets,
       Map<String, CategoryDelta>? deltas,
+      Map<String, CategoryDelta>? payeeDeltas,
     })
   >
   _report;
@@ -122,6 +124,7 @@ class ReportsPageState extends State<ReportsPage> {
       bool truncated,
       List<WeeklyBucket> buckets,
       Map<String, CategoryDelta>? deltas,
+      Map<String, CategoryDelta>? payeeDeltas,
     })
   >
   _load() async {
@@ -148,6 +151,10 @@ class ReportsPageState extends State<ReportsPage> {
               current: range.rows,
               previous: prevRange.rows,
             ),
+      // Same prior window feeds the payee column — no extra read.
+      payeeDeltas: prevRange == null || prevRange.truncated
+          ? null
+          : expensePayeeDeltas(current: range.rows, previous: prevRange.rows),
     );
   }
 
@@ -496,6 +503,7 @@ class ReportsPageState extends State<ReportsPage> {
                 final truncated = snap.data!.truncated;
                 final buckets = snap.data!.buckets;
                 final deltas = snap.data!.deltas;
+                final payeeDeltas = snap.data!.payeeDeltas;
                 return RefreshIndicator(
                   onRefresh: _refresh,
                   child: ListView(
@@ -631,6 +639,11 @@ class ReportsPageState extends State<ReportsPage> {
                           title: 'Chi theo người nhận',
                           rows: r.payees,
                           emptyLabel: 'Chưa có khoản chi trong kỳ này',
+                          deltas: payeeDeltas,
+                          deltaNote: payeeDeltas == null
+                              ? 'Chưa so được với kỳ trước — dữ liệu kỳ '
+                                    'trước chưa tải đủ'
+                              : '▲/▼ so với kỳ trước',
                           onRowTap: _rowTap(
                             (payee) => _periodQuery().copyWith(
                               kind: TransactionKind.expense,

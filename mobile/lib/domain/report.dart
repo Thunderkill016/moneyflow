@@ -471,6 +471,9 @@ Map<String, ({int total, String name, String? id})> _expenseBuckets(
 ) {
   final buckets = <String, ({int total, String name, String? id})>{};
   for (final t in items) {
+    // Excluded rows left the breakdown — a delta bucket for them would
+    // invent a comparison the section itself never shows.
+    if (t.excludedFromReports) continue;
     // Refund income nets the expense bucket it reimburses (D15) —
     // the delta map must see the same netted totals the breakdown shows.
     final netsCategory = t.kind == TransactionKind.income && t.isRefund;
@@ -535,6 +538,56 @@ Map<String, CategoryDelta> expenseCategoryDeltas({
 }) {
   final cur = _expenseBuckets(current);
   final prev = _expenseBuckets(previous);
+  return {
+    for (final key in {...cur.keys, ...prev.keys})
+      key: CategoryDelta(
+        name: (cur[key] ?? prev[key])!.name,
+        id: (cur[key] ?? prev[key])!.id,
+        current: cur[key]?.total ?? 0,
+        previous: prev[key]?.total,
+      ),
+  };
+}
+
+/// Expense totals per payee bucket for [items], keyed by the trimmed
+/// payee text — the same key `buildPeriodReport` uses (`payeeIds`
+/// stores the text itself, so a rendered row's [CategoryShare.id] is
+/// its bucket key verbatim). Payee-less spend groups under '' with the
+/// [unnamedPayeeBucket] label, refunds net, and excluded rows skip —
+/// every rule the payee section itself applies.
+Map<String, ({int total, String name, String? id})> _payeeBuckets(
+  List<Transaction> items,
+) {
+  final buckets = <String, ({int total, String name, String? id})>{};
+  for (final t in items) {
+    if (t.excludedFromReports) continue;
+    final netsPayee = t.kind == TransactionKind.income && t.isRefund;
+    if (t.kind != TransactionKind.expense && !netsPayee) continue;
+    final payee = (t.payee ?? '').trim();
+    final b = buckets[payee];
+    buckets[payee] = (
+      total: (b?.total ?? 0) + (netsPayee ? -t.amount : t.amount),
+      name: b?.name ?? (payee.isEmpty ? unnamedPayeeBucket : payee),
+      // The row's drill-in id IS the trimmed text verbatim — the
+      // breakdown's `payeeIds[payee] ??= payee` carries '' too, so the
+      // unnamed bucket still drills like any rendered row.
+      id: b?.id ?? payee,
+    );
+  }
+  return buckets;
+}
+
+/// Month-over-month deltas for the "Chi theo người nhận" section — the
+/// Money Lover Insider pattern (top payee + delta) the category
+/// section already carries. Same coverage contract as
+/// [expenseCategoryDeltas]: both windows merge so a payee that fell to
+/// zero still reports its honest negative change.
+Map<String, CategoryDelta> expensePayeeDeltas({
+  required List<Transaction> current,
+  required List<Transaction> previous,
+}) {
+  final cur = _payeeBuckets(current);
+  final prev = _payeeBuckets(previous);
   return {
     for (final key in {...cur.keys, ...prev.keys})
       key: CategoryDelta(
