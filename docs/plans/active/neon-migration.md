@@ -777,3 +777,14 @@ references existed (only Production carries `NEON_*`, pointing at the prod
 endpoint). The `verify-target.mjs` allowlist now holds only the prod
 project — a stale id cannot be silently re-targeted. mfvn health 200
 post-deletion.
+
+### Merged + git link restored (2026-10-08)
+
+- PR #775 squash-merged to `main` as `e18b8fc5` — CI green on exact head
+  `4d1e5364` (all jobs success including Browser smoke + Cross-device UI
+  audit after re-running a concurrency-cancelled run).
+- Vercel git link reconnected — pushes to `main` deploy to production
+  again. Post-merge `main` contains the Neon provider code production
+  already runs, so the auto-deploy path is consistent, not a regression
+  risk.
+- mfvn.vercel.app health 200 post-merge.
