@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/data/neon/auth_client.dart';
 import 'package:moneyflow/data/neon/data_api.dart';
@@ -180,106 +181,254 @@ void main() {
       expect(() => auth.signIn('x', 'y'), throwsA(isA<NeonAuthException>()));
     });
 
-    test(
-      'signInWithGoogleIdToken posts the idToken as a NESTED object',
-      () async {
-        final t = FakeTransport()
-          ..queue.add(
-            FakeTransport.json(
-              200,
-              {
-                'redirect': false,
-                'token': 't.s',
-                'user': {'id': 'u-g', 'email': 'g@x.c', 'name': 'G'},
-              },
-              headers: {
-                'set-cookie': '${NeonAuthClient.sessionCookieName}=t.s',
-              },
-            ),
-          );
-        final auth = NeonAuthClient(config: config, requester: t.requester);
-        final session = await auth.signInWithGoogleIdToken('google-id-token');
+    test('signInWithGoogleIdToken posts the idToken as a NESTED object '
+        '(native-sheet path)', () async {
+      final t = FakeTransport()
+        ..queue.add(
+          FakeTransport.json(
+            200,
+            {
+              'redirect': false,
+              'token': 't.s',
+              'user': {'id': 'u-g', 'email': 'g@x.c', 'name': 'G'},
+            },
+            headers: {'set-cookie': '${NeonAuthClient.sessionCookieName}=t.s'},
+          ),
+        );
+      final auth = NeonAuthClient(config: config, requester: t.requester);
+      final session = await auth.signInWithGoogleIdToken('google-id-token');
 
-        final req = t.requests.single;
-        expect(req.url.path, '/neondb/auth/sign-in/social');
-        expect(req.headers['Origin'], 'https://auth.test');
-        final body = req.body as Map<String, dynamic>;
-        expect(body['provider'], 'google');
-        // Regression: posting a bare STRING idToken makes Better Auth
-        // answer {"redirect":true,"url":…} instead of a session.
-        expect(body['idToken'], isA<Map>());
-        expect(body['idToken'], {'token': 'google-id-token'});
-        // The signed cookie still wins over the bare JSON token.
-        expect(session.sessionToken, 't.s');
-        expect(session.userId, 'u-g');
-      },
-    );
+      final req = t.requests.single;
+      expect(req.url.path, '/neondb/auth/sign-in/social');
+      final body = req.body as Map<String, dynamic>;
+      expect(body['provider'], 'google');
+      // Regression: posting a bare STRING idToken makes Better Auth
+      // answer {"redirect":true,"url":…} instead of a session.
+      expect(body['idToken'], isA<Map>());
+      expect(body['idToken'], {'token': 'google-id-token'});
+      expect(session.sessionToken, 't.s');
+      expect(session.userId, 'u-g');
+    });
+
+    test('a redirect:true social answer throws so the caller can fall '
+        'back to the loopback flow', () async {
+      final t = FakeTransport()
+        ..queue.add(
+          FakeTransport.json(200, {
+            'redirect': true,
+            'url': 'https://accounts.google.com/o/oauth2/…',
+          }),
+        );
+      final auth = NeonAuthClient(config: config, requester: t.requester);
+      await expectLater(
+        auth.signInWithGoogleIdToken('x'),
+        throwsA(
+          isA<NeonAuthException>().having(
+            (e) => e.message,
+            'message',
+            contains('browser redirect'),
+          ),
+        ),
+      );
+      expect(auth.session, isNull);
+    });
+
+    test('beginGoogleRedirect posts the loopback callbackURL and keeps '
+        'the challenge cookies', () async {
+      final t = FakeTransport()
+        ..queue.add(
+          FakeTransport.json(
+            200,
+            {'redirect': true, 'url': 'https://auth.test/init?x=1'},
+            headers: {
+              'set-cookie':
+                  '__Secure-neon-auth.session_challenge=chal.abc; '
+                  'HttpOnly, __Secure-neon-auth.session_challange='
+                  'chal.abc; HttpOnly',
+            },
+          ),
+        );
+      final auth = NeonAuthClient(config: config, requester: t.requester);
+      final attempt = await auth.beginGoogleRedirect(
+        'http://localhost:1234/oauth-callback',
+      );
+
+      final req = t.requests.single;
+      expect(req.url.path, '/neondb/auth/sign-in/social');
+      expect(req.headers['Origin'], 'https://auth.test');
+      final body = req.body as Map<String, dynamic>;
+      expect(body['provider'], 'google');
+      expect(body['callbackURL'], 'http://localhost:1234/oauth-callback');
+      // No idToken — the native exchange is gone; the browser leg is
+      // the only supported Google path.
+      expect(body.containsKey('idToken'), isFalse);
+
+      expect(attempt.authorizeUrl.toString(), 'https://auth.test/init?x=1');
+      // Both cookie spellings survive — upstream plants a misspelled
+      // twin and either name satisfies the exchange's challenge check.
+      expect(
+        attempt.challengeCookies,
+        containsAll([
+          '__Secure-neon-auth.session_challenge=chal.abc',
+          '__Secure-neon-auth.session_challange=chal.abc',
+        ]),
+      );
+    });
+
+    test('beginGoogleRedirect fails when the response has no url', () async {
+      final t = FakeTransport()
+        ..queue.add(FakeTransport.json(200, {'redirect': false}));
+      final auth = NeonAuthClient(config: config, requester: t.requester);
+      await expectLater(
+        auth.beginGoogleRedirect('http://localhost:1/cb'),
+        throwsA(isA<NeonAuthException>()),
+      );
+    });
 
     test(
-      'a redirect:true response is a failure, never a URL to follow',
+      'beginGoogleRedirect fails when no challenge cookie was set',
       () async {
         final t = FakeTransport()
           ..queue.add(
             FakeTransport.json(200, {
               'redirect': true,
-              'url': 'https://accounts.google.com/o/oauth2/…',
+              'url': 'https://auth.test/init',
             }),
           );
         final auth = NeonAuthClient(config: config, requester: t.requester);
         await expectLater(
-          auth.signInWithGoogleIdToken('x'),
+          auth.beginGoogleRedirect('http://localhost:1/cb'),
           throwsA(
             isA<NeonAuthException>().having(
               (e) => e.message,
               'message',
-              contains('browser redirect'),
+              contains('challenge'),
             ),
           ),
         );
-        expect(auth.session, isNull);
       },
     );
 
-    test(
-      'a 200 without user hydrates the session through get-session',
-      () async {
+    test('finishGoogleRedirect replays the verifier plus challenge cookies '
+        'to /get-session', () async {
+      final t = FakeTransport()
+        ..queue.add(
+          FakeTransport.json(
+            200,
+            {
+              'session': {'id': 's1'},
+              'user': {'id': 'u-g', 'email': 'g@x.c', 'name': 'G'},
+            },
+            headers: {
+              'set-cookie': '${NeonAuthClient.sessionCookieName}=t.sig%3D',
+              'set-auth-jwt': fakeJwt(),
+            },
+          ),
+        );
+      final auth = NeonAuthClient(config: config, requester: t.requester);
+      final session = await auth.finishGoogleRedirect(
+        redirectUri: Uri.parse(
+          'http://localhost:1234/oauth-callback'
+          '?neon_auth_session_verifier=ver9&other=keep',
+        ),
+        challengeCookies: const [
+          '__Secure-neon-auth.session_challenge=chal.abc',
+        ],
+      );
+
+      final req = t.requests.single;
+      expect(req.method, 'GET');
+      expect(req.url.path, '/neondb/auth/get-session');
+      // The whole query is forwarded, not just the verifier.
+      expect(req.url.queryParameters['neon_auth_session_verifier'], 'ver9');
+      expect(req.url.queryParameters['other'], 'keep');
+      expect(
+        req.headers['Cookie'],
+        contains('__Secure-neon-auth.session_challenge=chal.abc'),
+      );
+      // The signed cookie wins over any unsigned body token.
+      expect(session.sessionToken, 't.sig%3D');
+      expect(session.userId, 'u-g');
+      expect(auth.session, same(session));
+    });
+
+    test('finishGoogleRedirect throws when the provider redirects back '
+        'with an error', () async {
+      final t = FakeTransport();
+      final auth = NeonAuthClient(config: config, requester: t.requester);
+      await expectLater(
+        auth.finishGoogleRedirect(
+          redirectUri: Uri.parse('http://localhost:1/cb?error=access_denied'),
+          challengeCookies: const ['c=v'],
+        ),
+        throwsA(isA<NeonAuthException>()),
+      );
+      // The verifier exchange must never fire on an error redirect.
+      expect(t.requests, isEmpty);
+    });
+
+    test('finishGoogleRedirect never logs the verifier — release logcat '
+        'must not carry auth material', () async {
+      // The exchange URL's query carries the one-time
+      // neon_auth_session_verifier. debugPrint compiles into release
+      // builds, so logging it would ship the secret to logcat — the
+      // audit's P1-1 leak. Only status lines may print.
+      final logs = <String?>[];
+      final prev = debugPrint;
+      debugPrint = (message, {wrapWidth}) => logs.add(message);
+      try {
         final t = FakeTransport()
           ..queue.add(
             FakeTransport.json(
               200,
-              {'token': 't.s'},
+              {
+                'session': {'id': 's1'},
+                'user': {'id': 'u-g', 'email': 'g@x.c', 'name': 'G'},
+              },
               headers: {
-                'set-cookie': '${NeonAuthClient.sessionCookieName}=t.s',
+                'set-cookie': '${NeonAuthClient.sessionCookieName}=t.sig%3D',
               },
             ),
-          )
-          ..queue.add(
-            FakeTransport.json(200, {
-              'session': {'id': 's1'},
-              'user': {'id': 'u-g', 'email': 'g@x.c', 'name': 'G'},
-            }),
           );
         final auth = NeonAuthClient(config: config, requester: t.requester);
-        final session = await auth.signInWithGoogleIdToken('google-id-token');
-        expect(session.userId, 'u-g');
-        expect(session.sessionToken, 't.s');
-        expect(t.requests.last.url.path, '/neondb/auth/get-session');
-      },
-    );
-
-    test(
-      'a token-less social response fails instead of faking a session',
-      () async {
-        final t = FakeTransport()
-          ..queue.add(FakeTransport.json(200, {'redirect': false}));
-        final auth = NeonAuthClient(config: config, requester: t.requester);
-        await expectLater(
-          auth.signInWithGoogleIdToken('x'),
-          throwsA(isA<NeonAuthException>()),
+        await auth.finishGoogleRedirect(
+          redirectUri: Uri.parse(
+            'http://localhost:1234/oauth-callback'
+            '?neon_auth_session_verifier=ver-secret-99&other=keep',
+          ),
+          challengeCookies: const ['c=v'],
         );
-        expect(auth.session, isNull);
-      },
-    );
+      } finally {
+        debugPrint = prev;
+      }
+      expect(logs, isNotEmpty); // the status line still prints
+      for (final line in logs) {
+        expect(line, isNot(contains('ver-secret-99')));
+        expect(line, isNot(contains('neon_auth_session_verifier')));
+      }
+    });
+
+    test('finishGoogleRedirect fails honestly when upstream issues no '
+        'session token', () async {
+      final t = FakeTransport()
+        ..queue.add(
+          FakeTransport.json(200, {
+            'session': {'id': 's1'},
+            'user': {'id': 'u', 'email': 'e'},
+          }),
+        );
+      final auth = NeonAuthClient(config: config, requester: t.requester);
+      await expectLater(
+        auth.finishGoogleRedirect(
+          redirectUri: Uri.parse(
+            'http://localhost:1/cb?neon_auth_session_verifier=v',
+          ),
+          challengeCookies: const ['c=v'],
+        ),
+        throwsA(isA<NeonAuthException>()),
+      );
+      expect(auth.session, isNull);
+    });
 
     test(
       'requestPasswordReset posts the email to the reset endpoint',
@@ -539,6 +688,91 @@ void main() {
         throwsA(isA<NeonAuthException>()),
       );
       expect(expired, 0);
+    });
+
+    test(
+      'authentication_required inside a definer refreshes the JWT once',
+      () async {
+        final t = FakeTransport();
+        signInOk(t);
+        // Distinct exp values so the replay's bearer is provably the
+        // refreshed JWT, not a coincidentally identical cached token.
+        final stale = fakeJwt(
+          expEpochSec: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 600,
+        );
+        final fresh = fakeJwt(
+          expEpochSec: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 1200,
+        );
+        t.queue.add(
+          FakeTransport.json(200, {}, headers: {'set-auth-jwt': stale}),
+        );
+        // The definer raise is a 400-class RPC error, not a 401: the JWT
+        // passed PostgREST's role check but carried no usable claims.
+        t.queue.add(
+          FakeTransport.json(400, {
+            'code': 'P0001',
+            'message': 'authentication_required',
+          }),
+        );
+        t.queue.add(
+          FakeTransport.json(200, {}, headers: {'set-auth-jwt': fresh}),
+        );
+        t.queue.add(FakeTransport.json(200, 'tx-id'));
+        final auth = await signedIn(t);
+        var expired = 0;
+        final api = NeonDataApi(
+          config: config,
+          auth: auth,
+          requester: t.requester,
+          onSessionExpired: () async => expired++,
+        );
+
+        final result = await api.rpc('soft_delete_money_transaction', {
+          'p_transaction_id': 't1',
+        });
+
+        expect(result, 'tx-id');
+        // sign-in + get-session + rpc-fail + get-session-refresh + rpc-replay:
+        // the stale JWT was dropped and the retried request carried the
+        // fresh one.
+        expect(t.requests.length, 5);
+        expect(t.requests.last.headers['Authorization'], 'Bearer $fresh');
+        expect(expired, 0);
+      },
+    );
+
+    test('a repeat authentication_required surfaces as an error', () async {
+      final t = FakeTransport();
+      signInOk(t);
+      t.queue.add(
+        FakeTransport.json(200, {}, headers: {'set-auth-jwt': fakeJwt()}),
+      );
+      for (var i = 0; i < 2; i++) {
+        t.queue.add(
+          FakeTransport.json(400, {
+            'code': 'P0001',
+            'message': 'authentication_required',
+          }),
+        );
+        if (i == 0) {
+          t.queue.add(
+            FakeTransport.json(200, {}, headers: {'set-auth-jwt': fakeJwt()}),
+          );
+        }
+      }
+      final auth = await signedIn(t);
+      final api = NeonDataApi(
+        config: config,
+        auth: auth,
+        requester: t.requester,
+      );
+
+      await expectLater(
+        api.rpc('soft_delete_money_transaction', {'p_transaction_id': 't1'}),
+        throwsA(isA<NeonAuthException>()),
+      );
+      // One retry bound: 2 RPC attempts total, no loop.
+      expect(t.requests.where((r) => r.url.path.contains('/rpc/')).length, 2);
     });
   });
 

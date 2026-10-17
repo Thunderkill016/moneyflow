@@ -1,5 +1,5 @@
 begin;
-select plan(85);
+select plan(87);
 
 select has_table('public', 'profiles', 'profiles exists');
 select has_table('public', 'accounts', 'accounts exists');
@@ -62,13 +62,13 @@ select ok(exists(select 1 from pg_policies where schemaname = 'public' and table
 
 select col_type_is('public', 'inbox_candidates', 'amount_minor', 'bigint', 'inbox candidate money uses bigint');
 
-select has_function('public', 'create_money_transaction', array['uuid', 'uuid', 'transaction_kind', 'bigint', 'date', 'text', 'uuid', 'text', 'uuid'], 'create RPC exists (with payee + goal_id)');
+select has_function('public', 'create_money_transaction', array['uuid', 'uuid', 'transaction_kind', 'bigint', 'date', 'text', 'uuid', 'text', 'uuid', 'boolean'], 'create RPC exists (with payee + goal_id + refund flag)');
 select has_function('public', 'soft_delete_money_transaction', array['uuid'], 'soft delete RPC exists');
 select has_function('public', 'restore_money_transaction', array['uuid'], 'restore soft-deleted transaction RPC exists');
 select has_function('public', 'create_financial_account', array['text', 'account_kind', 'bigint', 'text', 'text', 'text'], 'create account RPC exists (with currency + identity)');
 select has_function('public', 'update_financial_account', array['uuid', 'text', 'account_kind', 'bigint', 'text', 'text', 'timestamptz'], 'update account RPC exists (with identity + expected_updated_at)');
 select has_function('public', 'set_financial_account_archived', array['uuid', 'boolean'], 'archive account RPC exists');
-select has_function('public', 'upsert_monthly_budget', array['uuid', 'date', 'bigint', 'timestamptz'], 'upsert budget RPC exists (with expected_updated_at)');
+select has_function('public', 'upsert_monthly_budget', array['uuid', 'date', 'bigint', 'timestamptz', 'text'], 'upsert budget RPC exists (with expected_updated_at + period_kind)');
 select has_function('public', 'delete_monthly_budget', array['uuid'], 'delete budget RPC exists');
 select has_function('public', 'upsert_recurring_commitment', array['uuid', 'text', 'bigint', 'integer', 'uuid', 'uuid', 'timestamptz', 'integer'], 'upsert recurring commitment RPC exists (with expected_updated_at + interval_months)');
 select has_function('public', 'set_recurring_commitment_archived', array['uuid', 'boolean'], 'archive recurring commitment RPC exists');
@@ -82,9 +82,11 @@ select has_function('public', 'upsert_savings_goal', array['uuid', 'text', 'bigi
 select has_function('public', 'adjust_savings_goal', array['uuid', 'bigint'], 'adjust savings goal RPC exists');
 select has_function('public', 'set_savings_goal_archived', array['uuid', 'boolean'], 'archive savings goal RPC exists');
 select has_function('public', 'create_account_transfer', array['uuid', 'uuid', 'bigint', 'date', 'text', 'uuid'], 'account transfer RPC exists');
-select has_function('public', 'update_money_transaction', array['uuid', 'uuid', 'uuid', 'transaction_kind', 'bigint', 'date', 'text', 'text', 'timestamptz', 'uuid', 'boolean'], 'update transaction RPC exists (with payee + expected_updated_at + goal sentinel)');
+select has_function('public', 'update_money_transaction', array['uuid', 'uuid', 'uuid', 'transaction_kind', 'bigint', 'date', 'text', 'text', 'timestamptz', 'uuid', 'boolean', 'boolean', 'boolean'], 'update transaction RPC exists (with payee + expected_updated_at + goal sentinel + exclusion flag + refund flag)');
 select has_function('public', 'update_account_transfer', array['uuid', 'uuid', 'uuid', 'bigint', 'date', 'text', 'timestamptz'], 'update transfer RPC exists (with expected_updated_at)');
 select has_function('public', 'dismiss_pattern_keys', array['text', 'text[]'], 'pattern dismissal RPC exists');
+select has_function('public', 'merge_categories', array['uuid', 'uuid'], 'merge categories RPC exists');
+select has_function('public', 'delete_transactions_before', array['date', 'text[]'], 'scoped history purge RPC exists');
 select col_type_is('public', 'transaction_entries', 'amount_minor', 'bigint', 'money uses bigint');
 select col_type_is('public', 'savings_goals', 'allocated_minor', 'bigint', 'goal allocations use bigint');
 select col_not_null('public', 'financial_transactions', 'idempotency_key', 'idempotency key is required');

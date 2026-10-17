@@ -13,7 +13,7 @@
 
 import 'models.dart';
 import 'money.dart';
-import 'report.dart' show dateAdd, dayOnly, parseYmd, ymd;
+import 'report.dart' show dateAdd, dayOnly, parseYmd, vnNow, ymd;
 
 /// 19:00 Sunday — evening, after the week has effectively closed. These
 /// are the DEFAULTS; the settings surface lets the user pick a different
@@ -65,9 +65,15 @@ DateTime nextWeeklyDigestFire(
 }
 
 /// The Mon–Sun week [fireDate] closes (callers always pass a Sunday from
-/// [nextWeeklyDigestFire]) and the Mon–Sun right before it.
+/// [nextWeeklyDigestFire]) and the Mon–Sun right before it. The window
+/// is anchored on the VN civil calendar — the same dates occurred_on is
+/// written in — not the device's: a local-Sunday 19:00 fire is already
+/// early Monday in Asia/Saigon west of UTC+7, so the just-closed week is
+/// taken from the most recent VN Sunday, never a device-Tuesday.
 WeeklyDigestWindow weeklyDigestWindow(DateTime fireDate) {
-  final end = dayOnly(fireDate);
+  final vnDay = dayOnly(vnNow(fireDate));
+  // weekday: Mon=1…Sun=7 — roll back to the most recent VN Sunday.
+  final end = dateAdd(vnDay, -(vnDay.weekday % DateTime.daysPerWeek));
   final start = dateAdd(end, -6);
   return WeeklyDigestWindow(
     start: ymd(start),
@@ -133,12 +139,25 @@ WeeklyDigest buildWeeklyDigest(
               (categoryTotals[t.category] ?? 0) + t.amount;
         }
       } else if (t.kind == TransactionKind.income) {
-        income += t.amount;
-        count++;
+        // Hoàn tiền (D15) nets the spend it reimburses — never Thu.
+        if (t.isRefund) {
+          expense -= t.amount;
+          count++;
+          if (t.category.isNotEmpty) {
+            categoryTotals[t.category] =
+                (categoryTotals[t.category] ?? 0) - t.amount;
+          }
+        } else {
+          income += t.amount;
+          count++;
+        }
       }
-    } else if (t.kind == TransactionKind.expense &&
-        inRange(t, window.previousStart, window.previousEnd)) {
-      previousExpense += t.amount;
+    } else if (inRange(t, window.previousStart, window.previousEnd)) {
+      if (t.kind == TransactionKind.expense) {
+        previousExpense += t.amount;
+      } else if (t.kind == TransactionKind.income && t.isRefund) {
+        previousExpense -= t.amount;
+      }
     }
   }
 

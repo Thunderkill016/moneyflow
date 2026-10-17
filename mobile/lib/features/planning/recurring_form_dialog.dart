@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/recurring_detection.dart';
+import '../shared/timed_snack_bar.dart';
 import '../capture/capture_submit.dart' show DemoReadOnly;
 
 /// Honest message for a failed planning write — the web server actions
@@ -92,7 +93,8 @@ Future<bool> showRecurringFormDialog(
       )
       .toList();
   if (kindCats.isEmpty || accounts.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    showTimedSnackBar(
+      ScaffoldMessenger.of(context),
       SnackBar(
         content: Text(
           income
@@ -147,6 +149,10 @@ Future<bool> showRecurringFormDialog(
     final m => 'Mỗi $m tháng',
   };
   String? error;
+  // upsert_recurring_commitment / upsert_recurring_income_template take
+  // no idempotency key — the in-flight guard IS the double-submit
+  // defense: a second tap while the RPC is pending would write twice.
+  var submitting = false;
   final ok = await showDialog<bool>(
     context: context,
     builder: (ctx) => StatefulBuilder(
@@ -242,46 +248,52 @@ Future<bool> showRecurringFormDialog(
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            // No cancel mid-flight — the RPC is already on the wire;
+            // popping here would hide a write that still lands.
+            onPressed: submitting ? null : () => Navigator.pop(ctx, false),
             child: const Text('Hủy'),
           ),
           FilledButton(
-            onPressed: () async {
-              final n = name.text.trim();
-              final a = parseMoneyInput(amount.text);
-              final day = int.tryParse(dueDay.text.trim());
-              if (n.isEmpty ||
-                  a == null ||
-                  a <= 0 ||
-                  day == null ||
-                  day < 1 ||
-                  day > 31 ||
-                  acc == null ||
-                  cat == null) {
-                return;
-              }
-              try {
-                // Income has no interval field — the picker is hidden and
-                // the saved value is always the monthly default.
-                await onSave(
-                  n,
-                  a,
-                  day,
-                  acc!.id,
-                  cat!.id,
-                  income ? 1 : interval,
-                );
-              } catch (e) {
-                setDlg(
-                  () => error = planningErrorMessage(
-                    e,
-                    fallback: 'Không lưu được — thử lại',
-                  ),
-                );
-                return;
-              }
-              if (ctx.mounted) Navigator.pop(ctx, true);
-            },
+            onPressed: submitting
+                ? null
+                : () async {
+                    final n = name.text.trim();
+                    final a = parseMoneyInput(amount.text);
+                    final day = int.tryParse(dueDay.text.trim());
+                    if (n.isEmpty ||
+                        a == null ||
+                        a <= 0 ||
+                        day == null ||
+                        day < 1 ||
+                        day > 31 ||
+                        acc == null ||
+                        cat == null) {
+                      return;
+                    }
+                    setDlg(() => submitting = true);
+                    try {
+                      // Income has no interval field — the picker is
+                      // hidden and the saved value is always monthly.
+                      await onSave(
+                        n,
+                        a,
+                        day,
+                        acc!.id,
+                        cat!.id,
+                        income ? 1 : interval,
+                      );
+                    } catch (e) {
+                      setDlg(() {
+                        submitting = false;
+                        error = planningErrorMessage(
+                          e,
+                          fallback: 'Không lưu được — thử lại',
+                        );
+                      });
+                      return;
+                    }
+                    if (ctx.mounted) Navigator.pop(ctx, true);
+                  },
             child: Text(isEdit ? 'Lưu' : 'Tạo'),
           ),
         ],

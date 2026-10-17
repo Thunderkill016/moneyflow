@@ -27,7 +27,7 @@ import { demoAccountRows, mapAccountRow } from "@/server/accounts";
 import { readAllPages } from "@/lib/paginated-read";
 
 const feedColumns =
-  "id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines,payee";
+  "id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines,payee,excluded_from_reports,is_refund";
 
 export type ReportsWorkspace = {
   report: FinancialReport;

@@ -12,6 +12,8 @@ Transaction tx(
   String category = 'X',
   String account = 'A',
   String? payee,
+  bool excluded = false,
+  bool refund = false,
 }) => Transaction(
   id: 't',
   kind: kind,
@@ -23,6 +25,8 @@ Transaction tx(
   amount: amount,
   occurredOn: '2026-10-01',
   payee: payee,
+  excludedFromReports: excluded,
+  isRefund: refund,
 );
 
 void main() {
@@ -38,6 +42,45 @@ void main() {
       expect(r.expense, 77000);
       expect(r.net, 14923000);
       expect(r.transactionCount, 4);
+      expect(r.excludedCount, 0);
+    });
+
+    test('excluded rows skip every section but keep disclosure sums', () {
+      final r = buildPeriodReport([
+        tx(TransactionKind.income, 1000000, category: 'Salary'),
+        tx(TransactionKind.expense, 70000, category: 'Food', payee: 'Counted'),
+        tx(
+          TransactionKind.expense,
+          30000,
+          category: 'Ref',
+          payee: 'Hidden',
+          excluded: true,
+        ),
+        tx(TransactionKind.income, 200000, category: 'Refund', excluded: true),
+      ]);
+      expect(r.income, 1000000);
+      expect(r.expense, 70000);
+      expect(r.net, 930000);
+      // The headline count is the counted rows — the ledger had four.
+      expect(r.transactionCount, 2);
+      expect(r.excludedCount, 2);
+      expect(r.excludedExpense, 30000);
+      expect(r.excludedIncome, 200000);
+      // A flagged row's category/payee/account leave no trace in the
+      // breakdowns — the disclosure line is the only place they surface.
+      expect(r.categories.map((c) => c.name), isNot(contains('Ref')));
+      expect(r.payees.map((p) => p.name), isNot(contains('Hidden')));
+      expect(r.incomeCategories.map((c) => c.name), isNot(contains('Refund')));
+    });
+
+    test('a fully excluded period is empty with honest counters', () {
+      final r = buildPeriodReport([
+        tx(TransactionKind.expense, 5000, excluded: true),
+      ]);
+      expect(r.transactionCount, 0);
+      expect(r.expense, 0);
+      expect(r.excludedCount, 1);
+      expect(r.excludedExpense, 5000);
     });
 
     test(
@@ -61,6 +104,65 @@ void main() {
         expect(third.savingsRatePercent, 33);
       },
     );
+
+    test(
+      'D15 refund income nets the expense category, never counts as Thu',
+      () {
+        final r = buildPeriodReport([
+          tx(TransactionKind.expense, 100000, category: 'Mua sắm'),
+          tx(
+            TransactionKind.income,
+            30000,
+            category: 'Mua sắm',
+            payee: 'Shop',
+            refund: true,
+          ),
+          tx(TransactionKind.income, 500000, category: 'Lương'),
+        ]);
+        // 100k spend − 30k refund = 70k net spend; Thu is salary only.
+        expect(r.income, 500000);
+        expect(r.expense, 70000);
+        expect(r.net, 430000);
+        // The refund row is real ledger activity — it counts.
+        expect(r.transactionCount, 3);
+        // Category breakdown shows the netted total, not the gross.
+        expect(r.categories.single.name, 'Mua sắm');
+        expect(r.categories.single.amount, 70000);
+        expect(r.categories.single.share, 100);
+        // Refunds never appear on the income side at all.
+        expect(r.incomeCategories.single.name, 'Lương');
+        // Payee + account sections net too so they still sum to expense:
+        // the unpayeed expense sits in the unnamed bucket, the refund
+        // nets its own payee, and the account shows 100k − 30k.
+        expect(r.payees.firstWhere((p) => p.name == 'Shop').amount, -30000);
+        expect(r.payees.fold(0, (s, p) => s + p.amount), r.expense);
+        expect(r.accounts.single.amount, 70000);
+      },
+    );
+
+    test('D15 a refund-only category reports a negative (netted) total', () {
+      final r = buildPeriodReport([
+        tx(TransactionKind.income, 20000, category: 'Trả hàng', refund: true),
+      ]);
+      expect(r.expense, -20000);
+      expect(r.categories.single.amount, -20000);
+      // No income → savings rate stays null rather than inventing a %.
+      expect(r.savingsRatePercent, isNull);
+    });
+
+    test('D15 refunds net inside expenseCategoryDeltas buckets', () {
+      final deltas = expenseCategoryDeltas(
+        current: [
+          tx(TransactionKind.expense, 100000, category: 'Ăn uống'),
+          tx(TransactionKind.income, 25000, category: 'Ăn uống', refund: true),
+        ],
+        previous: [tx(TransactionKind.expense, 90000, category: 'Ăn uống')],
+      );
+      final d = deltas['c-Ăn uống']!;
+      expect(d.current, 75000);
+      expect(d.previous, 90000);
+      expect(d.change, -15000);
+    });
 
     test('category shares sorted desc with rounded percent', () {
       final r = buildPeriodReport([
@@ -238,6 +340,190 @@ void main() {
     });
   });
 
+  group('payee counts', () {
+    test('payee rows carry the transaction count behind the total', () {
+      final r = buildPeriodReport([
+        tx(TransactionKind.expense, 30000, payee: 'Quán A'),
+        tx(TransactionKind.expense, 20000, payee: 'Quán A'),
+        tx(TransactionKind.expense, 50000, payee: 'Quán B'),
+        tx(TransactionKind.expense, 10000), // lands in 'Không tên'
+        // Income rows never join the payee section at all.
+        tx(TransactionKind.income, 9000000, payee: 'Công ty'),
+      ]);
+      final byName = {for (final p in r.payees) p.name: p};
+      expect(byName['Quán B']!.count, 1);
+      expect(byName['Quán B']!.amount, 50000);
+      expect(byName['Quán A']!.count, 2);
+      expect(byName['Quán A']!.amount, 50000);
+      expect(byName[unnamedPayeeBucket]!.count, 1);
+    });
+
+    test('category, income and account rows carry no count', () {
+      // Count is the payee ranking's field — the other sections leave
+      // it null rather than display an unasked-for number.
+      final r = buildPeriodReport([
+        tx(TransactionKind.expense, 30000, category: 'Ăn uống'),
+        tx(TransactionKind.income, 9000000, category: 'Lương'),
+      ]);
+      expect(r.categories.single.count, isNull);
+      expect(r.incomeCategories.single.count, isNull);
+      expect(r.accounts.single.count, isNull);
+    });
+  });
+
+  group('expenseCategoryDeltas', () {
+    /// Rows keyed like the feed — 'c-$category' keeps each display name
+    /// on a distinct stored id, the same data the backend sends.
+    Transaction cat(String category, int amount, {String? categoryId}) =>
+        Transaction(
+          id: 't',
+          kind: TransactionKind.expense,
+          categoryId: categoryId ?? 'c-$category',
+          category: category,
+          note: '',
+          accountId: 'a',
+          account: 'A',
+          amount: amount,
+          occurredOn: '2026-10-01',
+        );
+
+    test('rise, drop and unchanged buckets report honest signs', () {
+      final deltas = expenseCategoryDeltas(
+        current: [
+          cat('Ăn uống', 50000),
+          cat('Di chuyển', 20000),
+          cat('Khác', 7),
+        ],
+        previous: [
+          cat('Ăn uống', 30000),
+          cat('Di chuyển', 45000),
+          cat('Khác', 7),
+        ],
+      );
+      expect(deltas['c-Ăn uống']!.current, 50000);
+      expect(deltas['c-Ăn uống']!.previous, 30000);
+      expect(deltas['c-Ăn uống']!.change, 20000);
+      expect(deltas['c-Di chuyển']!.change, -25000);
+      expect(deltas['c-Khác']!.change, 0);
+    });
+
+    test('a category absent last window is "mới" — previous null, not 0', () {
+      final deltas = expenseCategoryDeltas(
+        current: [cat('Sức khỏe', 15000)],
+        previous: [cat('Ăn uống', 30000)],
+      );
+      // Null marks "no prior data" — a real 0 baseline would wrongly
+      // read as "không đổi" for a 0-amount current row.
+      expect(deltas['c-Sức khỏe']!.previous, isNull);
+      expect(deltas['c-Sức khỏe']!.change, 15000);
+    });
+
+    test('no prior window data at all — every bucket is new', () {
+      final deltas = expenseCategoryDeltas(
+        current: [cat('Ăn uống', 50000)],
+        previous: const [],
+      );
+      expect(deltas['c-Ăn uống']!.previous, isNull);
+    });
+
+    test('spending dropped to zero keeps its honest negative change', () {
+      // A prior-only bucket stays in the map — carrying its label and
+      // drill-in id so the section can render the honest zero row.
+      final deltas = expenseCategoryDeltas(
+        current: [cat('Ăn uống', 50000)],
+        previous: [cat('Ăn uống', 30000), cat('Tiền nhà', 3000000)],
+      );
+      expect(deltas['c-Tiền nhà']!.current, 0);
+      expect(deltas['c-Tiền nhà']!.previous, 3000000);
+      expect(deltas['c-Tiền nhà']!.change, -3000000);
+      expect(deltas['c-Tiền nhà']!.name, 'Tiền nhà');
+      expect(deltas['c-Tiền nhà']!.id, 'c-Tiền nhà');
+    });
+
+    test('a name-only prior bucket carries its label, no id', () {
+      final deltas = expenseCategoryDeltas(
+        current: [cat('Ăn uống', 50000)],
+        previous: [cat('Chợ', 80000, categoryId: '')],
+      );
+      expect(deltas['name:Chợ']!.name, 'Chợ');
+      expect(deltas['name:Chợ']!.id, isNull);
+      expect(deltas['name:Chợ']!.change, -80000);
+    });
+
+    test('name-only buckets match across windows like the breakdown', () {
+      // Feed rows without a category_id group under 'name:<label>' —
+      // the delta must bucket identically or rows would miss their key.
+      final deltas = expenseCategoryDeltas(
+        current: [cat('Tên lạ', 40000, categoryId: '')],
+        previous: [cat('Tên lạ', 25000, categoryId: '')],
+      );
+      expect(deltas['name:Tên lạ']!.change, 15000);
+    });
+
+    test('same-name categories on different ids stay separate', () {
+      // Two stored ids sharing a label never merge — merging would
+      // make a row's delta disagree with the drill-in behind it.
+      final deltas = expenseCategoryDeltas(
+        current: [cat('Ăn uống', 30000, categoryId: 'cat-1')],
+        previous: [
+          cat('Ăn uống', 20000, categoryId: 'cat-1'),
+          cat('Ăn uống', 90000, categoryId: 'cat-2'),
+        ],
+      );
+      expect(deltas['cat-1']!.change, 10000);
+      // cat-2 fell to zero this window — honest negative, not absent.
+      expect(deltas['cat-2']!.change, -90000);
+    });
+
+    test('income, transfers and uncategorised spend never feed a delta', () {
+      Transaction kind(TransactionKind k, String category, int amount) =>
+          Transaction(
+            id: 't',
+            kind: k,
+            categoryId: 'c-$category',
+            category: category,
+            note: '',
+            accountId: 'a',
+            account: 'A',
+            amount: amount,
+            occurredOn: '2026-10-01',
+          );
+      final deltas = expenseCategoryDeltas(
+        current: [
+          kind(TransactionKind.income, 'Lương', 9000000),
+          kind(TransactionKind.transfer, 'Chuyển', 500000),
+          // An expense row carrying no category label joins no bucket,
+          // exactly like the breakdown it feeds.
+          Transaction(
+            id: 't',
+            kind: TransactionKind.expense,
+            categoryId: '',
+            category: '',
+            note: '',
+            accountId: 'a',
+            account: 'A',
+            amount: 60000,
+            occurredOn: '2026-10-01',
+          ),
+        ],
+        previous: [cat('Ăn uống', 30000)],
+      );
+      expect(deltas.keys, {'c-Ăn uống'});
+    });
+
+    test('categoryDeltaKey maps a row to its bucket like the report', () {
+      const named = CategoryShare(
+        name: 'Ăn uống',
+        amount: 1,
+        share: 1,
+        id: 'cat-1',
+      );
+      const unnamed = CategoryShare(name: 'Tên lạ', amount: 1, share: 1);
+      expect(categoryDeltaKey(named), 'cat-1');
+      expect(categoryDeltaKey(unnamed), 'name:Tên lạ');
+    });
+  });
+
   group('MonthPeriod', () {
     test('bounds cover the whole calendar month', () {
       final p = MonthPeriod(2026, 10);
@@ -298,6 +584,37 @@ void main() {
       expect(next.from, '2026-10-11');
       expect(next.to, '2026-10-16'); // clamped: the 15th inclusive
       expect(p.next(DateTime(2026, 10, 10)), isNull);
+    });
+  });
+
+  group('VN civil clock (audit P1-6)', () {
+    test('vnToday anchors on Asia/Saigon, not the device zone', () {
+      // 2026-10-13 16:30 UTC is still 23:30 in Vietnam — same day.
+      expect(vnToday(DateTime.utc(2026, 10, 13, 16, 30)), '2026-10-13');
+      // 17:30 UTC crosses midnight in Saigon — a device still showing
+      // "the 13th" in New York writes the 14th the bank meant.
+      expect(vnToday(DateTime.utc(2026, 10, 13, 17, 30)), '2026-10-14');
+      // The boundary itself: exactly 17:00 UTC = 00:00 VN next day.
+      expect(vnToday(DateTime.utc(2026, 10, 13, 17, 0)), '2026-10-14');
+      expect(vnToday(DateTime.utc(2026, 10, 13, 16, 59)), '2026-10-13');
+    });
+
+    test('vnMonthStart rolls over on the VN month boundary', () {
+      expect(vnMonthStart(DateTime.utc(2026, 10, 31, 16, 59)), '2026-10-01');
+      // 17:00 UTC Oct 31 = 00:00 VN Nov 1 — the commitment payment lands
+      // in November even though a US device still shows October.
+      expect(vnMonthStart(DateTime.utc(2026, 10, 31, 17, 0)), '2026-11-01');
+      // Year boundary too.
+      expect(vnMonthStart(DateTime.utc(2026, 12, 31, 17, 0)), '2027-01-01');
+    });
+
+    test('vnNow reads the instant in the VN civil calendar', () {
+      final vn = vnNow(DateTime.utc(2026, 10, 13, 17, 30));
+      // The returned DateTime's calendar fields ARE the Saigon wall
+      // clock — feed them to ymd/dayOnly, never persist the instant.
+      expect(ymd(vn), '2026-10-14');
+      expect(vn.hour, 0);
+      expect(vn.minute, 30);
     });
   });
 }

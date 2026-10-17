@@ -6,14 +6,16 @@ BudgetProgress _bp(
   String categoryId,
   String monthStart,
   int limitMinor,
-  int spentMinor,
-) => BudgetProgress(
-  id: 'bp-$categoryId-$monthStart',
+  int spentMinor, {
+  BudgetPeriod period = BudgetPeriod.monthly,
+}) => BudgetProgress(
+  id: 'bp-$categoryId-$monthStart-${period.key}',
   categoryId: categoryId,
   categoryName: categoryId,
   monthStart: monthStart,
   limitMinor: limitMinor,
   spentMinor: spentMinor,
+  period: period,
 );
 
 Transaction _expense(
@@ -139,7 +141,7 @@ void main() {
         monthStart: '2026-10-01',
       );
       expect(rollover.carry, 0);
-      expect(rollover.monthsIncluded, 2);
+      expect(rollover.periodsIncluded, 2);
     });
 
     test('underspend carries positive; overspend carries negative', () {
@@ -149,7 +151,7 @@ void main() {
         monthStart: '2026-10-01',
       );
       expect(under.carry, 500000);
-      expect(under.monthsIncluded, 1);
+      expect(under.periodsIncluded, 1);
 
       final over = budgetRollover(
         priorBudgets: [_bp('cat-food', '2026-09-01', 2000000, 2600000)],
@@ -174,7 +176,7 @@ void main() {
         monthStart: '2026-10-01',
       );
       expect(rollover.carry, 200000);
-      expect(rollover.monthsIncluded, 1);
+      expect(rollover.periodsIncluded, 1);
     });
 
     test('a row exactly at the window edge still counts', () {
@@ -194,7 +196,7 @@ void main() {
         monthStart: '2026-10-01',
       );
       expect(rollover.carry, 0);
-      expect(rollover.monthsIncluded, 0);
+      expect(rollover.periodsIncluded, 0);
     });
   });
 
@@ -251,7 +253,7 @@ void main() {
     test('a zero carry stays silent', () {
       expect(
         budgetRolloverLabel(
-          const BudgetRollover(carry: 0, monthsIncluded: 2),
+          const BudgetRollover(carry: 0, periodsIncluded: 2),
           fmt,
         ),
         isNull,
@@ -261,14 +263,14 @@ void main() {
     test('names the carry direction and the month span', () {
       expect(
         budgetRolloverLabel(
-          const BudgetRollover(carry: 300000, monthsIncluded: 1),
+          const BudgetRollover(carry: 300000, periodsIncluded: 1),
           fmt,
         ),
         'Chuyển từ tháng trước: +300000₫',
       );
       expect(
         budgetRolloverLabel(
-          const BudgetRollover(carry: -300000, monthsIncluded: 1),
+          const BudgetRollover(carry: -300000, periodsIncluded: 1),
           fmt,
         ),
         'Trừ vì vượt hạn mức tháng trước: −300000₫',
@@ -276,11 +278,107 @@ void main() {
       // Netting three months is not "tháng trước" — the label says so.
       expect(
         budgetRolloverLabel(
-          const BudgetRollover(carry: 100, monthsIncluded: 3),
+          const BudgetRollover(carry: 100, periodsIncluded: 3),
           fmt,
         ),
         'Chuyển từ 3 tháng trước đó: +100₫',
       );
+    });
+  });
+
+  group('budgetAlerts', () {
+    test('no rows for the month means no alerts', () {
+      expect(
+        budgetAlerts([
+          _bp('cat-food', '2026-09-01', 2000000, 5000000),
+        ], monthStart: '2026-10-01'),
+        isEmpty,
+      );
+    });
+
+    test('rows under 80% stay quiet — the card is not a noise feed', () {
+      // 395.000 * 5 = 1.975.000 < 500.000 * 4 = 2.000.000.
+      expect(
+        budgetAlerts([
+          _bp('cat-food', '2026-10-01', 500000, 395000),
+        ], monthStart: '2026-10-01'),
+        isEmpty,
+      );
+    });
+
+    test('exactly 80% alerts nearLimit with the remaining headroom', () {
+      final alerts = budgetAlerts([
+        _bp('cat-food', '2026-10-01', 500000, 400000),
+      ], monthStart: '2026-10-01');
+      expect(alerts, hasLength(1));
+      expect(alerts.single.state, BudgetState.nearLimit);
+      expect(alerts.single.amountMinor, 100000);
+      expect(alerts.single.categoryName, 'cat-food');
+    });
+
+    test('past the limit alerts over with the overshoot amount', () {
+      final alerts = budgetAlerts([
+        _bp('cat-food', '2026-10-01', 500000, 532000),
+      ], monthStart: '2026-10-01');
+      expect(alerts.single.state, BudgetState.over);
+      expect(alerts.single.amountMinor, 32000);
+    });
+
+    test('exactly at the limit reads nearLimit ("còn 0"), not over', () {
+      final alerts = budgetAlerts([
+        _bp('cat-food', '2026-10-01', 500000, 500000),
+      ], monthStart: '2026-10-01');
+      expect(alerts.single.state, BudgetState.nearLimit);
+      expect(alerts.single.amountMinor, 0);
+    });
+
+    test('prior-month carry can push an on-limit row into over — the '
+        'same math the Kế hoạch tile renders', () {
+      // Own month: 400.000 / 500.000 = 80% → near on raw figures. The
+      // −200.000 carried overspend drops the effective limit to 300.000
+      // → over by 100.000. An alert that ignored the carry would say
+      // "sắp tới" where planning already says "vượt".
+      final alerts = budgetAlerts([
+        _bp('cat-food', '2026-10-01', 500000, 400000),
+        _bp('cat-food', '2026-09-01', 500000, 700000),
+      ], monthStart: '2026-10-01');
+      expect(alerts.single.state, BudgetState.over);
+      expect(alerts.single.amountMinor, 100000);
+    });
+
+    test('a positive carry can lift an over row back to near', () {
+      // Over on raw figures (532 > 500) but +100.000 carried underspend
+      // raises the effective limit to 600.000 → 68.000 left → near.
+      final alerts = budgetAlerts([
+        _bp('cat-food', '2026-10-01', 500000, 532000),
+        _bp('cat-food', '2026-09-01', 500000, 400000),
+      ], monthStart: '2026-10-01');
+      expect(alerts.single.state, BudgetState.nearLimit);
+      expect(alerts.single.amountMinor, 68000);
+    });
+
+    test('prior-month rows never alert for themselves', () {
+      final alerts = budgetAlerts([
+        _bp('cat-food', '2026-09-01', 500000, 900000),
+      ], monthStart: '2026-10-01');
+      expect(alerts, isEmpty);
+    });
+
+    test('ordering: over rows first by breach size, then near by '
+        'tightest headroom, ties on name', () {
+      final alerts = budgetAlerts([
+        _bp('cat-bills', '2026-10-01', 500000, 480000), // near, còn 20k
+        _bp('cat-food', '2026-10-01', 500000, 550000), // over 50k
+        _bp('cat-fun', '2026-10-01', 500000, 800000), // over 300k
+        _bp('cat-transport', '2026-10-01', 500000, 450000), // near 50k
+        _bp('cat-calm', '2026-10-01', 500000, 100000), // ok — excluded
+      ], monthStart: '2026-10-01');
+      expect(alerts.map((a) => a.categoryId), [
+        'cat-fun', // over 300k first
+        'cat-food', // over 50k
+        'cat-bills', // near, tightest headroom (20k)
+        'cat-transport', // near, 50k
+      ]);
     });
   });
 
@@ -475,6 +573,271 @@ void main() {
         ),
       ], '2026-10-01');
       expect(avg, 0);
+    });
+  });
+
+  // -- D12: weekly budget periods --------------------------------------------
+  // Civil facts asserted here: 2026-10-12 is a Monday (week 10-12..10-18);
+  // 2026-10-13 is a Tuesday; 2026-12-28 is a Monday whose week ends
+  // 2027-01-03 — the year-straddling label case.
+  group('budgetPeriodStart', () {
+    test('monthly anchors on the 1st of the containing month', () {
+      expect(
+        budgetPeriodStart(DateTime(2026, 10, 17), BudgetPeriod.monthly),
+        '2026-10-01',
+      );
+    });
+
+    test('weekly anchors on the Monday of the containing week', () {
+      // Sunday belongs to the week that STARTED the prior Monday.
+      expect(
+        budgetPeriodStart(DateTime(2026, 10, 18), BudgetPeriod.weekly),
+        '2026-10-12',
+      );
+      expect(
+        budgetPeriodStart(DateTime(2026, 10, 12), BudgetPeriod.weekly),
+        '2026-10-12',
+      );
+    });
+  });
+
+  group('shiftBudgetPeriod', () {
+    test('weekly shifts in 7-day steps across month and year edges', () {
+      expect(
+        shiftBudgetPeriod('2026-10-12', BudgetPeriod.weekly, 1),
+        '2026-10-19',
+      );
+      expect(
+        shiftBudgetPeriod('2026-10-12', BudgetPeriod.weekly, -1),
+        '2026-10-05',
+      );
+      expect(
+        shiftBudgetPeriod('2026-12-28', BudgetPeriod.weekly, 1),
+        '2027-01-04',
+      );
+    });
+
+    test('monthly delegates to shiftBudgetMonth', () {
+      expect(
+        shiftBudgetPeriod('2026-12-01', BudgetPeriod.monthly, 1),
+        '2027-01-01',
+      );
+    });
+
+    test('a non-Monday weekly anchor throws like the RPC does', () {
+      expect(
+        () => shiftBudgetPeriod('2026-10-13', BudgetPeriod.weekly, 0),
+        throwsFormatException,
+      );
+      expect(
+        () => shiftBudgetPeriod('not-a-date', BudgetPeriod.weekly, 0),
+        throwsFormatException,
+      );
+    });
+  });
+
+  group('budgetPeriodEnd / budgetPeriodPace / budgetPeriodLabel', () {
+    test('the end anchor is the next period start — exclusive bound', () {
+      expect(budgetPeriodEnd('2026-10-12', BudgetPeriod.weekly), '2026-10-19');
+      expect(budgetPeriodEnd('2026-10-01', BudgetPeriod.monthly), '2026-11-01');
+    });
+
+    test('weekly pace counts today inside the week', () {
+      // Monday itself reads 1/7 — never 0 like a not-yet-started month.
+      expect(
+        budgetPeriodPace(
+          '2026-10-12',
+          BudgetPeriod.weekly,
+          DateTime(2026, 10, 12),
+        ),
+        closeTo(1 / 7, 1e-9),
+      );
+      expect(
+        budgetPeriodPace(
+          '2026-10-12',
+          BudgetPeriod.weekly,
+          DateTime(2026, 10, 18),
+        ),
+        1,
+      );
+      // A future week is 0, a past week 1.
+      expect(
+        budgetPeriodPace(
+          '2026-10-19',
+          BudgetPeriod.weekly,
+          DateTime(2026, 10, 12),
+        ),
+        0,
+      );
+      expect(
+        budgetPeriodPace(
+          '2026-10-05',
+          BudgetPeriod.weekly,
+          DateTime(2026, 10, 12),
+        ),
+        1,
+      );
+    });
+
+    test('labels: month, week, and a year-straddling week', () {
+      expect(
+        budgetPeriodLabel('2026-10-01', BudgetPeriod.monthly),
+        'tháng 10/2026',
+      );
+      expect(
+        budgetPeriodLabel('2026-10-12', BudgetPeriod.weekly),
+        'tuần 12/10 – 18/10/2026',
+      );
+      // 2026-12-28..2027-01-03 — both ends carry their year.
+      expect(
+        budgetPeriodLabel('2026-12-28', BudgetPeriod.weekly),
+        'tuần 28/12/2026 – 3/1/2027',
+      );
+    });
+
+    test('the noun is the cadence word copy builds phrases from', () {
+      expect(budgetPeriodNoun(BudgetPeriod.monthly), 'tháng');
+      expect(budgetPeriodNoun(BudgetPeriod.weekly), 'tuần');
+    });
+  });
+
+  group('weekly rollover / alerts / carry-forward', () {
+    test('a weekly carry nets prior WEEKS only — monthly rows never mix', () {
+      final rollover = budgetRollover(
+        priorBudgets: [
+          // Prior week 10-05: underspent +100k.
+          _bp(
+            'cat-food',
+            '2026-10-05',
+            600000,
+            500000,
+            period: BudgetPeriod.weekly,
+          ),
+          // Same-Monday-anchored MONTHLY row for 10-01 — different
+          // cadence, different window; it must not leak into the week.
+          _bp('cat-food', '2026-10-01', 2000000, 100),
+          // The viewed week itself — never self-carries.
+          _bp(
+            'cat-food',
+            '2026-10-12',
+            600000,
+            50000,
+            period: BudgetPeriod.weekly,
+          ),
+          // Outside the 12-week window — 2026-07-13 is 13 weeks back.
+          _bp(
+            'cat-food',
+            '2026-07-06',
+            600000,
+            100,
+            period: BudgetPeriod.weekly,
+          ),
+        ],
+        categoryId: 'cat-food',
+        monthStart: '2026-10-12',
+        period: BudgetPeriod.weekly,
+      );
+      expect(rollover.carry, 100000);
+      expect(rollover.periodsIncluded, 1);
+    });
+
+    test('a monthly call ignores weekly rows in the same list', () {
+      final rollover = budgetRollover(
+        priorBudgets: [
+          _bp('cat-food', '2026-09-01', 2000000, 1700000),
+          _bp(
+            'cat-food',
+            '2026-09-28',
+            600000,
+            100,
+            period: BudgetPeriod.weekly,
+          ),
+        ],
+        categoryId: 'cat-food',
+        monthStart: '2026-10-01',
+      );
+      expect(rollover.carry, 300000);
+      expect(rollover.periodsIncluded, 1);
+    });
+
+    test('the rollover label speaks in weeks on the weekly surface', () {
+      String fmt(int v) => '$v₫';
+      expect(
+        budgetRolloverLabel(
+          const BudgetRollover(carry: 60000, periodsIncluded: 1),
+          fmt,
+          period: BudgetPeriod.weekly,
+        ),
+        'Chuyển từ tuần trước: +60000₫',
+      );
+      expect(
+        budgetRolloverLabel(
+          const BudgetRollover(carry: -40000, periodsIncluded: 2),
+          fmt,
+          period: BudgetPeriod.weekly,
+        ),
+        'Trừ vì vượt hạn mức 2 tuần trước đó: −40000₫',
+      );
+    });
+
+    test('budgetAlerts on the weekly period reads weekly rows only', () {
+      final alerts = budgetAlerts(
+        [
+          // Weekly row over its limit — the alert target.
+          _bp(
+            'cat-food',
+            '2026-10-12',
+            150000,
+            172000,
+            period: BudgetPeriod.weekly,
+          ),
+          // A same-anchor-ish monthly row must not alert here nor feed
+          // the weekly carry (it is over its own limit — if it leaked,
+          // it would double-count as a second alert).
+          _bp('cat-food', '2026-10-01', 500000, 600000),
+        ],
+        monthStart: '2026-10-12',
+        period: BudgetPeriod.weekly,
+      );
+      // With no prior weekly rows the carry is 0: 172k − 150k = 22k over.
+      expect(alerts.single.state, BudgetState.over);
+      expect(alerts.single.amountMinor, 22000);
+    });
+
+    test('a monthly alerts call never sees the weekly row', () {
+      final alerts = budgetAlerts([
+        _bp(
+          'cat-food',
+          '2026-10-12',
+          150000,
+          172000,
+          period: BudgetPeriod.weekly,
+        ),
+      ], monthStart: '2026-10-01');
+      expect(alerts, isEmpty);
+    });
+
+    test('carry-forward proposes last week\'s limits for the viewed week', () {
+      final drafts = budgetsToCarryForward(
+        previousBudgets: [
+          _bp(
+            'cat-food',
+            '2026-10-05',
+            600000,
+            500000,
+            period: BudgetPeriod.weekly,
+          ),
+          // Last MONTH's monthly limit is not a weekly carry source.
+          _bp('cat-food', '2026-09-01', 2000000, 100),
+        ],
+        currentBudgets: const [],
+        monthStart: '2026-10-12',
+        period: BudgetPeriod.weekly,
+      );
+      expect(drafts, hasLength(1));
+      expect(drafts.single.monthStart, '2026-10-12');
+      expect(drafts.single.limitMinor, 600000);
+      expect(drafts.single.period, BudgetPeriod.weekly);
     });
   });
 }

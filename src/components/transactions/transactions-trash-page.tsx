@@ -2,12 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { restoreTransactionAction } from "@/app/actions/transactions";
+import {
+  permanentlyDeleteTransactionAction,
+  restoreTransactionAction,
+} from "@/app/actions/transactions";
 import { Icon, type IconName } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import { MoneyValue } from "@/components/money-value";
 import {
   SecondaryHeader,
+  SecondaryReviewDialog,
   SecondaryWorkspace,
 } from "@/components/secondary/secondary-layout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -79,8 +83,15 @@ export function TransactionsTrashPage({
   const [entries, setEntries] = useState<DeletedTransaction[]>(initialDeleted);
   const [ready, setReady] = useState(!isDemo);
   const [notice, setNotice] = useState("");
-  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(undefined);
+  const [noticeTone, setNoticeTone] = useState<ToastTone | undefined>(
+    undefined,
+  );
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [purgeTarget, setPurgeTarget] = useState<DeletedTransaction | null>(
+    null,
+  );
+  const [purgeAllOpen, setPurgeAllOpen] = useState(false);
+  const [purging, setPurging] = useState(false);
   const [inboxCount, setInboxCount] = useState(0);
   const noticeTimerRef = useRef<number | null>(null);
 
@@ -167,6 +178,90 @@ export function TransactionsTrashPage({
     }
   }
 
+  async function purgeEntry(entry: DeletedTransaction) {
+    if (purging) return;
+    setPurging(true);
+    try {
+      if (isDemo) {
+        /*
+         * Demo tombstones live in localStorage — dropping them here is the
+         * real permanent delete for demo data, so the affordance stays
+         * honest instead of being hidden.
+         */
+        releaseDeletedTransactions([entry.transaction.id]);
+        removeEntry(entry.transaction.id);
+        setPurgeTarget(null);
+        showNotice("Đã xóa vĩnh viễn.", "success");
+        return;
+      }
+
+      const result = await permanentlyDeleteTransactionAction(
+        entry.transaction.id,
+      );
+      if (result.ok) {
+        removeEntry(entry.transaction.id);
+        setPurgeTarget(null);
+        showNotice("Đã xóa vĩnh viễn.", "success");
+      } else {
+        showNotice(
+          result.message || "Không xóa được giao dịch. Thử lại.",
+          "error",
+        );
+      }
+    } catch {
+      showNotice("Mất kết nối. Kiểm tra mạng rồi thử lại.", "error");
+    } finally {
+      setPurging(false);
+    }
+  }
+
+  async function purgeAllEntries() {
+    if (purging || entries.length === 0) return;
+    setPurging(true);
+    try {
+      if (isDemo) {
+        releaseDeletedTransactions(
+          entries.map((entry) => entry.transaction.id),
+        );
+        setEntries([]);
+        setPurgeAllOpen(false);
+        showNotice("Đã dọn sạch thùng rác.", "success");
+        return;
+      }
+
+      /*
+       * Per-row RPC sequentially: a partial failure keeps the remaining
+       * rows in place and the notice says so, rather than faking a clean
+       * sweep.
+       */
+      const failed: string[] = [];
+      for (const entry of entries) {
+        const result = await permanentlyDeleteTransactionAction(
+          entry.transaction.id,
+        );
+        if (result.ok) {
+          removeEntry(entry.transaction.id);
+        } else {
+          failed.push(entry.transaction.id);
+        }
+      }
+      setPurgeAllOpen(false);
+      if (failed.length === 0) {
+        showNotice("Đã dọn sạch thùng rác.", "success");
+      } else {
+        showNotice(
+          `Chưa dọn hết — còn ${failed.length} giao dịch. Thử lại.`,
+          "error",
+        );
+      }
+      router.refresh();
+    } catch {
+      showNotice("Mất kết nối. Kiểm tra mạng rồi thử lại.", "error");
+    } finally {
+      setPurging(false);
+    }
+  }
+
   return (
     <AppShell
       viewer={viewer}
@@ -183,10 +278,10 @@ export function TransactionsTrashPage({
           description={
             <>
               <p>
-                Các giao dịch bạn xóa được giữ ở đây cho đến khi bạn xóa tài
-                khoản. Khôi phục sẽ đưa giao dịch trở lại sổ — trạng thái đối
-                soát đã xác nhận không được giữ lại, các dòng quay về chờ đối
-                soát.
+                Các giao dịch bạn xóa được giữ ở đây để khôi phục, hoặc xóa vĩnh
+                viễn khi bạn chắc chắn. Khôi phục sẽ đưa giao dịch trở lại sổ —
+                trạng thái đối soát đã xác nhận không được giữ lại, các dòng
+                quay về chờ đối soát.
               </p>
               <p className={styles.note}>
                 Giao dịch đã đối soát hoặc tạo từ lịch định kỳ không thể xóa,
@@ -195,13 +290,26 @@ export function TransactionsTrashPage({
             </>
           }
           actions={
-            <LinkButton
-              href="/transactions"
-              intent="secondary"
-              targetSize="important"
-            >
-              <Icon name="arrows" /> Về sổ giao dịch
-            </LinkButton>
+            <>
+              <LinkButton
+                href="/transactions"
+                intent="secondary"
+                targetSize="important"
+              >
+                <Icon name="arrows" /> Về sổ giao dịch
+              </LinkButton>
+              {entries.length > 0 ? (
+                <Button
+                  type="button"
+                  intent="secondary"
+                  targetSize="important"
+                  disabled={purging}
+                  onClick={() => setPurgeAllOpen(true)}
+                >
+                  <Icon name="trash" /> Dọn sạch thùng rác
+                </Button>
+              ) : null}
+            </>
           }
         />
 
@@ -297,10 +405,20 @@ export function TransactionsTrashPage({
                     className={styles.restoreButton}
                     pending={restoring}
                     pendingLabel="Đang khôi phục…"
-                    disabled={restoringId !== null}
+                    disabled={restoringId !== null || purging}
                     onClick={() => void restoreEntry(entry)}
                   >
                     <Icon name="restore" /> Khôi phục
+                  </Button>
+                  <Button
+                    type="button"
+                    intent="destructive"
+                    targetSize="important"
+                    aria-label={`Xóa vĩnh viễn ${transaction.note}`}
+                    disabled={restoringId !== null || purging}
+                    onClick={() => setPurgeTarget(entry)}
+                  >
+                    <Icon name="trash" />
                   </Button>
                 </article>
               );
@@ -308,6 +426,58 @@ export function TransactionsTrashPage({
           </section>
         ) : null}
       </SecondaryWorkspace>
+
+      <SecondaryReviewDialog
+        open={purgeTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !purging) setPurgeTarget(null);
+        }}
+        title="Xóa vĩnh viễn?"
+        description="Giao dịch sẽ bị xóa khỏi thùng rác."
+        details={
+          purgeTarget
+            ? [
+                {
+                  label: "Giao dịch",
+                  value:
+                    purgeTarget.transaction.note ||
+                    purgeTarget.transaction.category,
+                },
+                {
+                  label: "Đã xóa lúc",
+                  value: formatDeletedAtLabel(purgeTarget.deletedAt),
+                },
+              ]
+            : []
+        }
+        consequence="Không thể khôi phục sau khi xóa vĩnh viễn."
+        confirmLabel="Xóa vĩnh viễn"
+        confirmIntent="destructive"
+        pending={purging}
+        onConfirm={() =>
+          purgeTarget ? void purgeEntry(purgeTarget) : undefined
+        }
+        slot="trash-purge"
+      />
+
+      <SecondaryReviewDialog
+        open={purgeAllOpen}
+        onOpenChange={(open) => {
+          if (!open && !purging) setPurgeAllOpen(false);
+        }}
+        title="Dọn sạch thùng rác?"
+        description={`Xóa vĩnh viễn ${entries.length} giao dịch trong thùng rác.`}
+        details={[
+          { label: "Số giao dịch", value: String(entries.length) },
+          { label: "Phạm vi", value: "Toàn bộ thùng rác" },
+        ]}
+        consequence="Không thể khôi phục bất kỳ giao dịch nào sau khi dọn."
+        confirmLabel="Xóa hết"
+        confirmIntent="destructive"
+        pending={purging}
+        onConfirm={() => void purgeAllEntries()}
+        slot="trash-purge-all"
+      />
     </AppShell>
   );
 }

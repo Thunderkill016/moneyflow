@@ -111,8 +111,10 @@ void main() {
     expect(opened?.id, 'a1');
     expect(find.text('Sửa tài khoản'), findsNothing);
 
-    // Edit stays one tap away via the trailing action (web: "Sửa" button).
-    await t.tap(find.byTooltip('Sửa Tiền mặt'));
+    // Edit stays one tap away via the trailing overflow menu (web: "Sửa").
+    await t.tap(find.byTooltip('Tùy chọn Tiền mặt'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Sửa'));
     await t.pumpAndSettle();
     expect(find.text('Sửa tài khoản'), findsOneWidget);
   });
@@ -138,6 +140,7 @@ void main() {
     expect(opened?.id, 'a1');
     await t.longPress(find.text('Tiền mặt').first);
     await t.pumpAndSettle();
+    expect(find.textContaining('Đóng "'), findsNothing);
     expect(find.textContaining('Lưu trữ'), findsNothing);
   });
 
@@ -160,6 +163,76 @@ void main() {
     await t.tap(find.text('Tạo'));
     await t.pumpAndSettle();
     expect(created, 'Quỹ');
+  });
+
+  testWidgets(
+    'a second tap while create is in flight cannot create two accounts',
+    (t) async {
+      // audit P1-5: create_financial_account has no idempotency key —
+      // the disabled button is the only dedupe. A mid-RPC second tap
+      // would create two accounts the server cannot tell apart.
+      var calls = 0;
+      final gate = Completer<void>();
+      await t.pumpWidget(
+        MaterialApp(
+          home: AccountsPage(
+            loadAccounts: () async => const [],
+            onCreate: (_, _, _) async {
+              calls++;
+              await gate.future;
+            },
+            onArchive: (_, _) async {},
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      await t.tap(find.widgetWithText(FloatingActionButton, 'Thêm tài khoản'));
+      await t.pumpAndSettle();
+      await t.enterText(find.widgetWithText(TextField, 'Tên tài khoản'), 'Quỹ');
+
+      await t.tap(find.text('Tạo'));
+      await t.pump(); // request in flight — both buttons disabled
+      await t.tap(find.text('Tạo'));
+      await t.tap(find.text('Hủy')); // cancel is inert mid-flight
+      await t.pump();
+
+      gate.complete();
+      await t.pumpAndSettle();
+      expect(calls, 1);
+      // The dialog closed — "Thêm tài khoản" stays on the page itself
+      // (FAB + empty card), so assert on the dialog widget.
+      expect(find.byType(AlertDialog), findsNothing);
+    },
+  );
+
+  testWidgets('a failed create stays retryable in the same dialog', (t) async {
+    var calls = 0;
+    await t.pumpWidget(
+      MaterialApp(
+        home: AccountsPage(
+          loadAccounts: () async => const [],
+          onCreate: (_, _, _) async {
+            calls++;
+            if (calls == 1) throw Exception('offline');
+          },
+          onArchive: (_, _) async {},
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    await t.tap(find.widgetWithText(FloatingActionButton, 'Thêm tài khoản'));
+    await t.pumpAndSettle();
+    await t.enterText(find.widgetWithText(TextField, 'Tên tài khoản'), 'Quỹ');
+
+    await t.tap(find.text('Tạo'));
+    await t.pumpAndSettle();
+    expect(calls, 1);
+    expect(find.text('Tạo'), findsOneWidget); // dialog stayed open
+
+    await t.tap(find.text('Tạo'));
+    await t.pumpAndSettle();
+    expect(calls, 2);
+    expect(find.text('Tạo'), findsNothing);
   });
 
   testWidgets('a mistyped opening balance rejects instead of saving 0', (
@@ -198,9 +271,7 @@ void main() {
     expect(createdBalance, 2500000);
   });
 
-  testWidgets('archived accounts group under Đã lưu trữ with Khôi phục', (
-    t,
-  ) async {
+  testWidgets('closed accounts group under Đã đóng with Mở lại', (t) async {
     const archived = AccountSummary(
       id: 'a-old',
       name: 'Ví cũ',
@@ -226,24 +297,24 @@ void main() {
     );
     await t.pumpAndSettle();
 
-    expect(find.text('Đã lưu trữ'), findsOneWidget);
+    expect(find.text('Đã đóng'), findsOneWidget);
     expect(find.text('Ví cũ'), findsOneWidget);
-    expect(find.text('Khôi phục'), findsOneWidget);
-    // Archived rows stay read-only: tap edits nothing, long-press hides.
+    expect(find.text('Mở lại'), findsOneWidget);
+    // Closed rows stay read-only: tap edits nothing, long-press hides.
     await t.tap(find.text('Ví cũ'));
     await t.pumpAndSettle();
     expect(find.text('Sửa tài khoản'), findsNothing);
     await t.longPress(find.text('Ví cũ'));
     await t.pumpAndSettle();
-    expect(find.textContaining('Lưu trữ "'), findsNothing);
+    expect(find.textContaining('Đóng "'), findsNothing);
 
-    await t.tap(find.text('Khôi phục'));
+    await t.tap(find.text('Mở lại'));
     await t.pumpAndSettle();
     expect(restoredId, 'a-old');
     expect(restoredFlag, isFalse);
   });
 
-  testWidgets('an archive failure surfaces instead of silently keeping put', (
+  testWidgets('a close failure surfaces instead of silently keeping put', (
     t,
   ) async {
     var loads = 0;
@@ -263,12 +334,12 @@ void main() {
 
     await t.longPress(find.text('Tiền mặt').first);
     await t.pumpAndSettle();
-    await t.tap(find.text('Lưu trữ'));
+    await t.tap(find.text('Đóng'));
     await t.pumpAndSettle();
 
     expect(find.text('Không lưu được — thử lại'), findsOneWidget);
     // A failed write must NOT refresh — the list would repaint as if
-    // the archive landed.
+    // the close landed.
     expect(loads, 1);
   });
 

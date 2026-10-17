@@ -10,6 +10,7 @@ Transaction _tx({
   String category = 'Ăn uống',
   int amount = 0,
   required String occurredOn,
+  bool isRefund = false,
 }) => Transaction(
   id: id,
   kind: kind,
@@ -20,6 +21,7 @@ Transaction _tx({
   account: 'Tiền mặt',
   amount: amount,
   occurredOn: occurredOn,
+  isRefund: isRefund,
 );
 
 void main() {
@@ -77,6 +79,22 @@ void main() {
       // The range load covers both windows, exclusive upper bound.
       expect(w.loadFrom, '2026-10-12');
       expect(w.loadTo, '2026-10-26');
+    });
+
+    test('the window anchors on the VN week, not the device zone', () {
+      // audit P1-6: a local-Sunday 19:00 fire is already Monday morning
+      // in Saigon — the closed week must still be the Mon–Sun just
+      // ended, never one the device's own weekday would imply.
+      final sundayEveningUtc = weeklyDigestWindow(
+        DateTime.utc(2026, 10, 25, 12), // 19:00 VN — still Sunday
+      );
+      final alreadyMondayVn = weeklyDigestWindow(
+        DateTime.utc(2026, 10, 25, 17), // 00:00 VN Monday — fire instant
+      );
+      for (final w in [sundayEveningUtc, alreadyMondayVn]) {
+        expect(w.start, '2026-10-19');
+        expect(w.end, '2026-10-25');
+      }
     });
   });
 
@@ -144,6 +162,31 @@ void main() {
         _tx(id: 'a', amount: 200000, occurredOn: '2026-10-20'),
       ], fireDate: fire);
       expect(digest.expenseChangePercent, isNull);
+    });
+
+    test('D15 a refund nets the week\'s spend and top category', () {
+      final digest = buildWeeklyDigest([
+        _tx(id: 'a', amount: 100000, occurredOn: '2026-10-20'),
+        _tx(
+          id: 'r',
+          kind: TransactionKind.income,
+          amount: 30000,
+          occurredOn: '2026-10-21',
+          isRefund: true,
+        ),
+        _tx(
+          id: 'i',
+          kind: TransactionKind.income,
+          category: 'Lương',
+          amount: 500000,
+          occurredOn: '2026-10-19',
+        ),
+      ], fireDate: fire);
+      expect(digest.expense, 70000);
+      expect(digest.income, 500000);
+      expect(digest.transactionCount, 3);
+      expect(digest.topCategory, 'Ăn uống');
+      expect(digest.topCategoryAmount, 70000);
     });
 
     test('top category tie breaks by name so the copy is deterministic', () {

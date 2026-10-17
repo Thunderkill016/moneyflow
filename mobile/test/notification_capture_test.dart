@@ -72,6 +72,17 @@ void main() {
       expect(d.accountName, 'MoMo'); // no masked tail → source label only
     });
 
+    test('a 20+-digit run drops the event instead of crashing', () {
+      // audit P1-2: "GD -99999999999999999999" overflows int64 — the
+      // honest outcome is no candidate, not a crash and not a wrapped
+      // amount. The notification is dropped like every other parse fail.
+      expect(parse('GD -99999999999999999999 VND'), isNull);
+      // A real amount next to a serial still parses the real amount.
+      final d = parse('TK 001xxxx GD -50,000VND REF 99999999999999999999');
+      expect(d, isNotNull);
+      expect(d!.amountMinor, 50000);
+    });
+
     test('MB balance-change wording + ND note extraction', () {
       final d = parseBankNotification(
         packageName: 'com.mbmobile',
@@ -723,7 +734,7 @@ void main() {
       );
       await t.pumpAndSettle();
 
-      await t.tap(find.byType(PopupMenuButton<int>));
+      await t.tap(find.byIcon(Icons.more_vert));
       await t.pumpAndSettle();
       expect(find.text('Thu gom thông báo ngân hàng'), findsOneWidget);
       expect(find.textContaining('đang bật'), findsNothing);
@@ -748,7 +759,7 @@ void main() {
       );
       await t.pumpAndSettle();
 
-      await t.tap(find.byType(PopupMenuButton<int>));
+      await t.tap(find.byIcon(Icons.more_vert));
       await t.pumpAndSettle();
       expect(
         find.text('Thu gom thông báo · đang bật (2 nguồn)'),

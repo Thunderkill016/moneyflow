@@ -468,6 +468,27 @@ void main() {
       // A bare account tail alone is not money.
       expect(parseInboxPasteText('TK 1234', today: '2026-10-14'), isEmpty);
     });
+
+    test('a 20+-digit run never crashes — it is a reference, not money', () {
+      // audit P1-2: the amount regex accepts unbounded digit runs and
+      // int.parse throws past int64. A bank reference/serial must fall
+      // to null like every other non-match, not crash the paste.
+      expect(
+        parseInboxPasteText('REF 99999999999999999999 GD -50k'),
+        isNotEmpty,
+      );
+      expect(parseInboxPasteText('GD -99999999999999999999 VND'), isEmpty);
+      // The oversized token is ignored; the line still yields the real
+      // amount that follows it.
+      final d = parseInboxPasteText(
+        'GD -50k noi dung 12345678901234567890',
+        today: '2026-10-14',
+      ).single;
+      expect(d.amountMinor, 50000);
+      // int64-max itself parses; anything past the JS ceiling is not
+      // a VND amount.
+      expect(parseInboxPasteText('GD -9223372036854775807'), isEmpty);
+    });
   });
 
   group('labels + resolution helpers', () {
@@ -554,7 +575,7 @@ void main() {
       expect(find.textContaining('Chi'), findsWidgets);
       expect(find.textContaining('14/10/2026'), findsOneWidget);
       expect(find.textContaining('Tạm ổn'), findsOneWidget);
-      expect(find.text('Duyệt'), findsOneWidget);
+      expect(find.text('Xem & duyệt'), findsOneWidget);
       expect(find.text('Từ chối'), findsOneWidget);
     });
 
@@ -607,6 +628,80 @@ void main() {
       expect(find.text('Không có mục nào chờ duyệt'), findsOneWidget);
     });
 
+    testWidgets('swipe left runs the same confirmed reject (D5)', (t) async {
+      var rejected = '';
+      await t.pumpWidget(
+        MaterialApp(
+          home: page(
+            load: () async => [row()],
+            onReject: (id) async => rejected = id,
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(
+        find.ancestor(
+          of: find.text('PHO NGON'),
+          matching: find.byType(Dismissible),
+        ),
+        findsOneWidget,
+      );
+
+      await t.drag(find.text('PHO NGON'), const Offset(-500, 0));
+      await t.pumpAndSettle();
+      // The gesture saves the tap, never the confirmation.
+      await t.tap(find.widgetWithText(FilledButton, 'Từ chối').last);
+      await t.pumpAndSettle();
+
+      expect(rejected, 'c1');
+      expect(find.text('Đã từ chối mục'), findsOneWidget);
+      expect(find.text('Không có mục nào chờ duyệt'), findsOneWidget);
+    });
+
+    testWidgets('a cancelled swipe snaps back — no write', (t) async {
+      var calls = 0;
+      await t.pumpWidget(
+        MaterialApp(
+          home: page(
+            load: () async => [row()],
+            onReject: (id) async => calls++,
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      await t.drag(find.text('PHO NGON'), const Offset(-500, 0));
+      await t.pumpAndSettle();
+      await t.tap(find.widgetWithText(TextButton, 'Hủy'));
+      await t.pumpAndSettle();
+
+      expect(calls, 0);
+      expect(find.text('PHO NGON'), findsOneWidget);
+    });
+
+    testWidgets('a failed swipe reject keeps the row and explains', (t) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: page(
+            load: () async => [row()],
+            onReject: (id) async => throw StateError('offline'),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      await t.drag(find.text('PHO NGON'), const Offset(-500, 0));
+      await t.pumpAndSettle();
+      await t.tap(find.widgetWithText(FilledButton, 'Từ chối').last);
+      await t.pumpAndSettle();
+
+      expect(
+        find.text('Không từ chối được — kiểm tra mạng rồi thử lại.'),
+        findsOneWidget,
+      );
+      expect(find.text('PHO NGON'), findsOneWidget);
+    });
+
     testWidgets('review approves through onApprove with edited values', (
       t,
     ) async {
@@ -625,7 +720,7 @@ void main() {
         ),
       );
       await t.pumpAndSettle();
-      await t.tap(find.text('Duyệt'));
+      await t.tap(find.text('Xem & duyệt'));
       await t.pumpAndSettle();
       expect(find.text('Duyệt mục'), findsOneWidget);
       expect(find.text('Sẵn sàng ghi vào sổ.'), findsOneWidget);
@@ -664,7 +759,7 @@ void main() {
         ),
       );
       await t.pumpAndSettle();
-      await t.tap(find.text('Duyệt'));
+      await t.tap(find.text('Xem & duyệt'));
       await t.pumpAndSettle();
       await t.tap(find.text('Duyệt vào sổ'));
       await t.pumpAndSettle();
@@ -732,7 +827,7 @@ void main() {
     /// Drives the list → review → "Duyệt vào sổ" path; returns after the
     /// review page has popped and the offer snackbar is on screen.
     Future<void> approveRow(WidgetTester t) async {
-      await t.tap(find.text('Duyệt'));
+      await t.tap(find.text('Xem & duyệt'));
       await t.pumpAndSettle();
       await t.tap(find.text('Duyệt vào sổ'));
       await t.pumpAndSettle();

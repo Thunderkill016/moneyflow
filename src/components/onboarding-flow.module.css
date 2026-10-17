@@ -323,6 +323,34 @@
   height: 180px;
 }
 
+/* On a phone the action row pins to the viewport bottom above the home
+   indicator — the card stretches to full height so "margin-top: auto"
+   has room, and the sticky bottom keeps the CTA reachable while long
+   content scrolls behind it. */
+@media (max-width: 520px) {
+  .page {
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .card {
+    min-height: calc(100svh - 40px);
+  }
+
+  .step {
+    flex: 1 0 auto;
+  }
+
+  .actions {
+    margin-top: auto;
+    position: sticky;
+    bottom: 0;
+    padding-block: 10px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+    background: var(--mf-surface);
+    z-index: 1;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .loadingLine,
   .loadingCard {

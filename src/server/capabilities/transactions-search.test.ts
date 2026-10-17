@@ -98,6 +98,25 @@ test("transactions.search folds đ to d so 'tien dien' finds 'Tiền điện'", 
   );
 });
 
+test("transactions.search scopes a leading '#' to the note field", async () => {
+  const [first, ...rest] = demoTransactions();
+  const rows = [
+    { ...first!, id: "note-tag", note: "Ăn trưa #cf" },
+    { ...first!, id: "payee-hash", note: "Ăn tối", payee: "#cf shop" },
+    ...rest,
+  ];
+  const output = await run(
+    FIXED_CONTEXT,
+    { text: "#cf", limit: 50 },
+    fixtureDeps(rows),
+  );
+  // Tags live in notes only — same contract the web/mobile evaluators share.
+  assert.deepEqual(
+    output.items.map((item) => item.id),
+    ["note-tag"],
+  );
+});
+
 test("transactions.search matches payee text", async () => {
   const deps = fixtureDeps();
   // "minh đức" only exists in sample-1's payee — note and category do not carry it.

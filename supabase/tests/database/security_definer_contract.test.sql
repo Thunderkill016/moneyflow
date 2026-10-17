@@ -48,9 +48,32 @@ where n.nspname = 'public'
 -- boundary; 20261010122000 adds seven reviewed write RPCs (candidate create/
 -- update, batch create/status/delete, backup stamp, agent propose);
 -- 20261010123000 adds delete_my_account. +18 reviewed boundaries.
+-- 20261015100000 added permanently_delete_money_transaction without an
+-- inventory line; recorded here deliberately. +1 reviewed boundary.
+-- 20261016120000 adds four reviewed debt boundaries: create_debt and
+-- set_debt_state/soft_delete_debt (caller-scoped tracking writes) plus
+-- apply_debt_repayment, whose direction-derived ledger insert must not be
+-- caller-picked. +4 reviewed boundaries.
+-- 20261016180000 adds three reviewed event-budget boundaries:
+-- create_event_budget (idempotent caller-scoped tracking write),
+-- update_event_budget (stale-write-guarded edit) and
+-- soft_delete_event_budget (tombstone). None touches the ledger — the
+-- spent figure stays a read-side aggregate. +3 reviewed boundaries.
+-- 20261016190000 replaces upsert_monthly_budget's 4-arg signature with
+-- the 5-arg period-aware one — the drop removes the old regprocedure row,
+-- so the inventory count is unchanged.
+-- 20261016210000 adds merge_categories: one reviewed caller-scoped write
+-- boundary that reassigns every category reference inside a transaction —
+-- the definer owns the multi-table write set, never caller-picked.
+-- +1 reviewed boundary.
+-- 20261017230000 adds delete_transactions_before: one reviewed
+-- caller-scoped retention purge that hard-deletes the caller's own
+-- ledger rows in a picked id set — definer-only because authenticated
+-- holds no DELETE grant on the ledger tables and the child/link release
+-- must run in the same transaction. +1 reviewed boundary.
 select is(
   (select count(*)::integer from flagged_security_definer_functions),
-  61,
+  71,
   'the reviewed authenticated SECURITY DEFINER inventory stays explicit'
 );
 

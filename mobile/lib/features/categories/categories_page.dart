@@ -4,6 +4,7 @@ import '../../domain/categories.dart';
 import '../../domain/models.dart';
 import 'category_visuals.dart';
 import 'vietnam_pack_sheet.dart';
+import '../shared/timed_snack_bar.dart';
 
 /// Category management — mirrors the web's /categories page
 /// (categories-page.tsx): sections split active expense / active income /
@@ -16,6 +17,7 @@ class CategoriesPage extends StatefulWidget {
     required this.onSave,
     required this.onSetArchived,
     this.onDelete,
+    this.onMerge,
   });
 
   /// Must return every category including archived (loadAllCategories) —
@@ -31,6 +33,11 @@ class CategoriesPage extends StatefulWidget {
   /// Hard-delete a custom category; returns false when nothing was removed.
   /// Null hides the affordance entirely (e.g. surfaces without the right).
   final Future<bool> Function(String id)? onDelete;
+
+  /// Fold [sourceId] into [targetId] server-side (merge_categories RPC):
+  /// every referencing row reassigns and the source becomes an archived
+  /// tombstone. Null hides the affordance.
+  final Future<void> Function(String sourceId, String targetId)? onMerge;
 
   @override
   State<CategoriesPage> createState() => _CategoriesPageState();
@@ -62,9 +69,10 @@ class _CategoriesPageState extends State<CategoriesPage> {
   }
 
   void _snack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    showTimedSnackBar(
+      ScaffoldMessenger.of(context),
+      SnackBar(content: Text(message)),
+    );
   }
 
   /// Create when [editing] is null; otherwise edit name/icon/color in
@@ -193,7 +201,12 @@ class _CategoriesPageState extends State<CategoriesPage> {
                 ),
                 if (error != null) ...[
                   const SizedBox(height: 12),
-                  Text(error!, style: TextStyle(color: Colors.red.shade700)),
+                  Text(
+                    error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -310,7 +323,9 @@ class _CategoriesPageState extends State<CategoriesPage> {
             child: const Text('Hủy'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Xóa hẳn'),
           ),
@@ -334,6 +349,87 @@ class _CategoriesPageState extends State<CategoriesPage> {
     }
     _snack('Đã xóa danh mục.');
     _refresh();
+  }
+
+  /// Merge is the honest fix for duplicate categories ("Ăn uống" vs
+  /// "Ăn uống 2"): one dialog picks the target AND confirms, so the write
+  /// stays explicit. The RPC reassigns every reference — ledger entries,
+  /// budgets, commitments, rules, candidates — in one transaction, then
+  /// archives the source as a tombstone (never hard-deleted, so history
+  /// keeps pointing somewhere real).
+  Future<void> _showMerge(Category source) async {
+    final targets = [
+      for (final c in _loaded)
+        if (c.id != source.id && c.kind == source.kind && !c.isArchived) c,
+    ];
+    if (targets.isEmpty) {
+      _snack('Không có danh mục cùng loại nào khác để gộp vào.');
+      return;
+    }
+    Category? target;
+    var busy = false;
+    final merged = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlg) => AlertDialog(
+          title: Text('Gộp "${source.name}"'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Mọi giao dịch, ngân sách, cam kết và quy tắc đang gắn '
+                  'danh mục nguồn sẽ chuyển sang danh mục đích. Nếu cả hai '
+                  'đều có ngân sách cho cùng một kỳ, hạn mức của danh mục '
+                  'đích được giữ. Sau khi gộp, danh mục nguồn bị ẩn và '
+                  'không hoàn tác được.',
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<Category>(
+                  initialValue: target,
+                  decoration: const InputDecoration(
+                    labelText: 'Gộp vào danh mục',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    for (final t in targets)
+                      DropdownMenuItem(value: t, child: Text(t.name)),
+                  ],
+                  onChanged: busy ? null : (v) => setDlg(() => target = v),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: busy ? null : () => Navigator.pop(ctx, false),
+              child: const Text('Hủy'),
+            ),
+            FilledButton(
+              onPressed: busy || target == null
+                  ? null
+                  : () async {
+                      setDlg(() => busy = true);
+                      try {
+                        await widget.onMerge!(source.id, target!.id);
+                      } catch (e) {
+                        setDlg(() => busy = false);
+                        if (mounted) _snack(categoryMergeErrorMessage(e));
+                        return;
+                      }
+                      if (ctx.mounted) Navigator.pop(ctx, true);
+                    },
+              child: Text(busy ? 'Đang gộp…' : 'Gộp'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (merged == true && target != null) {
+      _snack('Đã gộp "${source.name}" vào "${target!.name}".');
+      _refresh();
+    }
   }
 
   @override
@@ -454,6 +550,8 @@ class _CategoriesPageState extends State<CategoriesPage> {
                 _showForm(editing: c);
               case 'archive':
                 _toggleArchived(c);
+              case 'merge':
+                _showMerge(c);
               case 'delete':
                 _confirmDelete(c);
             }
@@ -466,6 +564,13 @@ class _CategoriesPageState extends State<CategoriesPage> {
               value: 'archive',
               child: Text(c.isArchived ? 'Hiện lại' : 'Ẩn'),
             ),
+            // merge_categories refuses a DEFAULT source (the seeded pack is
+            // the fallback), so hide the action where it can never succeed.
+            if (!c.isDefault && widget.onMerge != null)
+              const PopupMenuItem(
+                value: 'merge',
+                child: Text('Gộp vào danh mục khác'),
+              ),
             // RLS only deletes custom (non-default) rows — don't offer a
             // destructive action that can never succeed on defaults.
             if (!c.isDefault && widget.onDelete != null)

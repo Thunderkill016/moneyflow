@@ -171,7 +171,13 @@ int? _matchValue(RegExpMatch m) {
   final scale = _unitScale[unit];
   if (scale == null) return null;
   final whole = _parseGrouped(digits);
-  if (whole != null) return whole * scale;
+  if (whole != null) {
+    // Dart ints wrap at 2^63 — bound BEFORE multiplying or a crafted run
+    // ("18446744073710tr") wraps into a small plausible amount, the same
+    // guard parseMoneyInput (domain/money.dart) applies to shorthand.
+    if (whole > _maxSafeAmount ~/ scale) return null;
+    return whole * scale;
+  }
   // "1.5tr"/"2,5tr" style decimal multipliers of the unit.
   final dotDigits = digits.replaceAll(',', '.');
   if (!RegExp(r'^\d+(\.\d+)?$').hasMatch(dotDigits)) return null;

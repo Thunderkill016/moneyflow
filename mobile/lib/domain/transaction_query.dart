@@ -59,6 +59,15 @@ class TransactionQuery {
   /// a literal one, so it is dropped on both sides instead.
   String get searchTerm => text.replaceAll('*', '').trim();
 
+  /// A term starting with `#` is a hashtag search (D24 — PocketGuard's
+  /// lightweight "tags in notes" convention): tags only ever live in the
+  /// note, so a leading `#` scopes the match to `note` alone — a payee or
+  /// category carrying the same text is not a tag. Matching stays
+  /// substring (`#cf` also sees `#cafe`): recall over precision, and the
+  /// `#` itself is literal in LIKE on both evaluators. The tag
+  /// report/taxonomy axis stays deliberately unbuilt (§10).
+  bool get isTagSearch => searchTerm.startsWith('#');
+
   bool get isEmpty =>
       searchTerm.isEmpty &&
       kind == null &&
@@ -132,13 +141,18 @@ class TransactionQuery {
     if (maxAmount != null && t.amount > maxAmount!) return false;
     final term = searchTerm.toLowerCase();
     if (term.isNotEmpty) {
-      final hay = [
-        t.note,
-        t.payee,
-        t.category,
-        t.account,
-        t.destinationAccount,
-      ].whereType<String>().any((s) => s.toLowerCase().contains(term));
+      final hay =
+          (isTagSearch
+                  ? [t.note]
+                  : [
+                      t.note,
+                      t.payee,
+                      t.category,
+                      t.account,
+                      t.destinationAccount,
+                    ])
+              .whereType<String>()
+              .any((s) => s.toLowerCase().contains(term));
       if (!hay) return false;
     }
     return true;
@@ -162,7 +176,9 @@ class TransactionQuery {
     if (term.isNotEmpty) {
       final pattern = postgrestQuote('*${escapeLikeTerm(term)}*');
       parts.add(
-        'or(${[for (final c in searchColumns) '$c.ilike.$pattern'].join(',')})',
+        isTagSearch
+            ? 'note.ilike.$pattern'
+            : 'or(${[for (final c in searchColumns) '$c.ilike.$pattern'].join(',')})',
       );
     }
     if (accountId != null) {

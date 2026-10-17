@@ -20,6 +20,8 @@ import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/reconciliation.dart';
 import '../../domain/register.dart';
+import '../../domain/report.dart' show vnToday;
+import '../../theme/mf_theme.dart';
 
 /// Server-backed mutations the workspace performs. app.dart binds the
 /// RealStore methods; tests inject spies. Every callback returns after
@@ -122,9 +124,9 @@ class _AccountReconciliationPageState extends State<AccountReconciliationPage> {
   String get _today {
     final override = widget.today;
     if (override != null) return override;
-    final n = DateTime.now();
-    return '${n.year}-${n.month.toString().padLeft(2, '0')}-'
-        '${n.day.toString().padLeft(2, '0')}';
+    // The statement date default shares the VN civil calendar with the
+    // occurred_on rows it is compared against (domain/report.dart).
+    return vnToday();
   }
 
   @override
@@ -480,7 +482,7 @@ class _AccountReconciliationPageState extends State<AccountReconciliationPage> {
               )
             else if (a.isArchived)
               const Text(
-                'Khôi phục tài khoản trước khi bắt đầu một kỳ đối soát mới.',
+                'Mở lại tài khoản trước khi bắt đầu một kỳ đối soát mới.',
               )
             else ...[
               OutlinedButton.icon(
@@ -574,8 +576,8 @@ class _AccountReconciliationPageState extends State<AccountReconciliationPage> {
               'Chênh lệch',
               difference == null ? '—' : formatSignedMoney(difference),
               valueColor: difference == null || difference == 0
-                  ? Colors.green.shade700
-                  : Colors.red.shade700,
+                  ? context.mf.incomeText
+                  : context.mf.expenseText,
             ),
             Text(differenceNote, style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 8),
@@ -658,9 +660,9 @@ class _AccountReconciliationPageState extends State<AccountReconciliationPage> {
         : EntryReconciliationState.cleared;
     final busy = _busy != null;
     final color = e.impact > 0
-        ? Colors.green.shade700
+        ? context.mf.incomeText
         : e.impact < 0
-        ? Colors.red.shade700
+        ? context.mf.expenseText
         : null;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),

@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Shortcut icon: brand-sky disc with a white plus — the capture cue. -->
+<!-- Shortcut icon: neon-brand disc with a dark-ink plus — the capture cue. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="48dp"
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
     <path
-        android:fillColor="#0EA5E9"
+        android:fillColor="#00FF88"
         android:pathData="M24,4C35.05,4 44,12.95 44,24C44,35.05 35.05,44 24,44C12.95,44 4,35.05 4,24C4,12.95 12.95,4 24,4Z" />
     <path
-        android:fillColor="#FFFFFF"
+        android:fillColor="#0A0E0C"
         android:pathData="M22,13L26,13L26,22L35,22L35,26L26,26L26,35L22,35L22,26L13,26L13,22L22,22Z" />
 </vector>

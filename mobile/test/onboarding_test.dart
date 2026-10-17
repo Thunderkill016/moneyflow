@@ -39,6 +39,7 @@ Future<void> _pumpGate(WidgetTester t, _FakeTransport transport) async {
   await t.pumpWidget(
     MaterialApp(
       home: AuthGate(
+        allowDemo: true,
         shareReceiver: const _NoopShareReceiver(),
         quickActions: _NoopQuickActions(),
         requester: transport.requester,
@@ -307,6 +308,12 @@ void main() {
   group('gate trigger', () {
     testWidgets('sign-up enters onboarding; confirming the seeded wallet '
         'lands on the dashboard with it listed', (t) async {
+      // Tall viewport — the register form scrolls on 800×600 and lazy
+      // sliver children below the fold don't exist for finders.
+      t.view.physicalSize = const Size(1080, 2400);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.resetPhysicalSize);
+      addTearDown(t.view.resetDevicePixelRatio);
       final transport = _FakeTransport()
         // The server seeds 'Tiền mặt' on sign-up — step 2 confirms it.
         ..accounts.add(_accountRow('acc-seed', 'Tiền mặt'));
@@ -315,13 +322,21 @@ void main() {
 
       await t.tap(find.text('Chưa có tài khoản? Đăng ký'));
       await t.pumpAndSettle();
-      await t.enterText(find.widgetWithText(TextField, 'Tên'), 'Nguyen');
-      await t.enterText(find.widgetWithText(TextField, 'Email'), 'a@b.c');
-      await t.enterText(
-        find.widgetWithText(TextField, 'Mật khẩu'),
-        'password123',
-      );
-      await t.tap(find.text('Tạo tài khoản'));
+      // The register form scrolls on a small viewport — lazy ListView
+      // children off the fold aren't built until scrolled into view.
+      for (final (label, value) in [
+        ('Họ và tên', 'Nguyen'),
+        ('Email', 'a@b.c'),
+        ('Mật khẩu', 'password1234'),
+        ('Nhập lại mật khẩu', 'password1234'),
+      ]) {
+        final field = find.widgetWithText(TextField, label);
+        await t.ensureVisible(field);
+        await t.enterText(field, value);
+      }
+      final submit = find.widgetWithText(FilledButton, 'Tạo tài khoản');
+      await t.ensureVisible(submit);
+      await t.tap(submit);
       await t.pumpAndSettle();
 
       expect(find.byType(OnboardingPage), findsOneWidget);
@@ -478,6 +493,11 @@ void main() {
     });
 
     testWidgets('demo never routes through onboarding', (t) async {
+      // Tall viewport — the demo button sits below the fold at 800×600.
+      t.view.physicalSize = const Size(1080, 2400);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.resetPhysicalSize);
+      addTearDown(t.view.resetDevicePixelRatio);
       await _pumpGate(t, _FakeTransport());
       await t.tap(find.text('Xem bản demo (không cần đăng nhập)'));
       await t.pumpAndSettle();

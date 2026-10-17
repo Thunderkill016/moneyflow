@@ -16,10 +16,17 @@ object QuickActionContract {
     /** Intent extra name read by MainActivity. */
     const val EXTRA_QUICK_ACTION = "quick"
 
-    /** "Open the capture form" — the only action that exists today. */
+    /** "Open the capture form" — the launcher shortcut and widget button. */
     const val ACTION_CAPTURE = "capture"
 
-    private val ALLOWED_ACTIONS = setOf(ACTION_CAPTURE)
+    /**
+     * "Open the inbox" — the widget's "Chờ duyệt" row (D18): the count on
+     * that row tallies exactly this queue, so the deep link lands on the
+     * surface the number describes.
+     */
+    const val ACTION_REVIEW = "review"
+
+    private val ALLOWED_ACTIONS = setOf(ACTION_CAPTURE, ACTION_REVIEW)
 
     /**
      * Returns [raw] only when it is a known action, else null.

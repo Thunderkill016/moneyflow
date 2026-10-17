@@ -1,19 +1,23 @@
-// "Chi được hôm nay" — a safe-per-day spend figure derived from this
-// month's budget headroom minus unpaid recurring commitments, spread over
-// the days left in the month (Simplifi's spending plan / PocketGuard's
-// "In My Pocket" pattern). It answers "how much can I spend today" from
-// planning data — it is never an account balance and never negative.
+// "Còn lại tháng này" — the month remainder derived from this month's
+// budget headroom minus unpaid recurring commitments, and its per-day
+// equivalent spread over the days left (Simplifi's spending plan /
+// PocketGuard "In My Pocket" pattern). It answers "tháng này còn được
+// tiêu bao nhiêu" from planning data — it is never an account balance,
+// never negative as an allowance, and labels its inputs instead of
+// claiming an absolute cash figure.
 
 import 'commitments.dart';
 import 'models.dart';
 
-/// Result of [safeDailySpend] — the daily figure plus the inputs the tile
-/// needs to explain it honestly.
+/// Result of [safeDailySpend] — the month figure plus the inputs the
+/// card needs to explain it honestly.
 class SafeDailySpend {
   const SafeDailySpend({
     required this.perDayMinor,
     required this.remainingMinor,
     required this.daysLeft,
+    required this.reservedMinor,
+    required this.shortfallMinor,
   });
 
   /// Integer đồng safe to spend on each remaining day — floored, >= 0.
@@ -24,6 +28,17 @@ class SafeDailySpend {
 
   /// Days left in the month, today included — always >= 1.
   final int daysLeft;
+
+  /// Commitments still owed inside the month that were reserved against
+  /// the headroom — disclosed so the basis line can say what was
+  /// subtracted instead of implying the figure is raw budget slack.
+  final int reservedMinor;
+
+  /// How far the reserved commitments overshoot the headroom: 0 when the
+  /// plan still covers them, positive when it does not. This is the
+  /// honest "thiếu" figure — never folded into [remainingMinor] as a
+  /// fake negative allowance.
+  final int shortfallMinor;
 }
 
 /// Computes the safe daily spend for [today]'s month, or null when no
@@ -42,8 +57,11 @@ class SafeDailySpend {
 ///   months remaining are the funding slots left before it arrives).
 /// - Paid or archived commitments and ones whose dueDay already passed
 ///   are out of scope for the rest of this month.
-/// - The result is integer đồng: floor division, clamped at 0 — the tile
-///   reports "0 ₫" rather than a negative allowance.
+/// - The result is integer đồng: floor division, clamped at 0 — the card
+///   reports "0 ₫" rather than a negative allowance; when commitments
+///   overshoot the headroom the overrun is exposed separately as
+///   [SafeDailySpend.shortfallMinor] so the card can say "thiếu" with a
+///   real amount instead of hiding it behind the 0.
 SafeDailySpend? safeDailySpend({
   required List<BudgetProgress> budgets,
   required List<RecurringCommitment> commitments,
@@ -54,6 +72,11 @@ SafeDailySpend? safeDailySpend({
   var headroom = 0;
   var hasBudget = false;
   for (final b in budgets) {
+    // Monthly budgets only — the card's contract is "còn lại THÁNG
+    // này". A weekly row that happened to anchor on the 1st (a Monday
+    // can be the 1st) must not fold its smaller limit into the month's
+    // headroom.
+    if (b.period != BudgetPeriod.monthly) continue;
     if (b.monthStart != monthStart) continue;
     hasBudget = true;
     final left = b.limitMinor - b.spentMinor;
@@ -88,5 +111,7 @@ SafeDailySpend? safeDailySpend({
     perDayMinor: remaining <= 0 ? 0 : remaining ~/ daysLeft,
     remainingMinor: remaining < 0 ? 0 : remaining,
     daysLeft: daysLeft,
+    reservedMinor: reserved,
+    shortfallMinor: remaining < 0 ? -remaining : 0,
   );
 }

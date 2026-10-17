@@ -4,6 +4,7 @@ import 'package:moneyflow/data/demo_store.dart';
 import 'package:moneyflow/data/offline_cache.dart';
 import 'package:moneyflow/data/share/share_text_parser.dart';
 import 'package:moneyflow/domain/models.dart';
+import 'package:moneyflow/domain/report.dart' show vnNow;
 import 'package:moneyflow/features/capture/capture_page.dart';
 import 'package:moneyflow/features/dashboard/dashboard_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -24,6 +25,11 @@ void main() {
     testWidgets('prefill fills amount, note, kind and shows review banner', (
       t,
     ) async {
+      // The D15 "Hoàn tiền" switch renders for the income prefill — a
+      // tall surface keeps every lazily-built field mounted.
+      t.view.physicalSize = const Size(800, 2400);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
       await t.pumpWidget(
         _wrap(
           CapturePage(
@@ -235,7 +241,7 @@ void main() {
 
         expect(captured, isNotNull);
         expect(captured!.repeatMonthly, isTrue);
-        expect(captured!.dueDay, DateTime.now().day);
+        expect(captured!.dueDay, vnNow().day);
         // Note and payee empty → the category name names the commitment.
         expect(captured!.commitmentName, 'Ăn uống');
       },
@@ -330,6 +336,53 @@ void main() {
       expect(find.text('Thử lại'), findsOneWidget);
     });
 
+    testWidgets(
+      'the "Khám phá" hub groups menu items under section headers and '
+      'fires callbacks after popping itself',
+      (t) async {
+        var fired = 0;
+        await t.pumpWidget(
+          _wrap(
+            DashboardPage(
+              loadAccounts: () async => DemoStore.seedAccounts(),
+              loadTransactions: () async => DemoStore.seedTransactions(),
+              menuItems: [
+                DashboardMenuItem(
+                  label: 'Vay & cho vay',
+                  icon: Icons.handshake_outlined,
+                  section: 'Tính năng',
+                  onTap: () => fired++,
+                ),
+                DashboardMenuItem(
+                  label: 'Bật tóm tắt tuần',
+                  icon: Icons.notifications_none,
+                  section: 'Tài khoản & cài đặt',
+                  actsInPlace: true,
+                  onTap: () => fired++,
+                ),
+              ],
+            ),
+          ),
+        );
+        await t.pumpAndSettle();
+
+        await t.tap(find.byIcon(Icons.more_vert));
+        await t.pumpAndSettle();
+
+        expect(find.text('Khám phá'), findsOneWidget);
+        expect(find.text('Tính năng'), findsWidgets);
+        expect(find.text('Tài khoản & cài đặt'), findsOneWidget);
+        expect(find.text('Vay & cho vay'), findsOneWidget);
+
+        // A row tap closes the hub first, then runs the action — the
+        // destination must never stack on top of the hub page.
+        await t.tap(find.text('Vay & cho vay'));
+        await t.pumpAndSettle();
+        expect(fired, 1);
+        expect(find.text('Khám phá'), findsNothing);
+      },
+    );
+
     testWidgets('successful load writes a snapshot, no banner', (t) async {
       DashboardSnapshot? written;
       await t.pumpWidget(
@@ -384,7 +437,7 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
       await t.ensureVisible(find.text('Lưu'));
-      await t.pumpAndSettle();
+      await t.pump();
       await t.tap(find.text('Lưu'));
       await t.pumpAndSettle();
     }
@@ -506,14 +559,22 @@ void main() {
       expect(find.text('Chia theo nhiều danh mục'), findsNothing);
 
       await t.enterText(find.widgetWithText(TextField, '65000'), '70000');
+      // Drop focus so the focused field stops dragging the list back
+      // into view on every pump — the edit form is taller than the
+      // test viewport, so field and 'Lưu' cannot stay visible at once.
+      FocusManager.instance.primaryFocus?.unfocus();
+      await t.pumpAndSettle();
       await t.scrollUntilVisible(
         find.text('Lưu'),
         200,
         scrollable: find.byType(Scrollable).first,
       );
       // Built != on-screen: bring the button fully into the viewport.
+      // A single pump applies the zero-duration scroll jump; a full
+      // settle scrolls back to the focused field and lazily unmounts
+      // the last ListView child again.
       await t.ensureVisible(find.text('Lưu'));
-      await t.pumpAndSettle();
+      await t.pump();
       await t.tap(find.text('Lưu'));
       await t.pumpAndSettle();
 
@@ -578,8 +639,11 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
       // Built != on-screen: bring the button fully into the viewport.
+      // A single pump applies the zero-duration scroll jump; a full
+      // settle scrolls back to the focused field and lazily unmounts
+      // the last ListView child again.
       await t.ensureVisible(find.text('Lưu'));
-      await t.pumpAndSettle();
+      await t.pump();
       await t.tap(find.text('Lưu'));
       await t.pumpAndSettle();
       expect(

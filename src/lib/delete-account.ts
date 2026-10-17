@@ -60,7 +60,18 @@ export const LOCAL_DATA_KEY_PREFIX = "moneyflow-";
 export { THEME_STORAGE_KEY };
 
 export function isDeleteConfirmValid(value: string): boolean {
-  return value.trim() === DELETE_CONFIRM_TEXT;
+  // Vietnamese keyboards emit "XÓA" decomposed (O + combining acute) and
+  // users habitually type "XOÁ" — the guard exists to force deliberate
+  // typing, not a specific byte sequence, so every orthographic spelling
+  // of the word confirms.
+  return (
+    value
+      .trim()
+      .normalize("NFD")
+      .replace(/\p{M}/gu, "")
+      .toUpperCase()
+      .replace(/Đ/g, "D") === "XOA"
+  );
 }
 
 export type ClearLocalStoresResult = {

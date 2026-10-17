@@ -19,13 +19,13 @@ void main() {
     expect(xml, contains('android:drawable="@mipmap/ic_launcher_foreground"'));
   });
 
-  test('launcher background color is the MoneyFlow brand sky', () {
+  test('launcher background color is the MoneyFlow neon brand', () {
     final xml = File(
       'android/app/src/main/res/values/colors.xml',
     ).readAsStringSync();
     expect(
       xml,
-      contains('<color name="ic_launcher_background">#FF0EA5E9</color>'),
+      contains('<color name="ic_launcher_background">#FF00FF88</color>'),
     );
   });
 

@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SecondaryReviewDialog } from "@/components/secondary/secondary-layout";
 import type { ToastTone } from "@/components/ui/toast";
 import { type ViewerSummary } from "@/components/user-chip";
+import { saveRuleForClient } from "@/hooks/client-rules";
 import { useTransactions } from "@/hooks/use-transactions";
 import {
   activeDatePreset,
@@ -1702,7 +1703,7 @@ export function TransactionsWorkspace({
                   data-app-search="true"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Tìm theo ghi chú, danh mục..."
+                  placeholder="Tìm theo ghi chú, danh mục, #tag..."
                   aria-label={
                     isTimeline
                       ? "Tìm trong dòng thời gian"
@@ -2409,6 +2410,10 @@ export function TransactionsWorkspace({
                             {transaction.isRecurringPayment
                               ? " · Từ lịch định kỳ"
                               : ""}
+                            {transaction.excludedFromReports
+                              ? " · Đã loại khỏi báo cáo"
+                              : ""}
+                            {transaction.isRefund ? " · Hoàn tiền" : ""}
                           </small>
                           {provenance ? (
                             <small
@@ -2625,6 +2630,15 @@ export function TransactionsWorkspace({
           goals={workspace.goals}
           onClose={() => setEditing(null)}
           onSave={handleUpdate}
+          onSaveRule={async (rule) => {
+            const result = await saveRuleForClient(viewer.isDemo, rule);
+            showNotice(
+              result.ok
+                ? "Đã lưu giao dịch và quy tắc tự điền — các gợi ý sau vẫn chờ bạn duyệt."
+                : `Đã lưu giao dịch, nhưng chưa tạo được quy tắc — ${result.message}`,
+              result.ok ? "success" : "warning",
+            );
+          }}
           disabled={rowBusy(editing.id) || Boolean(workspace.dataError)}
           payeeSuggestions={payeeSuggestions}
         />

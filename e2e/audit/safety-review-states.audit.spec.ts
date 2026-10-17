@@ -466,13 +466,16 @@ test.describe("Phase B safety and review states", () => {
     });
     const before = await readDemoMutationState(page);
 
-    await confirmation.fill("XOA");
+    await confirmation.fill("DELETE");
     await expect(confirmation).toHaveAttribute("aria-invalid", "true");
     await expect(page.getByText(/Chưa khớp.*XÓA/)).toBeVisible();
     await expect(reviewSubmit).toBeDisabled();
     await auditCurrentState(page, testInfo, "delete-confirmation-invalid");
 
-    await fillHydratedControlledInput(confirmation, reviewSubmit, "XÓA");
+    /* Unaccented "XOA" must confirm — Vietnamese keyboards and habit make
+       the accented spelling unreliable; the guard requires the word, not
+       the byte sequence (isDeleteConfirmValid folds diacritics). */
+    await fillHydratedControlledInput(confirmation, reviewSubmit, "XOA");
     await expect(confirmation).not.toHaveAttribute("aria-invalid", "true");
     await expect(page.getByText(/Xác nhận hợp lệ/)).toBeVisible();
     await expect(reviewSubmit).toBeEnabled();

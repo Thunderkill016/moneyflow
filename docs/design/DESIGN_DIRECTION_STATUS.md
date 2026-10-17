@@ -18,9 +18,39 @@ It must not be used as:
 
 `docs/design/SIGNAL_LEDGER_V3.md` is historical material only. It records one explored direction, not the current design authority.
 
-## Current selected color direction
+## Owner decision — 2026-10-15: Soft Pop selected (supersedes Fresh Blue)
 
-The selected implementation direction is:
+The owner selected the **Soft Pop** territory from
+`docs/design/GENZ_DESIGN_EXPLORATION.md` as the current color direction for
+web and mobile. Fresh Blue is superseded as shipped truth; Vivid Ledger and
+Neo-clean remain recorded candidates, not defaults.
+
+The selected implementation direction is now:
+
+- lilac-tinted neutral surfaces (`canvas #F8F5FF`, white cards);
+- one violet brand/action family (action `#6F4EF5`, hover `#5B3BE0`, pressed
+  `#4A2FC0`; light-violet `#B7A5FF` family in dark);
+- pink/mint/peri sticker accents restricted to illustration and decorative
+  shapes — never text, controls or financial meaning;
+- semantic financial roles unchanged: green income, red expense, amber
+  warning, indigo/violet transfer (transfer semantics keep their existing
+  tokens; non-color cues carry meaning where violet brand and transfer
+  violet sit adjacent);
+- rounder radii (14/20/26/32) and softer violet-tinted elevation;
+- WCAG 2.2 AA holds by measurement: every text/action pairing in the new
+  token sheet was verified ≥4.5:1 (focus ≥3:1) at selection time.
+
+The same invariants below remain binding: colour is never the only carrier
+of financial meaning, public routes stay light-only, and dark/light derive
+from one semantic token authority in `src/app/document-theme.css`.
+
+Remaining follow-ups: sticker/duotone illustration set, optional display
+font (Be Vietnam Pro 800) for hero headings — font loading is a separate
+perf decision — and Android launcher-icon refresh to the violet identity.
+
+## Superseded color direction (kept for provenance)
+
+The previous implementation direction was:
 
 - white-first neutral surfaces across public and authenticated routes;
 - one Fresh Blue brand/action family;

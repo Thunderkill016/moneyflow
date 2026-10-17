@@ -122,6 +122,14 @@ export async function run(
     .filter((transaction) => {
       if (!input.text) return true;
       const needle = normalizeSearchText(input.text);
+      /*
+       * Same evaluator contract as filterTransactions: a leading `#` is a
+       * hashtag search that scopes to the note alone — a payee or category
+       * carrying the same text is not a tag.
+       */
+      if (needle.startsWith("#")) {
+        return normalizeSearchText(transaction.note).includes(needle);
+      }
       return [
         transaction.payee ?? "",
         transaction.note,

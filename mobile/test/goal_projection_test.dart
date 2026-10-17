@@ -159,4 +159,50 @@ void main() {
       expect(goalProjectionLabel(p), 'Dự kiến đạt 3/2027 · chậm ~1 tháng');
     });
   });
+
+  group('goalMissingPrerequisites (D11)', () {
+    final today = DateTime(2026, 10, 20);
+
+    test('a never-funded goal asks for a deposit, not a pace', () {
+      final missing = goalMissingPrerequisites(
+        contributedMinor: 0,
+        deadline: '2027-03-01',
+        createdAt: '2026-01-01T00:00:00Z',
+        today: today,
+      );
+      expect(missing.single, contains('Chưa có lần nạp nào'));
+    });
+
+    test('a same-day goal says the pace needs a day of history', () {
+      final missing = goalMissingPrerequisites(
+        contributedMinor: 500000,
+        deadline: '2027-03-01',
+        createdAt: today.toIso8601String(),
+        today: today,
+      );
+      expect(missing.single, contains('ít nhất một ngày'));
+    });
+
+    test('no deadline is flagged separately from a missing pace', () {
+      final missing = goalMissingPrerequisites(
+        contributedMinor: 500000,
+        deadline: null,
+        createdAt: '2026-01-01T00:00:00Z',
+        today: today,
+      );
+      expect(missing.single, contains('Chưa đặt hạn'));
+    });
+
+    test('a funded goal with a deadline and a span reports nothing', () {
+      expect(
+        goalMissingPrerequisites(
+          contributedMinor: 500000,
+          deadline: '2027-03-01',
+          createdAt: '2026-01-01T00:00:00Z',
+          today: today,
+        ),
+        isEmpty,
+      );
+    });
+  });
 }

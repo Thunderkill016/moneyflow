@@ -61,6 +61,9 @@ class _FakeUrlOpener implements UrlOpener {
     opened.add(uri);
     return nextResult;
   }
+
+  @override
+  Future<bool> openInApp(Uri uri) => open(uri);
 }
 
 /// Every HttpClient call fails instantly — AuthGate's session restore
@@ -101,6 +104,7 @@ Future<void> _pumpSignedIn(
   await t.pumpWidget(
     MaterialApp(
       home: AuthGate(
+        allowDemo: true,
         shareReceiver: const _NoopShareReceiver(),
         quickActions: _NoopQuickActions(),
         biometric: biometric,
@@ -136,7 +140,7 @@ Future<void> _untilShared(WidgetTester t, int Function() calls) async {
 /// Boot the real app widget — the same MaterialApp MoneyFlow ships —
 /// down the demo path to the settings surface.
 Future<void> _openDemoSettings(WidgetTester t) async {
-  await t.pumpWidget(const MoneyFlowApp());
+  await t.pumpWidget(const MoneyFlowApp(allowDemo: true));
   await t.pumpAndSettle();
   await t.tap(find.text('Xem bản demo (không cần đăng nhập)'));
   await t.pumpAndSettle();
@@ -157,17 +161,18 @@ void main() {
   });
 
   group('SettingsPrefs', () {
-    test('theme mode defaults to system and round-trips', () async {
-      expect(await SettingsPrefs.loadThemeMode(), ThemeMode.system);
-      await SettingsPrefs.saveThemeMode(ThemeMode.dark);
+    test('theme mode defaults to dark and round-trips', () async {
+      // Dark-mode-first is the neon-green direction (2026-10-16).
       expect(await SettingsPrefs.loadThemeMode(), ThemeMode.dark);
       await SettingsPrefs.saveThemeMode(ThemeMode.light);
       expect(await SettingsPrefs.loadThemeMode(), ThemeMode.light);
+      await SettingsPrefs.saveThemeMode(ThemeMode.system);
+      expect(await SettingsPrefs.loadThemeMode(), ThemeMode.system);
     });
 
-    test('an unrecognised stored mode falls back to system', () async {
+    test('an unrecognised stored mode falls back to dark', () async {
       SharedPreferences.setMockInitialValues({'mf_theme_mode': 'neon'});
-      expect(await SettingsPrefs.loadThemeMode(), ThemeMode.system);
+      expect(await SettingsPrefs.loadThemeMode(), ThemeMode.dark);
     });
 
     test('digest time defaults to 19:00 and round-trips', () async {
@@ -201,6 +206,7 @@ void main() {
             onDigestScheduleChanged: () async {},
             loadArchive: () async => {'accounts': []},
             onDeleteLocalData: () async {},
+            onDeleteHistoryBefore: () async {},
             onDeleteAccount: () async {},
             onOpenPrivacyPolicy: () {},
             onReplayWelcome: () {},
@@ -223,6 +229,7 @@ void main() {
         'Giờ gửi tóm tắt',
         'Sao lưu (JSON)',
         'Xóa dữ liệu trên máy',
+        'Xóa lịch sử trước ngày',
         'Xóa tài khoản',
         'Phiên bản',
         'Chính sách bảo mật',
@@ -263,19 +270,27 @@ void main() {
       expect(find.text('Giờ gửi tóm tắt'), findsNothing);
       expect(find.text('Sao lưu (JSON)'), findsNothing);
       expect(find.text('Xóa tài khoản'), findsNothing);
+      expect(find.text('Xóa lịch sử trước ngày'), findsNothing);
       expect(find.text('Xóa dữ liệu trên máy'), findsNothing);
     });
   });
 
   group('theme radios', () {
-    testWidgets('picking Tối persists and publishes the mode', (t) async {
+    testWidgets('picking a mode persists and publishes it', (t) async {
       await t.pumpWidget(const MaterialApp(home: SettingsPage()));
       await t.pumpAndSettle();
 
-      await t.tap(find.text('Tối'));
+      // Dark is already selected (dark-first default), so start from
+      // Sáng — a radio's onChanged never re-fires on its current value.
+      await t.tap(find.text('Sáng'));
       await t.pumpAndSettle();
 
       final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('mf_theme_mode'), 'light');
+      expect(SettingsPrefs.themeMode.value, ThemeMode.light);
+
+      await t.tap(find.text('Tối'));
+      await t.pumpAndSettle();
       expect(prefs.getString('mf_theme_mode'), 'dark');
       expect(SettingsPrefs.themeMode.value, ThemeMode.dark);
 
@@ -299,6 +314,7 @@ void main() {
     testWidgets('a pick on the demo settings applies to the real app', (
       t,
     ) async {
+      _bigViewport(t);
       await _openDemoSettings(t);
       await t.tap(find.text('Tối'));
       await t.pumpAndSettle();
@@ -510,6 +526,7 @@ void main() {
     });
 
     testWidgets('a refused biometric proof keeps the pref off', (t) async {
+      _bigViewport(t);
       final bio = _FakeBiometricService()..nextAuth = false;
       await _pumpSignedIn(t, biometric: bio);
 
@@ -591,5 +608,31 @@ void main() {
         expect(await WelcomePrefs.loadSeen(), isTrue);
       },
     );
+
+    testWidgets('month digest switch fires its own opt-in seam', (t) async {
+      bool? setTo;
+      await t.pumpWidget(
+        MaterialApp(
+          home: SettingsPage(
+            digestEnabled: false,
+            onSetDigestEnabled: (_) async {},
+            monthDigestEnabled: false,
+            onSetMonthDigestEnabled: (v) async => setTo = v,
+            onDigestScheduleChanged: () async {},
+            onDeleteLocalData: () async {},
+            onOpenPrivacyPolicy: () {},
+            onReplayWelcome: () {},
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      expect(find.text('Tổng kết tháng'), findsOneWidget);
+      // Both digests share the one fire-time row — its subtitle names
+      // the real fire day once the opt-in flips on.
+      await t.tap(find.text('Tổng kết tháng'));
+      await t.pumpAndSettle();
+      expect(setTo, isTrue);
+    });
   });
 }

@@ -105,9 +105,26 @@ function explainedReport(
   ctx: CapabilityContext,
 ) {
   const range = { from: report.range.currentStart, to: report.range.currentEnd };
-  const current = transactionRange(transactions, range);
-  const income = current.filter((transaction) => transaction.kind === "income");
-  const expense = current.filter((transaction) => transaction.kind === "expense");
+  /*
+   * Basis rows must name exactly the transactions the totals counted —
+   * `excludedFromReports` rows never reach `buildFinancialReport`, so citing
+   * them in an explanation would lie about where the number came from.
+   */
+  const current = transactionRange(transactions, range).filter(
+    (transaction) => !transaction.excludedFromReports,
+  );
+  /*
+   * Refund income rows net on the expense side — they belong in the
+   * expense basis (their sign flips in the total) and never in income.
+   */
+  const income = current.filter(
+    (transaction) => transaction.kind === "income" && !transaction.isRefund,
+  );
+  const expense = current.filter(
+    (transaction) =>
+      transaction.kind === "expense" ||
+      (transaction.kind === "income" && transaction.isRefund === true),
+  );
   const base = {
     computedAt: ctx.now,
     capabilityVersion: "reports.financial@1",

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/data/demo_store.dart';
 import 'package:moneyflow/domain/models.dart';
 import 'package:moneyflow/domain/money.dart';
+import 'package:moneyflow/domain/reconciliation.dart';
 import 'package:moneyflow/domain/register.dart';
 import 'package:moneyflow/domain/transaction_query.dart';
 import 'package:moneyflow/features/accounts/account_register_page.dart';
@@ -311,6 +312,27 @@ void main() {
     });
   });
 
+  group('transactionDeleteErrorMessage', () {
+    test('maps the RPC refusal codes to their recovery path', () {
+      expect(
+        transactionDeleteErrorMessage(Exception('recurring_payment_locked')),
+        contains('Định kỳ'),
+      );
+      expect(
+        transactionDeleteErrorMessage(Exception('transaction_reconciled')),
+        contains('đối soát'),
+      );
+      expect(
+        transactionDeleteErrorMessage(Exception('authentication_required')),
+        contains('đăng nhập lại'),
+      );
+      expect(
+        transactionDeleteErrorMessage(Exception('anything else')),
+        'Không xóa được — thử lại.',
+      );
+    });
+  });
+
   group('AccountRegisterPage', () {
     Widget page(
       List<Transaction> txs, {
@@ -443,6 +465,62 @@ void main() {
       expect(deleted, 'e');
     });
 
+    testWidgets('a refused delete keeps the row and names the reason', (
+      t,
+    ) async {
+      var loads = 0;
+      await t.pumpWidget(
+        MaterialApp(
+          home: AccountRegisterPage(
+            account: _account,
+            loadPage: (q, {offset = 0}) async {
+              loads++;
+              return TransactionPage([
+                _tx('e', TransactionKind.expense, 45000, '2026-10-12'),
+              ], hasMore: false);
+            },
+            onDelete: (_) async =>
+                throw Exception('P0001 recurring_payment_locked'),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      await t.longPress(find.text('e'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Xóa'));
+      await t.pumpAndSettle();
+
+      expect(find.textContaining('Định kỳ'), findsOneWidget);
+      expect(find.text('e'), findsOneWidget);
+      // A refused delete must not reload — the visible row is still truth.
+      expect(loads, 1);
+    });
+
+    testWidgets('the row shows a visible delete affordance (web parity)', (
+      t,
+    ) async {
+      String? deleted;
+      await t.pumpWidget(
+        MaterialApp(
+          home: AccountRegisterPage(
+            account: _account,
+            loadPage: inMemoryPageLoader([
+              _tx('e', TransactionKind.expense, 45000, '2026-10-12'),
+            ]),
+            onDelete: (id) async => deleted = id,
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      await t.tap(find.byTooltip('Xóa giao dịch'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Xóa'));
+      await t.pumpAndSettle();
+      expect(deleted, 'e');
+    });
+
     testWidgets('no edit/delete seams keeps rows read-only', (t) async {
       await t.pumpWidget(
         page([_tx('e', TransactionKind.expense, 45000, '2026-10-12')]),
@@ -511,6 +589,266 @@ void main() {
         find.text('Số dư ${formatMoney(_account.balance + 28000)}'),
         findsOneWidget,
       );
+    });
+  });
+
+  group('reconcile reminder row (D19)', () {
+    const completedSession = ReconciliationSession(
+      id: 's1',
+      accountId: 'a1',
+      statementDate: '2026-09-25',
+      statementBalance: 11098000,
+      status: ReconciliationStatus.completed,
+    );
+
+    Widget reminderPage({
+      int? storedDay,
+      bool reconSeam = true,
+      bool reminderSeams = true,
+      void Function(int? day)? onSave,
+    }) => MaterialApp(
+      home: AccountRegisterPage(
+        account: _account,
+        loadPage: inMemoryPageLoader(const []),
+        loadReconciliation: reconSeam
+            ? () async => const ReconciliationStateData(
+                featureAvailable: true,
+                rows: [],
+                sessions: [completedSession],
+              )
+            : null,
+        loadReconcileReminder: reminderSeams ? () async => storedDay : null,
+        onReconcileReminderChanged: reminderSeams
+            ? (day) async => onSave?.call(day)
+            : null,
+      ),
+    );
+
+    testWidgets('hidden without the seams — never a dead affordance', (
+      t,
+    ) async {
+      await t.pumpWidget(reminderPage(reminderSeams: false));
+      await t.pumpAndSettle();
+      expect(find.textContaining('Nhắc đối soát'), findsNothing);
+    });
+
+    testWidgets('hidden when the whole recon strip is absent', (t) async {
+      await t.pumpWidget(reminderPage(reconSeam: false));
+      await t.pumpAndSettle();
+      expect(find.textContaining('Nhắc đối soát'), findsNothing);
+    });
+
+    testWidgets('unset day reads honest "hằng tháng" affordance', (t) async {
+      await t.pumpWidget(reminderPage());
+      await t.pumpAndSettle();
+      expect(find.text('Nhắc đối soát hằng tháng'), findsOneWidget);
+    });
+
+    testWidgets('stored day is named on the row', (t) async {
+      await t.pumpWidget(reminderPage(storedDay: 15));
+      await t.pumpAndSettle();
+      expect(find.text('Nhắc đối soát — ngày 15 hằng tháng'), findsOneWidget);
+    });
+
+    testWidgets('a failed read says so instead of faking an unset state', (
+      t,
+    ) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: AccountRegisterPage(
+            account: _account,
+            loadPage: inMemoryPageLoader(const []),
+            loadReconciliation: () async => const ReconciliationStateData(
+              featureAvailable: true,
+              rows: [],
+              sessions: [],
+            ),
+            loadReconcileReminder: () async => throw Exception('io'),
+            onReconcileReminderChanged: (_) async {},
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(find.text('Chưa tải được cài đặt nhắc'), findsOneWidget);
+    });
+
+    testWidgets('Lưu persists the picked day through the seam', (t) async {
+      int? saved = -1;
+      await t.pumpWidget(reminderPage(storedDay: 5, onSave: (d) => saved = d));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Nhắc đối soát — ngày 5 hằng tháng'));
+      await t.pumpAndSettle();
+      // The field itself carries the tap target — the 'Ngày 5' text
+      // exists in both the closed field and the opened overlay, and the
+      // overlay is lazily built so only the visible early items exist.
+      await t.tap(find.byType(DropdownButtonFormField<int>));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Ngày 3').last);
+      await t.pumpAndSettle();
+      await t.tap(find.text('Lưu'));
+      await t.pumpAndSettle();
+      expect(saved, 3);
+      expect(
+        find.textContaining('Đã đặt nhắc đối soát ngày 3'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a 29–31 day names the end-of-month clamp honestly', (t) async {
+      await t.pumpWidget(reminderPage(storedDay: 30));
+      await t.pumpAndSettle();
+      expect(find.text('Nhắc đối soát — ngày 30 hằng tháng'), findsOneWidget);
+      expect(
+        find.text('Tháng thiếu ngày sẽ nhắc vào ngày cuối tháng'),
+        findsOneWidget,
+      );
+      // The dialog explains the same rule before the pick is saved —
+      // 'ngày 30 sẽ' matches only the dialog copy, not the row subtitle.
+      await t.tap(find.text('Nhắc đối soát — ngày 30 hằng tháng'));
+      await t.pumpAndSettle();
+      expect(find.textContaining('ngày 30 sẽ nhắc'), findsOneWidget);
+    });
+
+    testWidgets('no stored day suggests the latest completed statement', (
+      t,
+    ) async {
+      int? saved;
+      await t.pumpWidget(reminderPage(onSave: (d) => saved = d));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Nhắc đối soát hằng tháng'));
+      await t.pumpAndSettle();
+      // Statement day 25 is preselected — saving untouched keeps that
+      // rhythm rather than inventing a default.
+      await t.tap(find.text('Lưu'));
+      await t.pumpAndSettle();
+      expect(saved, 25);
+    });
+
+    testWidgets('Tắt nhắc clears through the seam, then the row resets', (
+      t,
+    ) async {
+      var cleared = false;
+      await t.pumpWidget(
+        reminderPage(storedDay: 15, onSave: (d) => cleared = d == null),
+      );
+      await t.pumpAndSettle();
+      await t.tap(find.text('Nhắc đối soát — ngày 15 hằng tháng'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Tắt nhắc'));
+      await t.pumpAndSettle();
+      expect(cleared, isTrue);
+      expect(find.text('Nhắc đối soát hằng tháng'), findsOneWidget);
+      expect(find.textContaining('Đã tắt nhắc'), findsOneWidget);
+    });
+  });
+
+  group('running-balance toggle (D20)', () {
+    final rows = [
+      _tx('e', TransactionKind.expense, 45000, '2026-10-12'),
+      _tx('i', TransactionKind.income, 15000000, '2026-10-10'),
+    ];
+
+    Widget balancePage({
+      bool? stored,
+      bool seams = true,
+      void Function(bool v)? onSave,
+    }) => MaterialApp(
+      home: AccountRegisterPage(
+        account: _account,
+        loadPage: inMemoryPageLoader(rows),
+        loadShowRunningBalance: seams ? () async => stored ?? true : null,
+        onRunningBalanceVisibleChanged: seams
+            ? (v) async => onSave?.call(v)
+            : null,
+      ),
+    );
+
+    testWidgets('no seams → balances show, no toggle affordance', (t) async {
+      await t.pumpWidget(balancePage(seams: false));
+      await t.pumpAndSettle();
+      // The chain is derived either way — hiding the toggle never
+      // removes the default-on column.
+      expect(
+        find.text('Số dư ${formatMoney(_account.balance)}'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Số dư ${formatMoney(_account.balance + 45000)}'),
+        findsOneWidget,
+      );
+      expect(find.byTooltip('Ẩn số dư'), findsNothing);
+      expect(find.byTooltip('Hiện số dư'), findsNothing);
+    });
+
+    testWidgets('toggle off hides the per-row line, keeps the header', (
+      t,
+    ) async {
+      var saved = true;
+      await t.pumpWidget(balancePage(onSave: (v) => saved = v));
+      await t.pumpAndSettle();
+      expect(find.byTooltip('Ẩn số dư'), findsOneWidget);
+      // Both rows carry a running-balance line by default.
+      expect(
+        find.text('Số dư ${formatMoney(_account.balance)}'),
+        findsOneWidget,
+      );
+
+      await t.tap(find.byTooltip('Ẩn số dư'));
+      await t.pumpAndSettle();
+      expect(saved, isFalse);
+      expect(find.byTooltip('Hiện số dư'), findsOneWidget);
+      // Per-row lines gone; the header's "Số dư hiện tại" anchor stays.
+      expect(find.text('Số dư ${formatMoney(_account.balance)}'), findsNothing);
+      expect(
+        find.text('Số dư ${formatMoney(_account.balance + 45000)}'),
+        findsNothing,
+      );
+      expect(find.text('Số dư hiện tại'), findsOneWidget);
+      expect(find.text(formatMoney(_account.balance)), findsOneWidget);
+    });
+
+    testWidgets('toggle back on restores every row line', (t) async {
+      await t.pumpWidget(balancePage(stored: false));
+      await t.pumpAndSettle();
+      expect(find.byTooltip('Hiện số dư'), findsOneWidget);
+      expect(find.text('Số dư ${formatMoney(_account.balance)}'), findsNothing);
+
+      await t.tap(find.byTooltip('Hiện số dư'));
+      await t.pumpAndSettle();
+      expect(
+        find.text('Số dư ${formatMoney(_account.balance)}'),
+        findsOneWidget,
+      );
+      // The older row's derived value comes back too — chain intact.
+      expect(
+        find.text('Số dư ${formatMoney(_account.balance + 45000)}'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a failed save reverts the display to the stored state', (
+      t,
+    ) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: AccountRegisterPage(
+            account: _account,
+            loadPage: inMemoryPageLoader(rows),
+            loadShowRunningBalance: () async => true,
+            onRunningBalanceVisibleChanged: (_) async =>
+                throw Exception('disk full'),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      await t.tap(find.byTooltip('Ẩn số dư'));
+      await t.pumpAndSettle();
+      // The write failed — the UI must not keep pretending it hid.
+      expect(
+        find.text('Số dư ${formatMoney(_account.balance)}'),
+        findsOneWidget,
+      );
+      expect(find.byTooltip('Ẩn số dư'), findsOneWidget);
     });
   });
 }

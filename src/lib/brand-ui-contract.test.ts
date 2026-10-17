@@ -32,8 +32,7 @@ const openGraph = readFileSync(
   "utf8",
 );
 
-const upperFlow =
-  "M22.80 64.20C22.80 40.40 42.10 28.00 66.40 28.00H128.20";
+const upperFlow = "M22.80 64.20C22.80 40.40 42.10 28.00 66.40 28.00H128.20";
 const lowerFlow =
   "M137.20 95.80C137.20 119.60 117.90 132.00 93.60 132.00H31.80";
 
@@ -47,13 +46,11 @@ function expectB32Geometry(source: string) {
 function relativeLuminance(hex: string) {
   const normalized = hex.replace("#", "");
   assert.equal(normalized.length, 6);
-  const channels = [0, 2, 4].map((offset) =>
-    Number.parseInt(normalized.slice(offset, offset + 2), 16) / 255,
+  const channels = [0, 2, 4].map(
+    (offset) => Number.parseInt(normalized.slice(offset, offset + 2), 16) / 255,
   );
   const linear = channels.map((channel) =>
-    channel <= 0.04045
-      ? channel / 12.92
-      : ((channel + 0.055) / 1.055) ** 2.4,
+    channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4,
   );
   return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
 }
@@ -96,7 +93,7 @@ test("landing, auth and signed-in shell use the shared brand component", () => {
   assert.doesNotMatch(appShell, /function Brand\(/u);
 });
 
-test("public routes consume the fresh-blue project color authority", () => {
+test("public routes consume the soft-pop project color authority", () => {
   assert.match(
     landing,
     /import themeStyles from "\.\/public-brand-theme\.module\.css"/u,
@@ -116,23 +113,23 @@ test("public routes consume the fresh-blue project color authority", () => {
     publicTheme,
     /\.landingTheme header a\[href="\/login"\]\s*\{[\s\S]*color:\s*var\(--public-ink\)/u,
   );
-  assert.match(publicTheme, /--mf-brand-identity:\s*#0ea5e9/u);
-  assert.match(publicTheme, /--mf-brand:\s*#0369a1/u);
+  assert.match(publicTheme, /--mf-brand-identity:\s*#6f4ef5/u);
+  assert.match(publicTheme, /--mf-brand:\s*#6f4ef5/u);
   assert.match(publicTheme, /color-scheme:\s*light/u);
   assert.doesNotMatch(publicTheme, /html\[data-theme="dark"\]/u);
 
-  assert.match(documentTheme, /--mf-canvas:\s*#f8fafc/u);
+  assert.match(documentTheme, /--mf-canvas:\s*#f8f5ff/u);
   assert.match(documentTheme, /--mf-surface:\s*#ffffff/u);
-  assert.match(documentTheme, /--mf-brand-500:\s*#0ea5e9/u);
-  assert.match(documentTheme, /--mf-brand-600:\s*#0284c7/u);
-  assert.match(documentTheme, /--mf-brand-700:\s*#0369a1/u);
-  assert.match(documentTheme, /--mf-brand-identity:\s*var\(--mf-brand-500\)/u);
-  assert.match(documentTheme, /--mf-brand:\s*var\(--mf-brand-700\)/u);
-  assert.match(documentTheme, /--mf-brand-hover:\s*var\(--mf-brand-800\)/u);
-  assert.match(documentTheme, /--mf-brand-pressed:\s*var\(--mf-brand-900\)/u);
-  assert.match(documentTheme, /--mf-cyan-500:\s*#06b6d4/u);
-  assert.match(documentTheme, /--mf-indigo-500:\s*#6366f1/u);
-  assert.match(documentTheme, /--mf-periwinkle-500:\s*#8b9cf6/u);
+  assert.match(documentTheme, /--mf-brand-500:\s*#8b6ff7/u);
+  assert.match(documentTheme, /--mf-brand-600:\s*#6f4ef5/u);
+  assert.match(documentTheme, /--mf-brand-700:\s*#5b3be0/u);
+  assert.match(documentTheme, /--mf-brand-identity:\s*var\(--mf-brand-600\)/u);
+  assert.match(documentTheme, /--mf-brand:\s*var\(--mf-brand-600\)/u);
+  assert.match(documentTheme, /--mf-brand-hover:\s*var\(--mf-brand-700\)/u);
+  assert.match(documentTheme, /--mf-brand-pressed:\s*var\(--mf-brand-800\)/u);
+  assert.match(documentTheme, /--mf-pop-pink:\s*#ff9fb8/u);
+  assert.match(documentTheme, /--mf-pop-mint:\s*#7fe5c4/u);
+  assert.match(documentTheme, /--mf-pop-peri:\s*#8fa8ff/u);
   assert.match(documentTheme, /--mf-income:\s*#16a34a/u);
   assert.match(documentTheme, /--mf-expense:\s*#dc2626/u);
   assert.match(documentTheme, /--mf-warning:\s*#eab308/u);
@@ -143,19 +140,19 @@ test("public routes consume the fresh-blue project color authority", () => {
   assert.doesNotMatch(documentTheme, /Signal Ledger/u);
 });
 
-test("fresh-blue action pairs preserve normal-text contrast", () => {
-  assert.ok(contrastRatio("#0369A1", "#FFFFFF") >= 4.5);
-  assert.ok(contrastRatio("#38BDF8", "#082F49") >= 4.5);
-  assert.ok(contrastRatio("#0EA5E9", "#101828") >= 4.5);
+test("soft-pop action pairs preserve normal-text contrast", () => {
+  assert.ok(contrastRatio("#6F4EF5", "#FFFFFF") >= 4.5);
+  assert.ok(contrastRatio("#5B3BE0", "#FFFFFF") >= 4.5);
+  assert.ok(contrastRatio("#B7A5FF", "#221744") >= 4.5);
 });
 
-test("installed and social assets use the fresh-blue identity", () => {
+test("installed and social assets use the soft-pop identity", () => {
   expectB32Geometry(openGraph);
-  assert.match(icon, /fill="#0EA5E9"/u);
+  assert.match(icon, /fill="#6F4EF5"/u);
   assert.match(icon, /stroke="#FFFFFF"/u);
-  assert.match(manifest, /theme_color:\s*"#0EA5E9"/u);
-  assert.match(manifest, /background_color:\s*"#F8FAFC"/u);
-  assert.match(openGraph, /background:\s*"#0EA5E9"/u);
+  assert.match(manifest, /theme_color:\s*"#6F4EF5"/u);
+  assert.match(manifest, /background_color:\s*"#F8F5FF"/u);
+  assert.match(openGraph, /background:\s*"#6F4EF5"/u);
   assert.doesNotMatch(icon, /#0B6B3A/iu);
   assert.doesNotMatch(manifest, /#0B6B3A/iu);
   assert.doesNotMatch(openGraph, /#0B6B3A/iu);
@@ -184,11 +181,17 @@ test("auth proof rail copy is specific to each auth mode", () => {
   assert.match(auth, /Tạo mật khẩu mới để tiếp tục với sổ của bạn\./u);
   assert.match(auth, /\{content\.proofEyebrow\}/u);
   assert.match(auth, /\{content\.proofTitle\}/u);
-  assert.doesNotMatch(auth, /Đăng nhập để tiếp tục từ dữ liệu của chính bạn\./u);
+  assert.doesNotMatch(
+    auth,
+    /Đăng nhập để tiếp tục từ dữ liệu của chính bạn\./u,
+  );
 });
 
 test("signed-in compatibility logo generation stays retired", () => {
   assert.equal(existsSync(join(root, "src/app/ai-uiux-guardrails.css")), false);
-  assert.match(appShell, /<BrandLockup[\s\S]*ariaLabel="MoneyFlow, về Tổng quan"/u);
+  assert.match(
+    appShell,
+    /<BrandLockup[\s\S]*ariaLabel="MoneyFlow, về Tổng quan"/u,
+  );
   assert.doesNotMatch(appShell, /url\("\/icon\.svg"\)/u);
 });

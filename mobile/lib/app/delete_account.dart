@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/google_sign_in.dart';
 import '../data/neon/auth_client.dart';
-import 'delete_data.dart' show deleteConfirmText;
+import 'delete_data.dart' show deleteConfirmText, matchesDeleteConfirm;
 
 /// Server-side account deletion — the mobile twin of the web's
 /// /settings/delete-account page (src/components/delete-account-page.tsx).
@@ -14,20 +14,28 @@ import 'delete_data.dart' show deleteConfirmText;
 ///   * a fresh authentication proves the session owner before the delete —
 ///     the web's edge function enforces a recent-auth window server-side;
 ///     the Neon RPC has no such check, so this flow re-authenticates
-///     first (password for `credential` accounts, a fresh Google idToken
-///     for social-only ones) instead of trusting the ambient cookie;
+///     first (password for `credential` accounts, a fresh Google
+///     loopback sign-in for social-only ones) instead of trusting the
+///     ambient cookie;
 ///   * the server deletes FIRST — the caller wipes local stores only
 ///     after this returns true, and a failure leaves the signed-in
 ///     session and every local byte untouched;
 ///   * demo mode never reaches here (no server account exists) — the
 ///     menu item is absent in demo.
 ///
+/// [onSessionDropped] fires when a stranger-account re-auth could not be
+/// rolled back: the client has already discarded every credential it was
+/// holding, so the only honest continuation is a fresh sign-in — the
+/// caller signs out locally and pops the dead shell. It runs inside the
+/// dialog's submit path, before the dialog reports anything.
+///
 /// Returns true only when the account is actually gone server-side.
 Future<bool> showDeleteAccountFlow(
   BuildContext context, {
   required NeonAuthClient auth,
   required Future<int> Function() deleteAccount,
-  GoogleIdTokenSource? googleIdTokens,
+  GoogleSignInFlow? googleFlow,
+  Future<void> Function()? onSessionDropped,
 }) async {
   final confirmed = await showDialog<bool>(
     context: context,
@@ -35,7 +43,8 @@ Future<bool> showDeleteAccountFlow(
     builder: (ctx) => _DeleteAccountDialog(
       auth: auth,
       deleteAccount: deleteAccount,
-      googleIdTokens: googleIdTokens,
+      googleFlow: googleFlow,
+      onSessionDropped: onSessionDropped,
     ),
   );
   return confirmed ?? false;
@@ -49,12 +58,19 @@ class _DeleteAccountDialog extends StatefulWidget {
   const _DeleteAccountDialog({
     required this.auth,
     required this.deleteAccount,
-    this.googleIdTokens,
+    this.googleFlow,
+    this.onSessionDropped,
   });
 
   final NeonAuthClient auth;
   final Future<int> Function() deleteAccount;
-  final GoogleIdTokenSource? googleIdTokens;
+  final GoogleSignInFlow? googleFlow;
+
+  /// Invoked after a stranger-account re-auth whose rollback failed —
+  /// by then the client holds no session at all, so the host must force
+  /// a local sign-out (a half-restored client would keep issuing Data
+  /// API calls under the stranger's cached JWT).
+  final Future<void> Function()? onSessionDropped;
 
   @override
   State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
@@ -74,7 +90,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
   bool _methodFailed = false;
   _ReauthMethod? _method;
 
-  bool get _confirmOk => _confirm.text.trim() == deleteConfirmText;
+  bool get _confirmOk => matchesDeleteConfirm(_confirm.text);
 
   @override
   void initState() {
@@ -94,11 +110,10 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
         _methodLoading = false;
         // A password re-entry is the deterministic path whenever the
         // account has one; social-only accounts re-auth through Google —
-        // but only when this build carries a configured token source.
+        // but only when this build carries a configured sign-in flow.
         if (providers.contains('credential')) {
           _method = _ReauthMethod.password;
-        } else if (providers.contains('google') &&
-            widget.googleIdTokens != null) {
+        } else if (providers.contains('google') && widget.googleFlow != null) {
           _method = _ReauthMethod.google;
         } else {
           _method = null;
@@ -143,14 +158,54 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
             _password.text,
           );
         case _ReauthMethod.google:
-          final token = await widget.googleIdTokens!.idToken();
-          if (token == null) {
-            // A cancelled Google sheet is user intent — back to the
+          // The redirect sign-in replaces the session wholesale — the
+          // user could pick a DIFFERENT Google account in the browser,
+          // and deleting would then hit that account. Pin the expected
+          // identity and abort on mismatch.
+          final prior = widget.auth.session;
+          final session = await widget.googleFlow!.signIn();
+          if (session == null) {
+            // User aborted the browser leg — user intent, back to the
             // confirm step with no error banner.
             setState(() => _busy = false);
             return;
           }
-          await widget.auth.signInWithGoogleIdToken(token);
+          if (prior != null && session.userId != prior.userId) {
+            // Restore the original session — the stranger's session
+            // token is dropped, never persisted anywhere.
+            NeonSession? restored;
+            try {
+              restored = await widget.auth.restoreSession(prior.sessionToken);
+            } catch (_) {
+              restored = null;
+            }
+            if (restored == null) {
+              // The rollback failed (5xx/timeout) or the prior session
+              // is dead upstream — and the auth client still caches the
+              // STRANGER's Data-API JWT, so the next requests would run
+              // under the wrong tenant until it expires. Discard every
+              // credential the client holds and hand the shell a forced
+              // sign-out: only a fresh login is an honest state.
+              widget.auth.discardSession();
+              await widget.onSessionDropped?.call();
+              if (!mounted) return;
+              setState(() {
+                _busy = false;
+                _error =
+                    'Không khôi phục được phiên đăng nhập cũ — đã đăng '
+                    'xuất, hãy đăng nhập lại.';
+              });
+              return;
+            }
+            if (!mounted) return;
+            setState(() {
+              _busy = false;
+              _error =
+                  'Tài khoản Google vừa đăng nhập không khớp tài khoản '
+                  'cần xóa — đã hủy, chưa có gì thay đổi.';
+            });
+            return;
+          }
         case null:
           return;
       }

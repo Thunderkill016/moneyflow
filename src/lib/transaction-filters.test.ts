@@ -253,6 +253,59 @@ test("queries typed with diacritics still match, and unknown text matches nothin
   assert.deepEqual(none, []);
 });
 
+test("a leading '#' scopes the query to the note field (D24 hashtag search)", () => {
+  const rows: Transaction[] = [
+    {
+      ...transactions[0]!,
+      id: "tagged",
+      note: "Cà phê với anh Hai #cf",
+      payee: "Highlands",
+      category: "Ăn uống",
+    },
+    {
+      ...transactions[0]!,
+      id: "payee-hash",
+      note: "Ăn trưa",
+      payee: "#cf shop",
+      category: "Ăn uống",
+    },
+    {
+      ...transactions[0]!,
+      id: "category-hash",
+      note: "Xăng xe",
+      payee: undefined,
+      category: "#cf",
+    },
+  ];
+  const result = filterTransactions(rows, filters({ query: "#cf" }));
+  // Tags live in notes only: a payee or category spelled "#cf" is not a tag.
+  assert.deepEqual(result.map((item) => item.id), ["tagged"]);
+});
+
+test("hashtag matching stays substring and diacritic-folded like the mobile evaluator", () => {
+  const rows: Transaction[] = [
+    {
+      ...transactions[0]!,
+      id: "cafe-tag",
+      note: "Sáng #café ngon",
+      category: "Ăn uống",
+    },
+    {
+      ...transactions[0]!,
+      id: "coffee-tag",
+      note: "Tối #cf thôi",
+      category: "Ăn uống",
+    },
+  ];
+  // Literal substring on the note — "#ca" reaches "#café" but not "#cf".
+  const partial = filterTransactions(rows, filters({ query: "#ca" }));
+  assert.deepEqual(partial.map((item) => item.id), ["cafe-tag"]);
+  const folded = filterTransactions(rows, filters({ query: "#cafe" }));
+  assert.deepEqual(folded.map((item) => item.id), ["cafe-tag"]);
+  const other = filterTransactions(rows, filters({ query: "#cf" }));
+  assert.deepEqual(other.map((item) => item.id), ["coffee-tag"]);
+});
+
 test("serializes only active filters with canonical amount values", () => {
   const params = transactionFilterSearch(
     filters({

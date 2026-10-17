@@ -9,6 +9,7 @@ import 'package:moneyflow/app/biometric_lock.dart';
 import 'package:moneyflow/data/quick_action.dart';
 import 'package:moneyflow/data/share/share_intent.dart';
 import 'package:moneyflow/features/capture/capture_page.dart';
+import 'package:moneyflow/features/inbox/inbox_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Quick-action source double — the platform channel pair replaced by a
@@ -81,15 +82,23 @@ Future<void> _pumpGate(
   WidgetTester t, {
   required _FakeQuickActions quick,
   BiometricService? biometric,
-}) => t.pumpWidget(
-  MaterialApp(
-    home: AuthGate(
-      shareReceiver: const _NoopShareReceiver(),
-      quickActions: quick,
-      biometric: biometric,
+}) {
+  // The auth ListView stacks the demo entry below the default test
+  // viewport's fold — a tall phone-sized surface keeps it tappable.
+  t.view.physicalSize = const Size(1080, 2400);
+  t.view.devicePixelRatio = 1;
+  addTearDown(t.view.reset);
+  return t.pumpWidget(
+    MaterialApp(
+      home: AuthGate(
+        allowDemo: true,
+        shareReceiver: const _NoopShareReceiver(),
+        quickActions: quick,
+        biometric: biometric,
+      ),
     ),
-  ),
-);
+  );
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -211,6 +220,68 @@ void main() {
       prompt.complete(true);
       await t.pumpAndSettle();
       expect(find.text('Ghi khoản'), findsOneWidget);
+    });
+  });
+
+  group('quick=review routing (widget Chờ duyệt row)', () {
+    testWidgets(
+      'cold-start review action opens the demo inbox after entering demo',
+      (t) async {
+        final quick = _FakeQuickActions(initial: kQuickActionReview);
+        await _pumpGate(t, quick: quick);
+        await t.pumpAndSettle();
+
+        // Held on the login gate — nothing opened yet.
+        expect(find.byType(InboxPage), findsNothing);
+
+        await t.tap(find.text('Xem bản demo (không cần đăng nhập)'));
+        await t.pumpAndSettle();
+
+        expect(find.byType(InboxPage), findsOneWidget);
+        expect(find.text('Cần xem'), findsOneWidget);
+      },
+    );
+
+    testWidgets('warm review action in demo opens the inbox', (t) async {
+      final quick = _FakeQuickActions();
+      await _pumpGate(t, quick: quick);
+      await t.pumpAndSettle();
+      await t.tap(find.text('Xem bản demo (không cần đăng nhập)'));
+      await t.pumpAndSettle();
+      expect(find.byType(InboxPage), findsNothing);
+
+      quick.emit(kQuickActionReview);
+      await t.pumpAndSettle();
+
+      expect(find.byType(InboxPage), findsOneWidget);
+    });
+
+    testWidgets('a held review action opens the inbox only after unlock', (
+      t,
+    ) async {
+      HttpOverrides.global = _OfflineHttpOverrides();
+      addTearDown(() => HttpOverrides.global = null);
+      SharedPreferences.setMockInitialValues({
+        'neon.session_token': 'saved-token',
+        'mf_biometric_enabled': true,
+      });
+      final bio = _FakeBiometricService();
+      final prompt = Completer<bool>();
+      bio.onAuthenticate = () => prompt.future;
+      final quick = _FakeQuickActions(initial: kQuickActionReview);
+      await _pumpGate(t, quick: quick, biometric: bio);
+      await t.pumpAndSettle();
+
+      expect(find.text('Mở khóa MoneyFlow'), findsOneWidget);
+      expect(find.byType(InboxPage), findsNothing);
+
+      prompt.complete(true);
+      await t.pumpAndSettle();
+
+      // The inbox route landed only after the unlock — its read fails
+      // offline, but the pushed surface itself is the proof.
+      expect(find.byType(InboxPage), findsOneWidget);
+      expect(find.text('Cần xem'), findsOneWidget);
     });
   });
 

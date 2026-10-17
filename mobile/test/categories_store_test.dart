@@ -299,6 +299,18 @@ void main() {
       },
     );
 
+    test('mergeCategory POSTs merge_categories with both ids', () async {
+      final h = Harness();
+      await h.signIn();
+      h.t.queue.add(FakeTransport.json(200, {'entries': 2}));
+
+      await h.store.mergeCategory(sourceId: 'c-src', targetId: 'c-tgt');
+      final req = h.t.requests.last;
+      expect(req.method, 'POST');
+      expect(req.url.path, '/neondb/rest/v1/rpc/merge_categories');
+      expect(req.body, {'p_source_id': 'c-src', 'p_target_id': 'c-tgt'});
+    });
+
     test('a duplicate-name failure surfaces the server error body', () async {
       final h = Harness();
       await h.signIn();

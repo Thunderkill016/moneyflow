@@ -2,10 +2,11 @@
 <resources>
     <!-- Widget card colors — day values; values-night overrides the card. -->
     <color name="widget_card">#FFFFFFFF</color>
-    <color name="widget_title_text">#FF0F172A</color>
-    <color name="widget_dim_text">#FF475569</color>
-    <color name="widget_button">#FF0EA5E9</color>
-    <color name="widget_button_text">#FFFFFFFF</color>
-    <!-- Adaptive-icon background — same brand sky as widget_button. -->
-    <color name="ic_launcher_background">#FF0EA5E9</color>
+    <color name="widget_title_text">#FF0E1A13</color>
+    <color name="widget_dim_text">#FF42564B</color>
+    <!-- Neon-green brand — dark ink sits on it (white fails contrast). -->
+    <color name="widget_button">#FF00FF88</color>
+    <color name="widget_button_text">#FF0A0E0C</color>
+    <!-- Adaptive-icon background — same neon brand as widget_button. -->
+    <color name="ic_launcher_background">#FF00FF88</color>
 </resources>

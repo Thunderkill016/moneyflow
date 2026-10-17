@@ -7,6 +7,7 @@
 // src/lib/planning/budgets.ts — same windows, same integer-đồng math.
 
 import 'models.dart';
+import 'report.dart' show dateAdd, dayOnly, daysBetween, parseYmd, ymd;
 
 /// Spend status of one monthly budget.
 enum BudgetState { ok, nearLimit, over }
@@ -63,54 +64,141 @@ String shiftBudgetMonth(String monthStart, int offset) {
   return '${y.toString().padLeft(4, '0')}-${(m + 1).toString().padLeft(2, '0')}-01';
 }
 
-// -- Rollover (chuyển từ tháng trước) ----------------------------------------
+// -- Period arithmetic (D12: weekly budgets) ---------------------------------
+//
+// Weekly budgets anchor on the MONDAY of their week — the VN civil week
+// start, the same Monday-first rule the commitment month grid renders.
+// A weekly row's `month_start` column stores that Monday; the name is a
+// historical contract, not a claim that the date is a month start.
 
-/// How far back a rollover may reach, counted in whole months before the
-/// viewed month — `BUDGET_ROLLOVER_LOOKBACK_MONTHS` on the web. The bound
-/// is applied twice: once at the `budget_progress` range read and again
-/// inside [budgetRollover].
-const budgetRolloverLookbackMonths = 12;
+final _periodStartPattern = RegExp(r'^\d{4}-\d{2}-\d{2}$');
 
-/// First month_start inside the rollover window for a viewed month.
-String budgetRolloverWindowStart(String monthStart) =>
-    shiftBudgetMonth(monthStart, -budgetRolloverLookbackMonths);
+/// Canonical 'YYYY-MM-DD' period anchor containing civil date [d]:
+/// monthly → the 1st of its month; weekly → the Monday of its week.
+String budgetPeriodStart(DateTime d, BudgetPeriod period) => switch (period) {
+  BudgetPeriod.monthly => '${d.year}-${d.month.toString().padLeft(2, '0')}-01',
+  BudgetPeriod.weekly => ymd(dateAdd(dayOnly(d), -(d.weekday - 1))),
+};
 
-/// Signed carry into the viewed month for one category — port of the
-/// web's `BudgetRollover`.
-class BudgetRollover {
-  const BudgetRollover({required this.carry, required this.monthsIncluded});
-
-  /// Signed đồng carried into the viewed month: prior underspend adds to
-  /// what the category may still absorb, prior overspend subtracts.
-  final int carry;
-
-  /// How many prior budgeted months contributed — kept for honest
-  /// labelling ("tháng trước" would be a lie when the carry nets three).
-  final int monthsIncluded;
+/// Shift a period anchor by [offset] whole periods — weekly anchors move
+/// in 7-day steps (always Mondays), monthly delegates to
+/// [shiftBudgetMonth]. Throws [FormatException] on a malformed anchor or
+/// an out-of-range result, matching the month shift's contract.
+String shiftBudgetPeriod(String periodStart, BudgetPeriod period, int offset) {
+  if (period == BudgetPeriod.monthly) {
+    return shiftBudgetMonth(periodStart, offset);
+  }
+  if (!_periodStartPattern.hasMatch(periodStart)) {
+    throw FormatException('invalid_budget_period_start', periodStart);
+  }
+  final d = parseYmd(periodStart);
+  if (d.weekday != DateTime.monday) {
+    throw FormatException('invalid_budget_week_start', periodStart);
+  }
+  final shifted = dateAdd(d, 7 * offset);
+  if (shifted.year < 1 || shifted.year > 9999) {
+    throw FormatException('budget_period_out_of_range', periodStart);
+  }
+  return ymd(shifted);
 }
 
-/// Carry-forward into [monthStart] for one category — port of the web's
-/// `budgetRollover`. Each prior month that has a budget row contributes
-/// `limit − spent`; months with no budget row contribute nothing (the
-/// category was not being tracked that month). Rows outside the lookback
-/// window or at/after the viewed month are ignored, so an unfiltered
-/// history is safe to pass.
+/// Exclusive 'YYYY-MM-DD' end of the period anchored at [periodStart] —
+/// the same [start, end) convention `budget_progress` sums over.
+String budgetPeriodEnd(String periodStart, BudgetPeriod period) =>
+    shiftBudgetPeriod(periodStart, period, 1);
+
+/// Fraction of the period containing [now] already elapsed, clamped to
+/// 0..1 — generalizes [monthPace] so the "Hôm nay" tick reads the same
+/// on a 7-day bar as on a month bar (today counts as a day inside the
+/// period: Monday already reads 1/7, never 0).
+double budgetPeriodPace(String periodStart, BudgetPeriod period, DateTime now) {
+  if (period == BudgetPeriod.monthly) return monthPace(periodStart, now);
+  final start = parseYmd(periodStart);
+  final elapsed = daysBetween(start, dayOnly(now)) + 1;
+  if (elapsed <= 0) return 0;
+  if (elapsed >= 7) return 1;
+  return elapsed / 7;
+}
+
+/// vi-VN label for a period anchor — 'tháng 10/2026' for monthly (the
+/// existing label style), 'tuần 12/10 – 18/10/2026' for weekly. A week
+/// straddling a year boundary carries both years: 'tuần 28/12/2026 –
+/// 3/1/2027' — an unlabeled year there would be ambiguous.
+String budgetPeriodLabel(String periodStart, BudgetPeriod period) {
+  if (period == BudgetPeriod.monthly) {
+    return 'tháng ${int.parse(periodStart.substring(5, 7))}/'
+        '${periodStart.substring(0, 4)}';
+  }
+  final start = parseYmd(periodStart);
+  final end = dateAdd(start, 6);
+  final startLabel =
+      '${start.day}/${start.month}'
+      '${start.year == end.year ? '' : '/${start.year}'}';
+  return 'tuần $startLabel – ${end.day}/${end.month}/${end.year}';
+}
+
+/// The singular Vietnamese period noun ('tháng'/'tuần') — rollover and
+/// quick-fill copy builds its phrases from it so the weekly surface
+/// never borrows a monthly word.
+String budgetPeriodNoun(BudgetPeriod period) =>
+    period == BudgetPeriod.weekly ? 'tuần' : 'tháng';
+
+// -- Rollover (chuyển từ kỳ trước) -------------------------------------------
+
+/// How far back a rollover may reach, counted in whole PERIODS before
+/// the viewed one — `BUDGET_ROLLOVER_LOOKBACK_MONTHS` on the web. Twelve
+/// months ≈ a year of carry for monthly budgets; twelve weeks ≈ a
+/// quarter for weekly ones. The bound exists to keep both the range
+/// read and the carry bounded — the asymmetry is deliberate.
+const budgetRolloverLookbackMonths = 12;
+
+/// First period anchor inside the rollover window for a viewed period —
+/// per-[period], so a weekly row's carry never reaches into months.
+String budgetRolloverWindowStart(
+  String periodStart, {
+  BudgetPeriod period = BudgetPeriod.monthly,
+}) => shiftBudgetPeriod(periodStart, period, -budgetRolloverLookbackMonths);
+
+/// Signed carry into the viewed period for one category — port of the
+/// web's `BudgetRollover`, now per [BudgetPeriod].
+class BudgetRollover {
+  const BudgetRollover({required this.carry, required this.periodsIncluded});
+
+  /// Signed đồng carried into the viewed period: prior underspend adds
+  /// to what the category may still absorb, prior overspend subtracts.
+  final int carry;
+
+  /// How many prior budgeted periods contributed — kept for honest
+  /// labelling ("tuần trước" would be a lie when the carry nets three
+  /// weeks).
+  final int periodsIncluded;
+}
+
+/// Carry-forward into [periodStart] for one category — port of the
+/// web's `budgetRollover`, filtered to [period]. Each prior period that
+/// has a budget row contributes `limit − spent`; periods with no row
+/// contribute nothing (the category was not being tracked then). Rows
+/// outside the lookback window, at/after the viewed anchor, or of a
+/// different period kind are ignored — a mixed-period range read is
+/// safe to pass.
 BudgetRollover budgetRollover({
   required List<BudgetProgress> priorBudgets,
   required String categoryId,
   required String monthStart,
+  BudgetPeriod period = BudgetPeriod.monthly,
 }) {
-  final windowStart = budgetRolloverWindowStart(monthStart);
+  final windowStart = budgetRolloverWindowStart(monthStart, period: period);
   var carry = 0;
-  var monthsIncluded = 0;
+  var periodsIncluded = 0;
   for (final row in priorBudgets) {
+    if (row.period != period) continue;
     if (row.categoryId != categoryId) continue;
     if (row.monthStart.compareTo(monthStart) >= 0) continue;
     if (row.monthStart.compareTo(windowStart) < 0) continue;
     carry += row.limitMinor - row.spentMinor;
-    monthsIncluded += 1;
+    periodsIncluded += 1;
   }
-  return BudgetRollover(carry: carry, monthsIncluded: monthsIncluded);
+  return BudgetRollover(carry: carry, periodsIncluded: periodsIncluded);
 }
 
 /// The cap the viewed month effectively works against: `limit + carry`.
@@ -151,53 +239,154 @@ BudgetState budgetEffectiveState({
 }
 
 /// One honest line explaining where the carry came from, or null when
-/// nothing carried — port of the web's `budgetRolloverLabel`. The card
-/// stays quiet rather than printing "+0 ₫" noise.
+/// nothing carried — port of the web's `budgetRolloverLabel`, now per
+/// period kind ("tuần trước" / "tháng trước"). The card stays quiet
+/// rather than printing "+0 ₫" noise.
 String? budgetRolloverLabel(
   BudgetRollover rollover,
-  String Function(int) format,
-) {
+  String Function(int) format, {
+  BudgetPeriod period = BudgetPeriod.monthly,
+}) {
   if (rollover.carry == 0) return null;
-  final months = rollover.monthsIncluded > 1
-      ? '${rollover.monthsIncluded} tháng trước đó'
-      : 'tháng trước';
+  final unit = budgetPeriodNoun(period);
+  final periods = rollover.periodsIncluded > 1
+      ? '${rollover.periodsIncluded} $unit trước đó'
+      : '$unit trước';
   final amount = format(rollover.carry.abs());
   return rollover.carry > 0
-      ? 'Chuyển từ $months: +$amount'
-      : 'Trừ vì vượt hạn mức $months: −$amount';
+      ? 'Chuyển từ $periods: +$amount'
+      : 'Trừ vì vượt hạn mức $periods: −$amount';
+}
+
+// -- Threshold alerts (80%/100% in-app badges) --------------------------------
+
+/// One category whose [monthStart] budget crossed a spend threshold —
+/// the in-app alert line the dashboard remainder card surfaces (D3).
+/// Wraps the same carry-aware effective math the Kế hoạch tile renders,
+/// so a badge can never disagree with the row it summarizes.
+class BudgetAlert {
+  const BudgetAlert({
+    required this.categoryId,
+    required this.categoryName,
+    required this.state,
+    required this.amountMinor,
+  });
+
+  final String categoryId;
+  final String categoryName;
+
+  /// Never [BudgetState.ok] — only [BudgetState.nearLimit] (>= 80%
+  /// consumed) and [BudgetState.over] (past the effective limit) alert.
+  final BudgetState state;
+
+  /// đồng magnitude behind the state: amount past the effective limit
+  /// when [state] is over, đồng still available when near.
+  final int amountMinor;
+}
+
+/// Threshold alerts for [monthStart]'s budgets — the row seam for "vượt
+/// hạn mức" / "sắp tới hạn mức" lines. [budgetRows] is one window read
+/// (`budget_progress` over `[budgetRolloverWindowStart(monthStart),
+/// monthStart]`); rows at [monthStart] are evaluated and earlier rows
+/// feed their carry, exactly like the planning surface. Rows for other
+/// months are ignored, so a month-scoped read stays safe to pass — the
+/// carry then simply reads as zero, matching a caller with no history.
+///
+/// Ordering is total: [BudgetState.over] first (largest violation
+/// first), then [BudgetState.nearLimit] (smallest headroom first), ties
+/// on category name then id — Dart's sort is not stable.
+List<BudgetAlert> budgetAlerts(
+  List<BudgetProgress> budgetRows, {
+  required String monthStart,
+  BudgetPeriod period = BudgetPeriod.monthly,
+}) {
+  final alerts = <BudgetAlert>[];
+  for (final b in budgetRows) {
+    if (b.period != period) continue;
+    if (b.monthStart != monthStart) continue;
+    final carry = budgetRollover(
+      priorBudgets: budgetRows,
+      categoryId: b.categoryId,
+      monthStart: monthStart,
+      period: period,
+    ).carry;
+    final state = budgetEffectiveState(
+      spentMinor: b.spentMinor,
+      limitMinor: b.limitMinor,
+      carry: carry,
+    );
+    if (state == BudgetState.ok) continue;
+    alerts.add(
+      BudgetAlert(
+        categoryId: b.categoryId,
+        categoryName: b.categoryName,
+        state: state,
+        amountMinor: budgetEffectiveAvailable(
+          spentMinor: b.spentMinor,
+          limitMinor: b.limitMinor,
+          carry: carry,
+        ).abs(),
+      ),
+    );
+  }
+  alerts.sort((a, b) {
+    final byState = (a.state == BudgetState.over ? 0 : 1).compareTo(
+      b.state == BudgetState.over ? 0 : 1,
+    );
+    if (byState != 0) return byState;
+    // Over: the deepest breach first. Near: the tightest headroom first.
+    final byAmount = a.state == BudgetState.over
+        ? b.amountMinor.compareTo(a.amountMinor)
+        : a.amountMinor.compareTo(b.amountMinor);
+    if (byAmount != 0) return byAmount;
+    final byName = a.categoryName.compareTo(b.categoryName);
+    return byName != 0 ? byName : a.categoryId.compareTo(b.categoryId);
+  });
+  return alerts;
 }
 
 // -- Carry-forward (dùng hạn mức tháng trước) --------------------------------
 
 /// One pending budget write — the web's `SaveBudgetInput` shape minus the
 /// version token (bulk fill creates fresh rows, so there is no stale read
-/// to guard against).
-typedef BudgetDraft = ({String categoryId, String monthStart, int limitMinor});
+/// to guard against). [period] rides along so a weekly fill lands on the
+/// same `upsert_monthly_budget` seam as a weekly manual save.
+typedef BudgetDraft = ({
+  String categoryId,
+  String monthStart,
+  int limitMinor,
+  BudgetPeriod period,
+});
 
-/// Last month's limits that this month has no decision for yet — port of
-/// `budgetsToCarryForward`. Additive only: a category already budgeted this
-/// month is never touched; non-positive previous limits are skipped rather
-/// than carried as zero (a zero limit reads as "may spend nothing", not
-/// "not planned").
+/// Previous period's limits that the viewed period has no decision for
+/// yet — port of `budgetsToCarryForward`, per [period]. Additive only:
+/// a category already budgeted in the viewed period is never touched;
+/// non-positive previous limits are skipped rather than carried as zero
+/// (a zero limit reads as "may spend nothing", not "not planned").
+/// Rows of another period kind are ignored — a mixed list stays safe.
 List<BudgetDraft> budgetsToCarryForward({
   required List<BudgetProgress> previousBudgets,
   required List<BudgetProgress> currentBudgets,
   required String monthStart,
+  BudgetPeriod period = BudgetPeriod.monthly,
 }) {
-  // Rejects a malformed target month before anything is proposed.
-  shiftBudgetMonth(monthStart, 0);
+  // Rejects a malformed target anchor before anything is proposed.
+  shiftBudgetPeriod(monthStart, period, 0);
 
   final alreadyDecided = {
     for (final b in currentBudgets)
-      if (b.monthStart == monthStart) b.categoryId,
+      if (b.period == period && b.monthStart == monthStart) b.categoryId,
   };
   return [
     for (final b in previousBudgets)
-      if (b.limitMinor > 0 && !alreadyDecided.contains(b.categoryId))
+      if (b.period == period &&
+          b.limitMinor > 0 &&
+          !alreadyDecided.contains(b.categoryId))
         (
           categoryId: b.categoryId,
           monthStart: monthStart,
           limitMinor: b.limitMinor,
+          period: period,
         ),
   ];
 }

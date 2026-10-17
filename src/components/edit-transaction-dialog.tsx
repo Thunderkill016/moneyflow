@@ -28,6 +28,16 @@ import styles from "./transactions/transaction-form.module.css";
 
 type UpdateInput = UpdateMoneyTransactionInput | UpdateTransferInput;
 
+/** The one rule an edit can offer: payee text → the category just chosen. */
+export type EditRuleOfferInput = {
+  field: "merchant";
+  contains: string;
+  categoryId: string;
+  category: string;
+  categoryKind: "income" | "expense";
+  enabled: true;
+};
+
 export function EditTransactionDialog({
   transaction,
   accounts,
@@ -35,6 +45,7 @@ export function EditTransactionDialog({
   goals = [],
   onClose,
   onSave,
+  onSaveRule,
   disabled = false,
   payeeSuggestions = [],
 }: {
@@ -45,6 +56,11 @@ export function EditTransactionDialog({
   goals?: GoalOption[];
   onClose: () => void;
   onSave: (input: UpdateInput) => Promise<{ ok: boolean; message?: string }>;
+  /**
+   * Called only after the transaction save succeeds and the reader ticked
+   * "Lưu thành quy tắc" — the rule outcome never reopens a saved edit.
+   */
+  onSaveRule?: (input: EditRuleOfferInput) => Promise<void>;
   disabled?: boolean;
   payeeSuggestions?: string[];
 }) {
@@ -66,12 +82,28 @@ export function EditTransactionDialog({
   const [note, setNote] = useState(transaction.note);
   const [payee, setPayee] = useState(transaction.payee ?? "");
   const [goalId, setGoalId] = useState(transaction.goalId ?? "");
+  const [excludedFromReports, setExcludedFromReports] = useState(
+    transaction.excludedFromReports ?? false,
+  );
+  const [isRefund, setIsRefund] = useState(
+    transaction.kind === "income" && (transaction.isRefund ?? false),
+  );
+  const [saveAsRule, setSaveAsRule] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  /*
+   * Hoàn tiền flips the pool: a refund is income-kind money back against
+   * the EXPENSE category it reimburses, so the picker must offer expense
+   * categories (the netting target) — never income ones.
+   */
+  const refundActive = kind === "income" && isRefund;
   const availableCategories = useMemo(
-    () => categories.filter((item) => item.kind === kind),
-    [categories, kind],
+    () =>
+      categories.filter(
+        (item) => item.kind === (refundActive ? "expense" : kind),
+      ),
+    [categories, kind, refundActive],
   );
   // Historical references are never replaced merely because a picker excludes
   // archived records. The user must explicitly choose an available replacement.
@@ -101,6 +133,7 @@ export function EditTransactionDialog({
 
   function changeKind(next: TransactionKind) {
     setKind(next);
+    if (next !== "income") setIsRefund(false);
     setCategoryId(
       categories.find((item) => item.kind === next)?.id ?? "",
     );
@@ -137,6 +170,17 @@ export function EditTransactionDialog({
     }
     if (!isTransfer && !categoryAvailable) {
       setError("Danh mục cũ không còn hoạt động. Hãy chọn danh mục thay thế để lưu thay đổi.");
+      return;
+    }
+    /*
+     * The rule derives from the form's own payee + category — validate
+     * before the transaction write so the reader can fix or untick instead
+     * of saving the money and then discovering no rule.
+     */
+    if (saveAsRule && (!payee.trim() || !selectedCategory)) {
+      setError(
+        "Quy tắc cần nơi giao dịch và danh mục — điền hoặc bỏ chọn",
+      );
       return;
     }
 
@@ -180,6 +224,22 @@ export function EditTransactionDialog({
          */
         goalId:
           goals.length > 0 ? (goalId === "" ? null : goalId) : undefined,
+        /*
+         * Same sentinel as the goal tag: only sent when the flag actually
+         * changed, so an untouched edit can never clobber the stored value.
+         */
+        excludedFromReports:
+          excludedFromReports !== (transaction.excludedFromReports ?? false)
+            ? excludedFromReports
+            : undefined,
+        /*
+         * Same sentinel — and the flag can only live on income rows, so a
+         * kind switch away from income clears a stored refund explicitly.
+         */
+        isRefund:
+          refundActive !== (transaction.isRefund ?? false)
+            ? refundActive
+            : undefined,
       };
     }
 
@@ -197,6 +257,26 @@ export function EditTransactionDialog({
     }
     if (!result.ok) {
       setError(result.message || "Không thể cập nhật giao dịch.");
+      return;
+    }
+    /*
+     * The transaction is already saved — a refused rule write must not
+     * reopen the edit or pretend the save failed. The owner of
+     * `onSaveRule` reports the outcome; the dialog just hands it the
+     * merchant → category pair the reader just wrote.
+     */
+    if (saveAsRule && onSaveRule && !isTransfer && selectedCategory) {
+      const ruleCategory = categories.find(
+        (item) => item.id === selectedCategory,
+      );
+      await onSaveRule({
+        field: "merchant",
+        contains: payee.trim(),
+        categoryId: selectedCategory,
+        category: ruleCategory?.name ?? "",
+        categoryKind: ruleCategory?.kind ?? "expense",
+        enabled: true,
+      });
     }
   }
 
@@ -460,6 +540,91 @@ export function EditTransactionDialog({
                 </option>
               ))}
             </SelectField>
+          ) : null}
+          {kind === "income" && !isTransfer ? (
+            <label
+              className={styles.keepOpenRow}
+              htmlFor={`${formId}-refund`}
+            >
+              <input
+                id={`${formId}-refund`}
+                type="checkbox"
+                checked={isRefund}
+                disabled={submitting}
+                onChange={(event) => {
+                  const next = event.target.checked;
+                  setIsRefund(next);
+                  /*
+                   * The pool flips on toggle — a pick from the other kind
+                   * cannot stay selected.
+                   */
+                  const pool = next ? "expense" : "income";
+                  if (
+                    categoryId &&
+                    !categories.some(
+                      (item) => item.id === categoryId && item.kind === pool,
+                    )
+                  ) {
+                    setCategoryId("");
+                  }
+                  changed();
+                }}
+              />
+              <span className={styles.keepOpenCopy}>
+                <strong>Hoàn tiền</strong>
+                <span>
+                  Tiền được trả lại — trừ vào danh mục chi đã chọn, không tính
+                  vào Thu.
+                </span>
+              </span>
+            </label>
+          ) : null}
+          {!isTransfer ? (
+            <label
+              className={styles.keepOpenRow}
+              htmlFor={`${formId}-excluded`}
+            >
+              <input
+                id={`${formId}-excluded`}
+                type="checkbox"
+                checked={excludedFromReports}
+                disabled={submitting}
+                onChange={(event) => {
+                  setExcludedFromReports(event.target.checked);
+                  changed();
+                }}
+              />
+              <span className={styles.keepOpenCopy}>
+                <strong>Loại khỏi báo cáo</strong>
+                <span>
+                  Không tính vào báo cáo — số dư tài khoản và ngân sách vẫn giữ
+                  nguyên.
+                </span>
+              </span>
+            </label>
+          ) : null}
+          {!isTransfer && onSaveRule ? (
+            <label
+              className={styles.keepOpenRow}
+              htmlFor={`${formId}-save-rule`}
+            >
+              <input
+                id={`${formId}-save-rule`}
+                type="checkbox"
+                checked={saveAsRule}
+                disabled={submitting}
+                onChange={(event) => {
+                  setSaveAsRule(event.target.checked);
+                }}
+              />
+              <span className={styles.keepOpenCopy}>
+                <strong>Lưu thành quy tắc tự điền</strong>
+                <span>
+                  Nhớ cặp nơi giao dịch → danh mục này cho lần tới — quy tắc
+                  chỉ gợi ý, giao dịch mới vẫn do bạn duyệt.
+                </span>
+              </span>
+            </label>
           ) : null}
           <TextField
             label="Ghi chú"

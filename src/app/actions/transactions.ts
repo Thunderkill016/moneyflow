@@ -60,6 +60,8 @@ const createSchema = z.object({
   note: z.string().trim().max(500),
   payee: z.string().trim().max(200).optional(),
   goalId: z.string().uuid().nullish(),
+  /** Refund flag — income kind + expense category only (RPC enforces). */
+  isRefund: z.boolean().optional(),
   occurredOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   idempotencyKey: z.string().uuid(),
 });
@@ -100,6 +102,10 @@ const updateSchema = createSchema.omit({ idempotencyKey: true }).extend({
    * `goalId` stays `string | null | undefined` after this extend.
    */
   goalId: z.string().uuid().nullable().optional(),
+  /** `undefined`/`null` preserves the stored flag; boolean sets it. */
+  excludedFromReports: z.boolean().nullable().optional(),
+  /** Same preserve sentinel for `is_refund`. */
+  isRefund: z.boolean().nullable().optional(),
 });
 const updateTransferSchema = transferFields
   .omit({ idempotencyKey: true })
@@ -110,7 +116,7 @@ const updateTransferSchema = transferFields
   })
   .refine((value) => value.sourceAccountId !== value.destinationAccountId);
 const feedColumns =
-  "id,kind,note,occurred_on,created_at,updated_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines,payee,goal_id,goal_name";
+  "id,kind,note,occurred_on,created_at,updated_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines,payee,goal_id,goal_name,excluded_from_reports,is_refund";
 
 function refreshFinancePages() {
   revalidatePath("/");
@@ -147,6 +153,7 @@ export async function createTransactionAction(
       p_note: parsed.data.note,
       p_payee: parsed.data.payee ?? "",
       p_goal_id: parsed.data.goalId ?? null,
+      p_is_refund: parsed.data.isRefund ?? false,
       p_idempotency_key: parsed.data.idempotencyKey,
     },
   );
@@ -154,10 +161,18 @@ export async function createTransactionAction(
   if (error || typeof transactionId !== "string") {
     const detail = error?.message ?? "";
     if (detail.includes("idempotency_intent_mismatch")) {
-      return { ok: false, message: "Nội dung giao dịch đã thay đổi so với lần gửi trước. Hãy kiểm tra sổ trước khi tạo giao dịch mới." };
+      return {
+        ok: false,
+        message:
+          "Nội dung giao dịch đã thay đổi so với lần gửi trước. Hãy kiểm tra sổ trước khi tạo giao dịch mới.",
+      };
     }
     if (detail.includes("idempotency_intent_unavailable")) {
-      return { ok: false, message: "Không xác minh được lần ghi cũ. Hãy kiểm tra sổ giao dịch trước khi thử lại." };
+      return {
+        ok: false,
+        message:
+          "Không xác minh được lần ghi cũ. Hãy kiểm tra sổ giao dịch trước khi thử lại.",
+      };
     }
     return {
       ok: false,
@@ -438,6 +453,56 @@ export async function restoreTransactionAction(
   }
 }
 
+/**
+ * Hard-delete a transaction that is already in the trash. The RPC refuses
+ * unless `deleted_at` is set and the caller owns the row; recurring-locked
+ * and reconciled rows keep their existing guards.
+ */
+export async function permanentlyDeleteTransactionAction(
+  id: string,
+): Promise<TransactionActionResult> {
+  const parsed = idSchema.safeParse(id);
+  if (!parsed.success)
+    return { ok: false, message: "Mã giao dịch không hợp lệ." };
+
+  const viewer = await requireActionViewer();
+  if (!viewer) return authRequiredFailure();
+  if (viewer.isDemo)
+    return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
+
+  const supabase = await createClient();
+  if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
+
+  const { data, error } = await supabase.rpc(
+    "permanently_delete_money_transaction",
+    { p_transaction_id: parsed.data },
+  );
+
+  if (error?.message.includes("recurring_payment_locked"))
+    return {
+      ok: false,
+      code: "recurring_payment_locked",
+      message:
+        "Khoản này được tạo từ lịch định kỳ. Hãy hoàn tác ở trang Định kỳ hoặc Lương định kỳ.",
+    };
+  if (error?.message.includes("transaction_reconciled"))
+    return {
+      ok: false,
+      code: "transaction_reconciled",
+      message: TRANSACTION_RECONCILED_MESSAGE,
+    };
+  if (error)
+    return { ok: false, message: "Không thể xóa vĩnh viễn. Hãy thử lại." };
+  if (data !== true)
+    return {
+      ok: false,
+      message: "Giao dịch không còn trong thùng rác.",
+    };
+
+  refreshFinancePages();
+  return { ok: true };
+}
+
 export async function updateTransactionAction(
   input: UpdateMoneyTransactionInput,
 ): Promise<TransactionActionResult> {
@@ -465,6 +530,8 @@ export async function updateTransactionAction(
       p_expected_updated_at: value.expectedUpdatedAt ?? null,
       p_goal_id: value.goalId ?? null,
       p_goal_id_is_set: value.goalId !== undefined,
+      p_excluded_from_reports: value.excludedFromReports ?? null,
+      p_is_refund: value.isRefund ?? null,
     },
   );
   if (error?.message.includes("stale_write"))

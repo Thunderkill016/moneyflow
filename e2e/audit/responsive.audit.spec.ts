@@ -49,10 +49,12 @@ test.describe("cross-device responsive audit", () => {
     test.skip(width > 560, "SAFE-02 is specific to the mobile header breakpoint");
 
     await page.goto("/landing", { waitUntil: "domcontentloaded" });
-    const navigation = page.getByRole("navigation", {
-      name: "Điều hướng trang chủ",
+    /* At this width the marketing header is hidden by design and the mobile
+       welcome surface owns the login entry (48px secondary CTA). */
+    const welcome = page.getByRole("region", {
+      name: "Giới thiệu MoneyFlow",
     });
-    const login = navigation.getByRole("link", { name: "Đăng nhập" });
+    const login = welcome.getByRole("link", { name: "Đăng nhập" });
 
     await expect(login).toHaveCount(1);
     await expect(login).toBeVisible();

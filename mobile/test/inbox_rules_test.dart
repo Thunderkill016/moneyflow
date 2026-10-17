@@ -124,16 +124,45 @@ InboxRule rule({String id = 'r1', int priority = 1, int version = 3}) =>
       updatedAt: '2026-10-05T00:00:00Z',
     );
 
+InboxCandidate candidate({
+  String id = 'c1',
+  TransactionKind kind = TransactionKind.expense,
+  String merchant = 'HIGHLANDS COFFEE',
+  String note = '',
+  String? rawSnippet,
+}) => InboxCandidate(
+  id: id,
+  kind: kind,
+  amountMinor: 65000,
+  merchant: merchant,
+  note: note,
+  occurredOn: '2026-10-10',
+  source: 'notification',
+  confidence: 'high',
+  rawSnippet: rawSnippet,
+);
+
 /// Widget-test seam — every store callback is recorded, never faked.
 class PageHarness {
-  PageHarness({List<InboxRule>? rules, this.categories = const [catExpense]})
-    : rules = rules ?? [rule()];
+  PageHarness({
+    List<InboxRule>? rules,
+    this.categories = const [catExpense],
+    this.pending,
+  }) : rules = rules ?? [rule()];
 
   final List<InboxRule> rules;
   final List<Category> categories;
+
+  /// Null = demo-style page with no candidate seam; the sheet then hides
+  /// the match preview and apply checkbox entirely.
+  final List<InboxCandidate>? pending;
   final saved = <InboxRuleDraft>[];
   final deleted = <(String, int)>[];
   final reorders = <List<String>>[];
+
+  /// (candidateId, ruleId, ruleVersion) per apply_inbox_rule_to_candidate.
+  final applied = <(String, String, int)>[];
+  final applyErrors = <String, Object>{};
   Object? saveError;
   int loads = 0;
 
@@ -147,13 +176,34 @@ class PageHarness {
       onSave: (draft) async {
         if (saveError != null) throw saveError!;
         saved.add(draft);
-        return rule(
+        // Echo the draft back like the RPC does — the apply sweep runs
+        // against the saved rule's fields, so a stale shape would skew
+        // the honest count.
+        return InboxRule(
           id: draft.id ?? 'new',
+          priority: 1,
+          enabled: draft.enabled,
+          matchField: draft.matchField,
+          containsText: draft.containsText,
+          categoryId: draft.categoryId,
+          merchantName: draft.merchantName,
           version: (draft.expectedVersion ?? 0) + 1,
         );
       },
       onDelete: (id, version) async => deleted.add((id, version)),
       onReorder: (ids) async => reorders.add(ids),
+      loadPending: pending == null ? null : () async => pending!,
+      applyRule: pending == null
+          ? null
+          : ({
+              required String candidateId,
+              required String ruleId,
+              required int ruleVersion,
+            }) async {
+              final err = applyErrors[candidateId];
+              if (err != null) throw err;
+              applied.add((candidateId, ruleId, ruleVersion));
+            },
     ),
   );
 }
@@ -636,6 +686,93 @@ void main() {
       expect(m('PGRST202'), contains('chưa được bật'));
       expect(m('surprise'), 'Không cập nhật được quy tắc. Hãy thử lại.');
     });
+
+    test('ruleCandidateHaystack maps fields the way the RPC does', () {
+      final c = candidate(note: 'tối nay', rawSnippet: 'NT 123');
+      expect(
+        ruleCandidateHaystack(c, RuleMatchField.merchant),
+        'HIGHLANDS COFFEE',
+      );
+      expect(ruleCandidateHaystack(c, RuleMatchField.note), 'tối nay');
+      expect(ruleCandidateHaystack(c, RuleMatchField.raw), 'NT 123');
+      expect(
+        ruleCandidateHaystack(c, RuleMatchField.any),
+        contains('HIGHLANDS COFFEE'),
+      );
+      expect(ruleCandidateHaystack(c, RuleMatchField.any), contains('NT 123'));
+      // Null raw never crashes the 'any'/'raw' fields.
+      final bare = candidate(id: 'c2');
+      expect(ruleCandidateHaystack(bare, RuleMatchField.raw), '');
+    });
+
+    bool applies(
+      InboxCandidate c, {
+      RuleMatchField field = RuleMatchField.merchant,
+      String contains = 'highlands',
+      String categoryId = 'k1',
+      List<Category>? cats,
+    }) => ruleAppliesToCandidate(
+      matchField: field,
+      containsText: contains,
+      categoryId: categoryId,
+      candidate: c,
+      categories: cats ?? const [catExpense, catIncome, catArchived],
+    );
+
+    test('ruleAppliesToCandidate matches case-insensitively', () {
+      expect(applies(candidate()), isTrue);
+      expect(
+        applies(candidate(merchant: 'coffee hl'), contains: 'tea'),
+        isFalse,
+      );
+      // Whitespace-padded input is trimmed like the server does.
+      expect(applies(candidate(), contains: '  HIGHLANDS '), isTrue);
+    });
+
+    test('ruleAppliesToCandidate respects each match field', () {
+      final c = candidate(note: 'cafe sáng', rawSnippet: 'AUTODEBIT');
+      expect(applies(c, field: RuleMatchField.note, contains: 'cafe'), isTrue);
+      expect(
+        applies(c, field: RuleMatchField.raw, contains: 'autodebit'),
+        isTrue,
+      );
+      expect(
+        applies(c, field: RuleMatchField.note, contains: 'autodebit'),
+        isFalse,
+      );
+      // 'any' sweeps merchant + note + raw together.
+      expect(
+        applies(c, field: RuleMatchField.any, contains: 'autodebit'),
+        isTrue,
+      );
+    });
+
+    test('ruleAppliesToCandidate mirrors the server rejections', () {
+      // Transfer kind is not a rule target.
+      expect(applies(candidate(kind: TransactionKind.transfer)), isFalse);
+      // Category kind must match the candidate kind.
+      expect(
+        applies(
+          candidate(kind: TransactionKind.income, merchant: 'SALARY XYZ'),
+          contains: 'salary',
+          categoryId: 'k1', // expense category on an income candidate
+        ),
+        isFalse,
+      );
+      expect(
+        applies(
+          candidate(kind: TransactionKind.income, merchant: 'SALARY XYZ'),
+          contains: 'salary',
+          categoryId: 'k2', // income category — allowed
+        ),
+        isTrue,
+      );
+      // Archived category is never applied.
+      expect(applies(candidate(), categoryId: 'k3'), isFalse);
+      // Unknown/empty inputs refuse instead of silently matching.
+      expect(applies(candidate(), categoryId: 'nope'), isFalse);
+      expect(applies(candidate(), contains: '   '), isFalse);
+    });
   });
 
   group('InboxRulesPage', () {
@@ -841,6 +978,107 @@ void main() {
 
       expect(h.deleted.single, ('r1', 3));
       expect(find.text('Đã xóa quy tắc.'), findsOneWidget);
+    });
+
+    testWidgets('sheet counts pending matches and applies on opt-in', (
+      t,
+    ) async {
+      final h = PageHarness(
+        pending: [
+          candidate(id: 'c1'),
+          candidate(id: 'c2', merchant: 'highlands now'),
+          candidate(id: 'c3', merchant: 'CIRCLE K'),
+          // Kind mismatch: expense rule must not touch income rows.
+          candidate(id: 'c4', kind: TransactionKind.income),
+        ],
+      );
+      await t.pumpWidget(h.page());
+      await t.pumpAndSettle();
+
+      await t.tap(
+        find.text('Nơi chi ~ “HIGHLANDS” → Highlands Coffee → Ăn uống'),
+      );
+      await t.pumpAndSettle();
+      expect(find.text('Khớp 2 mục đang chờ trong Hộp thư.'), findsOneWidget);
+      await t.ensureVisible(find.text('Áp dụng cho 2 mục đang chờ'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Áp dụng cho 2 mục đang chờ'));
+      await t.pumpAndSettle();
+      await t.ensureVisible(find.text('Lưu thay đổi'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Lưu thay đổi'));
+      await t.pumpAndSettle();
+
+      // Saved rule is version 4; only the two matching pendings applied.
+      expect(h.applied, [('c1', 'r1', 4), ('c2', 'r1', 4)]);
+      expect(
+        find.textContaining('Áp dụng cho 2 mục đang chờ.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('apply sweep reports partial failure honestly', (t) async {
+      final h = PageHarness(
+        pending: [
+          candidate(id: 'c1'),
+          candidate(id: 'c2'),
+        ],
+      )..applyErrors['c2'] = StateError('candidate_not_pending');
+      await t.pumpWidget(h.page());
+      await t.pumpAndSettle();
+
+      await t.tap(
+        find.text('Nơi chi ~ “HIGHLANDS” → Highlands Coffee → Ăn uống'),
+      );
+      await t.pumpAndSettle();
+      await t.ensureVisible(find.text('Áp dụng cho 2 mục đang chờ'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Áp dụng cho 2 mục đang chờ'));
+      await t.pumpAndSettle();
+      await t.ensureVisible(find.text('Lưu thay đổi'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Lưu thay đổi'));
+      await t.pumpAndSettle();
+
+      expect(h.applied, [('c1', 'r1', 4)]);
+      expect(
+        find.textContaining('Áp dụng được 1/2 mục đang chờ'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('save without the checkbox does not sweep', (t) async {
+      final h = PageHarness(pending: [candidate(id: 'c1')]);
+      await t.pumpWidget(h.page());
+      await t.pumpAndSettle();
+
+      await t.tap(
+        find.text('Nơi chi ~ “HIGHLANDS” → Highlands Coffee → Ăn uống'),
+      );
+      await t.pumpAndSettle();
+      expect(find.text('Khớp 1 mục đang chờ trong Hộp thư.'), findsOneWidget);
+      await t.ensureVisible(find.text('Lưu thay đổi'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Lưu thay đổi'));
+      await t.pumpAndSettle();
+
+      expect(h.applied, isEmpty);
+      expect(find.text('Đã cập nhật quy tắc.'), findsOneWidget);
+    });
+
+    testWidgets('without a pending seam the sheet hides the preview', (
+      t,
+    ) async {
+      final h = PageHarness();
+      await t.pumpWidget(h.page());
+      await t.pumpAndSettle();
+
+      await t.tap(
+        find.text('Nơi chi ~ “HIGHLANDS” → Highlands Coffee → Ăn uống'),
+      );
+      await t.pumpAndSettle();
+      expect(find.textContaining('mục đang chờ'), findsNothing);
+      expect(find.byType(CheckboxListTile), findsNothing);
     });
   });
 }

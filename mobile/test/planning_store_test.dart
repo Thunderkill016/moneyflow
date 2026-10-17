@@ -6,6 +6,7 @@ import 'package:moneyflow/data/neon/data_api.dart';
 import 'package:moneyflow/data/neon/neon_config.dart';
 import 'package:moneyflow/data/neon/neon_transport.dart';
 import 'package:moneyflow/data/neon/real_store.dart';
+import 'package:moneyflow/domain/models.dart';
 
 const config = NeonConfig(
   authBaseUrl: 'https://auth.test/neondb/auth',
@@ -97,6 +98,30 @@ void main() {
           'p_month_start': '2026-10-01',
           'p_limit_minor': 2500000,
           'p_expected_updated_at': '2026-10-05T09:00:00Z',
+        });
+      },
+    );
+
+    test(
+      'a weekly upsert adds p_period_kind; monthly keeps the legacy body',
+      () async {
+        final h = Harness();
+        await h.signIn();
+        h.t.queue.add(FakeTransport.json(200, 'bw-1'));
+
+        await h.store.upsertBudget(
+          categoryId: 'cat-food',
+          monthStart: '2026-10-12', // a Monday — the weekly anchor
+          limitMinor: 600000,
+          period: BudgetPeriod.weekly,
+        );
+
+        expect(h.rpcBody, {
+          'p_category_id': 'cat-food',
+          'p_month_start': '2026-10-12',
+          'p_limit_minor': 600000,
+          'p_expected_updated_at': null,
+          'p_period_kind': 'weekly',
         });
       },
     );
@@ -332,6 +357,87 @@ void main() {
       await h.store.setCommitmentArchived('cm-1', false);
       expect(h.rpcBody, {'p_commitment_id': 'cm-1', 'p_archived': false});
     });
+
+    test('payCommitment carries the caller-supplied idempotency key', () async {
+      final h = Harness();
+      await h.signIn();
+      h.t.queue.add(FakeTransport.json(200, 'tx-1'));
+
+      await h.store.payCommitment(
+        commitmentId: 'cm-1',
+        monthStart: '2026-10-01',
+        paidOn: '2026-10-14',
+        idempotencyKey: '11111111-2222-4333-8444-555555555555',
+      );
+
+      expect(
+        h.lastRpc.url.path,
+        '/neondb/rest/v1/rpc/pay_recurring_commitment',
+      );
+      expect(h.rpcBody, {
+        'p_commitment_id': 'cm-1',
+        'p_month_start': '2026-10-01',
+        'p_paid_on': '2026-10-14',
+        'p_idempotency_key': '11111111-2222-4333-8444-555555555555',
+      });
+    });
+
+    test('receiveIncome carries the caller-supplied idempotency key', () async {
+      final h = Harness();
+      await h.signIn();
+      h.t.queue.add(FakeTransport.json(200, 'tx-9'));
+
+      await h.store.receiveIncome(
+        templateId: 'inc-1',
+        monthStart: '2026-10-01',
+        receivedOn: '2026-10-05',
+        idempotencyKey: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+      );
+
+      expect(
+        h.lastRpc.url.path,
+        '/neondb/rest/v1/rpc/record_recurring_income_template',
+      );
+      expect(h.rpcBody, {
+        'p_template_id': 'inc-1',
+        'p_month_start': '2026-10-01',
+        'p_received_on': '2026-10-05',
+        'p_idempotency_key': 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+      });
+    });
+  });
+
+  group('OperationIdempotencyKeys', () {
+    test('keyFor replays the same key across attempts on one scope', () {
+      // audit P1-4: a retry after a lost response must reuse the SAME
+      // key so the server's (user, key) dedupe fires — a fresh key per
+      // attempt was the double-write bug.
+      final keys = OperationIdempotencyKeys();
+      final scope = 'pay_commitment:cm-1:2026-10-01';
+      final k1 = keys.keyFor(scope);
+      expect(keys.keyFor(scope), k1);
+      expect(keys.keyFor(scope), k1);
+      expect(k1, matches(RegExp(r'^[0-9a-f-]{36}$')));
+    });
+
+    test('separate scopes never share a key', () {
+      final keys = OperationIdempotencyKeys();
+      final a = keys.keyFor('pay_commitment:cm-1:2026-10-01');
+      final b = keys.keyFor('pay_commitment:cm-2:2026-10-01');
+      final c = keys.keyFor('receive_income:inc-1:2026-10-01');
+      expect({a, b, c}.length, 3);
+    });
+
+    test('release lets a deliberate new action mint a fresh key', () {
+      // undo → pay again is a new intent, not a replay — the soft-deleted
+      // row still carries the old key, so reusing it would collide.
+      final keys = OperationIdempotencyKeys();
+      const scope = 'pay_commitment:cm-1:2026-10-01';
+      final first = keys.keyFor(scope);
+      keys.release(scope);
+      final second = keys.keyFor(scope);
+      expect(second, isNot(first));
+    });
   });
 
   group('RealStore planning reads', () {
@@ -399,6 +505,75 @@ void main() {
       expect(rows.length, 2);
       expect(rows.last.monthStart, '2026-09-01');
       expect(rows.last.spentMinor, 1700000);
+    });
+
+    test('loadBudgets reads period_kind and maps it to the row', () async {
+      final h = Harness();
+      await h.signIn();
+      h.t.queue.add(
+        FakeTransport.json(200, [
+          {
+            'id': 'bw-1',
+            'category_id': 'cat-food',
+            'category_name': 'Ăn uống',
+            'month_start': '2026-10-12',
+            'limit_minor': 600000,
+            'spent_minor': 210000,
+            'updated_at': null,
+            'period_kind': 'weekly',
+          },
+        ]),
+      );
+
+      final budgets = await h.store.loadBudgets('2026-10-12');
+
+      final req = h.lastRpc;
+      expect(req.url.queryParameters['select'], contains('period_kind'));
+      expect(budgets.single.period, BudgetPeriod.weekly);
+      expect(budgets.single.monthStart, '2026-10-12');
+    });
+
+    test('a pre-period_kind server retries without the column and reads '
+        'monthly — the column default is the truth, not a guess', () async {
+      final h = Harness();
+      await h.signIn();
+      h.t.queue.add(
+        FakeTransport.json(400, {
+          'code': '42703',
+          'message': 'column budget_progress.period_kind does not exist',
+        }),
+      );
+      h.t.queue.add(
+        FakeTransport.json(200, [
+          {
+            'id': 'b-1',
+            'category_id': 'cat-food',
+            'category_name': 'Ăn uống',
+            'month_start': '2026-10-01',
+            'limit_minor': 2000000,
+            'spent_minor': 45000,
+            'updated_at': null,
+          },
+        ]),
+      );
+
+      final budgets = await h.store.loadBudgets('2026-10-01');
+
+      // Two selects hit the wire — the period select failed, the
+      // legacy select retried.
+      final selects = h.t.requests
+          .where((r) => r.url.path.endsWith('/budget_progress'))
+          .toList();
+      expect(selects, hasLength(2));
+      expect(
+        selects.first.url.queryParameters['select'],
+        contains('period_kind'),
+      );
+      expect(
+        selects.last.url.queryParameters['select'],
+        isNot(contains('period_kind')),
+      );
+      expect(budgets.single.period, BudgetPeriod.monthly);
     });
 
     test(
@@ -721,5 +896,119 @@ void main() {
       expect(goals.last.isArchived, isTrue);
       expect(goals.first.updatedAt, '2026-10-01T00:00:00Z');
     });
+  });
+
+  group('D13 report exclusions', () {
+    Map<String, Object?> feedRow({bool excluded = false}) => {
+      'id': 'tx-1',
+      'kind': 'expense',
+      'note': 'Cà phê',
+      'occurred_on': '2026-10-14',
+      'amount_minor': 25000,
+      'account_id': 'a1',
+      'account_name': 'Ví',
+      'category_id': 'c1',
+      'category_name': 'Ăn uống',
+      'destination_account_id': null,
+      'destination_account_name': null,
+      'payee': null,
+      'updated_at': '2026-10-14T00:00:00Z',
+      'split_lines': null,
+      'excluded_from_reports': excluded,
+    };
+
+    test('loadTransactions maps excluded_from_reports onto the row', () async {
+      final h = Harness();
+      await h.signIn();
+      h.t.queue.add(FakeTransport.json(200, [feedRow(excluded: true)]));
+      // The review-status join — no flagged rows here.
+      h.t.queue.add(FakeTransport.json(200, []));
+
+      final txs = await h.store.loadTransactions();
+
+      final req = h.t.requests.firstWhere(
+        (r) => r.url.path.endsWith('/transaction_feed'),
+      );
+      expect(
+        req.url.queryParameters['select'],
+        contains('excluded_from_reports'),
+      );
+      expect(txs.single.excludedFromReports, isTrue);
+    });
+
+    test('a pre-20261016200000 server retries without the column — '
+        'unflagged by definition is the column default, not a guess', () async {
+      final h = Harness();
+      await h.signIn();
+      h.t.queue.add(
+        FakeTransport.json(400, {
+          'code': '42703',
+          'message':
+              'column transaction_feed.excluded_from_reports does not exist',
+        }),
+      );
+      final row = feedRow()..remove('excluded_from_reports');
+      h.t.queue.add(FakeTransport.json(200, [row]));
+      h.t.queue.add(FakeTransport.json(200, []));
+
+      final txs = await h.store.loadTransactions();
+
+      final selects = h.t.requests
+          .where((r) => r.url.path.endsWith('/transaction_feed'))
+          .toList();
+      expect(selects, hasLength(2));
+      expect(
+        selects.first.url.queryParameters['select'],
+        contains('excluded_from_reports'),
+      );
+      expect(
+        selects.last.url.queryParameters['select'],
+        isNot(contains('excluded_from_reports')),
+      );
+      expect(txs.single.excludedFromReports, isFalse);
+    });
+
+    test(
+      'a flipped flag rides the update body; an untouched one is omitted',
+      () async {
+        final h = Harness();
+        await h.signIn();
+        h.t.queue.add(FakeTransport.json(200, 'tx-1'));
+        h.t.queue.add(FakeTransport.json(200, 'tx-2'));
+
+        await h.store.updateTransaction(
+          transactionId: 'tx-1',
+          accountId: 'a1',
+          categoryId: 'c1',
+          kind: TransactionKind.expense,
+          amount: 25000,
+          occurredOn: '2026-10-14',
+          expectedUpdatedAt: '2026-10-14T00:00:00Z',
+          excludedFromReports: true,
+        );
+        await h.store.updateTransaction(
+          transactionId: 'tx-2',
+          accountId: 'a1',
+          categoryId: 'c1',
+          kind: TransactionKind.expense,
+          amount: 40000,
+          occurredOn: '2026-10-14',
+        );
+
+        final flagged = h.t.requests.firstWhere(
+          (r) => r.body is Map && (r.body as Map)['p_transaction_id'] == 'tx-1',
+        );
+        expect((flagged.body as Map)['p_excluded_from_reports'], true);
+        final plain = h.t.requests.firstWhere(
+          (r) => r.body is Map && (r.body as Map)['p_transaction_id'] == 'tx-2',
+        );
+        // The key stays absent entirely — a pre-migration server still
+        // answers the legacy 11-param body.
+        expect(
+          (plain.body as Map).containsKey('p_excluded_from_reports'),
+          isFalse,
+        );
+      },
+    );
   });
 }

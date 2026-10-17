@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../domain/money.dart';
+import '../../domain/report.dart' show vnToday;
 import '../../domain/timeline.dart';
 import '../../domain/transaction_query.dart';
 import '../../domain/models.dart';
+import '../../theme/mf_theme.dart';
 import '../shared/empty_state.dart';
 
 /// Debounce before a typed search hits the backend — same cadence as the
@@ -40,7 +42,12 @@ class _TimelinePageState extends State<TimelinePage> {
   bool _loading = true;
   bool _hasMore = true;
   bool _loadingMore = false;
+  bool _moreFailed = false;
   String? _error;
+
+  /// Bumped per first-page request so a page fetched for an old query
+  /// can never append after a search reset.
+  int _gen = 0;
   String _query = '';
 
   @override
@@ -60,13 +67,14 @@ class _TimelinePageState extends State<TimelinePage> {
 
   String get _today {
     if (widget.today != null) return widget.today!;
-    final vn = DateTime.now().toUtc().add(const Duration(hours: 7));
-    String two(int v) => v.toString().padLeft(2, '0');
-    return '${vn.year}-${two(vn.month)}-${two(vn.day)}';
+    return vnToday();
   }
 
   Future<void> _load() async {
+    final gen = ++_gen;
     setState(() {
+      _loadingMore = false;
+      _moreFailed = false;
       _loading = true;
       _error = null;
       _rows.clear();
@@ -77,14 +85,14 @@ class _TimelinePageState extends State<TimelinePage> {
         TransactionQuery(text: _query),
         offset: 0,
       );
-      if (!mounted) return;
+      if (!mounted || gen != _gen) return;
       setState(() {
         _rows.addAll(page.rows);
         _hasMore = page.hasMore;
         _loading = false;
       });
     } catch (_) {
-      if (mounted) {
+      if (mounted && gen == _gen) {
         setState(() {
           _error = 'Không tải được dòng thời gian.';
           _loading = false;
@@ -93,25 +101,40 @@ class _TimelinePageState extends State<TimelinePage> {
     }
   }
 
+  Future<void> _loadMore() async {
+    if (_loadingMore || !_hasMore) return;
+    final gen = _gen;
+    setState(() {
+      _loadingMore = true;
+      _moreFailed = false;
+    });
+    try {
+      final page = await widget.loadPage(
+        TransactionQuery(text: _query),
+        offset: _rows.length,
+      );
+      if (!mounted || gen != _gen) return;
+      setState(() {
+        _rows.addAll(page.rows);
+        _hasMore = page.hasMore;
+        _loadingMore = false;
+      });
+    } catch (_) {
+      if (!mounted || gen != _gen) return;
+      setState(() {
+        _loadingMore = false;
+        _moreFailed = true;
+      });
+    }
+  }
+
   void _maybeLoadMore() {
-    if (_loadingMore ||
-        !_hasMore ||
+    if (_moreFailed ||
         !_scroll.hasClients ||
         _scroll.position.pixels < _scroll.position.maxScrollExtent - 200) {
       return;
     }
-    _loadingMore = true;
-    widget
-        .loadPage(TransactionQuery(text: _query), offset: _rows.length)
-        .then((page) {
-          if (!mounted) return;
-          setState(() {
-            _rows.addAll(page.rows);
-            _hasMore = page.hasMore;
-          });
-        })
-        .catchError((_) {})
-        .whenComplete(() => _loadingMore = false);
+    _loadMore();
   }
 
   void _onSearchChanged(String text) {
@@ -228,9 +251,31 @@ class _TimelinePageState extends State<TimelinePage> {
     return ListView.builder(
       controller: _scroll,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: groups.length,
-      itemBuilder: (context, i) => _DayGroup(group: groups[i]),
+      itemCount: groups.length + 1,
+      itemBuilder: (context, i) =>
+          i < groups.length ? _DayGroup(group: groups[i]) : _footer(),
     );
+  }
+
+  Widget _footer() {
+    if (_loadingMore) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_moreFailed) {
+      return Card(
+        child: ListTile(
+          title: const Text('Không tải thêm được'),
+          trailing: TextButton(
+            onPressed: _loadMore,
+            child: const Text('Thử lại'),
+          ),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
   }
 }
 
@@ -307,9 +352,9 @@ class _TimelineTile extends StatelessWidget {
       TransactionKind.transfer => MoneySignKind.transfer,
     };
     final color = switch (tx.kind) {
-      TransactionKind.income => Colors.green.shade700,
-      TransactionKind.expense => Colors.red.shade700,
-      TransactionKind.transfer => Colors.blueGrey.shade700,
+      TransactionKind.income => context.mf.incomeText,
+      TransactionKind.expense => context.mf.expenseText,
+      TransactionKind.transfer => context.mf.transferText,
     };
     final accountLine = tx.destinationAccount == null
         ? tx.account
@@ -327,7 +372,12 @@ class _TimelineTile extends StatelessWidget {
               formatMoneyWithKind(tx.amount, kind),
               style: TextStyle(color: color, fontWeight: FontWeight.w600),
             ),
-            const Text('Đã duyệt', style: TextStyle(fontSize: 11)),
+            Text(
+              'Đã duyệt',
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: context.mf.textSoft),
+            ),
           ],
         ),
       ),

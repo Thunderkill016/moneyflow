@@ -296,8 +296,8 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
               title="Xác nhận bằng văn bản"
               description={
                 <p>
-                  Gõ chính xác <strong>{DELETE_CONFIRM_TEXT}</strong> để mở bước xem
-                  lại cuối cùng.
+                  Gõ <strong>{DELETE_CONFIRM_TEXT}</strong> để mở bước xem lại cuối
+                  cùng.
                 </p>
               }
               contained
@@ -318,7 +318,7 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
                 disabled={deleting}
                 error={
                   confirmText.length > 0 && !confirmOk
-                    ? "Chưa khớp. Cần chữ hoa và dấu chính xác."
+                    ? `Chưa khớp. Gõ ${DELETE_CONFIRM_TEXT} để xác nhận.`
                     : undefined
                 }
                 targetSize="important"

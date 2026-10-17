@@ -10,7 +10,7 @@ void main() {
     const api =
         'https://ep-x.apirest.c-4.ap-southeast-1.aws.neon.tech/neondb/rest/v1';
 
-    test('non-release builds keep the sandbox defaults silently', () {
+    test('non-release builds keep the dev defaults silently', () {
       expect(
         () => NeonConfig.requireEndpointsInRelease(
           authBaseUrl: '',
@@ -32,7 +32,7 @@ void main() {
       );
     });
 
-    test('release with missing defines throws — no silent sandbox', () {
+    test('release with missing defines throws — no silent defaults', () {
       for (final pair in [
         ('', api), // auth missing
         (auth, ''), // data api missing
@@ -110,8 +110,9 @@ void main() {
 
   group('NeonConfig.fromEnvironment', () {
     // flutter test runs with kReleaseMode=false and no defines — the
-    // sandbox defaults apply and nothing throws.
-    test('defaults to the dev sandbox in tests', () {
+    // dev defaults (today: the production Neon project) apply and
+    // nothing throws.
+    test('defaults to the dev endpoints in tests', () {
       final config = NeonConfig.fromEnvironment();
       expect(config.isConfigured, isTrue);
       expect(config.authBaseUrl, contains('neonauth'));

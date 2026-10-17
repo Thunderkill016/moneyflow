@@ -6,6 +6,7 @@ import '../../data/neon/real_store.dart' show newIdempotencyKey;
 import '../../data/voice/voice_engine.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
+import '../../domain/report.dart' show vnToday;
 import '../../domain/voice_money_parser.dart';
 import '../shared/empty_state.dart';
 import '../capture/capture_page.dart' show CaptureIntent, CaptureResult;
@@ -63,9 +64,7 @@ class _VoiceCapturePageState extends State<VoiceCapturePage> {
 
   String get _today {
     if (widget.today != null) return widget.today!;
-    final vn = DateTime.now().toUtc().add(const Duration(hours: 7));
-    String two(int v) => v.toString().padLeft(2, '0');
-    return '${vn.year}-${two(vn.month)}-${two(vn.day)}';
+    return vnToday();
   }
 
   @override
@@ -209,7 +208,7 @@ class _VoiceCapturePageState extends State<VoiceCapturePage> {
           shape: const CircleBorder(),
           padding: const EdgeInsets.all(28),
         ),
-        child: const Icon(Icons.mic, size: 40),
+        child: const Icon(Icons.mic, size: 40, semanticLabel: 'Bắt đầu ghi âm'),
       ),
       const SizedBox(height: 16),
       Text(

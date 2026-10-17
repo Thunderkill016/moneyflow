@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Night card — slate-800 surface with the light scaffold text color. -->
-    <color name="widget_card">#FF1E293B</color>
-    <color name="widget_title_text">#FFF8FAFC</color>
-    <color name="widget_dim_text">#FF94A3B8</color>
+    <!-- Night card — the app's dark surface with on-dark text tones. -->
+    <color name="widget_card">#FF121715</color>
+    <color name="widget_title_text">#FFFFFFFF</color>
+    <color name="widget_dim_text">#FFA9C1B5</color>
 </resources>

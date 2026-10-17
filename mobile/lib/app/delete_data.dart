@@ -70,6 +70,23 @@ Future<List<String>> clearSignOutResidue(SharedPreferences prefs) async {
 /// Typed-confirmation contract — same "gõ XÓA" guard as the web.
 const deleteConfirmText = 'XÓA';
 
+/// Accent- and case-insensitive match for [deleteConfirmText] — Android
+/// keyboards emit "XÓA" decomposed (O + combining acute) and users
+/// habitually type "XOÁ"; the guard needs deliberate typing, not one
+/// byte sequence, so every orthographic spelling of the word confirms.
+bool matchesDeleteConfirm(String input) {
+  final folded = input
+      .trim()
+      .toUpperCase()
+      // Decomposed accents (o + U+0301) survive toUpperCase — strip them.
+      .replaceAll(RegExp('[\\u0300-\\u036f]'), '')
+      // Composed vowels carry their accent in the byte — fold to ASCII.
+      .replaceAll(RegExp(r'[ÀÁẢÃẠĂẰẮẲẴẶÂẦẤẨẪẬ]'), 'A')
+      .replaceAll(RegExp(r'[ÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]'), 'O')
+      .replaceAll('Đ', 'D');
+  return folded == 'XOA';
+}
+
 /// Destructive confirmation for wiping local data. [serverNote] explains
 /// what happens to the server-side account (currently: nothing — managed
 /// account deletion is not implemented upstream).
@@ -105,7 +122,7 @@ class _DeleteDataDialog extends StatefulWidget {
 class _DeleteDataDialogState extends State<_DeleteDataDialog> {
   final _confirm = TextEditingController();
 
-  bool get _confirmOk => _confirm.text.trim() == deleteConfirmText;
+  bool get _confirmOk => matchesDeleteConfirm(_confirm.text);
 
   @override
   void dispose() {

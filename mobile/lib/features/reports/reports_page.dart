@@ -2,14 +2,17 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/export_files.dart';
+import '../../theme/mf_theme.dart';
 import '../../domain/budget.dart';
 import '../../domain/export_csv.dart';
 import '../../domain/money.dart';
+import '../../domain/spoken_vnd.dart';
 import '../../domain/models.dart';
 import '../../domain/net_worth.dart';
 import '../../domain/report.dart';
 import '../../domain/transaction_query.dart';
 import '../../domain/weekly_buckets.dart';
+import '../shared/timed_snack_bar.dart';
 
 /// Period report — mirrors the web /reports: month navigation plus a
 /// custom range, totals (Thu/Chi/Còn lại/tiết kiệm) and the income/expense
@@ -77,16 +80,25 @@ class ReportsPage extends StatefulWidget {
 class ReportsPageState extends State<ReportsPage> {
   /// [buckets] feeds the Thu/Chi weekly chart — computed on the same
   /// range read as the report so the chart can never disagree with the
-  /// totals beside it.
+  /// totals beside it. [deltas] is the expense-category MoM column —
+  /// null when the prior window's read failed or came back capped, so
+  /// the section can explain the missing column instead of drawing
+  /// arrows on a partial baseline.
   late Future<
-    ({PeriodReport report, bool truncated, List<WeeklyBucket> buckets})
+    ({
+      PeriodReport report,
+      bool truncated,
+      List<WeeklyBucket> buckets,
+      Map<String, CategoryDelta>? deltas,
+    })
   >
   _report;
   late ReportPeriod _period;
 
   /// Net-worth series — period-independent, so it lives outside the
   /// report future; `null` while [ReportsPage.loadAccounts] is unwired.
-  late Future<({List<NetWorthPoint> points, bool truncated})>? _netWorth;
+  late Future<({List<NetWorthPoint> points, bool truncated, int accountCount})>?
+  _netWorth;
 
   /// Months in the trailing net-worth window — matches the domain
   /// default so the label and the fold never disagree.
@@ -99,19 +111,43 @@ class ReportsPageState extends State<ReportsPage> {
   @override
   void initState() {
     super.initState();
-    _period = MonthPeriod.of(DateTime.now());
+    _period = MonthPeriod.of(vnNow());
     _report = _load();
     _netWorth = _loadNetWorth();
   }
 
-  Future<({PeriodReport report, bool truncated, List<WeeklyBucket> buckets})>
+  Future<
+    ({
+      PeriodReport report,
+      bool truncated,
+      List<WeeklyBucket> buckets,
+      Map<String, CategoryDelta>? deltas,
+    })
+  >
   _load() async {
     final period = _period;
-    final range = await _rowsFor(period);
+    // The prior window feeds only the MoM delta column — its read is a
+    // companion, so a failure degrades the column to an honest note
+    // instead of blanking a report that loaded fine (and a capped read
+    // can never pose as a real "0" baseline).
+    final currentRead = _rowsFor(period);
+    final previousRead = _rowsFor(period.prev)
+        .then<({List<Transaction> rows, bool truncated})?>(
+          (v) => v,
+          onError: (_) => null,
+        );
+    final range = await currentRead;
+    final prevRange = await previousRead;
     return (
       report: buildPeriodReport(range.rows),
       truncated: range.truncated,
       buckets: weeklyIncomeExpense(range.rows, period.from, period.to),
+      deltas: prevRange == null || prevRange.truncated
+          ? null
+          : expenseCategoryDeltas(
+              current: range.rows,
+              previous: prevRange.rows,
+            ),
     );
   }
 
@@ -120,11 +156,12 @@ class ReportsPageState extends State<ReportsPage> {
   /// next month's first day (exclusive) — the fold filters the same
   /// window, so a capped read marks itself truncated rather than
   /// understating early months.
-  Future<({List<NetWorthPoint> points, bool truncated})>? _loadNetWorth() {
+  Future<({List<NetWorthPoint> points, bool truncated, int accountCount})>?
+  _loadNetWorth() {
     final loadBalances = widget.loadAccounts;
     if (loadBalances == null) return null;
     return () async {
-      final now = DateTime.now();
+      final now = vnNow();
       final current = '${now.year}-${now.month.toString().padLeft(2, '0')}-01';
       final first = shiftBudgetMonth(current, -(_netWorthMonths - 1));
       final beyond = shiftBudgetMonth(current, 1);
@@ -133,9 +170,11 @@ class ReportsPageState extends State<ReportsPage> {
         _rowsForWindow(first, beyond),
       ]);
       final range = results[1] as ({List<Transaction> rows, bool truncated});
+      final accounts = results[0] as List<AccountSummary>;
       return (
+        accountCount: accounts.length,
         points: netWorthTrend(
-          accounts: results[0] as List<AccountSummary>,
+          accounts: accounts,
           transactions: range.rows,
           currentMonthStart: current,
           months: _netWorthMonths,
@@ -205,9 +244,10 @@ class ReportsPageState extends State<ReportsPage> {
   void reload() => _refresh();
 
   void _snack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    showTimedSnackBar(
+      ScaffoldMessenger.of(context),
+      SnackBar(content: Text(message)),
+    );
   }
 
   /// Inclusive last day of [period] — `to` is exclusive, so the filename
@@ -233,6 +273,18 @@ class ReportsPageState extends State<ReportsPage> {
       final key = row.id;
       if (key == null) return;
       open(build(key), '${row.name} · ${_period.label}');
+    };
+  }
+
+  /// Total cards drill into the period's own query — Thu/Chi by kind,
+  /// the balance cards unfiltered — so every headline number can be
+  /// traced to the rows behind it. Null [onOpenActivity] keeps them inert.
+  VoidCallback? _totalTap(TransactionKind? kind) {
+    final open = widget.onOpenActivity;
+    if (open == null) return null;
+    return () {
+      final q = _periodQuery();
+      open(kind == null ? q : q.copyWith(kind: kind), _period.label);
     };
   }
 
@@ -341,7 +393,9 @@ class ReportsPageState extends State<ReportsPage> {
   }
 
   Future<void> _pickCustom() async {
-    final today = dayOnly(DateTime.now());
+    // The "can't report a future day" bound anchors on the VN civil
+    // date — the same calendar occurred_on is written on.
+    final today = dayOnly(vnNow());
     final picked = await (widget.pickRange ?? _defaultPickRange)(context);
     if (picked == null || !mounted) return;
     // Honour a reversed pick like the web does — a slip, not an attack.
@@ -363,7 +417,7 @@ class ReportsPageState extends State<ReportsPage> {
   }
 
   Future<DateTimeRange?> _defaultPickRange(BuildContext context) {
-    final today = dayOnly(DateTime.now());
+    final today = dayOnly(vnNow());
     final current = _period;
     return showDateRangePicker(
       context: context,
@@ -384,7 +438,7 @@ class ReportsPageState extends State<ReportsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final next = _period.next(DateTime.now());
+    final next = _period.next(vnNow());
     final isMonth = _period is MonthPeriod;
     return Scaffold(
       appBar: AppBar(
@@ -408,7 +462,7 @@ class ReportsPageState extends State<ReportsPage> {
             onPick: _pickCustom,
             onThisMonth: isMonth
                 ? null
-                : () => _select(MonthPeriod.of(DateTime.now())),
+                : () => _select(MonthPeriod.of(vnNow())),
           ),
           // The trend does not follow the period picker — net worth is a
           // point-in-time figure, always "now + trailing months".
@@ -441,6 +495,7 @@ class ReportsPageState extends State<ReportsPage> {
                 final r = snap.data!.report;
                 final truncated = snap.data!.truncated;
                 final buckets = snap.data!.buckets;
+                final deltas = snap.data!.deltas;
                 return RefreshIndicator(
                   onRefresh: _refresh,
                   child: ListView(
@@ -457,6 +512,19 @@ class ReportsPageState extends State<ReportsPage> {
                             ),
                           ),
                         ),
+                      // D13 disclosure: excluded rows would otherwise
+                      // leave the totals (or the empty card) unexplained.
+                      if (r.excludedCount > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            'Đã loại ${r.excludedCount} khoản khỏi báo cáo'
+                            '${r.excludedExpense > 0 ? ' · chi ${formatMoney(r.excludedExpense)}' : ''}'
+                            '${r.excludedIncome > 0 ? ' · thu ${formatMoney(r.excludedIncome)}' : ''}',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
                       if (r.transactionCount == 0)
                         const Card(
                           child: Padding(
@@ -471,13 +539,20 @@ class ReportsPageState extends State<ReportsPage> {
                         Row(
                           children: [
                             Expanded(
-                              child: _TotalCard(label: 'Thu', amount: r.income),
+                              child: _TotalCard(
+                                label: 'Thu',
+                                amount: r.income,
+                                semanticsLabel: 'Xem các khoản thu trong kỳ',
+                                onTap: _totalTap(TransactionKind.income),
+                              ),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: _TotalCard(
                                 label: 'Chi',
                                 amount: r.expense,
+                                semanticsLabel: 'Xem các khoản chi trong kỳ',
+                                onTap: _totalTap(TransactionKind.expense),
                               ),
                             ),
                           ],
@@ -489,38 +564,22 @@ class ReportsPageState extends State<ReportsPage> {
                               child: _TotalCard(
                                 label: 'Còn lại',
                                 amount: r.net,
+                                semanticsLabel: 'Xem mọi giao dịch trong kỳ',
+                                onTap: _totalTap(null),
                               ),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: Card(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Tiết kiệm',
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.labelLarge,
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        r.savingsRatePercent == null
-                                            ? '—'
-                                            : '${r.savingsRatePercent}%',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleLarge
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                              child: _TotalCard(
+                                label: 'Tiết kiệm',
+                                // Negative rates stay negative: spending
+                                // beyond income is not rounded up to 0%.
+                                text: r.savingsRatePercent == null
+                                    ? '—'
+                                    : '${r.savingsRatePercent}%',
+                                subtitle: 'của thu trong kỳ',
+                                semanticsLabel: 'Xem mọi giao dịch trong kỳ',
+                                onTap: _totalTap(null),
                               ),
                             ),
                           ],
@@ -534,6 +593,11 @@ class ReportsPageState extends State<ReportsPage> {
                           title: 'Chi theo danh mục',
                           rows: r.categories,
                           emptyLabel: 'Chưa có khoản chi trong kỳ này',
+                          deltas: deltas,
+                          deltaNote: deltas == null
+                              ? 'Chưa so được với kỳ trước — dữ liệu kỳ '
+                                    'trước chưa tải đủ'
+                              : '▲/▼ so với kỳ trước',
                           onRowTap: _rowTap(
                             (id) => _periodQuery().copyWith(
                               kind: TransactionKind.expense,
@@ -664,11 +728,16 @@ class _WeeklyChart extends StatelessWidget {
 
   final List<WeeklyBucket> buckets;
 
+  /// Spoken equivalent of the bars — the chart itself is not readable
+  /// by a screen reader.
+  String _summary() =>
+      'Thu chi theo tuần: ${[for (final b in buckets) '${b.label} thu ${spokenVnd(b.income)}, chi ${spokenVnd(b.expense)}'].join('; ')}';
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const incomeColor = Color(0xFF388E3C); // Colors.green.shade700
-    const expenseColor = Color(0xFFD32F2F); // Colors.red.shade700
+    final incomeColor = context.mf.incomeText;
+    final expenseColor = context.mf.expenseText;
     var maxV = 0;
     for (final b in buckets) {
       if (b.income > maxV) maxV = b.income;
@@ -696,104 +765,107 @@ class _WeeklyChart extends StatelessWidget {
         const SizedBox(height: 20),
         Text('Thu chi theo tuần', style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 16, 8),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    legendDot(incomeColor, 'Thu'),
-                    const SizedBox(width: 12),
-                    legendDot(expenseColor, 'Chi'),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 180,
-                  child: BarChart(
-                    BarChartData(
-                      maxY: maxY,
-                      minY: 0,
-                      // No tooltips — the tap would only repeat what the
-                      // axes already say; drill-in lives on the rows below.
-                      barTouchData: BarTouchData(enabled: false),
-                      borderData: FlBorderData(show: false),
-                      gridData: FlGridData(
-                        drawVerticalLine: false,
-                        horizontalInterval: interval,
-                        getDrawingHorizontalLine: (v) => FlLine(
-                          color: theme.colorScheme.outlineVariant,
-                          strokeWidth: 1,
+        Semantics(
+          label: _summary(),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 16, 8),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      legendDot(incomeColor, 'Thu'),
+                      const SizedBox(width: 12),
+                      legendDot(expenseColor, 'Chi'),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 180,
+                    child: BarChart(
+                      BarChartData(
+                        maxY: maxY,
+                        minY: 0,
+                        // No tooltips — the tap would only repeat what the
+                        // axes already say; drill-in lives on the rows below.
+                        barTouchData: BarTouchData(enabled: false),
+                        borderData: FlBorderData(show: false),
+                        gridData: FlGridData(
+                          drawVerticalLine: false,
+                          horizontalInterval: interval,
+                          getDrawingHorizontalLine: (v) => FlLine(
+                            color: theme.colorScheme.outlineVariant,
+                            strokeWidth: 1,
+                          ),
                         ),
-                      ),
-                      titlesData: FlTitlesData(
-                        topTitles: const AxisTitles(),
-                        rightTitles: const AxisTitles(),
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 44,
-                            interval: interval,
-                            getTitlesWidget: (v, meta) => SideTitleWidget(
-                              meta: meta,
-                              child: Text(
-                                formatMoney(v.round(), compact: true),
-                                style: theme.textTheme.labelSmall,
+                        titlesData: FlTitlesData(
+                          topTitles: const AxisTitles(),
+                          rightTitles: const AxisTitles(),
+                          leftTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 44,
+                              interval: interval,
+                              getTitlesWidget: (v, meta) => SideTitleWidget(
+                                meta: meta,
+                                child: Text(
+                                  formatMoney(v.round(), compact: true),
+                                  style: theme.textTheme.labelSmall,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 24,
-                            getTitlesWidget: (v, meta) {
-                              final i = v.round();
-                              if (i < 0 || i >= buckets.length) {
-                                return const SizedBox.shrink();
-                              }
-                              return SideTitleWidget(
-                                meta: meta,
-                                child: Text(
-                                  buckets[i].label,
-                                  style: theme.textTheme.labelSmall,
-                                ),
-                              );
-                            },
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 24,
+                              getTitlesWidget: (v, meta) {
+                                final i = v.round();
+                                if (i < 0 || i >= buckets.length) {
+                                  return const SizedBox.shrink();
+                                }
+                                return SideTitleWidget(
+                                  meta: meta,
+                                  child: Text(
+                                    buckets[i].label,
+                                    style: theme.textTheme.labelSmall,
+                                  ),
+                                );
+                              },
+                            ),
                           ),
                         ),
+                        barGroups: [
+                          for (var i = 0; i < buckets.length; i++)
+                            BarChartGroupData(
+                              x: i,
+                              barsSpace: 3,
+                              barRods: [
+                                BarChartRodData(
+                                  toY: buckets[i].income.toDouble(),
+                                  color: incomeColor,
+                                  width: 7,
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(3),
+                                  ),
+                                ),
+                                BarChartRodData(
+                                  toY: buckets[i].expense.toDouble(),
+                                  color: expenseColor,
+                                  width: 7,
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(3),
+                                  ),
+                                ),
+                              ],
+                            ),
+                        ],
                       ),
-                      barGroups: [
-                        for (var i = 0; i < buckets.length; i++)
-                          BarChartGroupData(
-                            x: i,
-                            barsSpace: 3,
-                            barRods: [
-                              BarChartRodData(
-                                toY: buckets[i].income.toDouble(),
-                                color: incomeColor,
-                                width: 7,
-                                borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(3),
-                                ),
-                              ),
-                              BarChartRodData(
-                                toY: buckets[i].expense.toDouble(),
-                                color: expenseColor,
-                                width: 7,
-                                borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(3),
-                                ),
-                              ),
-                            ],
-                          ),
-                      ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -805,19 +877,70 @@ class _WeeklyChart extends StatelessWidget {
 /// One named breakdown — title, honest empty label, and a progress-bar row
 /// per entry in the existing card style. When [onRowTap] is set, rows
 /// whose [CategoryShare.id] resolves drill into the filtered activity
-/// feed; key-less rows and a missing seam stay read-only.
+/// feed; key-less rows and a missing seam stay read-only. [deltas] turns
+/// on the MoM column (the expense-category section); [deltaNote] is the
+/// small anchor/explanation line under the title.
 class _ShareSection extends StatelessWidget {
   const _ShareSection({
     required this.title,
     required this.rows,
     required this.emptyLabel,
     this.onRowTap,
+    this.deltas,
+    this.deltaNote,
   });
 
   final String title;
   final List<CategoryShare> rows;
   final String emptyLabel;
   final void Function(CategoryShare row)? onRowTap;
+
+  /// Per-bucket MoM deltas keyed by [categoryDeltaKey] — the expense
+  /// category section's comparison column. Other sections leave it null.
+  final Map<String, CategoryDelta>? deltas;
+
+  /// Small line under the title: the ▲/▼ anchor ("so với kỳ trước")
+  /// when deltas show, or the honest reason the column is absent.
+  final String? deltaNote;
+
+  /// Rows the comparison section renders: the period's breakdown plus
+  /// any bucket that existed only in the prior window — a category that
+  /// fell to zero keeps its ▼ delta visible as an honest 0 ₫ row
+  /// instead of silently leaving the comparison. Sections without
+  /// [deltas], or an empty breakdown (whose 'Chưa có khoản chi' card
+  /// already says the period is bare), render [rows] untouched.
+  List<CategoryShare> get _visibleRows {
+    final map = deltas;
+    if (map == null || rows.isEmpty) return rows;
+    final present = {for (final r in rows) categoryDeltaKey(r)};
+    return [
+      ...rows,
+      for (final e in map.entries)
+        if (!present.contains(e.key))
+          CategoryShare(
+            name: e.value.name,
+            amount: 0,
+            share: 0,
+            id: e.value.id,
+          ),
+    ];
+  }
+
+  /// The row's MoM cell — right-aligned under the amount column. Null
+  /// when the section carries no deltas or a key somehow has none
+  /// (never rendered as a guess). It lives in the subtitle, not
+  /// [ListTile.trailing]: trailing is height-capped and would clip a
+  /// third line at large text scales.
+  Widget? _deltaCell(CategoryShare row) {
+    final map = deltas;
+    if (map == null) return null;
+    final delta = map[categoryDeltaKey(row)];
+    if (delta == null) return null;
+    return Align(
+      alignment: Alignment.centerRight,
+      child: _CategoryDeltaText(delta: delta),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -828,54 +951,152 @@ class _ShareSection extends StatelessWidget {
         Text(title, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         if (rows.isEmpty) Card(child: ListTile(title: Text(emptyLabel))),
-        for (final c in rows)
-          Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: ListTile(
-              title: Text(c.name),
-              subtitle: LinearProgressIndicator(
-                value: (c.share / 100).clamp(0.0, 1.0),
-              ),
-              trailing: Text(
-                '${formatMoney(c.amount)}\n${c.share}%',
-                textAlign: TextAlign.end,
-              ),
-              onTap: onRowTap == null || c.id == null
-                  ? null
-                  : () => onRowTap!(c),
+        if (rows.isNotEmpty && deltaNote != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              deltaNote!,
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: context.mf.textSoft),
             ),
           ),
+        for (final c in _visibleRows) _rowCard(context, c),
       ],
+    );
+  }
+
+  Widget _rowCard(BuildContext context, CategoryShare c) {
+    final delta = _deltaCell(c);
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        title: Text(c.name),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            LinearProgressIndicator(value: (c.share / 100).clamp(0.0, 1.0)),
+            if (c.count != null)
+              Text(
+                '${c.count} giao dịch',
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
+            ?delta,
+          ],
+        ),
+        isThreeLine: c.count != null || delta != null,
+        trailing: Text(
+          '${formatMoney(c.amount)}\n${c.share}%',
+          textAlign: TextAlign.end,
+        ),
+        onTap: onRowTap == null || c.id == null ? null : () => onRowTap!(c),
+      ),
     );
   }
 }
 
-class _TotalCard extends StatelessWidget {
-  const _TotalCard({required this.label, required this.amount});
+/// One MoM delta cell — ▲/▼ with the amount, "mới" when the category
+/// had no prior-window expense, "Không đổi" for a real zero change.
+/// Direction is carried by the arrow/word first, colour second —
+/// expense-red for a rise, income-green for a fall (spending less is
+/// the good direction), soft ink for the neutral states.
+class _CategoryDeltaText extends StatelessWidget {
+  const _CategoryDeltaText({required this.delta});
 
-  final String label;
-  final int amount;
+  final CategoryDelta delta;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 6),
-            Text(
-              formatMoney(amount),
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-            ),
-          ],
+    final theme = Theme.of(context);
+    final mf = context.mf;
+    final style = theme.textTheme.labelSmall;
+    if (delta.previous == null) {
+      return Text(
+        'mới',
+        semanticsLabel: 'danh mục mới — kỳ trước chưa có khoản chi nào',
+        style: style?.copyWith(color: mf.textSoft),
+      );
+    }
+    final change = delta.change;
+    if (change == 0) {
+      return Text(
+        'Không đổi',
+        semanticsLabel: 'không đổi so với kỳ trước',
+        style: style?.copyWith(color: mf.textSoft),
+      );
+    }
+    final up = change > 0;
+    final amount = formatMoney(change.abs());
+    return Text(
+      '${up ? '▲' : '▼'} $amount',
+      semanticsLabel: '${up ? 'tăng' : 'giảm'} $amount so với kỳ trước',
+      style: style?.copyWith(
+        color: up ? mf.expenseText : mf.incomeText,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+}
+
+/// One headline total. Money cards pass [amount]; the savings-rate card
+/// passes preformatted [text] (a percentage, not money). A non-null
+/// [onTap] makes the whole card a labelled button into the rows behind it.
+class _TotalCard extends StatelessWidget {
+  const _TotalCard({
+    required this.label,
+    this.amount,
+    this.text,
+    this.subtitle,
+    this.semanticsLabel,
+    this.onTap,
+  });
+
+  final String label;
+  final int? amount;
+  final String? text;
+  final String? subtitle;
+  final String? semanticsLabel;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final base = theme.textTheme.titleLarge?.copyWith(
+      fontWeight: FontWeight.w800,
+    );
+    final card = Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: theme.textTheme.labelLarge),
+              const SizedBox(height: 6),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  text ?? formatMoney(amount!),
+                  style: text != null ? base : mfMoneyStyle(base),
+                ),
+              ),
+              if (subtitle != null)
+                Text(
+                  subtitle!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: context.mf.textSoft,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
+    if (onTap == null) return card;
+    return Semantics(button: true, label: semanticsLabel, child: card);
   }
 }
 
@@ -886,7 +1107,8 @@ class _TotalCard extends StatelessWidget {
 class _NetWorthSection extends StatelessWidget {
   const _NetWorthSection({required this.future});
 
-  final Future<({List<NetWorthPoint> points, bool truncated})> future;
+  final Future<({List<NetWorthPoint> points, bool truncated, int accountCount})>
+  future;
 
   @override
   Widget build(BuildContext context) {
@@ -936,6 +1158,13 @@ class _NetWorthSection extends StatelessWidget {
                       ),
                   ],
                 ),
+                Text(
+                  'Gồm ${snap.data!.accountCount} tài khoản · '
+                  '${ReportsPageState._netWorthMonths} tháng gần nhất',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: context.mf.textSoft,
+                  ),
+                ),
                 if (snap.data!.truncated)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
@@ -958,14 +1187,21 @@ class _NetWorthSection extends StatelessWidget {
                 else ...[
                   const SizedBox(height: 8),
                   SizedBox(
-                    height: 56,
+                    height: 96,
                     width: double.infinity,
-                    child: CustomPaint(
-                      painter: _NetWorthPainter(
-                        points: points,
-                        lineColor: theme.colorScheme.primary,
-                        zeroColor: theme.colorScheme.outlineVariant,
-                        currentColor: theme.colorScheme.tertiary,
+                    child: Semantics(
+                      label:
+                          'Tài sản ròng từ ${formatMoney(points.first.balanceMinor)} '
+                          'đến ${formatMoney(points.last.balanceMinor)} '
+                          'qua ${points.length} tháng',
+                      child: CustomPaint(
+                        painter: _NetWorthPainter(
+                          points: points,
+                          // Ink, not the brand orange: orange is never money.
+                          lineColor: theme.colorScheme.onSurface,
+                          zeroColor: theme.colorScheme.outlineVariant,
+                          currentColor: theme.colorScheme.tertiary,
+                        ),
                       ),
                     ),
                   ),
@@ -1058,6 +1294,24 @@ class _NetWorthPainter extends CustomPainter {
     for (var i = 1; i < points.length; i++) {
       path.lineTo(dx * i, yFor(points[i].balanceMinor));
     }
+    // Soft area under the line, fading to transparent — the reference's
+    // "Market" chart.
+    final area = Path.from(path)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(
+      area,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            lineColor.withValues(alpha: 0.32),
+            lineColor.withValues(alpha: 0),
+          ],
+        ).createShader(Offset.zero & size),
+    );
     canvas.drawPath(path, paint);
 
     for (var i = 0; i < points.length; i++) {

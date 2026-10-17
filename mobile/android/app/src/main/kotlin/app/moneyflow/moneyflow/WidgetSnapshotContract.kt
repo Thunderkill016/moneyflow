@@ -27,18 +27,29 @@ object WidgetSnapshotContract {
     /** The honest empty figure — matches the dashboard's suppressed-tile stance. */
     const val NO_VALUE = "—"
 
-    /** Decoded snapshot: integer đồng totals plus the load's wall-clock ms. */
+    /**
+     * Decoded snapshot: integer đồng totals plus the load's wall-clock ms.
+     * [pendingReview] is the inbox draft count (D18) — null when the Dart
+     * side could not vouch for a number; the review row hides rather than
+     * quote a fabricated zero.
+     */
     data class Snapshot(
         val totalVnd: Long,
         val safeSpendVnd: Long?,
         val savedAtMs: Long,
+        val pendingReview: Long? = null,
     )
 
-    /** Pre-formatted widget lines — the provider applies them verbatim. */
+    /**
+     * Pre-formatted widget lines — the provider applies them verbatim.
+     * [review] is null when the row should hide (no snapshot, stale data,
+     * or an unknown count).
+     */
     data class Rendered(
         val total: String,
         val safeSpend: String,
         val caption: String,
+        val review: String?,
     )
 
     /** Strict decode — absent, malformed JSON or wrong field types read as "no snapshot". */
@@ -51,6 +62,13 @@ object WidgetSnapshotContract {
                 safeSpendVnd =
                     if (json.isNull("safeSpend")) null else json.getLong("safeSpend"),
                 savedAtMs = json.getLong("savedAtMs"),
+                // Negative counts are meaningless — treat as unknown.
+                pendingReview =
+                    if (json.isNull("pendingReview")) {
+                        null
+                    } else {
+                        json.getLong("pendingReview").coerceAtLeast(0)
+                    },
             )
         } catch (e: Exception) {
             null
@@ -72,18 +90,22 @@ object WidgetSnapshotContract {
     ): Rendered =
         when {
             snapshot == null ->
-                Rendered(NO_VALUE, NO_VALUE, "Chạm để mở MoneyFlow")
+                Rendered(NO_VALUE, NO_VALUE, "Chạm để mở MoneyFlow", null)
             isStale(snapshot.savedAtMs, nowMs) ->
                 Rendered(
                     NO_VALUE,
                     NO_VALUE,
                     "Dữ liệu cũ từ ${dateTimeLabel(snapshot.savedAtMs)} — chạm để mở",
+                    null,
                 )
             else ->
                 Rendered(
                     formatVnd(snapshot.totalVnd),
                     snapshot.safeSpendVnd?.let { formatVnd(it) } ?: NO_VALUE,
                     "Cập nhật lúc ${timeLabel(snapshot.savedAtMs)}",
+                    // A verified zero still renders — "0 mục" is the
+                    // all-clear answer the row exists to give.
+                    snapshot.pendingReview?.let { "$it mục" },
                 )
         }
 

@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../../data/export_files.dart';
 import '../../data/settings_prefs.dart';
-import '../../domain/export_csv.dart' show exportBackupFilename, jsonMimeType;
+import '../shared/timed_snack_bar.dart';
+import '../../domain/export_csv.dart' show jsonMimeType;
 import '../../domain/weekly_digest.dart'
     show weeklyDigestHour, weeklyDigestMinute;
 
@@ -28,12 +29,15 @@ class SettingsPage extends StatefulWidget {
     this.onSetBiometricEnabled,
     this.digestEnabled = false,
     this.onSetDigestEnabled,
+    this.monthDigestEnabled = false,
+    this.onSetMonthDigestEnabled,
     this.onDigestScheduleChanged,
     this.loadArchive,
     this.shareFile,
     this.tempDir,
     this.onDeleteLocalData,
     this.deleteLocalDataLabel = 'Xóa dữ liệu trên máy',
+    this.onDeleteHistoryBefore,
     this.onChangePassword,
     this.onDeleteAccount,
     this.appVersion = kAppVersionLabel,
@@ -52,6 +56,11 @@ class SettingsPage extends StatefulWidget {
   final bool digestEnabled;
   final Future<void> Function(bool enabled)? onSetDigestEnabled;
 
+  /// Month-close digest (D9) — opt-in + set seam, same contract as the
+  /// weekly digest. Shares [onDigestScheduleChanged]'s fire time.
+  final bool monthDigestEnabled;
+  final Future<void> Function(bool enabled)? onSetMonthDigestEnabled;
+
   /// Called after the page persists a new digest fire time — the shell
   /// re-arms the pending one-shot so the next digest lands on the new
   /// time instead of the stale one.
@@ -68,6 +77,12 @@ class SettingsPage extends StatefulWidget {
   /// the demo wipe is not an account deletion.
   final Future<void> Function()? onDeleteLocalData;
   final String deleteLocalDataLabel;
+
+  /// D21 scoped retention purge — the host owns the cutoff/scope/typed-
+  /// confirm dialog and the `delete_transactions_before` RPC. Signed-in
+  /// only: demo has no server ledger to purge, so the row hides with the
+  /// seam (same honest-absence rule as account deletion).
+  final Future<void> Function()? onDeleteHistoryBefore;
 
   /// Password change — auth-only AND credential-accounts-only (a
   /// Google-only account has no current password; the host gates the
@@ -98,6 +113,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   late bool _bioEnabled = widget.biometricEnabled;
   late bool _digestEnabled = widget.digestEnabled;
+  late bool _monthDigestEnabled = widget.monthDigestEnabled;
   bool _bioBusy = false;
   bool _digestBusy = false;
 
@@ -120,7 +136,8 @@ class _SettingsPageState extends State<SettingsPage> {
     // Refreshes the notifier (and with it the radios) — belt-and-braces
     // when the page is pushed before the app's startup load landed.
     unawaited(SettingsPrefs.loadThemeMode());
-    if (widget.onSetDigestEnabled != null) {
+    if (widget.onSetDigestEnabled != null ||
+        widget.onSetMonthDigestEnabled != null) {
       unawaited(_loadDigestTime());
     }
   }
@@ -157,6 +174,18 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  Future<void> _setMonthDigest(bool enabled) async {
+    final seam = widget.onSetMonthDigestEnabled;
+    if (seam == null) return;
+    setState(() => _digestBusy = true);
+    try {
+      await seam(enabled);
+      if (mounted) setState(() => _monthDigestEnabled = enabled);
+    } finally {
+      if (mounted) setState(() => _digestBusy = false);
+    }
+  }
+
   Future<void> _pickDigestTime() async {
     final picked = await showTimePicker(
       context: context,
@@ -188,9 +217,10 @@ class _SettingsPageState extends State<SettingsPage> {
       await (widget.shareFile ?? shareFileToSheet)(file.path, jsonMimeType);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Không xuất được file')));
+        showTimedSnackBar(
+          ScaffoldMessenger.of(context),
+          const SnackBar(content: Text('Không xuất được file')),
+        );
       }
     }
   }
@@ -206,12 +236,25 @@ class _SettingsPageState extends State<SettingsPage> {
     context,
   ).formatTimeOfDay(_digestTime, alwaysUse24HourFormat: true);
 
+  /// "Chủ nhật · ngày cuối tháng · 19:00" — the fire days of the digests
+  /// that are actually ON, plus the shared time. With none enabled the
+  /// row names just the time (it configures a clock, not a promise).
+  String _digestDaysLabel(BuildContext context) {
+    final days = [
+      if (_digestEnabled) 'Chủ nhật',
+      if (_monthDigestEnabled) 'ngày cuối tháng',
+    ];
+    final time = _digestTimeLabel(context);
+    return days.isEmpty ? time : '${days.join(' · ')} · $time';
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final showData =
         widget.loadArchive != null ||
         widget.onDeleteLocalData != null ||
+        widget.onDeleteHistoryBefore != null ||
         widget.onDeleteAccount != null;
     return Scaffold(
       appBar: AppBar(title: const Text('Cài đặt')),
@@ -252,19 +295,32 @@ class _SettingsPageState extends State<SettingsPage> {
                 onChanged: _bioBusy ? null : _setBiometric,
               ),
           ],
-          if (widget.onSetDigestEnabled != null) ...[
+          if (widget.onSetDigestEnabled != null ||
+              widget.onSetMonthDigestEnabled != null) ...[
             const _SectionHeader('Nhắc nhở'),
-            SwitchListTile(
-              secondary: const Icon(Icons.notifications_none),
-              title: const Text('Tóm tắt tuần'),
-              subtitle: const Text('Tổng kết thu chi của tuần'),
-              value: _digestEnabled,
-              onChanged: _digestBusy ? null : _setDigest,
-            ),
+            if (widget.onSetDigestEnabled != null)
+              SwitchListTile(
+                secondary: const Icon(Icons.notifications_none),
+                title: const Text('Tóm tắt tuần'),
+                subtitle: const Text('Tổng kết thu chi của tuần'),
+                value: _digestEnabled,
+                onChanged: _digestBusy ? null : _setDigest,
+              ),
+            if (widget.onSetMonthDigestEnabled != null)
+              SwitchListTile(
+                secondary: const Icon(Icons.calendar_month_outlined),
+                title: const Text('Tổng kết tháng'),
+                subtitle: const Text('Nhìn lại thu chi của tháng vừa qua'),
+                value: _monthDigestEnabled,
+                onChanged: _digestBusy ? null : _setMonthDigest,
+              ),
             ListTile(
               leading: const Icon(Icons.schedule),
               title: const Text('Giờ gửi tóm tắt'),
-              subtitle: Text('Chủ nhật · ${_digestTimeLabel(context)}'),
+              // One clock for every enabled digest — the subtitle names
+              // the real fire days so it never describes a digest that
+              // isn't armed.
+              subtitle: Text(_digestDaysLabel(context)),
               onTap: _pickDigestTime,
             ),
           ],
@@ -274,7 +330,9 @@ class _SettingsPageState extends State<SettingsPage> {
               ListTile(
                 leading: const Icon(Icons.archive_outlined),
                 title: const Text('Sao lưu (JSON)'),
-                subtitle: Text(exportBackupFilename(DateTime.now())),
+                subtitle: const Text(
+                  'Toàn bộ tài khoản và giao dịch · tải về hoặc chia sẻ',
+                ),
                 onTap: _exportArchive,
               ),
             if (widget.onDeleteLocalData != null)
@@ -284,7 +342,25 @@ class _SettingsPageState extends State<SettingsPage> {
                   widget.deleteLocalDataLabel,
                   style: TextStyle(color: scheme.error),
                 ),
+                subtitle: const Text(
+                  'Chỉ xóa trên thiết bị này — dữ liệu trên máy chủ giữ nguyên',
+                ),
                 onTap: () => unawaited(widget.onDeleteLocalData!()),
+              ),
+            if (widget.onDeleteHistoryBefore != null)
+              ListTile(
+                leading: Icon(
+                  Icons.manage_history_outlined,
+                  color: scheme.error,
+                ),
+                title: Text(
+                  'Xóa lịch sử trước ngày',
+                  style: TextStyle(color: scheme.error),
+                ),
+                subtitle: const Text(
+                  'Xóa vĩnh viễn giao dịch theo nguồn — không qua thùng rác',
+                ),
+                onTap: () => unawaited(widget.onDeleteHistoryBefore!()),
               ),
             if (widget.onDeleteAccount != null)
               ListTile(
@@ -296,7 +372,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   'Xóa tài khoản',
                   style: TextStyle(color: scheme.error),
                 ),
-                subtitle: const Text('Xóa vĩnh viễn trên máy chủ'),
+                subtitle: const Text(
+                  'Xóa vĩnh viễn tài khoản và dữ liệu trên máy chủ',
+                ),
                 onTap: () => unawaited(widget.onDeleteAccount!()),
               ),
           ],

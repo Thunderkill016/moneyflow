@@ -3,12 +3,17 @@ import 'package:flutter/material.dart';
 import '../../domain/datetime_label.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
+import '../../theme/mf_theme.dart';
 import '../shared/empty_state.dart';
+import '../shared/timed_snack_bar.dart';
 
-/// Account list + create/archive — mirrors the web's account management
+/// Account list + create/close — mirrors the web's account management
 /// surface (create_financial_account, set_financial_account_archived).
+/// UI vocabulary is "Đóng/Mở lại" (D16, Monarch's close/reopen): a
+/// closed account keeps its whole history and can be reopened — the
+/// stored field stays `is_archived`, only the labels changed.
 /// A row tap opens the register via [onOpen] — the web's "Xem sổ" link;
-/// create/archive/edit callbacks are nullable so the demo surface stays
+/// create/close/edit callbacks are nullable so the demo surface stays
 /// honestly read-only.
 class AccountsPage extends StatefulWidget {
   const AccountsPage({
@@ -21,8 +26,8 @@ class AccountsPage extends StatefulWidget {
     this.latestActivityFor,
   });
 
-  /// May return every account including archived — archived rows group
-  /// under "Đã lưu trữ" so the archive stays reversible from this page.
+  /// May return every account including archived — closed rows group
+  /// under "Đã đóng" so closing stays reversible from this page.
   final Future<List<AccountSummary>> Function() loadAccounts;
 
   /// Create — null hides the "Thêm tài khoản" action entirely.
@@ -33,8 +38,7 @@ class AccountsPage extends StatefulWidget {
   )?
   onCreate;
 
-  /// Long-press archive / "Khôi phục" on archived rows — null disables
-  /// both.
+  /// Long-press close / "Mở lại" on closed rows — null disables both.
   final Future<void> Function(String accountId, bool archived)? onArchive;
 
   /// Tap-to-edit — shown as a trailing edit button when [onOpen] claims
@@ -172,7 +176,9 @@ class _AccountsPageState extends State<AccountsPage> {
             onRefresh: _refresh,
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
+              // Bottom slot clears the extended FAB (56 + margins) so it
+              // can never cover the last account row at scroll end.
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
               children: [
                 if (snap.data!.isEmpty)
                   EmptyStateCard(
@@ -186,12 +192,16 @@ class _AccountsPageState extends State<AccountsPage> {
                         ? null
                         : () => _showForm(),
                   ),
-                for (final a in snap.data!)
-                  if (!a.isArchived) _accountTile(a),
+                for (final (i, a)
+                    in snap.data!.where((a) => !a.isArchived).indexed)
+                  _accountTile(
+                    a,
+                    fill: mfPastelFills[i % mfPastelFills.length],
+                  ),
                 if (archived.isNotEmpty) ...[
                   const SizedBox(height: 20),
                   Text(
-                    'Đã lưu trữ',
+                    'Đã đóng',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
@@ -212,51 +222,92 @@ class _AccountsPageState extends State<AccountsPage> {
     );
   }
 
-  /// Archive asks first (it hides the account from pickers); restoring
-  /// is immediate, matching the categories page's no-confirm "Hiện lại".
+  /// Closing asks first (it hides the account from pickers); reopening
+  /// is immediate, matching the categories page's no-confirm restore.
   /// A failed write surfaces instead of silently keeping the row put.
-  Future<void> _applyArchived(AccountSummary a, bool archived) async {
+  Future<void> _applyClosed(AccountSummary a, bool closed) async {
     try {
-      await widget.onArchive!(a.id, archived);
+      await widget.onArchive!(a.id, closed);
     } catch (e) {
       if (mounted) _snack(accountFormErrorMessage(e));
       return;
     }
-    _snack(archived ? 'Đã lưu trữ tài khoản.' : 'Đã hiện lại tài khoản.');
+    _snack(closed ? 'Đã đóng tài khoản.' : 'Đã mở lại tài khoản.');
     _refresh();
   }
 
   void _snack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    showTimedSnackBar(
+      ScaffoldMessenger.of(context),
+      SnackBar(content: Text(message)),
+    );
   }
 
-  Widget _accountTile(AccountSummary a) {
+  static IconData _kindIcon(AccountKind k) => switch (k) {
+    AccountKind.cash => Icons.payments_outlined,
+    AccountKind.bank => Icons.account_balance_outlined,
+    AccountKind.eWallet => Icons.smartphone_outlined,
+    AccountKind.creditCard => Icons.credit_card_outlined,
+    AccountKind.savings => Icons.savings_outlined,
+  };
+
+  Widget _accountTile(AccountSummary a, {Color? fill}) {
+    // Active wallets sit on a pastel fill (the reference's wallet card);
+    // archived rows stay on the neutral card so they read as inactive.
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
+      color: fill,
       child: ListTile(
-        leading: CircleAvatar(child: Text(a.name.characters.first)),
+        leading: MfSquareIcon(
+          icon: _kindIcon(a.kind),
+          fill: fill == null
+              ? mfPastelFills.first
+              : Colors.white.withValues(alpha: 0.6),
+        ),
         title: Text(a.name),
         subtitle: Text(_subtitleFor(a)),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(formatMoney(a.balance)),
-            // Archived rows get restore instead of edit — restore first,
+            Text(
+              formatMoney(a.balance),
+              style: mfMoneyStyle(
+                TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: fill == null ? null : mfPastelInk,
+                ),
+              ),
+            ),
+            // Closed rows get reopen instead of edit — reopen first,
             // then edit, like the web/categories rule.
             if (a.isArchived && widget.onArchive != null)
               TextButton(
-                onPressed: () => _applyArchived(a, false),
-                child: const Text('Khôi phục'),
+                onPressed: () => _applyClosed(a, false),
+                child: const Text('Mở lại'),
               )
-            // The tap went to the register — keep edit one tap away,
-            // like the web row's "Sửa" button.
-            else if (widget.onOpen != null && widget.onUpdate != null)
-              IconButton(
-                icon: const Icon(Icons.edit_outlined),
-                tooltip: 'Sửa ${a.name}',
-                onPressed: () => _showForm(editing: a),
+            // The tap went to the register — actions live in a visible
+            // overflow menu like the web row's Sửa/Đóng pair;
+            // long-press stays as a shortcut.
+            else if (widget.onOpen != null &&
+                (widget.onUpdate != null || widget.onArchive != null))
+              PopupMenuButton<String>(
+                tooltip: 'Tùy chọn ${a.name}',
+                iconSize: 20,
+                onSelected: (action) {
+                  switch (action) {
+                    case 'edit':
+                      _showForm(editing: a);
+                    case 'archive':
+                      _confirmClose(a);
+                  }
+                },
+                itemBuilder: (ctx) => [
+                  if (widget.onUpdate != null)
+                    const PopupMenuItem(value: 'edit', child: Text('Sửa')),
+                  if (widget.onArchive != null)
+                    const PopupMenuItem(value: 'archive', child: Text('Đóng')),
+                ],
               ),
           ],
         ),
@@ -267,18 +318,21 @@ class _AccountsPageState extends State<AccountsPage> {
             : () => _showForm(editing: a),
         onLongPress: widget.onArchive == null || a.isArchived
             ? null
-            : () => _confirmArchive(a),
+            : () => _confirmClose(a),
       ),
     );
   }
 
-  Future<void> _confirmArchive(AccountSummary a) async {
+  /// "Đóng" confirmation — the copy carries the Monarch close contract:
+  /// hidden from lists and pickers, history kept, reopenable anytime.
+  Future<void> _confirmClose(AccountSummary a) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Lưu trữ "${a.name}"?'),
+        title: Text('Đóng "${a.name}"?'),
         content: const Text(
-          'Tài khoản sẽ ẩn khỏi danh sách; giao dịch cũ vẫn giữ.',
+          'Tài khoản sẽ ẩn khỏi danh sách và bộ chọn; giao dịch cũ vẫn '
+          'giữ — mở lại được bất cứ lúc nào.',
         ),
         actions: [
           TextButton(
@@ -287,12 +341,12 @@ class _AccountsPageState extends State<AccountsPage> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Lưu trữ'),
+            child: const Text('Đóng'),
           ),
         ],
       ),
     );
-    if (ok == true) await _applyArchived(a, true);
+    if (ok == true) await _applyClosed(a, true);
   }
 }
 
@@ -338,6 +392,10 @@ Future<bool> showAccountFormDialog(
   );
   AccountKind kind = editing?.kind ?? AccountKind.cash;
   String? error;
+  // create_financial_account takes no idempotency key — the in-flight
+  // guard IS the double-submit defense: a second tap while the RPC is
+  // pending would create two accounts the server cannot dedupe.
+  var submitting = false;
   final saved = await showDialog<bool>(
     context: context,
     builder: (ctx) => StatefulBuilder(
@@ -398,37 +456,49 @@ Future<bool> showAccountFormDialog(
               ),
               if (error != null) ...[
                 const SizedBox(height: 12),
-                Text(error!, style: TextStyle(color: Colors.red.shade700)),
+                Text(
+                  error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
               ],
             ],
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            // No cancel mid-flight — the RPC is already on the wire;
+            // popping here would hide a write that still lands.
+            onPressed: submitting ? null : () => Navigator.pop(ctx, false),
             child: const Text('Hủy'),
           ),
           FilledButton(
-            onPressed: () async {
-              final n = name.text.trim();
-              if (n.isEmpty) return;
-              // An empty balance is a legitimate 0 opening; a non-empty
-              // entry the money parser rejects must fail visibly — `?? 0`
-              // here used to silently save a mistyped balance as 0.
-              final balRaw = balance.text.trim();
-              final bal = balRaw.isEmpty ? 0 : parseMoneyInput(balRaw);
-              if (bal == null) {
-                setDlg(() => error = 'Số tiền không hợp lệ');
-                return;
-              }
-              try {
-                await onSave(n, kind, bal);
-              } catch (e) {
-                setDlg(() => error = accountFormErrorMessage(e));
-                return;
-              }
-              if (ctx.mounted) Navigator.pop(ctx, true);
-            },
+            onPressed: submitting
+                ? null
+                : () async {
+                    final n = name.text.trim();
+                    if (n.isEmpty) return;
+                    // An empty balance is a legitimate 0 opening; a
+                    // non-empty entry the money parser rejects must fail
+                    // visibly — `?? 0` here used to silently save a
+                    // mistyped balance as 0.
+                    final balRaw = balance.text.trim();
+                    final bal = balRaw.isEmpty ? 0 : parseMoneyInput(balRaw);
+                    if (bal == null) {
+                      setDlg(() => error = 'Số tiền không hợp lệ');
+                      return;
+                    }
+                    setDlg(() => submitting = true);
+                    try {
+                      await onSave(n, kind, bal);
+                    } catch (e) {
+                      setDlg(() {
+                        submitting = false;
+                        error = accountFormErrorMessage(e);
+                      });
+                      return;
+                    }
+                    if (ctx.mounted) Navigator.pop(ctx, true);
+                  },
             child: Text(submitLabel ?? (editing == null ? 'Tạo' : 'Lưu')),
           ),
         ],

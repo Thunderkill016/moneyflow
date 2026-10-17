@@ -414,8 +414,30 @@ function safeDifference(left: number, right: number) {
   return result;
 }
 
-function sumKind(transactions: Transaction[], kind: "income" | "expense") {
-  return transactions.filter((item) => item.kind === kind).reduce((sum, item) => safeAdd(sum, item.amount), 0);
+/**
+ * A refund is an income-kind row carrying the expense category it
+ * reimburses (`is_refund`). Money really arrived — the ledger keeps it as
+ * income — but report math nets it against spend instead of counting it
+ * as Thu.
+ */
+function isNettedRefund(item: Transaction) {
+  return item.kind === "income" && item.isRefund === true;
+}
+
+/** Income totals never include refund rows — they net on the expense side. */
+function sumIncome(transactions: Transaction[]) {
+  return transactions
+    .filter((item) => item.kind === "income" && !item.isRefund)
+    .reduce((sum, item) => safeAdd(sum, item.amount), 0);
+}
+
+/** Expense minus refund income — the spend a period really kept. */
+function sumExpenseNet(transactions: Transaction[]) {
+  return transactions.reduce((sum, item) => {
+    if (item.kind === "expense") return safeAdd(sum, item.amount);
+    if (isNettedRefund(item)) return safeAdd(sum, -item.amount);
+    return sum;
+  }, 0);
 }
 
 function inRange(transaction: Transaction, start: string, end: string) {
@@ -467,15 +489,33 @@ function trendBuckets(range: ReportRange) {
 }
 
 export function buildFinancialReport(transactions: Transaction[], range: ReportRange): FinancialReport {
-  const current = transactions.filter((item) => inRange(item, range.currentStart, range.currentEnd));
-  const previousTransactions = transactions.filter((item) => inRange(item, range.previousStart, range.previousEnd));
-  const income = sumKind(current, "income");
-  const expense = sumKind(current, "expense");
-  const previousIncome = sumKind(previousTransactions, "income");
-  const previousExpense = sumKind(previousTransactions, "expense");
+  /*
+   * `excludedFromReports` rows stay in the ledger, trash and CSV exports —
+   * they are real money movements — but the user asked for them to be left
+   * out of reporting. Filtering once here keeps totals, categories, payees,
+   * accounts, trend and `totals.transactions` honest in a single place.
+   */
+  const eligible = transactions.filter((item) => !item.excludedFromReports);
+  const current = eligible.filter((item) => inRange(item, range.currentStart, range.currentEnd));
+  const previousTransactions = eligible.filter((item) => inRange(item, range.previousStart, range.previousEnd));
+  const income = sumIncome(current);
+  const expense = sumExpenseNet(current);
+  const previousIncome = sumIncome(previousTransactions);
+  const previousExpense = sumExpenseNet(previousTransactions);
   const categoryTotals = new Map<string, number>();
   const incomeCategoryTotals = new Map<string, number>();
   for (const item of current) {
+    if (isNettedRefund(item)) {
+      // Refund income nets the expense category it reimburses (same
+      // categoryLines path — the row's own category name).
+      for (const line of categoryLines(item)) {
+        categoryTotals.set(
+          line.name,
+          safeAdd(categoryTotals.get(line.name) ?? 0, -line.amount),
+        );
+      }
+      continue;
+    }
     if (item.kind !== "expense" && item.kind !== "income") continue;
     const totals = item.kind === "expense" ? categoryTotals : incomeCategoryTotals;
     for (const line of categoryLines(item)) {
@@ -492,14 +532,16 @@ export function buildFinancialReport(transactions: Transaction[], range: ReportR
   const trendMonthKeys = new Set(trendMonths.map((month) => month.key));
   const trendTotals = new Map<string, Map<string, number>>();
   const incomeTrendTotals = new Map<string, Map<string, number>>();
-  for (const item of transactions) {
+  for (const item of eligible) {
+    const netsRefund = isNettedRefund(item);
     if (item.kind !== "expense" && item.kind !== "income") continue;
     const monthKey = item.occurredOn.slice(0, 7);
     if (!trendMonthKeys.has(monthKey)) continue;
-    const perKind = item.kind === "expense" ? trendTotals : incomeTrendTotals;
+    const perKind = item.kind === "expense" || netsRefund ? trendTotals : incomeTrendTotals;
+    const sign = netsRefund ? -1 : 1;
     for (const line of categoryLines(item)) {
       const perMonth = perKind.get(line.name) ?? new Map<string, number>();
-      perMonth.set(monthKey, safeAdd(perMonth.get(monthKey) ?? 0, line.amount));
+      perMonth.set(monthKey, safeAdd(perMonth.get(monthKey) ?? 0, sign * line.amount));
       perKind.set(line.name, perMonth);
     }
   }
@@ -534,10 +576,14 @@ export function buildFinancialReport(transactions: Transaction[], range: ReportR
    */
   const accountTotals = new Map<string, number>();
   for (const item of current) {
-    if (item.kind !== "expense") continue;
+    const netsRefund = isNettedRefund(item);
+    if (item.kind !== "expense" && !netsRefund) continue;
     const name = item.account;
     if (!name) continue;
-    accountTotals.set(name, safeAdd(accountTotals.get(name) ?? 0, item.amount));
+    accountTotals.set(
+      name,
+      safeAdd(accountTotals.get(name) ?? 0, netsRefund ? -item.amount : item.amount),
+    );
   }
   const accounts = [...accountTotals.entries()]
     .map(([name, amount]) => ({ name, amount, share: expense ? Math.round((amount / expense) * 100) : 0 }))
@@ -550,10 +596,14 @@ export function buildFinancialReport(transactions: Transaction[], range: ReportR
    */
   const payeeTotals = new Map<string, number>();
   for (const item of current) {
-    if (item.kind !== "expense") continue;
+    const netsRefund = isNettedRefund(item);
+    if (item.kind !== "expense" && !netsRefund) continue;
     const name = item.payee?.trim();
     if (!name) continue;
-    payeeTotals.set(name, safeAdd(payeeTotals.get(name) ?? 0, item.amount));
+    payeeTotals.set(
+      name,
+      safeAdd(payeeTotals.get(name) ?? 0, netsRefund ? -item.amount : item.amount),
+    );
   }
   const payees = [...payeeTotals.entries()]
     .map(([name, amount]) => ({ name, amount, share: expense ? Math.round((amount / expense) * 100) : 0 }))
@@ -563,7 +613,7 @@ export function buildFinancialReport(transactions: Transaction[], range: ReportR
     // key length keeps this in step with trendBuckets without repeating its rule.
     const matches = current.filter((item) =>
       bucket.key.length === 7 ? item.occurredOn.startsWith(bucket.key) : item.occurredOn === bucket.key);
-    return { ...bucket, income: sumKind(matches, "income"), expense: sumKind(matches, "expense") };
+    return { ...bucket, income: sumIncome(matches), expense: sumExpenseNet(matches) };
   });
   const net = safeDifference(income, expense);
   return {

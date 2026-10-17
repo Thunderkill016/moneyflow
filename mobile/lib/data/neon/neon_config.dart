@@ -2,10 +2,12 @@ import 'package:flutter/foundation.dart';
 
 // Neon backend endpoints, supplied at build time via --dart-define.
 //
-// The dev defaults point at the owner-created acceptance sandbox
-// (moneyflow-acceptance-sandbox) so `flutter run` works out of the box.
-// Production values come from Vercel env / Neon project settings — never
-// hardcode secrets here; endpoints are identifiers, not credentials.
+// The dev defaults below point at moneyflow-prod — the only Neon project
+// that exists today — so `flutter run` works with no flags. Honest
+// consequence: an unqualified debug run writes developer/test activity
+// into the PRODUCTION database (see mobile/README.md). If a sandbox
+// project is ever provisioned, point these at it instead. Never hardcode
+// secrets here; endpoints are identifiers, not credentials.
 class NeonConfig {
   const NeonConfig({
     required this.authBaseUrl,
@@ -16,16 +18,19 @@ class NeonConfig {
   final String authBaseUrl;
   final String dataApiUrl;
 
-  /// Web OAuth client id used as google_sign_in's `serverClientId` — the
-  /// same Google Cloud project where Neon Auth's Google provider is
-  /// configured. Optional capability gate: empty means the login page
-  /// hides the Google button entirely (no dead-end affordance).
+  /// Web OAuth client id for the native Google sheet — only usable when
+  /// an Android OAuth client for this package+SHA-1 exists in the SAME
+  /// Google Cloud project (i.e. an owner-created project wired into
+  /// Neon Auth as a non-shared Google provider). Empty → the hybrid
+  /// sign-in goes straight to the loopback redirect. NOTE: Neon managed
+  /// auth currently ignores the idToken on /sign-in/social, so the
+  /// native leg cannot complete upstream — leave this empty until then.
   final String googleServerClientId;
 
   factory NeonConfig.fromEnvironment() {
-    // Read WITHOUT defaults first: the sandbox fallback below would mask
-    // a missing --dart-define entirely, and String.fromEnvironment can't
-    // tell "define passed" from "default filled in".
+    // Read WITHOUT defaults first: the dev-default fallback below would
+    // mask a missing --dart-define entirely, and String.fromEnvironment
+    // can't tell "define passed" from "default filled in".
     const auth = String.fromEnvironment('MF_AUTH_BASE_URL');
     const api = String.fromEnvironment('MF_DATA_API_URL');
     const google = String.fromEnvironment('MF_GOOGLE_SERVER_CLIENT_ID');
@@ -41,9 +46,10 @@ class NeonConfig {
     );
   }
 
-  /// A release binary must name its real endpoints at build time —
-  /// shipping the sandbox defaults would silently point strangers'
-  /// sign-ins at the acceptance project. Throws at construction instead
+  /// A release binary must name its endpoints at build time — the
+  /// compiled-in dev defaults happen to be the production project today,
+  /// but a shipped artifact is never allowed to depend on what a
+  /// convenience constant points at. Throws at construction instead
   /// of failing at the first request. Debug/profile keep the dev
   /// defaults so `flutter run` and tests work with no defines.
   ///
@@ -61,7 +67,8 @@ class NeonConfig {
     if (releaseMode && (authBaseUrl.isEmpty || dataApiUrl.isEmpty)) {
       throw StateError(
         'Release build missing MF_AUTH_BASE_URL / MF_DATA_API_URL '
-        '--dart-define values — refusing to fall back to the dev sandbox. '
+        '--dart-define values — refusing to fall back to the compiled-in '
+        'dev defaults. '
         'See mobile/README.md for the required release defines.',
       );
     }
@@ -74,7 +81,7 @@ class NeonConfig {
   /// request. The mobile client only talks to Neon (`*.neon.tech`);
   /// loopback stays allowed for local development backends.
   static void _requireTrustedEndpoint(String label, String raw) {
-    if (raw.isEmpty) return; // debug-mode callers use the sandbox defaults
+    if (raw.isEmpty) return; // debug-mode callers use the dev defaults
     final uri = Uri.tryParse(raw);
     if (uri == null ||
         !uri.isAbsolute ||
@@ -103,9 +110,9 @@ class NeonConfig {
   // trusted origin — the auth service origin itself is always trusted.
   String get origin => Uri.parse(authBaseUrl).origin;
 
-  // moneyflow-acceptance-sandbox (Neon project nameless-wind-29591132).
+  // moneyflow-prod (Neon project shy-mud-72113549) — the only backend.
   static const _devAuth =
-      'https://ep-lively-sunset-b3xzqd47.neonauth.c-4.ap-southeast-1.aws.neon.tech/neondb/auth';
+      'https://ep-morning-band-b3a6dp3y.neonauth.c-4.ap-southeast-1.aws.neon.tech/neondb/auth';
   static const _devApi =
-      'https://ep-lively-sunset-b3xzqd47.apirest.c-4.ap-southeast-1.aws.neon.tech/neondb/rest/v1';
+      'https://ep-morning-band-b3a6dp3y.apirest.c-4.ap-southeast-1.aws.neon.tech/neondb/rest/v1';
 }

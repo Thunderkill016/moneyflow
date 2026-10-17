@@ -189,6 +189,14 @@ class MainActivity : FlutterFragmentActivity() {
         }
 
     override fun onNewIntent(intent: Intent) {
+        if (isOAuthCallback(intent)) {
+            // The OAuth result already flows through the loopback socket —
+            // this VIEW intent's only job is to foreground the app and
+            // close the Custom Tab. Forwarding it to super pushes the
+            // deep link onto Flutter's Navigator, covering the freshly
+            // signed-in dashboard with a stray route.
+            return
+        }
         super.onNewIntent(intent)
         sharedText(intent)?.let { shareSink?.success(it) ?: run { pendingShare = it } }
         // A tap can land while Dart is still attaching its listener — the
@@ -197,6 +205,16 @@ class MainActivity : FlutterFragmentActivity() {
             quickActionSink?.success(it) ?: run { pendingQuickAction = it }
         }
     }
+
+    /// The launch-intent twin of the swallow above: a cold start from the
+    /// OAuth bounce must not become the engine's initial route either.
+    override fun getInitialRoute(): String? =
+        if (isOAuthCallback(intent)) "/" else super.getInitialRoute()
+
+    private fun isOAuthCallback(intent: Intent?): Boolean =
+        intent?.action == Intent.ACTION_VIEW &&
+            intent.data?.scheme == "moneyflow" &&
+            intent.data?.host == "oauth-callback"
 
     private fun sharedText(intent: Intent?): String? =
         if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {

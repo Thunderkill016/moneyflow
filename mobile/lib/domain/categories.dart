@@ -316,3 +316,27 @@ String categoryDeleteErrorMessage(Object error) {
   }
   return 'Không xóa được danh mục. Hãy thử lại.';
 }
+
+/// merge_categories failures — the RPC raises `same_category`,
+/// `category_kind_mismatch`, `category_archived`, `default_category_locked`
+/// and `category_not_found` for the refusals the picker/dialog normally
+/// pre-empt; map them verbatim like the save/delete twins.
+String categoryMergeErrorMessage(Object error) {
+  final msg = error.toString();
+  if (msg.contains('category_kind_mismatch')) {
+    return 'Chỉ gộp được hai danh mục cùng loại (thu với thu, chi với chi).';
+  }
+  if (msg.contains('category_archived')) {
+    return 'Danh mục đích đang ẩn — hãy hiện lại trước khi gộp.';
+  }
+  if (msg.contains('default_category_locked')) {
+    return 'Danh mục mặc định không gộp được.';
+  }
+  if (msg.contains('same_category')) {
+    return 'Không thể gộp một danh mục vào chính nó.';
+  }
+  if (msg.contains('category_not_found')) {
+    return 'Danh mục không còn tồn tại — hãy tải lại danh sách.';
+  }
+  return 'Không gộp được danh mục. Hãy thử lại.';
+}

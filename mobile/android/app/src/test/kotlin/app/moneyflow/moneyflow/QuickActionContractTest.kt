@@ -14,8 +14,10 @@ import org.junit.Test
  */
 class QuickActionContractTest {
     @Test
-    fun `capture is the only accepted action`() {
+    fun `capture and review are the accepted actions`() {
         assertEquals("capture", QuickActionContract.sanitize("capture"))
+        // D18 — the widget's "Chờ duyệt" row deep-links to the inbox.
+        assertEquals("review", QuickActionContract.sanitize("review"))
     }
 
     @Test
@@ -25,6 +27,8 @@ class QuickActionContractTest {
                 "CAPTURE",
                 " capture",
                 "capture ",
+                "REVIEW",
+                "review ",
                 "delete",
                 "settings",
                 "0",

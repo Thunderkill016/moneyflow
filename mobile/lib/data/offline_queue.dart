@@ -63,6 +63,8 @@ class QueuedCapture {
     'commitmentName': intent.commitmentName,
     'transactionId': intent.transactionId,
     'expectedUpdatedAt': intent.expectedUpdatedAt,
+    'excludedFromReports': intent.excludedFromReports,
+    'isRefund': intent.isRefund,
     'splitLines': [
       for (final l in intent.splitLines)
         {'categoryId': l.categoryId, 'amount': l.amount},
@@ -88,6 +90,8 @@ class QueuedCapture {
       commitmentName: _optString(json, 'commitmentName') ?? '',
       transactionId: _optString(json, 'transactionId'),
       expectedUpdatedAt: _optString(json, 'expectedUpdatedAt'),
+      excludedFromReports: _optBool(json, 'excludedFromReports'),
+      isRefund: _optBool(json, 'isRefund'),
       splitLines: [
         for (final raw in _optList(json, 'splitLines') ?? const [])
           _splitLineFromJson(raw),

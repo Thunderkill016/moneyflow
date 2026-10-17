@@ -6,10 +6,13 @@ import '../../data/recent_searches.dart';
 import '../../domain/bulk.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
-import '../../domain/report.dart' show unnamedPayeeBucket;
+import '../../domain/register.dart' show transactionDeleteErrorMessage;
+import '../../domain/report.dart' show unnamedPayeeBucket, vnNow;
 import '../../domain/transaction_query.dart';
+import '../../theme/mf_theme.dart';
 import '../capture/category_picker.dart';
 import '../shared/empty_state.dart';
+import '../shared/timed_snack_bar.dart';
 
 /// Full transaction activity — soft-delete via long-press (the same
 /// soft_delete_money_transaction RPC the web trash flow uses), tap to
@@ -19,7 +22,7 @@ class ActivityPage extends StatefulWidget {
   const ActivityPage({
     super.key,
     required this.loadPage,
-    required this.onDelete,
+    this.onDelete,
     this.onOpenTrash,
     this.onEdit,
     this.onBulkReview,
@@ -29,11 +32,16 @@ class ActivityPage extends StatefulWidget {
     this.initialQuery,
     this.title,
     this.onCapture,
+    this.initialOnlyNeedsReview = false,
   });
 
   /// One page of the feed for a search/filter query.
   final TransactionPageLoader loadPage;
-  final Future<void> Function(String transactionId) onDelete;
+
+  /// Soft-delete entry — null hides the affordance entirely (demo has no
+  /// ledger writes, so a delete that no-ops while claiming success would
+  /// be a lie the row then disproves).
+  final Future<void> Function(String transactionId)? onDelete;
 
   /// Pre-filtered opening state — the reports drill-in pushes the page
   /// already scoped to a row's dimension and period. The filters behave
@@ -66,6 +74,11 @@ class ActivityPage extends StatefulWidget {
   /// text, never a dead button.
   final VoidCallback? onCapture;
 
+  /// Opens with the "Cần xem lại" filter already on — the dashboard
+  /// attention card's needs-review row lands here instead of making the
+  /// user find the chip.
+  final bool initialOnlyNeedsReview;
+
   @override
   State<ActivityPage> createState() => ActivityPageState();
 }
@@ -93,8 +106,12 @@ class ActivityPageState extends State<ActivityPage> {
   int _gen = 0;
   bool _selecting = false;
   bool _searching = false;
-  bool _onlyNeedsReview = false;
+  late bool _onlyNeedsReview = widget.initialOnlyNeedsReview;
   final Set<String> _selected = {};
+
+  /// Rows whose swipe-mark-reviewed write is in flight — the RPC has no
+  /// per-call idempotency key, so the guard IS the double-submit defense.
+  final Set<String> _reviewBusy = {};
   final _search = TextEditingController();
   final _scroll = ScrollController();
   Timer? _debounce;
@@ -280,6 +297,10 @@ class ActivityPageState extends State<ActivityPage> {
     if (result != null) _setQuery(result);
   }
 
+  /// Vietnam date (UTC+7) so "Hôm nay" matches ledger days — the shared
+  /// civil-date rule in domain/report.dart.
+  String get _today => _isoDate(vnNow());
+
   bool get _canSelect => widget.onBulkReview != null;
 
   void _exitSelect() => setState(() {
@@ -297,9 +318,10 @@ class ActivityPageState extends State<ActivityPage> {
     }
   });
 
-  void _snack(String message) => ScaffoldMessenger.of(
-    context,
-  ).showSnackBar(SnackBar(content: Text(message)));
+  void _snack(String message) => showTimedSnackBar(
+    ScaffoldMessenger.of(context),
+    SnackBar(content: Text(message)),
+  );
 
   String _bulkError(Object e) {
     final msg = e.toString();
@@ -367,6 +389,68 @@ class ActivityPageState extends State<ActivityPage> {
     );
   }
 
+  /// Swipe-to-review (Monarch's gesture, D5): a needs-review row swiped
+  /// right marks reviewed through the same bulk-review seam select mode
+  /// uses — one id in the list. The tile itself never dismisses: the
+  /// flag flip (or removal under the "Cần xem lại" filter) is the
+  /// visible result, and a failure snaps it back with the error snack.
+  Future<bool> _swipeReview(Transaction t) async {
+    if (_reviewBusy.contains(t.id)) return false;
+    _reviewBusy.add(t.id);
+    try {
+      await widget.onBulkReview!([t.id], reviewed: true);
+    } catch (e) {
+      if (mounted) _snack(_bulkError(e));
+      return false;
+    } finally {
+      _reviewBusy.remove(t.id);
+    }
+    if (!mounted) return false;
+    _flipReviewFlag(t.id, needsReview: false);
+    showTimedSnackBar(
+      ScaffoldMessenger.of(context),
+      SnackBar(
+        content: const Text('Đã đánh dấu đã xem'),
+        action: SnackBarAction(
+          label: 'Hoàn tác',
+          onPressed: () => _restoreReviewFlag(t.id),
+        ),
+      ),
+    );
+    return false;
+  }
+
+  /// The undo path of a swipe — re-flags through the same seam. Local
+  /// state only mutates after the write lands, so the row's visible
+  /// state is always what the server holds.
+  Future<void> _restoreReviewFlag(String id) async {
+    if (_reviewBusy.contains(id)) return;
+    _reviewBusy.add(id);
+    try {
+      await widget.onBulkReview!([id], reviewed: false);
+    } catch (e) {
+      if (mounted) _snack(_bulkError(e));
+      return;
+    } finally {
+      _reviewBusy.remove(id);
+    }
+    if (mounted) _flipReviewFlag(id, needsReview: true);
+  }
+
+  /// Patches one loaded row's flag in place — no refetch: the write
+  /// already landed, so the local copy just mirrors the new truth
+  /// (paging offsets stay stable, unlike a page-one reload).
+  void _flipReviewFlag(String id, {required bool needsReview}) {
+    final rows = _rows;
+    if (rows == null) return;
+    setState(() {
+      _rows = [
+        for (final t in rows)
+          t.id == id ? t.copyWith(needsReview: needsReview) : t,
+      ];
+    });
+  }
+
   Future<void> _confirmDelete(Transaction tx) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -388,8 +472,24 @@ class ActivityPageState extends State<ActivityPage> {
       ),
     );
     if (ok == true) {
-      await widget.onDelete(tx.id);
+      try {
+        await widget.onDelete!(tx.id);
+      } catch (e) {
+        if (mounted) _snack(transactionDeleteErrorMessage(e));
+        return;
+      }
       _refresh();
+      if (!mounted) return;
+      final open = widget.onOpenTrash;
+      showTimedSnackBar(
+        ScaffoldMessenger.of(context),
+        SnackBar(
+          content: const Text('Đã chuyển vào thùng rác'),
+          action: open == null
+              ? null
+              : SnackBarAction(label: 'Mở thùng rác', onPressed: open),
+        ),
+      );
     }
   }
 
@@ -405,9 +505,13 @@ class ActivityPageState extends State<ActivityPage> {
   }
 
   String _dateLabel() {
+    // Ledger dates arrive ISO — the chip speaks dd/MM/yyyy like the
+    // feed's day headers, never the wire format.
     final from = _query.dateFrom, to = _query.dateTo;
-    if (from != null && to != null) return '$from → $to';
-    return from != null ? 'Từ $from' : 'Đến $to';
+    if (from != null && to != null) {
+      return '${_dayLabel(from)} → ${_dayLabel(to)}';
+    }
+    return from != null ? 'Từ ${_dayLabel(from)}' : 'Đến ${_dayLabel(to!)}';
   }
 
   String _amountLabel() {
@@ -552,6 +656,43 @@ class ActivityPageState extends State<ActivityPage> {
     );
   }
 
+  Widget _tile(Transaction t) {
+    final tile = _TxTile(
+      tx: t,
+      selecting: _selecting,
+      selected: _selected.contains(t.id),
+      onTap: _selecting
+          ? () => _toggle(t)
+          : widget.onEdit == null
+          ? null
+          : () => _openEdit(t),
+      onLongPress: _selecting
+          ? () => _toggle(t)
+          : widget.onDelete == null
+          ? null
+          : () => _confirmDelete(t),
+      onDelete: _selecting || widget.onDelete == null
+          ? null
+          : () => _confirmDelete(t),
+    );
+    // Swipe-right = "Đã xem" on flagged rows only — no review seam (demo)
+    // or select mode keeps the row plain, and an already-reviewed row
+    // has nothing for the gesture to do.
+    final swipeable =
+        !_selecting &&
+        widget.onBulkReview != null &&
+        !_reviewBusy.contains(t.id) &&
+        t.reviewStatus == TransactionReviewStatus.needsReview;
+    if (!swipeable) return tile;
+    return Dismissible(
+      key: ValueKey('swipe-${t.id}'),
+      direction: DismissDirection.startToEnd,
+      confirmDismiss: (_) => _swipeReview(t),
+      background: const _SwipeReviewBackground(),
+      child: tile,
+    );
+  }
+
   Widget _footer() {
     if (_loadingMore) {
       return const Padding(
@@ -584,6 +725,38 @@ class ActivityPageState extends State<ActivityPage> {
         : all;
     final reviewCount = needsReviewCount(all);
     final showSearch = _searching && !_selecting;
+    // Fixed-height header band ahead of the lazy feed — the eager
+    // `ListView(children:)` this replaced built every loaded row on each
+    // "Xem thêm" press; the builder only ever mounts a viewport's worth.
+    final headers = <Widget>[
+      if (showSearch && _search.text.trim().isEmpty && _recent.isNotEmpty)
+        _recentSearches(),
+      if (!_query.isEmpty) _filterChips(),
+      if (_canSelect && (reviewCount > 0 || _onlyNeedsReview))
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: FilterChip(
+              label: Text('Cần xem lại ($reviewCount${_hasMore ? '+' : ''})'),
+              selected: _onlyNeedsReview,
+              onSelected: (v) => setState(() => _onlyNeedsReview = v),
+            ),
+          ),
+        ),
+      if (all.isEmpty)
+        _emptyState()
+      else if (visible.isEmpty)
+        Card(
+          child: ListTile(
+            title: Text(
+              _hasMore
+                  ? 'Chưa thấy khoản cần xem lại trong phần đã tải'
+                  : 'Không còn khoản nào cần xem lại',
+            ),
+          ),
+        ),
+    ];
     return Scaffold(
       appBar: AppBar(
         leading: _selecting
@@ -644,7 +817,7 @@ class ActivityPageState extends State<ActivityPage> {
                   ..clear()
                   ..addAll(ids);
               }),
-              child: const Text('Chọn tất cả'),
+              child: const Text('Chọn mục đang hiện'),
             ),
           if (!_selecting && widget.onOpenTrash != null)
             IconButton(
@@ -683,74 +856,33 @@ class ActivityPageState extends State<ActivityPage> {
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _refresh,
-              child: ListView(
+              child: ListView.builder(
                 controller: _scroll,
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
-                children: [
-                  if (showSearch &&
-                      _search.text.trim().isEmpty &&
-                      _recent.isNotEmpty)
-                    _recentSearches(),
-                  if (!_query.isEmpty) _filterChips(),
-                  if (_canSelect && (reviewCount > 0 || _onlyNeedsReview))
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: FilterChip(
-                          label: Text('Cần xem lại ($reviewCount)'),
-                          selected: _onlyNeedsReview,
-                          onSelected: (v) =>
-                              setState(() => _onlyNeedsReview = v),
-                        ),
-                      ),
-                    ),
-                  if (all.isEmpty)
-                    _emptyState()
-                  else if (visible.isEmpty)
-                    Card(
-                      child: ListTile(
-                        title: Text(
-                          _hasMore
-                              ? 'Chưa thấy khoản cần xem lại trong phần đã tải'
-                              : 'Không còn khoản nào cần xem lại',
-                        ),
-                      ),
-                    ),
-                  for (final (i, t) in visible.indexed)
-                    i < _fadeInMaxItems
-                        ? _FadeInTile(
-                            order: i,
-                            child: _TxTile(
-                              tx: t,
-                              selecting: _selecting,
-                              selected: _selected.contains(t.id),
-                              onTap: _selecting
-                                  ? () => _toggle(t)
-                                  : widget.onEdit == null
-                                  ? null
-                                  : () => _openEdit(t),
-                              onLongPress: _selecting
-                                  ? () => _toggle(t)
-                                  : () => _confirmDelete(t),
-                            ),
-                          )
-                        : _TxTile(
-                            tx: t,
-                            selecting: _selecting,
-                            selected: _selected.contains(t.id),
-                            onTap: _selecting
-                                ? () => _toggle(t)
-                                : widget.onEdit == null
-                                ? null
-                                : () => _openEdit(t),
-                            onLongPress: _selecting
-                                ? () => _toggle(t)
-                                : () => _confirmDelete(t),
-                          ),
-                  _footer(),
-                ],
+                itemCount: headers.length + visible.length + 1,
+                itemBuilder: (context, i) {
+                  if (i < headers.length) return headers[i];
+                  final j = i - headers.length;
+                  if (j >= visible.length) return _footer();
+                  final t = visible[j];
+                  final tile = j < _fadeInMaxItems
+                      ? _FadeInTile(order: j, child: _tile(t))
+                      : _tile(t);
+                  // The day header rides inside its first row's cell —
+                  // one lazily-built item per transaction, keyed so a
+                  // reload reuses the row's element instead of
+                  // rebuilding it.
+                  return Column(
+                    key: ValueKey('tx-${t.id}'),
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (j == 0 || visible[j - 1].occurredOn != t.occurredOn)
+                        _DayHeader(label: _dayHeader(t.occurredOn, _today)),
+                      tile,
+                    ],
+                  );
+                },
               ),
             ),
     );
@@ -796,12 +928,19 @@ class _FilterSheetState extends State<_FilterSheet> {
   late final _max = TextEditingController(
     text: widget.initial.maxAmount?.toString() ?? '',
   );
+
+  /// Exact-payee input — the same field the reports payee drill-in
+  /// filters on. The unnamed bucket ('' payee) projects as a blank
+  /// field: applying blank clears the filter, which matches what the
+  /// chip row's X does for a drilled-in bucket.
+  late final _payee = TextEditingController(text: widget.initial.payee ?? '');
   String? _amountError;
 
   @override
   void dispose() {
     _min.dispose();
     _max.dispose();
+    _payee.dispose();
     super.dispose();
   }
 
@@ -860,6 +999,8 @@ class _FilterSheetState extends State<_FilterSheet> {
     }
     var q = _q.copyWith(clearAmounts: true);
     if (lo != null || hi != null) q = q.copyWith(minAmount: lo, maxAmount: hi);
+    final payee = _payee.text.trim();
+    q = payee.isEmpty ? q.copyWith(clearPayee: true) : q.copyWith(payee: payee);
     Navigator.pop(context, q);
   }
 
@@ -867,6 +1008,7 @@ class _FilterSheetState extends State<_FilterSheet> {
     _q = TransactionQuery(text: _q.text);
     _min.clear();
     _max.clear();
+    _payee.clear();
     _amountError = null;
   });
 
@@ -936,6 +1078,13 @@ class _FilterSheetState extends State<_FilterSheet> {
                         ),
                       ),
               ),
+            TextField(
+              controller: _payee,
+              decoration: const InputDecoration(
+                labelText: 'Người nhận',
+                hintText: 'vd. Grab, Quán A',
+              ),
+            ),
             ListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Khoảng ngày'),
@@ -1082,17 +1231,26 @@ class _FadeInTile extends StatelessWidget {
   }
 }
 
+/// Cap so a large text scale shrinks the amount instead of overflowing.
+const _trailingMaxWidth = 132.0;
+
 class _TxTile extends StatelessWidget {
   const _TxTile({
     required this.tx,
     required this.onLongPress,
     this.onTap,
+    this.onDelete,
     this.selecting = false,
     this.selected = false,
   });
   final Transaction tx;
-  final VoidCallback onLongPress;
+  final VoidCallback? onLongPress;
   final VoidCallback? onTap;
+
+  /// Visible delete affordance — the web row's delete button. Long-press
+  /// stays as the shortcut, but a gesture nobody can see is a feature
+  /// nobody finds.
+  final VoidCallback? onDelete;
   final bool selecting;
   final bool selected;
 
@@ -1103,36 +1261,196 @@ class _TxTile extends StatelessWidget {
       TransactionKind.expense => MoneySignKind.expense,
       TransactionKind.transfer => MoneySignKind.transfer,
     };
+    // Same semantic money tokens as the dashboard tile — one source of
+    // truth for income/expense/transfer color across money lists.
+    final mf = context.mf;
     final color = switch (tx.kind) {
-      TransactionKind.income => Colors.green.shade700,
-      TransactionKind.expense => Colors.red.shade700,
-      TransactionKind.transfer => Colors.blueGrey.shade700,
+      TransactionKind.income => mf.incomeText,
+      TransactionKind.expense => mf.expenseText,
+      TransactionKind.transfer => mf.transferText,
     };
     final accountLine = tx.destinationAccount == null
         ? tx.account
         : '${tx.account} → ${tx.destinationAccount}';
     final needsReview = tx.reviewStatus == TransactionReviewStatus.needsReview;
 
+    final kindWord = switch (tx.kind) {
+      TransactionKind.income => 'Thu',
+      TransactionKind.expense => 'Chi',
+      TransactionKind.transfer => 'Chuyển',
+    };
+    final label = [
+      '$kindWord ${formatMoney(tx.amount)}',
+      tx.category,
+      accountLine,
+      _dayLabel(tx.occurredOn),
+      if (needsReview) 'cần xem lại',
+      if (tx.isRefund) 'hoàn tiền',
+    ].join(', ');
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      color: selected ? Theme.of(context).colorScheme.primaryContainer : null,
-      child: ListTile(
-        leading: selecting
-            ? Icon(selected ? Icons.check_circle : Icons.circle_outlined)
-            : null,
-        title: Text(tx.note.isEmpty ? tx.category : tx.note),
-        subtitle: Text(
-          '${tx.category} · $accountLine · ${tx.occurredOn}'
-          '${needsReview ? '\nCần xem lại' : ''}',
-        ),
-        isThreeLine: needsReview,
-        trailing: Text(
-          formatMoneyWithKind(tx.amount, kind),
-          style: TextStyle(color: color, fontWeight: FontWeight.w600),
-        ),
-        onTap: onTap,
-        onLongPress: onLongPress,
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        children: [
+          Expanded(
+            child: Semantics(
+              container: true,
+              button: true,
+              label: label,
+              selected: selecting ? selected : null,
+              onTap: onTap,
+              onLongPress: onLongPress,
+              excludeSemantics: true,
+              child: Container(
+                color: selected
+                    ? Theme.of(context).colorScheme.primaryContainer
+                    : null,
+                child: ListTile(
+                  leading: selecting
+                      ? Icon(
+                          selected ? Icons.check_circle : Icons.circle_outlined,
+                        )
+                      : MfKindIcon(tx.kind.name),
+                  title: Text(tx.note.isEmpty ? tx.category : tx.note),
+                  subtitle: Text(
+                    '${tx.category} · $accountLine'
+                    '${needsReview ? '\nCần xem lại' : ''}'
+                    // D15 ledger-side label: the row is money-in but
+                    // nets the expense category it reimburses — the
+                    // ledger shows it, honestly named.
+                    '${tx.isRefund ? '\nHoàn tiền' : ''}'
+                    // D13 ledger-side disclosure: the row stays here
+                    // (money really moved) but tells you reports skip it.
+                    '${tx.excludedFromReports ? '\nĐã loại khỏi báo cáo' : ''}',
+                  ),
+                  isThreeLine:
+                      needsReview || tx.excludedFromReports || tx.isRefund,
+                  trailing: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: _trailingMaxWidth,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            formatMoneyWithKind(tx.amount, kind),
+                            maxLines: 1,
+                            style: mfMoneyStyle(
+                              TextStyle(
+                                color: color,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _dayLabel(tx.occurredOn),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(color: context.mf.textSoft),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // The amount column shrinks under the 48dp padding so the
+                  // delete icon keeps its own strip at the card edge.
+                  contentPadding: const EdgeInsets.only(left: 16, right: 4),
+                  onTap: onTap,
+                  onLongPress: onLongPress,
+                ),
+              ),
+            ),
+          ),
+          // Sibling of the merged Semantics — TalkBack reaches the button;
+          // it would be invisible inside an excludeSemantics subtree.
+          if (onDelete != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: IconButton(
+                icon: Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                tooltip: 'Xóa giao dịch',
+                visualDensity: VisualDensity.compact,
+                onPressed: onDelete,
+              ),
+            ),
+        ],
       ),
     );
   }
+}
+
+/// Reveal under a needs-review row swiped right — the check icon and
+/// "Đã xem" words carry the action so the color never works alone.
+class _SwipeReviewBackground extends StatelessWidget {
+  const _SwipeReviewBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.only(left: 20),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.done, color: scheme.onPrimaryContainer),
+          const SizedBox(width: 6),
+          Text(
+            'Đã xem',
+            style: TextStyle(
+              color: scheme.onPrimaryContainer,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DayHeader extends StatelessWidget {
+  const _DayHeader({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 8, bottom: 8),
+    child: Semantics(
+      header: true,
+      child: Text(label, style: Theme.of(context).textTheme.titleSmall),
+    ),
+  );
+}
+
+/// "Hôm nay" / "Hôm qua" / dd/MM/yyyy for a feed day header.
+String _dayHeader(String occurredOn, String today) {
+  if (occurredOn == today) return 'Hôm nay';
+  final t = DateTime.tryParse(today), d = DateTime.tryParse(occurredOn);
+  if (t != null && d != null && t.difference(d).inDays == 1) return 'Hôm qua';
+  return _dayLabel(occurredOn);
+}
+
+/// 'yyyy-MM-dd' → 'dd/MM/yyyy' (the reference's date format). An
+/// unexpected shape is shown as stored rather than guessed at.
+String _dayLabel(String isoDay) {
+  final p = isoDay.split('-');
+  return p.length == 3 ? '${p[2]}/${p[1]}/${p[0]}' : isoDay;
 }

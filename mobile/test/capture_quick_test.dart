@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/data/demo_store.dart';
 import 'package:moneyflow/domain/models.dart';
+import 'package:moneyflow/domain/report.dart' show vnNow;
 import 'package:moneyflow/features/capture/capture_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -45,7 +46,7 @@ void main() {
 
     // Suggestion line shows the understood parse before any save.
     expect(find.textContaining('Chi'), findsWidgets);
-    expect(find.textContaining('45.000 ₫'), findsOneWidget);
+    expect(find.text('→ Chi · 45.000 ₫ · Ăn uống'), findsOneWidget);
     expect(find.textContaining('Ăn uống'), findsWidgets);
 
     // The real fields carry the prefill — still editable.
@@ -65,7 +66,7 @@ void main() {
     await _type(t, 'luong 15tr');
 
     expect(find.textContaining('Thu'), findsWidgets);
-    expect(find.textContaining('15.000.000 ₫'), findsOneWidget);
+    expect(find.text('→ Thu · 15.000.000 ₫ · Lương'), findsOneWidget);
     final seg = t.widget<SegmentedButton<TransactionKind>>(
       find.byType(SegmentedButton<TransactionKind>),
     );
@@ -98,18 +99,21 @@ void main() {
     // Manual edit wins — the new parse only updates untouched fields.
     expect(find.widgetWithText(TextField, '99999'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'an toi'), findsOneWidget);
-    expect(find.textContaining('50.000 ₫'), findsOneWidget);
+    expect(find.text('→ Chi · 50.000 ₫ · Ăn uống'), findsOneWidget);
   });
 
   testWidgets('"hom qua" moves the date to yesterday', (t) async {
     await _open(t);
     await _type(t, 'an trua 45k hom qua');
 
-    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    // The app parses on the Saigon civil clock — mirror it, or the
+    // expectation drifts a day whenever device zone ≠ +07 (e.g. UTC CI
+    // in the 17:00–24:00 window).
+    final yesterday = vnNow().subtract(const Duration(days: 1));
     final expected =
-        'Ngày: ${yesterday.year}-'
-        '${yesterday.month.toString().padLeft(2, '0')}-'
-        '${yesterday.day.toString().padLeft(2, '0')}';
+        'Ngày: ${yesterday.day.toString().padLeft(2, '0')}/'
+        '${yesterday.month.toString().padLeft(2, '0')}/'
+        '${yesterday.year}';
     expect(find.textContaining('hôm qua'), findsWidgets);
     await t.scrollUntilVisible(
       find.text(expected),

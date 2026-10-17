@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../features/capture/capture_page.dart' show CaptureResult;
+import '../theme/mf_theme.dart';
 
 /// Bottom-navigation shell — the reference-app layout: Tổng quan /
 /// Hoạt động / [Ghi] / Kế hoạch / Báo cáo, with the center destination
@@ -33,13 +34,32 @@ class HomeShell extends StatefulWidget {
   final VoidCallback onCaptureSaved;
 
   @override
-  State<HomeShell> createState() => _HomeShellState();
+  State<HomeShell> createState() => HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
+/// Tab index of the Kế hoạch destination — the dashboard's "Mở Kế
+/// hoạch" nudge targets it by name, not by a bare 2.
+const homeShellPlanningTab = 2;
+
+/// Tab index the month-summary card's "Xem báo cáo tháng" selects.
+const homeShellReportsTab = 3;
+
+class HomeShellState extends State<HomeShell> {
   int _tab = 0;
   final _built = List<Widget?>.filled(4, null);
   final _visited = <int>{0};
+
+  /// Switch tabs programmatically — the dashboard remainder card's
+  /// "Mở Kế hoạch" nudge uses it so the pointer is a real destination,
+  /// not a dead affordance. Out-of-range indexes are ignored.
+  void selectTab(int index) {
+    if (index < 0 || index >= widget.tabBuilders.length) return;
+    if (index == _tab) return;
+    setState(() {
+      _tab = index;
+      _visited.add(index);
+    });
+  }
 
   Future<void> _capture() async {
     final result = await widget.onCaptureTap(context);
@@ -68,60 +88,181 @@ class _HomeShellState extends State<HomeShell> {
           ),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        // Display index: two real tabs, capture action, two real tabs.
-        selectedIndex: _tab >= 2 ? _tab + 1 : _tab,
-        onDestinationSelected: (i) {
-          if (i == 2) {
-            _capture();
-            return;
-          }
-          final tab = i > 2 ? i - 1 : i;
-          setState(() {
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: _FloatingNav(
+          selected: _tab,
+          onSelect: (tab) => setState(() {
             _tab = tab;
             _visited.add(tab);
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Tổng quan',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
-            label: 'Hoạt động',
-          ),
-          NavigationDestination(icon: _CaptureIcon(), label: 'Ghi'),
-          NavigationDestination(
-            icon: Icon(Icons.event_note_outlined),
-            selectedIcon: Icon(Icons.event_note),
-            label: 'Kế hoạch',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.bar_chart_outlined),
-            selectedIcon: Icon(Icons.bar_chart),
-            label: 'Báo cáo',
-          ),
-        ],
+          }),
+          onCapture: _capture,
+        ),
       ),
     );
   }
 }
 
-/// Filled-circle center action — visually the "big middle button" of the
-/// reference apps without breaking NavigationBar layout.
-class _CaptureIcon extends StatelessWidget {
-  const _CaptureIcon();
+class _NavItem {
+  const _NavItem(this.label, this.icon, this.selectedIcon);
+  final String label;
+  final IconData icon;
+  final IconData selectedIcon;
+}
+
+/// Floating pill navigation (Savor/GreenVault reference): a soft dark
+/// capsule inset from the screen edges. All four destinations are
+/// equal-width cells showing icon + label stacked; the active tab is
+/// marked by a neon icon/label and a small dot indicator — never a
+/// solid blob — so neon stays reserved for actions, and equal cell
+/// widths mean a tap can never shift the neighbours. The capture
+/// action is the single filled accent: a rounded neon square.
+class _FloatingNav extends StatelessWidget {
+  const _FloatingNav({
+    required this.selected,
+    required this.onSelect,
+    required this.onCapture,
+  });
+
+  final int selected;
+  final ValueChanged<int> onSelect;
+  final VoidCallback onCapture;
+
+  /// Cell height: icon (20) + label (~14) + dot slot (10) + breathing
+  /// room — tall enough for a real touch target, compact enough to
+  /// stay a bar, not a panel.
+  static const _cellHeight = 56.0;
+
+  static const _items = [
+    _NavItem('Tổng quan', Icons.home_outlined, Icons.home),
+    _NavItem('Hoạt động', Icons.receipt_long_outlined, Icons.receipt_long),
+    _NavItem('Kế hoạch', Icons.event_note_outlined, Icons.event_note),
+    _NavItem('Báo cáo', Icons.bar_chart_outlined, Icons.bar_chart),
+  ];
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return CircleAvatar(
-      radius: 20,
-      backgroundColor: scheme.primary,
-      child: Icon(Icons.add, color: scheme.onPrimary, size: 26),
+    final mf = context.mf;
+    Widget tab(int i) {
+      final item = _items[i];
+      final active = i == selected;
+      final tint = active ? mf.brandText : mf.textSoft;
+      return Expanded(
+        child: Semantics(
+          button: true,
+          selected: active,
+          label: item.label,
+          excludeSemantics: true,
+          child: InkWell(
+            key: ValueKey('nav:${item.label}'),
+            customBorder: const StadiumBorder(),
+            onTap: () => onSelect(i),
+            child: SizedBox(
+              height: _cellHeight,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    active ? item.selectedIcon : item.icon,
+                    size: 20,
+                    color: tint,
+                  ),
+                  const SizedBox(height: 2),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      item.label,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                        color: tint,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  // The dot slot is always laid out — transparent when
+                  // inactive — so a selection change never resizes the
+                  // bar or shifts a neighbour.
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOutCubic,
+                    width: 4,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: active ? scheme.primary : Colors.transparent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: SizedBox(
+        width: double.infinity,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: context.mf.navSurface,
+            borderRadius: BorderRadius.circular(36),
+            border: Border.all(color: mf.borderSubtle),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x14000000),
+                blurRadius: 24,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            // Equal-width cells: the active pill never grows, so tapping
+            // a destination can never shift its neighbours.
+            child: Row(
+              children: [
+                tab(0),
+                const SizedBox(width: 8),
+                tab(1),
+                const SizedBox(width: 8),
+                Semantics(
+                  button: true,
+                  label: 'Ghi',
+                  excludeSemantics: true,
+                  child: InkWell(
+                    key: const ValueKey('nav:Ghi'),
+                    customBorder: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    onTap: onCapture,
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: mf.brand,
+                        // Rounded square like the reference's orange "+".
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      // Dark ink on the neon brand fill — white fails
+                      // contrast on #00FF88.
+                      child: const Icon(Icons.add, color: mfPastelInk),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                tab(2),
+                const SizedBox(width: 8),
+                tab(3),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -32,6 +32,40 @@ DateTime dayOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 DateTime dateAdd(DateTime d, int days) =>
     DateTime(d.year, d.month, d.day + days);
 
+/// Vietnam keeps a fixed UTC+7 offset with no daylight-saving rules, so a
+/// constant duration IS the timezone — no tz database needed.
+const vnUtcOffset = Duration(hours: 7);
+
+/// The Asia/Saigon civil clock at [instant] (default: now). Ledger-facing
+/// dates — `occurred_on`, `p_month_start`, `p_paid_on`, report windows —
+/// anchor on this calendar no matter which zone the device reports: a
+/// phone set to New York still writes the Vietnamese day the bank SMS
+/// meant. The returned value's `year`/`month`/`day` fields carry the VN
+/// civil date, so feed it to [ymd], [dayOnly], [MonthPeriod.of] or any
+/// helper that reads calendar fields. It is a shifted instant, NOT a
+/// wall clock — never persist it, only the calendar fields.
+DateTime vnNow([DateTime? instant]) =>
+    (instant ?? DateTime.now()).toUtc().add(vnUtcOffset);
+
+/// VN civil "today" as YYYY-MM-DD — the single "hôm nay" rule shared by
+/// capture defaults, planning RPCs, parsers and report windows.
+String vnToday([DateTime? instant]) => ymd(vnNow(instant));
+
+/// First of the VN civil month containing [instant] (default: now) —
+/// the `p_month_start` window boundary the planning RPCs expect.
+String vnMonthStart([DateTime? instant]) {
+  final d = vnNow(instant);
+  return '${d.year}-${_two(d.month)}-01';
+}
+
+/// Monday of the VN civil week containing [instant] (default: now) —
+/// the weekly-budget anchor (D12). Vietnam's civil week starts on
+/// Monday, the same convention the commitment month grid renders.
+String vnWeekStart([DateTime? instant]) {
+  final d = vnNow(instant);
+  return ymd(dateAdd(dayOnly(d), 1 - d.weekday));
+}
+
 /// Whole days from [from] to [to]; UTC fields keep DST out of the count.
 int daysBetween(DateTime from, DateTime to) => DateTime.utc(
   to.year,
@@ -158,6 +192,7 @@ class CategoryShare {
     required this.amount,
     required this.share,
     this.id,
+    this.count,
   });
 
   final String name;
@@ -171,6 +206,11 @@ class CategoryShare {
   /// key (a feed row that carried no id), so a section can disable
   /// drill-in instead of filtering on a guess.
   final String? id;
+
+  /// Transactions behind the row — only the payee section counts them
+  /// today (a ranking reads as "N khoản · tổng X"), so other sections
+  /// leave it null rather than render a number nobody asked for.
+  final int? count;
 }
 
 /// Totals for a bounded period: income, expense, net, savings rate and the
@@ -186,6 +226,9 @@ class PeriodReport {
     required this.incomeCategories,
     required this.payees,
     required this.accounts,
+    this.excludedCount = 0,
+    this.excludedExpense = 0,
+    this.excludedIncome = 0,
   });
 
   final int income;
@@ -208,6 +251,14 @@ class PeriodReport {
   /// transfers are excluded by kind, since moving money between the user's
   /// own accounts is not spending.
   final List<CategoryShare> accounts;
+
+  /// Rows the user flagged "Loại khỏi báo cáo" (D13): count and the
+  /// expense/income đồng they carried, so the page can disclose "N
+  /// khoản · X ₫ đã loại" instead of silently shrinking the totals.
+  /// Zero when nothing was excluded.
+  final int excludedCount;
+  final int excludedExpense;
+  final int excludedIncome;
 }
 
 /// Sorted largest-first share rows; [denominator] is the section's total
@@ -215,11 +266,13 @@ class PeriodReport {
 /// unlike the web's — would otherwise leave arbitrary. [names] carries
 /// each key's display label and [ids] the drill-in key behind it — null
 /// there marks a row grouped by name only, which no filter can rebuild.
+/// [counts] is optional per-bucket transaction counts (the payee ranking).
 List<CategoryShare> _shares(
   Map<String, int> totals,
   int denominator, {
   required Map<String, String> names,
   required Map<String, String?> ids,
+  Map<String, int> counts = const {},
 }) =>
     [
       for (final e in totals.entries)
@@ -228,6 +281,7 @@ List<CategoryShare> _shares(
           amount: e.value,
           share: denominator == 0 ? 0 : (e.value / denominator * 100).round(),
           id: ids[e.key],
+          count: counts[e.key],
         ),
     ]..sort((a, b) {
       final byAmount = b.amount.compareTo(a.amount);
@@ -256,6 +310,10 @@ PeriodReport buildPeriodReport(List<Transaction> items) {
   final payeeTotals = <String, int>{};
   final payeeNames = <String, String>{};
   final payeeIds = <String, String?>{};
+  final payeeCounts = <String, int>{};
+  // Flagged-out rows still get tallied for the disclosure line — hiding
+  // that they exist would make the totals look unexplained.
+  var excludedCount = 0, excludedExpense = 0, excludedIncome = 0;
 
   void bump(
     Map<String, int> totals,
@@ -272,17 +330,60 @@ PeriodReport buildPeriodReport(List<Transaction> items) {
   }
 
   for (final item in items) {
+    if (item.excludedFromReports) {
+      excludedCount++;
+      if (item.kind == TransactionKind.income) {
+        excludedIncome += item.amount;
+      } else if (item.kind == TransactionKind.expense) {
+        excludedExpense += item.amount;
+      }
+      continue;
+    }
     if (item.kind == TransactionKind.income) {
-      income += item.amount;
-      if (item.category.isNotEmpty) {
-        bump(
-          incomeCategoryTotals,
-          incomeCategoryNames,
-          incomeCategoryIds,
-          item.categoryId,
-          item.category,
-          item.amount,
-        );
+      if (item.isRefund) {
+        // Hoàn tiền (D15): money back against an EXPENSE category — the
+        // row nets the spend it reimburses and never counts as Thu.
+        // Every expense-side section nets too so they still sum to the
+        // period's spending; payeeCounts counts it because the row is a
+        // real transaction at that payee.
+        expense -= item.amount;
+        if (item.category.isNotEmpty) {
+          bump(
+            categoryTotals,
+            categoryNames,
+            categoryIds,
+            item.categoryId,
+            item.category,
+            -item.amount,
+          );
+        }
+        final payee = (item.payee ?? '').trim();
+        payeeTotals[payee] = (payeeTotals[payee] ?? 0) - item.amount;
+        payeeNames[payee] ??= payee.isEmpty ? unnamedPayeeBucket : payee;
+        payeeIds[payee] ??= payee;
+        payeeCounts[payee] = (payeeCounts[payee] ?? 0) + 1;
+        if (item.account.isNotEmpty) {
+          bump(
+            accountTotals,
+            accountNames,
+            accountIds,
+            item.accountId,
+            item.account,
+            -item.amount,
+          );
+        }
+      } else {
+        income += item.amount;
+        if (item.category.isNotEmpty) {
+          bump(
+            incomeCategoryTotals,
+            incomeCategoryNames,
+            incomeCategoryIds,
+            item.categoryId,
+            item.category,
+            item.amount,
+          );
+        }
       }
     } else if (item.kind == TransactionKind.expense) {
       expense += item.amount;
@@ -302,6 +403,7 @@ PeriodReport buildPeriodReport(List<Transaction> items) {
       payeeTotals[payee] = (payeeTotals[payee] ?? 0) + item.amount;
       payeeNames[payee] ??= payee.isEmpty ? unnamedPayeeBucket : payee;
       payeeIds[payee] ??= payee;
+      payeeCounts[payee] = (payeeCounts[payee] ?? 0) + 1;
       if (item.account.isNotEmpty) {
         bump(
           accountTotals,
@@ -319,7 +421,10 @@ PeriodReport buildPeriodReport(List<Transaction> items) {
     income: income,
     expense: expense,
     net: net,
-    transactionCount: items.length,
+    transactionCount: items.length - excludedCount,
+    excludedCount: excludedCount,
+    excludedExpense: excludedExpense,
+    excludedIncome: excludedIncome,
     savingsRatePercent: income == 0 ? null : ((net / income) * 100).round(),
     categories: _shares(
       categoryTotals,
@@ -333,7 +438,13 @@ PeriodReport buildPeriodReport(List<Transaction> items) {
       names: incomeCategoryNames,
       ids: incomeCategoryIds,
     ),
-    payees: _shares(payeeTotals, expense, names: payeeNames, ids: payeeIds),
+    payees: _shares(
+      payeeTotals,
+      expense,
+      names: payeeNames,
+      ids: payeeIds,
+      counts: payeeCounts,
+    ),
     accounts: _shares(
       accountTotals,
       expense,
@@ -342,3 +453,100 @@ PeriodReport buildPeriodReport(List<Transaction> items) {
     ),
   );
 }
+
+/// The bucket an expense lands in for the category breakdown — the
+/// stored category_id when the feed row carried one, else its display
+/// name under the same 'name:' guard `buildPeriodReport` groups on, so
+/// a delta key always names the same bucket its row summed.
+String _expenseBucketKey(Transaction t) =>
+    t.categoryId.isEmpty ? 'name:${t.category}' : t.categoryId;
+
+/// Expense totals per category bucket for [items], plus the display
+/// label and drill-in id each bucket carries. Transfers and income
+/// never contribute — the "Chi theo danh mục" section counts expense
+/// rows only, and only ones carrying a category label (uncategorised
+/// spend joins no bucket, exactly like the breakdown).
+Map<String, ({int total, String name, String? id})> _expenseBuckets(
+  List<Transaction> items,
+) {
+  final buckets = <String, ({int total, String name, String? id})>{};
+  for (final t in items) {
+    // Refund income nets the expense bucket it reimburses (D15) —
+    // the delta map must see the same netted totals the breakdown shows.
+    final netsCategory = t.kind == TransactionKind.income && t.isRefund;
+    if (t.kind != TransactionKind.expense && !netsCategory) continue;
+    if (t.category.isEmpty) continue;
+    final key = _expenseBucketKey(t);
+    final b = buckets[key];
+    buckets[key] = (
+      total: (b?.total ?? 0) + (netsCategory ? -t.amount : t.amount),
+      // First row wins the label/id — the same '??=' rule the
+      // breakdown's bump() applies, so they can never disagree.
+      name: b?.name ?? t.category,
+      id: b?.id ?? (t.categoryId.isEmpty ? null : t.categoryId),
+    );
+  }
+  return buckets;
+}
+
+/// One expense category's change against the prior window, in integer
+/// đồng. [previous] is null when the bucket had no expense in the prior
+/// window — an honest "mới", never a baseline of 0 posing as data.
+/// [name]/[id] are carried so a bucket that exists only in the prior
+/// window can still render its honest zero-current row.
+class CategoryDelta {
+  const CategoryDelta({
+    required this.name,
+    this.id,
+    required this.current,
+    this.previous,
+  });
+
+  /// The bucket's display label — first row wins, like the breakdown.
+  final String name;
+
+  /// Drill-in key — the stored category_id, or null when the bucket
+  /// grouped on its name (no filter can rebuild a name-only row).
+  final String? id;
+
+  /// Expense total in the viewed window (0 for a bucket that only
+  /// existed in the prior one).
+  final int current;
+
+  /// Expense total in the window immediately before, or null when the
+  /// category recorded no prior expense at all.
+  final int? previous;
+
+  /// Signed change vs the prior window; a missing baseline counts as
+  /// zero spend then, so a new 500k row rose by 500k. Callers that show
+  /// "mới" for a null [previous] never read this as a real arrow.
+  int get change => current - (previous ?? 0);
+}
+
+/// Month-over-month deltas for the expense-category section, keyed by
+/// the same bucket the report groups on — [categoryDeltaKey] maps a
+/// rendered row to its entry. The map covers BOTH windows, so a
+/// category that fell to zero this period still reports its honest
+/// negative change; the caller renders those prior-only buckets as
+/// zero rows rather than letting the comparison silently drop them.
+Map<String, CategoryDelta> expenseCategoryDeltas({
+  required List<Transaction> current,
+  required List<Transaction> previous,
+}) {
+  final cur = _expenseBuckets(current);
+  final prev = _expenseBuckets(previous);
+  return {
+    for (final key in {...cur.keys, ...prev.keys})
+      key: CategoryDelta(
+        name: (cur[key] ?? prev[key])!.name,
+        id: (cur[key] ?? prev[key])!.id,
+        current: cur[key]?.total ?? 0,
+        previous: prev[key]?.total,
+      ),
+  };
+}
+
+/// The delta-map key a breakdown row answers to — its stored id, or the
+/// 'name:' bucket guard when the feed row carried no category_id (the
+/// same rule the delta map's keys were built with).
+String categoryDeltaKey(CategoryShare row) => row.id ?? 'name:${row.name}';

@@ -8,6 +8,7 @@
 
 import '../../domain/inbox.dart';
 import '../../domain/models.dart';
+import '../../domain/report.dart' show vnToday;
 import 'share_text_parser.dart';
 
 /// JS safe-integer ceiling — same bound the web schema enforces on
@@ -128,8 +129,11 @@ class _Amount {
   final bool hasMoneyMarker;
 }
 
-int? _safeInt(int value) =>
-    (value > 0 && value <= _maxSafeAmount) ? value : null;
+/// Null on a failed parse (int.tryParse returns null past int64 — a
+/// 20+-digit run is an account tail or reference, never a VND amount),
+/// a non-positive value or anything above the JS safe-integer ceiling.
+int? _safeInt(int? value) =>
+    (value != null && value > 0 && value <= _maxSafeAmount) ? value : null;
 
 double? _parseDecimalLoose(String value) {
   if (_looseDecimal.hasMatch(value)) {
@@ -158,10 +162,13 @@ int? _parseVndAmountToken(String rawNumber, String? unit) {
     return _safeInt((base * 1000000).round());
   }
   if (_groupedNumber.hasMatch(cleaned)) {
-    return _safeInt(int.parse(cleaned.replaceAll(RegExp(r'[.,]'), '')));
+    return _safeInt(int.tryParse(cleaned.replaceAll(RegExp(r'[.,]'), '')));
   }
   if (_plainDigits.hasMatch(cleaned)) {
-    return _safeInt(int.parse(cleaned));
+    // tryParse — the regex allows unbounded runs and int.parse throws on
+    // a 20+-digit string; the overflow token falls to null like every
+    // other non-match instead of crashing the parse.
+    return _safeInt(int.tryParse(cleaned));
   }
   return null;
 }
@@ -389,7 +396,7 @@ String _confidence(Set<String> uncertain, String? dateIssue, bool kindFlag) {
 InboxPasteDraft? parseInboxPasteLine(String line, {String? today}) {
   final trimmed = line.trim();
   if (trimmed.isEmpty) return null;
-  final anchor = today ?? _todayVietnam();
+  final anchor = today ?? vnToday();
 
   final selected = _selectPrimaryAmount(_extractAmounts(trimmed), trimmed);
   if (selected == null) return null;
@@ -467,10 +474,6 @@ List<InboxPasteDraft> parseInboxPasteText(String text, {String? today}) {
   return drafts;
 }
 
-/// Vietnam-today anchor (UTC+7, no DST) — the same "today" the web parser
-/// uses, so a pasted "hôm nay" resolves identically on device and web.
-String _todayVietnam() {
-  final vn = DateTime.now().toUtc().add(const Duration(hours: 7));
-  String two(int v) => v.toString().padLeft(2, '0');
-  return '${vn.year}-${two(vn.month)}-${two(vn.day)}';
-}
+// "Hôm nay" anchors on the shared VN-today rule (domain/report.dart) —
+// the same calendar the web parser uses, so a pasted "hôm nay" resolves
+// identically on device and web.

@@ -2,11 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../domain/datetime_label.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/reconciliation.dart';
 import '../../domain/register.dart';
 import '../../domain/transaction_query.dart';
+import '../../theme/mf_theme.dart';
+import '../shared/timed_snack_bar.dart';
 
 /// One account's ledger — the mobile counterpart of the web's
 /// /accounts/[id] register (src/components/account-detail-page.tsx).
@@ -32,6 +35,10 @@ class AccountRegisterPage extends StatefulWidget {
     this.loadReconciliation,
     this.onOpenReconciliation,
     this.onAdjustBalance,
+    this.loadReconcileReminder,
+    this.onReconcileReminderChanged,
+    this.loadShowRunningBalance,
+    this.onRunningBalanceVisibleChanged,
   });
 
   /// The account being viewed; [AccountSummary.balance] anchors the
@@ -66,6 +73,25 @@ class AccountRegisterPage extends StatefulWidget {
   /// balance overwrite). Null hides it — demo has no writes.
   final Future<bool> Function()? onAdjustBalance;
 
+  /// Monthly reconcile nudge (D19) — reads this account's stored
+  /// "statement day" (1–31, null = unset). The nudge is a device-local
+  /// opt-in notification, never a ledger write; both seams must be
+  /// wired for the affordance to show (demo keeps it hidden).
+  final Future<int?> Function()? loadReconcileReminder;
+
+  /// Persists a day-of-month (or clears it with null) and re-arms the
+  /// device reminder. The write is device-local prefs + alarm — it
+  /// returns after persisting so the UI can confirm truthfully.
+  final Future<void> Function(int? day)? onReconcileReminderChanged;
+
+  /// Running-balance column toggle (D20) — reads the stored display
+  /// pref. Null keeps the column visible with no toggle affordance.
+  final Future<bool> Function()? loadShowRunningBalance;
+
+  /// Persists the new display choice. The chain is derived either way —
+  /// the pref only gates whether each row renders its "Số dư" line.
+  final Future<void> Function(bool visible)? onRunningBalanceVisibleChanged;
+
   @override
   State<AccountRegisterPage> createState() => _AccountRegisterPageState();
 }
@@ -90,6 +116,18 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
   ReconciliationStateData? _recon;
   bool _reconFailed = false;
 
+  /// The stored statement-day nudge (1–31); null = not set. A failed
+  /// read is `_reminderFailed`, and the save path holds `_reminderBusy`
+  /// so a double tap can't queue two writes.
+  int? _reminderDay;
+  bool _reminderFailed = false;
+  bool _reminderBusy = false;
+
+  /// The D20 running-balance display pref — default-ON so the column
+  /// never flashes away and back while the pref read lands.
+  bool _showRunningBalance = true;
+  bool _balancePrefLoaded = false;
+
   /// Bumped per first-page request so a slow older response can never
   /// overwrite a newer one (same guard as the activity feed).
   int _gen = 0;
@@ -100,6 +138,41 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
     super.initState();
     _scroll.addListener(_onScroll);
     _loadFirst();
+    _loadBalancePref();
+  }
+
+  /// One-shot display-pref read; a failed or absent seam simply keeps
+  /// the column on — the register never loses its running balance to a
+  /// prefs hiccup.
+  Future<void> _loadBalancePref() async {
+    final loader = widget.loadShowRunningBalance;
+    if (loader == null) return;
+    try {
+      final v = await loader();
+      if (!mounted) return;
+      setState(() {
+        _showRunningBalance = v;
+        _balancePrefLoaded = true;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _balancePrefLoaded = true);
+    }
+  }
+
+  /// Display-only flip — the derived chain keeps running underneath;
+  /// this just gates whether each row renders its "Số dư" line.
+  Future<void> _toggleRunningBalance() async {
+    final save = widget.onRunningBalanceVisibleChanged;
+    if (save == null) return;
+    final next = !_showRunningBalance;
+    setState(() => _showRunningBalance = next);
+    try {
+      await save(next);
+    } catch (_) {
+      // A failed pref write can't leave the UI lying — revert to what
+      // the store still holds.
+      if (mounted) setState(() => _showRunningBalance = !next);
+    }
   }
 
   @override
@@ -117,8 +190,10 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
       _loadingMore = false;
       _recon = null;
       _reconFailed = false;
+      _reminderFailed = false;
     });
     unawaited(_loadRecon(gen));
+    unawaited(_loadReminder(gen));
     try {
       final page = await widget.loadPage(_query, offset: 0);
       if (!mounted || gen != _gen) return;
@@ -150,6 +225,74 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
     } catch (_) {
       if (!mounted || gen != _gen) return;
       setState(() => _reconFailed = true);
+    }
+  }
+
+  /// The reminder pref reads beside the strip, never inside it — a bad
+  /// read marks the row "Chưa tải được" instead of faking an unset day.
+  Future<void> _loadReminder(int gen) async {
+    final loader = widget.loadReconcileReminder;
+    if (loader == null) return;
+    try {
+      final day = await loader();
+      if (!mounted || gen != _gen) return;
+      setState(() {
+        _reminderDay = day;
+        _reminderFailed = false;
+      });
+    } catch (_) {
+      if (!mounted || gen != _gen) return;
+      setState(() => _reminderFailed = true);
+    }
+  }
+
+  /// The day picker — preselects the stored day, else the latest
+  /// completed statement's day (the rhythm the user already keeps),
+  /// else the 1st. "Tắt nhắc" clears; the persist runs after the dialog
+  /// so a failed write keeps the previous day visible.
+  Future<void> _editReminder() async {
+    final save = widget.onReconcileReminderChanged;
+    if (save == null || _reminderBusy) return;
+    var suggested = 1;
+    final latest = latestCompletedSession(_recon?.sessions ?? const []);
+    if (latest != null) {
+      suggested =
+          int.tryParse(latest.statementDate.split('-').last) ?? suggested;
+    }
+    final result = await showDialog<({bool clear, int day})>(
+      context: context,
+      builder: (ctx) => _ReconcileReminderDialog(
+        initialDay: _reminderDay ?? suggested,
+        hasReminder: _reminderDay != null,
+      ),
+    );
+    if (result == null || !mounted) return;
+    setState(() => _reminderBusy = true);
+    try {
+      await save(result.clear ? null : result.day);
+      if (!mounted) return;
+      setState(() {
+        _reminderDay = result.clear ? null : result.day;
+        _reminderFailed = false;
+      });
+      showTimedSnackBar(
+        ScaffoldMessenger.of(context),
+        SnackBar(
+          content: Text(
+            result.clear
+                ? 'Đã tắt nhắc đối soát'
+                : 'Đã đặt nhắc đối soát ngày ${result.day} hằng tháng',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      showTimedSnackBar(
+        ScaffoldMessenger.of(context),
+        const SnackBar(content: Text('Không lưu được cài đặt nhắc — thử lại.')),
+      );
+    } finally {
+      if (mounted) setState(() => _reminderBusy = false);
     }
   }
 
@@ -232,7 +375,17 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
       ),
     );
     if (ok == true) {
-      await widget.onDelete!(tx.id);
+      try {
+        await widget.onDelete!(tx.id);
+      } catch (e) {
+        if (mounted) {
+          showTimedSnackBar(
+            ScaffoldMessenger.of(context),
+            SnackBar(content: Text(transactionDeleteErrorMessage(e))),
+          );
+        }
+        return;
+      }
       _refresh();
     }
   }
@@ -248,7 +401,8 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
     // update_money_transaction rejects multi-line splits — say so
     // instead of failing on save (same guard as the activity feed).
     if (t.isSplit) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      showTimedSnackBar(
+        ScaffoldMessenger.of(context),
         const SnackBar(
           content: Text('Khoản chia danh mục chưa sửa được — xóa rồi ghi lại'),
         ),
@@ -274,8 +428,27 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
     final review = t.reviewStatus == TransactionReviewStatus.needsReview
         ? '\nCần xem lại'
         : '';
-    return '$payee$base · ${t.occurredOn}$review';
+    // D15 — the row is money-in but nets an expense category; say so.
+    final refund = t.isRefund ? '\nHoàn tiền' : '';
+    final state = _entryState(t.id);
+    final recon = state == null ? '' : ' · ${entryStateLabel(state)}';
+    return '$payee$base · ${formatYmdAsDmy(t.occurredOn)}$recon$review$refund';
   }
+
+  /// Reconciliation state of a row, from the strip's already-loaded feed —
+  /// null (badge hidden, rows stay editable) until that read lands or when
+  /// the contract is unavailable.
+  EntryReconciliationState? _entryState(String transactionId) {
+    final data = _recon;
+    if (data == null || !data.featureAvailable) return null;
+    for (final r in data.rows) {
+      if (r.transactionId == transactionId) return r.state;
+    }
+    return null;
+  }
+
+  bool _isReconciled(String transactionId) =>
+      _entryState(transactionId) == EntryReconciliationState.reconciled;
 
   Widget _header() {
     final a = _account;
@@ -305,7 +478,7 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
                           if (a.isArchived) ...[
                             const SizedBox(width: 8),
                             const Chip(
-                              label: Text('Đã lưu trữ'),
+                              label: Text('Đã đóng'),
                               visualDensity: VisualDensity.compact,
                             ),
                           ],
@@ -360,18 +533,63 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
     } else {
       label = _recon == null ? null : reconciliationStatusLabel(_recon!);
     }
+    // The D19 nudge row sits inside the same card — it reads the same
+    // reconcile rhythm the strip reports. It needs BOTH seams: without
+    // a reader the row can't state the truth, without a writer tapping
+    // would lie. Demo wires neither, so the row never dead-renders.
+    final reminderWired =
+        widget.loadReconcileReminder != null &&
+        widget.onReconcileReminderChanged != null;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: const Icon(Icons.fact_check_outlined),
-        title: Text(label ?? 'Đang tải trạng thái đối soát...'),
-        trailing: widget.onOpenReconciliation == null
-            ? null
-            : TextButton(
-                onPressed: _openReconciliation,
-                child: const Text('Đối soát'),
+      child: Column(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.fact_check_outlined),
+            title: Text(label ?? 'Đang tải trạng thái đối soát...'),
+            trailing: widget.onOpenReconciliation == null
+                ? null
+                : TextButton(
+                    onPressed: _openReconciliation,
+                    child: const Text('Đối soát'),
+                  ),
+            onTap: widget.onOpenReconciliation == null
+                ? null
+                : _openReconciliation,
+          ),
+          if (reminderWired) ...[
+            const Divider(height: 1),
+            ListTile(
+              dense: true,
+              leading: Icon(
+                _reminderDay == null
+                    ? Icons.notifications_none
+                    : Icons.notifications_active_outlined,
               ),
-        onTap: widget.onOpenReconciliation == null ? null : _openReconciliation,
+              title: Text(
+                _reminderDay == null
+                    ? 'Nhắc đối soát hằng tháng'
+                    : 'Nhắc đối soát — ngày $_reminderDay hằng tháng',
+              ),
+              // The statement-day copy must say what the alarm actually
+              // does: a 29–31 pick clamps to the month's real last day
+              // (same rule as commitment dues).
+              subtitle: _reminderFailed
+                  ? const Text('Chưa tải được cài đặt nhắc')
+                  : _reminderDay != null && _reminderDay! > 28
+                  ? const Text('Tháng thiếu ngày sẽ nhắc vào ngày cuối tháng')
+                  : null,
+              trailing: _reminderBusy
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.chevron_right),
+              onTap: _reminderBusy ? null : _editReminder,
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -381,37 +599,71 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
     // Web signed-mode tone: + green, − red; the subtitle's "Nhận
     // từ/Chuyển đến" wording (not color) is what marks a transfer.
     final color = e.impact > 0
-        ? Colors.green.shade700
+        ? context.mf.incomeText
         : e.impact < 0
-        ? Colors.red.shade700
+        ? context.mf.expenseText
         : null;
+    final locked = _isReconciled(tx.id);
+    final canDelete = widget.onDelete != null && !locked;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Icon(
-          tx.kind == TransactionKind.transfer
-              ? Icons.swap_horiz
-              : Icons.receipt_outlined,
-        ),
-        title: Text(tx.note.isEmpty ? tx.category : tx.note),
-        subtitle: Text(_subtitle(e)),
-        isThreeLine: tx.reviewStatus == TransactionReviewStatus.needsReview,
-        trailing: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              formatSignedMoney(e.impact),
-              style: TextStyle(color: color, fontWeight: FontWeight.w600),
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        children: [
+          Expanded(
+            child: ListTile(
+              leading: Icon(
+                tx.kind == TransactionKind.transfer
+                    ? Icons.swap_horiz
+                    : Icons.receipt_outlined,
+              ),
+              title: Text(tx.note.isEmpty ? tx.category : tx.note),
+              subtitle: Text(_subtitle(e)),
+              isThreeLine:
+                  tx.reviewStatus == TransactionReviewStatus.needsReview,
+              trailing: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    formatSignedMoney(e.impact),
+                    style: TextStyle(color: color, fontWeight: FontWeight.w600),
+                  ),
+                  // D20 — the per-row running balance is a display pref;
+                  // the chain still derives, the line just hides.
+                  if (_showRunningBalance)
+                    Text(
+                      'Số dư ${formatMoney(e.balanceAfter)}',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                ],
+              ),
+              contentPadding: const EdgeInsets.only(left: 16, right: 4),
+              // The server rejects edits/deletes of reconciled rows, so
+              // lock them.
+              onTap: widget.onEdit == null || locked
+                  ? null
+                  : () => _openEdit(tx),
+              onLongPress: canDelete ? () => _confirmDelete(tx) : null,
             ),
-            Text(
-              'Số dư ${formatMoney(e.balanceAfter)}',
-              style: Theme.of(context).textTheme.bodySmall,
+          ),
+          // Visible affordance — the web register row has a delete button
+          // too; long-press alone was unfindable.
+          if (canDelete)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: IconButton(
+                icon: Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                tooltip: 'Xóa giao dịch',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => _confirmDelete(tx),
+              ),
             ),
-          ],
-        ),
-        onTap: widget.onEdit == null ? null : () => _openEdit(tx),
-        onLongPress: widget.onDelete == null ? null : () => _confirmDelete(tx),
+        ],
       ),
     );
   }
@@ -448,7 +700,25 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
             newestFirst: rows,
           );
     return Scaffold(
-      appBar: AppBar(title: Text('Sổ ${_account.name}')),
+      appBar: AppBar(
+        title: Text('Sổ ${_account.name}'),
+        actions: [
+          // D20 running-balance toggle — only once the pref has actually
+          // landed (and only when a writer seam exists), so the icon
+          // never advertises a state the store can't confirm.
+          if (widget.onRunningBalanceVisibleChanged != null &&
+              _balancePrefLoaded)
+            IconButton(
+              icon: Icon(
+                _showRunningBalance
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+              ),
+              tooltip: _showRunningBalance ? 'Ẩn số dư' : 'Hiện số dư',
+              onPressed: _toggleRunningBalance,
+            ),
+        ],
+      ),
       body: _error != null
           ? Center(
               child: Column(
@@ -489,6 +759,80 @@ class _AccountRegisterPageState extends State<AccountRegisterPage> {
                 ],
               ),
             ),
+    );
+  }
+}
+
+/// The statement-day picker for the D19 reconcile nudge — a plain
+/// day-of-month choice with an honest end-of-month note for 29–31.
+/// Returns `({clear: true, ...})` from "Tắt nhắc", a picked day from
+/// "Lưu", or null on cancel.
+class _ReconcileReminderDialog extends StatefulWidget {
+  const _ReconcileReminderDialog({
+    required this.initialDay,
+    required this.hasReminder,
+  });
+
+  final int initialDay;
+
+  /// Whether a reminder is currently armed — "Tắt nhắc" only makes
+  /// sense as a disable for an existing one.
+  final bool hasReminder;
+
+  @override
+  State<_ReconcileReminderDialog> createState() =>
+      _ReconcileReminderDialogState();
+}
+
+class _ReconcileReminderDialogState extends State<_ReconcileReminderDialog> {
+  late int _day = widget.initialDay;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Nhắc đối soát hằng tháng'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'MoneyFlow nhắc vào sáng ngày sao kê để bạn đối chiếu số dư.',
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<int>(
+            initialValue: _day,
+            decoration: const InputDecoration(labelText: 'Ngày sao kê'),
+            items: [
+              for (var d = 1; d <= 31; d++)
+                DropdownMenuItem(value: d, child: Text('Ngày $d')),
+            ],
+            onChanged: (v) => setState(() => _day = v ?? _day),
+          ),
+          if (_day > 28) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Tháng không có ngày $_day sẽ nhắc vào ngày cuối tháng.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        if (widget.hasReminder)
+          TextButton(
+            onPressed: () =>
+                Navigator.of(context).pop((clear: true, day: _day)),
+            child: const Text('Tắt nhắc'),
+          ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Hủy'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop((clear: false, day: _day)),
+          child: const Text('Lưu'),
+        ),
+      ],
     );
   }
 }

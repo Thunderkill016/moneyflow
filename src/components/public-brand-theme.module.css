@@ -3,37 +3,39 @@
   /* Public entry surfaces are intentionally light-only. These local semantic
      roles prevent a saved workspace dark preference leaking into marketing,
      authentication or privacy pages during client-side navigation. */
-  --mf-canvas: #f8fafc;
+  --mf-canvas: #f8f5ff;
   --mf-surface: #ffffff;
-  --mf-surface-muted: #f8fafc;
-  --mf-surface-strong: #f2f4f7;
-  --mf-text: #101828;
-  --mf-text-muted: #475467;
-  --mf-text-soft: #667085;
-  --mf-border: #d0d5dd;
-  --mf-border-strong: #98a2b3;
-  --mf-brand-50: #f0f9ff;
-  --mf-brand-100: #e0f2fe;
-  --mf-brand-500: #0ea5e9;
-  --mf-brand-700: #0369a1;
-  --mf-brand-800: #075985;
-  --mf-brand-900: #0c4a6e;
-  --mf-brand-identity: #0ea5e9;
-  --mf-brand: #0369a1;
-  --mf-brand-hover: #075985;
-  --mf-brand-pressed: #0c4a6e;
-  --mf-brand-subtle: #f0f9ff;
-  --mf-brand-text: #0369a1;
+  --mf-surface-muted: #f1ecff;
+  --mf-surface-strong: #e9e3f8;
+  --mf-text: #211a33;
+  --mf-text-muted: #524a6b;
+  --mf-text-soft: #6f6787;
+  --mf-border: #dcd5ee;
+  --mf-border-strong: #8e79c9;
+  --mf-brand-50: #f6f2ff;
+  --mf-brand-100: #efeaff;
+  --mf-brand-500: #8b6ff7;
+  --mf-brand-600: #6f4ef5;
+  --mf-brand-700: #5b3be0;
+  --mf-brand-800: #4a2fc0;
+  --mf-brand-900: #3b2797;
+  --mf-brand-identity: #6f4ef5;
+  --mf-brand: #6f4ef5;
+  --mf-brand-hover: #5b3be0;
+  --mf-brand-pressed: #4a2fc0;
+  --mf-brand-subtle: #efeaff;
+  --mf-brand-text: #5b3be0;
   --mf-on-brand: #ffffff;
   --mf-stage: #ffffff;
-  --mf-stage-soft: #f8fafc;
-  --mf-stage-text: #101828;
-  --mf-stage-muted: #475467;
-  /* Same 3:1 focus-contrast floor as the app theme: #0ea5e9 was 2.77:1 on white. */
-  --mf-focus: #0284c7;
-  --mf-focus-ring: rgb(2 132 199 / 18%);
-  --mf-shadow-md: 0 18px 48px rgb(16 24 40 / 10%);
-  --mf-shadow-lg: 0 30px 80px rgb(16 24 40 / 14%);
+  --mf-stage-soft: #f1ecff;
+  --mf-stage-text: #211a33;
+  --mf-stage-muted: #524a6b;
+  /* Same 3:1 focus-contrast floor as the app theme: #6f4ef5 is 4.72:1 on the
+     lilac canvas, but the ring pins the 700 step (#5b3be0, 6.20:1). */
+  --mf-focus: #5b3be0;
+  --mf-focus-ring: rgb(91 59 224 / 18%);
+  --mf-shadow-md: 0 18px 48px rgb(80 62 168 / 10%);
+  --mf-shadow-lg: 0 30px 80px rgb(80 62 168 / 13%);
   color-scheme: light;
 }
 
@@ -66,22 +68,33 @@
   box-shadow: var(--mf-shadow-lg);
 }
 
-.landingTheme [role="group"][aria-label="Chuỗi giao diện thật của MoneyFlow"] figure {
+.landingTheme
+  [role="group"][aria-label="Chuỗi giao diện thật của MoneyFlow"]
+  figure {
   border-color: var(--mf-border);
   background: var(--mf-surface);
   box-shadow: var(--mf-shadow-md);
 }
 
-.landingTheme [role="group"][aria-label="Chuỗi giao diện thật của MoneyFlow"] figure > div:first-child {
+.landingTheme
+  [role="group"][aria-label="Chuỗi giao diện thật của MoneyFlow"]
+  figure
+  > div:first-child {
   border-color: var(--mf-border);
   background: var(--mf-surface-muted);
 }
 
-.landingTheme [role="group"][aria-label="Chuỗi giao diện thật của MoneyFlow"] figure > div:first-child span {
+.landingTheme
+  [role="group"][aria-label="Chuỗi giao diện thật của MoneyFlow"]
+  figure
+  > div:first-child
+  span {
   background: var(--mf-border-strong);
 }
 
-.landingTheme [role="group"][aria-label="Chuỗi giao diện thật của MoneyFlow"] figcaption {
+.landingTheme
+  [role="group"][aria-label="Chuỗi giao diện thật của MoneyFlow"]
+  figcaption {
   border-color: var(--mf-border);
   background: var(--mf-surface);
   color: var(--mf-text-muted);

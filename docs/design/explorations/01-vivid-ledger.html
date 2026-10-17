@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gen-Z Territory 1 — Vivid Ledger (exploration mock)</title>
+<style>
+  :root{
+    --canvas:#FBFBFF; --surface:#fff; --muted:#F3F4FF;
+    --text:#14132E; --text-muted:#4C4A6B; --text-soft:#6B6985;
+    --border:#E2E1F0; --border-strong:#B9B6D8;
+    --brand:#5B4FE9; --brand-hover:#4A3FD1; --brand-subtle:#EEF0FF;
+    --income:#0C7A55; --expense:#C83E46; --transfer:#7054CC;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{background:#EDEBF8;font-family:'Be Vietnam Pro',Inter,system-ui,sans-serif;color:var(--text);padding:24px;display:grid;gap:24px;grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+  h1{font-weight:800;font-size:34px;line-height:1.15;letter-spacing:-.02em}
+  .stage{background:var(--canvas);border:1px solid var(--border);border-radius:22px;padding:20px;overflow:hidden}
+  .tag{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--text-soft);margin-bottom:12px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;height:48px;padding:0 24px;border-radius:999px;background:var(--brand);color:#fff;font-weight:700;font-size:15px;text-decoration:none}
+  .btn.ghost{background:var(--surface);color:var(--text);border:1px solid var(--border-strong)}
+  .card{background:var(--surface);border-radius:22px;padding:18px;box-shadow:0 12px 32px rgb(90 79 233/.10)}
+  /* hero */
+  .hero{position:relative;padding:36px 24px;border-radius:22px;background:var(--surface)}
+  .hero::before{content:"";position:absolute;right:-60px;top:-60px;width:260px;height:260px;border-radius:50%;background:linear-gradient(135deg,#5B4FE9,#06B6D4);opacity:.9}
+  .hero .logo{font-weight:800;font-size:18px;color:var(--brand);position:relative}
+  .hero h1{position:relative;max-width:16ch;margin:10px 0 8px}
+  .hero p{position:relative;color:var(--text-muted);font-size:14px;max-width:30ch;margin-bottom:18px}
+  /* login */
+  .login .card{max-width:340px;margin:0 auto;padding:26px 22px}
+  .login label{display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin:14px 0 6px}
+  .login input{width:100%;height:46px;border:1px solid var(--border-strong);border-radius:12px;padding:0 14px;font-size:15px;background:var(--surface)}
+  .login .btn{width:100%;margin-top:16px}
+  .login .alt{display:flex;justify-content:center;gap:14px;margin-top:14px;font-size:13px;color:var(--brand)}
+  /* mobile dashboard */
+  .phone{width:300px;margin:0 auto;background:var(--surface);border-radius:30px;border:1px solid var(--border);padding:14px 14px 10px;box-shadow:0 12px 32px rgb(90 79 233/.10)}
+  .phone .sum{font-size:26px;font-weight:800;letter-spacing:-.02em}
+  .seg{display:flex;gap:8px;margin:14px 0}
+  .chip{flex:1;text-align:center;font-size:12px;font-weight:600;color:var(--text-muted);background:var(--muted);border-radius:999px;padding:8px 0}
+  .chip.on{background:var(--brand-subtle);color:var(--brand)}
+  .tx{display:flex;justify-content:space-between;align-items:center;padding:10px 2px;font-size:13px;border-top:1px solid var(--border)}
+  .tx b{font-weight:600}
+  .amt{font-variant-numeric:tabular-nums;font-weight:700}
+  .neg{color:var(--expense)} .pos{color:var(--income)} .mov{color:var(--transfer)}
+  .dock{margin-top:12px;background:#fff;border:1px solid var(--border);border-radius:999px;padding:6px;display:flex;gap:4px;box-shadow:0 8px 24px rgb(90 79 233/.12)}
+  .dock div{flex:1;text-align:center;font-size:9px;padding:6px 2px;border-radius:999px;color:var(--text-soft)}
+  .dock div.on{background:var(--brand);color:#fff}
+  .dock div.gri{background:linear-gradient(135deg,#5B4FE9,#06B6D4);color:#fff;font-weight:700}
+</style>
+</head>
+<body>
+  <section class="stage"><p class="tag">Landing hero</p>
+    <div class="hero">
+      <div class="logo">MoneyFlow</div>
+      <h1>Sổ tiền rõ ràng, ghi nhanh mọi lúc.</h1>
+      <p>Mỗi con số đều mở lại được đúng giao dịch tạo ra nó.</p>
+      <a class="btn" href="#">Tạo sổ</a>
+    </div>
+  </section>
+  <section class="stage login"><p class="tag">Login</p>
+    <div class="card">
+      <h1 style="font-size:22px">Đăng nhập</h1>
+      <label>Email</label><input placeholder="ban@email.com">
+      <label>Mật khẩu</label><input type="password" placeholder="••••••••">
+      <a class="btn" href="#">Đăng nhập</a>
+      <a class="btn ghost" style="width:100%;margin-top:10px" href="#">Tiếp tục với Google</a>
+      <div class="alt"><span>Quên mật khẩu?</span><span>Tạo tài khoản</span></div>
+    </div>
+  </section>
+  <section class="stage"><p class="tag">Dashboard mobile</p>
+    <div class="phone">
+      <p class="tag">Tháng 10</p>
+      <div class="sum">7.870.000&nbsp;₫</div>
+      <div class="seg"><div class="chip on">Chi</div><div class="chip">Thu</div><div class="chip">Chuyển</div></div>
+      <div class="tx"><b>Mua BTC</b><span class="amt neg">−200.000&nbsp;₫</span></div>
+      <div class="tx"><b>Lương tháng 10</b><span class="amt pos">+8.500.000&nbsp;₫</span></div>
+      <div class="tx"><b>Chuyển sang Ví</b><span class="amt mov">430.000&nbsp;₫</span></div>
+      <div class="tx"><b>Cà phê</b><span class="amt neg">−45.000&nbsp;₫</span></div>
+      <div class="dock"><div class="on">Tổng quan</div><div>Hoạt động</div><div class="gri">Ghi</div><div>Kế hoạch</div><div>Báo cáo</div></div>
+    </div>
+  </section>
+</body>
+</html>

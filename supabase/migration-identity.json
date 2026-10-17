@@ -431,9 +431,59 @@
       "hash": "707e5eec9ad0b97a93f30e6ee17d5c43"
     },
     {
+      "version": "20261015093000",
+      "name": "20261015093000_deleted_feed_updated_at.sql",
+      "hash": "b3ba29eefec71c1f92d6cd8c3a581bbc"
+    },
+    {
+      "version": "20261015100000",
+      "name": "20261015100000_permanently_delete_transaction.sql",
+      "hash": "a2ff1254807276af4004a3437fa48121"
+    },
+    {
       "version": "20261016090000",
       "name": "20261016090000_commitment_interval_archive.sql",
       "hash": "6637a58230684cac0dfb49aa081441b3"
+    },
+    {
+      "version": "20261016120000",
+      "name": "20261016120000_debts.sql",
+      "hash": "3fe719176f9bfba5bd679b99e74df8f1"
+    },
+    {
+      "version": "20261016180000",
+      "name": "20261016180000_event_budgets.sql",
+      "hash": "b60e6fdd3964a31f5e3cdc435d7d4666"
+    },
+    {
+      "version": "20261016190000",
+      "name": "20261016190000_budget_periods.sql",
+      "hash": "ef1802fea64ef7a9b118793716954bc5"
+    },
+    {
+      "version": "20261016200000",
+      "name": "20261016200000_report_exclusions.sql",
+      "hash": "27fc5a3629a1320a577e211487f7c580"
+    },
+    {
+      "version": "20261016210000",
+      "name": "20261016210000_merge_categories.sql",
+      "hash": "23c46d94f3d40ff8d004a64deae6ffe5"
+    },
+    {
+      "version": "20261016220000",
+      "name": "20261016220000_transaction_refunds.sql",
+      "hash": "56639ac688620c0fc5aad13004e54676"
+    },
+    {
+      "version": "20261017230000",
+      "name": "20261017230000_delete_history_before.sql",
+      "hash": "606100ad98868bab02c5600ef3b961bc"
+    },
+    {
+      "version": "20261018000000",
+      "name": "20261018000000_purge_debts_events.sql",
+      "hash": "b7a70a48c583c7b3bb58c80ea8519889"
     }
   ]
 }

@@ -236,6 +236,115 @@ void main() {
     });
   });
 
+  group('swipe-to-review (D5)', () {
+    testWidgets('only flagged rows carry the swipe affordance', (t) async {
+      await t.pumpWidget(_bulkPage(_Bulk()));
+      await t.pumpAndSettle();
+
+      expect(
+        find.ancestor(
+          of: find.text('Grab'),
+          matching: find.byType(Dismissible),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.ancestor(
+          of: find.text('Bún bò'),
+          matching: find.byType(Dismissible),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('swipe right marks reviewed through the bulk seam', (t) async {
+      final spy = _Bulk();
+      await t.pumpWidget(_bulkPage(spy));
+      await t.pumpAndSettle();
+
+      await t.drag(find.text('Grab'), const Offset(500, 0));
+      await t.pumpAndSettle();
+
+      expect(spy.reviews.single.$1, ['tx-review']);
+      expect(spy.reviews.single.$2, isTrue);
+      // The write landed → the flag line and the chip both clear.
+      expect(find.textContaining('Cần xem lại'), findsNothing);
+      expect(find.text('Đã đánh dấu đã xem'), findsOneWidget);
+      expect(find.text('Hoàn tác'), findsOneWidget);
+    });
+
+    testWidgets('undo re-flags the row through the same seam', (t) async {
+      final spy = _Bulk();
+      await t.pumpWidget(_bulkPage(spy));
+      await t.pumpAndSettle();
+
+      await t.drag(find.text('Grab'), const Offset(500, 0));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Hoàn tác'));
+      await t.pumpAndSettle();
+
+      expect(spy.reviews.length, 2);
+      expect(spy.reviews.last.$1, ['tx-review']);
+      expect(spy.reviews.last.$2, isFalse);
+      expect(find.textContaining('Cần xem lại'), findsWidgets);
+    });
+
+    testWidgets('a failed swipe write snaps back and explains', (t) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: ActivityPage(
+            loadPage: inMemoryPageLoader(const [_plain, _review]),
+            onBulkReview: (ids, {required reviewed}) async =>
+                throw Exception('offline'),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      await t.drag(find.text('Grab'), const Offset(500, 0));
+      await t.pumpAndSettle();
+
+      expect(find.text('Không thực hiện được — thử lại'), findsOneWidget);
+      expect(find.textContaining('Cần xem lại'), findsWidgets);
+    });
+
+    testWidgets('under the needs-review filter a swiped row leaves the list', (
+      t,
+    ) async {
+      await t.pumpWidget(_bulkPage(_Bulk()));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Cần xem lại (1)'));
+      await t.pumpAndSettle();
+      expect(find.text('Grab'), findsOneWidget);
+
+      await t.drag(find.text('Grab'), const Offset(500, 0));
+      await t.pumpAndSettle();
+
+      expect(find.text('Grab'), findsNothing);
+      expect(find.text('Không còn khoản nào cần xem lại'), findsOneWidget);
+    });
+
+    testWidgets('initialOnlyNeedsReview opens the feed pre-filtered', (
+      t,
+    ) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: ActivityPage(
+            loadPage: inMemoryPageLoader(const [_plain, _review]),
+            onBulkReview: (ids, {required reviewed}) async {},
+            initialOnlyNeedsReview: true,
+            title: 'Cần xem lại',
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      expect(find.text('Cần xem lại'), findsWidgets); // title + chip/line
+      expect(find.text('Grab'), findsOneWidget);
+      expect(find.text('Bún bò'), findsNothing);
+    });
+  });
+
   testWidgets('tapping a plain row opens the editor', (t) async {
     final edited = <Transaction>[];
     await t.pumpWidget(_page(edited));
@@ -318,6 +427,66 @@ void main() {
       expect(find.text('Người nhận: Không tên'), findsOneWidget);
       expect(find.text('Bún bò'), findsOneWidget); // _plain
       expect(find.text('Quán gần nhà'), findsNothing); // paid filtered out
+    });
+  });
+
+  group('lazy feed', () {
+    // 60 rows across 20 days — far more than any test viewport can show.
+    // The eager children-list this replaced mounted every row on build;
+    // the builder must only materialize the viewport's worth.
+    final rows = [
+      for (var i = 0; i < 60; i++)
+        Transaction(
+          id: 'tx-$i',
+          kind: TransactionKind.expense,
+          categoryId: 'cat-food',
+          category: 'Ăn uống',
+          note: 'row-${i.toString().padLeft(2, '0')}',
+          accountId: 'a1',
+          account: 'Tiền mặt',
+          amount: 1000 + i,
+          occurredOn: '2026-10-${((i ~/ 3) + 1).toString().padLeft(2, '0')}',
+        ),
+    ];
+
+    testWidgets('offscreen rows are not built until scrolled to', (t) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: ActivityPage(
+            loadPage: inMemoryPageLoader(rows, pageSize: 60),
+            onDelete: (_) async {},
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      // Feed order is newest-day-first — 'row-59' (day 20) leads.
+      expect(find.text('row-59'), findsOneWidget);
+      // 60 rows in, the tail is nowhere near the viewport — an eager
+      // list would have built (and thus found) every note already.
+      expect(find.text('row-00'), findsNothing);
+      expect(find.text('row-30'), findsNothing);
+
+      await t.fling(find.byType(ListView), const Offset(0, -4000), 10000);
+      await t.pumpAndSettle();
+      expect(find.text('row-00'), findsOneWidget);
+    });
+
+    testWidgets('day headers survive the lazy conversion', (t) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: ActivityPage(
+            loadPage: inMemoryPageLoader(rows, pageSize: 60),
+            onDelete: (_) async {},
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+
+      // Rows sorted desc by day → first header is the newest day, and
+      // more day labels exist as lazily-built separators.
+      expect(find.bySemanticsLabel(RegExp(r'\d{2}/\d{2}/2026')), findsWidgets);
+      expect(find.byType(ListView), findsOneWidget);
     });
   });
 

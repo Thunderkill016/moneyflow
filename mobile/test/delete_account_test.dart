@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/app/app.dart';
+import 'package:moneyflow/app/delete_account.dart';
+import 'package:moneyflow/data/google_sign_in.dart';
 import 'package:moneyflow/data/neon/auth_client.dart';
 import 'package:moneyflow/data/neon/data_api.dart';
 import 'package:moneyflow/data/neon/neon_config.dart';
@@ -118,6 +120,26 @@ class _FakeTransport {
   };
 }
 
+/// Fake loopback flow — returns a canned session without touching the
+/// browser. The delete dialog only reads [NeonSession.userId] for its
+/// same-account guard.
+class _FakeGoogleFlow implements GoogleSignInFlow {
+  _FakeGoogleFlow({this.session});
+
+  final NeonSession? session;
+  var calls = 0;
+  var cancels = 0;
+
+  @override
+  Future<NeonSession?> signIn() async {
+    calls++;
+    return session;
+  }
+
+  @override
+  void cancel() => cancels++;
+}
+
 class _NoopShareReceiver implements ShareIntentReceiver {
   const _NoopShareReceiver();
   @override
@@ -133,12 +155,23 @@ class _NoopQuickActions extends QuickActionSource {
   Stream<String> stream() => const Stream<String>.empty();
 }
 
-Future<void> _pumpGate(WidgetTester t, _FakeTransport transport) async {
+Future<void> _pumpGate(
+  WidgetTester t,
+  _FakeTransport transport, {
+  GoogleSignInFlow? googleFlow,
+}) async {
+  // The auth ListView stacks the demo entry below the default test
+  // viewport's fold — a tall phone-sized surface keeps it tappable.
+  t.view.physicalSize = const Size(1080, 2400);
+  t.view.devicePixelRatio = 1;
+  addTearDown(t.view.reset);
   await t.pumpWidget(
     MaterialApp(
       home: AuthGate(
+        allowDemo: true,
         shareReceiver: const _NoopShareReceiver(),
         quickActions: _NoopQuickActions(),
+        googleFlow: googleFlow,
         requester: transport.requester,
       ),
     ),
@@ -148,12 +181,16 @@ Future<void> _pumpGate(WidgetTester t, _FakeTransport transport) async {
 
 /// Boots straight into the signed-in shell: a stored session token sends
 /// _restore through restoreSession, which the fake answers 200.
-Future<void> _pumpSignedIn(WidgetTester t, _FakeTransport transport) async {
+Future<void> _pumpSignedIn(
+  WidgetTester t,
+  _FakeTransport transport, {
+  GoogleSignInFlow? googleFlow,
+}) async {
   FlutterSecureStorage.setMockInitialValues({
     'neon.session_token': 'tok.s',
     'neon.user_id': 'u1',
   });
-  await _pumpGate(t, transport);
+  await _pumpGate(t, transport, googleFlow: googleFlow);
   expect(find.byType(DashboardPage), findsOneWidget);
 }
 
@@ -212,11 +249,11 @@ void main() {
 
       await t.enterText(
         find.widgetWithText(TextField, 'Gõ XÓA để xác nhận'),
-        'xoa',
+        'xoá bỏ',
       );
       await t.enterText(find.widgetWithText(TextField, 'Mật khẩu'), 'pw');
       await t.pump();
-      expect(submit().onPressed, isNull); // wrong case — not exact
+      expect(submit().onPressed, isNull); // wrong words — not confirmed
 
       await t.enterText(
         find.widgetWithText(TextField, 'Gõ XÓA để xác nhận'),
@@ -328,6 +365,233 @@ void main() {
       await t.tap(find.text('Hủy'));
       await t.pumpAndSettle();
       expect(find.byType(DashboardPage), findsOneWidget);
+    });
+  });
+
+  group('Google-only re-auth', () {
+    _FakeTransport googleOnly(_FakeTransport t) => t
+      ..override = (req) {
+        if (req.url.path.endsWith('/list-accounts')) {
+          return _json(200, [
+            {'providerId': 'google'},
+          ]);
+        }
+        return null;
+      };
+
+    testWidgets('a same-account Google re-auth proceeds to the delete RPC', (
+      t,
+    ) async {
+      final flow = _FakeGoogleFlow(
+        session: const NeonSession(
+          sessionToken: 'g.tok',
+          userId: 'u1', // same identity as the signed-in session
+          email: 'a@b.c',
+          name: 'A',
+        ),
+      );
+      final transport = googleOnly(_FakeTransport());
+      await _pumpSignedIn(t, transport, googleFlow: flow);
+      await _openDeleteDialog(t);
+
+      // Social-only copy replaces the password field.
+      expect(find.textContaining('đăng nhập bằng Google'), findsWidgets);
+      expect(find.widgetWithText(TextField, 'Mật khẩu'), findsNothing);
+
+      await t.enterText(
+        find.widgetWithText(TextField, 'Gõ XÓA để xác nhận'),
+        'XÓA',
+      );
+      await t.pump();
+      await t.tap(find.text('Xóa vĩnh viễn'));
+      await t.pumpAndSettle();
+
+      expect(flow.calls, 1);
+      expect(transport.to('/rpc/delete_my_account'), hasLength(1));
+      expect(find.byType(LoginPage), findsOneWidget);
+    });
+
+    testWidgets(
+      'a different Google account aborts — the delete never fires and '
+      'the prior session is restored',
+      (t) async {
+        final flow = _FakeGoogleFlow(
+          session: const NeonSession(
+            sessionToken: 'stranger.tok',
+            userId: 'u-stranger',
+            email: 'other@x.c',
+            name: 'O',
+          ),
+        );
+        final transport = googleOnly(_FakeTransport());
+        await _pumpSignedIn(t, transport, googleFlow: flow);
+        await _openDeleteDialog(t);
+        await t.enterText(
+          find.widgetWithText(TextField, 'Gõ XÓA để xác nhận'),
+          'XÓA',
+        );
+        await t.pump();
+        await t.tap(find.text('Xóa vĩnh viễn'));
+        await t.pumpAndSettle();
+
+        expect(
+          find.textContaining('không khớp tài khoản cần xóa'),
+          findsOneWidget,
+        );
+        expect(transport.to('/rpc/delete_my_account'), isEmpty);
+        // The original session was restored over the stranger's.
+        final restores = transport.to('/get-session');
+        expect(restores, isNotEmpty);
+        // The dialog stays open — the delete gate remains user-held.
+        expect(find.text('Xóa vĩnh viễn'), findsOneWidget);
+        expect(find.byType(LoginPage), findsNothing);
+      },
+    );
+
+    testWidgets('a stranger re-auth whose rollback fails drops the stranger '
+        'session and forces a local sign-out — no delete', (t) async {
+      var getSessionCalls = 0;
+      final transport = _FakeTransport()
+        ..override = (req) {
+          final path = req.url.path;
+          if (path.endsWith('/list-accounts')) {
+            return _json(200, [
+              {'providerId': 'google'},
+            ]);
+          }
+          if (path.endsWith('/get-session')) {
+            getSessionCalls++;
+            // The boot restore answers 200; the post-mismatch
+            // rollback hits a 5xx — the auth service hiccuping
+            // mid-delete must not leave the stranger's JWT cached.
+            if (getSessionCalls > 1) {
+              return _json(500, {'code': 'boom'});
+            }
+          }
+          return null;
+        };
+      final flow = _FakeGoogleFlow(
+        session: const NeonSession(
+          sessionToken: 'stranger.tok',
+          userId: 'u-stranger',
+          email: 'other@x.c',
+          name: 'O',
+        ),
+      );
+      await _pumpSignedIn(t, transport, googleFlow: flow);
+      await _openDeleteDialog(t);
+      await t.enterText(
+        find.widgetWithText(TextField, 'Gõ XÓA để xác nhận'),
+        'XÓA',
+      );
+      await t.pump();
+      await t.tap(find.text('Xóa vĩnh viễn'));
+      await t.pumpAndSettle();
+
+      // The delete never fired; every credential was dropped and the
+      // shell forced back to the login gate with the persisted token
+      // wiped — a half-restored client would keep issuing Data API
+      // calls under the stranger's cached JWT.
+      expect(transport.to('/rpc/delete_my_account'), isEmpty);
+      expect(getSessionCalls, greaterThan(1));
+      expect(find.byType(LoginPage), findsOneWidget);
+      expect(await SessionStore.read(), isNull);
+      expect(find.textContaining('Không khôi phục được phiên'), findsWidgets);
+    });
+
+    testWidgets(
+      'rollback failure leaves the auth client with no session at all',
+      (t) async {
+        // Client-level proof for the residue claim: drive the dialog
+        // directly so `auth.session` is inspectable after the drop.
+        final transport = _FakeTransport()
+          ..override = (req) {
+            final path = req.url.path;
+            if (path.endsWith('/list-accounts')) {
+              return _json(200, [
+                {'providerId': 'google'},
+              ]);
+            }
+            if (path.endsWith('/get-session')) {
+              return _json(500, {'code': 'boom'});
+            }
+            return null;
+          };
+        final auth = NeonAuthClient(
+          config: _config,
+          requester: transport.requester,
+        );
+        await auth.signIn('a@b.c', 'pw');
+        expect(auth.session?.userId, 'u1');
+
+        var dropped = 0;
+        var deletes = 0;
+        final flow = _FakeGoogleFlow(
+          session: const NeonSession(
+            sessionToken: 'stranger.tok',
+            userId: 'u-stranger',
+            email: 'other@x.c',
+            name: 'O',
+          ),
+        );
+        await t.pumpWidget(
+          MaterialApp(
+            home: Builder(
+              builder: (context) => Scaffold(
+                body: TextButton(
+                  onPressed: () => showDeleteAccountFlow(
+                    context,
+                    auth: auth,
+                    deleteAccount: () async => ++deletes,
+                    googleFlow: flow,
+                    onSessionDropped: () async => ++dropped,
+                  ),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        );
+        await t.tap(find.text('open'));
+        await t.pumpAndSettle();
+        await t.tap(find.text('Tiếp tục'));
+        await t.pumpAndSettle();
+        await t.enterText(
+          find.widgetWithText(TextField, 'Gõ XÓA để xác nhận'),
+          'XÓA',
+        );
+        await t.pump();
+        await t.tap(find.text('Xóa vĩnh viễn'));
+        await t.pumpAndSettle();
+
+        expect(deletes, 0);
+        expect(dropped, 1);
+        expect(auth.session, isNull); // no stranger residue
+        expect(
+          find.textContaining('Không khôi phục được phiên đăng nhập cũ'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets('aborting the browser leg stays silent — no delete', (t) async {
+      final flow = _FakeGoogleFlow(); // null session = user abort
+      final transport = googleOnly(_FakeTransport());
+      await _pumpSignedIn(t, transport, googleFlow: flow);
+      await _openDeleteDialog(t);
+      await t.enterText(
+        find.widgetWithText(TextField, 'Gõ XÓA để xác nhận'),
+        'XÓA',
+      );
+      await t.pump();
+      await t.tap(find.text('Xóa vĩnh viễn'));
+      await t.pumpAndSettle();
+
+      expect(flow.calls, 1);
+      expect(transport.to('/rpc/delete_my_account'), isEmpty);
+      // Back at the confirm step, no error banner.
+      expect(find.text('Xóa vĩnh viễn'), findsOneWidget);
+      expect(find.textContaining('không khớp'), findsNothing);
     });
   });
 

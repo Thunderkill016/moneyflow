@@ -62,7 +62,12 @@ List<WeeklyBucket> weeklyIncomeExpense(
     final dayIndex = daysBetween(start, parseYmd(t.occurredOn));
     final bucket = dayIndex ~/ groupDays;
     if (t.kind == TransactionKind.income) {
-      income[bucket] += t.amount;
+      // Hoàn tiền (D15) nets the week's Chi, never its Thu.
+      if (t.isRefund) {
+        expense[bucket] -= t.amount;
+      } else {
+        income[bucket] += t.amount;
+      }
     } else if (t.kind == TransactionKind.expense) {
       expense[bucket] += t.amount;
     }

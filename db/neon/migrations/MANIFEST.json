@@ -430,6 +430,61 @@
       "sourceSha256": "707e5eec9ad0b97a93f30e6ee17d5c43aa6a98e862d958f1172823ead0670a7d",
       "outputSha256": "707e5eec9ad0b97a93f30e6ee17d5c43aa6a98e862d958f1172823ead0670a7d",
       "rewrites": 0
+    },
+    "20261015093000_deleted_feed_updated_at.sql": {
+      "sourceSha256": "b3ba29eefec71c1f92d6cd8c3a581bbc05eb86183a7bbf7333ca374c29675be7",
+      "outputSha256": "b3ba29eefec71c1f92d6cd8c3a581bbc05eb86183a7bbf7333ca374c29675be7",
+      "rewrites": 0
+    },
+    "20261015100000_permanently_delete_transaction.sql": {
+      "sourceSha256": "a2ff1254807276af4004a3437fa48121db149551429efbc2312e4935720ab148",
+      "outputSha256": "a2ff1254807276af4004a3437fa48121db149551429efbc2312e4935720ab148",
+      "rewrites": 0
+    },
+    "20261016090000_commitment_interval_archive.sql": {
+      "sourceSha256": "6637a58230684cac0dfb49aa081441b3ddf44e074b62b96f28e11f3ae6e54ea7",
+      "outputSha256": "6637a58230684cac0dfb49aa081441b3ddf44e074b62b96f28e11f3ae6e54ea7",
+      "rewrites": 0
+    },
+    "20261016120000_debts.sql": {
+      "sourceSha256": "3fe719176f9bfba5bd679b99e74df8f13896acc32754dd24ac3870ea4617bc8f",
+      "outputSha256": "1c94c1d502913e272774f89aa52ed8b1074002cf6482ecd4c65fcd18f94a7b28",
+      "rewrites": 2
+    },
+    "20261016180000_event_budgets.sql": {
+      "sourceSha256": "b60e6fdd3964a31f5e3cdc435d7d4666bc6aa2aa55145c43b831026a7bbcb5d7",
+      "outputSha256": "f2441b5b6e5043f29e1772a42b6af86294b97632b17a4bf60cfa133153380196",
+      "rewrites": 1
+    },
+    "20261016190000_budget_periods.sql": {
+      "sourceSha256": "ef1802fea64ef7a9b118793716954bc5d5366818d6589c9ee4a1b9edf3807669",
+      "outputSha256": "ef1802fea64ef7a9b118793716954bc5d5366818d6589c9ee4a1b9edf3807669",
+      "rewrites": 0
+    },
+    "20261016200000_report_exclusions.sql": {
+      "sourceSha256": "27fc5a3629a1320a577e211487f7c5801b6cc2a6e7560d359f26a79a27de5011",
+      "outputSha256": "27fc5a3629a1320a577e211487f7c5801b6cc2a6e7560d359f26a79a27de5011",
+      "rewrites": 0
+    },
+    "20261016210000_merge_categories.sql": {
+      "sourceSha256": "23c46d94f3d40ff8d004a64deae6ffe5e6f98700fe0244ef5795794c153cf424",
+      "outputSha256": "23c46d94f3d40ff8d004a64deae6ffe5e6f98700fe0244ef5795794c153cf424",
+      "rewrites": 0
+    },
+    "20261016220000_transaction_refunds.sql": {
+      "sourceSha256": "56639ac688620c0fc5aad13004e54676a1dbf00b5549e5a265ea28d1dfb9f2f9",
+      "outputSha256": "56639ac688620c0fc5aad13004e54676a1dbf00b5549e5a265ea28d1dfb9f2f9",
+      "rewrites": 0
+    },
+    "20261017230000_delete_history_before.sql": {
+      "sourceSha256": "606100ad98868bab02c5600ef3b961bca3cb0d163c2f13727c97698118fcac2b",
+      "outputSha256": "606100ad98868bab02c5600ef3b961bca3cb0d163c2f13727c97698118fcac2b",
+      "rewrites": 0
+    },
+    "20261018000000_purge_debts_events.sql": {
+      "sourceSha256": "b7a70a48c583c7b3bb58c80ea8519889569daf5200efd5e01729f867c66ad6ab",
+      "outputSha256": "2b1e2cda695d0c64daf472b0ed1607c2adfa25953348ab878a93f37132a0289e",
+      "rewrites": 1
     }
   }
 }

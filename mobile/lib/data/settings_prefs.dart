@@ -25,18 +25,20 @@ class SettingsPrefs {
   /// Live theme mode the MaterialApp listens to — `loadThemeMode` fills
   /// it at startup and `saveThemeMode` keeps it in sync. A notifier (not
   /// a callback threaded through the tree) because the settings page sits
-  /// several routes deep.
-  static final themeMode = ValueNotifier<ThemeMode>(ThemeMode.system);
+  /// several routes deep. Dark is the primary experience (neon-green
+  /// direction, owner decision 2026-10-16) so it is also the default.
+  static final themeMode = ValueNotifier<ThemeMode>(ThemeMode.dark);
 
   /// Reads the stored mode and publishes it on [themeMode]. Anything
-  /// unrecognised falls back to system — the app can never trap itself
-  /// in a theme the user can't leave.
+  /// unrecognised falls back to dark — the primary experience — never a
+  /// trap: the settings radios can always switch modes again.
   static Future<ThemeMode> loadThemeMode() async {
     final prefs = await SharedPreferences.getInstance();
     final mode = switch (prefs.getString(_themeModeKey)) {
       'light' => ThemeMode.light,
       'dark' => ThemeMode.dark,
-      _ => ThemeMode.system,
+      'system' => ThemeMode.system,
+      _ => ThemeMode.dark,
     };
     themeMode.value = mode;
     return mode;
@@ -70,5 +72,20 @@ class SettingsPrefs {
   }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_digestMinutesKey, hour * 60 + minute);
+  }
+
+  /// Register's per-row running balance (D20) — a display-only toggle;
+  /// the chain itself is always derived from the ledger, never stored.
+  /// Default ON preserves the register's shipped behavior.
+  static const _runningBalanceKey = 'mf_register_running_balance';
+
+  static Future<bool> loadRunningBalanceVisible() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_runningBalanceKey) ?? true;
+  }
+
+  static Future<void> saveRunningBalanceVisible(bool visible) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_runningBalanceKey, visible);
   }
 }

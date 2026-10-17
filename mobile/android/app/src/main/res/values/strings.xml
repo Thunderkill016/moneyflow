@@ -10,6 +10,8 @@
          setTextViewText; the literals below are also the no-data state. -->
     <string name="widget_balance_label">Tổng số dư</string>
     <string name="widget_safespend_label">Chi được hôm nay</string>
+    <!-- D18 — pending-review count row; the tap opens the inbox. -->
+    <string name="widget_review_label">Chờ duyệt</string>
     <string name="widget_no_value">—</string>
     <string name="widget_open_app">Chạm để mở MoneyFlow</string>
 </resources>

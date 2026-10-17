@@ -106,6 +106,8 @@ class Transaction {
     this.updatedAt,
     this.splitCount = 0,
     this.splitLines = const [],
+    this.excludedFromReports = false,
+    this.isRefund = false,
   });
 
   final String id;
@@ -133,6 +135,18 @@ class Transaction {
   /// one row per line exactly like the web.
   final List<TransactionSplitLine> splitLines;
 
+  /// Report scoping only (D13): the row stays in the ledger — account
+  /// balance and budget progress still count it — but report aggregates
+  /// skip it. Written solely through set_transaction_report_exclusion.
+  final bool excludedFromReports;
+
+  /// Money back against spending (D15): an income-kind row that
+  /// reimburses an EXPENSE category. Kind stays income — cash really
+  /// arrived, so account balance and the ledger row are untouched — but
+  /// report/budget aggregations subtract it from that category's spend
+  /// instead of counting it as Thu.
+  final bool isRefund;
+
   bool get isSplit => splitCount > 1;
 
   /// Copy with the review flag set — the only field the feed read has to
@@ -156,8 +170,15 @@ class Transaction {
     updatedAt: updatedAt,
     splitCount: splitCount,
     splitLines: splitLines,
+    excludedFromReports: excludedFromReports,
+    isRefund: isRefund,
   );
 }
+
+/// Posted ledger rows still flagged needs_review — the dashboard
+/// attention card reads [count] for the headline number and [rows]
+/// (a bounded, newest-first preview) for the merchant/amount lines.
+typedef NeedsReviewTransactions = ({int count, List<Transaction> rows});
 
 /// Soft-deleted ledger row — mirrors deleted_transaction_feed
 /// (transaction columns + the tombstone timestamp).
@@ -171,7 +192,32 @@ class DeletedTransaction {
   final String deletedAt; // ISO timestamp
 }
 
-/// Monthly budget row — mirrors public.budget_progress.
+/// Budget cadence — mirrors monthly_budgets.period_kind. Weekly budgets
+/// anchor on Monday (the VN civil week start); monthly ones on the 1st.
+/// Quarterly/yearly are deliberately not admitted yet — the check
+/// constraint, the RPC and the client contract all admit exactly these
+/// two so no unrenderable row can exist.
+enum BudgetPeriod {
+  monthly,
+  weekly;
+
+  /// The stored period_kind value for this cadence.
+  String get key => switch (this) {
+    BudgetPeriod.monthly => 'monthly',
+    BudgetPeriod.weekly => 'weekly',
+  };
+
+  /// Parse a stored period_kind. A missing/unknown value reads as
+  /// monthly — the column's own default; a server predating migration
+  /// 20261016190000 has only monthly rows by definition, so this never
+  /// invents a cadence.
+  static BudgetPeriod fromKey(String? v) =>
+      v == 'weekly' ? BudgetPeriod.weekly : BudgetPeriod.monthly;
+}
+
+/// Budget row — mirrors public.budget_progress. [monthStart] is the
+/// period ANCHOR (YYYY-MM-01 for monthly, the Monday for weekly); the
+/// column name predates [period] and stays for contract stability.
 class BudgetProgress {
   const BudgetProgress({
     required this.id,
@@ -181,14 +227,16 @@ class BudgetProgress {
     required this.limitMinor,
     required this.spentMinor,
     this.updatedAt,
+    this.period = BudgetPeriod.monthly,
   });
 
   final String id;
   final String categoryId;
   final String categoryName;
-  final String monthStart; // YYYY-MM-01
+  final String monthStart; // period anchor: YYYY-MM-01 or the Monday
   final int limitMinor;
   final int spentMinor;
+  final BudgetPeriod period;
 
   /// Row version read from the feed — handed back as `expected_updated_at`
   /// on a limit edit so a stale write fails instead of silently winning.
@@ -310,3 +358,29 @@ class SavingsGoal {
 
   double get progress => targetMinor <= 0 ? 0 : allocatedMinor / targetMinor;
 }
+
+/// One row of public.savings_goal_allocations — the signed funding
+/// history behind a goal's allocatedMinor (D11). Positive = a deposit
+/// ("nạp"), negative = a release ("rút"); the column's CHECK keeps 0
+/// out, so the sign always carries a direction.
+class GoalAllocation {
+  const GoalAllocation({
+    required this.id,
+    required this.amountMinor,
+    required this.createdAt,
+  });
+
+  final String id;
+  final int amountMinor;
+  final String createdAt; // ISO timestamp
+}
+
+/// The goal detail sheet's funding read (D11): allocation history plus
+/// goal-tagged transactions, each capped — the *HasMore flags tell the
+/// UI to say "mới nhất" rather than imply a complete history.
+typedef GoalFunding = ({
+  List<GoalAllocation> allocations,
+  bool allocationsHasMore,
+  List<Transaction> linked,
+  bool linkedHasMore,
+});

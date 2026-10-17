@@ -10,6 +10,7 @@ Transaction _tx(
   TransactionKind kind = TransactionKind.expense,
   String note = '',
   int amount = 10000,
+  String? payee,
 }) => Transaction(
   id: 't$i',
   kind: kind,
@@ -20,6 +21,7 @@ Transaction _tx(
   account: 'Tiền mặt',
   amount: amount,
   occurredOn: '2026-10-${(i % 28 + 1).toString().padLeft(2, '0')}',
+  payee: payee,
 );
 
 class _Spy {
@@ -126,6 +128,42 @@ void main() {
     expect(find.text('Lương'), findsOneWidget);
   });
 
+  testWidgets('filter sheet applies an exact payee and clears it', (t) async {
+    final spy = _Spy();
+    final all = [
+      _tx(1, note: 'Bún bò', payee: 'Quán A'),
+      _tx(2, note: 'Phở'),
+      _tx(3, note: 'Xăng', payee: 'Grab'),
+      // 'GrabBike' is a different payee — the field is the exact-match
+      // query, not the substring search the app bar runs.
+      _tx(4, note: 'Xe ôm', payee: 'GrabBike'),
+    ];
+    await t.pumpWidget(_page(_spied(spy, all)));
+    await t.pumpAndSettle();
+
+    await t.tap(find.byTooltip('Bộ lọc'));
+    await t.pumpAndSettle();
+    await t.enterText(find.widgetWithText(TextField, 'Người nhận'), 'Grab');
+    await t.tap(find.text('Áp dụng'));
+    await t.pumpAndSettle();
+
+    expect(spy.calls.last.$1.payee, 'Grab');
+    expect(find.text('Người nhận: Grab'), findsOneWidget);
+    expect(find.text('Xăng'), findsOneWidget);
+    expect(find.text('Xe ôm'), findsNothing);
+    expect(find.text('Bún bò'), findsNothing);
+
+    // Reopen and blank the field — clearing applies like any input.
+    await t.tap(find.byTooltip('Bộ lọc'));
+    await t.pumpAndSettle();
+    await t.enterText(find.widgetWithText(TextField, 'Người nhận'), '');
+    await t.tap(find.text('Áp dụng'));
+    await t.pumpAndSettle();
+    expect(spy.calls.last.$1.payee, isNull);
+    expect(find.text('Bún bò'), findsOneWidget);
+    expect(find.text('Xe ôm'), findsOneWidget);
+  });
+
   testWidgets('invalid amount keeps the sheet open with an error', (t) async {
     await t.pumpWidget(_page(inMemoryPageLoader([_tx(1)])));
     await t.pumpAndSettle();
@@ -171,6 +209,10 @@ void main() {
         return inner(q, offset: offset);
       }),
     );
+    await t.pumpAndSettle();
+    // Day headers make row heights uneven, so the lazy list's extent
+    // estimate settles after the first drag — scroll to the end twice.
+    await t.drag(find.byType(Scrollable).first, const Offset(0, -6000));
     await t.pumpAndSettle();
     await t.drag(find.byType(Scrollable).first, const Offset(0, -6000));
     await t.pumpAndSettle();

@@ -516,6 +516,46 @@ String formatInboxRuleSummary(InboxRule rule, String categoryName) {
   return '$fieldLabel“${rule.containsText}”$merchantPart → $categoryName';
 }
 
+/// The text a rule's contains string is searched in — mirrors the web's
+/// ruleHaystack and the server function's merchant/note/raw/any projection
+/// of one candidate row.
+String ruleCandidateHaystack(InboxCandidate candidate, RuleMatchField field) {
+  return switch (field) {
+    RuleMatchField.merchant => candidate.merchant,
+    RuleMatchField.note => candidate.note,
+    RuleMatchField.raw => candidate.rawSnippet ?? '',
+    RuleMatchField.any =>
+      '${candidate.merchant} ${candidate.note} ${candidate.rawSnippet ?? ''}',
+  };
+}
+
+/// Whether a rule (draft or saved) would actually change this pending
+/// candidate — mirrors the apply_inbox_rule_to_candidate guards
+/// (income/expense kinds only, category active and kind-matched,
+/// case-insensitive contains) so the sheet's "áp dụng cho N mục đang chờ"
+/// count never promises changes the server would refuse.
+bool ruleAppliesToCandidate({
+  required RuleMatchField matchField,
+  required String containsText,
+  required String categoryId,
+  required InboxCandidate candidate,
+  required List<Category> categories,
+}) {
+  if (candidate.kind != TransactionKind.income &&
+      candidate.kind != TransactionKind.expense) {
+    return false;
+  }
+  final category = categories.where((c) => c.id == categoryId).firstOrNull;
+  if (category == null || category.isArchived) return false;
+  if (category.kind != candidate.kind) return false;
+  final needle = containsText.trim().toLowerCase();
+  if (needle.isEmpty) return false;
+  return ruleCandidateHaystack(
+    candidate,
+    matchField,
+  ).toLowerCase().contains(needle);
+}
+
 /// Maps a failed rule RPC to the same Vietnamese copy the web action's
 /// ruleError() produces — PostgREST echoes the raised message verbatim in
 /// the error body, so substring matching hits the same tokens.

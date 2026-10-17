@@ -142,3 +142,32 @@ String goalProjectionLabel(GoalProjection p) {
 /// "M/YYYY" of a YYYY-MM-DD projection.
 String _monthYear(String day) =>
     '${int.parse(day.substring(5, 7))}/${day.substring(0, 4)}';
+
+/// D11 prerequisite honesty — the concrete pieces a pace verdict still
+/// needs, in the order a reader would ask. A fully-paced goal returns
+/// empty; the detail sheet lists these instead of a bare "chưa đủ dữ
+/// liệu" so the reader knows which missing input blocks the verdict.
+/// Nothing here invents a substitute number.
+List<String> goalMissingPrerequisites({
+  required int contributedMinor,
+  required String? deadline,
+  required String? createdAt,
+  required DateTime today,
+}) {
+  final missing = <String>[];
+  if (contributedMinor <= 0) {
+    missing.add('Chưa có lần nạp nào — nạp để bắt đầu đo tiến độ.');
+  } else {
+    final created = createdAt == null ? null : DateTime.tryParse(createdAt);
+    if (created == null ||
+        daysBetween(dayOnly(created.toLocal()), dayOnly(today)) < 1) {
+      missing.add('Cần ít nhất một ngày sau lần nạp đầu để ước tính nhịp.');
+    }
+  }
+  if (deadline == null || deadline.isEmpty) {
+    missing.add(
+      'Chưa đặt hạn — dự kiến chỉ là ước tính, không đo được đúng/chậm.',
+    );
+  }
+  return missing;
+}

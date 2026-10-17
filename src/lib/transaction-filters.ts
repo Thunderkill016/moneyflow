@@ -76,15 +76,25 @@ export function filterTransactions(
   if (transactionFilterError(values)) return [];
 
   const normalizedQuery = normalizeSearchText(values.query);
+  /*
+   * A leading `#` is a hashtag search (D24): tags only ever live in the
+   * note, so the match scopes to `note` alone — a payee or category
+   * carrying the same text is not a tag. Matching stays substring
+   * (`#cf` reaches `#café`): recall over precision, same rule the mobile
+   * evaluator applies.
+   */
+  const tagSearch = normalizedQuery.startsWith("#");
   const minAmount = parseTransactionAmountFilter(values.minAmountInput);
   const maxAmount = parseTransactionAmountFilter(values.maxAmountInput);
 
   return transactions.filter((transaction) => {
     const matchesQuery =
       !normalizedQuery ||
-      normalizeSearchText(
-        `${transaction.payee ?? ""} ${transaction.note} ${transaction.category} ${transaction.account} ${transaction.destinationAccount ?? ""}`,
-      ).includes(normalizedQuery);
+      (tagSearch
+        ? normalizeSearchText(transaction.note).includes(normalizedQuery)
+        : normalizeSearchText(
+            `${transaction.payee ?? ""} ${transaction.note} ${transaction.category} ${transaction.account} ${transaction.destinationAccount ?? ""}`,
+          ).includes(normalizedQuery));
     const matchesKind =
       values.kind === "all" || transaction.kind === values.kind;
     const matchesAccount =

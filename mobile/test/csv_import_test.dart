@@ -140,6 +140,26 @@ void main() {
       expect(parseCsvAmountCell('').amount, isNull);
     });
 
+    test('amount cell: a 20+-digit run is rejected, not a crash', () {
+      // audit P1-2: the number regex allows unbounded runs and int.parse
+      // throws past int64 — a card/account serial in an amount column
+      // must fall to null like every other non-amount.
+      for (final cell in [
+        '99999999999999999999',
+        '123456789012345678901234567890',
+        '99999999999999999999 VND',
+        '-99999999999999999999',
+      ]) {
+        final r = parseCsvAmountCell(cell);
+        expect(r.amount, isNull, reason: '$cell must not parse or throw');
+      }
+      // int64-max parses as a number but exceeds the JS ceiling — still
+      // not a VND amount.
+      expect(parseCsvAmountCell('9223372036854775807').amount, isNull);
+      // …while the JS-safe ceiling boundary still works.
+      expect(parseCsvAmountCell('9007199254740991').amount, 9007199254740991);
+    });
+
     test('date cell: ISO / DMY / missing year borrows today', () {
       var r = parseCsvDateCell('2026-07-12', '2026-07-15');
       expect(r.date, '2026-07-12');
