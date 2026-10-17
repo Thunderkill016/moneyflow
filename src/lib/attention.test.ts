@@ -120,6 +120,64 @@ test("buildAttentionItems lists due unpaid commitments", () => {
   assert.match(items[0]!.label, /Tiền nhà/);
 });
 
+const baseCommitment = (over: Partial<RecurringCommitment>): RecurringCommitment => ({
+  id: "c1",
+  name: "Internet",
+  amount: 500_000,
+  dueDay: 20,
+  dueDate: "2026-07-20",
+  accountId: "a1",
+  accountName: "Cash",
+  categoryId: "c1",
+  categoryName: "Hóa đơn",
+  categoryIcon: null,
+  categoryColor: null,
+  isArchived: false,
+  isPaid: false,
+  transactionId: null,
+  ...over,
+});
+
+test("buildAttentionItems surfaces commitments due within the next 7 days", () => {
+  const items = buildAttentionItems({
+    budgets: [],
+    commitments: [
+      baseCommitment({ id: "soon", dueDate: "2026-07-19" }), // today+4
+      baseCommitment({ id: "edge", dueDate: "2026-07-22" }), // today+7
+      baseCommitment({ id: "far", dueDate: "2026-07-23" }), // today+8 — outside
+      baseCommitment({ id: "paid", isPaid: true, transactionId: "t1" }),
+      baseCommitment({ id: "arch", isArchived: true }),
+    ],
+    today: "2026-07-15",
+  });
+  const chip = items.find((i) => i.id === "bills-upcoming");
+  assert.ok(chip, "expected an upcoming chip");
+  assert.match(chip!.label, /2 hóa đơn sắp đến hạn/);
+  // Due/overdue rows stay in their own chip — no double counting.
+  assert.ok(!items.some((i) => i.id === "bill-soon"));
+});
+
+test("buildAttentionItems flags a paid commitment whose recorded amount differs", () => {
+  const items = buildAttentionItems({
+    budgets: [],
+    commitments: [
+      baseCommitment({ id: "drift", isPaid: true, transactionId: "t-drift" }),
+      baseCommitment({ id: "exact", isPaid: true, transactionId: "t-exact" }),
+      baseCommitment({ id: "unknown", isPaid: true, transactionId: "t-gone" }),
+    ],
+    paidAmountByTransactionId: new Map([
+      ["t-drift", 600_000], // declared 500k, recorded 600k → drift
+      ["t-exact", 500_000],
+      // t-gone unreadable → "paid, amount unknown" stays silent (no invent)
+    ]),
+    today: "2026-07-15",
+  });
+  const chip = items.find((i) => i.id === "bill-drift");
+  assert.ok(chip, "expected a drift chip");
+  assert.match(chip!.label, /Internet/);
+  assert.match(chip!.label, /600/);
+});
+
 test("buildAttentionItems includes inbox count calmly", () => {
   const items = buildAttentionItems({
     budgets: [],

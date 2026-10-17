@@ -370,6 +370,12 @@ export function MoneyFlowDashboard({
       buildAttentionItems({
         budgets: liveBudgets,
         commitments: liveCommitments,
+        // Paid-amount join mirrors the mobile feed: the linked
+        // transaction's amount resolves "trả khác số tiền" drift;
+        // unreadable rows stay silent.
+        paidAmountByTransactionId: new Map(
+          transactions.map((t) => [t.id, t.amount]),
+        ),
         inboxCount,
         needsReviewCount,
         goalPaceAttentionCount,
@@ -379,6 +385,7 @@ export function MoneyFlowDashboard({
     [
       liveBudgets,
       liveCommitments,
+      transactions,
       inboxCount,
       needsReviewCount,
       goalPaceAttentionCount,
