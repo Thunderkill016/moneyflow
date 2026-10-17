@@ -40,3 +40,9 @@ test("the tail rolls up past the named-block cap", () => {
   assert.match(page, /MAX_NAMED = 7/);
   assert.match(page, /tailAmount > 0/);
 });
+
+test("cells under the target-size floor stay inert — WCAG 2.5.8", () => {
+  // A sliver link (<44px) would fail touch target audit; its row below
+  // carries the same drill anyway.
+  assert.match(page, /cell\.h >= 48 && cell\.w >= 16/);
+});

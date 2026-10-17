@@ -118,9 +118,6 @@ function CategoryTreemap({
           top: cell.y,
           width: `${cell.w}%`,
           height: cell.h,
-          background: row
-            ? `color-mix(in srgb, var(--mf-expense) ${Math.min(60, 15 + share)}%, var(--mf-surface))`
-            : undefined,
         };
         const label = showName ? (
           <>
@@ -144,7 +141,10 @@ function CategoryTreemap({
           );
         }
         const href = reportCategoryDrilldownHref(range, row.name);
-        if (href == null) {
+        // Target-size honesty: a cell under ~44px is visual-only — its
+        // row below still drills, and a sliver link would fail touch.
+        const tappable = href != null && cell.h >= 48 && cell.w >= 16;
+        if (!tappable) {
           return (
             <div
               key={row.name}

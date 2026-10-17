@@ -443,7 +443,10 @@
   background-clip: padding-box;
   min-width: 0;
   overflow: hidden;
-  color: var(--mf-expense-text);
+  /* Area already encodes share — a per-share tint would double-encode
+     and breaks contrast at small shares; one expense-tinted surface. */
+  background: color-mix(in srgb, var(--mf-expense) 18%, var(--mf-surface));
+  color: var(--mf-text);
   text-decoration: none;
 }
 
