@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/data/demo_store.dart';
 import 'package:moneyflow/domain/models.dart';
+import 'package:moneyflow/domain/report.dart' show vnNow;
 import 'package:moneyflow/features/capture/capture_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -105,7 +106,10 @@ void main() {
     await _open(t);
     await _type(t, 'an trua 45k hom qua');
 
-    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    // The app parses on the Saigon civil clock — mirror it, or the
+    // expectation drifts a day whenever device zone ≠ +07 (e.g. UTC CI
+    // in the 17:00–24:00 window).
+    final yesterday = vnNow().subtract(const Duration(days: 1));
     final expected =
         'Ngày: ${yesterday.day.toString().padLeft(2, '0')}/'
         '${yesterday.month.toString().padLeft(2, '0')}/'

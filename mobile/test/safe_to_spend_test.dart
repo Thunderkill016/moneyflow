@@ -74,12 +74,12 @@ Future<void> _pumpDash(
 /// Mirrors the domain math so the widget assertions stay independent of
 /// the day the suite happens to run.
 int _daysLeftThisMonth() {
-  final n = DateTime.now();
+  final n = vnNow();
   return DateTime(n.year, n.month + 1, 0).day - n.day + 1;
 }
 
 String _thisMonthStart() {
-  final n = DateTime.now();
+  final n = vnNow();
   return '${n.year}-${n.month.toString().padLeft(2, '0')}-01';
 }
 

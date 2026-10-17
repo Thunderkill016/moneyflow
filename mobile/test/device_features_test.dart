@@ -4,6 +4,7 @@ import 'package:moneyflow/data/demo_store.dart';
 import 'package:moneyflow/data/offline_cache.dart';
 import 'package:moneyflow/data/share/share_text_parser.dart';
 import 'package:moneyflow/domain/models.dart';
+import 'package:moneyflow/domain/report.dart' show vnNow;
 import 'package:moneyflow/features/capture/capture_page.dart';
 import 'package:moneyflow/features/dashboard/dashboard_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -240,7 +241,7 @@ void main() {
 
         expect(captured, isNotNull);
         expect(captured!.repeatMonthly, isTrue);
-        expect(captured!.dueDay, DateTime.now().day);
+        expect(captured!.dueDay, vnNow().day);
         // Note and payee empty → the category name names the commitment.
         expect(captured!.commitmentName, 'Ăn uống');
       },

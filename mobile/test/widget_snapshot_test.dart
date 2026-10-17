@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneyflow/data/widget_snapshot.dart';
 import 'package:moneyflow/domain/models.dart';
+import 'package:moneyflow/domain/report.dart' show vnNow;
 import 'package:moneyflow/domain/safe_to_spend.dart';
 import 'package:moneyflow/features/dashboard/dashboard_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -33,7 +34,8 @@ const _usd = AccountSummary(
 );
 
 String _monthStart() {
-  final n = DateTime.now();
+  // Saigon civil month — matches the domain clock on any device zone.
+  final n = vnNow();
   return '${n.year}-${n.month.toString().padLeft(2, '0')}-01';
 }
 
@@ -139,7 +141,7 @@ void main() {
           ),
         ],
         commitments: const [],
-        today: DateTime.now(),
+        today: vnNow(),
       );
       expect(snap.safeSpendVnd, expected?.perDayMinor);
       expect(snap.savedAtMs, greaterThan(0));
