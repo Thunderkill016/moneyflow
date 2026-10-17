@@ -420,6 +420,53 @@ NEXT STEP: none — mega-task closed 2026-10-17; prod migrations applied 2026-10
 RESUME: re-read this file; the backlog is empty — new work needs a fresh issue/packet.
 STATUS: DONE — 2026-10-17 — all DoD items evidenced.
 
+## Post-close addendum — dashboard upgrade (2026-10-17, PR #794 merged eee131ed + this commit)
+
+Owner direction: continuous autonomous research/build/test toward top-app parity.
+Research: docs/research/DASHBOARD_PATTERNS_TOP_APPS_2026.md (Copilot, Money
+Lover, PocketGuard, Spendee, Monarch, Money Manager). Three dashboard gaps
+closed on mobile:
+
+- P1 month pace — `mobile/lib/domain/month_pace.dart` `buildMonthPace` +
+  `_PaceChart` in the remainder card: cumulative month-to-date spend line vs
+  dashed ideal budget pace, current-day dot, status words
+  (Đúng/Nhanh/Chậm hơn nhịp) + "đã chi N% ngân sách". Chart excluded from
+  semantics; text remains authoritative. No summary read → no chart.
+- P2 top-3 category share bars — `MonthSummary.topCategories` (ranked desc,
+  name tie-break) + `_CategoryShareRow` in the summary card.
+- P3 upcoming commitments — `_AttentionCard` + `_upcomingWindowDays=7`
+  forward window (due-today included; overdue / paid-different stay
+  separate).
+- Dev gates in `mobile/lib/main.dart`: `--dart-define=MF_ALLOW_CAPTURE=true`
+  (skip FLAG_SECURE for QA screenshots) and `MF_ALLOW_DEMO=true` (demo entry
+  without credentials). Both default off — shipped builds unaffected.
+
+Verified: flutter analyze clean; focused suite 73/73 then full suite green;
+device-verified on OPPO CPH2001 demo mode — screenshots in
+docs/design/dashboard-pace-v3/ (pace line + Nhanh hơn nhịp status, 3 share
+bars Hóa đơn 52% / Ăn uống 45% / Di chuyển, empty upcoming correctly absent
+in demo data).
+
+Follow-on slices on the same branch (PR #796):
+
+- Dashboard → account register: wallet cards are Material+InkWell and open
+  `AccountRegisterPage` (chevron only when the seam exists, none in demo);
+  the register appbar carries Đóng/Mở lại tài khoản behind
+  `onArchiveAccount` — soft close keeps history, reopen restores.
+- Payee/category MoM deltas on BOTH surfaces — mobile `expensePayeeDeltas`
+  + `_ShareSection` delta column (category + payee); web `previous` on
+  category/payee buckets + `bucketDelta` ▲/▼/"mới" under each row. Same
+  bucketing/refund-netting/exclusion rules as the primary report; the
+  mobile `_expenseBuckets` excluded-row skip was fixed so comparison and
+  breakdown can never diverge.
+- Category treemap (Monarch #19 — last unscoped item): mobile
+  `mobile/lib/domain/treemap.dart` squarified layout + `_CategoryTreemap`
+  top-7 + "Khác" roll-up above the expense rows; web `src/lib/treemap.ts`
+  port + `CategoryTreemap` %-positioned links over the same section.
+  Named cells drill to the same filtered feed; the roll-up stays inert.
+- CI repair: 2x-text-scale account-card chip overflow (Flexible+ellipsis);
+  `reports.financial` golden updated for the `previous` contract field.
+
 ---
 
 ## 2026-10-16 — UX polish pass (owner walkthrough feedback)

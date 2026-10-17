@@ -9,6 +9,7 @@ import '../../domain/datetime_label.dart';
 import '../../domain/inbox.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
+import '../../domain/month_pace.dart';
 import '../../domain/month_summary.dart';
 import '../../domain/recurring_detection.dart';
 import '../../domain/report.dart' show dateAdd, vnMonthStart, vnNow, ymd;
@@ -79,6 +80,7 @@ class DashboardPage extends StatefulWidget {
     this.loadNeedsReview,
     this.onOpenNeedsReview,
     this.onOpenTransaction,
+    this.onOpenAccount,
     this.modeLabel,
     this.menuItems = const [],
     this.readSnapshot,
@@ -196,6 +198,10 @@ class DashboardPage extends StatefulWidget {
   /// Opens a posted transaction for correction (same form as the Hoạt
   /// động tab). Null leaves the rows read-only.
   final void Function(Transaction tx)? onOpenTransaction;
+
+  /// Opens an account's register — the same destination the Tài khoản
+  /// page's row tap lands on. Null keeps wallet cards read-only.
+  final void Function(AccountSummary account)? onOpenAccount;
   final String? modeLabel;
   final List<DashboardMenuItem> menuItems;
 
@@ -248,6 +254,10 @@ typedef _DashboardData = ({
 });
 
 class DashboardPageState extends State<DashboardPage> {
+  /// The "sắp đến hạn" forward window — Copilot's Upcoming glance
+  /// scoped to one week; anything further out stays in Kế hoạch.
+  static const _upcomingWindowDays = 7;
+
   late Future<_DashboardData> _data;
 
   /// Suggestions hidden this session — persisted dismissals are filtered
@@ -783,6 +793,7 @@ class DashboardPageState extends State<DashboardPage> {
             final todayStr = ymd(now);
             final overdue = <RecurringCommitment>[];
             final drift = <RecurringCommitment>[];
+            final upcoming = <RecurringCommitment>[];
             for (final c in commitments ?? const <RecurringCommitment>[]) {
               if (c.isArchived) continue;
               switch (commitmentStatus(
@@ -794,14 +805,30 @@ class DashboardPageState extends State<DashboardPage> {
                   overdue.add(c);
                 case CommitmentStatus.paidDifferent:
                   drift.add(c);
+                case CommitmentStatus.dueToday:
+                  upcoming.add(c);
+                case CommitmentStatus.upcoming:
+                  // Copilot's "Upcoming" glance — only the forward
+                  // window counts; a bill 20 days out is noise here.
+                  final due = commitmentDueDate(monthStart, c.dueDay);
+                  final days = due == null
+                      ? null
+                      : commitmentDaysUntil(due, todayStr);
+                  if (days != null &&
+                      days >= 0 &&
+                      days <= _upcomingWindowDays) {
+                    upcoming.add(c);
+                  }
                 default:
                   break;
               }
             }
             // Preview order matches the Kế hoạch feed rule — longest-
-            // waiting overdue first; drift stays deterministic by name.
+            // waiting overdue first; drift stays deterministic by name;
+            // upcoming surfaces the nearest due day first (today leads).
             overdue.sort((a, b) => a.dueDay.compareTo(b.dueDay));
             drift.sort((a, b) => a.name.compareTo(b.name));
+            upcoming.sort((a, b) => a.dueDay.compareTo(b.dueDay));
             return RefreshIndicator(
               onRefresh: _refresh,
               child: ListView(
@@ -829,6 +856,7 @@ class DashboardPageState extends State<DashboardPage> {
                         needsReview: a.needsReview,
                         overdue: overdue,
                         drift: drift,
+                        upcoming: upcoming,
                         monthStart: monthStart,
                         today: todayStr,
                         onOpenInbox: widget.onOpenInbox,
@@ -851,6 +879,16 @@ class DashboardPageState extends State<DashboardPage> {
                         today: now,
                       ),
                       alerts: budgetAlerts(budgets, monthStart: monthStart),
+                      // The pace shape needs the same month rows the
+                      // summary card reads — a failed read drops the
+                      // chart, never fabricates one.
+                      pace: snap.data!.summaryRows == null
+                          ? null
+                          : buildMonthPace(
+                              rows: snap.data!.summaryRows!,
+                              budgets: budgets,
+                              today: now,
+                            ),
                       onOpenPlanning: widget.onOpenPlanning,
                     ),
                   ],
@@ -917,7 +955,10 @@ class DashboardPageState extends State<DashboardPage> {
                     const SizedBox(height: 20),
                     Text('Tài khoản', style: _sectionTitle(context)),
                     const SizedBox(height: 8),
-                    _AccountStrip(accounts: accounts),
+                    _AccountStrip(
+                      accounts: accounts,
+                      onOpenAccount: widget.onOpenAccount,
+                    ),
                     const SizedBox(height: 20),
                     Text('Hoạt động gần đây', style: _sectionTitle(context)),
                     const SizedBox(height: 8),
@@ -1002,13 +1043,17 @@ class _MonthSummaryCard extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            if (summary.topCategory != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                'Nhiều nhất: ${summary.topCategory} · '
-                '${formatMoney(summary.topCategoryAmount)}',
-                style: theme.textTheme.bodySmall,
-              ),
+            if (summary.topCategories.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              // Monarch/Spendee pattern — ranked share bars answer
+              // "tiền đi đâu" faster than one "Nhiều nhất" line.
+              for (final c in summary.topCategories)
+                _CategoryShareRow(
+                  name: c.name,
+                  amount: c.amount,
+                  maxAmount: summary.topCategories.first.amount,
+                  expenseMinor: summary.expense,
+                ),
             ],
             if (compareLine != null) ...[
               const SizedBox(height: 2),
@@ -1026,6 +1071,81 @@ class _MonthSummaryCard extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// One ranked category share row — name left, "amount · N% của chi"
+/// right, and a thin track whose fill is the row's share of the top
+/// row's amount (so ranks read at a glance, Monarch-style).
+class _CategoryShareRow extends StatelessWidget {
+  const _CategoryShareRow({
+    required this.name,
+    required this.amount,
+    required this.maxAmount,
+    required this.expenseMinor,
+  });
+
+  final String name;
+  final int amount;
+  final int maxAmount;
+  final int expenseMinor;
+
+  static const _trackHeight = 4.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final mf = context.mf;
+    final share = expenseMinor > 0 ? (amount * 100) ~/ expenseMinor : 0;
+    final fill = maxAmount > 0 ? (amount / maxAmount).clamp(0.0, 1.0) : 0.0;
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  name,
+                  style: theme.textTheme.bodySmall,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${formatMoney(amount)} · $share%',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 3),
+          LayoutBuilder(
+            builder: (context, constraints) => Stack(
+              children: [
+                Container(
+                  height: _trackHeight,
+                  width: constraints.maxWidth,
+                  decoration: BoxDecoration(
+                    color: mf.textMuted.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(_trackHeight / 2),
+                  ),
+                ),
+                Container(
+                  height: _trackHeight,
+                  width: constraints.maxWidth * fill,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
+                    borderRadius: BorderRadius.circular(_trackHeight / 2),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1398,6 +1518,7 @@ class _AttentionCard extends StatelessWidget {
     required this.needsReview,
     required this.overdue,
     required this.drift,
+    required this.upcoming,
     required this.monthStart,
     required this.today,
     this.onOpenInbox,
@@ -1410,6 +1531,10 @@ class _AttentionCard extends StatelessWidget {
   final NeedsReviewTransactions needsReview;
   final List<RecurringCommitment> overdue;
   final List<RecurringCommitment> drift;
+
+  /// Due-today + due-soon commitments inside the forward window — the
+  /// Copilot "Upcoming" glance; overdue work still leads the card.
+  final List<RecurringCommitment> upcoming;
 
   /// YYYY-MM-01 / YYYY-MM-DD feeding `commitmentStatusLabel` — the same
   /// month the remainder card reads, so the two cards never disagree.
@@ -1430,7 +1555,8 @@ class _AttentionCard extends StatelessWidget {
       _inboxTotal <= 0 &&
       needsReview.count <= 0 &&
       overdue.isEmpty &&
-      drift.isEmpty;
+      drift.isEmpty &&
+      upcoming.isEmpty;
 
   /// The count the row displays — the authoritative count seam wins,
   /// but a preview list longer than the count (a resolve between the
@@ -1509,6 +1635,29 @@ class _AttentionCard extends StatelessWidget {
           ],
           overflow: drift.length > shown.length
               ? 'và ${drift.length - shown.length} cam kết khác'
+              : null,
+          onTap: onOpenPlanning,
+        ),
+      );
+    }
+    if (upcoming.isNotEmpty) {
+      final shown = upcoming.take(_maxPreviewLines).toList();
+      rows.add(
+        _AttentionRow(
+          icon: Icons.schedule_outlined,
+          title: '${upcoming.length} cam kết sắp đến hạn',
+          previews: [
+            for (final c in shown)
+              '${c.name} · ${commitmentStatusLabel(
+                commitmentStatus(c, monthStart: monthStart, today: today),
+                monthStart: monthStart,
+                today: today,
+                dueDay: c.dueDay,
+                format: formatMoney,
+              )}',
+          ],
+          overflow: upcoming.length > shown.length
+              ? 'và ${upcoming.length - shown.length} cam kết khác'
               : null,
           onTap: onOpenPlanning,
         ),
@@ -1617,11 +1766,17 @@ class _MonthRemainderCard extends StatelessWidget {
   const _MonthRemainderCard({
     required this.spend,
     required this.alerts,
+    this.pace,
     this.onOpenPlanning,
   });
 
   final SafeDailySpend? spend;
   final List<BudgetAlert> alerts;
+
+  /// The Copilot-pattern pace read — null when the summary read failed
+  /// or no monthly budget exists; the card then keeps its figure-only
+  /// form rather than drawing an invented shape.
+  final MonthPace? pace;
 
   /// The no-budget nudge's "Mở Kế hoạch" action — null drops the button
   /// and leaves the plain text (embedders without a planning tab).
@@ -1732,6 +1887,12 @@ class _MonthRemainderCard extends StatelessWidget {
               const SizedBox(height: 4),
               _basisLine(text, s),
             ],
+            if (pace != null) ...[
+              const SizedBox(height: 10),
+              _PaceChart(pace: pace!),
+              const SizedBox(height: 6),
+              _paceStatusLine(context, pace!),
+            ],
             if (alerts.isNotEmpty) ...[
               const SizedBox(height: 8),
               for (final a in alerts.take(_maxAlertLines))
@@ -1752,6 +1913,35 @@ class _MonthRemainderCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  /// Pace verdict — a coloured dot paired with words + the percent of
+  /// the month's total budget already spent, so the line reads the same
+  /// in greyscale.
+  Widget _paceStatusLine(BuildContext context, MonthPace p) {
+    final mf = context.mf;
+    final text = Theme.of(context).textTheme;
+    final color = switch (p.status) {
+      MonthPaceStatus.over => mf.warningText,
+      MonthPaceStatus.on => mf.incomeText,
+      MonthPaceStatus.under => mf.textMuted,
+    };
+    final percent = p.budgetLimitMinor > 0
+        ? (p.actualToDateMinor * 100) ~/ p.budgetLimitMinor
+        : 0;
+    return Row(
+      children: [
+        Icon(Icons.circle, size: 8, color: color),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            '${monthPaceStatusLabel(p.status)} · '
+            'đã chi $percent% ngân sách',
+            style: text.bodySmall?.copyWith(color: color),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1794,6 +1984,129 @@ class _MonthRemainderCard extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The Copilot-pattern spending-progress graph: cumulative month-to-date
+/// expense (solid) drawn against the month's ideal-pace line (dashed,
+/// budget ÷ days spread evenly). Decorative — the status words beside it
+/// carry the verdict, so the chart stays out of semantics entirely.
+class _PaceChart extends StatelessWidget {
+  const _PaceChart({required this.pace});
+
+  final MonthPace pace;
+
+  static const _height = 72.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final mf = context.mf;
+    return ExcludeSemantics(
+      child: SizedBox(
+        height: _height,
+        width: double.infinity,
+        child: CustomPaint(
+          painter: _PaceChartPainter(
+            pace: pace,
+            actualColor: Theme.of(context).colorScheme.primary,
+            idealColor: mf.textMuted,
+            guideColor: mf.textMuted.withValues(alpha: 0.18),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PaceChartPainter extends CustomPainter {
+  _PaceChartPainter({
+    required this.pace,
+    required this.actualColor,
+    required this.idealColor,
+    required this.guideColor,
+  });
+
+  final MonthPace pace;
+  final Color actualColor;
+  final Color idealColor;
+  final Color guideColor;
+
+  static const _dashOn = 4.0;
+  static const _dashOff = 4.0;
+  static const _stroke = 2.0;
+  static const _dotRadius = 3.5;
+
+  double _xForDay(int day, double width) => day / pace.daysInMonth * width;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Y peak covers whichever is taller — the plan or the overshoot —
+    // so an over-pace line never clips out of the card.
+    final peak = pace.budgetLimitMinor > pace.actualToDateMinor
+        ? pace.budgetLimitMinor
+        : pace.actualToDateMinor;
+    if (peak <= 0 || size.width <= 0 || size.height <= 0) return;
+    double yFor(int minor) => size.height - minor / peak * size.height;
+
+    // Baseline guide so "0 ₫" has a visual floor.
+    canvas.drawLine(
+      Offset(0, size.height - 0.5),
+      Offset(size.width, size.height - 0.5),
+      Paint()
+        ..color = guideColor
+        ..strokeWidth = 1,
+    );
+
+    // Ideal pace — dashed diagonal from 0 on the 1st to the budget
+    // total on the last day.
+    final idealPaint = Paint()
+      ..color = idealColor
+      ..strokeWidth = _stroke / 2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    final idealPath = Path()
+      ..moveTo(_xForDay(1, size.width) - size.width / pace.daysInMonth, yFor(0))
+      ..lineTo(size.width, yFor(pace.budgetLimitMinor));
+    _dashed(canvas, idealPath, idealPaint);
+
+    // Actual cumulative spend through today — one point per elapsed day.
+    final points = <Offset>[
+      for (var i = 0; i < pace.cumulativeMinor.length; i++)
+        Offset(_xForDay(i + 1, size.width), yFor(pace.cumulativeMinor[i])),
+    ];
+    if (points.isNotEmpty) {
+      final actualPaint = Paint()
+        ..color = actualColor
+        ..strokeWidth = _stroke
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round;
+      final path = Path()..moveTo(points.first.dx, points.first.dy);
+      for (final p in points.skip(1)) {
+        path.lineTo(p.dx, p.dy);
+      }
+      canvas.drawPath(path, actualPaint);
+      canvas.drawCircle(points.last, _dotRadius, Paint()..color = actualColor);
+    }
+  }
+
+  /// March a path in [_dashOn]/[_dashOff] segments — small enough that a
+  /// hand-rolled dash beats pulling in a charting dependency.
+  void _dashed(Canvas canvas, Path path, Paint paint) {
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final end = (distance + _dashOn).clamp(0.0, metric.length);
+        canvas.drawPath(metric.extractPath(distance, end), paint);
+        distance += _dashOn + _dashOff;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_PaceChartPainter old) =>
+      old.pace != pace ||
+      old.actualColor != actualColor ||
+      old.idealColor != idealColor;
 }
 
 /// "Có vẻ là khoản định kỳ" — a detected monthly pattern the user may
@@ -1866,8 +2179,9 @@ class _RecurringSuggestionCard extends StatelessWidget {
 /// Horizontal strip of wallet cards — every card is built up front (a
 /// few wallets at most), so nothing is lazily offscreen.
 class _AccountStrip extends StatelessWidget {
-  const _AccountStrip({required this.accounts});
+  const _AccountStrip({required this.accounts, this.onOpenAccount});
   final List<AccountSummary> accounts;
+  final void Function(AccountSummary account)? onOpenAccount;
 
   @override
   Widget build(BuildContext context) {
@@ -1881,6 +2195,7 @@ class _AccountStrip extends StatelessWidget {
             _AccountCard(
               account: accounts[i],
               fill: mfPastelFills[i % mfPastelFills.length],
+              onOpen: onOpenAccount,
             ),
           ],
         ],
@@ -1890,62 +2205,99 @@ class _AccountStrip extends StatelessWidget {
 }
 
 class _AccountCard extends StatelessWidget {
-  const _AccountCard({required this.account, required this.fill});
+  const _AccountCard({required this.account, required this.fill, this.onOpen});
   final AccountSummary account;
   final Color fill;
+  final void Function(AccountSummary account)? onOpen;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
+    // The pastel fill lives on the Material itself so the InkWell splash
+    // actually shows; a decorated child would paint over the ripple.
+    return SizedBox(
       width: 220,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
+      child: Material(
         color: fill,
         borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              accountKindLabel(account.kind),
-              style: theme.textTheme.labelSmall?.copyWith(color: mfPastelInk),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            account.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodyMedium?.copyWith(color: mfPastelInk),
-          ),
-          const SizedBox(height: 2),
-          if (account.currencyCode != 'VND')
-            Text(
-              'Ví ${account.currencyCode} — xem số dư trên web',
-              style: theme.textTheme.bodySmall?.copyWith(color: mfPastelInk),
-            )
-          else
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                formatMoney(account.balance),
-                style: mfMoneyStyle(
-                  theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
+        child: InkWell(
+          onTap: onOpen == null ? null : () => onOpen!(account),
+          borderRadius: BorderRadius.circular(24),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        // Long kind labels clip instead of pushing the
+                        // chevron off the card at large text scales.
+                        child: Text(
+                          accountKindLabel(account.kind),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: mfPastelInk,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    // Honest affordance: the chevron only shows when the
+                    // card really opens the register — never a dead hint.
+                    if (onOpen != null)
+                      Icon(
+                        Icons.chevron_right,
+                        size: 18,
+                        color: mfPastelInk.withValues(alpha: 0.55),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  account.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(
                     color: mfPastelInk,
                   ),
                 ),
-              ),
+                const SizedBox(height: 2),
+                if (account.currencyCode != 'VND')
+                  Text(
+                    'Ví ${account.currencyCode} — xem số dư trên web',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: mfPastelInk,
+                    ),
+                  )
+                else
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      formatMoney(account.balance),
+                      style: mfMoneyStyle(
+                        theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: mfPastelInk,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
-        ],
+          ),
+        ),
       ),
     );
   }

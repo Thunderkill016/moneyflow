@@ -29,6 +29,7 @@ import {
 import type { LedgerTrustSummary } from "@/lib/ledger-trust";
 import { getTransactionReviewStatus } from "@/lib/transaction-review";
 import { sumBudgetSpent, type BudgetSummary } from "@/lib/planning/budgets";
+import { buildMonthPace } from "@/lib/month-pace.ts";
 import { hydrateCommitmentsWithOccurrences } from "@/lib/planning/commitment-occurrence-store";
 import {
   buildCommittedRemainder,
@@ -325,6 +326,22 @@ export function MoneyFlowDashboard({
   );
 
   /*
+   * The dashboard's pace read — same `buildMonthPace` contract the
+   * mobile remainder card draws: cumulative MTD spend vs the linear
+   * ideal line summed from this month's budgets. No budgets → null →
+   * no pace block, never an invented baseline.
+   */
+  const monthPace = useMemo(
+    () =>
+      buildMonthPace({
+        rows: transactions,
+        budgets: liveBudgets,
+        today: workspace.today,
+      }),
+    [transactions, liveBudgets, workspace.today],
+  );
+
+  /*
    * Obligations-aware remainder: "balance − unpaid declared commitments this
    * month", disclosed as exactly that, with expected income appended as its
    * own labeled suffix ("chưa gồm X thu dự kiến") — reported, never folded
@@ -370,6 +387,12 @@ export function MoneyFlowDashboard({
       buildAttentionItems({
         budgets: liveBudgets,
         commitments: liveCommitments,
+        // Paid-amount join mirrors the mobile feed: the linked
+        // transaction's amount resolves "trả khác số tiền" drift;
+        // unreadable rows stay silent.
+        paidAmountByTransactionId: new Map(
+          transactions.map((t) => [t.id, t.amount]),
+        ),
         inboxCount,
         needsReviewCount,
         goalPaceAttentionCount,
@@ -379,6 +402,7 @@ export function MoneyFlowDashboard({
     [
       liveBudgets,
       liveCommitments,
+      transactions,
       inboxCount,
       needsReviewCount,
       goalPaceAttentionCount,
@@ -484,6 +508,7 @@ export function MoneyFlowDashboard({
           totals={totals}
           accountBalances={liveAccountBalances}
           monthDetail={monthDetail}
+          monthPace={monthPace}
           remainderLine={remainderLine}
           today={workspace.today}
           isEmptyLedger={isEmptyLedger && !workspace.dataError}

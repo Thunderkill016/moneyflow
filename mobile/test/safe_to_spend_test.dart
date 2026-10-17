@@ -54,6 +54,7 @@ Future<void> _pumpDash(
   loadBudgetRange,
   Future<List<RecurringCommitment>> Function(String monthStart)?
   loadCommitments,
+  List<Transaction>? summaryRows,
   VoidCallback? onOpenPlanning,
 }) async {
   await t.pumpWidget(
@@ -64,6 +65,9 @@ Future<void> _pumpDash(
         loadBudgets: loadBudgets,
         loadBudgetRange: loadBudgetRange,
         loadCommitments: loadCommitments,
+        loadSummaryTransactions: summaryRows == null
+            ? null
+            : (_, _) async => (rows: summaryRows, truncated: false),
         onOpenPlanning: onOpenPlanning,
       ),
     ),
@@ -361,6 +365,61 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Theo ngân sách tháng và chi đã ghi'), findsOneWidget);
+    });
+
+    testWidgets('pace graph verdict reads in words with the percent spent', (
+      t,
+    ) async {
+      final today = vnNow();
+      final monthStart =
+          '${today.year}-${today.month.toString().padLeft(2, '0')}-01';
+      await _pumpDash(
+        t,
+        loadBudgets: (_) async => [
+          _budget(monthStart: _thisMonthStart(), spent: 300000),
+        ],
+        loadCommitments: (_) async => const [],
+        summaryRows: [
+          Transaction(
+            id: 'tx-pace',
+            kind: TransactionKind.expense,
+            categoryId: 'cat-food',
+            category: 'Ăn uống',
+            note: '',
+            accountId: 'a1',
+            account: 'Tiền mặt',
+            amount: 300000,
+            occurredOn: monthStart,
+          ),
+        ],
+      );
+
+      // One of the three honest bands — which one depends on the day of
+      // month; the percent-of-budget read is the deterministic half.
+      expect(
+        find.textContaining(
+          RegExp(r'(Đúng nhịp tháng|Nhanh hơn nhịp|Chậm hơn nhịp)'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('đã chi 15% ngân sách'), findsOneWidget);
+    });
+
+    testWidgets('no summary read → the card keeps its figure, no chart', (
+      t,
+    ) async {
+      await _pumpDash(
+        t,
+        loadBudgets: (_) async => [
+          _budget(monthStart: _thisMonthStart(), spent: 500000),
+        ],
+        loadCommitments: (_) async => const [],
+      );
+      expect(find.text('Còn lại tháng này'), findsOneWidget);
+      expect(
+        find.textContaining(RegExp(r'nhịp')),
+        findsNothing,
+      );
     });
 
     testWidgets('a reserved commitment is named in the basis, not '

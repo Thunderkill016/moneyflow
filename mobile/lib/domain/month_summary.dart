@@ -22,6 +22,7 @@ class MonthSummary {
     required this.transactionCount,
     required this.topCategory,
     required this.topCategoryAmount,
+    required this.topCategories,
     required this.expenseChangePercent,
   });
 
@@ -44,6 +45,11 @@ class MonthSummary {
   /// Highest-expense category this month-to-date, or null.
   final String? topCategory;
   final int topCategoryAmount;
+
+  /// The ranked expense categories the card draws as share bars —
+  /// at most three rows, name + integer đồng, same order as
+  /// [topCategory]'s winner.
+  final List<({String name, int amount})> topCategories;
 
   /// Expense vs the previous equal-length span: positive = chi nhiều
   /// hơn, null = no prior expense to compare against (never an invented
@@ -122,6 +128,7 @@ MonthSummary buildMonthSummary(
 
   String? topCategory;
   var topCategoryAmount = 0;
+  var topCategories = const <({String name, int amount})>[];
   if (categoryTotals.isNotEmpty) {
     // Name order pins ties — the digest rule; a stable winner keeps the
     // card deterministic across rebuilds.
@@ -132,6 +139,11 @@ MonthSummary buildMonthSummary(
       });
     topCategory = ranked.first.key;
     topCategoryAmount = ranked.first.value;
+    // The card draws at most three share bars — a glance, not a second
+    // reports page (the ranked list already holds the rest).
+    topCategories = [
+      for (final e in ranked.take(3)) (name: e.key, amount: e.value),
+    ];
   }
 
   return MonthSummary(
@@ -144,6 +156,7 @@ MonthSummary buildMonthSummary(
     transactionCount: count,
     topCategory: topCategory,
     topCategoryAmount: topCategoryAmount,
+    topCategories: topCategories,
     expenseChangePercent: previousExpense == 0
         ? null
         : ((expense - previousExpense) / previousExpense * 100).round(),

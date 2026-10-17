@@ -133,8 +133,10 @@ Widget _dash({
   VoidCallback? onOpenPlanning,
   List<Transaction>? summaryRows,
   VoidCallback? onOpenReports,
+  void Function(AccountSummary account)? onOpenAccount,
 }) => MaterialApp(
   home: DashboardPage(
+    onOpenAccount: onOpenAccount,
     loadAccounts: () async => DemoStore.seedAccounts(),
     loadTransactions: () async => const [],
     // The remainder-card seam pair must both exist for commitments to
@@ -287,6 +289,37 @@ void main() {
       await t.tap(find.text('1 cam kết trả khác số tiền'));
       await t.pumpAndSettle();
       expect(opened, 1);
+    });
+
+    testWidgets('upcoming commitments inside 7 days surface "sắp đến hạn"', (
+      t,
+    ) async {
+      final today = vnNow();
+      final daysInMonth = DateTime(today.year, today.month + 1, 0).day;
+      final daysAhead = daysInMonth - today.day;
+      final commitments = <RecurringCommitment>[
+        // Due today always lands in the forward glance.
+        _commitment(id: 'cm-today', name: 'Điện lực', dueDay: today.day),
+        // A later-month due day is an upcoming row only inside 7 days.
+        if (daysAhead >= 1)
+          _commitment(
+            id: 'cm-soon',
+            name: 'Internet',
+            dueDay: today.day + (daysAhead >= 3 ? 3 : daysAhead),
+          ),
+        if (daysAhead > 8)
+          _commitment(id: 'cm-far', name: 'Bảo hiểm', dueDay: today.day + 8),
+      ];
+      await t.pumpWidget(
+        _dash(commitments: commitments, onOpenPlanning: () {}),
+      );
+      await t.pumpAndSettle();
+
+      final expectedCount = 1 + (daysAhead >= 1 ? 1 : 0);
+      expect(find.text('$expectedCount cam kết sắp đến hạn'), findsOneWidget);
+      expect(find.textContaining('Điện lực · Đến hạn hôm nay'), findsOneWidget);
+      // The out-of-window row never turns into dashboard noise.
+      expect(find.textContaining('Bảo hiểm'), findsNothing);
     });
 
     testWidgets('archived + paid commitments never surface as work', (t) async {
@@ -475,7 +508,10 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('Còn lại 4.700.000 ₫'), findsOneWidget);
-      expect(find.textContaining('Nhiều nhất: Ăn uống'), findsOneWidget);
+      // Share-bar row replaces the old "Nhiều nhất" line — name +
+      // "amount · N%" read.
+      expect(find.text('Ăn uống'), findsWidgets);
+      expect(find.textContaining('300.000 ₫ · 100%'), findsOneWidget);
       await t.tap(find.text('Xem báo cáo tháng →'));
       await t.pumpAndSettle();
       expect(reportsOpened, 1);
@@ -500,6 +536,26 @@ void main() {
       );
       await t.pumpAndSettle();
       expect(find.text('Tóm tắt tháng này'), findsNothing);
+    });
+  });
+
+  group('account strip', () {
+    testWidgets('a wallet card taps through to its register', (t) async {
+      AccountSummary? opened;
+      await t.pumpWidget(_dash(onOpenAccount: (a) => opened = a));
+      await t.pumpAndSettle();
+      // The strip sits above the activity list — .first is the card,
+      // not an activity row that also names the wallet.
+      final card = find.widgetWithText(InkWell, 'Tiền mặt').first;
+      await t.ensureVisible(card);
+      await t.tap(card);
+      expect(opened?.id, 'acc-cash');
+    });
+
+    testWidgets('no open seam keeps cards inert — no dead chevron', (t) async {
+      await t.pumpWidget(_dash());
+      await t.pumpAndSettle();
+      expect(find.byIcon(Icons.chevron_right), findsNothing);
     });
   });
 }

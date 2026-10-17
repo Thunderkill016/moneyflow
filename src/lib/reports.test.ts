@@ -51,6 +51,43 @@ test("excludes transfers from income and expense totals", () => {
   );
 });
 
+test("categories and payees carry per-bucket MoM deltas", () => {
+  // month range: current 07-01..07-14, previous 06-17..06-30.
+  const range = reportRange("2026-07-14", "month");
+  const report = buildFinancialReport([
+    transaction({ amount: 80_000, payee: "Circle K" }),
+    transaction({ id: "prev", occurredOn: "2026-06-20", amount: 50_000, payee: "Circle K" }),
+    transaction({ id: "new", category: "Sức khỏe", amount: 45_000, payee: "Highlands" }),
+    transaction({ id: "old", occurredOn: "2026-06-25", amount: 120_000, category: "Tiền nhà", payee: "Chủ nhà" }),
+  ], range);
+  // Ăn uống: 80k now vs 50k prior.
+  assert.equal(report.categories.find((c) => c.name === "Ăn uống")?.previous, 50_000);
+  // New bucket → null baseline ("mới" — never a fake 0).
+  assert.equal(report.categories.find((c) => c.name === "Sức khỏe")?.previous, null);
+  // Prior-only bucket stays as an honest zero row with its drop visible.
+  const rent = report.categories.find((c) => c.name === "Tiền nhà");
+  assert.equal(rent?.amount, 0);
+  assert.equal(rent?.previous, 120_000);
+  // Payees mirror the same rules on the same windows.
+  assert.equal(report.payees.find((p) => p.name === "Circle K")?.previous, 50_000);
+  assert.equal(report.payees.find((p) => p.name === "Highlands")?.previous, null);
+  const landlord = report.payees.find((p) => p.name === "Chủ nhà");
+  assert.equal(landlord?.amount, 0);
+  assert.equal(landlord?.previous, 120_000);
+});
+
+test("delta buckets skip excluded rows like the breakdown itself", () => {
+  const range = reportRange("2026-07-14", "month");
+  const report = buildFinancialReport([
+    transaction({ amount: 80_000, payee: "Circle K" }),
+    transaction({ id: "hidden", amount: 99_000, category: "Ẩn", payee: "Hidden", excludedFromReports: true }),
+  ], range);
+  // The excluded row left every breakdown — a delta bucket for it
+  // would invent a comparison the section itself never shows.
+  assert.equal(report.categories.find((c) => c.name === "Ẩn"), undefined);
+  assert.equal(report.payees.find((p) => p.name === "Hidden"), undefined);
+});
+
 test("rows flagged excludedFromReports never reach any report total", () => {
   const range = reportRange("2026-07-14", "month");
   const report = buildFinancialReport(

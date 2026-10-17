@@ -340,6 +340,7 @@ void main() {
       Future<void> Function(Transaction)? onEdit,
       Future<void> Function(String)? onDelete,
       Future<AccountSummary?> Function()? loadAccount,
+      Future<void> Function(bool)? onArchiveAccount,
       int pageSize = transactionPageSize,
     }) => MaterialApp(
       home: AccountRegisterPage(
@@ -348,6 +349,7 @@ void main() {
         onEdit: onEdit,
         onDelete: onDelete,
         loadAccount: loadAccount,
+        onArchiveAccount: onArchiveAccount,
       ),
     );
 
@@ -589,6 +591,38 @@ void main() {
         find.text('Số dư ${formatMoney(_account.balance + 28000)}'),
         findsOneWidget,
       );
+    });
+    testWidgets('close asks, writes the seam, then offers reopen', (t) async {
+      bool? written;
+      await t.pumpWidget(
+        page(
+          const [],
+          onArchiveAccount: (archived) async => written = archived,
+        ),
+      );
+      await t.pumpAndSettle();
+      await t.tap(find.byTooltip('Tùy chọn Tiền mặt'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Đóng tài khoản'));
+      await t.pumpAndSettle();
+      // Confirmation names the consequence before any write.
+      expect(find.textContaining('giao dịch cũ vẫn giữ'), findsOneWidget);
+      await t.tap(find.widgetWithText(FilledButton, 'Đóng'));
+      await t.pumpAndSettle();
+      expect(written, true);
+      expect(find.text('Đã đóng'), findsOneWidget);
+      // The closed row now offers reopen — the contract is reversible.
+      await t.tap(find.byTooltip('Tùy chọn Tiền mặt'));
+      await t.pumpAndSettle();
+      expect(find.text('Mở lại tài khoản'), findsOneWidget);
+    });
+
+    testWidgets('no archive seam hides the menu — read-only stays honest', (
+      t,
+    ) async {
+      await t.pumpWidget(page(const []));
+      await t.pumpAndSettle();
+      expect(find.byTooltip('Tùy chọn Tiền mặt'), findsNothing);
     });
   });
 

@@ -522,6 +522,156 @@ void main() {
       expect(categoryDeltaKey(named), 'cat-1');
       expect(categoryDeltaKey(unnamed), 'name:Tên lạ');
     });
+
+    test('excluded rows feed no delta — they left the breakdown too', () {
+      final deltas = expenseCategoryDeltas(
+        current: [
+          Transaction(
+            id: 't',
+            kind: TransactionKind.expense,
+            categoryId: 'c-Ẩn',
+            category: 'Ẩn',
+            note: '',
+            accountId: 'a',
+            account: 'A',
+            amount: 99000,
+            occurredOn: '2026-10-01',
+            excludedFromReports: true,
+          ),
+          cat('Ăn uống', 50000),
+        ],
+        previous: [cat('Ăn uống', 30000)],
+      );
+      // The breakdown skipped the excluded row — a delta bucket for it
+      // would invent a comparison the section itself never shows.
+      expect(deltas.keys, {'c-Ăn uống'});
+    });
+  });
+
+  group('expensePayeeDeltas', () {
+    /// Payee rows key on the trimmed payee text itself — the same
+    /// `payeeIds[payee] ??= payee` drill key the breakdown builds.
+    Transaction pay(String? payee, int amount) => Transaction(
+      id: 't',
+      kind: TransactionKind.expense,
+      categoryId: 'c',
+      category: 'Ăn uống',
+      note: '',
+      accountId: 'a',
+      account: 'A',
+      amount: amount,
+      occurredOn: '2026-10-01',
+      payee: payee,
+    );
+
+    test('rise and drop report honest signs per payee', () {
+      final deltas = expensePayeeDeltas(
+        current: [pay('Circle K', 80000), pay('Grab', 30000)],
+        previous: [pay('Circle K', 50000), pay('Grab', 60000)],
+      );
+      expect(deltas['Circle K']!.change, 30000);
+      expect(deltas['Grab']!.change, -30000);
+    });
+
+    test('a payee absent last window is "mới" — previous null, not 0', () {
+      final deltas = expensePayeeDeltas(
+        current: [pay('Highlands', 45000)],
+        previous: [pay('Circle K', 50000)],
+      );
+      expect(deltas['Highlands']!.previous, isNull);
+      expect(deltas['Highlands']!.change, 45000);
+    });
+
+    test('a payee that fell to zero keeps its honest negative change', () {
+      final deltas = expensePayeeDeltas(
+        current: [pay('Circle K', 50000)],
+        previous: [pay('Circle K', 50000), pay('FamilyMart', 120000)],
+      );
+      expect(deltas['FamilyMart']!.current, 0);
+      expect(deltas['FamilyMart']!.change, -120000);
+      expect(deltas['FamilyMart']!.name, 'FamilyMart');
+    });
+
+    test('payee-less spend groups under the unnamed bucket', () {
+      final deltas = expensePayeeDeltas(
+        current: [pay(null, 40000), pay('   ', 10000)],
+        previous: [pay(null, 25000)],
+      );
+      expect(deltas['']!.name, unnamedPayeeBucket);
+      expect(deltas['']!.current, 50000);
+      expect(deltas['']!.change, 25000);
+    });
+
+    test('refund income nets the payee it reimburses', () {
+      final deltas = expensePayeeDeltas(
+        current: [
+          pay('Circle K', 80000),
+          Transaction(
+            id: 't',
+            kind: TransactionKind.income,
+            categoryId: 'c',
+            category: 'Ăn uống',
+            note: '',
+            accountId: 'a',
+            account: 'A',
+            amount: 20000,
+            occurredOn: '2026-10-01',
+            payee: 'Circle K',
+            isRefund: true,
+          ),
+        ],
+        previous: [pay('Circle K', 50000)],
+      );
+      // 80k spent − 20k refunded = 60k net, like the breakdown row.
+      expect(deltas['Circle K']!.current, 60000);
+      expect(deltas['Circle K']!.change, 10000);
+    });
+
+    test('income, transfers and excluded rows never feed a payee delta', () {
+      final deltas = expensePayeeDeltas(
+        current: [
+          Transaction(
+            id: 't',
+            kind: TransactionKind.income,
+            categoryId: 'c',
+            category: 'Lương',
+            note: '',
+            accountId: 'a',
+            account: 'A',
+            amount: 9000000,
+            occurredOn: '2026-10-01',
+            payee: 'Công ty',
+          ),
+          Transaction(
+            id: 't',
+            kind: TransactionKind.transfer,
+            categoryId: 'c',
+            category: 'Chuyển',
+            note: '',
+            accountId: 'a',
+            account: 'A',
+            amount: 500000,
+            occurredOn: '2026-10-01',
+            payee: 'Ví khác',
+          ),
+          Transaction(
+            id: 't',
+            kind: TransactionKind.expense,
+            categoryId: 'c',
+            category: 'Ăn uống',
+            note: '',
+            accountId: 'a',
+            account: 'A',
+            amount: 99000,
+            occurredOn: '2026-10-01',
+            payee: 'Hidden',
+            excludedFromReports: true,
+          ),
+        ],
+        previous: [pay('Circle K', 50000)],
+      );
+      expect(deltas.keys, {'Circle K'});
+    });
   });
 
   group('MonthPeriod', () {

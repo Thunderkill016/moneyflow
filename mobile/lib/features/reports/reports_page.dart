@@ -11,6 +11,7 @@ import '../../domain/models.dart';
 import '../../domain/net_worth.dart';
 import '../../domain/report.dart';
 import '../../domain/transaction_query.dart';
+import '../../domain/treemap.dart';
 import '../../domain/weekly_buckets.dart';
 import '../shared/timed_snack_bar.dart';
 
@@ -80,16 +81,18 @@ class ReportsPage extends StatefulWidget {
 class ReportsPageState extends State<ReportsPage> {
   /// [buckets] feeds the Thu/Chi weekly chart — computed on the same
   /// range read as the report so the chart can never disagree with the
-  /// totals beside it. [deltas] is the expense-category MoM column —
-  /// null when the prior window's read failed or came back capped, so
-  /// the section can explain the missing column instead of drawing
-  /// arrows on a partial baseline.
+  /// totals beside it. [deltas]/[payeeDeltas] are the MoM columns for
+  /// the expense-category and payee sections — null when the prior
+  /// window's read failed or came back capped, so each section can
+  /// explain the missing column instead of drawing arrows on a
+  /// partial baseline.
   late Future<
     ({
       PeriodReport report,
       bool truncated,
       List<WeeklyBucket> buckets,
       Map<String, CategoryDelta>? deltas,
+      Map<String, CategoryDelta>? payeeDeltas,
     })
   >
   _report;
@@ -122,6 +125,7 @@ class ReportsPageState extends State<ReportsPage> {
       bool truncated,
       List<WeeklyBucket> buckets,
       Map<String, CategoryDelta>? deltas,
+      Map<String, CategoryDelta>? payeeDeltas,
     })
   >
   _load() async {
@@ -148,6 +152,10 @@ class ReportsPageState extends State<ReportsPage> {
               current: range.rows,
               previous: prevRange.rows,
             ),
+      // Same prior window feeds the payee column — no extra read.
+      payeeDeltas: prevRange == null || prevRange.truncated
+          ? null
+          : expensePayeeDeltas(current: range.rows, previous: prevRange.rows),
     );
   }
 
@@ -496,6 +504,7 @@ class ReportsPageState extends State<ReportsPage> {
                 final truncated = snap.data!.truncated;
                 final buckets = snap.data!.buckets;
                 final deltas = snap.data!.deltas;
+                final payeeDeltas = snap.data!.payeeDeltas;
                 return RefreshIndicator(
                   onRefresh: _refresh,
                   child: ListView(
@@ -598,6 +607,15 @@ class ReportsPageState extends State<ReportsPage> {
                               ? 'Chưa so được với kỳ trước — dữ liệu kỳ '
                                     'trước chưa tải đủ'
                               : '▲/▼ so với kỳ trước',
+                          chart: _CategoryTreemap(
+                            rows: r.categories,
+                            onRowTap: _rowTap(
+                              (id) => _periodQuery().copyWith(
+                                kind: TransactionKind.expense,
+                                categoryId: id,
+                              ),
+                            ),
+                          ),
                           onRowTap: _rowTap(
                             (id) => _periodQuery().copyWith(
                               kind: TransactionKind.expense,
@@ -631,6 +649,11 @@ class ReportsPageState extends State<ReportsPage> {
                           title: 'Chi theo người nhận',
                           rows: r.payees,
                           emptyLabel: 'Chưa có khoản chi trong kỳ này',
+                          deltas: payeeDeltas,
+                          deltaNote: payeeDeltas == null
+                              ? 'Chưa so được với kỳ trước — dữ liệu kỳ '
+                                    'trước chưa tải đủ'
+                              : '▲/▼ so với kỳ trước',
                           onRowTap: _rowTap(
                             (payee) => _periodQuery().copyWith(
                               kind: TransactionKind.expense,
@@ -888,12 +911,18 @@ class _ShareSection extends StatelessWidget {
     this.onRowTap,
     this.deltas,
     this.deltaNote,
+    this.chart,
   });
 
   final String title;
   final List<CategoryShare> rows;
   final String emptyLabel;
   final void Function(CategoryShare row)? onRowTap;
+
+  /// Optional visual above the row list — the expense-category section
+  /// mounts the share treemap here. Sections that leave it null render
+  /// rows only.
+  final Widget? chart;
 
   /// Per-bucket MoM deltas keyed by [categoryDeltaKey] — the expense
   /// category section's comparison column. Other sections leave it null.
@@ -961,6 +990,8 @@ class _ShareSection extends StatelessWidget {
               ).textTheme.labelSmall?.copyWith(color: context.mf.textSoft),
             ),
           ),
+        if (rows.isNotEmpty && chart != null)
+          Padding(padding: const EdgeInsets.only(bottom: 8), child: chart!),
         for (final c in _visibleRows) _rowCard(context, c),
       ],
     );
@@ -991,6 +1022,147 @@ class _ShareSection extends StatelessWidget {
         ),
         onTap: onRowTap == null || c.id == null ? null : () => onRowTap!(c),
       ),
+    );
+  }
+}
+
+/// Spendee/Monarch-style share treemap over the expense-category
+/// breakdown: the top buckets as proportional pastel blocks laid out by
+/// [squarifiedTreemap], the tail rolled into one 'Khác' cell. A named
+/// cell drills into the same filtered feed as its row; the roll-up is
+/// visual-only because a composite bucket has no single filter to
+/// reproduce — same honest-affordance rule as key-less rows.
+class _CategoryTreemap extends StatelessWidget {
+  const _CategoryTreemap({required this.rows, this.onRowTap});
+
+  final List<CategoryShare> rows;
+  final void Function(CategoryShare row)? onRowTap;
+
+  /// Buckets beyond this many named blocks roll into 'Khác' — more
+  /// cells than that shrink past readable size at report width.
+  static const _maxNamedBlocks = 7;
+  static const _height = 148.0;
+
+  /// Text inside a cell reads instead of clipping only past this room;
+  /// smaller cells stay colour-only and keep their row card below.
+  static const _nameMinWidth = 56.0;
+  static const _nameMinHeight = 34.0;
+  static const _shareMinHeight = 52.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final named = rows.take(_maxNamedBlocks).toList();
+    final tail = rows.skip(_maxNamedBlocks);
+    final tailAmount = tail.fold<int>(0, (s, r) => s + r.amount);
+    final tailShare = tail.fold<int>(0, (s, r) => s + r.share);
+    final weights = <double>[
+      for (final r in named) r.amount.toDouble(),
+      if (tailAmount > 0) tailAmount.toDouble(),
+    ];
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: SizedBox(
+          height: _height,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final cells = squarifiedTreemap(
+                weights,
+                constraints.maxWidth,
+                _height,
+              );
+              return Stack(
+                children: [
+                  for (final cell in cells)
+                    _cell(
+                      context,
+                      cell,
+                      cell.index < named.length ? named[cell.index] : null,
+                      tailShare,
+                    ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _cell(
+    BuildContext context,
+    TreemapCell cell,
+    CategoryShare? row,
+    int tailShare,
+  ) {
+    final mf = context.mf;
+    final rollup = row == null;
+    // Target-size honesty (same floor as the web cells): a sliver under
+    // ~44px stays visual-only — the row below carries the same drill.
+    final tap =
+        (!rollup &&
+            onRowTap != null &&
+            row.id != null &&
+            cell.w >= 48 &&
+            cell.h >= 44)
+        ? () => onRowTap!(row)
+        : null;
+    final share = row?.share ?? tailShare;
+    return Positioned(
+      left: cell.x + 1,
+      top: cell.y + 1,
+      width: cell.w - 2,
+      height: cell.h - 2,
+      child: Semantics(
+        button: tap != null,
+        label: '${row?.name ?? 'Khác'} $share%',
+        child: GestureDetector(
+          key: ValueKey('treemap-${rollup ? 'khac' : (row.id ?? row.name)}'),
+          behavior: HitTestBehavior.opaque,
+          onTap: tap,
+          child: Container(
+            decoration: BoxDecoration(
+              color: rollup
+                  ? mf.surfaceMuted
+                  : mfPastelFills[cell.index % mfPastelFills.length],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            padding: const EdgeInsets.all(6),
+            alignment: Alignment.topLeft,
+            child: cell.w >= _nameMinWidth && cell.h >= _nameMinHeight
+                ? _label(context, row, share, cell.h >= _shareMinHeight)
+                : null,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _label(
+    BuildContext context,
+    CategoryShare? row,
+    int share,
+    bool showShare,
+  ) {
+    final ink = row == null ? context.mf.textSoft : mfPastelInk;
+    final theme = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          row?.name ?? 'Khác',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.labelMedium?.copyWith(
+            color: ink,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        if (showShare && share > 0)
+          Text('$share%', style: theme.labelSmall?.copyWith(color: ink)),
+      ],
     );
   }
 }

@@ -26,6 +26,13 @@ export type AttentionItem = {
 export const BACKUP_REMINDER_DAYS = 30;
 
 /**
+ * Forward window for the "sắp đến hạn" chip — mirrors the mobile
+ * dashboard's `_upcomingWindowDays`. Due-today stays in the due chip;
+ * only strictly-future occurrences land here.
+ */
+export const UPCOMING_WINDOW_DAYS = 7;
+
+/**
  * What the workspace knows about backup recency. `null` means the state is
  * unavailable — demo mode, error paths and pre-migration deploys — in which
  * case the strip must stay silent rather than invent a reminder.
@@ -54,6 +61,14 @@ function daysBetweenIso(from: string, to: string) {
 export function buildAttentionItems(input: {
   budgets: BudgetSummary[];
   commitments: RecurringCommitment[];
+  /**
+   * Amount recorded on each paid commitment's linked transaction,
+   * keyed by `transactionId` — the same join the mobile feed performs.
+   * A paid commitment whose recorded amount differs from its declared
+   * amount surfaces the drift chip; an id missing from the map means
+   * "paid, amount unknown" and stays silent rather than guessing.
+   */
+  paidAmountByTransactionId?: ReadonlyMap<string, number>;
   inboxCount?: number;
   needsReviewCount?: number;
   /**
@@ -75,6 +90,7 @@ export function buildAttentionItems(input: {
   const {
     budgets,
     commitments,
+    paidAmountByTransactionId,
     inboxCount = 0,
     needsReviewCount = 0,
     goalPaceAttentionCount = 0,
@@ -112,6 +128,53 @@ export function buildAttentionItems(input: {
       label: `${unpaidDue.length} hóa đơn tới hạn hoặc quá hạn`,
       href: "/commitments",
       tone: "warning",
+    });
+  }
+
+  const upcoming = commitments.filter(
+    (c) =>
+      !c.isArchived &&
+      !c.isPaid &&
+      c.dueDate > today &&
+      daysBetweenIso(today, c.dueDate) <= UPCOMING_WINDOW_DAYS,
+  );
+  if (upcoming.length === 1) {
+    const c = upcoming[0]!;
+    items.push({
+      id: `bill-upcoming-${c.id}`,
+      label: `Hóa đơn sắp đến hạn: ${c.name} (${chipMoney(c.amount)})`,
+      href: "/commitments",
+      tone: "info",
+    });
+  } else if (upcoming.length > 1) {
+    items.push({
+      id: "bills-upcoming",
+      label: `${upcoming.length} hóa đơn sắp đến hạn`,
+      href: "/commitments",
+      tone: "info",
+    });
+  }
+
+  const drift = commitments.filter((c) => {
+    if (!c.isPaid || c.transactionId == null) return false;
+    const paid = paidAmountByTransactionId?.get(c.transactionId);
+    return paid != null && paid !== c.amount;
+  });
+  if (drift.length === 1) {
+    const c = drift[0]!;
+    const paid = paidAmountByTransactionId!.get(c.transactionId!)!;
+    items.push({
+      id: "bill-drift",
+      label: `Trả khác số tiền: ${c.name} (đã trả ${chipMoney(paid)})`,
+      href: "/commitments",
+      tone: "info",
+    });
+  } else if (drift.length > 1) {
+    items.push({
+      id: "bill-drift",
+      label: `${drift.length} cam kết trả khác số tiền`,
+      href: "/commitments",
+      tone: "info",
     });
   }
 
