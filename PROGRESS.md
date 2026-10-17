@@ -420,6 +420,33 @@ NEXT STEP: none — mega-task closed 2026-10-17; prod migrations applied 2026-10
 RESUME: re-read this file; the backlog is empty — new work needs a fresh issue/packet.
 STATUS: DONE — 2026-10-17 — all DoD items evidenced.
 
+## Post-close addendum — dashboard upgrade (2026-10-17, PR #794 merged eee131ed + this commit)
+
+Owner direction: continuous autonomous research/build/test toward top-app parity.
+Research: docs/research/DASHBOARD_PATTERNS_TOP_APPS_2026.md (Copilot, Money
+Lover, PocketGuard, Spendee, Monarch, Money Manager). Three dashboard gaps
+closed on mobile:
+
+- P1 month pace — `mobile/lib/domain/month_pace.dart` `buildMonthPace` +
+  `_PaceChart` in the remainder card: cumulative month-to-date spend line vs
+  dashed ideal budget pace, current-day dot, status words
+  (Đúng/Nhanh/Chậm hơn nhịp) + "đã chi N% ngân sách". Chart excluded from
+  semantics; text remains authoritative. No summary read → no chart.
+- P2 top-3 category share bars — `MonthSummary.topCategories` (ranked desc,
+  name tie-break) + `_CategoryShareRow` in the summary card.
+- P3 upcoming commitments — `_AttentionCard` + `_upcomingWindowDays=7`
+  forward window (due-today included; overdue / paid-different stay
+  separate).
+- Dev gates in `mobile/lib/main.dart`: `--dart-define=MF_ALLOW_CAPTURE=true`
+  (skip FLAG_SECURE for QA screenshots) and `MF_ALLOW_DEMO=true` (demo entry
+  without credentials). Both default off — shipped builds unaffected.
+
+Verified: flutter analyze clean; focused suite 73/73 then full suite green;
+device-verified on OPPO CPH2001 demo mode — screenshots in
+docs/design/dashboard-pace-v3/ (pace line + Nhanh hơn nhịp status, 3 share
+bars Hóa đơn 52% / Ăn uống 45% / Di chuyển, empty upcoming correctly absent
+in demo data).
+
 ---
 
 ## 2026-10-16 — UX polish pass (owner walkthrough feedback)

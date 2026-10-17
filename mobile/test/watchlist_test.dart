@@ -194,7 +194,9 @@ void main() {
       );
       await t.pumpAndSettle();
       expect(find.text('Đang theo dõi'), findsOneWidget);
-      expect(find.text('Ăn uống'), findsOneWidget);
+      // The summary card's share bars name the category too — two
+      // widgets is the correct read, not a dup.
+      expect(find.text('Ăn uống'), findsWidgets);
       expect(find.textContaining('Chi 85.000 ₫ tháng này'), findsOneWidget);
       expect(find.textContaining('Sắp tới ngưỡng'), findsOneWidget);
     });
