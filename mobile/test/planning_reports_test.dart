@@ -1085,8 +1085,9 @@ void main() {
       expect(find.text('Chi'), findsWidgets);
       expect(find.text('Còn lại'), findsOneWidget);
       expect(find.text('Tiết kiệm'), findsOneWidget);
-      expect(find.text('Ăn uống'), findsOneWidget);
-      expect(find.text('Di chuyển'), findsOneWidget);
+      // Each category name reads twice — the treemap cell and its row.
+      expect(find.text('Ăn uống'), findsNWidgets(2));
+      expect(find.text('Di chuyển'), findsNWidgets(2));
       // Out-of-month expense never reaches the breakdown.
       expect(find.text('Khác'), findsNothing);
     });
@@ -1197,7 +1198,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Ăn uống'));
+      // The row's ListTile — the treemap cell carries the same label.
+      await tester.tap(find.widgetWithText(ListTile, 'Ăn uống'));
       await tester.pumpAndSettle();
 
       final (q, title) = opened!;
@@ -1209,6 +1211,66 @@ void main() {
       expect(q.dateTo, to);
       final now = DateTime.now();
       expect(title, 'Ăn uống · Tháng ${now.month}/${now.year}');
+    });
+
+    testWidgets('the category treemap cell drills in on the row key', (
+      tester,
+    ) async {
+      _tallViewport(tester);
+      final day = _thisMonthDay();
+      (TransactionQuery, String)? opened;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ReportsPage(
+            loadTransactions: () => Future.value([
+              _tx('t1', TransactionKind.expense, 'Ăn uống', 45000, day),
+              _tx('t2', TransactionKind.expense, 'Nhà cửa', 30000, day),
+            ]),
+            onOpenActivity: (q, title) async => opened = (q, title),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('treemap-cat-Ăn uống')));
+      await tester.pumpAndSettle();
+
+      final (q, _) = opened!;
+      expect(q.kind, TransactionKind.expense);
+      expect(q.categoryId, 'cat-Ăn uống');
+    });
+
+    testWidgets('the treemap rolls the tail into a non-drilling Khác cell', (
+      tester,
+    ) async {
+      _tallViewport(tester);
+      final day = _thisMonthDay();
+      var opened = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ReportsPage(
+            // Eight expense buckets — the eighth rolls into 'Khác'.
+            loadTransactions: () => Future.value([
+              for (var i = 0; i < 8; i++)
+                _tx('t$i', TransactionKind.expense, 'Danh mục $i', 1000, day),
+            ]),
+            onOpenActivity: (q, title) async => opened++,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Exactly one roll-up cell — keyed, labelled, and without a drill
+      // (a composite bucket has no single filter to reproduce).
+      final rollup = find.byKey(const ValueKey('treemap-khac'));
+      expect(rollup, findsOneWidget);
+      expect(
+        find.descendant(of: rollup, matching: find.text('Khác')),
+        findsOneWidget,
+      );
+      await tester.tap(rollup);
+      await tester.pumpAndSettle();
+      expect(opened, 0);
     });
 
     testWidgets('account and payee rows drill in on their own keys', (
@@ -1305,7 +1367,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Tên lạ'));
+      // The row's ListTile — the treemap cell carries the same label.
+      await tester.tap(find.widgetWithText(ListTile, 'Tên lạ'));
       await tester.pumpAndSettle();
       expect(calls, 0);
     });
@@ -1692,8 +1755,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Arrows on a partial baseline would lie — both delta sections
-      // say why the column is missing instead.
-      expect(find.text('Ăn uống'), findsOneWidget);
+      // say why the column is missing instead. The name reads in the
+      // treemap cell and its row.
+      expect(find.text('Ăn uống'), findsNWidgets(2));
       expect(
         find.text('Chưa so được với kỳ trước — dữ liệu kỳ trước chưa tải đủ'),
         findsNWidgets(2),
@@ -1725,8 +1789,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // The report loaded fine — only the comparison is absent.
-      expect(find.text('Ăn uống'), findsOneWidget);
+      // The report loaded fine — only the comparison is absent. The
+      // name reads in the treemap cell and its row.
+      expect(find.text('Ăn uống'), findsNWidgets(2));
       expect(
         find.text('Chưa so được với kỳ trước — dữ liệu kỳ trước chưa tải đủ'),
         findsNWidgets(2),
