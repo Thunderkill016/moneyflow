@@ -1,24 +1,35 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:screen_protector/screen_protector.dart';
 
-import 'app/app.dart';
-import 'app/screen_shield.dart';
+import 'fintech/fintech_shell.dart';
 
 /// Dev-only escape hatch: `--dart-define=MF_ALLOW_CAPTURE=true` skips the
-/// screenshot shield so QA can capture screens on a debug build. Never set
-/// in release; the flag defaults to protected.
+/// screenshot shield so QA can capture screens on a debug build.
 const _kAllowCapture = bool.fromEnvironment('MF_ALLOW_CAPTURE');
-
-/// Dev-only demo entry: `--dart-define=MF_ALLOW_DEMO=true` surfaces the
-/// "Xem bản demo" button so QA can inspect screens without credentials.
-/// Defaults off — shipped builds never offer the demo gate.
-const _kAllowDemo = bool.fromEnvironment('MF_ALLOW_DEMO');
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  // Ledger screens are sensitive: block screenshots/screen recording
-  // app-wide (FLAG_SECURE). Best-effort — never blocks startup.
-  if (!_kAllowCapture) unawaited(ScreenShield.protect());
-  runApp(const MoneyFlowApp(allowDemo: _kAllowDemo));
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: Color(0xFF080B14),
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
+  );
+  if (!_kAllowCapture) {
+    unawaited(_protectWindowBestEffort());
+  }
+  runApp(const FintechApp());
+}
+
+Future<void> _protectWindowBestEffort() async {
+  try {
+    await ScreenProtector.preventScreenshotOn();
+  } catch (_) {
+    // Unsupported platform/emulator keeps running cleanly.
+  }
 }

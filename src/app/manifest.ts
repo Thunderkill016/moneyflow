@@ -1,22 +1,17 @@
 import type { MetadataRoute } from "next";
 
-/**
- * Web app manifest — PWA install + share_target (TASK-021).
- * Share POSTs multipart to /capture/share (rewritten to API bridge).
- */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    // G5: personal thu chi — not “inbox-first” brand
-    name: "MoneyFlow — Quản lý thu chi cá nhân",
+    name: "MoneyFlow — Tài chính cá nhân & Tài sản ròng",
     short_name: "MoneyFlow",
     description:
-      "Ghi thu chi nhanh, theo dõi nhiều ví, ngân sách và báo cáo tháng. Xuất CSV bất cứ lúc nào.",
-    start_url: "/dashboard",
+      "Ghi thu chi trong 3 giây, kiểm soát Safe-to-Spend, theo dõi đầu tư tích lũy và sao lưu dữ liệu cục bộ bất kỳ lúc nào.",
+    start_url: "/",
     scope: "/",
     display: "standalone",
     orientation: "portrait-primary",
-    background_color: "#F8F5FF",
-    theme_color: "#6F4EF5",
+    background_color: "#F8FAFC",
+    theme_color: "#5B4FE9",
     lang: "vi",
     icons: [
       {
@@ -47,9 +42,9 @@ export default function manifest(): MetadataRoute.Manifest {
     shortcuts: [
       {
         name: "Ghi khoản chi",
-        short_name: "Khoản chi",
-        description: "Mở nhập nhanh ở chế độ khoản chi",
-        url: "/capture/quick?kind=expense",
+        short_name: "Ghi nhanh",
+        description: "Mở bàn phím số & thanh lệnh ghi chi tiêu",
+        url: "/",
         icons: [
           {
             src: "/icon-192.png",
@@ -59,23 +54,10 @@ export default function manifest(): MetadataRoute.Manifest {
         ],
       },
       {
-        name: "Ghi khoản thu",
-        short_name: "Khoản thu",
-        description: "Mở nhập nhanh ở chế độ khoản thu",
-        url: "/capture/quick?kind=income",
-        icons: [
-          {
-            src: "/icon-192.png",
-            sizes: "192x192",
-            type: "image/png",
-          },
-        ],
-      },
-      {
-        name: "Chuyển tiền",
-        short_name: "Chuyển tiền",
-        description: "Mở luồng chuyển tiền giữa các tài khoản",
-        url: "/capture/quick?kind=transfer",
+        name: "Bảng điều hành",
+        short_name: "Tổng quan",
+        description: "Mở màn hình Safe-to-Spend & Tài sản ròng",
+        url: "/dashboard",
         icons: [
           {
             src: "/icon-192.png",
@@ -85,30 +67,5 @@ export default function manifest(): MetadataRoute.Manifest {
         ],
       },
     ],
-    share_target: {
-      action: "/capture/share",
-      method: "POST",
-      enctype: "multipart/form-data",
-      params: {
-        title: "title",
-        text: "text",
-        url: "url",
-        files: [
-          {
-            name: "files",
-            accept: [
-              "text/*",
-              "text/csv",
-              "text/plain",
-              "application/csv",
-              ".csv",
-              ".txt",
-              ".text",
-              ".tsv",
-            ],
-          },
-        ],
-      },
-    },
   };
 }

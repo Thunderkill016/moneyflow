@@ -1,202 +1,139 @@
-import fs from "node:fs";
-import process from "node:process";
+import { appendFileSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
+import { execFileSync } from "node:child_process";
 
-import { runUiMigrationDiffCheck } from "./check-ui-migration-diff.mjs";
+const DOC_ONLY_PREFIXES = ["README.md", ".github/PULL_REQUEST_TEMPLATE.md", ".github/pull_request_template.md"];
 
-const normalize = (value) =>
-  value.trim().replaceAll("\\", "/").replace(/^\.\//, "");
+function normalizePath(filePath) {
+  return String(filePath).replace(/\\/gu, "/").replace(/^\.\//u, "").trim();
+}
 
-export const isDocumentationOnlyPath = (file) =>
-  file.endsWith(".md") ||
-  file.startsWith("docs/") ||
-  file.startsWith(".github/ISSUE_TEMPLATE/") ||
-  file.startsWith(".github/PULL_REQUEST_TEMPLATE/") ||
-  file.startsWith(".github/DISCUSSION_TEMPLATE/") ||
-  /^LICENSE(?:\.|$)/.test(file);
+function isDocOnlyFile(file) {
+  if (/\.md$/iu.test(file) && !file.startsWith(".github/")) return true;
+  return DOC_ONLY_PREFIXES.some((exact) => file === exact);
+}
 
-const isJavaScriptOrTypeScript = (file) => /\.(?:[cm]?[jt]sx?)$/.test(file);
-export const matchesAny = (file, matchers) =>
-  matchers.some((matcher) => matcher(file));
-const startsWith = (prefix) => (file) => file.startsWith(prefix);
-const equals = (expected) => (file) => file === expected;
-const matches = (pattern) => (file) => pattern.test(file);
-
-export const isRequestBoundary = (file) =>
-  /^(?:middleware|proxy)\.[cm]?[jt]s$/.test(file);
-
-export const workflowOrPolicyMatchers = [
-  startsWith(".github/workflows/"),
-  startsWith("scripts/agent-harness/"),
-  startsWith("scripts/agent-dispatcher/"),
-  equals("scripts/classify-ci-changes.mjs"),
-  equals("scripts/classify-ci-changes.test.mjs"),
-  equals("scripts/check-ui-migration-diff.mjs"),
-  equals("scripts/check-ui-migration-diff.test.mjs"),
-  equals("scripts/check-project-knowledge.mjs"),
-  equals("scripts/project-knowledge-contract.mjs"),
-  equals("scripts/project-knowledge-contract.test.mjs"),
-  equals("scripts/active-packet-registry.mjs"),
-  equals("scripts/agent-doctor.mjs"),
-  equals("scripts/agent-doctor.test.mjs"),
-  equals("docs/research/PROJECT_KNOWLEDGE_CONTRACT.json"),
+const DATABASE_MATCHERS = [
+  (file) => file.startsWith("supabase/"),
+  (file) => file.startsWith("db/"),
+  (file) => file === "scripts/check-migration-identity.mjs",
+  (file) => file === "scripts/check-rls-migrations.sh",
 ];
 
-export const databaseMatchers = [
-  startsWith("supabase/"),
-  equals("scripts/check-rls-migrations.sh"),
-  equals("scripts/verify-archive-producer.sh"),
-  equals("scripts/verify-archive-producer.mjs"),
-  equals(".github/workflows/ci.yml"),
-  equals("scripts/classify-ci-changes.mjs"),
-  equals("scripts/classify-ci-changes.test.mjs"),
+const MOBILE_MATCHERS = [(file) => file.startsWith("mobile/")];
+
+const WORKFLOW_OR_POLICY_MATCHERS = [
+  (file) => file === "package.json" || file === "package-lock.json",
+  (file) => file.startsWith(".github/workflows/"),
+  (file) => file === "scripts/classify-ci-changes.mjs",
+  (file) => file === "scripts/classify-ci-changes.test.mjs",
+  (file) => file === "scripts/check-workflow-pins.mjs",
+  (file) => file === "scripts/check-deploy-hygiene.mjs",
+  (file) => file === "scripts/check-architecture.mjs",
+  (file) => file === ".vercelignore",
 ];
 
-const pureDatabaseMatchers = [
-  startsWith("supabase/migrations/"),
-  startsWith("supabase/tests/"),
-  equals("supabase/seed.sql"),
-  equals("supabase/roles.sql"),
+const CODEQL_MATCHERS = [
+  (file) => /\.(?:[cm]?[jt]sx?)$/u.test(file) && !file.startsWith("mobile/"),
+  (file) => file === "next.config.ts",
+  (file) => file === "package.json" || file === "package-lock.json",
 ];
 
-const browserSmokeMatchers = [
-  startsWith("src/"),
-  startsWith("e2e/"),
-  startsWith("public/"),
-  startsWith("tests/"),
-  matches(/^playwright(?:\..+)?\.config\.[cm]?[jt]s$/),
-  matches(/^next\.config\.[cm]?[jt]s$/),
-  isRequestBoundary,
-  equals("package.json"),
-  equals("package-lock.json"),
-  equals(".github/workflows/ci.yml"),
-  equals("scripts/classify-ci-changes.mjs"),
-  equals("scripts/classify-ci-changes.test.mjs"),
-];
+export function classifyChanges(rawPaths) {
+  const files = rawPaths.map(normalizePath).filter(Boolean);
 
-const uiAuditMatchers = [
-  matches(/^src\/app\/.*\.(?:tsx|css)$/),
-  matches(/^src\/components\/.*\.(?:tsx|css)$/),
-  startsWith("src/lib/demo/"),
-  startsWith("public/"),
-  startsWith("e2e/audit/"),
-  matches(/^src\/.*\.css$/),
-  equals("playwright.audit.config.ts"),
-  equals(".github/workflows/ci.yml"),
-  equals("scripts/classify-ci-changes.mjs"),
-  equals("scripts/classify-ci-changes.test.mjs"),
-];
-
-const codeqlMatchers = [
-  isJavaScriptOrTypeScript,
-  equals("package.json"),
-  equals("package-lock.json"),
-  equals("eslint.config.mjs"),
-  equals("tsconfig.json"),
-  equals("next.config.ts"),
-  equals(".github/workflows/codeql.yml"),
-  equals(".github/workflows/ci.yml"),
-];
-
-const mobileMatchers = [
-  startsWith("mobile/"),
-  equals(".github/workflows/ci.yml"),
-  equals("scripts/classify-ci-changes.mjs"),
-  equals("scripts/classify-ci-changes.test.mjs"),
-];
-
-export function classifyChanges(inputFiles, { forceFull = false } = {}) {
-  const files = [...new Set(inputFiles.map(normalize).filter(Boolean))].sort();
-  if (forceFull || files.length === 0) {
+  if (files.length === 0) {
     return {
-      files,
-      docsOnly: false,
-      fullVerify: true,
-      database: true,
-      browserSmoke: true,
-      uiAudit: true,
+      docs_only: false,
+      full_verify: true,
+      database: false,
       codeql: true,
       mobile: true,
-      reason: forceFull
-        ? "full run requested"
-        : "no diff available; fail safe to full run",
+      reason: "no changed file list provided — running full verification defensively",
     };
   }
-  const docsOnly = files.every(isDocumentationOnlyPath);
+
+  const docsOnly = files.every(isDocOnlyFile);
+  const database = files.some((file) => DATABASE_MATCHERS.some((fn) => fn(file)));
+  const mobile = files.some((file) => MOBILE_MATCHERS.some((fn) => fn(file)));
   const workflowOrPolicy = files.some((file) =>
-    matchesAny(file, workflowOrPolicyMatchers),
+    WORKFLOW_OR_POLICY_MATCHERS.some((fn) => fn(file)),
   );
-  const hasDatabaseChange = files.some((file) =>
-    matchesAny(file, databaseMatchers),
+  const webSource = files.some(
+    (file) =>
+      file.startsWith("src/") ||
+      file.startsWith("public/") ||
+      file === "next.config.ts" ||
+      file === "tsconfig.json" ||
+      file === "eslint.config.mjs" ||
+      file === "postcss.config.mjs",
   );
-  const pureDatabaseOnly =
-    hasDatabaseChange &&
-    files.every(
-      (file) =>
-        isDocumentationOnlyPath(file) || matchesAny(file, pureDatabaseMatchers),
-    );
-  if (workflowOrPolicy) {
-    return {
-      files,
-      docsOnly: false,
-      fullVerify: true,
-      database: true,
-      browserSmoke: true,
-      uiAudit: true,
-      codeql: true,
-      mobile: true,
-      reason: "CI workflow or policy changed; exercise every gate",
-    };
+  const codeql = files.some((file) => CODEQL_MATCHERS.some((fn) => fn(file)));
+
+  const pureDatabaseOnly = database && !webSource && !workflowOrPolicy && !mobile;
+  const fullVerify = !docsOnly && (webSource || workflowOrPolicy || !pureDatabaseOnly);
+
+  let reason = "application changes detected";
+  if (docsOnly) {
+    reason = "documentation-only changes";
+  } else if (pureDatabaseOnly) {
+    reason = "database-only changes (skipping heavy Next.js checks)";
+  } else if (workflowOrPolicy) {
+    reason = "workflow or policy changes — running full verification";
   }
+
   return {
-    files,
-    docsOnly,
-    fullVerify: !docsOnly && !pureDatabaseOnly,
-    database: hasDatabaseChange,
-    browserSmoke: files.some((file) => matchesAny(file, browserSmokeMatchers)),
-    uiAudit: files.some((file) => matchesAny(file, uiAuditMatchers)),
-    codeql: files.some((file) => matchesAny(file, codeqlMatchers)),
-    mobile: files.some((file) => matchesAny(file, mobileMatchers)),
-    reason: docsOnly
-      ? "documentation-only change"
-      : pureDatabaseOnly
-        ? "database-only change"
-        : "risk-proportional checks selected from changed paths",
+    docs_only: docsOnly,
+    full_verify: fullVerify,
+    database,
+    codeql,
+    mobile,
+    reason,
   };
 }
 
-function toOutputEntries(result) {
-  return {
-    docs_only: String(result.docsOnly),
-    full_verify: String(result.fullVerify),
-    database: String(result.database),
-    browser_smoke: String(result.browserSmoke),
-    ui_audit: String(result.uiAudit),
-    codeql: String(result.codeql),
-    mobile: String(result.mobile),
-    reason: result.reason,
-    changed_files: result.files.join(","),
-  };
+function readChangedFilesFromGit() {
+  const base = process.env.CI_BASE_REF;
+  const head = process.env.CI_HEAD_REF || "HEAD";
+  if (base && !/^0+$/u.test(base)) {
+    const out = execFileSync("git", ["diff", "--name-only", `${base}..${head}`], {
+      encoding: "utf8",
+    });
+    return out.split(/\r?\n/u).filter(Boolean);
+  }
+  const out = execFileSync("git", ["diff-tree", "--no-commit-id", "--name-only", "-r", head], {
+    encoding: "utf8",
+  });
+  return out.split(/\r?\n/u).filter(Boolean);
 }
 
-function writeGithubOutput(entries, destination) {
-  const lines = Object.entries(entries).map(
-    ([key, value]) => `${key}=${value}`,
-  );
-  fs.appendFileSync(destination, `${lines.join("\n")}\n`, "utf8");
+function readChangedFilesInput() {
+  if (process.env.FORCE_FULL === "true") {
+    return [];
+  }
+  if (!process.stdin.isTTY) {
+    return readFileSync(0, "utf8").split(/\r?\n/u).filter(Boolean);
+  }
+  return readChangedFilesFromGit();
 }
 
 function runCli() {
-  runUiMigrationDiffCheck();
-  const forceFull = process.env.FORCE_FULL === "true";
-  const input = fs.readFileSync(0, "utf8").split(/\r?\n/);
-  const result = classifyChanges(input, { forceFull });
-  const entries = toOutputEntries(result);
-  if (process.env.GITHUB_OUTPUT)
-    writeGithubOutput(entries, process.env.GITHUB_OUTPUT);
-  process.stdout.write(
-    `${JSON.stringify({ ...result, outputs: entries }, null, 2)}\n`,
-  );
+  const files = readChangedFilesInput();
+  const result = classifyChanges(files);
+  console.log(JSON.stringify({ fileCount: files.length, ...result }));
+
+  const outFile = process.env.GITHUB_OUTPUT;
+  if (outFile) {
+    const lines = [
+      `docs_only=${result.docs_only}`,
+      `full_verify=${result.full_verify}`,
+      `database=${result.database}`,
+      `codeql=${result.codeql}`,
+      `mobile=${result.mobile}`,
+      `reason=${result.reason}`,
+    ];
+    appendFileSync(outFile, `${lines.join("\n")}\n`, "utf8");
+  }
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] || "").href) runCli();

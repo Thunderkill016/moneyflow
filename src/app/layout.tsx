@@ -1,86 +1,36 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
-import { PrivacySafeSpeedInsights } from "@/components/privacy-safe-speed-insights";
-import { RouteScrollReset } from "@/components/route-scroll-reset";
-import { RouteThemeBoundary } from "@/components/route-theme-boundary";
-import { normalizeSiteOrigin } from "@/lib/site-url";
-import "./legacy.css";
-import "./document-theme.css";
+import { Be_Vietnam_Pro, JetBrains_Mono } from "next/font/google";
+import "./globals.css";
 
-/**
- * UI text is LCP critical. Inter covers Vietnamese product copy while the
- * ledger uses the system mono stack exposed by the document/theme authority.
- *
- * #403 tried `preload: false` on the same production-build mobile harness and
- * observed no reduction in transferred font bytes, because the required ranges
- * were still requested. That single run also read slower on root FCP/LCP, but
- * the harness showed +471 ms of run-to-run LCP variance on an unchanged route,
- * so the timing half of that comparison is NOT conclusive. Preload therefore
- * stays as the unchanged main behaviour: the byte measurement gave no reason to
- * drop it, and no measurement supports claiming a timing win either way.
- * See `docs/performance-budgets.md` (#403 section) for the recorded numbers.
- */
-const inter = Inter({
+const beVietnamPro = Be_Vietnam_Pro({
   subsets: ["latin", "vietnamese"],
-  variable: "--font-inter",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-be-vietnam-pro",
   display: "swap",
-  adjustFontFallback: true,
-  preload: true,
 });
 
-const TITLE = "MoneyFlow — Sổ thu chi cá nhân";
-const DESCRIPTION =
-  "Ghi thu chi nhanh, theo dõi nhiều ví, ngân sách và báo cáo tháng. Xuất CSV bất cứ lúc nào.";
-
-// Non-throwing lookup: metadata is evaluated at module load, so a missing/invalid
-// env var here must degrade (Next.js infers metadataBase) rather than fail the build.
-const siteOrigin = normalizeSiteOrigin(process.env.NEXT_PUBLIC_SITE_URL);
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  ...(siteOrigin ? { metadataBase: new URL(siteOrigin) } : {}),
-  title: TITLE,
-  description: DESCRIPTION,
-  keywords: [
-    "sổ thu chi cá nhân",
-    "quản lý chi tiêu",
-    "ứng dụng quản lý tài chính cá nhân",
-    "ghi chép thu chi",
-    "quản lý ngân sách",
-    "theo dõi chi tiêu",
-  ],
-  openGraph: {
-    type: "website",
-    locale: "vi_VN",
-    siteName: "MoneyFlow",
-    title: TITLE,
-    description: DESCRIPTION,
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: TITLE,
-    description: DESCRIPTION,
+  title: "MoneyFlow — Tài chính cá nhân & Tài sản ròng",
+  description:
+    "Ghi thu chi trong 3 giây, theo dõi Safe-to-Spend, Tỷ lệ Tích lũy đầu tư, Khớp số dư 1 chạm và đồng bộ offline-first.",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon-192.png",
   },
 };
 
 export const viewport: Viewport = {
+  themeColor: "#5B4FE9",
   width: "device-width",
   initialScale: 1,
-  viewportFit: "cover",
-  /**
-   * The virtual keyboard resizes the layout instead of floating over it.
-   *
-   * With the default (`resizes-visual`) the layout viewport keeps its full height
-   * when the keyboard opens, so a sheet's own footer — the save control — can end
-   * up underneath the keyboard with no way to scroll to it. `resizes-content`
-   * shrinks the layout viewport, so `svh`-sized sheets and their footers stay
-   * reachable while typing.
-   */
-  interactiveWidget: "resizes-content",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#F8FAFC" },
-    { media: "(prefers-color-scheme: dark)", color: "#0C111D" },
-  ],
 };
 
 export default function RootLayout({
@@ -91,44 +41,10 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
-      className={`${inter.variable} ${inter.className}`}
-      data-scroll-behavior="smooth"
-      suppressHydrationWarning
+      className={`${beVietnamPro.variable} ${jetbrainsMono.variable}`}
     >
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var pathname = window.location.pathname;
-                  var publicLightPaths = ['/', '/landing', '/login', '/register', '/forgot-password', '/reset-password', '/privacy'];
-                  var isPublicLight = publicLightPaths.indexOf(pathname) !== -1 || pathname.indexOf('/auth/') === 0;
-                  var resolved = 'light';
-
-                  if (!isPublicLight) {
-                    var theme = localStorage.getItem('moneyflow-theme') || 'system';
-                    resolved = theme;
-                    if (theme === 'system') {
-                      resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                    }
-                  }
-
-                  document.documentElement.setAttribute('data-theme', resolved);
-                } catch (e) {
-                  document.documentElement.setAttribute('data-theme', 'light');
-                }
-              })();
-            `,
-          }}
-        />
-      </head>
-      <body>
-        <RouteThemeBoundary />
-        <RouteScrollReset />
+      <body className="min-h-screen bg-slate-50 text-slate-900 selection:bg-indigo-100 selection:text-indigo-900">
         {children}
-        <Analytics />
-        <PrivacySafeSpeedInsights />
       </body>
     </html>
   );
