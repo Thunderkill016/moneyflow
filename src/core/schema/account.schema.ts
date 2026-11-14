@@ -26,6 +26,7 @@ export const AccountSchema = z.object({
   initialBalance: z.number().finite(),
   currentBalance: z.number().finite(),
   isArchived: z.boolean(),
+  trustedThroughDate: z.number().int().nonnegative().nullable().optional(),
   updatedAt: z.number().int().nonnegative(),
 });
 
@@ -37,6 +38,8 @@ export interface Account {
   initialBalance: number;
   currentBalance: number;
   isArchived: boolean;
+  /** Epoch ms timestamp marking when balance was verified/reconciled. */
+  trustedThroughDate?: number | null;
   updatedAt: number;
 }
 

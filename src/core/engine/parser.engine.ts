@@ -1,5 +1,6 @@
 import type { Account } from "../schema/account.schema.ts";
 import type { TransactionType } from "../schema/transaction.schema.ts";
+import { computeTransactionFingerprint } from "./ledger.engine.ts";
 
 export interface ParsedQuickCommand {
   type: TransactionType;
@@ -8,10 +9,73 @@ export interface ParsedQuickCommand {
   accountId: string;
   toAccountId?: string;
   note: string;
+  isRefund?: boolean;
+}
+
+export interface ParsedBankSmsResult {
+  type: "EXPENSE" | "INCOME";
+  amount: number;
+  accountId: string;
+  categoryId: string;
+  note: string;
+  isRefund: boolean;
+  detectedBalance?: number;
+  bankLabel: string;
+  occurredAt: number;
+  fingerprint: string;
 }
 
 const AMOUNT_TOKEN_REGEX =
   /(?<![\p{L}\p{N}])([+-]?\d+(?:[.,]\d+)?\s*(?:tr\d*|triệu|trieu|củ\d*|cu\d*|lít\d*|lit\d*|m|k|nghìn|nghin|ngàn|ngan|đ|d|vnd)?|\d{1,3}(?:[.,]\d{3})+)(?![\p{L}\p{N}])/giu;
+
+const REFUND_KEYWORDS = ["hoàn tiền", "hoan tien", "cashback", "refund"];
+
+const BANK_HINTS: ReadonlyArray<{
+  label: string;
+  smsKeywords: readonly string[];
+  accountKeywords: readonly string[];
+}> = [
+  {
+    label: "Techcombank",
+    smsKeywords: ["techcombank", "tcb"],
+    accountKeywords: ["techcombank", "tcb"],
+  },
+  {
+    label: "Vietcombank",
+    smsKeywords: ["vietcombank", "vcb"],
+    accountKeywords: ["vietcombank", "vcb"],
+  },
+  {
+    label: "MB Bank",
+    smsKeywords: ["mb bank", "mbbank", "mb-"],
+    accountKeywords: ["mb", "mbbank"],
+  },
+  {
+    label: "TPBank",
+    smsKeywords: ["tpbank", "tpb"],
+    accountKeywords: ["tpbank", "tpb"],
+  },
+  {
+    label: "VIB",
+    smsKeywords: ["vib", "the tin dung vib"],
+    accountKeywords: ["vib"],
+  },
+  {
+    label: "MoMo",
+    smsKeywords: ["momo", "vi momo"],
+    accountKeywords: ["momo"],
+  },
+  {
+    label: "ACB",
+    smsKeywords: ["acb"],
+    accountKeywords: ["acb"],
+  },
+  {
+    label: "VPBank",
+    smsKeywords: ["vpbank"],
+    accountKeywords: ["vpbank"],
+  },
+];
 
 const INCOME_KEYWORDS = [
   "lương",
@@ -22,6 +86,8 @@ const INCOME_KEYWORDS = [
   "thu nhap",
   "hoàn tiền",
   "hoan tien",
+  "cashback",
+  "refund",
   "lãi",
   "lai",
   "cổ tức",
@@ -201,9 +267,12 @@ export function parseVietnameseAmount(
     };
   }
 
-  // Handle grouped thousands like "120.000" or "120,000"
-  if (/^\d{1,3}(?:[.,]\d{3})+$/u.test(unsigned)) {
-    const digitsOnly = unsigned.replace(/[.,]/gu, "");
+  // Handle grouped thousands like "120.000", "120,000", "120.000đ", or "120,000 VND"
+  const groupedCurrencyMatch = unsigned.match(
+    /^(\d{1,3}(?:[.,]\d{3})+)\s*(?:vnđ|vnd|đ|d)?$/u,
+  );
+  if (groupedCurrencyMatch) {
+    const digitsOnly = groupedCurrencyMatch[1].replace(/[.,]/gu, "");
     const value = Number.parseInt(digitsOnly, 10);
     return value > 0 ? { amount: value, hasExplicitPlus } : null;
   }
@@ -330,16 +399,34 @@ export function parseQuickInput(
       continue;
     }
 
+    const isRefund = REFUND_KEYWORDS.some((kw) => containsKeyword(lower, kw));
     const isIncome =
-      parsed.hasExplicitPlus || INCOME_KEYWORDS.some((kw) => containsKeyword(lower, kw));
+      isRefund ||
+      parsed.hasExplicitPlus ||
+      INCOME_KEYWORDS.some((kw) => containsKeyword(lower, kw));
 
     if (isIncome) {
+      let categoryId = "thu-nhap";
+      if (isRefund) {
+        const cleanedRefundText = REFUND_KEYWORDS.reduce(
+          (acc, kw) => acc.replace(new RegExp(escapeRegExp(kw), "giu"), " "),
+          lower,
+        );
+        const inferred = inferCategoryId(cleanedRefundText);
+        categoryId =
+          EXPENSE_CATEGORY_RULES.some((rule) =>
+            rule.keywords.some((kw) => containsKeyword(cleanedRefundText, kw)),
+          )
+            ? inferred
+            : "mua-sam";
+      }
       results.push({
         type: "INCOME",
         amount: parsed.amount,
-        categoryId: "thu-nhap",
+        categoryId,
         accountId: liquidDefault.id,
         note,
+        ...(isRefund ? { isRefund: true } : {}),
       });
       continue;
     }
@@ -354,4 +441,154 @@ export function parseQuickInput(
   }
 
   return results;
+}
+
+function parseIntegerMoneyChunk(raw: string): number | null {
+  const digits = raw.replace(/[^\d]/gu, "");
+  if (!digits) return null;
+  const val = Number.parseInt(digits, 10);
+  return Number.isFinite(val) && val > 0 ? val : null;
+}
+
+export function parseBankNotificationSms(
+  rawSms: string,
+  accounts: readonly Account[],
+  defaultAccountId: string,
+  now = Date.now(),
+): ParsedBankSmsResult | null {
+  const normalized = rawSms.trim().normalize("NFC");
+  if (!normalized) return null;
+  const lower = normalized.toLowerCase();
+
+  let matchedBankLabel = "Ngân hàng / Ví";
+  let targetAccount =
+    accounts.find((acc) => acc.id === defaultAccountId && !acc.isArchived) ??
+    accounts.find((acc) => acc.group === "LIQUID" && !acc.isArchived) ??
+    accounts[0];
+
+  for (const hint of BANK_HINTS) {
+    if (hint.smsKeywords.some((kw) => containsKeyword(lower, kw) || lower.includes(kw))) {
+      matchedBankLabel = hint.label;
+      const byName = accounts.find(
+        (acc) =>
+          !acc.isArchived &&
+          hint.accountKeywords.some((ak) => acc.name.toLowerCase().includes(ak)),
+      );
+      if (byName) {
+        targetAccount = byName;
+      }
+      break;
+    }
+  }
+
+  if (!targetAccount) return null;
+
+  let detectedBalance: number | undefined;
+  let workingText = normalized;
+  const balanceMatch = normalized.match(
+    /(?:số\s*dư(?:\s*(?:khả\s*dụng|hiện\s*tại|ví|tk))?|so\s*du(?:\s*(?:kha\s*dung|hien\s*tai|vi|tk))?|sd)\s*[:=]?\s*([+-]?\s*\d[\d.,]*)\s*(?:vnd|vnđ|đ|d)?/iu,
+  );
+  if (balanceMatch) {
+    const parsedBal = parseIntegerMoneyChunk(balanceMatch[1]);
+    if (parsedBal !== null) {
+      detectedBalance = parsedBal;
+    }
+    workingText = workingText.replace(balanceMatch[0], " ");
+  }
+
+  // Strip account numbers, dates, and HH:mm timestamps before locating transaction amount
+  const sanitizedForAmount = workingText
+    .replace(/\b\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?\b/gu, " ")
+    .replace(/\b\d{1,2}:\d{2}(?::\d{2})?\b/gu, " ")
+    .replace(/\b(?:tk|stk)\s*[:.]?\s*[\dxX*]+/giu, " ");
+
+  const signedMoneyMatch = sanitizedForAmount.match(
+    /([+-])\s*(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?)\s*(vnd|vnđ|đ|d|k|tr|m)?/iu,
+  );
+  const currencyMoneyMatch = sanitizedForAmount.match(
+    /(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?)\s*(vnd|vnđ|đ|k|tr|m)/iu,
+  );
+
+  let amount: number | null = null;
+  let explicitSign: "+" | "-" | null = null;
+
+  if (signedMoneyMatch) {
+    explicitSign = signedMoneyMatch[1] === "+" ? "+" : "-";
+    const parsed = parseVietnameseAmount(
+      `${signedMoneyMatch[2]}${signedMoneyMatch[3] ?? ""}`,
+      { autoMultiplyThousandForBareSmallNumber: false },
+    );
+    amount = parsed?.amount ?? parseIntegerMoneyChunk(signedMoneyMatch[2]);
+  } else if (currencyMoneyMatch) {
+    const parsed = parseVietnameseAmount(
+      `${currencyMoneyMatch[1]}${currencyMoneyMatch[2] ?? ""}`,
+      { autoMultiplyThousandForBareSmallNumber: false },
+    );
+    amount = parsed?.amount ?? parseIntegerMoneyChunk(currencyMoneyMatch[1]);
+  }
+
+  if (!amount || amount <= 0) return null;
+
+  const isRefund = REFUND_KEYWORDS.some((kw) => containsKeyword(lower, kw));
+  const looksPositive =
+    explicitSign === "+" ||
+    isRefund ||
+    ["nhận được", "nhan duoc", "cộng ", "cong ", "biến động +", "bien dong +", "tiền vào", "tien vao"].some(
+      (kw) => lower.includes(kw),
+    );
+  const looksNegative =
+    explicitSign === "-" ||
+    ["thanh toán", "thanh toan", "chi tiêu", "chi tieu", "trừ ", "tru ", "giảm ", "giam ", "chuyển đến", "chuyen den"].some(
+      (kw) => lower.includes(kw),
+    );
+
+  const type: "EXPENSE" | "INCOME" =
+    looksPositive && !looksNegative ? "INCOME" : explicitSign === "+" ? "INCOME" : "EXPENSE";
+
+  const contentMatch = workingText.match(
+    /(?:nd|nội\s*dung|noi\s*dung|diễn\s*giải|dien\s*giai)\s*[:=-]\s*([^\n.;]+)/iu,
+  );
+  const merchantMatch = workingText.match(
+    /(?:tại|tai|qua)\s+([\p{L}\p{N}][\p{L}\p{N} &._-]{1,48})/u,
+  );
+
+  const noteRaw =
+    contentMatch?.[1]?.trim() ||
+    merchantMatch?.[1]?.replace(/\s+qua\s+.*$/iu, "").trim() ||
+    `${matchedBankLabel} (${type === "INCOME" ? "Nhận tiền" : "Thanh toán"})`;
+  const note = noteRaw.slice(0, 120);
+
+  const categoryText = `${note} ${workingText}`.toLowerCase();
+  const categoryId =
+    type === "INCOME"
+      ? isRefund
+        ? EXPENSE_CATEGORY_RULES.some((rule) =>
+            rule.keywords.some((kw) => containsKeyword(categoryText, kw)),
+          )
+          ? inferCategoryId(categoryText)
+          : "mua-sam"
+        : "thu-nhap"
+      : inferCategoryId(categoryText);
+
+  const occurredAt = now;
+  const fingerprint = computeTransactionFingerprint({
+    occurredAt,
+    type,
+    amount,
+    note,
+    accountId: targetAccount.id,
+  });
+
+  return {
+    type,
+    amount,
+    accountId: targetAccount.id,
+    categoryId,
+    note,
+    isRefund,
+    detectedBalance,
+    bankLabel: matchedBankLabel,
+    occurredAt,
+    fingerprint,
+  };
 }

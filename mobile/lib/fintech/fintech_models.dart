@@ -428,6 +428,16 @@ ParsedQuickCapture parseVietnameseQuickInput(
   var amount = 0;
   var noteWithoutAmount = trimmed;
 
+  // Match compound slang like "1tr35", "1củ5", "2lít5" first
+  final compoundMillionMatch = RegExp(
+    r'(\d+)\s*(?:tr|củ|cu)(\d+)\b',
+    caseSensitive: false,
+  ).firstMatch(trimmed);
+  final compoundLitMatch = RegExp(
+    r'(\d+)\s*(?:lít|lit)(\d*)\b',
+    caseSensitive: false,
+  ).firstMatch(trimmed);
+
   // Match dotted thousands first (e.g. "45.000" or "1.250.000")
   final dottedMatch = RegExp(
     r'(\d{1,3}(?:\.\d{3})+)\s*(đ|d|vnd)?\b',
@@ -443,7 +453,25 @@ ParsedQuickCapture parseVietnameseQuickInput(
   // Fallback bare number ("phở bò 55")
   final bareMatch = RegExp(r'\b(\d{1,9})\b').firstMatch(trimmed);
 
-  if (unitMatch != null) {
+  if (compoundMillionMatch != null) {
+    final whole = int.tryParse(compoundMillionMatch.group(1)!) ?? 0;
+    final fracStr = compoundMillionMatch.group(2)!;
+    final frac = (int.tryParse(fracStr) ?? 0) / _pow10(fracStr.length);
+    amount = ((whole + frac) * 1000000).round();
+    noteWithoutAmount = (trimmed.substring(0, compoundMillionMatch.start) +
+            trimmed.substring(compoundMillionMatch.end))
+        .trim();
+  } else if (compoundLitMatch != null) {
+    final whole = int.tryParse(compoundLitMatch.group(1)!) ?? 0;
+    final fracStr = compoundLitMatch.group(2) ?? '';
+    final frac = fracStr.isEmpty
+        ? 0.0
+        : (int.tryParse(fracStr) ?? 0) / _pow10(fracStr.length);
+    amount = ((whole + frac) * 100000).round();
+    noteWithoutAmount = (trimmed.substring(0, compoundLitMatch.start) +
+            trimmed.substring(compoundLitMatch.end))
+        .trim();
+  } else if (unitMatch != null) {
     final numRaw = unitMatch.group(1)!.replaceAll(',', '.');
     final unit = unitMatch.group(2)!.toLowerCase();
     final parsed = double.tryParse(numRaw) ?? 0;
@@ -543,4 +571,30 @@ bool _containsAny(String source, List<String> terms) {
 String _capitalizeFirst(String input) {
   if (input.isEmpty) return input;
   return input[0].toUpperCase() + input.substring(1);
+}
+
+int _pow10(int exp) {
+  var result = 1;
+  for (var i = 0; i < exp; i++) {
+    result *= 10;
+  }
+  return result;
+}
+
+List<ParsedQuickCapture> parseVietnameseQuickBatch(
+  String raw, {
+  List<WalletCardModel> wallets = const [],
+}) {
+  final segments = raw
+      .split(RegExp(r'\s*[;\n]+\s*|\s*,\s*(?=[A-Za-zÀ-Ỹà-ỹ])'))
+      .map((s) => s.trim())
+      .where((s) => s.isNotEmpty);
+  final parsed = <ParsedQuickCapture>[];
+  for (final seg in segments) {
+    final item = parseVietnameseQuickInput(seg, wallets: wallets);
+    if (item.amount > 0) {
+      parsed.add(item);
+    }
+  }
+  return parsed;
 }

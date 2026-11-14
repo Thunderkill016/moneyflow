@@ -583,6 +583,22 @@ class FintechStore extends ChangeNotifier {
         'budgets': _budgets,
       });
       await prefs.setString(_kStorageKey, payload);
+
+      // Keep Android QuickCaptureWidgetProvider snapshot synchronized
+      final current = now;
+      final daysInMonth = DateTime(current.year, current.month + 1, 0).day;
+      final remainingDays = (daysInMonth - current.day + 1).clamp(1, 31);
+      final remainingBudget = (totalMonthlyBudget - monthExpense).clamp(0, totalBalance);
+      final safeSpendDaily = remainingBudget ~/ remainingDays;
+      await prefs.setString(
+        'mf_widget_snapshot',
+        jsonEncode({
+          'total': totalBalance,
+          'safeSpend': safeSpendDaily,
+          'savedAtMs': current.millisecondsSinceEpoch,
+          'pendingReview': null,
+        }),
+      );
     } catch (_) {
       // Best-effort persistence
     }

@@ -9,16 +9,26 @@ import {
   computeQuickOnboardingPlan,
   simulateWhatIfPurchase,
 } from "./cashflow.engine.ts";
-import { parseUniversalCsvImport } from "./csv-import.engine.ts";
+import {
+  parseUniversalCsvImport,
+  parseUniversalCsvImportWithStats,
+} from "./csv-import.engine.ts";
 import {
   computeAccountBalances,
   computeNetWorthSummary,
+  computeTransactionFingerprint,
   createReconcileTransaction,
   createSmartSplitTransactions,
   createTransferTransaction,
+  deduplicateTransactions,
+  safeDivide,
   settleSmartSplitTransaction,
 } from "./ledger.engine.ts";
-import { parseQuickInput, parseVietnameseAmount } from "./parser.engine.ts";
+import {
+  parseBankNotificationSms,
+  parseQuickInput,
+  parseVietnameseAmount,
+} from "./parser.engine.ts";
 
 const NOW = new Date(2026, 10, 14, 10, 0, 0).getTime();
 
@@ -370,4 +380,175 @@ test("parseUniversalCsvImport parses Vietnamese and English Money Lover / bank C
   assert.equal(imported[2].type, "EXPENSE");
   assert.equal(imported[2].amount, 120_000);
   assert.equal(imported[2].categoryId, "di-chuyen");
+});
+
+test("v3 cashflow engine handles refund net-off, report exclusions, spending pace, and no-spend streak", () => {
+  const accounts = sampleAccounts();
+  const refDate = new Date(2026, 10, 15, 12, 0, 0); // Day 15 of 30 => 50% elapsed month
+  const day10 = new Date(2026, 10, 10, 9, 0, 0).getTime();
+  const day12 = new Date(2026, 10, 12, 14, 0, 0).getTime();
+
+  const txs: Transaction[] = [
+    {
+      id: "v3-inc-1",
+      type: "INCOME",
+      amount: 10_000_000,
+      accountId: "acc-bank",
+      categoryId: "thu-nhap",
+      note: "Lương tháng 11",
+      occurredAt: day10,
+      syncStatus: "SYNCED",
+      updatedAt: day10,
+    },
+    {
+      id: "v3-exp-1",
+      type: "EXPENSE",
+      amount: 1_000_000,
+      accountId: "acc-bank",
+      categoryId: "mua-sam",
+      note: "Mua giày chạy bộ",
+      occurredAt: day10 + 1000,
+      syncStatus: "SYNCED",
+      updatedAt: day10 + 1000,
+    },
+    {
+      id: "v3-refund-1",
+      type: "INCOME",
+      amount: 300_000,
+      accountId: "acc-bank",
+      categoryId: "mua-sam",
+      note: "Hoàn tiền Shopee đổi size",
+      isRefund: true,
+      occurredAt: day12,
+      syncStatus: "SYNCED",
+      updatedAt: day12,
+    },
+    {
+      id: "v3-event-1",
+      type: "EXPENSE",
+      amount: 4_000_000,
+      accountId: "acc-bank",
+      categoryId: "giai-tri",
+      note: "Du lịch Đà Lạt công ty",
+      excludeFromReports: true,
+      eventTag: "da-lat-2026",
+      occurredAt: day12 + 1000,
+      syncStatus: "SYNCED",
+      updatedAt: day12 + 1000,
+    },
+  ];
+
+  const summary = computeMonthlyCashflow({
+    accounts,
+    transactions: txs,
+    budget: {
+      ...DEFAULT_BUDGET_CONFIG,
+      monthlySpendingCap: 10_000_000,
+    },
+    referenceDate: refDate,
+  });
+
+  // Refund reduces net expense instead of inflating income; excluded event stays out of monthly expense
+  assert.equal(summary.totalIncome, 10_000_000);
+  assert.equal(summary.totalExpense, 700_000);
+  assert.equal(summary.refundNetOffTotal, 300_000);
+  assert.equal(summary.excludedExpenseTotal, 4_000_000);
+  assert.equal(
+    summary.categoryBreakdown.find((c) => c.categoryId === "mua-sam")?.amount,
+    700_000,
+  );
+  assert.equal(summary.elapsedDaysInMonth, 15);
+  assert.equal(summary.elapsedMonthPct, 50);
+  assert.equal(summary.spendingPacePct, 7);
+  assert.equal(summary.spendingPaceStatus, "under");
+  // Last non-excluded expense was on day 10; referenceDate is day 15 => Nov 11..15 (5 days) without spending, or streak >= 1
+  assert.ok(summary.noSpendStreakDays >= 1);
+  assert.equal(safeDivide(100, 0, -1), -1);
+});
+
+test("fingerprint deduplication and Vietnamese bank SMS / refund quick parser work accurately", () => {
+  const accounts = sampleAccounts();
+  const bankAcc: Account = {
+    ...accounts[0],
+    id: "acc-vcb",
+    name: "Vietcombank Chính",
+  };
+  const allAccounts = [bankAcc, ...accounts.slice(1)];
+
+  const fpA = computeTransactionFingerprint({
+    occurredAt: NOW,
+    type: "EXPENSE",
+    amount: 55_000,
+    note: "Cà phê Highland!",
+    accountId: "acc-vcb",
+  });
+  const fpB = computeTransactionFingerprint({
+    occurredAt: NOW + 3_600_000, // same calendar day
+    type: "EXPENSE",
+    amount: 55_000,
+    note: "Ca phe   Highland",
+    accountId: "acc-vcb",
+  });
+  assert.equal(fpA, fpB);
+
+  const existingTx: Transaction = {
+    id: "tx-orig",
+    type: "EXPENSE",
+    amount: 55_000,
+    accountId: "acc-vcb",
+    categoryId: "an-uong",
+    note: "Cà phê Highland",
+    occurredAt: NOW,
+    syncStatus: "PENDING",
+    updatedAt: NOW,
+  };
+  const dupTx: Transaction = {
+    ...existingTx,
+    id: "tx-dup-clone",
+    note: "Ca phe Highland",
+  };
+  const deduped = deduplicateTransactions([dupTx], [existingTx]);
+  assert.equal(deduped.unique.length, 0);
+  assert.equal(deduped.skippedCount, 1);
+
+  const vcbSms = parseBankNotificationSms(
+    "VCB: TK 0123xxx -150,000 VND luc 14/11/2026 09:30. SD: 18,500,000 VND. ND: Grab di lam",
+    allAccounts,
+    bankAcc.id,
+    NOW,
+  );
+  assert.ok(vcbSms);
+  assert.equal(vcbSms.type, "EXPENSE");
+  assert.equal(vcbSms.amount, 150_000);
+  assert.equal(vcbSms.accountId, bankAcc.id);
+  assert.equal(vcbSms.categoryId, "di-chuyen");
+  assert.equal(vcbSms.detectedBalance, 18_500_000);
+  assert.equal(vcbSms.isRefund, false);
+
+  const tcbRefundSms = parseBankNotificationSms(
+    "Techcombank: +250,000 VND Hoan tien don hang Shopee. So du: 12,250,000 VND",
+    allAccounts,
+    bankAcc.id,
+    NOW,
+  );
+  assert.ok(tcbRefundSms);
+  assert.equal(tcbRefundSms.type, "INCOME");
+  assert.equal(tcbRefundSms.isRefund, true);
+  assert.equal(tcbRefundSms.amount, 250_000);
+  assert.equal(tcbRefundSms.detectedBalance, 12_250_000);
+
+  const quickRefund = parseQuickInput("hoàn tiền shopee 120k", allAccounts, bankAcc.id);
+  assert.equal(quickRefund.length, 1);
+  assert.equal(quickRefund[0].type, "INCOME");
+  assert.equal(quickRefund[0].isRefund, true);
+  assert.equal(quickRefund[0].categoryId, "mua-sam");
+
+  const dupCsv = [
+    "Ngày,Số tiền,Danh mục,Ghi chú,Loại",
+    "14/11/2026,55000,Ăn uống,Cà phê Highland,Chi tiêu",
+    "14/11/2026,55000,Ăn uống,Cà phê Highland,Chi tiêu",
+  ].join("\n");
+  const csvWithStats = parseUniversalCsvImportWithStats(dupCsv, bankAcc.id, NOW);
+  assert.equal(csvWithStats.rows.length, 1);
+  assert.equal(csvWithStats.skippedDuplicatesCount, 1);
 });

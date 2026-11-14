@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { computeAccountBalances } from "../engine/ledger.engine.ts";
+import {
+  attachTransactionFingerprint,
+  computeAccountBalances,
+} from "../engine/ledger.engine.ts";
 import {
   AccountSchema,
   type Account,
@@ -13,14 +16,20 @@ import {
   TransactionSchema,
   type Transaction,
 } from "../schema/transaction.schema.ts";
+import {
+  mergeSnapshotsZeroLoss,
+  migrateAnyLegacyPayload,
+  type MigrationImportResult,
+} from "./legacy-migrator.ts";
 
 export const LOCAL_STORAGE_KEY = "moneyflow.clean.v2";
+export const LOCAL_STORAGE_V3_KEY = "moneyflow.clean.v3";
 const IDB_NAME = "moneyflow_clean_idb_v2";
 const IDB_STORE = "snapshots";
 const IDB_KEY = "primary";
 
 export const SnapshotSchema = z.object({
-  version: z.literal(2),
+  version: z.union([z.literal(2), z.literal(3)]),
   accounts: z.array(AccountSchema),
   transactions: z.array(TransactionSchema),
   budget: BudgetConfigSchema,
@@ -28,7 +37,7 @@ export const SnapshotSchema = z.object({
 });
 
 export interface MoneyFlowSnapshot {
-  version: 2;
+  version: 2 | 3;
   accounts: Account[];
   transactions: Transaction[];
   budget: BudgetConfig;
@@ -212,27 +221,65 @@ export function createDefaultSnapshot(now = Date.now()): MoneyFlowSnapshot {
     version: 2,
     accounts: computeAccountBalances(rawAccounts, transactions),
     transactions,
-    budget: { ...DEFAULT_BUDGET_CONFIG, updatedAt: now },
+    budget: {
+      ...DEFAULT_BUDGET_CONFIG,
+      commitments: [
+        {
+          id: "com-rent",
+          name: "Tiền nhà & Phí dịch vụ",
+          amountVnd: 5_000_000,
+          dueDay: 5,
+          isPaid: true,
+        },
+        {
+          id: "com-bills",
+          name: "Điện EVN, Nước & Internet FPT",
+          amountVnd: 1_500_000,
+          dueDay: 12,
+          isPaid: false,
+        },
+      ],
+      updatedAt: now,
+    },
     updatedAt: now,
   };
 }
 
 let memorySnapshot: MoneyFlowSnapshot | null = null;
 
+function normalizeSnapshot(rawSnapshot: MoneyFlowSnapshot): MoneyFlowSnapshot {
+  const transactions = rawSnapshot.transactions.map((tx) =>
+    attachTransactionFingerprint(tx),
+  );
+  return {
+    ...rawSnapshot,
+    transactions,
+    accounts: computeAccountBalances(rawSnapshot.accounts, transactions),
+  };
+}
+
 function readFromLocalStorage(): MoneyFlowSnapshot | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = SnapshotSchema.safeParse(JSON.parse(raw));
+    const rawV3 = window.localStorage.getItem(LOCAL_STORAGE_V3_KEY);
+    const rawV2 = window.localStorage.getItem(LOCAL_STORAGE_KEY);
+    const chosen = rawV3 ?? rawV2;
+    if (!chosen) return null;
+    const parsed = SnapshotSchema.safeParse(JSON.parse(chosen));
     if (!parsed.success) return null;
-    return {
-      ...parsed.data,
-      accounts: computeAccountBalances(
-        parsed.data.accounts,
-        parsed.data.transactions,
-      ),
-    };
+    const normalized = normalizeSnapshot(parsed.data);
+    // Auto-upgrade legacy v2 storage key cleanly while retaining v2 as safety backup
+    if (!rawV3 && rawV2) {
+      try {
+        window.localStorage.setItem(
+          LOCAL_STORAGE_V3_KEY,
+          JSON.stringify(normalized),
+        );
+      } catch {
+        // Ignore quota limits cleanly
+      }
+    }
+    return normalized;
   } catch {
     return null;
   }
@@ -241,7 +288,9 @@ function readFromLocalStorage(): MoneyFlowSnapshot | null {
 function writeToLocalStorage(snapshot: MoneyFlowSnapshot): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(snapshot));
+    const serialized = JSON.stringify(snapshot);
+    window.localStorage.setItem(LOCAL_STORAGE_V3_KEY, serialized);
+    window.localStorage.setItem(LOCAL_STORAGE_KEY, serialized);
   } catch {
     // Ignore quota errors cleanly; in-memory and IndexedDB still retain state.
   }
@@ -353,12 +402,10 @@ export async function hydrateSnapshotAsync(): Promise<MoneyFlowSnapshot> {
 }
 
 export function saveSnapshot(snapshot: MoneyFlowSnapshot): MoneyFlowSnapshot {
-  const normalized: MoneyFlowSnapshot = {
+  const normalized = normalizeSnapshot({
     ...snapshot,
-    version: 2,
-    accounts: computeAccountBalances(snapshot.accounts, snapshot.transactions),
     updatedAt: Date.now(),
-  };
+  });
   memorySnapshot = normalized;
   writeToLocalStorage(normalized);
   void writeToIndexedDb(normalized);
@@ -376,33 +423,59 @@ export function exportBackupJson(snapshot: MoneyFlowSnapshot): string {
   );
 }
 
+export function importAnyLegacyOrBackup(
+  rawJson: string,
+  options?: { mergeInto?: MoneyFlowSnapshot },
+): MigrationImportResult {
+  const result = migrateAnyLegacyPayload(rawJson);
+
+  if (options?.mergeInto) {
+    const merged = mergeSnapshotsZeroLoss(options.mergeInto, result.snapshot);
+    const saved = saveSnapshot(merged.snapshot);
+    return {
+      ...result,
+      snapshot: saved,
+      importedAccounts: merged.addedAccounts,
+      importedTransactions: merged.addedTransactions,
+      skippedDuplicates: merged.skippedDuplicates,
+    };
+  }
+
+  const saved = saveSnapshot(result.snapshot);
+  return {
+    ...result,
+    snapshot: saved,
+  };
+}
+
 export function importBackupJson(rawJson: string): MoneyFlowSnapshot {
-  let decoded: unknown;
-  try {
-    decoded = JSON.parse(rawJson);
-  } catch {
-    throw new Error("File JSON không hợp lệ.");
-  }
+  return importAnyLegacyOrBackup(rawJson).snapshot;
+}
 
-  const candidate =
-    decoded &&
-    typeof decoded === "object" &&
-    "snapshot" in decoded &&
-    decoded.snapshot
-      ? (decoded as { snapshot: unknown }).snapshot
-      : decoded;
+/** Matches Android `WidgetSnapshotContract` (`flutter.mf_widget_snapshot` JSON payload). */
+export interface AndroidWidgetSnapshot {
+  total: number;
+  safeSpend: number;
+  savedAtMs: number;
+  pendingReview: number;
+}
 
-  const parsed = SnapshotSchema.safeParse(candidate);
-  if (!parsed.success) {
-    throw new Error("Cấu trúc file backup không đúng chuẩn MoneyFlow v2.");
-  }
+export function buildAndroidWidgetSnapshot(
+  snapshot: MoneyFlowSnapshot,
+  safeToSpendDailyVnd: number,
+  now = Date.now(),
+): AndroidWidgetSnapshot {
+  const totalVnd = snapshot.accounts
+    .filter((acc) => !acc.isArchived)
+    .reduce((sum, acc) => sum + Math.round(acc.currentBalance), 0);
+  const pendingReview = snapshot.transactions.filter(
+    (tx) => tx.syncStatus === "PENDING" && !tx.deletedAt,
+  ).length;
 
-  return saveSnapshot({
-    ...parsed.data,
-    accounts: computeAccountBalances(
-      parsed.data.accounts,
-      parsed.data.transactions,
-    ),
-    updatedAt: Date.now(),
-  });
+  return {
+    total: Math.round(totalVnd),
+    safeSpend: Math.max(0, Math.round(safeToSpendDailyVnd)),
+    savedAtMs: now,
+    pendingReview,
+  };
 }

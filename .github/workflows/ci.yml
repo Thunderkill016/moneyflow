@@ -112,8 +112,8 @@ jobs:
           else
             git show --check --oneline --no-renames HEAD >/dev/null
           fi
-      - name: Migration identity contract
-        run: npm run check:migrations
+      - name: Architecture boundary contract
+        run: npm run check:architecture
       - name: Deploy-context hygiene contract
         run: npm run check:deploy-hygiene
       - name: Workflow SHA pin contract
@@ -358,39 +358,30 @@ jobs:
   database:
     needs: classify
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Database checks not required
+      - name: Storage & migration checks not required
         if: needs.classify.outputs.database != 'true'
-        run: echo "No database, migration, RLS, or database-CI contract changed."
-      # The archive round-trip step below runs the R5 validator, which is
-      # TypeScript executed through Node's type stripping. No npm install is
-      # needed: it imports only repository modules.
+        run: echo "No schema, storage, or legacy-migrator files changed."
       - name: Setup Node
         if: needs.classify.outputs.database == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
-      - name: Setup Supabase CLI
+          cache: npm
+      - name: Install dependencies
         if: needs.classify.outputs.database == 'true'
-        uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3.0.0
-        with:
-          version: 2.111.0
-      - name: Fresh local reset and pgTAP
+        run: npm ci
+      - name: Run v3 Storage & 3-Source Legacy Migrator tests
         if: needs.classify.outputs.database == 'true'
         id: database-tests
         continue-on-error: true
         shell: bash
         run: |
           set -o pipefail
-          {
-            supabase --version
-            supabase db start
-            supabase db reset --local
-            supabase test db
-          } 2>&1 | tee database-test-output.log
+          node --experimental-strip-types --test src/core/storage/storage.test.ts 2>&1 | tee database-test-output.log
       - name: Upload failing database output
         if: steps.database-tests.outcome == 'failure'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -399,7 +390,7 @@ jobs:
           path: database-test-output.log
           if-no-files-found: error
           retention-days: 1
-      - name: Enforce database test result
+      - name: Enforce storage & migrator test result
         if: needs.classify.outputs.database == 'true' && steps.database-tests.outcome != 'success'
         run: exit 1
 

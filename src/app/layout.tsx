@@ -1,37 +1,36 @@
 import type { Metadata, Viewport } from "next";
-import { Be_Vietnam_Pro, JetBrains_Mono } from "next/font/google";
+import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-const beVietnamPro = Be_Vietnam_Pro({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin", "vietnamese"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-be-vietnam-pro",
+  variable: "--font-jakarta",
   display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-jetbrains-mono",
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin", "vietnamese"],
+  variable: "--font-jetbrains",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "MoneyFlow — Tài chính cá nhân & Tài sản ròng",
+  title: "MoneyFlow v3.0 — La bàn Dòng tiền Thông minh",
   description:
-    "Ghi thu chi trong 3 giây, theo dõi Safe-to-Spend, Tỷ lệ Tích lũy đầu tư, Khớp số dư 1 chạm và đồng bộ offline-first.",
+    "Ứng dụng quản trị dòng tiền Local-First với Pure Core Engine: Safe-to-Spend theo ngày, tách chuyển khoản/đầu tư, Smart Split và cấn trừ hoàn tiền.",
   manifest: "/manifest.webmanifest",
-  icons: {
-    icon: "/icon.svg",
-    apple: "/icon-192.png",
-  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#5B4FE9",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#070B14" },
+    { media: "(prefers-color-scheme: light)", color: "#F8FAFC" },
+  ],
   width: "device-width",
   initialScale: 1,
 };
+
+const COLOR_SCHEME_INIT_SCRIPT = `(function(){try{var v=localStorage.getItem("mf.color-scheme");var m=document.querySelector('meta[name="color-scheme"]');if(m){m.setAttribute("content",v==="light"||v==="dark"||v==="light dark"?v:"dark");}}catch(e){}})();`;
 
 export default function RootLayout({
   children,
@@ -41,9 +40,16 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
-      className={`${beVietnamPro.variable} ${jetbrainsMono.variable}`}
+      suppressHydrationWarning
+      className={`${jakarta.variable} ${jetbrains.variable}`}
     >
-      <body className="min-h-screen bg-slate-50 text-slate-900 selection:bg-indigo-100 selection:text-indigo-900">
+      <head>
+        <meta name="color-scheme" content="dark" />
+        <script
+          dangerouslySetInnerHTML={{ __html: COLOR_SCHEME_INIT_SCRIPT }}
+        />
+      </head>
+      <body className="antialiased selection:bg-emerald-500/25 selection:text-emerald-200">
         {children}
       </body>
     </html>

@@ -17,6 +17,8 @@ const eslintConfig = defineConfig([
     // contexts here, and linting those reports ~180 errors in generated code —
     // which reads as "the branch is broken" until you look at the paths.
     "output/**",
+    "mobile/build/**",
+    "mobile/.dart_tool/**",
   ]),
 ]);
 

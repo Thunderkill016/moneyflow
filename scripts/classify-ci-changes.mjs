@@ -14,10 +14,10 @@ function isDocOnlyFile(file) {
 }
 
 const DATABASE_MATCHERS = [
+  (file) => file.startsWith("src/core/schema/"),
+  (file) => file.startsWith("src/core/storage/"),
   (file) => file.startsWith("supabase/"),
   (file) => file.startsWith("db/"),
-  (file) => file === "scripts/check-migration-identity.mjs",
-  (file) => file === "scripts/check-rls-migrations.sh",
 ];
 
 const MOBILE_MATCHERS = [(file) => file.startsWith("mobile/")];
