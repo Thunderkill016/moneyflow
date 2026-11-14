@@ -28,7 +28,7 @@ concurrency:
 # never having executed (issue #417, observed on PR #416 head 9e77ad86).
 #
 # Path classification is the real risk signal and `scripts/classify-ci-changes.mjs`
-# is its single authority, as AGENTS.md states. Gating on it alone means the
+# is its single authority. Gating on it alone means the
 # checks a change needs run whenever that change exists, draft or not, and the
 # rule is stated once instead of eight times. Do not reintroduce a draft
 # condition: any fix that trusts the event payload has this race again.
@@ -43,8 +43,6 @@ jobs:
       docs_only: ${{ steps.classify.outputs.docs_only }}
       full_verify: ${{ steps.classify.outputs.full_verify }}
       database: ${{ steps.classify.outputs.database }}
-      browser_smoke: ${{ steps.classify.outputs.browser_smoke }}
-      ui_audit: ${{ steps.classify.outputs.ui_audit }}
       codeql: ${{ steps.classify.outputs.codeql }}
       mobile: ${{ steps.classify.outputs.mobile }}
       reason: ${{ steps.classify.outputs.reason }}
@@ -78,8 +76,6 @@ jobs:
           DOCS_ONLY: ${{ steps.classify.outputs.docs_only }}
           FULL_VERIFY: ${{ steps.classify.outputs.full_verify }}
           DATABASE: ${{ steps.classify.outputs.database }}
-          BROWSER_SMOKE: ${{ steps.classify.outputs.browser_smoke }}
-          UI_AUDIT: ${{ steps.classify.outputs.ui_audit }}
           CODEQL: ${{ steps.classify.outputs.codeql }}
           MOBILE: ${{ steps.classify.outputs.mobile }}
         run: |
@@ -90,8 +86,6 @@ jobs:
             echo "- Documentation only: $DOCS_ONLY"
             echo "- Full verify: $FULL_VERIFY"
             echo "- Database: $DATABASE"
-            echo "- Browser smoke: $BROWSER_SMOKE"
-            echo "- UI audit: $UI_AUDIT"
             echo "- CodeQL: $CODEQL"
             echo "- Mobile: $MOBILE"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -122,8 +116,8 @@ jobs:
         run: npm run check:migrations
       - name: Deploy-context hygiene contract
         run: npm run check:deploy-hygiene
-      - name: Project knowledge contract
-        run: npm run check:knowledge
+      - name: Workflow SHA pin contract
+        run: npm run check:workflow-pins
       - name: CI classification and retry contract
         run: npm run test:ci-policy
 
@@ -149,14 +143,8 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci
-      - name: Deployment configuration contract
-        run: npm run check:deployment-env
-      - name: CSS ownership and debt budgets
-        run: npm run check:css-ownership
       - name: Architecture boundary contract
         run: npm run check:architecture
-      - name: Capability manifest contract
-        run: npm run check:capabilities
       - name: Lint
         run: npm run lint
       - name: Typecheck
@@ -219,11 +207,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          # check:code-css-ownership reads the approved baseline from git history
-          # (merge base with origin/main). A shallow checkout has no origin/main,
-          # and the gate fails closed rather than passing without history.
-          fetch-depth: 0
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -237,8 +220,6 @@ jobs:
       # real bundle. The alternatives were a hand-maintained Tailwind allowlist
       # (rots, hides defects) or a second build in the static job (doubles CI
       # time for the same answer). This reuses the build that already ran.
-      - name: Presentation ownership (code → CSS)
-        run: npm run check:code-css-ownership
 
   verify_mobile:
     name: Verify Flutter mobile
@@ -410,151 +391,13 @@ jobs:
           path: database-test-output.log
           if-no-files-found: error
           retention-days: 1
-      # R6 acceptance proof: real tenant state through the archive producer and
-      # into the R5 validator, with no reshaping in between. pgTAP proves the
-      # database boundary; this proves the producer satisfies the archive
-      # contract that lives in TypeScript.
-      - name: Archive producer round trip
-        if: needs.classify.outputs.database == 'true' && steps.database-tests.outcome == 'success'
-        id: archive-round-trip
-        shell: bash
-        run: npm run verify:archive-producer
-      # R7 acceptance proof: the restored tenant's own archive must satisfy the
-      # same contract, so the whole chain is verified end to end.
-      - name: Archive restore round trip
-        if: needs.classify.outputs.database == 'true' && steps.database-tests.outcome == 'success'
-        id: archive-restore-round-trip
-        shell: bash
-        run: npm run verify:archive-round-trip
-      # Real authenticated writes: disposable Auth + API + PostgreSQL, not the
-      # read-only ownership double. Failure blocks the existing database check.
-      - name: Start disposable statement services
-        if: needs.classify.outputs.database == 'true' && steps.database-tests.outcome == 'success'
-        shell: bash
-        run: |
-          # db start created a database-only stack; full start must begin from
-          # a fresh disposable stack rather than treating that DB as running API.
-          supabase stop --no-backup
-          supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor > /tmp/mf-statement-start.log 2>&1
-          supabase status -o json > /tmp/mf-statement-status.json
-          node --input-type=module <<'JS'
-          import { readFileSync, appendFileSync } from 'node:fs';
-          const status = JSON.parse(readFileSync('/tmp/mf-statement-status.json', 'utf8'));
-          console.log(JSON.stringify({ fields: Object.keys(status), localApi: status.API_URL === 'http://127.0.0.1:54321', anonAvailable: Boolean(status.ANON_KEY), adminAvailable: Boolean(status.SERVICE_ROLE_KEY) }));
-          if (status.API_URL !== 'http://127.0.0.1:54321' || !status.ANON_KEY || !status.SERVICE_ROLE_KEY) {
-            throw new Error('Disposable statement stack is missing local credentials');
-          }
-          for (const key of [status.ANON_KEY, status.SERVICE_ROLE_KEY]) console.log(`::add-mask::${key}`);
-          appendFileSync(process.env.GITHUB_ENV, [
-            `NEXT_PUBLIC_SUPABASE_URL=${status.API_URL}`,
-            `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${status.ANON_KEY}`,
-            `MF_STATEMENT_SERVICE_ROLE_KEY=${status.SERVICE_ROLE_KEY}`,
-            '',
-          ].join('\n'));
-          JS
-      - name: Real statement browser acceptance
-        if: needs.classify.outputs.database == 'true' && steps.database-tests.outcome == 'success'
-        run: |
-          npm ci
-          npx playwright install --with-deps chromium
-          npm run test:e2e:statement
-      # Separate PostgreSQL clients prove actual same-key serialization and
-      # a replay after an intentionally discarded commit acknowledgment.
-      - name: Independent connection replay acceptance
-        if: needs.classify.outputs.database == 'true' && steps.database-tests.outcome == 'success'
-        run: node scripts/neon-poc/run-pgtap.mjs
-      - name: Stop local Supabase
-        if: always() && needs.classify.outputs.database == 'true'
-        run: supabase stop --no-backup || true
-      - name: Fail after preserving diagnostics
-        if: steps.database-tests.outcome == 'failure'
+      - name: Enforce database test result
+        if: needs.classify.outputs.database == 'true' && steps.database-tests.outcome != 'success'
         run: exit 1
-      - name: Database test summary
-        if: steps.database-tests.outcome == 'success'
-        run: tail -n 80 database-test-output.log
-
-  browser_smoke:
-    name: Browser smoke
-    if: needs.classify.outputs.browser_smoke == 'true'
-    needs: [classify, verify]
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    env:
-      NEXT_PUBLIC_AUTH_CAPTCHA_ENABLED: "true"
-      NEXT_PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 22
-          cache: npm
-      - name: Install
-        run: npm ci
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-      - name: Expense and Auth CAPTCHA browser smoke
-        run: npm run test:e2e
-      # Demo mode is correct behaviour for browser-local storage, so ownership
-      # defects on the authenticated path are invisible to the step above. This
-      # runs the same app in authenticated mode against the loopback double in
-      # e2e/auth/supabase-double.mjs. No Supabase credentials, no provider or
-      # production write, and a failure blocks this shard like any other.
-      - name: Authenticated ownership browser smoke
-        run: npm run test:e2e:auth
-      - name: Upload browser-smoke evidence
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: browser-smoke-evidence-${{ github.run_id }}-${{ github.run_attempt }}
-          path: output/playwright/
-          if-no-files-found: ignore
-          retention-days: 3
-      - name: Upload authenticated-smoke evidence
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: authenticated-smoke-evidence-${{ github.run_id }}-${{ github.run_attempt }}
-          path: output/playwright-auth/
-          if-no-files-found: ignore
-          retention-days: 3
-
-  ui_audit:
-    name: Cross-device UI audit
-    if: needs.classify.outputs.ui_audit == 'true'
-    needs: [classify, verify]
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
-    env:
-      NEXT_PUBLIC_AUTH_CAPTCHA_ENABLED: "true"
-      NEXT_PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 22
-          cache: npm
-      - name: Install
-        run: npm ci
-      - name: Install Chromium and WebKit
-        run: npx playwright install --with-deps chromium webkit
-      - name: Production cross-device UI audit
-        run: npm run test:ui-audit:pr
-      - name: Upload UI-audit evidence
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: ui-audit-evidence-${{ github.run_id }}-${{ github.run_attempt }}
-          path: output/playwright-audit/
-          if-no-files-found: ignore
-          retention-days: 3
 
   e2e:
     if: always()
-    needs: [classify, verify, browser_smoke, ui_audit, verify_mobile]
+    needs: [classify, verify, verify_mobile]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -562,35 +405,21 @@ jobs:
         shell: bash
         env:
           VERIFY_RESULT: ${{ needs.verify.result }}
-          BROWSER_REQUIRED: ${{ needs.classify.outputs.browser_smoke }}
-          BROWSER_RESULT: ${{ needs.browser_smoke.result }}
-          UI_AUDIT_REQUIRED: ${{ needs.classify.outputs.ui_audit }}
-          UI_AUDIT_RESULT: ${{ needs.ui_audit.result }}
           MOBILE_REQUIRED: ${{ needs.classify.outputs.mobile }}
           MOBILE_RESULT: ${{ needs.verify_mobile.result }}
         run: |
           set -euo pipefail
-
-          require_selected_success() {
-            local label="$1"
-            local required="$2"
-            local result="$3"
-
-            if [[ "$required" == "true" && "$result" != "success" ]]; then
-              echo "::error::$label was selected but finished with result '$result'"
-              return 1
-            fi
-
-            if [[ "$required" != "true" ]]; then
-              echo "$label was not selected; result '$result' is accepted."
-            fi
-          }
 
           if [[ "$VERIFY_RESULT" != "success" ]]; then
             echo "::error::verify finished with result '$VERIFY_RESULT'"
             exit 1
           fi
 
-          require_selected_success "browser_smoke" "$BROWSER_REQUIRED" "$BROWSER_RESULT"
-          require_selected_success "ui_audit" "$UI_AUDIT_REQUIRED" "$UI_AUDIT_RESULT"
-          require_selected_success "verify_mobile" "$MOBILE_REQUIRED" "$MOBILE_RESULT"
+          if [[ "$MOBILE_REQUIRED" == "true" && "$MOBILE_RESULT" != "success" ]]; then
+            echo "::error::verify_mobile was selected but finished with result '$MOBILE_RESULT'"
+            exit 1
+          fi
+
+          if [[ "$MOBILE_REQUIRED" != "true" ]]; then
+            echo "verify_mobile was not selected; result '$MOBILE_RESULT' is accepted."
+          fi

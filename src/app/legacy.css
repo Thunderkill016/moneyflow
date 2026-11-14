@@ -1,9 +1,0 @@
-/*
- * Phase 10 validation boundary.
- *
- * Route and component presentation migrated in P4-P9 is owned by CSS Modules.
- * This compatibility entry keeps only the site-wide foundation active while
- * exact-head browser evidence proves the legacy presentation generations are
- * no longer load-bearing.
- */
-@import "./globals.css";

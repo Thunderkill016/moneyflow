@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Night card — the app's dark surface with on-dark text tones. -->
-    <color name="widget_card">#FF121715</color>
-    <color name="widget_title_text">#FFFFFFFF</color>
-    <color name="widget_dim_text">#FFA9C1B5</color>
+    <!-- Night card — Vivid Ledger dark surface with high-contrast text tones. -->
+    <color name="widget_card">#FF171A30</color>
+    <color name="widget_title_text">#FFF3F4FF</color>
+    <color name="widget_dim_text">#FFC5C8E6</color>
 </resources>
