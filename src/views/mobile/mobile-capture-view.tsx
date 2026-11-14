@@ -1,31 +1,52 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import {
-  computeQuickOnboardingPlan,
-  parseVietnameseAmount,
-} from "../../core/engine/index.ts";
-import {
-  QUICK_TAP_CATEGORIES,
-  getCategoryById,
-  type TransactionType,
-} from "../../core/schema/index.ts";
+  CheckCircle2,
+  Delete,
+  Flame,
+  Laptop,
+  MessageSquareText,
+  Mic,
+  MicOff,
+  PieChart,
+  Undo2,
+  WalletCards,
+  X,
+  Zap,
+} from "lucide-react";
+import { useState } from "react";
+import { QUICK_TAP_CATEGORIES } from "../../core/schema/transaction.schema.ts";
 import {
   appendNumpadToken,
   parseNumpadAmount,
-} from "../../features/quick-capture/index.ts";
-import { groupAccountsByType } from "../../features/accounts-wealth/index.ts";
-import type { TransactionController } from "../../features/transactions/use-transaction-controller.ts";
+  type TransactionController,
+} from "../../features/transactions/use-transaction-controller.ts";
 import {
-  ACCOUNT_GROUP_META,
   CATEGORY_EMOJI,
-  TX_TYPE_META,
   formatCompactVnd,
-  formatDateTime,
   formatMoney,
-  formatSignedMoney,
 } from "../../shared/format.ts";
-import { Button, ModalShell, cn } from "../../shared/ui.tsx";
+import {
+  getSpeechRecognitionCtor,
+  triggerHapticTap,
+} from "../../shared/speech-recognition.ts";
+import {
+  Button,
+  Card,
+  MoneyFlowBrandMark,
+  ThemeToggleControl,
+  cn,
+} from "../../shared/ui.tsx";
+import {
+  BankSmsDialog,
+  BudgetEventDialog,
+  ImportDialog,
+  ReconcileDialog,
+} from "../desktop/desktop-modals.tsx";
+import { MobileLedgerTab, MobilePlanTab } from "./mobile-ledger-plan-tabs.tsx";
+
+type MobileTab = "capture" | "ledger" | "plan";
+type CaptureMode = "EXPENSE" | "SPLIT" | "REFUND" | "TRANSFER" | "INCOME";
 
 const NUMPAD_KEYS = [
   "1",
@@ -37,773 +58,550 @@ const NUMPAD_KEYS = [
   "7",
   "8",
   "9",
-  "00",
-  "0",
   "000",
+  "0",
+  "BACK",
 ] as const;
+
+const PRESET_CHIPS: ReadonlyArray<{ label: string; digits: string }> = [
+  { label: "35k", digits: "35000" },
+  { label: "50k", digits: "50000" },
+  { label: "100k", digits: "100000" },
+  { label: "200k", digits: "200000" },
+  { label: "500k", digits: "500000" },
+];
 
 export function MobileCaptureView({
   controller,
   onSwitchToDesktop,
 }: {
   controller: TransactionController;
-  onSwitchToDesktop?: () => void;
+  onSwitchToDesktop: () => void;
 }) {
-  const [tab, setTab] = useState<"capture" | "ledger">("capture");
-  const [mode, setMode] = useState<TransactionType>("EXPENSE");
-  const [digits, setDigits] = useState("45000");
-  const [selectedCategoryId, setSelectedCategoryId] = useState("an-uong");
-  const [accountId, setAccountId] = useState(
+  const [activeTab, setActiveTab] = useState<MobileTab>("capture");
+  const [digits, setDigits] = useState("");
+  const [mode, setMode] = useState<CaptureMode>("EXPENSE");
+  const [selectedAccountId, setSelectedAccountId] = useState(
     controller.defaultLiquidAccount?.id ?? "acc-tcb",
   );
   const [toAccountId, setToAccountId] = useState(
     controller.accounts.find((a) => a.group === "INVESTMENT")?.id ?? "acc-invest",
   );
+  const [categoryId, setCategoryId] = useState("an-uong");
   const [note, setNote] = useState("");
-  const [quickCommand, setQuickCommand] = useState("");
+  const [excludeFromReports, setExcludeFromReports] = useState(false);
+  const [headcount, setHeadcount] = useState(2);
+  const [quickCmd, setQuickCmd] = useState("");
+  const [isListening, setIsListening] = useState(false);
 
-  // Vũ khí 1: What-If Simulator toggle
-  const [whatIfOpen, setWhatIfOpen] = useState(false);
-  const [whatIfInput, setWhatIfInput] = useState("1tr8");
+  const [showSms, setShowSms] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [showBudgetEvent, setShowBudgetEvent] = useState(false);
+  const [reconcileAccountId, setReconcileAccountId] = useState<string | null>(
+    null,
+  );
 
-  // Vũ khí 2: Smart Split & Debt toggle
-  const [splitEnabled, setSplitEnabled] = useState(false);
-  const [splitHeadcount, setSplitHeadcount] = useState(4);
-
-  // Công thức 60 giây đầu tiên (3 câu hỏi 30s)
-  const [onboardOpen, setOnboardOpen] = useState(false);
-  const [onboardLiquidInput, setOnboardLiquidInput] = useState("12tr");
-  const [onboardFixedInput, setOnboardFixedInput] = useState("4tr");
-
-  const activeAccount =
-    controller.accounts.find((a) => a.id === accountId) ??
-    controller.accounts[0];
+  const { accounts, cashflow, pendingSplitTransactions, lastDeletedIds } =
+    controller;
   const amount = parseNumpadAmount(digits);
 
-  const reconcileDelta =
-    mode === "RECONCILE" && activeAccount
-      ? amount - activeAccount.currentBalance
-      : 0;
-
-  const groupedAccounts = useMemo(
-    () => groupAccountsByType(controller.accounts),
-    [controller.accounts],
-  );
-
-  const whatIfResult = useMemo(
-    () => controller.simulateWhatIf(whatIfInput),
-    [controller, whatIfInput],
-  );
-
-  const onboardingPreview = useMemo(() => {
-    const liquid =
-      parseVietnameseAmount(onboardLiquidInput, {
-        autoMultiplyThousandForBareSmallNumber: false,
-      })?.amount ?? 0;
-    const fixed =
-      parseVietnameseAmount(onboardFixedInput, {
-        autoMultiplyThousandForBareSmallNumber: false,
-      })?.amount ?? 0;
-    return computeQuickOnboardingPlan({
-      liquidBalanceVnd: liquid,
-      fixedCommitmentsVnd: fixed,
-    });
-  }, [onboardLiquidInput, onboardFixedInput]);
-
-  const splitMyShare =
-    splitEnabled && amount > 0 ? Math.round(amount / splitHeadcount) : amount;
-  const splitReceivable =
-    splitEnabled && amount > 0 ? Math.max(0, amount - splitMyShare) : 0;
-
-  const commitCapture = (overrideCategoryId?: string, overrideMode?: TransactionType) => {
-    if (!activeAccount) return;
-    const effectiveMode = overrideMode ?? mode;
-    const effectiveCategory = overrideCategoryId ?? selectedCategoryId;
-
-    if (effectiveMode === "RECONCILE") {
-      controller.reconcileAccount(activeAccount.id, amount, note || undefined);
-      setDigits("");
-      setNote("");
+  const handleVoice = () => {
+    const Ctor = getSpeechRecognitionCtor();
+    if (!Ctor) {
+      controller.setStatusMessage(
+        "Trình duyệt chưa hỗ trợ Web Speech — hãy gõ lệnh vào ô trên.",
+      );
       return;
     }
-    if (amount <= 0) return;
-
-    if (effectiveMode === "EXPENSE" && splitEnabled) {
-      controller.addSplitBillTransaction({
-        totalBill: amount,
-        headcount: splitHeadcount,
-        accountId: activeAccount.id,
-        categoryId: effectiveCategory,
-        note: note.trim() || getCategoryById(effectiveCategory).shortLabel,
-      });
-      setDigits("");
-      setNote("");
-      setSplitEnabled(false);
-      return;
-    }
-
-    controller.addTransaction({
-      type: effectiveMode,
-      amount,
-      accountId: activeAccount.id,
-      toAccountId: effectiveMode === "TRANSFER" ? toAccountId : undefined,
-      categoryId:
-        effectiveMode === "INCOME"
-          ? "thu-nhap"
-          : effectiveMode === "TRANSFER"
-            ? controller.accounts.find((a) => a.id === toAccountId)?.group ===
-              "INVESTMENT"
-              ? "tich-luy"
-              : "chuyen-vi"
-            : effectiveCategory,
-      note:
-        note.trim() ||
-        (effectiveMode === "INCOME"
-          ? "Thu nhập"
-          : effectiveMode === "TRANSFER"
-            ? "Chuyển / Tích lũy"
-            : getCategoryById(effectiveCategory).shortLabel),
-    });
-    setDigits("");
-    setNote("");
+    const rec = new Ctor();
+    rec.lang = "vi-VN";
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    setIsListening(true);
+    rec.onresult = (ev) => {
+      const spoken = ev.results[0]?.[0]?.transcript ?? "";
+      if (spoken.trim()) {
+        setQuickCmd((prev) => (prev ? `${prev}, ${spoken}` : spoken));
+      }
+      setIsListening(false);
+    };
+    rec.onerror = () => setIsListening(false);
+    rec.onend = () => setIsListening(false);
+    rec.start();
   };
 
-  const handleQuickCommandSubmit = (e: React.FormEvent) => {
+  const handleQuickCmdSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!quickCommand.trim()) return;
-    const count = controller.submitQuickCommand(
-      quickCommand,
-      activeAccount?.id,
-    );
-    if (count > 0) setQuickCommand("");
+    if (!quickCmd.trim()) return;
+    triggerHapticTap(15);
+    const n = controller.submitQuickCommand(quickCmd, {
+      defaultAccountId: selectedAccountId,
+      excludeFromReports: excludeFromReports || undefined,
+    });
+    if (n > 0) setQuickCmd("");
+  };
+
+  const handleCaptureSubmit = () => {
+    if (amount <= 0) return;
+    triggerHapticTap(18);
+
+    if (mode === "SPLIT") {
+      controller.addSplitBillTransaction({
+        totalBill: amount,
+        headcount,
+        accountId: selectedAccountId,
+        categoryId,
+        note: note.trim() || "Chia bill nhanh",
+      });
+    } else if (mode === "TRANSFER") {
+      controller.addTransaction({
+        type: "TRANSFER",
+        amount,
+        accountId: selectedAccountId,
+        toAccountId,
+        categoryId: "tich-luy",
+        note: note.trim() || "Chuyển ví / Tích lũy",
+      });
+    } else {
+      controller.addTransaction({
+        type: mode === "INCOME" || mode === "REFUND" ? "INCOME" : "EXPENSE",
+        amount,
+        accountId: selectedAccountId,
+        categoryId: mode === "INCOME" ? "thu-nhap" : categoryId,
+        note:
+          note.trim() ||
+          (mode === "REFUND" ? "Hoàn tiền giao dịch" : "Ghi nhanh 1-chạm"),
+        isRefund: mode === "REFUND" ? true : undefined,
+        excludeFromReports: excludeFromReports || undefined,
+      });
+    }
+
+    setDigits("");
+    setNote("");
+    setExcludeFromReports(false);
   };
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-[#f8f9fc] text-slate-900">
-      {/* Compact Compass Header */}
-      <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/95 px-4 py-3 backdrop-blur">
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Hôm nay được tiêu tối đa
-            </p>
-            <p className="tabular-nums text-xl font-extrabold text-[#5b4fe9]">
-              {formatMoney(controller.cashflow.safeToSpendDaily)}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-[11px] font-medium text-slate-500">
-              Tài sản ròng
-            </p>
-            <p className="tabular-nums text-sm font-bold text-slate-900">
-              {formatCompactVnd(controller.netWorth.netWorthVnd)}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => setWhatIfOpen((v) => !v)}
-            className={cn(
-              "rounded-lg border px-2 py-1 text-[11px] font-semibold transition",
-              whatIfOpen
-                ? "border-[#5b4fe9] bg-indigo-50 text-[#5b4fe9]"
-                : "border-slate-200 bg-slate-50 text-slate-700",
-            )}
-          >
-            🔮 Ướm thử mua sắm
-          </button>
-          <button
-            type="button"
-            onClick={() => setOnboardOpen(true)}
-            className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-700"
-          >
-            🚀 Thiết lập 30s
-          </button>
-          {controller.pendingSplitTransactions.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => setTab("ledger")}
-              className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-800"
-            >
-              ⏳ {controller.pendingSplitTransactions.length} khoản ứng hộ
-            </button>
-          ) : null}
-        </div>
-
-        {whatIfOpen ? (
-          <div className="mt-2.5 rounded-xl border border-indigo-200 bg-indigo-50/70 p-2.5">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-bold uppercase text-indigo-800">
-                Ướm thử trước khi rút ví
-              </span>
-              <input
-                type="text"
-                value={whatIfInput}
-                onChange={(e) => setWhatIfInput(e.target.value)}
-                placeholder="VD: 1tr8, 500k"
-                className="w-28 rounded-lg border border-indigo-200 bg-white px-2 py-1 text-xs font-bold tabular-nums text-slate-900 focus:border-[#5b4fe9] focus:outline-none"
-              />
+    <div className="min-h-screen bg-[var(--mf-bg)] pb-24 text-[var(--mf-text)]">
+      {/* Mobile Header */}
+      <header className="sticky top-0 z-20 border-b border-[var(--mf-border)] bg-[var(--mf-bg)]/95 px-3.5 py-2.5 backdrop-blur">
+        <div className="mx-auto flex max-w-md items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5">
+            <MoneyFlowBrandMark className="h-8 w-8 shrink-0" />
+            <div>
+              <div className="flex items-center gap-1.5 text-[11px] text-[var(--mf-text-muted)]">
+                <span>Safe/ngày</span>
+                <span className="inline-flex items-center gap-0.5 font-mono text-amber-400">
+                  <Flame className="h-3 w-3" />
+                  {cashflow.noSpendStreakDays}N
+                </span>
+              </div>
+              <div className="font-mono text-base font-bold tabular-nums text-emerald-400">
+                {formatMoney(cashflow.safeToSpendDaily)}
+              </div>
             </div>
-            <p
-              className={cn(
-                "mt-1.5 text-xs font-medium leading-relaxed",
-                whatIfResult.severity === "danger"
-                  ? "text-rose-700"
-                  : whatIfResult.severity === "caution"
-                    ? "text-amber-800"
-                    : "text-indigo-900",
-              )}
-            >
-              {whatIfResult.verdictMessage}
-            </p>
-          </div>
-        ) : null}
-
-        <div className="mt-2.5 flex items-center justify-between gap-2">
-          <div className="grid flex-1 grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
-            <button
-              type="button"
-              onClick={() => setTab("capture")}
-              className={cn(
-                "rounded-lg py-1.5 text-xs font-semibold transition",
-                tab === "capture"
-                  ? "bg-white text-slate-900 shadow-xs"
-                  : "text-slate-600",
-              )}
-            >
-              Ghi 2s (1 ngón)
-            </button>
-            <button
-              type="button"
-              onClick={() => setTab("ledger")}
-              className={cn(
-                "rounded-lg py-1.5 text-xs font-semibold transition",
-                tab === "ledger"
-                  ? "bg-white text-slate-900 shadow-xs"
-                  : "text-slate-600",
-              )}
-            >
-              Sổ & Ví ({controller.activeTransactions.length})
-            </button>
           </div>
 
-          {onSwitchToDesktop ? (
-            <button
-              type="button"
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowSms(true)}
+            >
+              <MessageSquareText className="h-3.5 w-3.5 text-cyan-400" />
+              SMS
+            </Button>
+            <ThemeToggleControl compact />
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={onSwitchToDesktop}
-              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-600"
+              aria-label="Mở giao diện Desktop Terminal"
             >
-              Desktop
-            </button>
-          ) : null}
+              <Laptop className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
+      </header>
 
+      <main className="mx-auto max-w-md space-y-3 px-3.5 pt-3">
         {controller.statusMessage ? (
-          <div className="mt-2 flex items-center justify-between rounded-lg bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-800">
-            <span>{controller.statusMessage}</span>
+          <div
+            role="status"
+            className="flex items-center justify-between gap-2 rounded-xl border border-emerald-500/35 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-400"
+          >
+            <span className="flex items-center gap-1.5 font-medium">
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+              {controller.statusMessage}
+            </span>
             <button
               type="button"
               onClick={() => controller.setStatusMessage(null)}
-              className="ml-2 text-indigo-500"
+              aria-label="Ẩn thông báo"
+              className="p-0.5"
             >
-              ✕
+              <X className="h-3.5 w-3.5" />
             </button>
           </div>
         ) : null}
-      </header>
 
-      {tab === "capture" ? (
-        <main className="flex flex-1 flex-col justify-between gap-2.5 p-3">
-          {/* Quick Multi-Command Bar (hỗ trợ cả cú pháp tắt: cf 35, phở 50, xăng 70, 2 củ, 5 lít) */}
-          <form onSubmit={handleQuickCommandSubmit} className="flex gap-1.5">
-            <input
-              type="text"
-              value={quickCommand}
-              onChange={(e) => setQuickCommand(e.target.value)}
-              placeholder="Gõ nhanh: cf 35, phở 50, xăng 70, 1tr35..."
-              className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#5b4fe9] focus:outline-none"
-            />
-            <Button type="submit" variant="primary" size="sm">
-              Ghi
-            </Button>
-          </form>
-
-          {/* Transaction Type Mode Selector */}
-          <div className="grid grid-cols-4 gap-1 rounded-xl bg-slate-200/70 p-1">
-            {(
-              [
-                ["EXPENSE", "Chi tiêu"],
-                ["INCOME", "Thu nhập"],
-                ["TRANSFER", "Chuyển ví"],
-                ["RECONCILE", "Khớp dư"],
-              ] as const
-            ).map(([txMode, label]) => (
+        {activeTab === "capture" ? (
+          <div className="space-y-3">
+            {/* NLP + Voice Command Bar */}
+            <form
+              onSubmit={handleQuickCmdSubmit}
+              className="flex items-center gap-1.5 rounded-2xl border border-[var(--mf-border-strong)] bg-[var(--mf-surface)] px-3 py-2"
+            >
+              <Zap className="h-4 w-4 shrink-0 text-emerald-400" />
+              <input
+                value={quickCmd}
+                onChange={(e) => setQuickCmd(e.target.value)}
+                placeholder='Gõ nhanh: "cf 35k, hoàn tiền shopee 90k"'
+                className="w-full bg-transparent text-xs text-[var(--mf-text)] placeholder:text-[var(--mf-text-subtle)] focus:outline-none"
+              />
               <button
-                key={txMode}
                 type="button"
-                onClick={() => setMode(txMode)}
+                onClick={handleVoice}
+                aria-label="Nói lệnh giao dịch"
                 className={cn(
-                  "rounded-lg py-1.5 text-[11px] font-semibold transition",
-                  mode === txMode
-                    ? "bg-white text-[#5b4fe9] shadow-xs"
-                    : "text-slate-600",
+                  "rounded-lg p-1.5",
+                  isListening
+                    ? "bg-rose-500/20 text-rose-400 animate-pulse"
+                    : "text-[var(--mf-text-muted)]",
                 )}
               >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {/* Numeric Display */}
-          <div className="rounded-2xl border border-slate-200/90 bg-white px-4 py-2.5 text-right shadow-xs">
-            <div className="flex items-center justify-between text-xs text-slate-500">
-              <select
-                aria-label="Ví nguồn"
-                value={activeAccount?.id ?? ""}
-                onChange={(e) => setAccountId(e.target.value)}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-800"
-              >
-                {controller.accounts
-                  .filter((a) => !a.isArchived && a.id !== "acc-receivable")
-                  .map((acc) => (
-                    <option key={acc.id} value={acc.id}>
-                      {acc.name} ({formatCompactVnd(acc.currentBalance)})
-                    </option>
-                  ))}
-              </select>
-
-              {mode === "TRANSFER" ? (
-                <select
-                  aria-label="Ví đích"
-                  value={toAccountId}
-                  onChange={(e) => setToAccountId(e.target.value)}
-                  className="rounded-lg border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-800"
-                >
-                  {controller.accounts
-                    .filter((a) => !a.isArchived && a.id !== activeAccount?.id)
-                    .map((acc) => (
-                      <option key={acc.id} value={acc.id}>
-                        → {acc.name}
-                      </option>
-                    ))}
-                </select>
-              ) : (
-                <span className="font-medium text-slate-400">
-                  {mode === "RECONCILE"
-                    ? "Nhập số dư thực tế"
-                    : TX_TYPE_META[mode].label}
-                </span>
-              )}
-            </div>
-
-            <div className="mt-1.5 flex items-baseline justify-end gap-1.5">
-              <span
-                className={cn(
-                  "tabular-nums text-3xl font-extrabold tracking-tight",
-                  mode === "INCOME"
-                    ? "text-emerald-600"
-                    : mode === "TRANSFER"
-                      ? "text-[#5b4fe9]"
-                      : mode === "RECONCILE"
-                        ? "text-slate-900"
-                        : "text-rose-600",
-                )}
-              >
-                {amount > 0 ? formatMoney(amount) : "0 ₫"}
-              </span>
-            </div>
-
-            {mode === "RECONCILE" && activeAccount ? (
-              <p className="mt-1 tabular-nums text-xs text-slate-500">
-                Trên app: {formatMoney(activeAccount.currentBalance)} · Độ lệch:{" "}
-                <strong
-                  className={
-                    reconcileDelta >= 0 ? "text-emerald-600" : "text-rose-600"
-                  }
-                >
-                  {formatSignedMoney(reconcileDelta)}
-                </strong>
-              </p>
-            ) : null}
-
-            <input
-              type="text"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Ghi chú (tùy chọn) · Chạm icon danh mục bên dưới để lưu liền..."
-              className="mt-1.5 w-full border-t border-slate-100 pt-1.5 text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none"
-            />
-          </div>
-
-          {/* Smart Split Toggle ("Chia tiền / Trả hộ") */}
-          {mode === "EXPENSE" ? (
-            <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-              <div className="flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSplitEnabled((v) => !v)}
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition",
-                    splitEnabled
-                      ? "bg-[#5b4fe9] text-white"
-                      : "bg-slate-100 text-slate-700",
-                  )}
-                >
-                  <span>🤝 Chia tiền / Trả hộ</span>
-                </button>
-
-                {splitEnabled ? (
-                  <div className="flex items-center gap-1">
-                    {[2, 3, 4, 5].map((n) => (
-                      <button
-                        key={n}
-                        type="button"
-                        onClick={() => setSplitHeadcount(n)}
-                        className={cn(
-                          "h-6 min-w-6 rounded-md px-1.5 text-[11px] font-bold",
-                          splitHeadcount === n
-                            ? "bg-indigo-100 text-[#5b4fe9]"
-                            : "bg-slate-100 text-slate-600",
-                        )}
-                      >
-                        {n}
-                      </button>
-                    ))}
-                  </div>
+                {isListening ? (
+                  <MicOff className="h-4 w-4" />
                 ) : (
-                  <span className="text-[11px] text-slate-400">
-                    Bấm số → chạm icon = lưu 1 chạm
-                  </span>
+                  <Mic className="h-4 w-4" />
                 )}
-              </div>
+              </button>
+              <Button type="submit" variant="primary" size="sm">
+                Ghi
+              </Button>
+            </form>
 
-              {splitEnabled && amount > 0 ? (
-                <p className="mt-1.5 tabular-nums text-[11px] font-medium text-indigo-800">
-                  Mình chịu: <strong>{formatMoney(splitMyShare)}</strong> · Ứng
-                  hộ (Phải thu):{" "}
-                  <strong>{formatMoney(splitReceivable)}</strong>
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-
-          {/* 8 Instant 1-Tap Category Buttons */}
-          {mode === "EXPENSE" || mode === "INCOME" ? (
-            <div className="grid grid-cols-4 gap-1.5">
-              {QUICK_TAP_CATEGORIES.map((category) => {
-                const selected = selectedCategoryId === category.id;
-                return (
+            {/* Amount Display + Mode Switcher */}
+            <Card className="space-y-3 p-3.5">
+              <div className="flex flex-wrap gap-1.5">
+                {(
+                  [
+                    { id: "EXPENSE", label: "Chi tiêu" },
+                    { id: "SPLIT", label: "Chia bill" },
+                    { id: "REFUND", label: "↺ Hoàn tiền" },
+                    { id: "TRANSFER", label: "Chuyển ví" },
+                    { id: "INCOME", label: "Thu nhập" },
+                  ] as const
+                ).map((item) => (
                   <button
-                    key={category.id}
+                    key={item.id}
                     type="button"
                     onClick={() => {
-                      setSelectedCategoryId(category.id);
-                      if (category.id === "tich-luy") {
-                        setMode("TRANSFER");
-                        return;
-                      }
-                      const nextMode: TransactionType =
-                        category.id === "thu-nhap" ? "INCOME" : "EXPENSE";
-                      setMode(nextMode);
-                      if (amount > 0) {
-                        commitCapture(category.id, nextMode);
-                      }
+                      triggerHapticTap(8);
+                      setMode(item.id);
                     }}
                     className={cn(
-                      "flex flex-col items-center justify-center gap-1 rounded-xl border px-1.5 py-2 text-center transition active:scale-95",
-                      selected
-                        ? "border-[#5b4fe9] bg-indigo-50/90 text-[#5b4fe9]"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-indigo-200",
+                      "rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition",
+                      mode === item.id
+                        ? "border-emerald-500/45 bg-emerald-500/20 text-emerald-400"
+                        : "border-[var(--mf-border)] bg-[var(--mf-surface-2)] text-[var(--mf-text-muted)]",
                     )}
                   >
-                    <span className="text-base leading-none">
-                      {CATEGORY_EMOJI[category.id] ?? "🏷️"}
-                    </span>
-                    <span className="line-clamp-1 text-[10px] font-semibold">
-                      {category.shortLabel}
-                    </span>
+                    {item.label}
                   </button>
-                );
-              })}
-            </div>
-          ) : null}
-
-          {/* Fixed Numpad with 000 & 00 */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
-            <div className="grid grid-cols-3 gap-1.5">
-              {NUMPAD_KEYS.map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setDigits((prev) => appendNumpadToken(prev, key))}
-                  className={cn(
-                    "tabular-nums flex h-11 items-center justify-center rounded-xl text-lg font-bold transition active:scale-95",
-                    key === "000"
-                      ? "bg-indigo-50 text-[#5b4fe9]"
-                      : "bg-slate-50 text-slate-900 hover:bg-slate-100",
-                  )}
-                >
-                  {key}
-                </button>
-              ))}
-            </div>
-            <div className="mt-1.5 grid grid-cols-3 gap-1.5">
-              <button
-                type="button"
-                onClick={() => setDigits((prev) => appendNumpadToken(prev, "C"))}
-                className="flex h-11 items-center justify-center rounded-xl bg-slate-100 text-xs font-bold text-slate-600 active:scale-95"
-              >
-                Xóa hết
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setDigits((prev) => appendNumpadToken(prev, "BACK"))
-                }
-                className="flex h-11 items-center justify-center rounded-xl bg-slate-100 text-base font-bold text-slate-700 active:scale-95"
-              >
-                ⌫
-              </button>
-              <button
-                type="button"
-                onClick={() => commitCapture()}
-                disabled={mode !== "RECONCILE" && amount <= 0}
-                className="flex h-11 items-center justify-center rounded-xl bg-[#5b4fe9] text-xs font-bold text-white shadow-xs transition active:scale-95 disabled:opacity-45"
-              >
-                {mode === "RECONCILE"
-                  ? "KHỚP SỐ DƯ"
-                  : mode === "EXPENSE" && splitEnabled
-                    ? `CHIA 1/${splitHeadcount}`
-                    : "GHI NGAY"}
-              </button>
-            </div>
-          </div>
-        </main>
-      ) : (
-        <main className="flex-1 space-y-4 p-3">
-          {/* Pending Receivables / Chia bill */}
-          {controller.pendingSplitTransactions.length > 0 ? (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-3">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
-                Đang ứng hộ (Chờ bạn trả)
-              </p>
-              <div className="mt-2 space-y-2">
-                {controller.pendingSplitTransactions.map((tx) => (
-                  <div
-                    key={tx.id}
-                    className="flex items-center justify-between gap-2 rounded-xl bg-white px-3 py-2 shadow-2xs"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-xs font-bold text-slate-900">
-                        {tx.note}
-                      </p>
-                      <p className="tabular-nums text-[11px] text-amber-700">
-                        Ứng hộ:{" "}
-                        {formatMoney(tx.splitInfo?.receivableAmount ?? 0)}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="primary"
-                      onClick={() => controller.settleSplitBill(tx.id)}
-                    >
-                      Thu hồi
-                    </Button>
-                  </div>
                 ))}
               </div>
-            </div>
-          ) : null}
 
-          {/* Compact Account Groups */}
-          <div className="space-y-2">
-            {groupedAccounts.map(({ group, accounts }) => (
-              <div
-                key={group}
-                className="rounded-2xl border border-slate-200 bg-white p-3"
-              >
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  {ACCOUNT_GROUP_META[group].label}
-                </p>
-                <div className="mt-2 divide-y divide-slate-100">
-                  {accounts.map((acc) => (
-                    <div
-                      key={acc.id}
-                      className="flex items-center justify-between py-2"
-                    >
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900">
-                          {acc.name}
-                        </p>
-                        <p className="text-[11px] text-slate-500">
-                          {acc.currency}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="tabular-nums text-sm font-bold text-slate-900">
-                          {formatMoney(acc.currentBalance, acc.currency)}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAccountId(acc.id);
-                            setMode("RECONCILE");
-                            setDigits(String(Math.max(0, acc.currentBalance)));
-                            setTab("capture");
-                          }}
-                          className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-[#5b4fe9]"
-                        >
-                          Khớp
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div className="flex items-baseline justify-between gap-2 rounded-xl bg-[var(--mf-surface-2)] px-3.5 py-3">
+                <span className="font-mono text-3xl font-bold tracking-tight tabular-nums text-[var(--mf-text)]">
+                  {amount > 0 ? formatMoney(amount) : "0 ₫"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setExcludeFromReports((v) => !v)}
+                  className={cn(
+                    "rounded-lg border px-2 py-1 text-[10px] font-semibold",
+                    excludeFromReports
+                      ? "border-amber-500/45 bg-amber-500/20 text-amber-400"
+                      : "border-[var(--mf-border)] text-[var(--mf-text-muted)]",
+                  )}
+                >
+                  {excludeFromReports ? "Ngoài hạn mức" : "Tính hạn mức"}
+                </button>
               </div>
-            ))}
-          </div>
 
-          {/* Compact Transaction List */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Giao dịch gần đây
-              </h2>
-              <button
-                type="button"
-                onClick={controller.resetDemoData}
-                className="text-[11px] font-semibold text-[#5b4fe9] underline"
-              >
-                Nạp dữ liệu mẫu
-              </button>
-            </div>
-            <div className="divide-y divide-slate-100">
-              {controller.activeTransactions.slice(0, 25).map((tx) => {
-                const signed =
-                  tx.type === "EXPENSE"
-                    ? -tx.amount
-                    : tx.type === "INCOME"
-                      ? tx.amount
-                      : tx.type === "RECONCILE"
-                        ? (tx.reconcileDelta ?? tx.amount)
-                        : tx.amount;
-
-                return (
-                  <div
-                    key={tx.id}
-                    className="flex items-center justify-between gap-2 py-2.5"
+              {/* Preset Amount Chips */}
+              <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+                {PRESET_CHIPS.map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => {
+                      triggerHapticTap(8);
+                      setDigits(preset.digits);
+                    }}
+                    className="shrink-0 rounded-lg border border-[var(--mf-border)] bg-[var(--mf-surface-2)] px-3 py-1 font-mono text-xs font-semibold text-cyan-400"
                   >
-                    <div className="flex min-w-0 items-center gap-2.5">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-sm">
-                        {CATEGORY_EMOJI[tx.categoryId] ?? "💳"}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-slate-900">
-                          {tx.note}
-                        </p>
-                        <p className="text-[11px] text-slate-500">
-                          {TX_TYPE_META[tx.type].label} ·{" "}
-                          {formatDateTime(tx.occurredAt)}
-                        </p>
-                      </div>
-                    </div>
+                    {preset.label}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setDigits("")}
+                  className="ml-auto shrink-0 rounded-lg px-2.5 py-1 text-xs text-rose-400"
+                >
+                  Xóa số
+                </button>
+              </div>
 
-                    <div className="flex shrink-0 items-center gap-2">
-                      <span
+              {/* Accounts Pills */}
+              <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+                {accounts
+                  .filter((a) => !a.isArchived)
+                  .map((acc) => (
+                    <button
+                      key={acc.id}
+                      type="button"
+                      onClick={() => setSelectedAccountId(acc.id)}
+                      className={cn(
+                        "shrink-0 rounded-xl border px-2.5 py-1.5 text-left text-[11px]",
+                        selectedAccountId === acc.id
+                          ? "border-emerald-500/45 bg-emerald-500/15 text-emerald-400"
+                          : "border-[var(--mf-border)] bg-[var(--mf-surface-2)] text-[var(--mf-text-muted)]",
+                      )}
+                    >
+                      <div className="font-semibold">{acc.name}</div>
+                      <div className="font-mono text-[10px]">
+                        {formatCompactVnd(acc.currentBalance)}
+                      </div>
+                    </button>
+                  ))}
+              </div>
+
+              {mode === "TRANSFER" ? (
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-[11px]">
+                  <span className="shrink-0 text-[var(--mf-text-muted)]">
+                    Đến:
+                  </span>
+                  {accounts
+                    .filter((a) => a.id !== selectedAccountId)
+                    .map((acc) => (
+                      <button
+                        key={acc.id}
+                        type="button"
+                        onClick={() => setToAccountId(acc.id)}
                         className={cn(
-                          "tabular-nums text-sm font-bold",
-                          tx.type === "INCOME"
-                            ? "text-emerald-600"
-                            : tx.type === "EXPENSE"
-                              ? "text-rose-600"
-                              : "text-indigo-600",
+                          "shrink-0 rounded-lg border px-2.5 py-1 font-semibold",
+                          toAccountId === acc.id
+                            ? "border-cyan-500/50 bg-cyan-500/15 text-cyan-400"
+                            : "border-[var(--mf-border)] bg-[var(--mf-surface-2)] text-[var(--mf-text-muted)]",
                         )}
                       >
-                        {tx.type === "TRANSFER"
-                          ? formatMoney(tx.amount)
-                          : formatSignedMoney(signed)}
-                      </span>
-                      <button
-                        type="button"
-                        aria-label="Xóa giao dịch"
-                        onClick={() => controller.deleteTransaction(tx.id)}
-                        className="rounded-md px-1.5 py-1 text-xs text-slate-400 hover:bg-rose-50 hover:text-rose-600"
-                      >
-                        ✕
+                        {acc.name}
                       </button>
-                    </div>
+                    ))}
+                </div>
+              ) : mode === "SPLIT" ? (
+                <div className="flex items-center justify-between rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs">
+                  <span className="text-amber-400 font-semibold">
+                    Chia đều {headcount} người (mình{" "}
+                    {formatMoney(Math.round(amount / headcount))})
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setHeadcount((n) => Math.max(2, n - 1))}
+                    >
+                      -
+                    </Button>
+                    <span className="font-mono font-bold">{headcount}</span>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setHeadcount((n) => Math.min(20, n + 1))}
+                    >
+                      +
+                    </Button>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        </main>
-      )}
+                </div>
+              ) : (
+                <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+                  {QUICK_TAP_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setCategoryId(cat.id)}
+                      className={cn(
+                        "shrink-0 rounded-lg border px-2.5 py-1 text-[11px] font-medium",
+                        categoryId === cat.id
+                          ? "border-emerald-500/45 bg-emerald-500/15 text-emerald-400"
+                          : "border-[var(--mf-border)] bg-[var(--mf-surface-2)] text-[var(--mf-text-muted)]",
+                      )}
+                    >
+                      {CATEGORY_EMOJI[cat.id] ?? "💳"} {cat.shortLabel}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-      {/* 30s Onboarding Modal (Công thức 60 giây đầu tiên) */}
-      <ModalShell
-        open={onboardOpen}
-        title="La bàn 30 giây đầu tiên"
-        onClose={() => setOnboardOpen(false)}
-      >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const liquid =
-              parseVietnameseAmount(onboardLiquidInput, {
-                autoMultiplyThousandForBareSmallNumber: false,
-              })?.amount ?? 0;
-            const fixed =
-              parseVietnameseAmount(onboardFixedInput, {
-                autoMultiplyThousandForBareSmallNumber: false,
-              })?.amount ?? 0;
-            controller.applyQuickOnboarding({
-              liquidBalanceVnd: liquid,
-              fixedCommitmentsVnd: fixed,
-            });
-            setOnboardOpen(false);
-          }}
-          className="space-y-3"
-        >
-          <label className="block text-xs font-semibold text-slate-700">
-            1. Tổng tiền tiêu dùng hiện có trong thẻ/ví?
-            <input
-              type="text"
-              value={onboardLiquidInput}
-              onChange={(e) => setOnboardLiquidInput(e.target.value)}
-              placeholder="VD: 12tr"
-              className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm tabular-nums"
-            />
-          </label>
-          <label className="block text-xs font-semibold text-slate-700">
-            2. Khoản cố định còn phải giữ tới cuối tháng (nhà, điện, tiết kiệm)?
-            <input
-              type="text"
-              value={onboardFixedInput}
-              onChange={(e) => setOnboardFixedInput(e.target.value)}
-              placeholder="VD: 4tr"
-              className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm tabular-nums"
-            />
-          </label>
-          <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-xs font-medium text-indigo-950">
-            {onboardingPreview.summaryMessage}
+              <input
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Ghi chú ngắn (VD: Phở bò, Grab sân bay)..."
+                className="w-full rounded-xl border border-[var(--mf-border)] bg-[var(--mf-surface-2)] px-3 py-2 text-xs text-[var(--mf-text)]"
+              />
+
+              {/* 1-Thumb Tactile Numpad */}
+              <div className="grid grid-cols-3 gap-2">
+                {NUMPAD_KEYS.map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      triggerHapticTap(8);
+                      setDigits((prev) => appendNumpadToken(prev, key));
+                    }}
+                    className="flex h-12 items-center justify-center rounded-xl border border-[var(--mf-border)] bg-[var(--mf-surface-2)] font-mono text-lg font-bold text-[var(--mf-text)] active:scale-95"
+                  >
+                    {key === "BACK" ? <Delete className="h-5 w-5" /> : key}
+                  </button>
+                ))}
+              </div>
+
+              <Button
+                variant="primary"
+                className="w-full py-3 text-sm font-bold"
+                disabled={amount <= 0}
+                onClick={handleCaptureSubmit}
+              >
+                Ghi ngay · {amount > 0 ? formatMoney(amount) : "Nhập số tiền"}
+              </Button>
+            </Card>
           </div>
-          <div className="flex justify-end gap-2">
+        ) : activeTab === "ledger" ? (
+          <MobileLedgerTab
+            controller={controller}
+            onOpenReconcile={(id) => setReconcileAccountId(id)}
+          />
+        ) : (
+          <MobilePlanTab
+            controller={controller}
+            onOpenImport={() => setShowImport(true)}
+            onOpenBudgetEvent={() => setShowBudgetEvent(true)}
+          />
+        )}
+      </main>
+
+      {/* Undo Delete Toast */}
+      {lastDeletedIds.length > 0 ? (
+        <div className="fixed right-4 bottom-20 left-4 z-40 mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl border border-emerald-500/40 bg-[var(--mf-surface)] px-4 py-3 text-xs shadow-2xl">
+          <span>Đã xóa {lastDeletedIds.length} giao dịch</span>
+          <div className="flex items-center gap-2">
             <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setOnboardOpen(false)}
+              variant="primary"
+              size="sm"
+              onClick={controller.undoLastDelete}
             >
-              Đóng
+              <Undo2 className="h-3.5 w-3.5" />
+              Hoàn tác
             </Button>
-            <Button type="submit" variant="primary">
-              Áp dụng ngay
-            </Button>
+            <button
+              type="button"
+              onClick={controller.dismissUndoDelete}
+              aria-label="Đóng hoàn tác"
+              className="p-1 text-[var(--mf-text-muted)]"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
           </div>
-        </form>
-      </ModalShell>
+        </div>
+      ) : null}
+
+      {/* Bottom Sticky Navigation */}
+      <nav
+        aria-label="Điều hướng di động"
+        className="fixed right-0 bottom-0 left-0 z-30 border-t border-[var(--mf-border)] bg-[var(--mf-surface)]/95 px-4 py-2 backdrop-blur"
+      >
+        <div className="mx-auto grid max-w-md grid-cols-3 gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab("capture")}
+            className={cn(
+              "flex flex-col items-center gap-0.5 rounded-xl py-1.5 text-[11px] font-semibold",
+              activeTab === "capture"
+                ? "bg-emerald-500/15 text-emerald-400"
+                : "text-[var(--mf-text-muted)]",
+            )}
+          >
+            <Zap className="h-4 w-4" />
+            Ghi nhanh
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("ledger")}
+            className={cn(
+              "relative flex flex-col items-center gap-0.5 rounded-xl py-1.5 text-[11px] font-semibold",
+              activeTab === "ledger"
+                ? "bg-emerald-500/15 text-emerald-400"
+                : "text-[var(--mf-text-muted)]",
+            )}
+          >
+            <WalletCards className="h-4 w-4" />
+            <span>
+              Sổ & Ví
+              {pendingSplitTransactions.length > 0
+                ? ` (${pendingSplitTransactions.length})`
+                : ""}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("plan")}
+            className={cn(
+              "flex flex-col items-center gap-0.5 rounded-xl py-1.5 text-[11px] font-semibold",
+              activeTab === "plan"
+                ? "bg-emerald-500/15 text-emerald-400"
+                : "text-[var(--mf-text-muted)]",
+            )}
+          >
+            <PieChart className="h-4 w-4" />
+            Kế hoạch
+          </button>
+        </div>
+      </nav>
+
+      {showSms ? (
+        <BankSmsDialog
+          open
+          onClose={() => setShowSms(false)}
+          controller={controller}
+        />
+      ) : null}
+      {showImport ? (
+        <ImportDialog
+          open
+          onClose={() => setShowImport(false)}
+          controller={controller}
+        />
+      ) : null}
+      {showBudgetEvent ? (
+        <BudgetEventDialog
+          open
+          onClose={() => setShowBudgetEvent(false)}
+          controller={controller}
+        />
+      ) : null}
+      {reconcileAccountId ? (
+        <ReconcileDialog
+          key={reconcileAccountId}
+          accountId={reconcileAccountId}
+          onClose={() => setReconcileAccountId(null)}
+          controller={controller}
+        />
+      ) : null}
     </div>
   );
 }

@@ -14,6 +14,101 @@ export interface ReconcileResult {
   transaction: Transaction | null;
 }
 
+export function safeDivide(
+  numerator: number,
+  denominator: number,
+  fallback = 0,
+): number {
+  if (
+    !Number.isFinite(numerator) ||
+    !Number.isFinite(denominator) ||
+    denominator === 0
+  ) {
+    return fallback;
+  }
+  const result = numerator / denominator;
+  return Number.isFinite(result) ? result : fallback;
+}
+
+function foldVietnamese(input: string): string {
+  return input
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/gu, "")
+    .replace(/đ/gu, "d")
+    .replace(/Đ/gu, "d")
+    .toLowerCase();
+}
+
+export function computeTransactionFingerprint(params: {
+  occurredAt: number;
+  type: Transaction["type"];
+  amount: number;
+  note: string;
+  accountId?: string;
+}): string {
+  const dateObj = new Date(params.occurredAt);
+  const dateKey = Number.isNaN(dateObj.getTime())
+    ? "1970-01-01"
+    : `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, "0")}-${String(dateObj.getDate()).padStart(2, "0")}`;
+  const cleanNote = foldVietnamese(params.note)
+    .replace(/[^a-z0-9]+/gu, " ")
+    .trim();
+  const payload = `${dateKey}|${params.type}|${Math.round(Math.abs(params.amount))}|${params.accountId ?? ""}|${cleanNote}`;
+
+  let h1 = 0x811c9dc5;
+  let h2 = 0x01000193;
+  for (let i = 0; i < payload.length; i += 1) {
+    const code = payload.charCodeAt(i);
+    h1 ^= code;
+    h1 = Math.imul(h1, 0x01000193);
+    h2 ^= code + i;
+    h2 = Math.imul(h2, 0x85ebca6b);
+  }
+  return `fp_${(h1 >>> 0).toString(16).padStart(8, "0")}${(h2 >>> 0).toString(16).padStart(8, "0")}`;
+}
+
+export function attachTransactionFingerprint(tx: Transaction): Transaction {
+  if (tx.fingerprint) return tx;
+  return {
+    ...tx,
+    fingerprint: computeTransactionFingerprint({
+      occurredAt: tx.occurredAt,
+      type: tx.type,
+      amount: tx.amount,
+      note: tx.note,
+      accountId: tx.accountId,
+    }),
+  };
+}
+
+export function deduplicateTransactions(
+  incoming: readonly Transaction[],
+  existing: readonly Transaction[],
+): {
+  unique: Transaction[];
+  skippedCount: number;
+} {
+  const seenIds = new Set(existing.map((tx) => tx.id));
+  const seenFps = new Set(
+    existing.map((tx) => attachTransactionFingerprint(tx).fingerprint!),
+  );
+  const unique: Transaction[] = [];
+  let skippedCount = 0;
+
+  for (const rawTx of incoming) {
+    const tx = attachTransactionFingerprint(rawTx);
+    if (seenIds.has(tx.id) || seenFps.has(tx.fingerprint!)) {
+      skippedCount += 1;
+      continue;
+    }
+    seenIds.add(tx.id);
+    seenFps.add(tx.fingerprint!);
+    unique.push(tx);
+  }
+
+  return { unique, skippedCount };
+}
+
 export function computeAccountBalances(
   accounts: readonly Account[],
   transactions: readonly Transaction[],
@@ -24,7 +119,7 @@ export function computeAccountBalances(
   }
 
   const activeOrdered = transactions
-    .filter((tx) => tx.syncStatus !== "DELETED")
+    .filter((tx) => tx.syncStatus !== "DELETED" && !tx.deletedAt)
     .slice()
     .sort((a, b) => a.occurredAt - b.occurredAt || a.updatedAt - b.updatedAt);
 

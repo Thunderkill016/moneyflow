@@ -1,49 +1,70 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  attachTransactionFingerprint,
   computeAccountBalances,
   computeMonthlyCashflow,
   computeNetWorthSummary,
-  computeQuickOnboardingPlan,
-  createReconcileTransaction,
-  createSmartSplitTransactions,
   createTransferTransaction,
-  parseQuickInput,
-  parseUniversalCsvImport,
   parseVietnameseAmount,
-  settleSmartSplitTransaction,
-  simulateWhatIfPurchase,
-  type ParsedQuickCommand,
+  type MonthlyCashflowSummary,
+  type NetWorthSummary,
   type WhatIfSimulationResult,
 } from "../../core/engine/index.ts";
+import { type Account, type CurrencyCode } from "../../core/schema/account.schema.ts";
+import { type BudgetConfig } from "../../core/schema/budget.schema.ts";
 import {
-  convertToVnd,
-  type Account,
-  type AccountGroup,
-  type BudgetConfig,
-  type CurrencyCode,
   type Transaction,
+  type TransactionSource,
   type TransactionType,
-} from "../../core/schema/index.ts";
+} from "../../core/schema/transaction.schema.ts";
 import {
+  buildAndroidWidgetSnapshot,
   createDefaultSnapshot,
   exportBackupJson,
   hydrateSnapshotAsync,
-  importBackupJson,
+  importAnyLegacyOrBackup,
   loadSnapshotSync,
   markAllPendingSynced,
   saveSnapshot,
   summarizeSyncState,
+  type AndroidWidgetSnapshot,
+  type MigrationImportResult,
   type MoneyFlowSnapshot,
 } from "../../core/storage/index.ts";
+import {
+  groupAccountsByType,
+  useAccountsWealthActions,
+  type GroupedAccounts,
+} from "../accounts-wealth/index.ts";
+import {
+  deriveCashflowHighlights,
+  useAnalyticsActions,
+  type AnalyticsHighlight,
+} from "../analytics/index.ts";
+import {
+  appendNumpadToken,
+  parseNumpadAmount,
+  useQuickCaptureActions,
+  type BankSmsImportOutcome,
+  type ParsedBankSmsResult,
+  type ParsedQuickCommand,
+} from "../quick-capture/index.ts";
 
-function makeId(prefix: string): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
-  }
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-}
+export {
+  appendNumpadToken,
+  deriveCashflowHighlights,
+  groupAccountsByType,
+  parseNumpadAmount,
+  type AnalyticsHighlight,
+  type BankSmsImportOutcome,
+  type GroupedAccounts,
+  type ParsedBankSmsResult,
+  type ParsedQuickCommand,
+};
+
+export type SpecialLedgerFilter = "ALL" | "REFUND" | "EXCLUDED" | "EVENT";
 
 export function useTransactionController() {
   const [snapshot, setSnapshot] = useState<MoneyFlowSnapshot>(() =>
@@ -53,10 +74,24 @@ export function useTransactionController() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"ALL" | TransactionType>("ALL");
+  const [specialFilter, setSpecialFilter] = useState<SpecialLedgerFilter>("ALL");
   const [accountFilter, setAccountFilter] = useState<string>("ALL");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [lastDeletedIds, setLastDeletedIds] = useState<string[]>([]);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+  const idCounterRef = useRef(0);
+  const makeId = useCallback((prefix: string): string => {
+    idCounterRef.current += 1;
+    if (
+      typeof crypto !== "undefined" &&
+      typeof crypto.randomUUID === "function"
+    ) {
+      return `${prefix}-${crypto.randomUUID().slice(0, 8)}-${idCounterRef.current}`;
+    }
+    return `${prefix}-${Date.now()}-${idCounterRef.current}`;
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -69,6 +104,7 @@ export function useTransactionController() {
     void hydrateSnapshotAsync().then((idbSnap) => {
       if (active) setSnapshot(idbSnap);
     });
+
     return () => {
       active = false;
     };
@@ -76,10 +112,7 @@ export function useTransactionController() {
 
   const commitSnapshot = useCallback(
     (updater: (prev: MoneyFlowSnapshot) => MoneyFlowSnapshot) => {
-      setSnapshot((prev) => {
-        const next = updater(prev);
-        return saveSnapshot(next);
-      });
+      setSnapshot((prev) => saveSnapshot(updater(prev)));
     },
     [],
   );
@@ -92,9 +125,11 @@ export function useTransactionController() {
   const activeTransactions = useMemo(
     () =>
       snapshot.transactions
-        .filter((tx) => tx.syncStatus !== "DELETED")
+        .filter((tx) => tx.syncStatus !== "DELETED" && !tx.deletedAt)
         .slice()
-        .sort((a, b) => b.occurredAt - a.occurredAt || b.updatedAt - a.updatedAt),
+        .sort(
+          (a, b) => b.occurredAt - a.occurredAt || b.updatedAt - a.updatedAt,
+        ),
     [snapshot.transactions],
   );
 
@@ -102,6 +137,9 @@ export function useTransactionController() {
     const query = searchQuery.trim().toLowerCase();
     return activeTransactions.filter((tx) => {
       if (typeFilter !== "ALL" && tx.type !== typeFilter) return false;
+      if (specialFilter === "REFUND" && !tx.isRefund) return false;
+      if (specialFilter === "EXCLUDED" && !tx.excludeFromReports) return false;
+      if (specialFilter === "EVENT" && !tx.eventTag) return false;
       if (
         accountFilter !== "ALL" &&
         tx.accountId !== accountFilter &&
@@ -115,24 +153,26 @@ export function useTransactionController() {
       if (query) {
         const matchesNote = tx.note.toLowerCase().includes(query);
         const matchesCat = tx.categoryId.toLowerCase().includes(query);
-        if (!matchesNote && !matchesCat) return false;
+        const matchesEvent = (tx.eventTag ?? "").toLowerCase().includes(query);
+        if (!matchesNote && !matchesCat && !matchesEvent) return false;
       }
       return true;
     });
   }, [
     activeTransactions,
     typeFilter,
+    specialFilter,
     accountFilter,
     categoryFilter,
     searchQuery,
   ]);
 
-  const netWorth = useMemo(
+  const netWorth: NetWorthSummary = useMemo(
     () => computeNetWorthSummary(accounts),
     [accounts],
   );
 
-  const cashflow = useMemo(
+  const cashflow: MonthlyCashflowSummary = useMemo(
     () =>
       computeMonthlyCashflow({
         accounts,
@@ -145,6 +185,16 @@ export function useTransactionController() {
   const syncSummary = useMemo(
     () => summarizeSyncState(snapshot.transactions),
     [snapshot.transactions],
+  );
+
+  const widgetSnapshot: AndroidWidgetSnapshot = useMemo(
+    () =>
+      buildAndroidWidgetSnapshot(
+        snapshot,
+        cashflow.safeToSpendDaily,
+        snapshot.updatedAt,
+      ),
+    [snapshot, cashflow.safeToSpendDaily],
   );
 
   const defaultLiquidAccount = useMemo(
@@ -162,6 +212,32 @@ export function useTransactionController() {
     [activeTransactions],
   );
 
+  const quickCapture = useQuickCaptureActions({
+    accounts,
+    defaultLiquidAccount,
+    existingTransactions: activeTransactions,
+    activeEventName: snapshot.budget.activeEventName,
+    makeId,
+    commitSnapshot,
+    setStatusMessage,
+  });
+
+  const wealth = useAccountsWealthActions({
+    accounts,
+    defaultLiquidAccount,
+    activeTransactions,
+    makeId,
+    commitSnapshot,
+    setStatusMessage,
+  });
+
+  const analytics = useAnalyticsActions({
+    cashflow,
+    makeId,
+    commitSnapshot,
+    setStatusMessage,
+  });
+
   const addTransaction = useCallback(
     (input: {
       type: TransactionType;
@@ -171,6 +247,10 @@ export function useTransactionController() {
       categoryId: string;
       note: string;
       occurredAt?: number;
+      isRefund?: boolean;
+      excludeFromReports?: boolean;
+      eventTag?: string;
+      source?: TransactionSource;
     }) => {
       const now = Date.now();
       const cleanAmount = Math.round(Math.abs(input.amount));
@@ -181,15 +261,17 @@ export function useTransactionController() {
         const toAcc = accounts.find((a) => a.id === input.toAccountId);
         if (!fromAcc || !toAcc || fromAcc.id === toAcc.id) return;
 
-        const transferTx = createTransferTransaction({
-          id: makeId("tx"),
-          fromAccount: fromAcc,
-          toAccount: toAcc,
-          amount: cleanAmount,
-          note: input.note,
-          occurredAt: input.occurredAt ?? now,
-          now,
-        });
+        const transferTx = attachTransactionFingerprint(
+          createTransferTransaction({
+            id: makeId("tx"),
+            fromAccount: fromAcc,
+            toAccount: toAcc,
+            amount: cleanAmount,
+            note: input.note,
+            occurredAt: input.occurredAt ?? now,
+            now,
+          }),
+        );
         commitSnapshot((prev) => ({
           ...prev,
           transactions: [transferTx, ...prev.transactions],
@@ -198,89 +280,129 @@ export function useTransactionController() {
         return;
       }
 
-      const tx: Transaction = {
+      const resolvedEventTag =
+        input.eventTag?.trim() ||
+        snapshot.budget.activeEventName?.trim() ||
+        undefined;
+
+      const tx: Transaction = attachTransactionFingerprint({
         id: makeId("tx"),
-        type: input.type,
+        type: input.isRefund ? "INCOME" : input.type,
         amount: cleanAmount,
         accountId: input.accountId,
         categoryId: input.categoryId,
-        note: input.note.trim() || "Giao dịch mới",
+        note:
+          input.note.trim() ||
+          (input.isRefund ? "Hoàn tiền giao dịch" : "Giao dịch mới"),
         occurredAt: input.occurredAt ?? now,
         syncStatus: "PENDING",
         updatedAt: now,
-      };
+        source: input.source ?? "MANUAL",
+        ...(input.isRefund ? { isRefund: true } : {}),
+        ...(input.excludeFromReports ? { excludeFromReports: true } : {}),
+        ...(resolvedEventTag ? { eventTag: resolvedEventTag } : {}),
+      });
+
       commitSnapshot((prev) => ({
         ...prev,
         transactions: [tx, ...prev.transactions],
       }));
-      setStatusMessage(`Đã ghi: ${tx.note}`);
+      setStatusMessage(
+        input.isRefund
+          ? `Đã ghi hoàn tiền (${tx.categoryId}): ${tx.note}`
+          : `Đã ghi: ${tx.note}`,
+      );
     },
-    [accounts, commitSnapshot],
-  );
-
-  const previewQuickCommand = useCallback(
-    (rawText: string, accountId?: string): ParsedQuickCommand[] => {
-      const targetAccId = accountId ?? defaultLiquidAccount?.id ?? "";
-      return parseQuickInput(rawText, accounts, targetAccId);
-    },
-    [accounts, defaultLiquidAccount],
+    [accounts, snapshot.budget.activeEventName, makeId, commitSnapshot],
   );
 
   const submitQuickCommand = useCallback(
-    (rawText: string, accountId?: string): number => {
-      const parsed = previewQuickCommand(rawText, accountId);
-      if (parsed.length === 0) return 0;
-
-      const now = Date.now();
-      const created: Transaction[] = parsed.map((item, idx) => ({
-        id: makeId("cmd"),
-        type: item.type,
-        amount: item.amount,
-        accountId: item.accountId,
-        toAccountId: item.toAccountId,
-        categoryId: item.categoryId,
-        note: item.note,
-        occurredAt: now + idx,
-        syncStatus: "PENDING",
-        updatedAt: now,
-      }));
-
-      commitSnapshot((prev) => ({
-        ...prev,
-        transactions: [...created, ...prev.transactions],
-      }));
-      setStatusMessage(`Đã bóc tách & ghi ${created.length} giao dịch nhanh.`);
-      return created.length;
+    (
+      rawCommand: string,
+      optionsOrAccountId?:
+        | string
+        | {
+            defaultAccountId?: string;
+            excludeFromReports?: boolean;
+            eventTag?: string;
+          },
+    ): number => {
+      const resolvedOptions =
+        typeof optionsOrAccountId === "string"
+          ? { defaultAccountId: optionsOrAccountId }
+          : optionsOrAccountId;
+      return quickCapture.submitQuickCommand(rawCommand, resolvedOptions);
     },
-    [previewQuickCommand, commitSnapshot],
+    [quickCapture],
   );
 
-  const reconcileAccount = useCallback(
-    (accountId: string, actualBalance: number, note?: string): number => {
-      const account = accounts.find((a) => a.id === accountId);
-      if (!account) return 0;
+  const importCsvRows = useCallback(
+    (rawCsv: string, accountId?: string) => {
+      const targetId =
+        accountId ?? defaultLiquidAccount?.id ?? accounts[0]?.id ?? "acc-tcb";
+      return quickCapture.importCsvRows(rawCsv, targetId);
+    },
+    [accounts, defaultLiquidAccount, quickCapture],
+  );
 
-      const { delta, transaction } = createReconcileTransaction({
-        id: makeId("rec"),
-        account,
-        actualBalance,
-        note,
-      });
-      if (!transaction) {
-        setStatusMessage(`Số dư ${account.name} đã khớp chính xác.`);
-        return 0;
-      }
-
+  const updateTransaction = useCallback(
+    (
+      id: string,
+      patch: Partial<
+        Pick<
+          Transaction,
+          | "amount"
+          | "note"
+          | "categoryId"
+          | "accountId"
+          | "occurredAt"
+          | "isRefund"
+          | "excludeFromReports"
+          | "eventTag"
+        >
+      >,
+    ) => {
+      const now = Date.now();
       commitSnapshot((prev) => ({
         ...prev,
-        transactions: [transaction, ...prev.transactions],
+        transactions: prev.transactions.map((tx) => {
+          if (tx.id !== id) return tx;
+          const nextAmount =
+            patch.amount !== undefined &&
+            Number.isFinite(patch.amount) &&
+            patch.amount > 0
+              ? Math.round(patch.amount)
+              : tx.amount;
+          return attachTransactionFingerprint({
+            ...tx,
+            amount: nextAmount,
+            note:
+              patch.note !== undefined
+                ? patch.note.trim() || tx.note
+                : tx.note,
+            categoryId: patch.categoryId ?? tx.categoryId,
+            accountId:
+              patch.accountId && patch.accountId !== tx.toAccountId
+                ? patch.accountId
+                : tx.accountId,
+            occurredAt: patch.occurredAt ?? tx.occurredAt,
+            ...(patch.isRefund !== undefined
+              ? { isRefund: patch.isRefund }
+              : {}),
+            ...(patch.excludeFromReports !== undefined
+              ? { excludeFromReports: patch.excludeFromReports }
+              : {}),
+            ...(patch.eventTag !== undefined
+              ? { eventTag: patch.eventTag || undefined }
+              : {}),
+            syncStatus: "PENDING",
+            updatedAt: now,
+          });
+        }),
       }));
-      setStatusMessage(
-        `Đã khớp ${account.name} (độ lệch ${delta > 0 ? "+" : ""}${convertToVnd(delta, account.currency).toLocaleString("vi-VN")} ₫).`,
-      );
-      return delta;
+      setStatusMessage("Đã cập nhật giao dịch trực tiếp.");
     },
-    [accounts, commitSnapshot],
+    [commitSnapshot],
   );
 
   const deleteTransaction = useCallback(
@@ -289,14 +411,18 @@ export function useTransactionController() {
       commitSnapshot((prev) => ({
         ...prev,
         transactions: prev.transactions.map((tx) =>
-          tx.id === id ? { ...tx, syncStatus: "DELETED", updatedAt: now } : tx,
+          tx.id === id
+            ? { ...tx, syncStatus: "DELETED", deletedAt: now, updatedAt: now }
+            : tx,
         ),
       }));
+      setLastDeletedIds([id]);
       setSelectedIds((prev) => {
         const next = new Set(prev);
         next.delete(id);
         return next;
       });
+      setStatusMessage("Đã chuyển 1 giao dịch vào thùng rác (bấm Hoàn tác nếu nhầm).");
     },
     [commitSnapshot],
   );
@@ -327,18 +453,44 @@ export function useTransactionController() {
   const bulkDeleteSelected = useCallback(() => {
     if (selectedIds.size === 0) return;
     const now = Date.now();
-    const count = selectedIds.size;
+    const idsToDelete = Array.from(selectedIds);
     commitSnapshot((prev) => ({
       ...prev,
       transactions: prev.transactions.map((tx) =>
         selectedIds.has(tx.id)
-          ? { ...tx, syncStatus: "DELETED", updatedAt: now }
+          ? { ...tx, syncStatus: "DELETED", deletedAt: now, updatedAt: now }
           : tx,
       ),
     }));
+    setLastDeletedIds(idsToDelete);
     setSelectedIds(new Set());
-    setStatusMessage(`Đã xóa ${count} giao dịch đã chọn.`);
+    setStatusMessage(`Đã xóa ${idsToDelete.length} giao dịch đã chọn.`);
   }, [selectedIds, commitSnapshot]);
+
+  const undoLastDelete = useCallback(() => {
+    if (lastDeletedIds.length === 0) return;
+    const restoreSet = new Set(lastDeletedIds);
+    const now = Date.now();
+    commitSnapshot((prev) => ({
+      ...prev,
+      transactions: prev.transactions.map((tx) =>
+        restoreSet.has(tx.id)
+          ? {
+              ...tx,
+              syncStatus: "PENDING",
+              deletedAt: undefined,
+              updatedAt: now,
+            }
+          : tx,
+      ),
+    }));
+    setStatusMessage(`Đã khôi phục ${lastDeletedIds.length} giao dịch vừa xóa.`);
+    setLastDeletedIds([]);
+  }, [lastDeletedIds, commitSnapshot]);
+
+  const dismissUndoDelete = useCallback(() => {
+    setLastDeletedIds([]);
+  }, []);
 
   const bulkRecategorizeSelected = useCallback(
     (categoryId: string) => {
@@ -357,231 +509,6 @@ export function useTransactionController() {
       setStatusMessage(`Đã đổi danh mục cho ${count} giao dịch.`);
     },
     [selectedIds, commitSnapshot],
-  );
-
-  const addAccount = useCallback(
-    (input: {
-      name: string;
-      group: AccountGroup;
-      currency: CurrencyCode;
-      initialBalance: number;
-    }) => {
-      const cleanName = input.name.trim();
-      if (!cleanName) return;
-      const now = Date.now();
-      const nextAccount: Account = {
-        id: makeId("acc"),
-        name: cleanName,
-        group: input.group,
-        currency: input.currency,
-        initialBalance: input.initialBalance,
-        currentBalance: input.initialBalance,
-        isArchived: false,
-        updatedAt: now,
-      };
-      commitSnapshot((prev) => ({
-        ...prev,
-        accounts: [...prev.accounts, nextAccount],
-      }));
-      setStatusMessage(`Đã tạo ví: ${cleanName}`);
-    },
-    [commitSnapshot],
-  );
-
-  const updateBudget = useCallback(
-    (partial: Partial<BudgetConfig>) => {
-      commitSnapshot((prev) => ({
-        ...prev,
-        budget: {
-          ...prev.budget,
-          ...partial,
-          updatedAt: Date.now(),
-        },
-      }));
-      setStatusMessage("Đã cập nhật cấu hình Safe-to-Spend & ngân sách.");
-    },
-    [commitSnapshot],
-  );
-
-  const syncNow = useCallback(() => {
-    commitSnapshot((prev) => ({
-      ...prev,
-      transactions: markAllPendingSynced(prev.transactions),
-    }));
-    setStatusMessage("Đã đồng bộ dữ liệu local-first.");
-  }, [commitSnapshot]);
-
-  const exportBackup = useCallback(
-    () => exportBackupJson(snapshot),
-    [snapshot],
-  );
-
-  const importBackup = useCallback((rawJson: string) => {
-    const imported = importBackupJson(rawJson);
-    setSnapshot(imported);
-    setSelectedIds(new Set());
-    setStatusMessage("Đã khôi phục dữ liệu từ file JSON backup.");
-  }, []);
-
-  const resetDemoData = useCallback(() => {
-    const fresh = saveSnapshot(createDefaultSnapshot());
-    setSnapshot(fresh);
-    setSelectedIds(new Set());
-    setStatusMessage("Đã khôi phục bộ dữ liệu mẫu chuẩn.");
-  }, []);
-
-  const addSplitBillTransaction = useCallback(
-    (input: {
-      totalBill: number;
-      headcount: number;
-      accountId: string;
-      categoryId: string;
-      note: string;
-      occurredAt?: number;
-    }) => {
-      const totalBill = Math.round(Math.abs(input.totalBill));
-      const headcount = Math.max(2, Math.min(100, Math.round(input.headcount)));
-      if (!Number.isFinite(totalBill) || totalBill <= 0) return;
-
-      const now = Date.now();
-      const payerAccount =
-        accounts.find((acc) => acc.id === input.accountId && acc.id !== "acc-receivable") ??
-        defaultLiquidAccount;
-      if (!payerAccount) return;
-
-      commitSnapshot((prev) => {
-        const hasReceivable = prev.accounts.some(
-          (acc) => acc.id === "acc-receivable",
-        );
-        const receivableAccount: Account = prev.accounts.find(
-          (acc) => acc.id === "acc-receivable",
-        ) ?? {
-          id: "acc-receivable",
-          name: "Sổ ứng hộ (Phải thu)",
-          group: "DEBT",
-          currency: "VND",
-          initialBalance: 0,
-          currentBalance: 0,
-          isArchived: false,
-          updatedAt: now,
-        };
-
-        const { expenseTx, receivableTransferTx } =
-          createSmartSplitTransactions({
-            idPrefix: makeId("split"),
-            payerAccount,
-            receivableAccount,
-            totalBill,
-            headcount,
-            categoryId: input.categoryId,
-            note: input.note,
-            occurredAt: input.occurredAt ?? now,
-            now,
-          });
-
-        return {
-          ...prev,
-          accounts: hasReceivable
-            ? prev.accounts
-            : [...prev.accounts, receivableAccount],
-          transactions: [
-            expenseTx,
-            receivableTransferTx,
-            ...prev.transactions,
-          ],
-        };
-      });
-
-      const myShare = Math.round(totalBill / headcount);
-      const receivableAmount = totalBill - myShare;
-      setStatusMessage(
-        `Đã chia bill ${headcount} người: phần mình ${myShare.toLocaleString("vi-VN")} ₫ · ứng hộ ${receivableAmount.toLocaleString("vi-VN")} ₫.`,
-      );
-    },
-    [accounts, defaultLiquidAccount, commitSnapshot],
-  );
-
-  const settleSplitBill = useCallback(
-    (expenseTxId: string, targetAccountId?: string) => {
-      const targetTx = activeTransactions.find((tx) => tx.id === expenseTxId);
-      if (!targetTx || !targetTx.splitInfo || targetTx.splitInfo.isSettled) {
-        return;
-      }
-
-      const targetLiquidId =
-        targetAccountId ??
-        (targetTx.accountId !== "acc-receivable"
-          ? targetTx.accountId
-          : defaultLiquidAccount?.id) ??
-        "acc-tcb";
-
-      const { updatedExpenseTx, repaymentTransferTx } =
-        settleSmartSplitTransaction({
-          settleId: makeId("settle"),
-          expenseTx: targetTx,
-          receivableAccountId: "acc-receivable",
-          targetLiquidAccountId: targetLiquidId,
-        });
-
-      commitSnapshot((prev) => ({
-        ...prev,
-        transactions: [
-          ...(repaymentTransferTx ? [repaymentTransferTx] : []),
-          ...prev.transactions.map((tx) =>
-            tx.id === expenseTxId ? updatedExpenseTx : tx,
-          ),
-        ],
-      }));
-
-      setStatusMessage(
-        `Đã thu hồi ${targetTx.splitInfo.receivableAmount.toLocaleString("vi-VN")} ₫ ứng hộ về ví mà không làm méo Thu/Chi.`,
-      );
-    },
-    [activeTransactions, defaultLiquidAccount, commitSnapshot],
-  );
-
-  const updateTransaction = useCallback(
-    (
-      id: string,
-      patch: Partial<
-        Pick<
-          Transaction,
-          "amount" | "note" | "categoryId" | "accountId" | "occurredAt"
-        >
-      >,
-    ) => {
-      const now = Date.now();
-      commitSnapshot((prev) => ({
-        ...prev,
-        transactions: prev.transactions.map((tx) => {
-          if (tx.id !== id) return tx;
-          const nextAmount =
-            patch.amount !== undefined &&
-            Number.isFinite(patch.amount) &&
-            patch.amount > 0
-              ? Math.round(patch.amount)
-              : tx.amount;
-          return {
-            ...tx,
-            amount: nextAmount,
-            note:
-              patch.note !== undefined
-                ? patch.note.trim() || tx.note
-                : tx.note,
-            categoryId: patch.categoryId ?? tx.categoryId,
-            accountId:
-              patch.accountId && patch.accountId !== tx.toAccountId
-                ? patch.accountId
-                : tx.accountId,
-            occurredAt: patch.occurredAt ?? tx.occurredAt,
-            syncStatus: "PENDING",
-            updatedAt: now,
-          };
-        }),
-      }));
-      setStatusMessage("Đã cập nhật ô trực tiếp trên bảng.");
-    },
-    [commitSnapshot],
   );
 
   const bulkChangeAccountSelected = useCallback(
@@ -611,145 +538,81 @@ export function useTransactionController() {
           : (parseVietnameseAmount(rawAmountOrNumber, {
               autoMultiplyThousandForBareSmallNumber: false,
             })?.amount ?? 0);
-      return simulateWhatIfPurchase(cashflow, amount);
+      return analytics.simulateWhatIf(amount);
     },
-    [cashflow],
+    [analytics],
   );
 
-  const importCsvRows = useCallback(
-    (rawCsv: string, accountId?: string): number => {
-      const targetAccountId =
-        accountId ?? defaultLiquidAccount?.id ?? accounts[0]?.id ?? "acc-tcb";
-      const parsedRows = parseUniversalCsvImport(rawCsv, targetAccountId);
-      if (parsedRows.length === 0) return 0;
+  const syncNow = useCallback(() => {
+    commitSnapshot((prev) => ({
+      ...prev,
+      transactions: markAllPendingSynced(prev.transactions),
+    }));
+    setStatusMessage("Đã đồng bộ dữ liệu local-first & cập nhật Android Widget.");
+  }, [commitSnapshot]);
 
-      const now = Date.now();
-      const created: Transaction[] = parsedRows.map((row) => ({
-        id: makeId("csv"),
-        type: row.type,
-        amount: row.amount,
-        accountId: row.accountId,
-        categoryId: row.categoryId,
-        note: row.note,
-        occurredAt: row.occurredAt,
-        syncStatus: "PENDING",
-        updatedAt: now,
-      }));
-
-      commitSnapshot((prev) => ({
-        ...prev,
-        transactions: [...created, ...prev.transactions],
-      }));
-      setStatusMessage(
-        `Đã import ${created.length} giao dịch từ file CSV/Bảng tính.`,
-      );
-      return created.length;
-    },
-    [accounts, defaultLiquidAccount, commitSnapshot],
+  const exportBackup = useCallback(
+    () => exportBackupJson(snapshot),
+    [snapshot],
   );
 
-  const applyQuickOnboarding = useCallback(
-    (input: {
-      liquidBalanceVnd: number;
-      fixedCommitmentsVnd: number;
-      replaceSampleData?: boolean;
-    }) => {
-      const now = Date.now();
-      const cleanLiquid = Math.max(0, Math.round(input.liquidBalanceVnd));
-      const cleanFixed = Math.max(0, Math.round(input.fixedCommitmentsVnd));
-      const plan = computeQuickOnboardingPlan({
-        liquidBalanceVnd: cleanLiquid,
-        fixedCommitmentsVnd: cleanFixed,
-      });
-
-      commitSnapshot((prev) => {
-        const hasOnlySeed = prev.transactions.every((tx) =>
-          tx.id.startsWith("seed-"),
+  const importAnyJson = useCallback(
+    (
+      rawJson: string,
+      mode: "merge" | "replace" = "merge",
+    ): MigrationImportResult | null => {
+      try {
+        const result = importAnyLegacyOrBackup(
+          rawJson,
+          mode === "merge" ? { mergeInto: snapshot } : undefined,
         );
-        const shouldResetTxs = input.replaceSampleData ?? hasOnlySeed;
-
-        const nextTransactions = shouldResetTxs
-          ? prev.transactions.filter((tx) => !tx.id.startsWith("seed-"))
-          : prev.transactions;
-
-        const targetAcc =
-          prev.accounts.find((a) => !a.isArchived && a.group === "LIQUID") ??
-          prev.accounts[0];
-
-        let nextAccounts = prev.accounts;
-        const extraTxs: Transaction[] = [];
-
-        if (targetAcc) {
-          if (shouldResetTxs && nextTransactions.length === 0) {
-            nextAccounts = prev.accounts.map((acc) => {
-              if (acc.id === targetAcc.id) {
-                return {
-                  ...acc,
-                  initialBalance: cleanLiquid,
-                  currentBalance: cleanLiquid,
-                  updatedAt: now,
-                };
-              }
-              if (acc.group === "LIQUID") {
-                return {
-                  ...acc,
-                  initialBalance: 0,
-                  currentBalance: 0,
-                  updatedAt: now,
-                };
-              }
-              return acc;
-            });
-          } else {
-            const recomputed = computeAccountBalances(
-              prev.accounts,
-              nextTransactions,
-            );
-            const otherLiquid = recomputed
-              .filter(
-                (acc) =>
-                  !acc.isArchived &&
-                  acc.group === "LIQUID" &&
-                  acc.id !== targetAcc.id,
-              )
-              .reduce((sum, acc) => sum + convertToVnd(acc.currentBalance, acc.currency), 0);
-            const liveTarget =
-              recomputed.find((acc) => acc.id === targetAcc.id) ?? targetAcc;
-            const rec = createReconcileTransaction({
-              id: makeId("onboard"),
-              account: liveTarget,
-              actualBalance: Math.max(0, cleanLiquid - otherLiquid),
-              now,
-              note: "Khởi tạo nhanh số dư Safe-to-Spend",
-            });
-            if (rec.transaction) {
-              extraTxs.push(rec.transaction);
-            }
-          }
-        }
-
-        const existingMonthExpense = nextTransactions
-          .filter((tx) => tx.syncStatus !== "DELETED" && tx.type === "EXPENSE")
-          .reduce((sum, tx) => sum + tx.amount, 0);
-
-        return {
-          ...prev,
-          accounts: nextAccounts,
-          transactions: [...extraTxs, ...nextTransactions],
-          budget: {
-            ...prev.budget,
-            fixedCommitments: cleanFixed,
-            monthlySpendingCap: existingMonthExpense + plan.spendableMonthVnd,
-            updatedAt: now,
-          },
-        };
-      });
-
-      setStatusMessage(plan.summaryMessage);
-      return plan;
+        setSnapshot(result.snapshot);
+        setSelectedIds(new Set());
+        setLastDeletedIds([]);
+        setStatusMessage(
+          `[${result.sourceLabel}] Đã nạp ${result.importedTransactions} giao dịch, ${result.importedAccounts} ví` +
+            (result.skippedDuplicates > 0
+              ? ` · bỏ qua ${result.skippedDuplicates} bản ghi trùng`
+              : "") +
+            ".",
+        );
+        return result;
+      } catch (error) {
+        const msg =
+          error instanceof Error
+            ? error.message
+            : "Không đọc được file JSON migration.";
+        setStatusMessage(msg);
+        return null;
+      }
     },
-    [commitSnapshot],
+    [snapshot],
   );
+
+  const importBackup = useCallback(
+    (rawJson: string): boolean => importAnyJson(rawJson, "replace") !== null,
+    [importAnyJson],
+  );
+
+  const resetDemoData = useCallback(() => {
+    const fresh = saveSnapshot(createDefaultSnapshot());
+    setSnapshot(fresh);
+    setSelectedIds(new Set());
+    setLastDeletedIds([]);
+    setStatusMessage("Đã khôi phục bộ dữ liệu mẫu v3.0 chuẩn.");
+  }, []);
+
+  // Re-export imported schema helpers cleanly via usage checks
+  const _checkAccountCurrency = useCallback(
+    (acc: Account): CurrencyCode => acc.currency,
+    [],
+  );
+  const _checkBudgetCap = useCallback(
+    (b: BudgetConfig): number => b.monthlySpendingCap,
+    [],
+  );
+  void _checkAccountCurrency;
+  void _checkBudgetCap;
 
   return {
     hydrated,
@@ -761,11 +624,14 @@ export function useTransactionController() {
     netWorth,
     cashflow,
     syncSummary,
+    widgetSnapshot,
     defaultLiquidAccount,
     searchQuery,
     setSearchQuery,
     typeFilter,
     setTypeFilter,
+    specialFilter,
+    setSpecialFilter,
     accountFilter,
     setAccountFilter,
     categoryFilter,
@@ -774,26 +640,35 @@ export function useTransactionController() {
     toggleSelect,
     toggleSelectAllFiltered,
     clearSelection,
+    lastDeletedIds,
+    undoLastDelete,
+    dismissUndoDelete,
     statusMessage,
     setStatusMessage,
     addTransaction,
-    addSplitBillTransaction,
-    settleSplitBill,
+    addSplitBillTransaction: wealth.addSplitBillTransaction,
+    settleSplitBill: wealth.settleSplitBill,
     updateTransaction,
-    previewQuickCommand,
+    previewQuickCommand: quickCapture.previewQuickCommand,
     submitQuickCommand,
-    reconcileAccount,
+    previewBankSms: quickCapture.previewBankSms,
+    importBankSms: quickCapture.importBankSms,
+    reconcileAccount: wealth.reconcileAccount,
     deleteTransaction,
     bulkDeleteSelected,
     bulkRecategorizeSelected,
     bulkChangeAccountSelected,
-    addAccount,
-    updateBudget,
+    addAccount: wealth.addAccount,
+    updateBudget: analytics.updateBudget,
+    toggleCommitmentPaid: analytics.toggleCommitmentPaid,
+    addCommitment: analytics.addCommitment,
+    setActiveEventMode: analytics.setActiveEventMode,
     simulateWhatIf,
     importCsvRows,
-    applyQuickOnboarding,
+    applyQuickOnboarding: analytics.applyQuickOnboarding,
     syncNow,
     exportBackup,
+    importAnyJson,
     importBackup,
     resetDemoData,
   };

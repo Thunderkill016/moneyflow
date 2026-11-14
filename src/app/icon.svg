@@ -1,9 +1,63 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title">
-  <title id="title">MoneyFlow</title>
-  <rect width="160" height="160" rx="35" fill="#5B4FE9"/>
-  <g fill="none" stroke="#FFFFFF" stroke-width="16.18" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M22.80 64.20C22.80 40.40 42.10 28.00 66.40 28.00H128.20"/>
-    <path d="M137.20 95.80C137.20 119.60 117.90 132.00 93.60 132.00H31.80"/>
-  </g>
-  <path d="M80 54.11A16 16 0 0 1 96 70.11V89.89A16 16 0 0 1 80 105.89A16 16 0 0 1 64 89.89V70.11A16 16 0 0 1 80 54.11ZM80 67.06A4.94 4.94 0 0 0 75.06 72V88.01A4.94 4.94 0 0 0 80 92.95A4.94 4.94 0 0 0 84.94 88.01V72A4.94 4.94 0 0 0 80 67.06Z" fill="#FFFFFF" fill-rule="evenodd" clip-rule="evenodd"/>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mf_bg_grad" x1="36" y1="24" x2="476" y2="488" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0B132B"/>
+      <stop offset="55%" stop-color="#070B16"/>
+      <stop offset="100%" stop-color="#05070E"/>
+    </linearGradient>
+
+    <linearGradient id="mf_wave_grad" x1="98" y1="362" x2="418" y2="146" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#10B981"/>
+      <stop offset="48%" stop-color="#06B6D4"/>
+      <stop offset="100%" stop-color="#6366F1"/>
+    </linearGradient>
+
+    <linearGradient id="mf_echo_grad" x1="112" y1="392" x2="412" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#10B981" stop-opacity="0.34"/>
+      <stop offset="100%" stop-color="#6366F1" stop-opacity="0.16"/>
+    </linearGradient>
+
+    <radialGradient id="mf_glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(290 220) rotate(132) scale(250)">
+      <stop stop-color="#10B981" stop-opacity="0.18"/>
+      <stop offset="0.55" stop-color="#06B6D4" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#070B14" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="mf_rim" x1="256" y1="16" x2="256" y2="496" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.03"/>
+      <stop offset="100%" stop-color="#10B981" stop-opacity="0.18"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#mf_bg_grad)"/>
+  <rect x="17" y="17" width="478" height="478" rx="111" stroke="url(#mf_rim)" stroke-width="2"/>
+  <circle cx="256" cy="240" r="196" fill="url(#mf_glow)"/>
+
+  <path
+    d="M116 364V238C116 206 154 206 168 234L214 316C228 340 264 340 278 314L310 250C324 224 358 220 380 242L396 258"
+    stroke="url(#mf_echo_grad)"
+    stroke-width="24"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <path
+    d="M116 346V194C116 156 162 150 180 184L226 272C240 298 274 298 288 272L322 206C336 178 370 174 392 194L400 202"
+    stroke="url(#mf_wave_grad)"
+    stroke-width="40"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <path
+    d="M366 150L404 146L400 184"
+    stroke="#6366F1"
+    stroke-width="26"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <circle cx="404" cy="146" r="16" fill="#34D399"/>
+  <circle cx="404" cy="146" r="30" stroke="#34D399" stroke-opacity="0.32" stroke-width="4"/>
 </svg>

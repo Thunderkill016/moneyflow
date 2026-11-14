@@ -1,4 +1,5 @@
 import type { TransactionType } from "../schema/transaction.schema.ts";
+import { computeTransactionFingerprint } from "./ledger.engine.ts";
 import { inferCategoryId, parseVietnameseAmount } from "./parser.engine.ts";
 
 export interface ParsedCsvImportRow {
@@ -8,6 +9,7 @@ export interface ParsedCsvImportRow {
   categoryId: string;
   note: string;
   occurredAt: number;
+  fingerprint: string;
 }
 
 function detectDelimiter(headerLine: string): "," | ";" | "\t" {
@@ -115,17 +117,23 @@ function findColumnIndex(
   );
 }
 
-export function parseUniversalCsvImport(
+export function parseUniversalCsvImportWithStats(
   rawCsv: string,
   defaultAccountId: string,
   now = Date.now(),
-): ParsedCsvImportRow[] {
+  existingFingerprints?: ReadonlySet<string>,
+): {
+  rows: ParsedCsvImportRow[];
+  skippedDuplicatesCount: number;
+} {
   const lines = rawCsv
     .split(/\r?\n/u)
     .map((line) => line.trim())
     .filter(Boolean);
 
-  if (lines.length === 0) return [];
+  if (lines.length === 0) {
+    return { rows: [], skippedDuplicatesCount: 0 };
+  }
 
   const delimiter = detectDelimiter(lines[0]);
   const firstCells = splitCsvRow(lines[0], delimiter).map((cell) =>
@@ -171,6 +179,8 @@ export function parseUniversalCsvImport(
   }
 
   const rows: ParsedCsvImportRow[] = [];
+  const seenFingerprints = new Set(existingFingerprints ?? []);
+  let skippedDuplicatesCount = 0;
 
   for (let i = startRow; i < lines.length; i += 1) {
     const cells = splitCsvRow(lines[i], delimiter);
@@ -241,15 +251,44 @@ export function parseUniversalCsvImport(
         ? parseFlexibleDate(cells[dateIdx], now - (lines.length - i) * 60_000)
         : now - (lines.length - i) * 60_000;
 
+    const note = rawNote.trim().slice(0, 200) || "Giao dịch import CSV";
+    const fingerprint = computeTransactionFingerprint({
+      occurredAt,
+      type: inferredType,
+      amount,
+      note,
+      accountId: defaultAccountId,
+    });
+    if (seenFingerprints.has(fingerprint)) {
+      skippedDuplicatesCount += 1;
+      continue;
+    }
+    seenFingerprints.add(fingerprint);
+
     rows.push({
       type: inferredType,
       amount,
       accountId: defaultAccountId,
       categoryId,
-      note: rawNote.trim().slice(0, 200) || "Giao dịch import CSV",
+      note,
       occurredAt,
+      fingerprint,
     });
   }
 
-  return rows;
+  return { rows, skippedDuplicatesCount };
+}
+
+export function parseUniversalCsvImport(
+  rawCsv: string,
+  defaultAccountId: string,
+  now = Date.now(),
+  existingFingerprints?: ReadonlySet<string>,
+): ParsedCsvImportRow[] {
+  return parseUniversalCsvImportWithStats(
+    rawCsv,
+    defaultAccountId,
+    now,
+    existingFingerprints,
+  ).rows;
 }

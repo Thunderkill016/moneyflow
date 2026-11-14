@@ -38,6 +38,17 @@ void main() {
       final bareNumber = parseVietnameseQuickInput('Bún riêu 45');
       expect(bareNumber.amount, 45000);
       expect(bareNumber.categoryId, 'food');
+
+      final compoundMillion = parseVietnameseQuickInput('Đóng học phí 1tr35');
+      expect(compoundMillion.amount, 1350000);
+
+      final litSlang = parseVietnameseQuickInput('Mua sách 2lít5');
+      expect(litSlang.amount, 250000);
+
+      final batch = parseVietnameseQuickBatch('Cà phê 35k, Đổ xăng 70k');
+      expect(batch.length, 2);
+      expect(batch[0].amount, 35000);
+      expect(batch[1].amount, 70000);
     });
   });
 

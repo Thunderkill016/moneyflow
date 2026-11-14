@@ -1,2 +1,0 @@
--- User-owned defaults are created by public.handle_new_user().
--- Keep this file data-only so `supabase db reset` remains reproducible.

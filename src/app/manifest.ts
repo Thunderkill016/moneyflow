@@ -2,17 +2,17 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "MoneyFlow — Tài chính cá nhân & Tài sản ròng",
+    name: "MoneyFlow v3.0 — La bàn Dòng tiền",
     short_name: "MoneyFlow",
     description:
-      "Ghi thu chi trong 3 giây, kiểm soát Safe-to-Spend, theo dõi đầu tư tích lũy và sao lưu dữ liệu cục bộ bất kỳ lúc nào.",
+      "La bàn dòng tiền cá nhân: Safe-to-Spend theo ngày, Quick Input 1.5s, Smart Split và di cư dữ liệu không mất mát.",
     start_url: "/",
-    scope: "/",
     display: "standalone",
-    orientation: "portrait-primary",
-    background_color: "#F8FAFC",
-    theme_color: "#5B4FE9",
+    background_color: "#070B14",
+    theme_color: "#10B981",
+    orientation: "any",
     lang: "vi",
+    categories: ["finance", "productivity"],
     icons: [
       {
         src: "/icon.svg",
@@ -31,12 +31,6 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: "512x512",
         type: "image/png",
         purpose: "any",
-      },
-      {
-        src: "/icon-512.png",
-        sizes: "512x512",
-        type: "image/png",
-        purpose: "maskable",
       },
     ],
     shortcuts: [

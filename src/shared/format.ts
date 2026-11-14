@@ -66,15 +66,18 @@ export const ACCOUNT_GROUP_META: Readonly<
 > = {
   LIQUID: {
     label: "Thanh khoản (Safe-to-Spend)",
-    badgeClass: "bg-indigo-50 text-indigo-700 border-indigo-200",
+    badgeClass:
+      "bg-indigo-500/15 text-indigo-500 dark:text-indigo-300 border-indigo-500/30",
   },
   INVESTMENT: {
     label: "Tích lũy & Đầu tư",
-    badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    badgeClass:
+      "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30",
   },
   DEBT: {
     label: "Công nợ & Thẻ tín dụng",
-    badgeClass: "bg-amber-50 text-amber-700 border-amber-200",
+    badgeClass:
+      "bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30",
   },
 };
 
@@ -83,19 +86,23 @@ export const TX_TYPE_META: Readonly<
 > = {
   EXPENSE: {
     label: "Chi tiêu",
-    badgeClass: "bg-rose-50 text-rose-700 border-rose-200",
+    badgeClass:
+      "bg-rose-500/15 text-rose-600 dark:text-rose-300 border-rose-500/30",
   },
   INCOME: {
     label: "Thu nhập",
-    badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    badgeClass:
+      "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30",
   },
   TRANSFER: {
     label: "Chuyển / Tích lũy",
-    badgeClass: "bg-indigo-50 text-indigo-700 border-indigo-200",
+    badgeClass:
+      "bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 border-indigo-500/30",
   },
   RECONCILE: {
     label: "Khớp số dư",
-    badgeClass: "bg-slate-100 text-slate-700 border-slate-300",
+    badgeClass:
+      "bg-slate-500/15 text-slate-600 dark:text-slate-300 border-slate-500/30",
   },
 };
 

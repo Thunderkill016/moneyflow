@@ -23,6 +23,16 @@ export const SplitInfoSchema = z.object({
 });
 export type SplitInfo = z.infer<typeof SplitInfoSchema>;
 
+export const TRANSACTION_SOURCES = [
+  "MANUAL",
+  "NLP",
+  "SMS_NOTIFICATION",
+  "CSV_IMPORT",
+  "LEGACY_MIGRATION",
+] as const;
+export const TransactionSourceSchema = z.enum(TRANSACTION_SOURCES);
+export type TransactionSource = z.infer<typeof TransactionSourceSchema>;
+
 export const TransactionSchema = z
   .object({
     id: z.string().min(1),
@@ -37,6 +47,12 @@ export const TransactionSchema = z
     updatedAt: z.number().int().nonnegative(),
     reconcileDelta: z.number().finite().optional(),
     splitInfo: SplitInfoSchema.optional(),
+    isRefund: z.boolean().optional(),
+    excludeFromReports: z.boolean().optional(),
+    eventTag: z.string().trim().max(40).optional(),
+    fingerprint: z.string().min(1).max(128).optional(),
+    deletedAt: z.number().int().nonnegative().nullable().optional(),
+    source: TransactionSourceSchema.optional(),
   })
   .superRefine((tx, ctx) => {
     if (tx.type === "TRANSFER") {
@@ -70,6 +86,15 @@ export interface Transaction {
   /** Signed actual - calculated difference recorded on RECONCILE entries. */
   reconcileDelta?: number;
   splitInfo?: SplitInfo;
+  /** Cashback / refund credit net-off against expense category without inflating income. */
+  isRefund?: boolean;
+  /** Isolates trip/event/pass-through items from daily Safe-to-Spend while keeping wallet balances accurate. */
+  excludeFromReports?: boolean;
+  eventTag?: string;
+  /** Deterministic idempotency fingerprint used to deduplicate SMS/CSV/sync imports. */
+  fingerprint?: string;
+  deletedAt?: number | null;
+  source?: TransactionSource;
 }
 
 export interface Category {

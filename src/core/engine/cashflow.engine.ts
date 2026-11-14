@@ -4,7 +4,11 @@ import {
   getCategoryById,
   type Transaction,
 } from "../schema/transaction.schema.ts";
-import { computeAccountBalances, computeNetWorthSummary } from "./ledger.engine.ts";
+import {
+  computeAccountBalances,
+  computeNetWorthSummary,
+  safeDivide,
+} from "./ledger.engine.ts";
 
 export interface CategorySpendItem {
   categoryId: string;
@@ -27,9 +31,15 @@ export interface DailySpendCell {
 export interface MonthlyCashflowSummary {
   monthKey: string;
   daysInMonth: number;
+  elapsedDaysInMonth: number;
   remainingDaysInMonth: number;
+  elapsedMonthPct: number;
   totalIncome: number;
   totalExpense: number;
+  refundNetOffTotal: number;
+  excludedExpenseTotal: number;
+  activeEventSpentVnd: number;
+  unpaidCommitmentsVnd: number;
   investmentTransfers: number;
   internalTransfers: number;
   reconcileNet: number;
@@ -40,6 +50,9 @@ export interface MonthlyCashflowSummary {
   safeToSpendMonth: number;
   safeToSpendDaily: number;
   remainingSpendingCap: number;
+  spendingPacePct: number;
+  spendingPaceStatus: "under" | "on-track" | "ahead";
+  noSpendStreakDays: number;
   runwayMonths: number;
   categoryBreakdown: CategorySpendItem[];
   dailyHeatmap: DailySpendCell[];
@@ -50,7 +63,9 @@ function monthBounds(referenceDate: Date): {
   startMs: number;
   endMs: number;
   daysInMonth: number;
+  elapsedDaysInMonth: number;
   remainingDaysInMonth: number;
+  elapsedMonthPct: number;
   monthKey: string;
 } {
   const year = referenceDate.getFullYear();
@@ -58,15 +73,20 @@ function monthBounds(referenceDate: Date): {
   const start = new Date(year, month, 1, 0, 0, 0, 0);
   const end = new Date(year, month + 1, 0, 23, 59, 59, 999);
   const daysInMonth = end.getDate();
-  const currentDay = referenceDate.getDate();
+  const currentDay = Math.max(1, Math.min(daysInMonth, referenceDate.getDate()));
   const remainingDaysInMonth = Math.max(1, daysInMonth - currentDay + 1);
+  const elapsedMonthPct = Number(
+    (safeDivide(currentDay, daysInMonth, 0) * 100).toFixed(1),
+  );
   const monthKey = `${year}-${String(month + 1).padStart(2, "0")}`;
 
   return {
     startMs: start.getTime(),
     endMs: end.getTime(),
     daysInMonth,
+    elapsedDaysInMonth: currentDay,
     remainingDaysInMonth,
+    elapsedMonthPct,
     monthKey,
   };
 }
@@ -89,33 +109,62 @@ export function computeMonthlyCashflow(params: {
   const monthTxs = params.transactions.filter(
     (tx) =>
       tx.syncStatus !== "DELETED" &&
+      !tx.deletedAt &&
       tx.occurredAt >= bounds.startMs &&
       tx.occurredAt <= bounds.endMs,
   );
 
   let totalIncome = 0;
-  let totalExpense = 0;
+  let grossExpense = 0;
+  let refundNetOffTotal = 0;
+  let excludedExpenseTotal = 0;
+  let activeEventSpentVnd = 0;
   let investmentTransfers = 0;
   let internalTransfers = 0;
   let reconcileNet = 0;
 
-  const expenseByCategory = new Map<string, number>();
+  const grossByCategory = new Map<string, number>();
+  const refundByCategory = new Map<string, number>();
   const expenseByDay = new Map<number, number>();
+  const variableSpendByDay = new Map<number, number>();
+  const activeEventName = params.budget.activeEventName?.trim() || null;
 
   for (const tx of monthTxs) {
+    if (activeEventName && tx.eventTag === activeEventName && tx.type === "EXPENSE") {
+      activeEventSpentVnd += tx.amount;
+    }
+
+    if (tx.excludeFromReports) {
+      if (tx.type === "EXPENSE") {
+        excludedExpenseTotal += tx.amount;
+      }
+      continue;
+    }
+
     if (tx.type === "INCOME") {
-      totalIncome += tx.amount;
+      if (tx.isRefund) {
+        refundNetOffTotal += tx.amount;
+        refundByCategory.set(
+          tx.categoryId,
+          (refundByCategory.get(tx.categoryId) ?? 0) + tx.amount,
+        );
+      } else {
+        totalIncome += tx.amount;
+      }
       continue;
     }
 
     if (tx.type === "EXPENSE") {
-      totalExpense += tx.amount;
-      expenseByCategory.set(
+      grossExpense += tx.amount;
+      grossByCategory.set(
         tx.categoryId,
-        (expenseByCategory.get(tx.categoryId) ?? 0) + tx.amount,
+        (grossByCategory.get(tx.categoryId) ?? 0) + tx.amount,
       );
       const day = new Date(tx.occurredAt).getDate();
       expenseByDay.set(day, (expenseByDay.get(day) ?? 0) + tx.amount);
+      if (tx.categoryId !== "hoa-don") {
+        variableSpendByDay.set(day, (variableSpendByDay.get(day) ?? 0) + tx.amount);
+      }
       continue;
     }
 
@@ -136,6 +185,7 @@ export function computeMonthlyCashflow(params: {
     }
   }
 
+  const totalExpense = Math.max(0, grossExpense - refundNetOffTotal);
   const netCashflow = totalIncome - totalExpense;
   const savingsBase = Math.max(
     totalIncome,
@@ -145,12 +195,12 @@ export function computeMonthlyCashflow(params: {
   );
   const savingsAllocated = investmentTransfers;
   const savingsRatePct = Number(
-    ((savingsAllocated / savingsBase) * 100).toFixed(1),
+    (safeDivide(savingsAllocated, savingsBase, 0) * 100).toFixed(1),
   );
   const netSavingsRatePct =
     totalIncome > 0
       ? Number(
-          Math.max(0, ((totalIncome - totalExpense) / totalIncome) * 100).toFixed(
+          Math.max(0, safeDivide(totalIncome - totalExpense, totalIncome, 0) * 100).toFixed(
             1,
           ),
         )
@@ -162,26 +212,53 @@ export function computeMonthlyCashflow(params: {
     Math.min(Math.max(0, netWorth.liquidVnd), remainingSpendingCap),
   );
   const safeToSpendDaily = Math.floor(
-    safeToSpendMonth / bounds.remainingDaysInMonth,
+    safeDivide(safeToSpendMonth, bounds.remainingDaysInMonth, 0),
   );
+
+  const spendingPacePct = Number(
+    (safeDivide(totalExpense, Math.max(params.budget.monthlySpendingCap, 1), 0) * 100).toFixed(1),
+  );
+  const spendingPaceStatus: "under" | "on-track" | "ahead" =
+    spendingPacePct > bounds.elapsedMonthPct + 8
+      ? "ahead"
+      : spendingPacePct < bounds.elapsedMonthPct - 8
+        ? "under"
+        : "on-track";
+
+  let noSpendStreakDays = 0;
+  if (monthTxs.length > 0) {
+    for (let day = bounds.elapsedDaysInMonth; day >= 1; day -= 1) {
+      if ((variableSpendByDay.get(day) ?? 0) > 0) {
+        break;
+      }
+      noSpendStreakDays += 1;
+    }
+  }
+
+  const unpaidCommitmentsVnd = (params.budget.commitments ?? [])
+    .filter((item) => !item.isPaid)
+    .reduce((sum, item) => sum + item.amountVnd, 0);
 
   const monthlyBurn = Math.max(
     totalExpense,
     params.budget.fixedCommitments,
+    unpaidCommitmentsVnd,
     1,
   );
   const totalReserves = Math.max(0, netWorth.liquidVnd + netWorth.investmentVnd);
-  const runwayMonths = Number((totalReserves / monthlyBurn).toFixed(1));
+  const runwayMonths = Number(safeDivide(totalReserves, monthlyBurn, 0).toFixed(1));
 
   const categoryBreakdown: CategorySpendItem[] = Array.from(
-    expenseByCategory.entries(),
+    grossByCategory.entries(),
   )
-    .map(([categoryId, amount]) => {
+    .map(([categoryId, grossAmount]) => {
+      const refunded = refundByCategory.get(categoryId) ?? 0;
+      const amount = Math.max(0, grossAmount - refunded);
       const meta = getCategoryById(categoryId);
       const limit = params.budget.categoryLimits[categoryId] ?? null;
       const usagePct =
         limit && limit > 0
-          ? Number(((amount / limit) * 100).toFixed(1))
+          ? Number((safeDivide(amount, limit, 0) * 100).toFixed(1))
           : null;
       return {
         categoryId,
@@ -191,13 +268,14 @@ export function computeMonthlyCashflow(params: {
         amount,
         sharePct:
           totalExpense > 0
-            ? Number(((amount / totalExpense) * 100).toFixed(1))
+            ? Number((safeDivide(amount, totalExpense, 0) * 100).toFixed(1))
             : 0,
         budgetLimit: limit,
         usagePct,
         isOverBudget: limit !== null && limit > 0 ? amount > limit : false,
       };
     })
+    .filter((item) => item.amount > 0)
     .sort((a, b) => b.amount - a.amount);
 
   const maxDaySpend = Math.max(0, ...expenseByDay.values());
@@ -206,7 +284,7 @@ export function computeMonthlyCashflow(params: {
     const amount = expenseByDay.get(day) ?? 0;
     let intensity: 0 | 1 | 2 | 3 | 4 = 0;
     if (amount > 0 && maxDaySpend > 0) {
-      const ratio = amount / maxDaySpend;
+      const ratio = safeDivide(amount, maxDaySpend, 0);
       if (ratio >= 0.75) intensity = 4;
       else if (ratio >= 0.5) intensity = 3;
       else if (ratio >= 0.25) intensity = 2;
@@ -218,9 +296,15 @@ export function computeMonthlyCashflow(params: {
   return {
     monthKey: bounds.monthKey,
     daysInMonth: bounds.daysInMonth,
+    elapsedDaysInMonth: bounds.elapsedDaysInMonth,
     remainingDaysInMonth: bounds.remainingDaysInMonth,
+    elapsedMonthPct: bounds.elapsedMonthPct,
     totalIncome,
     totalExpense,
+    refundNetOffTotal,
+    excludedExpenseTotal,
+    activeEventSpentVnd,
+    unpaidCommitmentsVnd,
     investmentTransfers,
     internalTransfers,
     reconcileNet,
@@ -231,6 +315,9 @@ export function computeMonthlyCashflow(params: {
     safeToSpendMonth,
     safeToSpendDaily,
     remainingSpendingCap,
+    spendingPacePct,
+    spendingPaceStatus,
+    noSpendStreakDays,
     runwayMonths,
     categoryBreakdown,
     dailyHeatmap,

@@ -22,14 +22,18 @@ test("core engine changes trigger full web verification without forcing mobile",
   assert.equal(result.database, false);
 });
 
-test("pure database changes trigger database suite without heavy web build", () => {
-  const result = classifyChanges([
+test("core storage or legacy database changes trigger database suite", () => {
+  const storageResult = classifyChanges(["src/core/storage/legacy-migrator.ts"]);
+  assert.equal(storageResult.database, true);
+  assert.equal(storageResult.full_verify, true);
+
+  const legacyResult = classifyChanges([
     "supabase/migrations/20261001000000_init.sql",
     "db/compat/pgtap.sql",
   ]);
-  assert.equal(result.database, true);
-  assert.equal(result.full_verify, false);
-  assert.equal(result.mobile, false);
+  assert.equal(legacyResult.database, true);
+  assert.equal(legacyResult.full_verify, false);
+  assert.equal(legacyResult.mobile, false);
 });
 
 test("mobile changes trigger mobile verification", () => {
