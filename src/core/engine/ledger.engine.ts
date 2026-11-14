@@ -173,3 +173,126 @@ export function createTransferTransaction(params: {
     updatedAt: now,
   };
 }
+
+export function createSmartSplitTransactions(params: {
+  idPrefix: string;
+  payerAccount: Account;
+  receivableAccount: Account;
+  totalBill: number;
+  headcount: number;
+  categoryId: string;
+  note: string;
+  occurredAt?: number;
+  now?: number;
+}): {
+  expenseTx: Transaction;
+  receivableTransferTx: Transaction;
+} {
+  const totalBill = Math.round(params.totalBill);
+  const headcount = Math.max(2, Math.min(100, Math.round(params.headcount)));
+  if (!Number.isFinite(totalBill) || totalBill <= 0) {
+    throw new Error("Total bill must be greater than zero.");
+  }
+  if (params.payerAccount.id === params.receivableAccount.id) {
+    throw new Error("Payer account and receivable account must differ.");
+  }
+
+  const now = params.now ?? Date.now();
+  const occurredAt = params.occurredAt ?? now;
+  const myShare = Math.round(totalBill / headcount);
+  const receivableAmount = Math.max(0, totalBill - myShare);
+  const cleanNote = params.note.trim() || "Chia bill nhóm";
+
+  const expenseTx: Transaction = {
+    id: `${params.idPrefix}-exp`,
+    type: "EXPENSE",
+    amount: myShare,
+    accountId: params.payerAccount.id,
+    categoryId: params.categoryId,
+    note: `${cleanNote} (Phần mình 1/${headcount})`,
+    occurredAt,
+    syncStatus: "PENDING",
+    updatedAt: now,
+    splitInfo: {
+      totalBill,
+      headcount,
+      myShare,
+      receivableAmount,
+      isSettled: false,
+    },
+  };
+
+  const receivableTransferTx: Transaction = {
+    id: `${params.idPrefix}-recv`,
+    type: "TRANSFER",
+    amount: receivableAmount,
+    accountId: params.payerAccount.id,
+    toAccountId: params.receivableAccount.id,
+    categoryId: "chuyen-vi",
+    note: `Ứng hộ ${headcount - 1} người: ${cleanNote}`,
+    occurredAt: occurredAt + 1,
+    syncStatus: "PENDING",
+    updatedAt: now,
+  };
+
+  return { expenseTx, receivableTransferTx };
+}
+
+export function settleSmartSplitTransaction(params: {
+  settleId: string;
+  expenseTx: Transaction;
+  receivableAccountId: string;
+  targetLiquidAccountId: string;
+  now?: number;
+}): {
+  updatedExpenseTx: Transaction;
+  repaymentTransferTx: Transaction | null;
+} {
+  const split = params.expenseTx.splitInfo;
+  if (!split || split.isSettled) {
+    return {
+      updatedExpenseTx: params.expenseTx,
+      repaymentTransferTx: null,
+    };
+  }
+
+  const now = params.now ?? Date.now();
+  const updatedExpenseTx: Transaction = {
+    ...params.expenseTx,
+    syncStatus: "PENDING",
+    updatedAt: now,
+    splitInfo: {
+      ...split,
+      isSettled: true,
+      settleTransferId: params.settleId,
+    },
+  };
+
+  if (
+    split.receivableAmount <= 0 ||
+    params.receivableAccountId === params.targetLiquidAccountId
+  ) {
+    return {
+      updatedExpenseTx,
+      repaymentTransferTx: null,
+    };
+  }
+
+  const repaymentTransferTx: Transaction = {
+    id: params.settleId,
+    type: "TRANSFER",
+    amount: split.receivableAmount,
+    accountId: params.receivableAccountId,
+    toAccountId: params.targetLiquidAccountId,
+    categoryId: "chuyen-vi",
+    note: `Thu hồi tiền ứng hộ: ${params.expenseTx.note}`,
+    occurredAt: now,
+    syncStatus: "PENDING",
+    updatedAt: now,
+  };
+
+  return {
+    updatedExpenseTx,
+    repaymentTransferTx,
+  };
+}

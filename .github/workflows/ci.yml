@@ -230,6 +230,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Use JDK 17 for Android Gradle build
+        shell: bash
+        run: |
+          if [[ -n "${JAVA_HOME_17_X64:-}" ]]; then
+            echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
+            echo "$JAVA_HOME_17_X64/bin" >> "$GITHUB_PATH"
+          fi
+          java -version
       # mobile/.metadata pins the toolchain by git revision. Resolve it to the
       # matching published archive instead of a floating channel alias, then
       # assert the installed SDK reports that exact revision back.

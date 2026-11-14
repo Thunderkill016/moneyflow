@@ -11,7 +11,7 @@ export interface ParsedQuickCommand {
 }
 
 const AMOUNT_TOKEN_REGEX =
-  /([+-]?\d+(?:[.,]\d+)?\s*(?:tr\d*|triệu|trieu|m|k|nghìn|nghin|ngàn|ngan|đ|d|vnd)?|\d{1,3}(?:[.,]\d{3})+)/giu;
+  /(?<![\p{L}\p{N}])([+-]?\d+(?:[.,]\d+)?\s*(?:tr\d*|triệu|trieu|củ\d*|cu\d*|lít\d*|lit\d*|m|k|nghìn|nghin|ngàn|ngan|đ|d|vnd)?|\d{1,3}(?:[.,]\d{3})+)(?![\p{L}\p{N}])/giu;
 
 const INCOME_KEYWORDS = [
   "lương",
@@ -160,24 +160,43 @@ const EXPENSE_CATEGORY_RULES: ReadonlyArray<{
   },
 ];
 
-export function parseVietnameseAmount(rawToken: string): {
+export interface ParseAmountOptions {
+  autoMultiplyThousandForBareSmallNumber?: boolean;
+}
+
+export function parseVietnameseAmount(
+  rawToken: string,
+  options?: ParseAmountOptions,
+): {
   amount: number;
   hasExplicitPlus: boolean;
 } | null {
-  const cleaned = rawToken.trim().toLowerCase();
+  const cleaned = rawToken.trim().toLowerCase().normalize("NFC");
   if (!cleaned) return null;
 
   const hasExplicitPlus = cleaned.startsWith("+");
   const unsigned = cleaned.replace(/^[+-]\s*/u, "");
 
-  // Handle "1tr5" -> 1_500_000, "2tr25" -> 2_250_000
-  const trSplit = unsigned.match(/^(\d+)tr(\d+)$/u);
-  if (trSplit) {
-    const whole = Number.parseInt(trSplit[1], 10);
-    const fracStr = trSplit[2];
+  // Handle "1tr5" -> 1_500_000, "1tr35" -> 1_350_000, "1củ5" / "1cu5" -> 1_500_000
+  const millionSplit = unsigned.match(/^(\d+)\s*(?:tr|củ|cu)(\d+)$/u);
+  if (millionSplit) {
+    const whole = Number.parseInt(millionSplit[1], 10);
+    const fracStr = millionSplit[2];
     const frac = Number.parseInt(fracStr, 10) / 10 ** fracStr.length;
     return {
       amount: Math.round((whole + frac) * 1_000_000),
+      hasExplicitPlus,
+    };
+  }
+
+  // Handle "2lít5" -> 250_000
+  const litSplit = unsigned.match(/^(\d+)\s*(?:lít|lit)(\d+)$/u);
+  if (litSplit) {
+    const whole = Number.parseInt(litSplit[1], 10);
+    const fracStr = litSplit[2];
+    const frac = Number.parseInt(fracStr, 10) / 10 ** fracStr.length;
+    return {
+      amount: Math.round((whole + frac) * 100_000),
       hasExplicitPlus,
     };
   }
@@ -190,7 +209,7 @@ export function parseVietnameseAmount(rawToken: string): {
   }
 
   const unitMatch = unsigned.match(
-    /^(\d+(?:[.,]\d+)?)\s*(tr|triệu|trieu|m|k|nghìn|nghin|ngàn|ngan|đ|d|vnd)?$/u,
+    /^(\d+(?:[.,]\d+)?)\s*(tr|triệu|trieu|củ|cu|lít|lit|m|k|nghìn|nghin|ngàn|ngan|đ|d|vnd)?$/u,
   );
   if (!unitMatch) return null;
 
@@ -199,10 +218,29 @@ export function parseVietnameseAmount(rawToken: string): {
 
   const unit = unitMatch[2] ?? "";
   let multiplier = 1;
-  if (unit === "k" || unit.startsWith("ngh") || unit.startsWith("ngà") || unit.startsWith("nga")) {
+  if (
+    unit === "k" ||
+    unit.startsWith("ngh") ||
+    unit.startsWith("ngà") ||
+    unit.startsWith("nga")
+  ) {
     multiplier = 1_000;
-  } else if (unit === "tr" || unit.startsWith("tri") || unit === "m") {
+  } else if (unit === "lít" || unit === "lit") {
+    multiplier = 100_000;
+  } else if (
+    unit === "tr" ||
+    unit.startsWith("tri") ||
+    unit === "m" ||
+    unit === "củ" ||
+    unit === "cu"
+  ) {
     multiplier = 1_000_000;
+  } else if (
+    unit === "" &&
+    options?.autoMultiplyThousandForBareSmallNumber &&
+    num < 1_000
+  ) {
+    multiplier = 1_000;
   }
 
   return {
@@ -225,7 +263,7 @@ function containsKeyword(textLower: string, keyword: string): boolean {
   return pattern.test(normalizedText);
 }
 
-function inferCategoryId(textLower: string): string {
+export function inferCategoryId(textLower: string): string {
   for (const rule of EXPENSE_CATEGORY_RULES) {
     if (rule.keywords.some((kw) => containsKeyword(textLower, kw))) {
       return rule.categoryId;
@@ -263,7 +301,9 @@ export function parseQuickInput(
 
     // Prefer the last amount token in the phrase (e.g. "cơm tấm 2 phần 70k" -> 70k)
     const lastMatch = matches[matches.length - 1];
-    const parsed = parseVietnameseAmount(lastMatch[0]);
+    const parsed = parseVietnameseAmount(lastMatch[0], {
+      autoMultiplyThousandForBareSmallNumber: true,
+    });
     if (!parsed) continue;
 
     const noteText = segment

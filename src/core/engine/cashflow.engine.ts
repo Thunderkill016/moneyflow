@@ -237,3 +237,112 @@ export function computeMonthlyCashflow(params: {
     transactionCount: monthTxs.length,
   };
 }
+
+export interface WhatIfSimulationResult {
+  purchaseAmount: number;
+  currentDailySafeToSpend: number;
+  newRemainingSafeToSpend: number;
+  newDailySafeToSpend: number;
+  dailyDropAmount: number;
+  savingsDelayDays: number;
+  severity: "safe" | "caution" | "danger";
+  verdictMessage: string;
+}
+
+export function simulateWhatIfPurchase(
+  cashflow: MonthlyCashflowSummary,
+  purchaseAmount: number,
+): WhatIfSimulationResult {
+  const cleanAmount = Math.max(0, Math.round(purchaseAmount));
+  const currentDailySafeToSpend = cashflow.safeToSpendDaily;
+  const remainingDays = Math.max(1, cashflow.remainingDaysInMonth);
+
+  if (cleanAmount <= 0) {
+    return {
+      purchaseAmount: 0,
+      currentDailySafeToSpend,
+      newRemainingSafeToSpend: cashflow.safeToSpendMonth,
+      newDailySafeToSpend: currentDailySafeToSpend,
+      dailyDropAmount: 0,
+      savingsDelayDays: 0,
+      severity: "safe",
+      verdictMessage:
+        "Nhập số tiền định mua (VD: 1tr8, 500k) để ướm thử tác động lên hạn mức sống mỗi ngày.",
+    };
+  }
+
+  const newRemainingSafeToSpend = Math.max(
+    0,
+    cashflow.safeToSpendMonth - cleanAmount,
+  );
+  const newDailySafeToSpend = Math.floor(
+    newRemainingSafeToSpend / remainingDays,
+  );
+  const dailyDropAmount = Math.max(
+    0,
+    currentDailySafeToSpend - newDailySafeToSpend,
+  );
+  const savingsDelayDays = Math.max(
+    1,
+    Math.ceil(cleanAmount / Math.max(currentDailySafeToSpend, 100_000)),
+  );
+
+  if (cleanAmount > cashflow.safeToSpendMonth) {
+    return {
+      purchaseAmount: cleanAmount,
+      currentDailySafeToSpend,
+      newRemainingSafeToSpend: 0,
+      newDailySafeToSpend: 0,
+      dailyDropAmount,
+      savingsDelayDays,
+      severity: "danger",
+      verdictMessage: `Cảnh báo vượt trần! Món này vượt quá toàn bộ ngân sách an toàn còn lại trong tháng, làm chậm mục tiêu tiết kiệm khoảng ${savingsDelayDays} ngày.`,
+    };
+  }
+
+  const severity: "safe" | "caution" | "danger" =
+    newDailySafeToSpend < currentDailySafeToSpend * 0.65 ? "caution" : "safe";
+
+  return {
+    purchaseAmount: cleanAmount,
+    currentDailySafeToSpend,
+    newRemainingSafeToSpend,
+    newDailySafeToSpend,
+    dailyDropAmount,
+    savingsDelayDays,
+    severity,
+    verdictMessage: `Nếu mua món này, định mức sống ${remainingDays} ngày còn lại sẽ tụt từ ${currentDailySafeToSpend.toLocaleString("vi-VN")} ₫/ngày xuống còn ${newDailySafeToSpend.toLocaleString("vi-VN")} ₫/ngày (hoặc làm chậm mục tiêu tiết kiệm ~${savingsDelayDays} ngày).`,
+  };
+}
+
+export function computeQuickOnboardingPlan(params: {
+  liquidBalanceVnd: number;
+  fixedCommitmentsVnd: number;
+  referenceDate?: Date;
+}): {
+  remainingDays: number;
+  spendableMonthVnd: number;
+  safeDailyVnd: number;
+  summaryMessage: string;
+} {
+  const ref = params.referenceDate ?? new Date();
+  const bounds = monthBounds(ref);
+  const spendableMonthVnd = Math.max(
+    0,
+    Math.round(params.liquidBalanceVnd - params.fixedCommitmentsVnd),
+  );
+  const safeDailyVnd = Math.floor(
+    spendableMonthVnd / bounds.remainingDaysInMonth,
+  );
+  const fixedFormatted = Math.max(
+    0,
+    Math.round(params.fixedCommitmentsVnd),
+  ).toLocaleString("vi-VN");
+
+  return {
+    remainingDays: bounds.remainingDaysInMonth,
+    spendableMonthVnd,
+    safeDailyVnd,
+    summaryMessage: `Từ hôm nay đến cuối tháng (còn ${bounds.remainingDaysInMonth} ngày), mỗi ngày bạn được tiêu thoải mái tối đa ${safeDailyVnd.toLocaleString("vi-VN")} ₫ mà vẫn giữ nguyên ${fixedFormatted} ₫ tiền cố định.`,
+  };
+}

@@ -5,10 +5,17 @@ import {
   computeAccountBalances,
   computeMonthlyCashflow,
   computeNetWorthSummary,
+  computeQuickOnboardingPlan,
   createReconcileTransaction,
+  createSmartSplitTransactions,
   createTransferTransaction,
   parseQuickInput,
+  parseUniversalCsvImport,
+  parseVietnameseAmount,
+  settleSmartSplitTransaction,
+  simulateWhatIfPurchase,
   type ParsedQuickCommand,
+  type WhatIfSimulationResult,
 } from "../../core/engine/index.ts";
 import {
   convertToVnd,
@@ -145,6 +152,14 @@ export function useTransactionController() {
       accounts.find((acc) => !acc.isArchived && acc.group === "LIQUID") ??
       accounts[0],
     [accounts],
+  );
+
+  const pendingSplitTransactions = useMemo(
+    () =>
+      activeTransactions.filter(
+        (tx) => tx.splitInfo !== undefined && !tx.splitInfo.isSettled,
+      ),
+    [activeTransactions],
   );
 
   const addTransaction = useCallback(
@@ -415,12 +430,334 @@ export function useTransactionController() {
     setStatusMessage("Đã khôi phục bộ dữ liệu mẫu chuẩn.");
   }, []);
 
+  const addSplitBillTransaction = useCallback(
+    (input: {
+      totalBill: number;
+      headcount: number;
+      accountId: string;
+      categoryId: string;
+      note: string;
+      occurredAt?: number;
+    }) => {
+      const totalBill = Math.round(Math.abs(input.totalBill));
+      const headcount = Math.max(2, Math.min(100, Math.round(input.headcount)));
+      if (!Number.isFinite(totalBill) || totalBill <= 0) return;
+
+      const now = Date.now();
+      const payerAccount =
+        accounts.find((acc) => acc.id === input.accountId && acc.id !== "acc-receivable") ??
+        defaultLiquidAccount;
+      if (!payerAccount) return;
+
+      commitSnapshot((prev) => {
+        const hasReceivable = prev.accounts.some(
+          (acc) => acc.id === "acc-receivable",
+        );
+        const receivableAccount: Account = prev.accounts.find(
+          (acc) => acc.id === "acc-receivable",
+        ) ?? {
+          id: "acc-receivable",
+          name: "Sổ ứng hộ (Phải thu)",
+          group: "DEBT",
+          currency: "VND",
+          initialBalance: 0,
+          currentBalance: 0,
+          isArchived: false,
+          updatedAt: now,
+        };
+
+        const { expenseTx, receivableTransferTx } =
+          createSmartSplitTransactions({
+            idPrefix: makeId("split"),
+            payerAccount,
+            receivableAccount,
+            totalBill,
+            headcount,
+            categoryId: input.categoryId,
+            note: input.note,
+            occurredAt: input.occurredAt ?? now,
+            now,
+          });
+
+        return {
+          ...prev,
+          accounts: hasReceivable
+            ? prev.accounts
+            : [...prev.accounts, receivableAccount],
+          transactions: [
+            expenseTx,
+            receivableTransferTx,
+            ...prev.transactions,
+          ],
+        };
+      });
+
+      const myShare = Math.round(totalBill / headcount);
+      const receivableAmount = totalBill - myShare;
+      setStatusMessage(
+        `Đã chia bill ${headcount} người: phần mình ${myShare.toLocaleString("vi-VN")} ₫ · ứng hộ ${receivableAmount.toLocaleString("vi-VN")} ₫.`,
+      );
+    },
+    [accounts, defaultLiquidAccount, commitSnapshot],
+  );
+
+  const settleSplitBill = useCallback(
+    (expenseTxId: string, targetAccountId?: string) => {
+      const targetTx = activeTransactions.find((tx) => tx.id === expenseTxId);
+      if (!targetTx || !targetTx.splitInfo || targetTx.splitInfo.isSettled) {
+        return;
+      }
+
+      const targetLiquidId =
+        targetAccountId ??
+        (targetTx.accountId !== "acc-receivable"
+          ? targetTx.accountId
+          : defaultLiquidAccount?.id) ??
+        "acc-tcb";
+
+      const { updatedExpenseTx, repaymentTransferTx } =
+        settleSmartSplitTransaction({
+          settleId: makeId("settle"),
+          expenseTx: targetTx,
+          receivableAccountId: "acc-receivable",
+          targetLiquidAccountId: targetLiquidId,
+        });
+
+      commitSnapshot((prev) => ({
+        ...prev,
+        transactions: [
+          ...(repaymentTransferTx ? [repaymentTransferTx] : []),
+          ...prev.transactions.map((tx) =>
+            tx.id === expenseTxId ? updatedExpenseTx : tx,
+          ),
+        ],
+      }));
+
+      setStatusMessage(
+        `Đã thu hồi ${targetTx.splitInfo.receivableAmount.toLocaleString("vi-VN")} ₫ ứng hộ về ví mà không làm méo Thu/Chi.`,
+      );
+    },
+    [activeTransactions, defaultLiquidAccount, commitSnapshot],
+  );
+
+  const updateTransaction = useCallback(
+    (
+      id: string,
+      patch: Partial<
+        Pick<
+          Transaction,
+          "amount" | "note" | "categoryId" | "accountId" | "occurredAt"
+        >
+      >,
+    ) => {
+      const now = Date.now();
+      commitSnapshot((prev) => ({
+        ...prev,
+        transactions: prev.transactions.map((tx) => {
+          if (tx.id !== id) return tx;
+          const nextAmount =
+            patch.amount !== undefined &&
+            Number.isFinite(patch.amount) &&
+            patch.amount > 0
+              ? Math.round(patch.amount)
+              : tx.amount;
+          return {
+            ...tx,
+            amount: nextAmount,
+            note:
+              patch.note !== undefined
+                ? patch.note.trim() || tx.note
+                : tx.note,
+            categoryId: patch.categoryId ?? tx.categoryId,
+            accountId:
+              patch.accountId && patch.accountId !== tx.toAccountId
+                ? patch.accountId
+                : tx.accountId,
+            occurredAt: patch.occurredAt ?? tx.occurredAt,
+            syncStatus: "PENDING",
+            updatedAt: now,
+          };
+        }),
+      }));
+      setStatusMessage("Đã cập nhật ô trực tiếp trên bảng.");
+    },
+    [commitSnapshot],
+  );
+
+  const bulkChangeAccountSelected = useCallback(
+    (accountId: string) => {
+      if (selectedIds.size === 0 || !accountId) return;
+      const now = Date.now();
+      const count = selectedIds.size;
+      commitSnapshot((prev) => ({
+        ...prev,
+        transactions: prev.transactions.map((tx) =>
+          selectedIds.has(tx.id) && tx.toAccountId !== accountId
+            ? { ...tx, accountId, syncStatus: "PENDING", updatedAt: now }
+            : tx,
+        ),
+      }));
+      setSelectedIds(new Set());
+      setStatusMessage(`Đã chuyển ví cho ${count} giao dịch.`);
+    },
+    [selectedIds, commitSnapshot],
+  );
+
+  const simulateWhatIf = useCallback(
+    (rawAmountOrNumber: string | number): WhatIfSimulationResult => {
+      const amount =
+        typeof rawAmountOrNumber === "number"
+          ? rawAmountOrNumber
+          : (parseVietnameseAmount(rawAmountOrNumber, {
+              autoMultiplyThousandForBareSmallNumber: false,
+            })?.amount ?? 0);
+      return simulateWhatIfPurchase(cashflow, amount);
+    },
+    [cashflow],
+  );
+
+  const importCsvRows = useCallback(
+    (rawCsv: string, accountId?: string): number => {
+      const targetAccountId =
+        accountId ?? defaultLiquidAccount?.id ?? accounts[0]?.id ?? "acc-tcb";
+      const parsedRows = parseUniversalCsvImport(rawCsv, targetAccountId);
+      if (parsedRows.length === 0) return 0;
+
+      const now = Date.now();
+      const created: Transaction[] = parsedRows.map((row) => ({
+        id: makeId("csv"),
+        type: row.type,
+        amount: row.amount,
+        accountId: row.accountId,
+        categoryId: row.categoryId,
+        note: row.note,
+        occurredAt: row.occurredAt,
+        syncStatus: "PENDING",
+        updatedAt: now,
+      }));
+
+      commitSnapshot((prev) => ({
+        ...prev,
+        transactions: [...created, ...prev.transactions],
+      }));
+      setStatusMessage(
+        `Đã import ${created.length} giao dịch từ file CSV/Bảng tính.`,
+      );
+      return created.length;
+    },
+    [accounts, defaultLiquidAccount, commitSnapshot],
+  );
+
+  const applyQuickOnboarding = useCallback(
+    (input: {
+      liquidBalanceVnd: number;
+      fixedCommitmentsVnd: number;
+      replaceSampleData?: boolean;
+    }) => {
+      const now = Date.now();
+      const cleanLiquid = Math.max(0, Math.round(input.liquidBalanceVnd));
+      const cleanFixed = Math.max(0, Math.round(input.fixedCommitmentsVnd));
+      const plan = computeQuickOnboardingPlan({
+        liquidBalanceVnd: cleanLiquid,
+        fixedCommitmentsVnd: cleanFixed,
+      });
+
+      commitSnapshot((prev) => {
+        const hasOnlySeed = prev.transactions.every((tx) =>
+          tx.id.startsWith("seed-"),
+        );
+        const shouldResetTxs = input.replaceSampleData ?? hasOnlySeed;
+
+        const nextTransactions = shouldResetTxs
+          ? prev.transactions.filter((tx) => !tx.id.startsWith("seed-"))
+          : prev.transactions;
+
+        const targetAcc =
+          prev.accounts.find((a) => !a.isArchived && a.group === "LIQUID") ??
+          prev.accounts[0];
+
+        let nextAccounts = prev.accounts;
+        const extraTxs: Transaction[] = [];
+
+        if (targetAcc) {
+          if (shouldResetTxs && nextTransactions.length === 0) {
+            nextAccounts = prev.accounts.map((acc) => {
+              if (acc.id === targetAcc.id) {
+                return {
+                  ...acc,
+                  initialBalance: cleanLiquid,
+                  currentBalance: cleanLiquid,
+                  updatedAt: now,
+                };
+              }
+              if (acc.group === "LIQUID") {
+                return {
+                  ...acc,
+                  initialBalance: 0,
+                  currentBalance: 0,
+                  updatedAt: now,
+                };
+              }
+              return acc;
+            });
+          } else {
+            const recomputed = computeAccountBalances(
+              prev.accounts,
+              nextTransactions,
+            );
+            const otherLiquid = recomputed
+              .filter(
+                (acc) =>
+                  !acc.isArchived &&
+                  acc.group === "LIQUID" &&
+                  acc.id !== targetAcc.id,
+              )
+              .reduce((sum, acc) => sum + convertToVnd(acc.currentBalance, acc.currency), 0);
+            const liveTarget =
+              recomputed.find((acc) => acc.id === targetAcc.id) ?? targetAcc;
+            const rec = createReconcileTransaction({
+              id: makeId("onboard"),
+              account: liveTarget,
+              actualBalance: Math.max(0, cleanLiquid - otherLiquid),
+              now,
+              note: "Khởi tạo nhanh số dư Safe-to-Spend",
+            });
+            if (rec.transaction) {
+              extraTxs.push(rec.transaction);
+            }
+          }
+        }
+
+        const existingMonthExpense = nextTransactions
+          .filter((tx) => tx.syncStatus !== "DELETED" && tx.type === "EXPENSE")
+          .reduce((sum, tx) => sum + tx.amount, 0);
+
+        return {
+          ...prev,
+          accounts: nextAccounts,
+          transactions: [...extraTxs, ...nextTransactions],
+          budget: {
+            ...prev.budget,
+            fixedCommitments: cleanFixed,
+            monthlySpendingCap: existingMonthExpense + plan.spendableMonthVnd,
+            updatedAt: now,
+          },
+        };
+      });
+
+      setStatusMessage(plan.summaryMessage);
+      return plan;
+    },
+    [commitSnapshot],
+  );
+
   return {
     hydrated,
     snapshot,
     accounts,
     activeTransactions,
     filteredTransactions,
+    pendingSplitTransactions,
     netWorth,
     cashflow,
     syncSummary,
@@ -440,14 +777,21 @@ export function useTransactionController() {
     statusMessage,
     setStatusMessage,
     addTransaction,
+    addSplitBillTransaction,
+    settleSplitBill,
+    updateTransaction,
     previewQuickCommand,
     submitQuickCommand,
     reconcileAccount,
     deleteTransaction,
     bulkDeleteSelected,
     bulkRecategorizeSelected,
+    bulkChangeAccountSelected,
     addAccount,
     updateBudget,
+    simulateWhatIf,
+    importCsvRows,
+    applyQuickOnboarding,
     syncNow,
     exportBackup,
     importBackup,

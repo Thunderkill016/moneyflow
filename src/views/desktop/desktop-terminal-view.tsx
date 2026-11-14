@@ -2,6 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  computeQuickOnboardingPlan,
+  parseUniversalCsvImport,
+  parseVietnameseAmount,
+} from "../../core/engine/index.ts";
+import {
   ACCOUNT_GROUPS,
   CORE_CATEGORIES,
   CURRENCY_CODES,
@@ -24,6 +29,17 @@ import {
 } from "../../shared/format.ts";
 import { Button, Card, ModalShell, cn } from "../../shared/ui.tsx";
 
+type InlineEditCell = {
+  txId: string;
+  field: "note" | "categoryId" | "accountId" | "amount";
+  value: string;
+} | null;
+
+const SAMPLE_CSV_PLACEHOLDER = `Ngày,Số tiền,Danh mục,Ghi chú,Loại
+14/11/2026,55000,Ăn uống,Cà phê sáng Highland,Chi tiêu
+13/11/2026,180000,Di chuyển,Đổ xăng A95,Chi tiêu
+12/11/2026,5000000,Thưởng,Thưởng dự án tháng 11,Thu nhập`;
+
 export function DesktopTerminalView({
   controller,
   layoutMode,
@@ -42,7 +58,25 @@ export function DesktopTerminalView({
   const [reconcileInput, setReconcileInput] = useState("");
   const [newAccountOpen, setNewAccountOpen] = useState(false);
 
-  // Add / Transfer modal state
+  // Vũ khí 1: What-If Simulator state
+  const [whatIfInput, setWhatIfInput] = useState("1tr8");
+
+  // Vũ khí 3: Double-click Inline Spreadsheet Editing state
+  const [inlineEdit, setInlineEdit] = useState<InlineEditCell>(null);
+
+  // Vũ khí 5 & 60s Formula: Onboarding + Universal CSV Importer modals
+  const [onboardOpen, setOnboardOpen] = useState(false);
+  const [onboardLiquidInput, setOnboardLiquidInput] = useState("12tr");
+  const [onboardFixedInput, setOnboardFixedInput] = useState("4tr");
+  const [onboardReplaceSample, setOnboardReplaceSample] = useState(true);
+
+  const [csvModalOpen, setCsvModalOpen] = useState(false);
+  const [csvRawText, setCsvRawText] = useState("");
+  const [csvAccountId, setCsvAccountId] = useState(
+    controller.defaultLiquidAccount?.id ?? "acc-tcb",
+  );
+
+  // Add / Transfer / Smart Split modal state
   const [formType, setFormType] = useState<TransactionType>("EXPENSE");
   const [formAmount, setFormAmount] = useState("");
   const [formAccountId, setFormAccountId] = useState(
@@ -53,6 +87,8 @@ export function DesktopTerminalView({
   );
   const [formCategoryId, setFormCategoryId] = useState("an-uong");
   const [formNote, setFormNote] = useState("");
+  const [formSplitEnabled, setFormSplitEnabled] = useState(false);
+  const [formSplitHeadcount, setFormSplitHeadcount] = useState(4);
 
   // Add Account modal state
   const [newAccName, setNewAccName] = useState("");
@@ -67,6 +103,7 @@ export function DesktopTerminalView({
   );
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const csvFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -78,6 +115,9 @@ export function DesktopTerminalView({
         setAddModalOpen(false);
         setReconcileAccountId(null);
         setNewAccountOpen(false);
+        setOnboardOpen(false);
+        setCsvModalOpen(false);
+        setInlineEdit(null);
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -104,12 +144,46 @@ export function DesktopTerminalView({
     [controller.cashflow],
   );
 
+  const whatIfResult = useMemo(
+    () => controller.simulateWhatIf(whatIfInput),
+    [controller, whatIfInput],
+  );
+
+  const onboardingPreview = useMemo(() => {
+    const liquid =
+      parseVietnameseAmount(onboardLiquidInput, {
+        autoMultiplyThousandForBareSmallNumber: false,
+      })?.amount ?? 0;
+    const fixed =
+      parseVietnameseAmount(onboardFixedInput, {
+        autoMultiplyThousandForBareSmallNumber: false,
+      })?.amount ?? 0;
+    return computeQuickOnboardingPlan({
+      liquidBalanceVnd: liquid,
+      fixedCommitmentsVnd: fixed,
+    });
+  }, [onboardLiquidInput, onboardFixedInput]);
+
+  const csvPreviewRows = useMemo(
+    () => parseUniversalCsvImport(csvRawText, csvAccountId),
+    [csvRawText, csvAccountId],
+  );
+
+  const parsedFormAmount = useMemo(
+    () =>
+      parseVietnameseAmount(formAmount, {
+        autoMultiplyThousandForBareSmallNumber: false,
+      })?.amount ?? 0,
+    [formAmount],
+  );
+
   const reconcileAccount = reconcileAccountId
     ? controller.accounts.find((a) => a.id === reconcileAccountId) ?? null
     : null;
-  const reconcileActualNum = Number.parseFloat(
-    reconcileInput.replace(/[^\d.-]/gu, ""),
-  );
+  const reconcileActualNum =
+    parseVietnameseAmount(reconcileInput, {
+      autoMultiplyThousandForBareSmallNumber: false,
+    })?.amount ?? Number.parseFloat(reconcileInput.replace(/[^\d.-]/gu, ""));
   const reconcilePreviewDelta =
     reconcileAccount && Number.isFinite(reconcileActualNum)
       ? reconcileActualNum - reconcileAccount.currentBalance
@@ -121,6 +195,28 @@ export function DesktopTerminalView({
     controller.filteredTransactions.every((tx) =>
       controller.selectedIds.has(tx.id),
     );
+
+  const commitInlineEdit = () => {
+    if (!inlineEdit) return;
+    const { txId, field, value } = inlineEdit;
+    if (field === "note") {
+      if (value.trim()) {
+        controller.updateTransaction(txId, { note: value.trim() });
+      }
+    } else if (field === "categoryId") {
+      controller.updateTransaction(txId, { categoryId: value });
+    } else if (field === "accountId") {
+      controller.updateTransaction(txId, { accountId: value });
+    } else if (field === "amount") {
+      const parsed = parseVietnameseAmount(value, {
+        autoMultiplyThousandForBareSmallNumber: false,
+      })?.amount;
+      if (parsed && parsed > 0) {
+        controller.updateTransaction(txId, { amount: parsed });
+      }
+    }
+    setInlineEdit(null);
+  };
 
   const handleDownloadBackup = () => {
     const json = controller.exportBackup();
@@ -151,6 +247,19 @@ export function DesktopTerminalView({
     }
   };
 
+  const handleUploadCsvFile = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      setCsvRawText(text);
+    } finally {
+      event.target.value = "";
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#f6f7fb] text-slate-900">
       {/* Sticky Top Command Bar */}
@@ -170,7 +279,7 @@ export function DesktopTerminalView({
                 </span>
               </div>
               <p className="text-xs text-slate-500">
-                Pure Core Engine · Local-First · Tách biệt Thu / Chi / Tích lũy / Khớp số dư
+                La bàn Safe-to-Spend · Chia bill &amp; Ứng hộ · Sửa ô kiểu Excel · Local-First 0ms
               </p>
             </div>
           </div>
@@ -196,6 +305,20 @@ export function DesktopTerminalView({
             <Button
               variant="secondary"
               size="sm"
+              onClick={() => setOnboardOpen(true)}
+            >
+              🚀 Thiết lập 30s
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setCsvModalOpen(true)}
+            >
+              📥 Import CSV / Sao kê
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => {
                 const target = controller.accounts[0];
                 if (target) {
@@ -205,6 +328,13 @@ export function DesktopTerminalView({
               }}
             >
               ⚖️ Khớp số dư
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={controller.resetDemoData}
+            >
+              🔄 Nạp dữ liệu mẫu
             </Button>
             <Button variant="ghost" size="sm" onClick={handleDownloadBackup}>
               Xuất .json
@@ -253,28 +383,19 @@ export function DesktopTerminalView({
         {controller.statusMessage ? (
           <div className="flex items-center justify-between rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-medium text-indigo-900">
             <span>{controller.statusMessage}</span>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={controller.resetDemoData}
-                className="text-xs font-semibold text-indigo-700 underline"
-              >
-                Khôi phục dữ liệu mẫu
-              </button>
-              <button
-                type="button"
-                onClick={() => controller.setStatusMessage(null)}
-                className="text-indigo-500 hover:text-indigo-900"
-              >
-                ✕
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => controller.setStatusMessage(null)}
+              className="text-indigo-500 hover:text-indigo-900"
+            >
+              ✕
+            </button>
           </div>
         ) : null}
 
         {/* 3-COLUMN BENTO GRID */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          {/* BENTO COL 1: Net Worth & 3 Account Groups */}
+          {/* BENTO COL 1: Net Worth, 3 Account Groups & Pending Smart Split Receivables */}
           <Card className="flex flex-col justify-between gap-4">
             <div>
               <div className="flex items-start justify-between">
@@ -314,7 +435,7 @@ export function DesktopTerminalView({
                 </div>
                 <div className="rounded-xl bg-amber-50/70 p-2.5">
                   <p className="text-[11px] font-medium text-amber-700">
-                    Công nợ
+                    Công nợ / Ứng hộ
                   </p>
                   <p className="tabular-nums mt-0.5 font-bold text-amber-950">
                     {formatCompactVnd(controller.netWorth.debtVnd)}
@@ -358,22 +479,61 @@ export function DesktopTerminalView({
                   </div>
                 </div>
               ))}
+
+              {/* Sổ ứng hộ (Phải thu) 1-click Settlement */}
+              {controller.pendingSplitTransactions.length > 0 ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
+                    🤝 Đang ứng hộ (Chờ bạn trả lại)
+                  </p>
+                  <div className="mt-2 space-y-1.5">
+                    {controller.pendingSplitTransactions.map((tx) => (
+                      <div
+                        key={tx.id}
+                        className="flex items-center justify-between gap-2 rounded-lg bg-white px-2.5 py-2 text-xs shadow-2xs"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-slate-900">
+                            {tx.note}
+                          </p>
+                          <p className="tabular-nums text-[11px] text-amber-700">
+                            Tổng bill{" "}
+                            {formatCompactVnd(tx.splitInfo?.totalBill ?? 0)} ·{" "}
+                            Phải thu{" "}
+                            <strong>
+                              {formatMoney(tx.splitInfo?.receivableAmount ?? 0)}
+                            </strong>
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          onClick={() => controller.settleSplitBill(tx.id)}
+                        >
+                          Đã thu tiền
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </Card>
 
-          {/* BENTO COL 2: Safe-to-Spend, Savings Rate & Runway */}
+          {/* BENTO COL 2: Decision Compass Safe-to-Spend & What-If Simulator */}
           <Card className="flex flex-col justify-between gap-4">
             <div>
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Safe-to-Spend hôm nay
+                    Hôm nay được tiêu tối đa (Safe-to-Spend)
                   </p>
                   <p className="tabular-nums mt-1 text-3xl font-extrabold tracking-tight text-[#5b4fe9]">
                     {formatMoney(controller.cashflow.safeToSpendDaily)}
                   </p>
                   <p className="tabular-nums mt-0.5 text-xs text-slate-500">
-                    Còn lại tháng ({controller.cashflow.remainingDaysInMonth} ngày):{" "}
+                    Còn lại tháng ({controller.cashflow.remainingDaysInMonth}{" "}
+                    ngày):{" "}
                     <strong className="text-slate-800">
                       {formatMoney(controller.cashflow.safeToSpendMonth)}
                     </strong>
@@ -421,8 +581,36 @@ export function DesktopTerminalView({
                 )}
               </div>
 
+              {/* Vũ khí 1: Ướm thử trước khi rút ví (What-If Simulator) */}
+              <div className="mt-3 rounded-xl border border-indigo-200/80 bg-indigo-50/60 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-800">
+                    🔮 Ướm thử trước khi rút ví
+                  </span>
+                  <input
+                    type="text"
+                    value={whatIfInput}
+                    onChange={(e) => setWhatIfInput(e.target.value)}
+                    placeholder="VD: 1tr8, 500k, 2 củ..."
+                    className="w-36 rounded-lg border border-indigo-200 bg-white px-2.5 py-1 text-xs font-bold tabular-nums text-slate-900 focus:border-[#5b4fe9] focus:outline-none"
+                  />
+                </div>
+                <p
+                  className={cn(
+                    "mt-2 text-xs font-medium leading-relaxed",
+                    whatIfResult.severity === "danger"
+                      ? "text-rose-700"
+                      : whatIfResult.severity === "caution"
+                        ? "text-amber-800"
+                        : "text-indigo-950",
+                  )}
+                >
+                  {whatIfResult.verdictMessage}
+                </p>
+              </div>
+
               {/* 4 KPI Summary */}
-              <div className="mt-4 grid grid-cols-2 gap-2.5">
+              <div className="mt-3 grid grid-cols-2 gap-2.5">
                 <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
                   <p className="text-[11px] font-medium text-slate-500">
                     Thu nhập tháng
@@ -555,7 +743,7 @@ export function DesktopTerminalView({
           </Card>
         </div>
 
-        {/* TRANSACTION DATA TABLE + BULK EDIT */}
+        {/* INLINE SPREADSHEET DATA TABLE + BULK EDIT */}
         <Card className="overflow-hidden p-0">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-3.5">
             <div className="flex flex-wrap items-center gap-2">
@@ -576,6 +764,9 @@ export function DesktopTerminalView({
                   </button>
                 ),
               )}
+              <span className="ml-2 hidden text-[11px] text-slate-400 xl:inline">
+                Mẹo kiểu Excel: Nhấp đúp ô Ghi chú, Danh mục, Ví hoặc Số tiền để sửa trực tiếp.
+              </span>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -638,6 +829,25 @@ export function DesktopTerminalView({
                     </option>
                   ))}
                 </select>
+                <select
+                  defaultValue=""
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      controller.bulkChangeAccountSelected(e.target.value);
+                      e.target.value = "";
+                    }
+                  }}
+                  className="h-8 rounded-lg border border-indigo-200 bg-white px-2 text-xs font-semibold text-indigo-900"
+                >
+                  <option value="" disabled>
+                    Đổi ví hàng loạt...
+                  </option>
+                  {controller.accounts.map((acc) => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.name}
+                    </option>
+                  ))}
+                </select>
                 <Button
                   variant="danger"
                   size="sm"
@@ -670,9 +880,9 @@ export function DesktopTerminalView({
                   </th>
                   <th className="px-3 py-3">Thời gian</th>
                   <th className="px-3 py-3">Loại</th>
-                  <th className="px-3 py-3">Danh mục & Ghi chú</th>
+                  <th className="px-3 py-3">Danh mục &amp; Ghi chú (Double-click sửa)</th>
                   <th className="px-3 py-3">Ví nguồn / Đích</th>
-                  <th className="px-4 py-3 text-right">Số tiền</th>
+                  <th className="px-4 py-3 text-right">Số tiền (Double-click sửa)</th>
                   <th className="w-14 px-3 py-3 text-right">Thao tác</th>
                 </tr>
               </thead>
@@ -703,6 +913,18 @@ export function DesktopTerminalView({
                           : tx.type === "RECONCILE"
                             ? (tx.reconcileDelta ?? tx.amount)
                             : tx.amount;
+
+                    const isEditingNote =
+                      inlineEdit?.txId === tx.id && inlineEdit.field === "note";
+                    const isEditingCategory =
+                      inlineEdit?.txId === tx.id &&
+                      inlineEdit.field === "categoryId";
+                    const isEditingAccount =
+                      inlineEdit?.txId === tx.id &&
+                      inlineEdit.field === "accountId";
+                    const isEditingAmount =
+                      inlineEdit?.txId === tx.id &&
+                      inlineEdit.field === "amount";
 
                     return (
                       <tr
@@ -736,18 +958,122 @@ export function DesktopTerminalView({
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-2">
                             <span>{CATEGORY_EMOJI[tx.categoryId] ?? "🏷️"}</span>
-                            <div>
-                              <p className="font-semibold text-slate-900">
-                                {tx.note}
-                              </p>
-                              <p className="text-[11px] text-slate-500">
-                                {cat.label}
-                              </p>
+                            <div className="min-w-0 flex-1">
+                              {isEditingNote ? (
+                                <input
+                                  autoFocus
+                                  type="text"
+                                  value={inlineEdit.value}
+                                  onChange={(e) =>
+                                    setInlineEdit({
+                                      txId: tx.id,
+                                      field: "note",
+                                      value: e.target.value,
+                                    })
+                                  }
+                                  onBlur={commitInlineEdit}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      commitInlineEdit();
+                                    }
+                                    if (e.key === "Escape") setInlineEdit(null);
+                                  }}
+                                  className="w-full rounded-md border border-[#5b4fe9] px-2 py-1 text-xs font-semibold focus:outline-none"
+                                />
+                              ) : (
+                                <p
+                                  title="Nhấp đúp để sửa ghi chú"
+                                  onDoubleClick={() =>
+                                    setInlineEdit({
+                                      txId: tx.id,
+                                      field: "note",
+                                      value: tx.note,
+                                    })
+                                  }
+                                  className="cursor-text font-semibold text-slate-900"
+                                >
+                                  {tx.note}
+                                </p>
+                              )}
+
+                              {isEditingCategory ? (
+                                <select
+                                  autoFocus
+                                  value={inlineEdit.value}
+                                  onChange={(e) => {
+                                    controller.updateTransaction(tx.id, {
+                                      categoryId: e.target.value,
+                                    });
+                                    setInlineEdit(null);
+                                  }}
+                                  onBlur={() => setInlineEdit(null)}
+                                  className="mt-1 rounded-md border border-[#5b4fe9] bg-white px-1.5 py-0.5 text-[11px] font-semibold"
+                                >
+                                  {CORE_CATEGORIES.map((c) => (
+                                    <option key={c.id} value={c.id}>
+                                      {c.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <p
+                                  title="Nhấp đúp để đổi danh mục"
+                                  onDoubleClick={() =>
+                                    setInlineEdit({
+                                      txId: tx.id,
+                                      field: "categoryId",
+                                      value: tx.categoryId,
+                                    })
+                                  }
+                                  className="cursor-pointer text-[11px] text-slate-500 hover:text-[#5b4fe9]"
+                                >
+                                  {cat.label}
+                                  {tx.splitInfo && !tx.splitInfo.isSettled
+                                    ? ` · Ứng hộ ${formatMoney(tx.splitInfo.receivableAmount)}`
+                                    : ""}
+                                </p>
+                              )}
                             </div>
                           </div>
                         </td>
                         <td className="whitespace-nowrap px-3 py-3 text-xs font-medium text-slate-700">
-                          {toName ? `${fromName} → ${toName}` : fromName}
+                          {isEditingAccount ? (
+                            <select
+                              autoFocus
+                              value={inlineEdit.value}
+                              onChange={(e) => {
+                                controller.updateTransaction(tx.id, {
+                                  accountId: e.target.value,
+                                });
+                                setInlineEdit(null);
+                              }}
+                              onBlur={() => setInlineEdit(null)}
+                              className="rounded-md border border-[#5b4fe9] bg-white px-2 py-1 text-xs font-semibold"
+                            >
+                              {controller.accounts
+                                .filter((acc) => acc.id !== tx.toAccountId)
+                                .map((acc) => (
+                                  <option key={acc.id} value={acc.id}>
+                                    {acc.name}
+                                  </option>
+                                ))}
+                            </select>
+                          ) : (
+                            <span
+                              title="Nhấp đúp để đổi ví nguồn"
+                              onDoubleClick={() =>
+                                setInlineEdit({
+                                  txId: tx.id,
+                                  field: "accountId",
+                                  value: tx.accountId,
+                                })
+                              }
+                              className="cursor-pointer hover:text-[#5b4fe9]"
+                            >
+                              {toName ? `${fromName} → ${toName}` : fromName}
+                            </span>
+                          )}
                         </td>
                         <td
                           className={cn(
@@ -759,9 +1085,45 @@ export function DesktopTerminalView({
                                 : "text-indigo-700",
                           )}
                         >
-                          {tx.type === "TRANSFER"
-                            ? formatMoney(tx.amount)
-                            : formatSignedMoney(signed)}
+                          {isEditingAmount ? (
+                            <input
+                              autoFocus
+                              type="text"
+                              value={inlineEdit.value}
+                              onChange={(e) =>
+                                setInlineEdit({
+                                  txId: tx.id,
+                                  field: "amount",
+                                  value: e.target.value,
+                                })
+                              }
+                              onBlur={commitInlineEdit}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  commitInlineEdit();
+                                }
+                                if (e.key === "Escape") setInlineEdit(null);
+                              }}
+                              className="w-28 rounded-md border border-[#5b4fe9] px-2 py-1 text-right text-xs font-bold tabular-nums text-slate-900 focus:outline-none"
+                            />
+                          ) : (
+                            <span
+                              title="Nhấp đúp để sửa số tiền (hỗ trợ 45k, 1tr2)"
+                              onDoubleClick={() =>
+                                setInlineEdit({
+                                  txId: tx.id,
+                                  field: "amount",
+                                  value: String(tx.amount),
+                                })
+                              }
+                              className="cursor-text"
+                            >
+                              {tx.type === "TRANSFER"
+                                ? formatMoney(tx.amount)
+                                : formatSignedMoney(signed)}
+                            </span>
+                          )}
                         </td>
                         <td className="px-3 py-3 text-right">
                           <button
@@ -804,7 +1166,7 @@ export function DesktopTerminalView({
             type="text"
             value={commandText}
             onChange={(e) => setCommandText(e.target.value)}
-            placeholder="VD: ăn sáng 40k, đổ xăng 70k, lương +15tr, mua vàng 5tr"
+            placeholder="VD: cf 35, phở 50, xăng 70, mua đồ 1tr35, 2 củ, 5 lít"
             className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:border-[#5b4fe9] focus:outline-none"
           />
 
@@ -814,7 +1176,9 @@ export function DesktopTerminalView({
             </p>
             {commandPreview.length === 0 ? (
               <p className="text-xs text-slate-500">
-                Nhập số tiền kèm đơn vị (`k`, `tr`, `m`) cách nhau bằng dấu phẩy.
+                Gõ số kèm hoặc không kèm đơn vị (<code>35</code>,{" "}
+                <code>45k</code>, <code>1tr35</code>, <code>2 củ</code>,{" "}
+                <code>5 lít</code>), cách nhau bằng dấu phẩy.
               </p>
             ) : (
               commandPreview.map((item, idx) => (
@@ -853,7 +1217,7 @@ export function DesktopTerminalView({
         </form>
       </ModalShell>
 
-      {/* MODAL 2: ADD / TRANSFER TRANSACTION */}
+      {/* MODAL 2: ADD / TRANSFER / SMART SPLIT TRANSACTION */}
       <ModalShell
         open={addModalOpen}
         title="Ghi giao dịch mới"
@@ -862,27 +1226,35 @@ export function DesktopTerminalView({
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            const parsed = Number.parseFloat(
-              formAmount.replace(/[^\d.]/gu, ""),
-            );
-            if (!Number.isFinite(parsed) || parsed <= 0) return;
+            if (parsedFormAmount <= 0) return;
 
-            controller.addTransaction({
-              type: formType,
-              amount: Math.round(parsed),
-              accountId: formAccountId,
-              toAccountId:
-                formType === "TRANSFER" ? formToAccountId : undefined,
-              categoryId:
-                formType === "INCOME"
-                  ? "thu-nhap"
-                  : formType === "TRANSFER"
-                    ? "tich-luy"
-                    : formCategoryId,
-              note: formNote,
-            });
+            if (formType === "EXPENSE" && formSplitEnabled) {
+              controller.addSplitBillTransaction({
+                totalBill: parsedFormAmount,
+                headcount: formSplitHeadcount,
+                accountId: formAccountId,
+                categoryId: formCategoryId,
+                note: formNote || "Chia bill nhóm",
+              });
+            } else {
+              controller.addTransaction({
+                type: formType,
+                amount: parsedFormAmount,
+                accountId: formAccountId,
+                toAccountId:
+                  formType === "TRANSFER" ? formToAccountId : undefined,
+                categoryId:
+                  formType === "INCOME"
+                    ? "thu-nhap"
+                    : formType === "TRANSFER"
+                      ? "tich-luy"
+                      : formCategoryId,
+                note: formNote,
+              });
+            }
             setFormAmount("");
             setFormNote("");
+            setFormSplitEnabled(false);
             setAddModalOpen(false);
           }}
           className="space-y-3"
@@ -906,19 +1278,65 @@ export function DesktopTerminalView({
           </div>
 
           <label className="block text-xs font-semibold text-slate-700">
-            Số tiền (VND)
+            Số tiền (hỗ trợ: 45k, 1tr35, 2 củ, 5 lít hoặc số nguyên)
             <input
               autoFocus
-              type="number"
-              min="1"
-              step="1000"
+              type="text"
               value={formAmount}
               onChange={(e) => setFormAmount(e.target.value)}
-              placeholder="VD: 500000"
+              placeholder="VD: 1tr2 hoặc 1200000"
               className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm tabular-nums"
               required
             />
           </label>
+
+          {formType === "EXPENSE" ? (
+            <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-slate-800">
+                  <input
+                    type="checkbox"
+                    checked={formSplitEnabled}
+                    onChange={(e) => setFormSplitEnabled(e.target.checked)}
+                  />
+                  🤝 Chia tiền / Trả hộ bạn bè (Smart Split)
+                </label>
+                {formSplitEnabled ? (
+                  <select
+                    value={formSplitHeadcount}
+                    onChange={(e) =>
+                      setFormSplitHeadcount(Number.parseInt(e.target.value, 10))
+                    }
+                    className="rounded-lg border border-indigo-200 bg-white px-2 py-1 text-xs font-bold text-indigo-900"
+                  >
+                    {[2, 3, 4, 5, 6, 8, 10].map((n) => (
+                      <option key={n} value={n}>
+                        {n} người
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+              </div>
+
+              {formSplitEnabled && parsedFormAmount > 0 ? (
+                <p className="tabular-nums mt-2 text-xs font-medium text-indigo-800">
+                  Phần chi tiêu của mình:{" "}
+                  <strong>
+                    {formatMoney(
+                      Math.round(parsedFormAmount / formSplitHeadcount),
+                    )}
+                  </strong>{" "}
+                  · Đẩy sang Sổ ứng hộ (Phải thu):{" "}
+                  <strong>
+                    {formatMoney(
+                      parsedFormAmount -
+                        Math.round(parsedFormAmount / formSplitHeadcount),
+                    )}
+                  </strong>
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-2 gap-3">
             <label className="block text-xs font-semibold text-slate-700">
@@ -928,11 +1346,13 @@ export function DesktopTerminalView({
                 onChange={(e) => setFormAccountId(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs"
               >
-                {controller.accounts.map((acc) => (
-                  <option key={acc.id} value={acc.id}>
-                    {acc.name}
-                  </option>
-                ))}
+                {controller.accounts
+                  .filter((acc) => acc.id !== "acc-receivable")
+                  .map((acc) => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.name}
+                    </option>
+                  ))}
               </select>
             </label>
 
@@ -977,7 +1397,7 @@ export function DesktopTerminalView({
               type="text"
               value={formNote}
               onChange={(e) => setFormNote(e.target.value)}
-              placeholder="VD: Trích mua BTC, Ăn trưa..."
+              placeholder="VD: Trích mua BTC, Đi ăn lẩu nhóm..."
               className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
             />
           </label>
@@ -990,17 +1410,21 @@ export function DesktopTerminalView({
             >
               Hủy
             </Button>
-            <Button type="submit" variant="primary">
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={parsedFormAmount <= 0}
+            >
               Lưu giao dịch
             </Button>
           </div>
         </form>
       </ModalShell>
 
-      {/* MODAL 3: 1-TAP KHỚP SỐ DƯ THỰC TẾ (RECONCILE) */}
+      {/* MODAL 3: 1-TAP ZERO-GUILT RECONCILE */}
       <ModalShell
         open={reconcileAccount !== null}
-        title="Khớp số dư thực tế (Auto Reconcile)"
+        title="Khớp số dư 3 giây (Zero-Guilt Recovery)"
         onClose={() => setReconcileAccountId(null)}
       >
         {reconcileAccount ? (
@@ -1050,32 +1474,35 @@ export function DesktopTerminalView({
             </div>
 
             <label className="block text-xs font-semibold text-slate-700">
-              Số dư thực tế hiện có ({reconcileAccount.currency})
+              Số dư thực tế hiện có trên app ngân hàng ({reconcileAccount.currency})
               <input
                 autoFocus
-                type="number"
+                type="text"
                 value={reconcileInput}
                 onChange={(e) => setReconcileInput(e.target.value)}
+                placeholder="VD: 15tr8 hoặc 15800000"
                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm tabular-nums"
               />
             </label>
 
             <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 p-3 text-xs">
-              <p className="text-indigo-700">
-                Độ lệch sẽ sinh giao dịch <code>RECONCILE</code>:
-              </p>
-              <p
-                className={cn(
-                  "tabular-nums mt-0.5 text-base font-extrabold",
-                  reconcilePreviewDelta >= 0
-                    ? "text-emerald-700"
-                    : "text-rose-700",
-                )}
-              >
-                {formatSignedMoney(
-                  reconcilePreviewDelta,
-                  reconcileAccount.currency,
-                )}
+              <p className="leading-relaxed text-indigo-800">
+                Tạo nhanh 1 khoản điều chỉnh{" "}
+                <strong
+                  className={cn(
+                    "tabular-nums font-extrabold",
+                    reconcilePreviewDelta >= 0
+                      ? "text-emerald-700"
+                      : "text-rose-700",
+                  )}
+                >
+                  {formatSignedMoney(
+                    reconcilePreviewDelta,
+                    reconcileAccount.currency,
+                  )}
+                </strong>{" "}
+                vào mục Khớp số dư (<code>RECONCILE</code>) để cân bằng sổ
+                sách và bắt đầu lại từ hôm nay mà không làm sai lệch biểu đồ Thu/Chi nhé?
               </p>
             </div>
 
@@ -1088,7 +1515,7 @@ export function DesktopTerminalView({
                 Hủy
               </Button>
               <Button type="submit" variant="primary">
-                Xác nhận khớp số dư
+                OK, Khớp ngay
               </Button>
             </div>
           </form>
@@ -1104,9 +1531,11 @@ export function DesktopTerminalView({
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            const initial = Number.parseFloat(
-              newAccInitial.replace(/[^\d.-]/gu, ""),
-            );
+            const initial =
+              parseVietnameseAmount(newAccInitial, {
+                autoMultiplyThousandForBareSmallNumber: false,
+              })?.amount ??
+              Number.parseFloat(newAccInitial.replace(/[^\d.-]/gu, ""));
             controller.addAccount({
               name: newAccName,
               group: newAccGroup,
@@ -1170,8 +1599,7 @@ export function DesktopTerminalView({
           <label className="block text-xs font-semibold text-slate-700">
             Số dư ban đầu
             <input
-              type="number"
-              step="any"
+              type="text"
               value={newAccInitial}
               onChange={(e) => setNewAccInitial(e.target.value)}
               className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm tabular-nums"
@@ -1191,6 +1619,206 @@ export function DesktopTerminalView({
             </Button>
           </div>
         </form>
+      </ModalShell>
+
+      {/* MODAL 5: 30-SECOND ONBOARDING CALCULATOR */}
+      <ModalShell
+        open={onboardOpen}
+        title="Công thức 60 giây đầu tiên — Tính ngay hạn mức sống hôm nay"
+        onClose={() => setOnboardOpen(false)}
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const liquid =
+              parseVietnameseAmount(onboardLiquidInput, {
+                autoMultiplyThousandForBareSmallNumber: false,
+              })?.amount ?? 0;
+            const fixed =
+              parseVietnameseAmount(onboardFixedInput, {
+                autoMultiplyThousandForBareSmallNumber: false,
+              })?.amount ?? 0;
+            controller.applyQuickOnboarding({
+              liquidBalanceVnd: liquid,
+              fixedCommitmentsVnd: fixed,
+              replaceSampleData: onboardReplaceSample,
+            });
+            setOnboardOpen(false);
+          }}
+          className="space-y-3"
+        >
+          <label className="block text-xs font-semibold text-slate-700">
+            1. Hiện tại tổng tiền tiêu dùng trong thẻ/ví của bạn đang có khoảng bao nhiêu?
+            <input
+              autoFocus
+              type="text"
+              value={onboardLiquidInput}
+              onChange={(e) => setOnboardLiquidInput(e.target.value)}
+              placeholder="VD: 12tr, 15 củ..."
+              className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm tabular-nums"
+            />
+          </label>
+
+          <label className="block text-xs font-semibold text-slate-700">
+            2. Từ giờ đến cuối tháng còn khoản cố định nào bắt buộc phải giữ lại (tiền nhà, điện, tiết kiệm)?
+            <input
+              type="text"
+              value={onboardFixedInput}
+              onChange={(e) => setOnboardFixedInput(e.target.value)}
+              placeholder="VD: 4tr..."
+              className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm tabular-nums"
+            />
+          </label>
+
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600">
+            <input
+              type="checkbox"
+              checked={onboardReplaceSample}
+              onChange={(e) => setOnboardReplaceSample(e.target.checked)}
+            />
+            Bắt đầu sổ sạch từ số dư hôm nay (xóa các giao dịch mẫu ban đầu)
+          </label>
+
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3.5">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-indigo-700">
+              3. Kết quả tức thì
+            </p>
+            <p className="mt-1 text-sm font-bold leading-relaxed text-indigo-950">
+              {onboardingPreview.summaryMessage}
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setOnboardOpen(false)}
+            >
+              Đóng
+            </Button>
+            <Button type="submit" variant="primary">
+              Áp dụng làm La bàn ngay
+            </Button>
+          </div>
+        </form>
+      </ModalShell>
+
+      {/* MODAL 6: UNIVERSAL CSV / EXCEL / STATEMENT IMPORTER */}
+      <ModalShell
+        open={csvModalOpen}
+        title="Import từ Money Lover / Spendee / MISA / Sao kê CSV"
+        onClose={() => setCsvModalOpen(false)}
+      >
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <select
+              value={csvAccountId}
+              onChange={(e) => setCsvAccountId(e.target.value)}
+              className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold"
+            >
+              {controller.accounts
+                .filter((acc) => acc.id !== "acc-receivable")
+                .map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    Đổ vào ví: {acc.name}
+                  </option>
+                ))}
+            </select>
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => setCsvRawText(SAMPLE_CSV_PLACEHOLDER)}
+              >
+                Dán mẫu CSV
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="primary"
+                onClick={() => csvFileInputRef.current?.click()}
+              >
+                Chọn file .csv / .tsv
+              </Button>
+              <input
+                ref={csvFileInputRef}
+                type="file"
+                accept=".csv,.tsv,.txt,text/csv,text/plain"
+                className="hidden"
+                onChange={handleUploadCsvFile}
+              />
+            </div>
+          </div>
+
+          <textarea
+            rows={6}
+            value={csvRawText}
+            onChange={(e) => setCsvRawText(e.target.value)}
+            placeholder={SAMPLE_CSV_PLACEHOLDER}
+            className="w-full rounded-xl border border-slate-300 p-3 font-mono text-xs text-slate-800 focus:border-[#5b4fe9] focus:outline-none"
+          />
+
+          <div className="rounded-xl bg-slate-50 p-3">
+            <p className="text-[11px] font-bold uppercase text-slate-500">
+              Tự động nhận diện cột &amp; phân loại ({csvPreviewRows.length} dòng hợp lệ)
+            </p>
+            {csvPreviewRows.length === 0 ? (
+              <p className="mt-1 text-xs text-slate-500">
+                Hỗ trợ tự nhận diện dấu <code>,</code>, <code>;</code>, Tab và các tên cột tiếng Việt / tiếng Anh.
+              </p>
+            ) : (
+              <div className="mt-2 space-y-1">
+                {csvPreviewRows.slice(0, 5).map((row, idx) => (
+                  <div
+                    key={`${row.note}-${idx}`}
+                    className="flex items-center justify-between rounded-lg bg-white px-2.5 py-1.5 text-xs shadow-2xs"
+                  >
+                    <span className="truncate font-semibold text-slate-800">
+                      {CATEGORY_EMOJI[row.categoryId] ?? "🏷️"} {row.note}
+                    </span>
+                    <span
+                      className={cn(
+                        "tabular-nums shrink-0 font-bold",
+                        row.type === "INCOME"
+                          ? "text-emerald-600"
+                          : "text-rose-600",
+                      )}
+                    >
+                      {row.type === "INCOME" ? "+" : "-"}
+                      {formatMoney(row.amount)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setCsvModalOpen(false)}
+            >
+              Đóng
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={csvPreviewRows.length === 0}
+              onClick={() => {
+                const count = controller.importCsvRows(csvRawText, csvAccountId);
+                if (count > 0) {
+                  setCsvRawText("");
+                  setCsvModalOpen(false);
+                }
+              }}
+            >
+              Import {csvPreviewRows.length} giao dịch ngay
+            </Button>
+          </div>
+        </div>
       </ModalShell>
     </div>
   );

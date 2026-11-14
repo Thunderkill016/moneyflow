@@ -13,6 +13,16 @@ export const SYNC_STATUSES = ["SYNCED", "PENDING", "DELETED"] as const;
 export const SyncStatusSchema = z.enum(SYNC_STATUSES);
 export type SyncStatus = z.infer<typeof SyncStatusSchema>;
 
+export const SplitInfoSchema = z.object({
+  totalBill: z.number().finite().positive(),
+  headcount: z.number().int().min(2).max(100),
+  myShare: z.number().finite().positive(),
+  receivableAmount: z.number().finite().nonnegative(),
+  isSettled: z.boolean(),
+  settleTransferId: z.string().optional(),
+});
+export type SplitInfo = z.infer<typeof SplitInfoSchema>;
+
 export const TransactionSchema = z
   .object({
     id: z.string().min(1),
@@ -26,6 +36,7 @@ export const TransactionSchema = z
     syncStatus: SyncStatusSchema,
     updatedAt: z.number().int().nonnegative(),
     reconcileDelta: z.number().finite().optional(),
+    splitInfo: SplitInfoSchema.optional(),
   })
   .superRefine((tx, ctx) => {
     if (tx.type === "TRANSFER") {
@@ -58,6 +69,7 @@ export interface Transaction {
   updatedAt: number;
   /** Signed actual - calculated difference recorded on RECONCILE entries. */
   reconcileDelta?: number;
+  splitInfo?: SplitInfo;
 }
 
 export interface Category {
