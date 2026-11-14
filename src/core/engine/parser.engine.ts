@@ -549,7 +549,7 @@ export function parseBankNotificationSms(
     /(?:nd|nội\s*dung|noi\s*dung|diễn\s*giải|dien\s*giai)\s*[:=-]\s*([^\n.;]+)/iu,
   );
   const merchantMatch = workingText.match(
-    /(?:tại|tai|qua)\s+([A-ZÀ-Ỹa-zà-ỹ0-9][A-ZÀ-Ỹa-zà-ỹ0-9 &._-]{1,48})/u,
+    /(?:tại|tai|qua)\s+([\p{L}\p{N}][\p{L}\p{N} &._-]{1,48})/u,
   );
 
   const noteRaw =
