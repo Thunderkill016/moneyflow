@@ -259,10 +259,10 @@ const MUST_EXCLUDE = [
 
 const MUST_INCLUDE = [
   "src/app/api/health/route.ts",
-  "src/lib/build-identity.ts",
+  "src/shared/build-security.ts",
   "scripts/deploy-prod.mjs",
   "scripts/neon-poc/prod-export.mjs",
-  "docs/operations/production-runbook.md",
+  "README.md",
   "package.json",
   "next.config.ts",
   ".env.example",

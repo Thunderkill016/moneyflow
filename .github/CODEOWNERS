@@ -6,11 +6,6 @@
 # Security-sensitive repository controls.
 /.github/ @Thunderkill016
 /SECURITY.md @Thunderkill016
-/AGENTS.md @Thunderkill016
-/CLAUDE.md @Thunderkill016
-/ARCHITECTURE.md @Thunderkill016
-/docs/product/PRINCIPLES.md @Thunderkill016
-/docs/MVP_DEFINITION.md @Thunderkill016
 /next.config.ts @Thunderkill016
 /scripts/ @Thunderkill016
 /src/app/(auth)/ @Thunderkill016

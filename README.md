@@ -1,141 +1,69 @@
-# MoneyFlow
+# MoneyFlow — Tài chính cá nhân & Tài sản ròng
 
-MoneyFlow is a Vietnamese personal-finance web product built around a trustworthy user-owned ledger. The released MVP is manual/import-assisted; the accepted long-term direction is to reduce maintenance by acquiring already-digital activity safely instead of requiring permanent retyping.
+Ứng dụng quản lý tài chính cá nhân **Local-First (0ms offline)** và theo dõi **Tài sản ròng (Net Worth)**, xây dựng theo kiến trúc **Modular Clean Architecture** tách bạch hoàn toàn lõi tài chính khỏi giao diện và cơ sở dữ liệu.
 
-Bank/Open API sync, native mobile acquisition, wealth, household finance and AI mutation are **not shipped** unless merged implementation evidence proves them. Manual capture remains a first-class fallback for cash, corrections and missing/off-system events.
+---
 
-## Current work and release status
-
-MoneyFlow has a functional MVP but is **not public-beta ready**.
-
-For non-trivial work, start with:
-
-```bash
-npm run agent:doctor -- --json
-```
-
-Repository responsibilities are deliberately separated:
-
-- **GitHub Issues/PRs** — human backlog, current task status, review and owner decisions.
-- **[Work packets](docs/plans/README.md)** — scoped specification, risks, permissions and evidence when the change class requires one; they are not a queue or authority selector.
-- **[PR memory index](docs/research/PR_MEMORY_LOG.md)** — bounded per-PR provenance, loaded only when history is needed.
-- **Code, tests and migrations** — implemented product truth.
-
-Do not infer current work from a filename, date, newest document, open PR or chat summary.
-
-## What MoneyFlow does today
-
-- Explicit `demo` mode with browser-local exploration data.
-- Explicit `authenticated` mode on a pluggable backend: `MF_BACKEND_PROVIDER` selects Supabase Auth + PostgreSQL/RLS or managed Neon Auth + Neon Data API/RLS. Production currently runs `neon`.
-- Multiple accounts such as cash, bank, e-wallet, credit and savings representations.
-- Income, expense and balanced internal transfers.
-- Edit, soft delete and recovery paths.
-- Account balances, register/history and reconciliation paths.
-- Category budgets, recurring commitments/income and savings goals.
-- Weekly, monthly and yearly reporting.
-- Controlled import/share capture and CSV export.
-- Complete versioned account archive at `/settings/backup`, separate from scoped/report export.
-- Responsive light/dark web UI.
-
-The implementation and tests always outrank this summary.
-
-## Long-term acquisition direction
+## Kiến trúc hệ thống (Modular Clean Architecture)
 
 ```text
-bank / provider / statement / share / device-assisted / manual source
-  -> source evidence + provenance
-  -> normalized candidate
-  -> duplicate / transfer / rule decision
-  -> review or bounded approved automation
-  -> atomic ledger fact
-  -> clearing / reconciliation / correction
+src/
+├── core/                         # Tầng lõi: Pure TypeScript + Zod (không phụ thuộc React/Next/UI)
+│   ├── schema/
+│   │   ├── account.schema.ts     # 3 nhóm ví: LIQUID | INVESTMENT | DEBT & 4 tiền tệ (VND/USD/BTC/XAU)
+│   │   ├── transaction.schema.ts # 4 trạng thái: EXPENSE | INCOME | TRANSFER | RECONCILE
+│   │   └── budget.schema.ts      # Cấu hình Safe-to-Spend & định mức tiết kiệm
+│   ├── engine/
+│   │   ├── ledger.engine.ts      # Tính số dư ví, chuyển khoản nội bộ/đầu tư & khớp lệch số dư
+│   │   ├── cashflow.engine.ts    # Tính Safe-to-Spend, Runway, Savings Rate % & Heatmap chi tiêu
+│   │   └── parser.engine.ts      # Bóc tách chuỗi nhập nhanh tiếng Việt ("cf 35k, đổ xăng 70k")
+│   └── storage/
+│       ├── db.local.ts           # IndexedDB + localStorage cache 0ms & Xuất/Nhập Backup JSON
+│       └── sync.service.ts       # Theo dõi trạng thái đồng bộ & đánh dấu hàng đợi PENDING/DELETED
+│
+├── features/                     # Tầng nghiệp vụ Headless (1 Controller Hook cho nhiều giao diện)
+│   ├── quick-capture/            # Numpad token helpers & command parser helpers
+│   ├── transactions/             # useTransactionController(): trạng thái dùng chung, lọc & sửa hàng loạt
+│   ├── accounts-wealth/          # Nhóm tài sản LIQUID / INVESTMENT / DEBT
+│   └── analytics/                # Highlights dòng tiền & tỷ lệ tích lũy
+│
+├── views/                        # Tầng giao diện bất đối xứng (Headless UI -> 2 màn hình chuyên biệt)
+│   ├── desktop/                  # <DesktopTerminalView /> (>= 768px): Bento Grid 3 cột, Bảng dữ liệu, Cmd/Ctrl+K
+│   └── mobile/                   # <MobileCaptureView /> (< 768px): Numpad 000 cố định đáy & 8 nút 1 chạm
+│
+├── shared/                       # Design system UI, format tiền tệ VND/Crypto & security headers
+└── app/                          # Next.js App Router (/, /dashboard, /api/health, PWA manifest)
+
+mobile/                           # Ứng dụng Flutter Mobile (Material 3) & Android tests
+supabase/ & db/                   # Lược đồ PostgreSQL, Supabase migrations & pgTAP RLS checks
 ```
 
-Provider connectivity is read-only first and optional. MoneyFlow remains useful when a provider is unavailable, consent expires or a source cannot be connected.
+---
 
-## Financial and trust invariants
+## Điểm cốt lõi trong mô hình dữ liệu 4 trạng thái
 
-- VND is stored as integer đồng; never floating-point money.
-- Internal transfers are equal/opposite movements and never count as income or expense.
-- Missing source coverage, planning data, balances, dates, commitments or income are never guessed.
-- Destructive ledger actions use recoverable/soft-delete behavior where required.
-- Authenticated user-owned data is tenant-isolated through PostgreSQL/RLS.
-- Demo and authenticated stores are explicit and never presented as the same source of truth.
-- Source/provider evidence is validated through the normal financial path; adapters do not silently create a second ledger.
-- Full backup/restore is separate from scoped export.
+1. **Chuyển khoản & Đầu tư (`TRANSFER`):** Chuyển tiền từ ví thanh khoản (`LIQUID`) sang ví đầu tư (`INVESTMENT` — Vàng, BTC/USDT, Chứng khoán, Tiết kiệm) sẽ tự động chuyển dịch số dư và ghi nhận vào **Tỷ lệ Tích lũy (Savings Rate)** mà **không làm phình thống kê Chi tiêu**.
+2. **Khớp số dư thực tế 1 chạm (`RECONCILE`):** Tính phần chênh lệch `delta = Số dư thực tế - Số dư tính toán` và tạo giao dịch điều chỉnh cân bằng tức thì mà không làm méo báo cáo thu/chi tháng.
+3. **Bóc tách nhập nhanh tiếng Việt:** Hiểu các định dạng `35k`, `1tr5`, `2.5m`, `120.000`, phân tách nhiều giao dịch trong một dòng lệnh qua dấu `,` hoặc `;`.
 
-## Runtime modes
+---
 
-`NEXT_PUBLIC_APP_MODE` is explicit:
+## Kiểm thử & Phát triển cục bộ
 
-- `authenticated` — managed auth (Neon Auth in production; Supabase Auth when `MF_BACKEND_PROVIDER=supabase`) + PostgreSQL/RLS.
-- `demo` — browser-local exploration data.
-
-Missing credentials never silently switch the application into demo mode.
-
-## Run locally
+### Web (Next.js + Pure Core Engine)
 
 ```bash
-npm install
-cp .env.example .env.local
-# Fill documented local values in .env.local
-npm run dev
+npm ci
+npm run verify:fast   # Hygiene, Architecture Boundaries, Workflow Pins, Lint, TypeScript, Core Tests
+npm run build         # Production Next.js build
+npm run dev           # Khởi chạy ở http://localhost:3000
 ```
 
-Configuration/provider requirements are owned by [docs/configuration.md](docs/configuration.md). Production values belong in provider settings, never committed source files.
-
-## Quality checks
-
-Common checks include:
+### Mobile (Flutter)
 
 ```bash
-npm run check:knowledge
-npm run test:ci-policy
-npm run check:deployment-env
-npm run check:architecture
-npm run check:css-ownership
-npm run lint
-npm run typecheck
-npm run test
-npm run build
+cd mobile
+flutter pub get
+flutter analyze --no-pub
+flutter test --no-pub
 ```
-
-Boundary-specific verification includes database/RLS, browser/e2e and responsive UI audits when selected by policy. A build does not prove RLS, browser usability, provider configuration, production behavior or physical-device behavior.
-
-## Authority route
-
-Start with [`AGENTS.md`](AGENTS.md) and [`docs/context/README.md`](docs/context/README.md).
-
-| Question | Authority |
-|---|---|
-| Current task scope/status | explicit owner request + GitHub issue/PR |
-| Implemented product truth | current code, tests and migrations |
-| Product identity and principles | [docs/product/PRINCIPLES.md](docs/product/PRINCIPLES.md) |
-| Long-term product strategy | [docs/product/PRODUCT_STRATEGY.md](docs/product/PRODUCT_STRATEGY.md) |
-| Ecosystem structure/boundaries | [docs/product/ECOSYSTEM_STRATEGY.md](docs/product/ECOSYSTEM_STRATEGY.md) |
-| Product metrics and stage gates | [docs/product/PRODUCT_METRICS.md](docs/product/PRODUCT_METRICS.md) |
-| Released MVP capability reference | `docs/MVP_DEFINITION.md` |
-| Architecture | [ARCHITECTURE.md](ARCHITECTURE.md) |
-| Change classes and gates | [docs/engineering/RISK_PROPORTIONAL_DELIVERY.md](docs/engineering/RISK_PROPORTIONAL_DELIVERY.md) |
-| Permission/handoff rules | [docs/engineering/AGENT_OPERATING_MODEL.md](docs/engineering/AGENT_OPERATING_MODEL.md) |
-| Context/research routing | `docs/context/README.md` |
-| Work-packet convention | `docs/plans/README.md` |
-| App/deployment configuration | `docs/configuration.md` |
-| External reference repositories | `docs/research/MONEYFLOW_REFERENCE_REPO_ATLAS_2026.md` |
-| PR provenance | `docs/research/PR_MEMORY_LOG.md` |
-
-`PRINCIPLES.md` remains product law. Strategy, ecosystem and metrics documents interpret that law and do not grant implementation permission. Historical research, completed packets and old issues are evidence, not permission to restart work.
-
-## Change workflow
-
-1. Read the explicit task/issue/PR, affected code/tests and `docs/context/README.md`.
-2. Create/use a focused non-main branch.
-3. Run `npm run agent:doctor -- --json` and follow the risk-selected gates.
-4. Create a full work packet from `docs/templates/FEATURE_WORK_PACKET.md` when the change class requires it.
-5. Implement the smallest coherent change; avoid drive-by refactors.
-6. Update the spec before changing requirements.
-7. Create the mandatory per-PR provenance record.
-8. Require exact-head checks appropriate to the affected boundary.
-9. Human owner decides merge, provider writes, deployment and public-beta acceptance.
-
-Do not push feature/fix commits directly to `main`, force-push shared history, weaken required checks, or treat a long-term roadmap item as runtime authorization.

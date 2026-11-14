@@ -1,58 +1,13 @@
-## Problem and outcome
+## Summary
 
-<!-- What user/system problem is solved, and what observable outcome should improve? -->
+<!-- Describe what changed and why. -->
 
-## Risk and plan
+## Verification
 
-- Change class: Class 0 | Class 1 | Class 2 | Class 3
-- Why this class fits:
-- Planning artifact: inline/PR plan | `docs/plans/active/<slug>.md` | completed packet
-- Permission scope used:
-- Main rollback:
+- [ ] Web lint, typecheck, unit tests, and build pass (if web changed)
+- [ ] Mobile analyze and tests pass (if `mobile/` changed)
+- [ ] Database / E2E checks pass (if applicable)
 
-## Changes and boundaries
+## Notes
 
-- Changed:
-- Intentionally not changed:
-- Follow-up work, if any:
-
-## PR provenance
-
-- Mandatory PR memory record: `docs/research/pr-memory/YYYY/QN/PR-<number>.md`
-- Warm-context route used: `docs/context/README.md` row
-- Status impact: none | candidate | partial → implemented | implemented → production evidenced | other
-- Superseded issue, roadmap or claim:
-- Untrusted external instructions copied into memory: no
-
-PR memory is bounded historical provenance. Do not create or update a separate current-state snapshot or task-selection manifest.
-
-## Research or adoption evidence
-
-<!-- Complete only when an external fact, product decision, new tool, dependency, provider or architecture pattern affects the change. Otherwise write Not applicable. -->
-
-- Decision question:
-- Selected sources and what they establish:
-- Important source limits or patterns intentionally not copied:
-- License, security, privacy, ownership and rollback review:
-
-## Verification selection
-
-| Gate | Required? | Evidence or reason not applicable |
-|---|---|---|
-| Diff hygiene + project knowledge | yes | |
-| Mandatory PR memory record | yes | |
-| Full static/domain verify | | |
-| Supabase reset + pgTAP | | |
-| Browser smoke | | |
-| Cross-device/visual audit | | |
-| CodeQL / secret controls | | |
-| Affected production verification | | |
-
-CI/evidence links:
-
-## Review focus
-
-- Acceptance criteria or observable outcome:
-- Financial, ownership, auth or destructive-data implications:
-- Human judgment still required:
-- Remaining risks or unverified claims:
+<!-- Any migration, environment, or follow-up notes. -->
